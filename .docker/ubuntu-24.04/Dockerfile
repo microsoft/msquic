@@ -1,73 +1,73 @@
-# Stage 1: Base image                                                                                                                                                                                                                                                                                                                                    
-FROM ubuntu:24.04 AS base                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                         
-LABEL org.opencontainers.image.source https://github.com/microsoft/msquic                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                         
-ENV DEBIAN_FRONTEND=noninteractive                                                                                                                                                                                                                                                                                                                       
-                                                                                                                                                                                                                                                                                                                                                         
-SHELL ["/bin/bash", "-c"]                                                                                                                                                                                                                                                                                                                                
-                                                                                                                                                                                                                                                                                                                                                         
-RUN apt-get update && apt-get install --no-install-recommends -y \                                                                                                                                                                                                                                                                                       
-    apt-transport-https \                                                                                                                                                                                                                                                                                                                                
-    ca-certificates \                                                                                                                                                                                                                                                                                                                                    
-    gnupg \                                                                                                                                                                                                                                                                                                                                              
-    software-properties-common \                                                                                                                                                                                                                                                                                                                         
-    wget && \                                                                                                                                                                                                                                                                                                                                            
-    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \                                                                                                                                                                                             
-    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \                                                                                                                                                                                                                                                                             
-    apt-add-repository ppa:lttng/stable-2.13 && \                                                                                                                                                                                                                                                                                                        
-    apt-get update && \                                                                                                                                                                                                                                                                                                                                  
-    apt-get install -y tzdata \                                                                                                                                                                                                                                                                                                                          
-    build-essential \                                                                                                                                                                                                                                                                                                                                    
-    cmake \                                                                                                                                                                                                                                                                                                                                              
-    clang \                                                                                                                                                                                                                                                                                                                                              
-    git \                                                                                                                                                                                                                                                                                                                                                
-    make \                                                                                                                                                                                                                                                                                                                                               
-    sudo \                                                                                                                                                                                                                                                                                                                                               
-    lttng-tools \                                                                                                                                                                                                                                                                                                                                        
-    perl \                                                                                                                                                                                                                                                                                                                                               
-    nasm \                                                                                                                                                                                                                                                                                                                                               
-    ruby \                                                                                                                                                                                                                                                                                                                                               
-    ruby-dev \                                                                                                                                                                                                                                                                                                                                           
-    rpm \                                                                                                                                                                                                                                                                                                                                                
-    cppcheck \                                                                                                                                                                                                                                                                                                                                           
-    clang-tidy \                                                                                                                                                                                                                                                                                                                                         
-    gdb \                                                                                                                                                                                                                                                                                                                                                
-    liblttng-ust-dev \                                                                                                                                                                                                                                                                                                                                   
-    libssl-dev \                                                                                                                                                                                                                                                                                                                                         
-    libnuma-dev \                                                                                                                                                                                                                                                                                                                                        
-    && rm -rf /var/lib/apt/lists/*                                                                                                                                                                                                                                                                                                                       
-                                                                                                                                                                                                                                                                                                                                                         
-RUN gem install fpm                                                                                                                                                                                                                                                                                                                                      
-RUN apt-get update -y && apt-get install curl                                                                                                                                                                                                                                                                                                            
-RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3ubuntu3_amd64.deb \                                                                                                                                                                                                                                                      
-    && dpkg -i ./libicu72_72.1-3ubuntu3_amd64.deb \                                                                                                                                                                                                                                                                                                      
-    && rm ./libicu72_72.1-3ubuntu3_amd64.deb \                                                                                                                                                                                                                                                                                                           
-    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \                                                                                                                                                                                                                        
-    sudo dpkg -i packages-microsoft-prod.deb && \                                                                                                                                                                                                                                                                                                        
-    sudo add-apt-repository universe && \                                                                                                                                                                                                                                                                                                                
-    sudo apt-get update -y && \                                                                                                                                                                                                                                                                                                                          
-    sudo apt-get install -y \                                                                                                                                                                                                                                                                                                                            
-        # INSTALL POWERSHELl                                                                                                                                                                                                                                                                                                                             
-        powershell \                                                                                                                                                                                                                                                                                                                                     
-    && rm -rf /var/lib/apt/lists/*                                                                                                                                                                                                                                                                                                                       
-                                                                                                                                                                                                                                                                                                                                                         
-RUN git config --global safe.directory '*'                                                                                                                                                                                                                                                                                                               
-                                                                                                                                                                                                                                                                                                                                                         
-# Stage 2: x86_64 build                                                                                                                                                                                                                                                                                                                                  
-FROM base AS xdp-build                                                                                                                                                                                                                                                                                                                                   
-                                                                                                                                                                                                                                                                                                                                                         
-RUN apt-get update -y && apt-get install --no-install-recommends -y \                                                                                                                                                                                                                                                                                    
-    libnl-3-dev \                                                                                                                                                                                                                                                                                                                                        
-    libnl-genl-3-dev \                                                                                                                                                                                                                                                                                                                                   
-    libnl-route-3-dev \                                                                                                                                                                                                                                                                                                                                  
-    zlib1g-dev \                                                                                                                                                                                                                                                                                                                                         
-    zlib1g \                                                                                                                                                                                                                                                                                                                                             
-    pkg-config \                                                                                                                                                                                                                                                                                                                                         
-    m4 \                                                                              
-    libpcap-dev \                                                                     
-    libelf-dev \                                                                      
-    libc6-dev-i386 \                                                                  
+# Stage 1: Base image
+FROM ubuntu:24.04 AS base
+
+LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+SHELL ["/bin/bash", "-c"]
+
+RUN apt-get update && apt-get install --no-install-recommends -y \
+    apt-transport-https \
+    ca-certificates \
+    gnupg \
+    software-properties-common \
+    wget && \
+    wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /etc/apt/trusted.gpg.d/kitware.gpg >/dev/null && \
+    apt-add-repository 'deb https://apt.kitware.com/ubuntu/ jammy main' && \
+    apt-add-repository ppa:lttng/stable-2.13 && \
+    apt-get update && \
+    apt-get install -y tzdata \
+    build-essential \
+    cmake \
+    clang \
+    git \
+    make \
+    sudo \
+    lttng-tools \
+    perl \
+    nasm \
+    ruby \
+    ruby-dev \
+    rpm \
+    cppcheck \
+    clang-tidy \
+    gdb \
+    liblttng-ust-dev \
+    libssl-dev \
+    libnuma-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN gem install fpm
+RUN apt-get update -y && apt-get install curl
+RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3ubuntu3_amd64.deb \
+    && dpkg -i ./libicu72_72.1-3ubuntu3_amd64.deb \
+    && rm ./libicu72_72.1-3ubuntu3_amd64.deb \
+    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+    sudo dpkg -i packages-microsoft-prod.deb && \
+    sudo add-apt-repository universe && \
+    sudo apt-get update -y && \
+    sudo apt-get install -y \
+        # INSTALL POWERSHELl
+        powershell \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN git config --global safe.directory '*'
+
+# Stage 2: x86_64 build
+FROM base AS xdp-build
+
+RUN apt-get update -y && apt-get install --no-install-recommends -y \
+    libnl-3-dev \
+    libnl-genl-3-dev \
+    libnl-route-3-dev \
+    zlib1g-dev \
+    zlib1g \
+    pkg-config \
+    m4 \
+    libpcap-dev \
+    libelf-dev \
+    libc6-dev-i386 \
     libxdp-dev \
     libbpf-dev \
     && rm -rf /var/lib/apt/lists/*
