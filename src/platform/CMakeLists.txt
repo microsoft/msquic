@@ -23,20 +23,13 @@ if("${CX_PLATFORM}" STREQUAL "windows")
         set(SOURCES ${SOURCES} datapath_raw.c datapath_raw_win.c datapath_raw_socket.c datapath_raw_socket_win.c datapath_raw_xdp_win.c)
     endif()
 else()
-    set(LINUX_XDP_ENABLED FALSE)
     set(SOURCES ${SOURCES} inline.c platform_posix.c storage_posix.c cgroup.c datapath_unix.c)
     if(CX_PLATFORM STREQUAL "linux" AND NOT CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
         set(SOURCES ${SOURCES} datapath_linux.c datapath_epoll.c)
-        if ((${UBUNTU_VERSION} STREQUAL "20.04") OR
-            (${CMAKE_TARGET_ARCHITECTURE} STREQUAL "arm64") OR
-            (${CMAKE_TARGET_ARCHITECTURE} STREQUAL "arm") OR
-            (${CMAKE_SYSTEM_PROCESSOR} STREQUAL "arm") OR
-            (ANDROID) OR
-            (QUIC_CARGO_BUILD))
-            set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw_dummy.c)
-        else()
-            set(LINUX_XDP_ENABLED TRUE)
+        if (QUIC_LINUX_XDP_ENABLED)
             set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw.c datapath_raw_linux.c datapath_raw_socket.c datapath_raw_socket_linux.c datapath_raw_xdp_linux.c)
+        else()
+            set(SOURCES ${SOURCES} datapath_xplat.c datapath_raw_dummy.c)
         endif()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
@@ -68,7 +61,7 @@ if("${CX_PLATFORM}" STREQUAL "windows")
         PUBLIC
         wbemuuid)
     target_link_libraries(platform PUBLIC winmm)
-elseif(LINUX_XDP_ENABLED)
+elseif(QUIC_LINUX_XDP_ENABLED)
     find_library(NL_LIB nl-3)
     find_library(NL_ROUTE_LIB nl-route-3)
     find_library(XDP_LIB libxdp.so)
@@ -118,7 +111,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
-elseif(LINUX_XDP_ENABLED)
+elseif(QUIC_LINUX_XDP_ENABLED)
     include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()

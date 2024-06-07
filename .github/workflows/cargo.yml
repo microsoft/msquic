@@ -21,11 +21,11 @@ jobs:
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+      uses: step-security/harden-runner@f086349bfa2bd1361f7909c78558e816508cdc10
       with:
         egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
