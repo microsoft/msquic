@@ -30,7 +30,17 @@ jobs:
       fail-fast: false
       matrix:
         version: ['20.04', '22.04', '24.04']
-        target: ['x86_64', 'arm']
+        target: ['x86_64', 'arm', 'cross']
+        exclude:
+          # cross is only for 24.04
+          - version: '24.04'
+            target: 'x86_64'
+          - version: '24.04'
+            target: 'arm'
+          - version: '22.04'
+            target: 'cross'
+          - version: '20.04'
+            target: 'cross'
 
     name: Build
     runs-on: ubuntu-latest
