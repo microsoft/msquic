@@ -2220,6 +2220,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+TEST(Basic, ConnectionPriority) {
+    TestLogger Logger("QuicTestConnectionPriority");
+    if (TestingKernelMode) {
+        GTEST_SKIP(); // TODO
+    } else {
+        QuicTestConnectionPriority();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {

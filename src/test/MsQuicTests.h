@@ -576,6 +576,10 @@ QuicTestStreamBlockUnblockConnFlowControl(
     );
 
 void
+QuicTestConnectionPriority(
+    );
+
+void
 QuicTestEcn(
     _In_ int Family
     );

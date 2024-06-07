@@ -3362,6 +3362,90 @@ QuicTestStreamAbortConnFlowControl(
     TEST_TRUE(Context.ClientStreamShutdownComplete.WaitTimeout(TestWaitTimeout));
 }
 
+struct ConnectionPriorityTestContext {
+    static const char* PriorityTag;
+    static const uint8_t NumSend;
+    uint32_t CurrentReceiveCount {0};
+    uint32_t WhenPriorityReceived {0};
+    CxPlatEvent AllReceivesComplete;
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        UNREFERENCED_PARAMETER(Stream);
+        auto TestContext = (ConnectionPriorityTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->CurrentReceiveCount++;
+            if (memcmp(Event->RECEIVE.Buffers[0].Buffer, PriorityTag, strlen(PriorityTag)) == 0) {
+                TestContext->WhenPriorityReceived = TestContext->CurrentReceiveCount;
+            }
+            if (TestContext->CurrentReceiveCount == NumSend) {
+                TestContext->AllReceivesComplete.Set();
+            }
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, StreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+const char* ConnectionPriorityTestContext::PriorityTag = "priority";
+const uint8_t ConnectionPriorityTestContext::NumSend = 100;
+
+void QuicTestConnectionPriority()
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(3), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    ConnectionPriorityTestContext Context;
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    uint8_t RawBuffer[100];
+    uint8_t PriorityRawBuffer[100];
+    CxPlatCopyMemory(PriorityRawBuffer, ConnectionPriorityTestContext::PriorityTag, strlen(ConnectionPriorityTestContext::PriorityTag));
+    QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+    QUIC_BUFFER PriorityBuffer { sizeof(PriorityRawBuffer), PriorityRawBuffer };
+
+    MsQuicStream* Streams[ConnectionPriorityTestContext::NumSend-1] = {0};
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend-1; ++i) {
+        Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
+    }
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend-1; ++i) {
+        TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    }
+    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+    TEST_QUIC_SUCCEEDED(Stream.Send(&PriorityBuffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | (QUIC_SEND_FLAGS)(QUIC_STREAM_START_FLAG_PRIORITY_WORK)));
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection.HandshakeComplete);
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+    // Assuming all the send operation is serialized in the Connection FIFO queue
+    // However the prioritized Send should be processed earlier
+    TEST_TRUE(Context.WhenPriorityReceived < ConnectionPriorityTestContext::NumSend);
+
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend-1; ++i) {
+        delete Streams[i];
+    }
+}
+
 struct StreamBlockUnblockConnFlowControl {
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ClientStreamSendComplete;
