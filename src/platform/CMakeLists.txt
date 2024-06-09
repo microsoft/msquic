@@ -101,9 +101,9 @@ elseif(QUIC_LINUX_XDP_ENABLED)
 
     target_link_libraries(platform PUBLIC ${XDP_LIB} ${BPF_LIB} ${NL_LIB} ${NL_ROUTE_LIB} ${ELF_LIB} ${Z_LIB} ${ZSTD_LIB})
 elseif(QUIC_LINUX_DPDK_ENABLED)
-    find_library(DPDK_LIBRARIES NAMES rte_eal rte_mempool rte_ring rte_ethdev HINTS /usr/local/lib /usr/lib)
-    target_include_directories(platform PRIVATE /usr/include/dpdk)
-    target_link_libraries(platform ${DPDK_LIBRARIES})
+    find_library(DPDK_LIBRARIES NAMES rte_eal rte_mempool rte_ring rte_ethdev)
+    target_include_directories(platform PRIVATE /usr/include/dpdk /usr/include/x86_64-linux-gnu/dpdk)
+    target_link_libraries(platform PUBLIC ${DPDK_LIBRARIES})
 endif()
 
 target_link_libraries(platform PUBLIC inc)
@@ -117,7 +117,7 @@ if ("${CX_PLATFORM}" STREQUAL "windows")
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
-elseif(QUIC_LINUX_XDP_ENABLED)
+elseif(QUIC_LINUX_XDP_ENABLED OR QUIC_LINUX_DPDK_ENABLED)
     include_directories(/usr/include/libnl3)
     target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()

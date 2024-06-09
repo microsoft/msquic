@@ -530,17 +530,19 @@ if ($IsLinux) {
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
 
-        # XDP dependencies
-        if ($UseXdp) {
-            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-            sudo apt-get update -y
-            sudo apt-get -y install libxdp-dev libbpf-dev
-            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
-        }
-        if ($UseDpdk) {
-            # for ubuntu 22.04
-            sudo apt-get install -y meson ninja-build pkg-config libnuma-dev libpcap-dev libelf-dev libjansson-dev python3-pyelftools libbsd-dev libmnl-dev libbpf-dev
+        if ($UseXdp -or $UseDpdk) {
+            sudo apt-get install -y libnl-3-dev libnl-genl-3-dev libnl-route-3-dev
+            if ($UseXdp) {
+                sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+                sudo apt-get -y install libxdp-dev libbpf-dev
+                sudo apt-get -y install zlib1g-dev zlib1g m4 clang
+            }
+            if ($UseDpdk) {
+                # for ubuntu 22.04
+                sudo apt-get install -y libdpdk-dev
+            }
         }
     }
 
@@ -550,16 +552,18 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
-        if ($UseXdp) {
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-            sudo apt-get update -y
-            sudo apt-get install -y libxdp1 libbpf1
+        if ($UseXdp -or $UseDpdk) {
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-            sudo apt-get install -y iproute2 iptables
-            Install-DuoNic
-        }
-        if ($UseDpdk) {
-            sudo apt-get install -y libnuma1 libpcap0.8 libelf1 libjansson4 libbsd0 libmnl0 libbpf0
+            if ($UseXdp) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+                sudo apt-get install -y libxdp1 libbpf1
+                sudo apt-get install -y iproute2 iptables
+                Install-DuoNic
+            }
+            if ($UseDpdk) {
+                sudo apt-get install -y libdpdk-dev
+            }
         }
 
         # Enable core dumps for the system.
