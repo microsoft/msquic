@@ -287,18 +287,31 @@ function Start-RemoteServerPassive {
         $headers = @{
             "secret" = "$SyncerSecret"
         }
-        $url = "https://netperfapiwebapp.azurewebsites.net/getkeyvalue?key=$RunId"
-        $Response = Invoke-WebRequest -Uri $url -Headers $headers
+        $url = "https://netperfapiwebapp.azurewebsites.net"
+        $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
         if ($Response.StatusCode -eq 404) {
             $state = [pscustomobject]@{
                 "SeqNum" = 0
-                "Commands" = @()
+                "Commands" = @($Command)
             }
             $StateJson = $state | ConvertTo-Json
-            $url = "https://netperfapiwebapp.azurewebsites.net/setkeyvalue?key=$RunId&value=$StateJson"
-            
+            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+            if ($Response.StatusCode -ne 200) {
+                Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
+                throw "Failed to set the key value!"
+            }
         }
+        $CurrState = $Response.Content | ConvertFrom-Json
+        $CurrState.Commands += $Command
+        $StateJson = $CurrState | ConvertTo-Json
+        $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+        if ($Response.StatusCode -ne 200) {
+            Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
+            throw "Failed to set the key value!"
+        }
+        return
     }
+    
     Invoke-Command -Session $Session -ScriptBlock {
         if (!(Test-Path $Using:RemoteStateDir)) {
             New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
