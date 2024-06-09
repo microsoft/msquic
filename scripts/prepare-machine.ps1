@@ -71,6 +71,9 @@ param (
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseDpdk,
+
+    [Parameter(Mandatory = $false)]
     [switch]$ForceXdpInstall,
 
     [Parameter(Mandatory = $false)]
@@ -535,6 +538,10 @@ if ($IsLinux) {
             sudo apt-get -y install libxdp-dev libbpf-dev
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
+        if ($UseDpdk) {
+            # for ubuntu 22.04
+            sudo apt-get install -y meson ninja-build pkg-config libnuma-dev libpcap-dev libelf-dev libjansson-dev python3-pyelftools libbsd-dev libmnl-dev libbpf-dev
+        }
     }
 
     if ($ForTest) {
@@ -550,6 +557,9 @@ if ($IsLinux) {
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
             sudo apt-get install -y iproute2 iptables
             Install-DuoNic
+        }
+        if ($UseDpdk) {
+            sudo apt-get install -y libnuma1 libpcap0.8 libelf1 libjansson4 libbsd0 libmnl0 libbpf0
         }
 
         # Enable core dumps for the system.
