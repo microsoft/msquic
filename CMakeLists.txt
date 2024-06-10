@@ -709,6 +709,7 @@ if(QUIC_CODE_CHECK)
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
+            -misc-include-cleaner
             -misc-no-recursion # do you really need recursion?
             -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
