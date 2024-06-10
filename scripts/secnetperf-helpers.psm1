@@ -3,8 +3,6 @@
     Various helper functions for running secnetperf tests.
 #>
 
-Using module ..\..\netperf\p2p-common.psm1
-
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
