@@ -284,6 +284,7 @@ function Start-RemoteServer {
 function Start-RemoteServerPassive {
     param ($Session, $Command, $RemoteStateDir, $RunId, $SyncerSecret)
     if ($Session -eq "NOT_SUPPORTED") {
+        Write-Host "Command to start server: $Command"
         $headers = @{
             "secret" = "$SyncerSecret"
         }
@@ -311,7 +312,7 @@ function Start-RemoteServerPassive {
         }
         return
     }
-    
+
     Invoke-Command -Session $Session -ScriptBlock {
         if (!(Test-Path $Using:RemoteStateDir)) {
             New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
