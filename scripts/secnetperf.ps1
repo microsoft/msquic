@@ -77,7 +77,10 @@ param (
     [string]$RemotePowershellSupported = "TRUE",
 
     [Parameter(Mandatory = $false)]
-    [string]$RunId = "0"
+    [string]$RunId = "0",
+
+    [Parameter(Mandatory = $false)]
+    [string]$SyncerSecret = "0"
 )
 
 Set-StrictMode -Version "Latest"
@@ -316,7 +319,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 Write-Host "Setup complete! Running all tests"
 foreach ($testId in $allTests.Keys) {
     $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter $environment
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

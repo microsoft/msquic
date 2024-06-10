@@ -362,13 +362,34 @@ function Stop-RemoteServer {
 }
 
 function Stop-RemoteServerAsyncAwait {
-    param ($Session, $RemoteStateDir, $RemoteAddress)
+    param ($Session, $RemoteStateDir, $RemoteAddress, $RunId, $SyncerSecret)
     # Ping side-channel socket on 9999 to tell the app to die
     $Socket = New-Object System.Net.Sockets.UDPClient
     $BytesToSend = @(
         0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
         0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
     )
+    if ($Session -eq "NOT_SUPPORTED") {
+        for ($i = 0; $i -lt 30; $i++) {
+            $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
+            Start-Sleep -Seconds 8 | Out-Null
+            $headers = @{
+                "secret" = "$SyncerSecret"
+            }
+            $url = "https://netperfapiwebapp.azurewebsites.net"
+            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
+            if (!($Response.StatusCode -eq 200)) {
+                Write-GHError "[Stop-Remote-Passive] Failed to get the key value!"
+                throw "Failed to get the key value!"
+            }
+            $CurrState = $Response.Content | ConvertFrom-Json
+            if ($CurrState.SeqNum -eq $CurrState.Commands.Count) {
+                return
+            }
+        }
+        Write-GHError "[Stop-Remote-Passive] SeqNum less than Commands Count!"
+        throw "Unable to stop the remote server in time!"
+    }
     $done = $false
     $MaxSeqNum = 0
     for ($i = 0; $i -lt 30; $i++) {
@@ -578,7 +599,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
