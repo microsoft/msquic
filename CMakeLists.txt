@@ -709,6 +709,7 @@ if(QUIC_CODE_CHECK)
             -cppcoreguidelines-init-variables
             -cppcoreguidelines-macro-to-enum
             -cppcoreguidelines-narrowing-conversions
+            -google-readability-casting
             -google-readability-function-size
             -google-readability-todo
             -hicpp-function-size
