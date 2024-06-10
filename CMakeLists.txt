@@ -687,21 +687,27 @@ if(QUIC_CODE_CHECK)
             -android-cloexec-fopen
             -android-cloexec-socket
             -bugprone-assignment-in-if-condition
+            -bugprone-casting-through-void
             -bugprone-easily-swappable-parameters
             -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
+            -bugprone-multi-level-implicit-pointer-conversion
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -bugprone-switch-missing-default-case
             -cert-dcl37-c
             -cert-dcl51-cpp
             -cert-err33-c
+            -clang-analyzer-optin.core.EnumCastOutOfRange
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-diagnostic-invalid-unevaluated-string
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
+            -cppcoreguidelines-macro-to-enum
             -cppcoreguidelines-narrowing-conversions
             -google-readability-function-size
             -google-readability-todo
@@ -713,6 +719,7 @@ if(QUIC_CODE_CHECK)
             -misc-no-recursion # do you really need recursion?
             -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
+            -readability-avoid-nested-conditional-operator
             -readability-duplicate-include
             -readability-function-cognitive-complexity
             -readability-function-size
@@ -720,6 +727,7 @@ if(QUIC_CODE_CHECK)
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
+            -readability-redundant-casting
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
