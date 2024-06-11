@@ -576,7 +576,11 @@ QuicTestStreamBlockUnblockConnFlowControl(
     );
 
 void
-QuicTestConnectionPriority(
+QuicTestConnectionGetParamPriority(
+    );
+
+void
+QuicTestConnectionStreamStartSendPriority(
     );
 
 void

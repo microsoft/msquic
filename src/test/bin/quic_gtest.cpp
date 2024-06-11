@@ -2220,12 +2220,21 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
-TEST(Basic, ConnectionPriority) {
-    TestLogger Logger("QuicTestConnectionPriority");
+TEST(Basic, ConnectionGetParamPriority) {
+    TestLogger Logger("ConnectionGetParamPriority");
     if (TestingKernelMode) {
         GTEST_SKIP(); // TODO
     } else {
-        QuicTestConnectionPriority();
+        QuicTestConnectionGetParamPriority();
+    }
+}
+
+TEST(Basic, ConnectionStreamStartPriority) {
+    TestLogger Logger("ConnectionStreamStartPriority");
+    if (TestingKernelMode) {
+        GTEST_SKIP(); // TODO
+    } else {
+        QuicTestConnectionStreamStartSendPriority();
     }
 }
 
