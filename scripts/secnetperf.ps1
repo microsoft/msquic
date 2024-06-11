@@ -157,7 +157,7 @@ if ($RemotePowershellSupported -eq "TRUE") {
     Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-if (!($environment -eq "azure")) {
+if (!($environment -eq "azure") && !($Session -eq "NOT_SUPPORTED")) {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
     Cleanup-State $Session $RemoteDir
 }
@@ -177,26 +177,29 @@ if ($io -eq "wsk") {
     Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
 
-# Copy the artifacts to the peer.
-Write-Host "Copying files to peer"
-Invoke-Command -Session $Session -ScriptBlock {
-    if (Test-Path $Using:RemoteDir) {
-        Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
-    }
-    New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
-}
-Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
-Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
-Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
-# Create the logs directories on both machines.
-New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
-Invoke-Command -Session $Session -ScriptBlock {
-    New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
+if (!($Session -eq "NOT_SUPPORTED")) {
+    # Copy the artifacts to the peer.
+    Write-Host "Copying files to peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        if (Test-Path $Using:RemoteDir) {
+            Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
+        }
+        New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
+    }
+    Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
+    Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
+    Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+
+    # Create the logs directories on both machines.
+    New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+    Invoke-Command -Session $Session -ScriptBlock {
+        New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
+    }
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and $isWindows) {
+if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -270,14 +273,16 @@ if ($isWindows -and !($environment -eq "azure")) {
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
-# Configure the dump collection.
-Configure-DumpCollection $Session
+if (!($Session -eq "NOT_SUPPORTED")) {
+    # Configure the dump collection.
+    Configure-DumpCollection $Session
+}
 
 # Install any dependent drivers.
-if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
-if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
+if ($useXDP -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
+if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
-if (!$isWindows) {
+if (!$isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
@@ -350,7 +355,12 @@ Write-Host "Tests complete!"
 } finally {
 
     # Perform any necessary cleanup.
-    try { Cleanup-State $Session $RemoteDir } catch { }
+    try {
+        if ($Session -eq "NOT_SUPPORTED") {
+            throw "Cleanup not needed"
+        }
+        Cleanup-State $Session $RemoteDir
+     } catch { }
 
     try {
         if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {
