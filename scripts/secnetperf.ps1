@@ -159,6 +159,7 @@ if ($RemotePowershellSupported -eq "TRUE") {
 
 if (!($environment -eq "azure") && !($Session -eq "NOT_SUPPORTED")) {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
+    Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
     Cleanup-State $Session $RemoteDir
 }
 
