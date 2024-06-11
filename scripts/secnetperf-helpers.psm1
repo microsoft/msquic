@@ -662,15 +662,17 @@ function Invoke-Secnetperf {
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
     $remoteArtifactDir = "$RemoteDir/artifacts/logs/$artifactName"
     New-Item -ItemType Directory $artifactDir -ErrorAction Ignore | Out-Null
-    Invoke-Command -Session $Session -ScriptBlock {
-        New-Item -ItemType Directory $Using:remoteArtifactDir -ErrorAction Ignore | Out-Null
+    if (!($Session -eq "NOT_SUPPORTED")) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            New-Item -ItemType Directory $Using:remoteArtifactDir -ErrorAction Ignore | Out-Null
+        }
     }
 
     $clientOut = (Join-Path $artifactDir "client.console.log")
     $serverOut = (Join-Path $artifactDir "server.console.log")
 
     # Start logging on both sides, if configured.
-    if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and !($Session -eq "NOT_SUPPORTED")) {
         Invoke-Command -Session $Session -ScriptBlock {
             try { & "$Using:RemoteDir/scripts/log.ps1" -Cancel } catch {} # Cancel any previous logging
             & "$Using:RemoteDir/scripts/log.ps1" -Start -Profile $Using:LogProfile -ProfileInScriptDirectory
