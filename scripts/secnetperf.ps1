@@ -157,7 +157,7 @@ if ($RemotePowershellSupported -eq "TRUE") {
     Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-if (!($environment -eq "azure") && !($Session -eq "NOT_SUPPORTED")) {
+if (!($environment -eq "azure") -and !($Session -eq "NOT_SUPPORTED")) {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
     Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
     Write-Host "Session: $Session, $(!($Session -eq "NOT_SUPPORTED"))"
