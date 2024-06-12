@@ -165,6 +165,7 @@ QuicOperationEnqueuePriority(
 #endif
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     CxPlatListInsertTail(*OperQ->PriorityTail, &Oper->Link);
+    OperQ->PriorityTail = &Oper->Link.Flink;
     CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
@@ -185,6 +186,9 @@ QuicOperationEnqueueFront(
 #endif
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     CxPlatListInsertHead(&OperQ->List, &Oper->Link);
+    if (OperQ->PriorityTail == &OperQ->List.Flink) {
+        OperQ->PriorityTail = &Oper->Link.Flink;
+    }
     CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
@@ -210,7 +214,7 @@ QuicOperationDequeue(
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
-        if (*OperQ->PriorityTail == &Oper->Link) {
+        if (OperQ->PriorityTail == &Oper->Link.Flink) {
             OperQ->PriorityTail = &OperQ->List.Flink;
         }
     }
