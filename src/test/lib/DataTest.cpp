@@ -3452,6 +3452,8 @@ void QuicTestOperationPriority()
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
     MsQuicStream* Streams[OperationPriorityTestContext::NumSend] = {0};
+    // Insert GetParam in front of 100 StreamSend ops
+    // Validate by comparing SendTotalStreamBytes on the statistics
     {
         OperationPriorityTestContext Context;
         QUIC_STATISTICS_V2 BaseStat = {0};
@@ -3478,12 +3480,21 @@ void QuicTestOperationPriority()
         // if not prioritized, 300
         TEST_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
 
+        TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
+            Connection,
+            QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+            &StatSize,
+            &ActualStat));
+        TEST_NOT_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
+
         TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
             delete Streams[i];
         }
     }
 
+    // Insert StreamStart and StreamSend in front of 100 StreamSend ops
+    // Validate by whether the first processed StreamStart/Send are from specific ExpectedStream
     { // ooxxxxx...xxx
         OperationPriorityTestContext Context;
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
@@ -3506,6 +3517,8 @@ void QuicTestOperationPriority()
         }
     }
 
+    // Insert StreamStart in front of 100 StreamSend ops, but StreamSend is not
+    // Validate by whether the first processed StreamStart are from specific ExpectedStream, StreamSend is not
     { // oxxxx....xxxo
         OperationPriorityTestContext Context;
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
