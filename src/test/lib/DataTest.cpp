@@ -3382,7 +3382,7 @@ struct ConnectionPriorityTestContext {
         UNREFERENCED_PARAMETER(Stream);
         auto TestContext = (ConnectionPriorityTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_START_COMPLETE) {
-            if (TestContext->CurrentSendCount == 0) {
+            if (TestContext->CurrentStartCount++ == 0) {
                 // pseudo blocking operation.
                 // Needed for GetParam based test
                 CxPlatSleep(1000);
@@ -3403,13 +3403,11 @@ struct ConnectionPriorityTestContext {
                 // initial dummy stream start to block this thread
                 TestContext->OperationQueuedComplete.WaitTimeout(TestWaitTimeout);
             } else if (TestContext->CurrentStartCount == 1) {
-                fprintf(stderr, "START Stream %p started, ExpectedStream %p\n", Stream, TestContext->ExpectedStream);
                 TestContext->TestSucceeded = TestContext->ExpectedStream == Stream;
             }
             TestContext->CurrentStartCount++;
         } else if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
             if (TestContext->CurrentSendCount == 1) {
-                fprintf(stderr, "SEND  Stream %p send, ExpectedStream %p\n", Stream, TestContext->ExpectedStream);
                 TestContext->TestSucceeded = TestContext->TestSucceeded && (TestContext->ExpectedStream == Stream);
             } else if (TestContext->CurrentSendCount == TestContext->NumSend) {
                 TestContext->AllReceivesComplete.Set();
@@ -3439,8 +3437,7 @@ void QuicTestConnectionGetParamPriority()
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    ConnectionPriorityTestContext Context;
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback, &Context);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
     QuicAddr ServerLocalAddr;
@@ -3463,13 +3460,12 @@ void QuicTestConnectionGetParamPriority()
 
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+    ConnectionPriorityTestContext Context;
     MsQuicStream* Streams[ConnectionPriorityTestContext::NumSend] = {0};
     for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
         Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientGetParamStreamCallback, &Context);
         TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
         // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
-        // TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
-        // TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
         TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
     }
 
@@ -3499,8 +3495,7 @@ void QuicTestConnectionStreamStartSendPriority()
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    ConnectionPriorityTestContext Context;
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback, &Context);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
     QuicAddr ServerLocalAddr;
@@ -3515,25 +3510,49 @@ void QuicTestConnectionStreamStartSendPriority()
 
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
-    MsQuicStream* Streams[ConnectionPriorityTestContext::NumSend] = {0};
-    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-        Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
-        // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
-        TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
-        TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+    { // ooxxxxx...xxx
+        ConnectionPriorityTestContext Context;
+        MsQuicStream* Streams[ConnectionPriorityTestContext::NumSend] = {0};
+        for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+            Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+            TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
+            // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
+            TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        }
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        Context.ExpectedStream = &Stream;
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+        Context.OperationQueuedComplete.Set();
+
+        TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Context.TestSucceeded);
+        for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+            delete Streams[i];
+        }
     }
 
-    MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-    Context.ExpectedStream = &Stream;
-    TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-    TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-    Context.OperationQueuedComplete.Set();
+    { // oxxxx....xxxo
+        ConnectionPriorityTestContext Context;
+        MsQuicStream* Streams[ConnectionPriorityTestContext::NumSend] = {0};
+        for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+            Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+            TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
+            TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+        }
 
-    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Context.TestSucceeded);
-    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-        delete Streams[i];
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        Context.ExpectedStream = &Stream;
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+        Context.OperationQueuedComplete.Set();
+
+        TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+        TEST_FALSE(Context.TestSucceeded);
+        for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+            delete Streams[i];
+        }
     }
 }
 
