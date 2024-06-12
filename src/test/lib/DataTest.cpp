@@ -3430,7 +3430,7 @@ void QuicTestOperationPriority()
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(3), ServerSelfSignedCredConfig);
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(OperationPriorityTestContext::NumSend), ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
@@ -3465,7 +3465,7 @@ void QuicTestOperationPriority()
             &BaseStat));
 
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
-            Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientGetParamStreamCallback, &Context);
+            Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientGetParamStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
             // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
@@ -3477,7 +3477,6 @@ void QuicTestOperationPriority()
             QUIC_PARAM_CONN_STATISTICS_V2_PLAT | QUIC_PARAM_HIGH_PRIORITY,
             &StatSize,
             &ActualStat));
-        // if not prioritized, 300
         TEST_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
 
         TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
@@ -3498,7 +3497,7 @@ void QuicTestOperationPriority()
     { // ooxxxxx...xxx
         OperationPriorityTestContext Context;
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
-            Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+            Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
             // Queueing 100 StreamSendFlush operations during the Connection thread is blocked
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
@@ -3522,7 +3521,7 @@ void QuicTestOperationPriority()
     { // oxxxx....xxxo
         OperationPriorityTestContext Context;
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
-            Streams[i] = new MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+            Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
         }
