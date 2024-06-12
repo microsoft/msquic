@@ -290,21 +290,18 @@ function Start-RemoteServerPassive {
         try {
             $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
         } catch {
-            if ($Response.StatusCode -eq 404) {
-                Write-Host "State not existing, creating it now."
-                $state = [pscustomobject]@{
-                    "SeqNum" = 0
-                    "Commands" = @($Command)
-                }
-                $StateJson = $state | ConvertTo-Json
-                $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
-                if ($Response.StatusCode -ne 200) {
-                    Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-                    throw "Failed to set the key value!"
-                }
-                return
+            Write-Host "Unable to fetch state. Creating a new one now."
+            $state = [pscustomobject]@{
+                "SeqNum" = 0
+                "Commands" = @($Command)
             }
-            throw "Error code not 404."
+            $StateJson = $state | ConvertTo-Json
+            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+            if ($Response.StatusCode -ne 200) {
+                Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
+                throw "Failed to set the key value!"
+            }
+            return
         }
         $CurrState = $Response.Content | ConvertFrom-Json
         $CurrState.Commands += $Command
