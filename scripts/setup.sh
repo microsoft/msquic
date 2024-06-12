@@ -14,6 +14,10 @@ echo "bind C-t send-prefix" >> ~/.tmux.conf.local
 echo "bind c new-window -c '#{pane_current_path}'" >> ~/.tmux.conf.local
 echo "set -g status-position top" >> ~/.tmux.conf.local
 
+sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
+sudo wget https://github.com/brendangregg/FlameGraph/blob/master/flamegraph.pl -O /usr/bin/flamegraph.pl
+sudo chmod +x /usr/bin/stackcollapse-perf.pl /usr/bin/flamegraph.pl
+
 # install VScode
 wget -qO- https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor > packages.microsoft.gpg
 sudo install -D -o root -g root -m 644 packages.microsoft.gpg /etc/apt/keyrings/packages.microsoft.gpg
