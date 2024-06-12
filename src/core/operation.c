@@ -184,9 +184,6 @@ QuicOperationEnqueueFront(
     CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
 #endif
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
-    if (*OperQ->PriorityTail == &OperQ->List) {
-        OperQ->PriorityTail = &Oper->Link.Flink;
-    }
     CxPlatListInsertHead(&OperQ->List, &Oper->Link);
     CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
