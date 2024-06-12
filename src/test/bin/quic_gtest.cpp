@@ -2220,21 +2220,12 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
-TEST(Basic, ConnectionGetParamPriority) {
-    TestLogger Logger("ConnectionGetParamPriority");
+TEST(Basic, OperationPriority) {
+    TestLogger Logger("OperationPriority");
     if (TestingKernelMode) {
-        GTEST_SKIP(); // TODO
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
     } else {
-        QuicTestConnectionGetParamPriority();
-    }
-}
-
-TEST(Basic, ConnectionStreamStartPriority) {
-    TestLogger Logger("ConnectionStreamStartPriority");
-    if (TestingKernelMode) {
-        GTEST_SKIP(); // TODO
-    } else {
-        QuicTestConnectionStreamStartSendPriority();
+        QuicTestOperationPriority();
     }
 }
 

@@ -576,7 +576,7 @@ QuicTestStreamBlockUnblockConnFlowControl(
     );
 
 void
-QuicTestConnectionGetParamPriority(
+QuicTestOperationPriority(
     );
 
 void
@@ -1302,4 +1302,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_NTH_PACKET_DROP \
     QUIC_CTL_CODE(121, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 121
+#define IOCTL_QUIC_RUN_OPERATION_PRIORITY \
+    QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 122

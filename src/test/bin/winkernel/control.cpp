@@ -1452,6 +1452,10 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestNthPacketDrop());
         break;
 
+    case IOCTL_QUIC_RUN_OPERATION_PRIORITY:
+        QuicTestCtlRun(QuicTestOperationPriority());
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
