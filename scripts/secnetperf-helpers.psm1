@@ -292,9 +292,10 @@ function Start-RemoteServerPassive {
         } catch {
             Write-Host "Unable to fetch state. Creating a new one now."
             $state = [pscustomobject]@{
+                value=[pscustomobject]@{
                 "SeqNum" = 0
                 "Commands" = @($Command)
-            }
+            }}
             $StateJson = $state | ConvertTo-Json
             $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
             if ($Response.StatusCode -ne 200) {
