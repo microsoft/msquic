@@ -287,18 +287,24 @@ function Start-RemoteServerPassive {
             "secret" = "$SyncerSecret"
         }
         $url = "https://netperfapiwebapp.azurewebsites.net"
-        $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
-        if ($Response.StatusCode -eq 404) {
-            $state = [pscustomobject]@{
-                "SeqNum" = 0
-                "Commands" = @($Command)
+        try {
+            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
+        } catch {
+            if ($Response.StatusCode -eq 404) {
+                Write-Host "State not existing, creating it now."
+                $state = [pscustomobject]@{
+                    "SeqNum" = 0
+                    "Commands" = @($Command)
+                }
+                $StateJson = $state | ConvertTo-Json
+                $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+                if ($Response.StatusCode -ne 200) {
+                    Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
+                    throw "Failed to set the key value!"
+                }
+                return
             }
-            $StateJson = $state | ConvertTo-Json
-            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
-            if ($Response.StatusCode -ne 200) {
-                Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-                throw "Failed to set the key value!"
-            }
+            throw "Error code not 404."
         }
         $CurrState = $Response.Content | ConvertFrom-Json
         $CurrState.Commands += $Command
