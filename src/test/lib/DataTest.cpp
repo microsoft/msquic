@@ -3366,6 +3366,7 @@ struct OperationPriorityTestContext {
     static const uint8_t NumSend;
     CxPlatEvent AllReceivesComplete;
     CxPlatEvent OperationQueuedComplete;
+    CxPlatEvent BlockAfterInitialStart;
     uint32_t CurrentSendCount {0};
     uint32_t CurrentStartCount {0};
     MsQuicStream* ExpectedStream {nullptr};
@@ -3400,13 +3401,15 @@ struct OperationPriorityTestContext {
         if (Event->Type == QUIC_STREAM_EVENT_START_COMPLETE) {
             if (TestContext->CurrentStartCount == 0) {
                 // initial dummy stream start to block this thread
+                TestContext->BlockAfterInitialStart.Set();
+                // Wait until all operations are queued
                 TestContext->OperationQueuedComplete.WaitTimeout(TestWaitTimeout);
             } else if (TestContext->CurrentStartCount == 1) {
                 TestContext->TestSucceeded = TestContext->ExpectedStream == Stream;
             }
             TestContext->CurrentStartCount++;
         } else if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
-            if (TestContext->CurrentSendCount == 1) {
+            if (TestContext->CurrentSendCount == 0) {
                 TestContext->TestSucceeded = TestContext->TestSucceeded && (TestContext->ExpectedStream == Stream);
             } else if (TestContext->CurrentSendCount == TestContext->NumSend) {
                 TestContext->AllReceivesComplete.Set();
@@ -3455,6 +3458,7 @@ void QuicTestOperationPriority()
     // Insert GetParam in front of 100 StreamSend ops
     // Validate by comparing SendTotalStreamBytes on the statistics
     {
+        // NOTE: this test can be flaky if all the operations are not queued during the Connection thread is blocked
         OperationPriorityTestContext Context;
         QUIC_STATISTICS_V2 BaseStat = {0};
         uint32_t StatSize = sizeof(BaseStat);
@@ -3496,6 +3500,14 @@ void QuicTestOperationPriority()
     // Validate by whether the first processed StreamStart/Send are from specific ExpectedStream
     { // ooxxxxx...xxx
         OperationPriorityTestContext Context;
+        MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        Context.ExpectedStream = &Stream2;
+
+        Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
+        // Wait until this StreamStart operation is drained
+        TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
             Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
@@ -3503,11 +3515,9 @@ void QuicTestOperationPriority()
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
         }
 
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-        Context.ExpectedStream = &Stream;
-        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-        Context.OperationQueuedComplete.Set();
+        TEST_QUIC_SUCCEEDED(Stream2.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+        TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+        Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
 
         TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
         TEST_TRUE(Context.TestSucceeded);
@@ -3520,17 +3530,23 @@ void QuicTestOperationPriority()
     // Validate by whether the first processed StreamStart are from specific ExpectedStream, StreamSend is not
     { // oxxxx....xxxo
         OperationPriorityTestContext Context;
+        MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        Context.ExpectedStream = &Stream2;
+
+        Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
+        // Wait until this StreamStart operation is drained
+        TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
             Streams[i] = new(std::nothrow) MsQuicStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
         }
 
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-        Context.ExpectedStream = &Stream;
-        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-        TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
-        Context.OperationQueuedComplete.Set();
+        TEST_QUIC_SUCCEEDED(Stream2.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+        TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+        Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
 
         TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
         TEST_FALSE(Context.TestSucceeded);
