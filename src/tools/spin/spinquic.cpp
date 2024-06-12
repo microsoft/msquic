@@ -389,13 +389,10 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
 
     if (!ctx->Deleting && GetRandom(20) == 0) {
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
-        return QUIC_STATUS_SUCCESS;
+        goto Exit;
     }
 
     switch (Event->Type) {
-    case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
-        break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
@@ -434,6 +431,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     }
     default:
         break;
+    }
+
+Exit:
+    if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
     }
 
     return QUIC_STATUS_SUCCESS;

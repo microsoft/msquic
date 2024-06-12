@@ -14391,9 +14391,9 @@
         "EncodingString": "[conn][%p] Discarding key type = %hhu"
       },
       {
-        "UniquenessHash": "e9db90ae-3a51-dcee-b18d-13be9520567e",
+        "UniquenessHash": "e33ba2d4-a5b3-1866-2be8-94f5594a65da",
         "TraceID": "DoneSendTo",
-        "EncodingString": "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld"
+        "EncodingString": "[ xdp][TX  ] Done sendto."
       },
       {
         "UniquenessHash": "c53376e2-b465-d6a1-047c-4e5e64c263af",
