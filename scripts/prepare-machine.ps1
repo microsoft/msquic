@@ -352,7 +352,7 @@ function Install-TestCertificates {
     }
 
     Write-Debug "Searching for MsQuicTestServer certificate..."
-    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
+    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.FriendlyName -eq "MsQuicTestServer"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
         $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
@@ -366,10 +366,10 @@ function Install-TestCertificates {
     }
 
     Write-Debug "Searching for MsQuicTestServerRSA certificate..."
-    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServerRSA"}
+    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.FriendlyName -eq "MsQuicTestServerRSA"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServerRSA not found! Creating new MsQuicTestServerRSA certificate..."
-        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServerRSA" -DnsName $DnsNames -FriendlyName MsQuicTestServerRSA -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA1 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
+        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServerRSA -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA1 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
         $TempServerPath = Join-Path $Env:TEMP "MsQuicTestServerCert.pfx"
         Export-PfxCertificate -Cert $ServerCert -Password $PfxPassword -FilePath $TempServerPath
         Import-PfxCertificate -FilePath $TempServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
