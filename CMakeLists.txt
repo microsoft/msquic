@@ -350,6 +350,8 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_DISABLE_CHACHA20_TESTS)
     message(STATUS "Enabling anonymous client auth tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
+    message(STATUS "Enabling certificate algorithm tests")
+    list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_CERT_ALG_TESTS)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")

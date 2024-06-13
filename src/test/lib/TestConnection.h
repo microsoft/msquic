@@ -17,6 +17,14 @@ enum NEW_STREAM_START_TYPE {
     NEW_STREAM_START_ASYNC      // Start asynchronously
 };
 
+enum QUIC_CERTIFICATE_KEY_ALGORITHM {
+    QUIC_CERTIFICATE_KEY_ALGORITHM_NONE,
+    QUIC_CERTIFICATE_KEY_ALGORITHM_RSA,
+    QUIC_CERTIFICATE_KEY_ALGORITHM_DSA,
+    QUIC_CERTIFICATE_KEY_ALGORITHM_ECDSA,
+    QUIC_CERTIFICATE_KEY_ALGORITHM_OTHER,
+};
+
 //
 // Callback for processing peer created streams.
 //
@@ -72,7 +80,7 @@ class TestConnection
     uint32_t ExpectedClientCertValidationResultCount;
     bool ExpectedCustomValidationResult;
     QUIC_STATUS PeerCertEventReturnStatus;
-    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS ExpectedPeerCertFlag;
+    QUIC_CERTIFICATE_KEY_ALGORITHM ExpectedPeerCertAlg;
 
     QUIC_STATUS TransportCloseStatus;
     QUIC_UINT62 PeerCloseErrorCode;
@@ -311,6 +319,6 @@ public:
 
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 
-    void SetPeerCertFlag(QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flag) { ExpectedPeerCertFlag = Flag; }
+    void SetPeerCertAlg(QUIC_CERTIFICATE_KEY_ALGORITHM Alg) { ExpectedPeerCertAlg = Alg; }
 
 };

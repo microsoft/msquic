@@ -1358,16 +1358,14 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Type != QUIC_CREDENTIAL_TYPE_NONE) {
         CertContext = AchContext->CertContext;
 
-        for (uint32_t i = 0; i < CredCount; i++) {
-            Status = CxPlatCertCreate(CredConfig, CertContext + i);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "CxPlatCertCreate");
-                goto Error;
-            }
+        Status = CxPlatCertCreate(CredConfig, CredCount, CertContext);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "CxPlatCertCreate");
+            goto Error;
         }
 
         Credentials->cCreds = CredCount;
