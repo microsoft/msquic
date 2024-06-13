@@ -14,6 +14,54 @@ Abstract:
 #include "TestConnection.cpp.clog.h"
 #endif
 
+#ifdef QUIC_ENABLE_CERT_ALG_TESTS
+#pragma warning(push)
+#pragma warning(disable:6553) // Annotation does not apply to value type.
+#include <wincrypt.h>
+#pragma warning(pop)
+
+static
+QUIC_STATUS
+CxPlatCertGetKeyAlgorithm(
+    _In_ const QUIC_CERTIFICATE* Certificate,
+    _Out_ QUIC_CERTIFICATE_KEY_ALGORITHM* KeyType
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    PCCERT_CONTEXT CertCtx = (PCCERT_CONTEXT)Certificate;
+    WCHAR AlgorithmAndBitLength[12];
+    DWORD AlgorithmAndBitLengthSize = sizeof(AlgorithmAndBitLength);
+
+    *KeyType = QUIC_CERTIFICATE_KEY_ALGORITHM_NONE;
+
+    CxPlatZeroMemory(AlgorithmAndBitLength, sizeof(AlgorithmAndBitLength));
+
+    if (!CertGetCertificateContextProperty(
+            CertCtx,
+            CERT_PUB_KEY_CNG_ALG_BIT_LENGTH_PROP_ID,
+            AlgorithmAndBitLength,
+            &AlgorithmAndBitLengthSize)) {
+
+        Status = HRESULT_FROM_WIN32(GetLastError());
+        goto Exit;
+    }
+
+    if (memcmp(AlgorithmAndBitLength, BCRYPT_RSA_ALGORITHM, sizeof(BCRYPT_RSA_ALGORITHM) - sizeof(WCHAR)) == 0) {
+        *KeyType = QUIC_CERTIFICATE_KEY_ALGORITHM_RSA;
+    } else if (memcmp(AlgorithmAndBitLength, BCRYPT_DSA_ALGORITHM, sizeof(BCRYPT_DSA_ALGORITHM) - sizeof(WCHAR)) == 0) {
+        *KeyType = QUIC_CERTIFICATE_KEY_ALGORITHM_DSA;
+    } else if (memcmp(AlgorithmAndBitLength, BCRYPT_ECDSA_ALGORITHM, sizeof(BCRYPT_ECDSA_ALGORITHM) - sizeof(WCHAR)) == 0) {
+        *KeyType = QUIC_CERTIFICATE_KEY_ALGORITHM_ECDSA;
+    } else {
+        *KeyType = QUIC_CERTIFICATE_KEY_ALGORITHM_OTHER;
+    }
+
+Exit:
+
+    return Status;
+}
+#endif
+
 TestConnection::TestConnection(
     _In_ HQUIC Handle,
     _In_opt_ NEW_STREAM_CALLBACK_HANDLER NewStreamCallbackHandler
@@ -26,7 +74,7 @@ TestConnection::TestConnection(
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
+    ExpectedPeerCertAlg(QUIC_CERTIFICATE_KEY_ALGORITHM_NONE), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
@@ -56,7 +104,7 @@ TestConnection::TestConnection(
     ExpectedTransportCloseStatus(QUIC_STATUS_SUCCESS), ExpectedPeerCloseErrorCode(QUIC_TEST_NO_ERROR),
     ExpectedClientCertValidationResult{}, ExpectedClientCertValidationResultCount(0),
     ExpectedCustomValidationResult(false), PeerCertEventReturnStatus(QUIC_STATUS_SUCCESS),
-    EventDeleted(nullptr),
+    ExpectedPeerCertAlg(QUIC_CERTIFICATE_KEY_ALGORITHM_NONE), EventDeleted(nullptr),
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
@@ -928,6 +976,22 @@ TestConnection::HandleConnectionEvent(
         }
         if (CustomValidationResultSet && !ExpectedCustomValidationResult) {
             return QUIC_STATUS_INTERNAL_ERROR;
+        }
+        if (ExpectedPeerCertAlg != QUIC_CERTIFICATE_KEY_ALGORITHM_NONE) {
+            //
+            // The APIs here are not defined for kernel mode.
+            //
+#if defined(QUIC_ENABLE_CERT_ALG_TESTS) && !defined(KERNEL_MODE)
+            QUIC_CERTIFICATE_KEY_ALGORITHM KeyType;
+            QUIC_STATUS Status = CxPlatCertGetKeyAlgorithm(Event->PEER_CERTIFICATE_RECEIVED.Certificate, &KeyType);
+            if (QUIC_FAILED(Status)) {
+                TEST_FAILURE("CxPlatCertGetKeyAlgorithm failed 0x%x", Status);
+            } else {
+                if (KeyType != ExpectedPeerCertAlg) {
+                    TEST_FAILURE("Unexpected Certificate Key Type, expected=%d, actual=%d", ExpectedPeerCertAlg, KeyType);
+                }
+            }
+#endif
         }
         if (ExpectedClientCertValidationResultCount > 0) {
             bool Match = false;

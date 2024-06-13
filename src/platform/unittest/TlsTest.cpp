@@ -2218,6 +2218,7 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
 {
     for (auto TestFlag : { QUIC_CREDENTIAL_FLAG_ENABLE_OCSP, QUIC_CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS,
         QUIC_CREDENTIAL_FLAG_USE_SYSTEM_MAPPER, QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE,
+        QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS, QUIC_CREDENTIAL_FLAG_SET_MULTIPLE,
 #ifndef _WIN32
         QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT, QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT,
         QUIC_CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK, QUIC_CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE,
@@ -2239,7 +2240,10 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
                 nullptr,
                 nullptr,
                 nullptr,
-                QUIC_ALLOWED_CIPHER_SUITE_NONE
+                QUIC_ALLOWED_CIPHER_SUITE_NONE,
+                nullptr,
+                0,
+                QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA
             };
             CXPLAT_SEC_CONFIG* ClientSecConfig = nullptr;
             QUIC_STATUS Status =
@@ -2257,6 +2261,8 @@ TEST_F(TlsTest, PlatformSpecificFlagsSchannel)
             // Server-compatible flags
             //
             SelfSignedCertParams->Flags = TestFlag;
+            SelfSignedCertParams->AllowedCertAlgs = QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA;
+            SelfSignedCertParams->MultipleCount = 1;
             CXPLAT_SEC_CONFIG* ServerSecConfig = nullptr;
             QUIC_STATUS Status =
                 CxPlatTlsSecConfigCreate(

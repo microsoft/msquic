@@ -520,6 +520,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(uint32_t),
     sizeof(BOOLEAN),
     0,
+    sizeof(QUIC_RUN_CERT_ALG_VALIDATION),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -560,6 +561,7 @@ typedef union {
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
+    QUIC_RUN_CERT_ALG_VALIDATION CertAlgValidationParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1450,6 +1452,14 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_NTH_PACKET_DROP:
         QuicTestCtlRun(QuicTestNthPacketDrop());
+        break;
+
+    case IOCTL_QUIC_RUN_CERT_ALG_VALIDATION:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectValidServerCertificateAlgorithms(
+                &Params->CertAlgValidationParams.CredConfig,
+                Params->CertAlgValidationParams.AllowedCertAlgs));
         break;
 
     default:

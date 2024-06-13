@@ -317,6 +317,12 @@ QuicTestConnectValidServerCertificate(
     );
 
 void
+QuicTestConnectValidServerCertificateAlgorithms(
+    _In_ const QUIC_CREDENTIAL_CONFIG* ServerConfig,
+    _In_ QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flags
+    );
+
+void
 QuicTestConnectValidClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     );
@@ -1294,4 +1300,16 @@ typedef struct {
 #define IOCTL_QUIC_RUN_NTH_PACKET_DROP \
     QUIC_CTL_CODE(121, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 121
+typedef struct {
+    QUIC_CREDENTIAL_CONFIG CredConfig;
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;
+    union {
+        QUIC_CERTIFICATE_HASH CertHash[2];
+        QUIC_CERTIFICATE_HASH_STORE CertHashStore[2];
+    };
+} QUIC_RUN_CERT_ALG_VALIDATION;
+
+#define IOCTL_QUIC_RUN_CERT_ALG_VALIDATION \
+    QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 122

@@ -19,9 +19,11 @@ typedef struct QUIC_CREDENTIAL_CONFIG {
     };
     const char* Principal;
     void* Reserved; // Currently unused
-    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler; // Optional
-    QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;// Optional
-    const char* CaCertificateFile;                      // Optional
+    QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER AsyncHandler;         // Optional w/ QUIC_CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS
+    QUIC_ALLOWED_CIPHER_SUITE_FLAGS AllowedCipherSuites;        // Optional w/ QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES
+    const char* CaCertificateFile;                              // Optional w/ QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE
+    uint32_t MultipleCount;                                     // Optional w/ QUIC_CREDENTIAL_FLAG_SET_MULTIPLE
+    QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;   // Optional w/ QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS
 } QUIC_CREDENTIAL_CONFIG;
 ```
 
@@ -161,6 +163,14 @@ Obtain the peer certificate using a faster in-process API call. Only available o
 
 Enable CA certificate file provided in the `CaCertificateFile` member.
 
+`QUIC_CREDENTIAL_FLAG_SET_MULTIPLE`
+
+Enable setting multiple certificates on the configuration. This changes the `CertificateHash` and `CertificateHashStore` members into pointers to an array, and the array length is read from the `MultipleCount` member. Only available on Schannel.
+
+`QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS`
+
+Enable setting which asymmetric key algorithms are allowed on the peer's certificate via the `AllowedCertAlgs` member. Only available on Schannel.
+
 #### `CertificateHash`
 
 Must **only** use with `QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH` type.
@@ -202,6 +212,17 @@ A set of flags indicating which cipher suites are available to negotiate. Must b
 Optional pointer to CA certificate file that will be used when
 validating the peer certificate. This allows the use of a private CA.
 Must be used with `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`.
+
+#### `MultipleCount`
+
+Count of credentials in array pointed to by `CertificateHash` or `CertificateHashStore`.
+Must be used with `QUIC_CREDENTIAL_FLAG_SET_MULTIPLE`.
+
+#### `AllowedCertAlgs`
+
+A set of flags representing algorithms the peer's certificate is allowed to have.
+This enables a client to tell a server with multiple certificates which one to send.
+Must be used with `QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS`.
 
 # Remarks
 
