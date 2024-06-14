@@ -431,7 +431,7 @@ function Wait-StartRemoteServerPassive {
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $true
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -445,9 +445,9 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir)
+    param ($FullPath, $FullArgs, $OutputDir, $is1es = $false)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if ($IsWindows) {
+    if ($IsWindows -and $is1es) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
