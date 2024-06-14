@@ -30,7 +30,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr), SslKeyLogFilePath(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFilePath(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -64,7 +64,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr), SslKeyLogFilePath(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFilePath(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -100,7 +100,7 @@ TestConnection::~TestConnection()
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
     }
-#ifndef KERNEL_MODE
+#ifndef _KERNEL_MODE
     if (SslKeyLogFilePath != nullptr) {
         WriteSslKeyLogFile(SslKeyLogFilePath, TlsSecrets);
     }
