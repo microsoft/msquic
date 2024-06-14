@@ -68,6 +68,9 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallPerl,
+
+    [Parameter(Mandatory = $false)]
     [switch]$UseXdp,
 
     [Parameter(Mandatory = $false)]
@@ -137,6 +140,7 @@ if ($ForBuild) {
     # enabled for any possible build.
     $InstallNasm = $true
     $InstallJom = $true
+    $InstallPerl = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
@@ -340,6 +344,13 @@ function Install-OpenCppCoverage {
     }
 }
 
+# Installs StrawberryPerl on Windows via Winget.
+function Install-Perl {
+    if (!$IsWindows) { return } # Windows only
+    Write-Host "Installing StrawberryPerl via winget..."
+    winget install StrawberryPerl.StrawberryPerl
+}
+
 # Checks the OS version number to see if it's recent enough (> 2019) to support
 # the necessary features for creating and installing the test certificates.
 function Win-SupportsCerts {
@@ -499,6 +510,7 @@ if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
+if ($InstallPerl) { Install-Perl }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
