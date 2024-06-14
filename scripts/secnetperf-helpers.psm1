@@ -306,6 +306,9 @@ function Start-RemoteServerPassive {
         }
         $CurrState = $Response.Content | ConvertFrom-Json
         $CurrState.Commands += $Command
+        $CurrState = [pscustomobject]@{
+            value=$CurrState
+        }
         $StateJson = $CurrState | ConvertTo-Json
         $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
         if ($Response.StatusCode -ne 200) {
@@ -427,8 +430,10 @@ function Wait-StartRemoteServerPassive {
 
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
+        Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
         $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
+        Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
         if ($DidMatch) {
             return

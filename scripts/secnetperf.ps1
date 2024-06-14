@@ -284,18 +284,20 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 if ($useXDP -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
-if (!$isWindows -and !($Session -eq "NOT_SUPPORTED")) {
+if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
     if ($io -eq "xdp") {
         $GRO = "off"
     }
-    Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
-        chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
-        if ($Using:os -eq "ubuntu-22.04") {
-            sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+    if (!($Session -eq "NOT_SUPPORTED")) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
+            chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+            if ($Using:os -eq "ubuntu-22.04") {
+                sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+            }
         }
     }
     $fullPath = Repo-Path $SecNetPerfDir
