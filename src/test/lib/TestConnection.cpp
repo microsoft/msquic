@@ -30,7 +30,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr)
+    NegotiatedAlpnLength(0), Context(nullptr), SslKeyLogFilePath(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -41,6 +41,10 @@ TestConnection::TestConnection(
         TEST_FAILURE("Invalid handle passed into TestConnection.");
     } else {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
+    }
+    QUIC_STATUS Status = SetTlsSecrets(&TlsSecrets);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
     }
 }
 
@@ -60,7 +64,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr)
+    NegotiatedAlpnLength(0), Context(nullptr), SslKeyLogFilePath(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -77,6 +81,10 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
+    Status = SetTlsSecrets(&TlsSecrets);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
+    }
 }
 
 TestConnection::~TestConnection()
@@ -92,6 +100,11 @@ TestConnection::~TestConnection()
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
     }
+#ifndef KERNEL_MODE
+    if (SslKeyLogFilePath != nullptr) {
+        WriteSslKeyLogFile(SslKeyLogFilePath, TlsSecrets);
+    }
+#endif
 }
 
 QUIC_STATUS
