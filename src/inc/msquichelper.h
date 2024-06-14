@@ -260,13 +260,13 @@ DecodeHexBuffer(
 inline
 void
 EncodeHexBuffer(
-    _In_reads_(BufferLen) uint8_t* Buffer,
-    _In_ uint8_t BufferLen,
-    _Out_writes_bytes_(2*BufferLen) char* HexString
+    _In_reads_(BufferLen) const uint8_t* Buffer,
+    _In_ size_t BufferLen,
+    _Out_writes_bytes_(2 * BufferLen) char* HexString
     )
 {
     #define HEX_TO_CHAR(x) ((x) > 9 ? ('a' + ((x) - 10)) : '0' + (x))
-    for (uint8_t i = 0; i < BufferLen; i++) {
+    for (size_t i = 0; i < BufferLen; i++) {
         HexString[i*2]     = HEX_TO_CHAR(Buffer[i] >> 4);
         HexString[i*2 + 1] = HEX_TO_CHAR(Buffer[i] & 0xf);
     }
