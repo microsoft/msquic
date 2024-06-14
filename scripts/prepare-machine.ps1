@@ -140,7 +140,7 @@ if ($ForBuild) {
     # enabled for any possible build.
     $InstallNasm = $true
     $InstallJom = $true
-    $InstallPerl = $true
+    $InstallPerl = $false
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
 }
 
