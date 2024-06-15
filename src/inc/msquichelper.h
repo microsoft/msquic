@@ -257,7 +257,7 @@ DecodeHexBuffer(
     return HexBufferLen;
 }
 
-#ifdef __GNUC__
+#if defined(__GNUC__) && (__GNUC__ >= 13)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
@@ -276,7 +276,8 @@ EncodeHexBuffer(
         HexString[i*2 + 1] = HEX_TO_CHAR(Buffer[i] & 0xf);
     }
 }
-#ifdef __GNUC__
+
+#if defined(__GNUC__) && (__GNUC__ >= 13)
 #pragma GCC diagnostic pop
 #endif
 
