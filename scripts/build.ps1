@@ -173,6 +173,9 @@ param (
     [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseDpdk = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$Generator = "",
 
     [Parameter(Mandatory = $false)]
@@ -471,6 +474,9 @@ function CMake-Generate {
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
+    }
+    if ($UseDpdk) {
+        $Arguments += " -DQUIC_DPDK_ENABLED=on"
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
