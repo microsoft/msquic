@@ -462,6 +462,7 @@ function Install-DotnetTool {
 function Install-Dotnet {
     if (!$IsLinux) {
         Write-Host "Linux only"
+        return
     }
 
     Write-Host "Installing dotnet"
