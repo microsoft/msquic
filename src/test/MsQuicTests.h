@@ -571,6 +571,10 @@ QuicTestStreamReliableResetMultipleSends(
     );
 
 void
+QuicTestStreamMultiReceive(
+    );
+
+void
 QuicTestStreamBlockUnblockConnFlowControl(
     _In_ BOOLEAN Bidirectional
     );

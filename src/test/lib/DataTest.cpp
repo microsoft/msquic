@@ -3795,3 +3795,138 @@ QuicTestStreamReliableResetMultipleSends(
     TEST_TRUE(Context.ShutdownErrorCode == AbortShutdownErrorCode);
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
+
+
+#define MultiRecvNumSend 18
+struct MultiReceiveTestContext {
+    CxPlatEvent PktRecvd[MultiRecvNumSend] {0};
+    MsQuicStream* ServerStream {nullptr};
+    int Recvd {0};
+    int RecvdSignatures[MultiRecvNumSend] {0};
+
+    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        UNREFERENCED_PARAMETER(Stream);
+        UNREFERENCED_PARAMETER(Context);
+        UNREFERENCED_PARAMETER(Event);
+        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+        auto TestContext = (MultiReceiveTestContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            TestContext->RecvdSignatures[TestContext->Recvd] = Event->RECEIVE.Buffers[0].Buffer[Event->RECEIVE.Buffers[0].Length-1];
+            if (TestContext->RecvdSignatures[TestContext->Recvd] != 0) {
+                TestContext->PktRecvd[TestContext->Recvd++].Set();
+            }
+            Status = QUIC_STATUS_PENDING;
+        }
+
+        return Status;
+    }
+
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        UNREFERENCED_PARAMETER(Stream);
+        UNREFERENCED_PARAMETER(Context);
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            auto TestContext = (MultiReceiveTestContext*)Context;
+            TestContext->ServerStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, ServerStreamCallback, Context);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamMultiReceive(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", MsQuicSettings().SetPeerUnidiStreamCount(5).SetStreamMultiReceiveEnabled(true), ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    uint8_t RawBuffer[2048] = {};
+    QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
+    // Server side multi receive simple. 3 Sends and Complete at once
+    {
+        int NumSend = 3;
+        MultiReceiveTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MultiReceiveTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Connection.HandshakeComplete);
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, MultiReceiveTestContext::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+        for (int i = 0; i < NumSend; i++) {
+            Buffer.Buffer[sizeof(RawBuffer)-1] = i + 1;
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
+            TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
+        }
+        Context.ServerStream->ReceiveComplete(sizeof(RawBuffer) * NumSend);
+
+        for (int i = 0; i < NumSend; i++) {
+            TEST_TRUE(Context.RecvdSignatures[i] == i + 1);
+        }
+    }
+
+    {
+        MultiReceiveTestContext Context;
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MultiReceiveTestContext::ConnCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Connection.HandshakeComplete);
+
+        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, MultiReceiveTestContext::ClientStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+        int lastCompleted = -1;
+        for (int i = 0; i < MultiRecvNumSend; i++) {
+            Buffer.Buffer[sizeof(RawBuffer)-1] = i + 1;
+            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == MultiRecvNumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
+            TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
+            if ((i + 1) % 8 == 0) { // ReceiveComplete every 8 sends
+                fprintf(stderr, "ReceiveComplete %d\n", i - lastCompleted);
+                Context.ServerStream->ReceiveComplete(sizeof(RawBuffer) * (i - lastCompleted));
+                lastCompleted = i;
+            }
+        }
+        if (lastCompleted != MultiRecvNumSend - 1) {
+            fprintf(stderr, "X ReceiveComplete %d\n", MultiRecvNumSend - lastCompleted - 1);
+            Context.ServerStream->ReceiveComplete(sizeof(RawBuffer) * (MultiRecvNumSend - lastCompleted - 1));
+        }
+
+        for (int i = 0; i < MultiRecvNumSend; i++) {
+            TEST_TRUE(Context.RecvdSignatures[i] == i + 1);
+        }
+    }
+
+
+    // Client side multi receive TBD
+    {
+    }
+
+}
