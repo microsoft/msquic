@@ -459,7 +459,23 @@ function Install-DotnetTool {
     }
 }
 
+function Install-Dotnet {
+    if (!$IsLinux) {
+        Write-Host "Linux only"
+    }
+
+    Write-Host "Installing dotnet"
+    # known issue https://learn.microsoft.com/en-us/dotnet/core/install/linux-package-mixup?pivots=os-linux-ubuntu
+    sudo bash -c "echo 'Package: dotnet* aspnet* netstandard*' >> /etc/apt/preferences"
+    sudo bash -c "echo 'Pin: origin packages.microsoft.com' >> /etc/apt/preferences"
+    sudo bash -c "echo 'Pin-Priority: -10' >> /etc/apt/preferences"
+    sudo apt-get update -y
+    sudo apt-get install dotnet-sdk-6.0 aspnetcore-runtime-6.0 dotnet-runtime-6.0
+}
+
 function Install-Clog2Text {
+    Install-Dotnet
+
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
     git submodule update
