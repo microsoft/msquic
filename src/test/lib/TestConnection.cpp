@@ -81,7 +81,7 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
-    Status = SetTlsSecrets(&TlsSecrets);
+    Status = SetPriorityScheme(QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN); //SetTlsSecrets(&TlsSecrets);
     if (QUIC_FAILED(Status)) {
         TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
     }
