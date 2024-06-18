@@ -3909,13 +3909,11 @@ QuicTestStreamMultiReceive(
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == MultiRecvNumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
             TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
             if ((i + 1) % 8 == 0) { // ReceiveComplete every 8 sends
-                fprintf(stderr, "ReceiveComplete %d\n", i - lastCompleted);
                 Context.ServerStream->ReceiveComplete(sizeof(RawBuffer) * (i - lastCompleted));
                 lastCompleted = i;
             }
         }
         if (lastCompleted != MultiRecvNumSend - 1) {
-            fprintf(stderr, "X ReceiveComplete %d\n", MultiRecvNumSend - lastCompleted - 1);
             Context.ServerStream->ReceiveComplete(sizeof(RawBuffer) * (MultiRecvNumSend - lastCompleted - 1));
         }
 
