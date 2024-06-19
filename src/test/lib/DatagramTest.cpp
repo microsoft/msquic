@@ -156,8 +156,7 @@ QuicTestDatagramSend(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";
-    uint8_t RawBigBuffer[1100];
-    memset(RawBigBuffer, 0x00, 1100);
+    uint8_t RawBigBuffer[1100] = {0};
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
     QUIC_BUFFER BigBuffer = { sizeof(RawBigBuffer), RawBigBuffer };
 
