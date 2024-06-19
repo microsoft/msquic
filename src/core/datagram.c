@@ -591,7 +591,6 @@ QuicDatagramCancelBlocked(
     )
 {
     QUIC_DATAGRAM* Datagram = &Connection->Datagram;
-
     QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
     while (*SendQueue != NULL) {
         if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
@@ -606,4 +605,12 @@ QuicDatagramCancelBlocked(
         }
     }
     Datagram->SendQueueTail = SendQueue;
+
+    if (Datagram->SendQueue != NULL) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    } else {
+        QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    }
+
+    QuicDatagramValidate(Datagram);
 }

@@ -264,7 +264,7 @@ QuicTestDatagramSend(
                             Client.GetConnection(),
                             &BigBuffer,
                             1,
-                            QUIC_SEND_FLAG_CANCEL_ON_BLOCKED,
+                            (i%2 == 0) ? QUIC_SEND_FLAG_CANCEL_ON_BLOCKED : QUIC_SEND_FLAG_NONE,
                             nullptr));
                 }
 
@@ -273,7 +273,6 @@ QuicTestDatagramSend(
                     CxPlatSleep(100);
                 }
 
-                printf("Sent : %i, Canceled : %i\n", Client.GetDatagramsSent(), Client.GetDatagramsCanceled());
                 TEST_NOT_EQUAL(0, Client.GetDatagramsCanceled());
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
