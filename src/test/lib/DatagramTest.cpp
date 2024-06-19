@@ -156,7 +156,10 @@ QuicTestDatagramSend(
     TEST_TRUE(ServerConfiguration.IsValid());
 
     uint8_t RawBuffer[] = "datagram";
+    uint8_t RawBigBuffer[1100];
+    memset(RawBigBuffer, 0x00, 1100);
     QUIC_BUFFER DatagramBuffer = { sizeof(RawBuffer), RawBuffer };
+    QUIC_BUFFER BigBuffer = { sizeof(RawBigBuffer), RawBigBuffer };
 
     SelectiveLossHelper LossHelper;
 
@@ -255,6 +258,23 @@ QuicTestDatagramSend(
                 TEST_TRUE(Client.GetDatagramsSuspectLost() > InitialLostCount);
                 CxPlatSleep(100);
 #endif
+                for (int i = 0; i < 20; i++) {
+                    TEST_QUIC_SUCCEEDED(
+                        MsQuic->DatagramSend(
+                            Client.GetConnection(),
+                            &BigBuffer,
+                            1,
+                            QUIC_SEND_FLAG_CANCEL_ON_BLOCKED,
+                            nullptr));
+                }
+
+                Tries = 0;
+                while (Client.GetDatagramsCanceled() == 0 && ++Tries < 10) {
+                    CxPlatSleep(100);
+                }
+
+                printf("Sent : %i, Canceled : %i\n", Client.GetDatagramsSent(), Client.GetDatagramsCanceled());
+                TEST_NOT_EQUAL(0, Client.GetDatagramsCanceled());
 
                 Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
                 if (!Client.WaitForShutdownComplete()) {
