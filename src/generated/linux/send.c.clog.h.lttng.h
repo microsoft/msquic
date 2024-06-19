@@ -18,9 +18,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, SetSendFlag,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -42,9 +42,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, SetSendFlag,
 TRACEPOINT_EVENT(CLOG_SEND_C, ClearSendFlags,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -62,9 +62,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ClearSendFlags,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_C, EcnValidationUnknown,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -87,9 +87,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ScheduleSendFlags,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -111,9 +111,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ScheduleSendFlags,
 TRACEPOINT_EVENT(CLOG_SEND_C, RemoveSendFlagsMsg,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -131,9 +131,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, RemoveSendFlagsMsg,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_C, AmplificationProtectionBlocked,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -153,9 +153,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, AmplificationProtectionBlocked,
 TRACEPOINT_EVENT(CLOG_SEND_C, SendFlushComplete,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -176,9 +176,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, SendFlushComplete,
 TRACEPOINT_EVENT(CLOG_SEND_C, StartAckDelayTimer,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -199,9 +199,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, StartAckDelayTimer,
 TRACEPOINT_EVENT(CLOG_SEND_C, ConnQueueSendFlush,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -222,9 +222,9 @@ TRACEPOINT_EVENT(CLOG_SEND_C, ConnQueueSendFlush,
 TRACEPOINT_EVENT(CLOG_SEND_C, ConnFlushSend,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )

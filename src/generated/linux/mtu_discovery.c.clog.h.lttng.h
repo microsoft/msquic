@@ -18,9 +18,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearchComplete,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -45,9 +45,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuSearching,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -75,9 +75,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuPathInitialized,
         const void *, arg1,
         unsigned char, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -103,9 +103,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, PathMtuUpdated,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -133,9 +133,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuDiscarded,
         const void *, arg1,
         unsigned char, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -164,9 +164,9 @@ TRACEPOINT_EVENT(CLOG_MTU_DISCOVERY_C, MtuIncorrectSize,
         const void *, arg1,
         unsigned char, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)

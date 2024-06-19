@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_PATH_C, PathInitialized,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -38,9 +38,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathInitialized,
 TRACEPOINT_EVENT(CLOG_PATH_C, PathRemoved,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -64,9 +64,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathValidated,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -91,9 +91,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathActive,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
     )
@@ -115,9 +115,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathActive,
 TRACEPOINT_EVENT(CLOG_PATH_C, PathQeoEnabled,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -138,9 +138,9 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathQeoEnabled,
 TRACEPOINT_EVENT(CLOG_PATH_C, PathQeoDisabled,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )

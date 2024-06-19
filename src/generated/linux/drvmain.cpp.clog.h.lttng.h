@@ -15,10 +15,10 @@
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCanceledRequest,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -33,7 +33,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCanceledRequest,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfDriverStarted,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -49,7 +49,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfDriverStarted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfDriverStopped,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -67,9 +67,9 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfDriverStopped,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCreated,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -86,9 +86,9 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCleaningUp,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -103,7 +103,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCleaningUp,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerformanceStopCancelled,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -124,7 +124,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerformanceStopCancelled,
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PrintBufferReturn,
     TP_ARGS(
         int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -147,9 +147,9 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PrintBufferReturn,
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctl,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -170,9 +170,9 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctl,
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctlComplete,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -188,7 +188,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctlComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlInitialized,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -204,7 +204,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlInitialized,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlUninitializing,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -220,7 +220,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlUninitializing,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlUninitialized,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -241,7 +241,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlUninitialized,
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -261,7 +261,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, LibraryErrorStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )

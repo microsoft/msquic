@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -38,7 +38,7 @@ TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
 TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)

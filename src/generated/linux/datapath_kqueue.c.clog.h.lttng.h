@@ -15,7 +15,7 @@
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -41,9 +41,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -76,9 +76,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathRecv,
         unsigned int, arg5_len,
         const void *, arg5,
         unsigned int, arg6_len,
-        const void *, arg6), 
+        const void *, arg6),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
         ctf_integer(unsigned int, arg5_len, arg5_len)
@@ -109,9 +109,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathCreated,
         unsigned int, arg3_len,
         const void *, arg3,
         unsigned int, arg4_len,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
@@ -132,9 +132,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathDestroyed,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -168,9 +168,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_KQUEUE_C, DatapathSend,
         unsigned int, arg6_len,
         const void *, arg6,
         unsigned int, arg7_len,
-        const void *, arg7), 
+        const void *, arg7),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)

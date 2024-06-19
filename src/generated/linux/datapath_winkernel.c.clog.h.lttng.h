@@ -12,7 +12,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailedAsync,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -50,7 +50,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenTcpSocketFailedAsync,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -69,7 +69,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFaile
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFailedAsync,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -88,7 +88,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRssScalabilityInfoFaile
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -107,7 +107,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailedAsync,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathOpenUdpSocketFailedAsync,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -145,7 +145,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailedAsync,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -164,7 +164,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryUdpSendMsgFailedAsync,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -183,7 +183,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFai
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFailedAsync,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -202,9 +202,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFai
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropEmptyMdl,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -221,9 +221,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropEmptyMdl,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMissingInfo,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -243,9 +243,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMissingInfo,
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropTooBig,
     TP_ARGS(
         const void *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -263,9 +263,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropTooBig,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMdlMapFailure,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -282,9 +282,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropMdlMapFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -301,9 +301,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathFragmented,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocIoBlockFailure,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -320,9 +320,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocIoBlockFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvBufferFailure,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -339,9 +339,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvBufferFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUroExceeded,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -362,9 +362,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUnreachableMsg,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
@@ -386,9 +386,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathUnreachableMsg,
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathResolveHostNameFailed,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -409,7 +409,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathResolveHostNameFailed,
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -432,7 +432,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -452,7 +452,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryErrorStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -479,9 +479,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathCreated,
         unsigned int, arg3_len,
         const void *, arg3,
         unsigned int, arg4_len,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
@@ -508,9 +508,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -529,9 +529,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathErrorStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDestroyed,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -562,9 +562,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathRecv,
         unsigned int, arg5_len,
         const void *, arg5,
         unsigned int, arg6_len,
-        const void *, arg6), 
+        const void *, arg6),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
         ctf_integer(unsigned int, arg5_len, arg5_len)
@@ -604,9 +604,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathSend,
         unsigned int, arg6_len,
         const void *, arg6,
         unsigned int, arg7_len,
-        const void *, arg7), 
+        const void *, arg7),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)

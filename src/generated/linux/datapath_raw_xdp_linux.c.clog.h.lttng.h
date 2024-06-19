@@ -12,7 +12,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -29,7 +29,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpFailGettingRssQueueCount,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -50,7 +50,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemDeleteFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails,
     TP_ARGS(
         const char *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -70,9 +70,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDetachFails,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -92,10 +92,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -110,7 +110,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAllocUmem,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -145,7 +145,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUmemAllocFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails,
     TP_ARGS(
         const char *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -166,7 +166,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpAttachSucceeds,
     TP_ARGS(
         const char *, arg2,
-        int, arg3), 
+        int, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(int, arg3, arg3)
@@ -192,7 +192,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError,
     TP_ARGS(
         const char *, arg2,
         const char *, arg3,
-        int, arg4), 
+        int, arg4),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -213,7 +213,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpOpenFileError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -230,7 +230,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpLoadObject,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -246,7 +246,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpNoXsksMap,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -265,7 +265,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpConfigureUmem,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
     TP_ARGS(
         const char *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -283,7 +283,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -304,9 +304,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -327,9 +327,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -347,9 +347,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -366,9 +366,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -385,9 +385,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -405,7 +405,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails,
     TP_ARGS(
         int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -426,7 +426,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetPortFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails,
     TP_ARGS(
         int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -449,7 +449,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpDeletePortFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails,
     TP_ARGS(
         const char *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -470,7 +470,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIpFails,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails,
     TP_ARGS(
         const char *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_string(arg3, arg3)
@@ -488,7 +488,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpSetIfnameFails,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -504,7 +504,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxAlloc,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -521,7 +521,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
     TP_ARGS(
-        int, arg2), 
+        int, arg2),
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
     )
@@ -538,7 +538,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -556,9 +556,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -575,9 +575,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -594,9 +594,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -616,7 +616,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -639,7 +639,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpEpollErrorStatus,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -662,7 +662,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryErrorStatus,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -682,7 +682,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, AllocFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -706,7 +706,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, RxConstructPacket,
         unsigned int, arg2_len,
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2_len, arg2_len)
         ctf_sequence(char, arg2, arg2, unsigned int, arg2_len)

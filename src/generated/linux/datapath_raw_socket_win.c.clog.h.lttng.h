@@ -18,9 +18,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, RouteResolutionStart,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -42,7 +42,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, RouteResolutionStart,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -70,9 +70,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathGetRouteStart,
         unsigned int, arg3_len,
         const void *, arg3,
         unsigned int, arg4_len,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
         ctf_integer(unsigned int, arg4_len, arg4_len)
@@ -99,9 +99,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -124,9 +124,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathGetRouteComplete,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
@@ -148,9 +148,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathGetRouteComplete,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -171,7 +171,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, DatapathError,
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)

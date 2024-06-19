@@ -18,9 +18,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowStreamStats,
     TP_ARGS(
         const void *, arg2,
         unsigned long long, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
     )
@@ -42,9 +42,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowStreamStats,
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
     TP_ARGS(
         const void *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -86,9 +86,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStatsV3,
         unsigned long long, arg7,
         unsigned int, arg8,
         const char *, arg9,
-        unsigned int, arg10), 
+        unsigned int, arg10),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -137,9 +137,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnPacketStats,
         unsigned long long, arg7,
         unsigned long long, arg8,
         unsigned long long, arg9,
-        unsigned long long, arg10), 
+        unsigned long long, arg10),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)
@@ -167,9 +167,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnPacketStats,
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowBlocked,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -194,9 +194,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnSourceCidRemoved,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4_len,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)

@@ -18,9 +18,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -42,9 +42,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
     TP_ARGS(
         const void *, arg1,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_string(arg3, arg3)
     )
 )
@@ -71,9 +71,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
         const void *, arg1,
         const char *, arg3,
         const char *, arg4,
-        int, arg5), 
+        int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_string(arg3, arg3)
         ctf_string(arg4, arg4)
         ctf_integer(int, arg5, arg5)
@@ -96,9 +96,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
     TP_ARGS(
         const void *, arg1,
-        int, arg3), 
+        int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(int, arg3, arg3)
     )
 )
@@ -116,9 +116,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -135,9 +135,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -154,9 +154,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -173,9 +173,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -195,9 +195,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -218,9 +218,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -241,9 +241,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -264,9 +264,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -284,9 +284,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -303,9 +303,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -325,9 +325,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -351,9 +351,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -375,9 +375,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -398,9 +398,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -418,9 +418,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -437,9 +437,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -459,9 +459,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -482,9 +482,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -505,9 +505,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -525,7 +525,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -547,7 +547,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -573,9 +573,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -597,7 +597,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)

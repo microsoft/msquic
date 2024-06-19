@@ -12,9 +12,9 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableResetNotNegotiatedError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetEarly,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -50,9 +50,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetEarly,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetTooBig,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -69,9 +69,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ResetTooBig,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveTooBig,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -88,9 +88,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveTooBig,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -107,9 +107,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReceiveBeyondFlowControl,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -129,9 +129,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteCloseReset,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -149,9 +149,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, ReliableRecvOffsetSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, LocalCloseStopSending,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -168,9 +168,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, LocalCloseStopSending,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, TreatFinAsReset,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -187,9 +187,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, TreatFinAsReset,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -209,9 +209,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, QueueRecvFlush,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendAbort,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -232,9 +232,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendAbort,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -252,9 +252,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerReceiveAborted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -271,9 +271,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterClose,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -290,9 +290,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, FlowControlExhausted,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -318,9 +318,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, Receive,
         const void *, arg1,
         unsigned short, arg3,
         unsigned long long, arg4,
-        unsigned char, arg5), 
+        unsigned char, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -343,9 +343,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, Receive,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, RemoteBlocked,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -375,9 +375,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IncreaseRxBuffer,
         unsigned int, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)
@@ -398,9 +398,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IncreaseRxBuffer,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, UpdateFlowControl,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -417,9 +417,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, UpdateFlowControl,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvFlush,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -436,9 +436,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvFlush,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -458,9 +458,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IndicatePeerSendShutdown,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -481,7 +481,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamRecvState,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -504,9 +504,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -527,9 +527,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamError,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
     TP_ARGS(
         const void *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -547,9 +547,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrame,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamReceiveFrameComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -575,9 +575,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamAppReceive,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -600,9 +600,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamAppReceive,
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamAppReceiveComplete,
     TP_ARGS(
         const void *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )

@@ -12,9 +12,9 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStart,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -31,9 +31,9 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStart,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStop,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -53,7 +53,7 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerThreadStop,
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -73,7 +73,7 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, AllocFailure,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )

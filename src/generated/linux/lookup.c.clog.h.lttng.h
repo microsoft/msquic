@@ -18,11 +18,11 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidFound,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer_hex(uint64_t, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
     )
 )
 
@@ -42,9 +42,9 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidFound,
 TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidNotFound,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -68,11 +68,11 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupRemoteHashFound,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer_hex(uint64_t, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
     )
 )
 
@@ -92,9 +92,9 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupRemoteHashFound,
 TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupRemoteHashNotFound,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -118,10 +118,10 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidInsert,
     TP_ARGS(
         const void *, arg2,
         const void *, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
 )
@@ -145,10 +145,10 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupRemoteHashInsert,
     TP_ARGS(
         const void *, arg2,
         const void *, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
 )
@@ -169,9 +169,9 @@ TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupRemoteHashInsert,
 TRACEPOINT_EVENT(CLOG_LOOKUP_C, LookupCidRemoved,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )

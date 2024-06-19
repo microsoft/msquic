@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, NotAccepted,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, NotAccepted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerAccepted,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -54,9 +54,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerAccepted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, ConfiguredForDelayedIDFC,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -79,9 +79,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, MaxStreamCountUpdated,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned char, arg4), 
+        unsigned char, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
     )
@@ -106,9 +106,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicateStreamsAvailable,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -133,9 +133,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, PeerStreamCountsUpdated,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
     )
@@ -160,10 +160,10 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerStreamStarted,
     TP_ARGS(
         const void *, arg1,
         const void *, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
 )
@@ -184,7 +184,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicatePeerStreamStarted,
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -207,9 +207,9 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )

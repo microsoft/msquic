@@ -12,7 +12,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryStorageOpenFailed,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -29,7 +29,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryStorageOpenFailed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -47,9 +47,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySettingsUpdated,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -64,7 +64,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySettingsUpdated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabledPerRegistration,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -80,7 +80,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabledPerRegistration,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabled,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -98,7 +98,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVerifierEnabled,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
     TP_ARGS(
-        unsigned char, arg2), 
+        unsigned char, arg2),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
     )
@@ -117,7 +117,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCidLengthSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
     TP_ARGS(
-        unsigned short, arg2), 
+        unsigned short, arg2),
     TP_FIELDS(
         ctf_integer(unsigned short, arg2, arg2)
     )
@@ -136,7 +136,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryMemoryLimitSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSet,
     TP_ARGS(
-        unsigned short, arg2), 
+        unsigned short, arg2),
     TP_FIELDS(
         ctf_integer(unsigned short, arg2, arg2)
     )
@@ -153,7 +153,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -169,7 +169,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetSettings,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -185,7 +185,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInUse,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -201,7 +201,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInUse,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -217,7 +217,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -233,7 +233,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionNull,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -251,7 +251,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionEntry,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -268,7 +268,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicClose,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -284,7 +284,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicClose,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -305,7 +305,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -326,7 +326,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
     TP_ARGS(
         unsigned int, arg2_len,
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2_len, arg2_len)
         ctf_sequence(char, arg2, arg2, unsigned int, arg2_len)
@@ -344,7 +344,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, PerfCountersRundown,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryInitializedV3,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -371,7 +371,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVersion,
         unsigned int, arg2,
         unsigned int, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -391,7 +391,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryVersion,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryUninitialized,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -407,7 +407,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryUninitialized,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryAddRef,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -423,7 +423,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryAddRef,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -441,7 +441,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRelease,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -460,7 +460,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathInitialized,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -482,9 +482,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, BindingError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -500,7 +500,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, BindingError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -518,7 +518,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryServerInit,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -537,7 +537,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRundownV2,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -556,7 +556,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, DataPathRundown,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
     TP_ARGS(
-        unsigned char, arg2), 
+        unsigned char, arg2),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
     )
@@ -578,7 +578,7 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)

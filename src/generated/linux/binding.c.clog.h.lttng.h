@@ -14,10 +14,10 @@
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingListenerAlreadyRegistered,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -37,9 +37,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingListenerAlreadyRegistered,
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendFailed,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -55,7 +55,7 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendFailed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, PacketTxVersionNegotiation,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -79,7 +79,7 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, PacketTxVersionNegotiation,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, PacketTxStatelessReset,
     TP_ARGS(
-        const char *, arg2), 
+        const char *, arg2),
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -110,7 +110,7 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, PacketTxRetry,
         const char *, arg3,
         const char *, arg4,
         const char *, arg5,
-        unsigned short, arg6), 
+        unsigned short, arg6),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)
@@ -133,9 +133,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, PacketTxRetry,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendTestDrop,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -155,7 +155,7 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendTestDrop,
 TRACEPOINT_EVENT(CLOG_BINDING_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -181,9 +181,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -213,10 +213,10 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingCreated,
         unsigned int, arg4_len,
         const void *, arg4,
         unsigned int, arg5_len,
-        const void *, arg5), 
+        const void *, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
         ctf_integer(unsigned int, arg5_len, arg5_len)
@@ -237,9 +237,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingCleanup,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -256,9 +256,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingCleanup,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingDestroyed,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -286,10 +286,10 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingRundown,
         unsigned int, arg4_len,
         const void *, arg4,
         unsigned int, arg5_len,
-        const void *, arg5), 
+        const void *, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
         ctf_integer(unsigned int, arg5_len, arg5_len)
@@ -314,9 +314,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, ConnNoListenerIp,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
@@ -339,9 +339,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, ConnNoListenerAlpn,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
@@ -363,9 +363,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, ConnNoListenerAlpn,
 TRACEPOINT_EVENT(CLOG_BINDING_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -386,9 +386,9 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, ConnError,
 TRACEPOINT_EVENT(CLOG_BINDING_C, BindingExecOper,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -406,7 +406,7 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingExecOper,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_BINDING_C, PacketReceive,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2),
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
     )

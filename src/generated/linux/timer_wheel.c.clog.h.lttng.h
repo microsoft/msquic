@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelResize,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelResize,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpirationNull,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -60,11 +60,11 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration,
     TP_ARGS(
         const void *, arg2,
         unsigned long long, arg3,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer_hex(uint64_t, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
     )
 )
 
@@ -84,10 +84,10 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelNextExpiration,
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -107,10 +107,10 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelRemoveConnection,
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -127,9 +127,9 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, TimerWheelUpdateConnection,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, StillInTimerWheel,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -148,7 +148,7 @@ TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, StillInTimerWheel,
 TRACEPOINT_EVENT(CLOG_TIMER_WHEEL_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)

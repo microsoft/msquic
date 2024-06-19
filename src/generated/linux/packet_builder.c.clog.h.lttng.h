@@ -12,9 +12,9 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -34,9 +34,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -57,9 +57,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, GetPacketTypeFailure,
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3), 
+        unsigned short, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -80,9 +80,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBuilderSendBatch,
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -103,7 +103,7 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnError,
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketCreated,
     TP_ARGS(
         unsigned long long, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -146,7 +146,7 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketEncrypt,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2),
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
     )
@@ -165,7 +165,7 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketEncrypt,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketFinalize,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2),
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
     )
@@ -190,9 +190,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -220,9 +220,9 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned char, arg4,
-        unsigned short, arg5), 
+        unsigned short, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
@@ -242,7 +242,7 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, ConnPacketSent,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, PacketBatchSent,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2),
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
     )

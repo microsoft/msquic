@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendStateChanged,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -35,9 +35,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendStateChanged,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendShutdown,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -60,9 +60,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramStateChanged,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -90,10 +90,10 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendQueued,
         const void *, arg1,
         const void *, arg3,
         unsigned long long, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
     )
@@ -115,9 +115,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, DatagramSendQueued,
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramReceived,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3), 
+        unsigned short, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -138,9 +138,9 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, IndicateDatagramReceived,
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -161,7 +161,7 @@ TRACEPOINT_EVENT(CLOG_DATAGRAM_C, ConnError,
 TRACEPOINT_EVENT(CLOG_DATAGRAM_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)

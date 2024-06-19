@@ -33,9 +33,9 @@ TRACEPOINT_EVENT(CLOG_NMRPROVIDER_C, ProviderAttachClient,
         unsigned int, arg6,
         unsigned int, arg7,
         unsigned int, arg8,
-        unsigned long long, arg9), 
+        unsigned long long, arg9),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -59,9 +59,9 @@ TRACEPOINT_EVENT(CLOG_NMRPROVIDER_C, ProviderAttachClient,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_NMRPROVIDER_C, ProviderDetachClient,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -81,7 +81,7 @@ TRACEPOINT_EVENT(CLOG_NMRPROVIDER_C, ProviderDetachClient,
 TRACEPOINT_EVENT(CLOG_NMRPROVIDER_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
         ctf_string(arg3, arg3)

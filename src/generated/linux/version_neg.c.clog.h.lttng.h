@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3), 
+        unsigned short, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -38,9 +38,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed1,
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, VersionInfoDecodeFailed2,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3), 
+        unsigned short, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -64,9 +64,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed3,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -91,9 +91,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecodeFailed4,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -118,9 +118,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionInfoDecoded,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -145,9 +145,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ServerVersionNegotiationInfoEncoded,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -179,9 +179,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ClientVersionInfoEncoded,
         const void *, arg1,
         unsigned int, arg3,
         unsigned int, arg4,
-        unsigned int, arg5), 
+        unsigned int, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -205,9 +205,9 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
         ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
     )
@@ -229,7 +229,7 @@ TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, ConnVNEOtherVersionList,
 TRACEPOINT_EVENT(CLOG_VERSION_NEG_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)

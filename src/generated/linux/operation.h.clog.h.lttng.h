@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecApiOper,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -38,9 +38,9 @@ TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecApiOper,
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecTimerOper,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -61,9 +61,9 @@ TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecTimerOper,
 TRACEPOINT_EVENT(CLOG_OPERATION_H, ConnExecOper,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )

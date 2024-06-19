@@ -12,9 +12,9 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, IgnoreCryptoFrame,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -34,9 +34,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, IgnoreCryptoFrame,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, DiscardKeyType,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -54,9 +54,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, DiscardKeyType,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttAccepted,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -73,9 +73,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttAccepted,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttRejected,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -92,9 +92,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ZeroRttRejected,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -111,9 +111,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, HandshakeConfirmedServer,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CustomCertValidationSuccess,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -148,9 +148,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDump,
         unsigned int, arg5,
         unsigned int, arg6,
         unsigned int, arg7,
-        unsigned int, arg8), 
+        unsigned int, arg8),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -179,9 +179,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
     )
@@ -206,9 +206,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked2,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -227,9 +227,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoDumpUnacked2,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, NoMoreRoomForCrypto,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -252,9 +252,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, AddCryptoFrame,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -279,9 +279,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecoverCrypto,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
     )
@@ -306,9 +306,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, AckCrypto,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -336,9 +336,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecvCrypto,
         const void *, arg1,
         unsigned short, arg3,
         unsigned long long, arg4,
-        unsigned char, arg5), 
+        unsigned char, arg5),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -361,9 +361,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, RecvCrypto,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, IndicateConnected,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -384,9 +384,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, IndicateConnected,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, DrainCrypto,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -404,9 +404,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, DrainCrypto,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoNotReady,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -426,7 +426,7 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, CryptoNotReady,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -452,9 +452,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4), 
+        const char *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -476,9 +476,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnErrorStatus,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -499,9 +499,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnError,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -522,9 +522,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnWriteKeyUpdated,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnReadKeyUpdated,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -542,9 +542,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnReadKeyUpdated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnHandshakeComplete,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -568,9 +568,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnSourceCidRemoved,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4_len,
-        const void *, arg4), 
+        const void *, arg4),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4_len, arg4_len)
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
@@ -590,9 +590,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnSourceCidRemoved,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnNewPacketKeys,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -612,9 +612,9 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnNewPacketKeys,
 TRACEPOINT_EVENT(CLOG_CRYPTO_C, ConnKeyPhaseChange,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3), 
+        unsigned char, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )

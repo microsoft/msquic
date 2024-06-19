@@ -15,9 +15,9 @@
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -38,9 +38,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenStorageFailed,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3), 
+        unsigned int, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -61,10 +61,10 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationOpenAppStorageFailed,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -81,9 +81,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSettingsUpdated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSetSettings,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -103,10 +103,10 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationSetSettings,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiEnter,
     TP_ARGS(
         unsigned int, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiEnter,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3), 
+        unsigned long long, arg3),
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -149,10 +149,10 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, AllocFailure,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCreated,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -169,7 +169,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCreated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExitStatus,
     TP_ARGS(
-        unsigned int, arg2), 
+        unsigned int, arg2),
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
     )
@@ -188,9 +188,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExitStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCleanup,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -207,9 +207,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationCleanup,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationDestroyed,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -224,7 +224,7 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationDestroyed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExit,
     TP_ARGS(
-), 
+),
     TP_FIELDS(
     )
 )
@@ -245,9 +245,9 @@ TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ApiExit,
 TRACEPOINT_EVENT(CLOG_CONFIGURATION_C, ConfigurationRundown,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3), 
+        const void *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )

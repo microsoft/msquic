@@ -21,7 +21,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogUnknownType,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -52,7 +52,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPadding,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned short, arg5), 
+        unsigned short, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -80,7 +80,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPing,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -107,7 +107,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -140,7 +140,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAck,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -172,7 +172,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckSingleBlock,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -206,7 +206,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckMultiBlock,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -235,7 +235,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalidBlock,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -262,7 +262,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcnInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -298,7 +298,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckEcn,
         unsigned long long, arg4,
         unsigned long long, arg5,
         unsigned long long, arg6,
-        unsigned long long, arg7), 
+        unsigned long long, arg7),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -328,7 +328,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStreamInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -364,7 +364,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogResetStream,
         unsigned long long, arg4,
         unsigned long long, arg5,
         unsigned long long, arg6,
-        unsigned long long, arg7), 
+        unsigned long long, arg7),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -394,7 +394,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSendingInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -427,7 +427,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStopSending,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -456,7 +456,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCryptoInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -489,7 +489,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogCrypto,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned short, arg6), 
+        unsigned short, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -518,7 +518,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewTokenInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -548,7 +548,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewToken,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -576,7 +576,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -612,7 +612,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamFin,
         unsigned long long, arg4,
         unsigned long long, arg5,
         unsigned long long, arg6,
-        unsigned short, arg7), 
+        unsigned short, arg7),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -651,7 +651,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStream,
         unsigned long long, arg4,
         unsigned long long, arg5,
         unsigned long long, arg6,
-        unsigned short, arg7), 
+        unsigned short, arg7),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -681,7 +681,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxDataInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -711,7 +711,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxData,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -739,7 +739,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamDataInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -772,7 +772,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamData,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -801,7 +801,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreamsInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -834,7 +834,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxStreams,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned short, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -863,7 +863,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlockedInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -893,7 +893,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDataBlocked,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -921,7 +921,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlockedInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -954,7 +954,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamDataBlocked,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -983,7 +983,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlockedInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1016,7 +1016,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogStreamsBlocked,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned short, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1045,7 +1045,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionIDInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1084,7 +1084,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogNewConnectionID,
         unsigned long long, arg5,
         unsigned long long, arg6,
         const char *, arg7,
-        const char *, arg8), 
+        const char *, arg8),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1115,7 +1115,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionIDInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1145,7 +1145,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionID,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1173,7 +1173,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallengeInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1203,7 +1203,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathChallenge,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1231,7 +1231,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponseInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1261,7 +1261,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponse,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1289,7 +1289,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1319,7 +1319,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionCloseApp,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1353,7 +1353,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogConnectionClose,
         unsigned char, arg3,
         unsigned long long, arg4,
         unsigned long long, arg5,
-        unsigned long long, arg6), 
+        unsigned long long, arg6),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1382,7 +1382,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogHandshakeDone,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1409,7 +1409,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagramInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1439,7 +1439,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogDatagram,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned short, arg5), 
+        unsigned short, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1467,7 +1467,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1509,7 +1509,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         unsigned long long, arg6,
         unsigned long long, arg7,
         unsigned char, arg8,
-        unsigned char, arg9), 
+        unsigned char, arg9),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1541,7 +1541,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogImmediateAck,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1568,7 +1568,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogTimestampInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1598,7 +1598,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogTimestamp,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned long long, arg5), 
+        unsigned long long, arg5),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1626,7 +1626,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStreamInvalid,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4), 
+        unsigned long long, arg4),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1665,7 +1665,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStream,
         unsigned long long, arg5,
         unsigned long long, arg6,
         unsigned long long, arg7,
-        unsigned long long, arg8), 
+        unsigned long long, arg8),
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1693,9 +1693,9 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogReliableResetStream,
 TRACEPOINT_EVENT(CLOG_FRAME_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3), 
+        const char *, arg3),
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
