@@ -254,9 +254,14 @@ function Cleanup-State {
 # Waits for a remote job to be ready based on looking for a particular string in
 # the output.
 function Start-RemoteServer {
-    param ($Session, $Command)
+    param ($Session, $Command, $ServerArgs, $UseSudo)
     # Start the server on the remote in an async job.
-    $job = Invoke-Command -Session $Session -ScriptBlock { iex $Using:Command } -AsJob
+
+    if ($UseSudo) {
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "sudo LD_LIBRARY_PATH=$(Split-Path $Using:Command -Parent)  $Using:Command $Using:ServerArgs" } -AsJob
+    } else {
+        $job = Invoke-Command -Session $Session -ScriptBlock { iex "$Using:Command $Using:ServerArgs"} -AsJob
+    }
     # Poll the job for 10 seconds to see if it started.
     $stopWatch = [system.diagnostics.stopwatch]::StartNew()
     while ($stopWatch.ElapsedMilliseconds -lt 10000) {
@@ -445,15 +450,22 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($IsWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
         # We use bash to execute the test so we can collect core dumps.
-        $pinfo.FileName = "bash"
-        $pinfo.Arguments = "-c `"ulimit -c unlimited && LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''`""
+        $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
+        if ($UseSudo) {
+            $pinfo.FileName = "/usr/bin/sudo"
+            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
+        } else {
+            $pinfo.FileName = "bash"
+            $pinfo.Arguments = "-c `"$CommonCommand`""
+        }
         $pinfo.WorkingDirectory = $OutputDir
     }
     $pinfo.RedirectStandardOutput = $true
@@ -657,14 +669,13 @@ function Invoke-Secnetperf {
     }
 
     # These scenarios are currently broken! TODO - Figure out why and fix them.
-    if (($io -eq "wsk" -and $metric -eq "hps") -or
-        (!$isWindows -and $io -eq "xdp" -and $metric -eq "hps")) {
+    if ($io -eq "wsk" -and $metric -eq "hps") {
         Write-Host "> secnetperf $clientArgs BROKEN!"
         continue
     }
 
      # Linux XDP requires sudo for now
-    $sudo = (!$IsWindows -and $io -eq "xdp") ? "sudo -E LD_LIBRARY_PATH=$RemoteDir/$(Split-Path $SecNetPerfPath -Parent) " : ""
+    $useSudo = (!$IsWindows -and $io -eq "xdp")
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
@@ -705,7 +716,7 @@ function Invoke-Secnetperf {
         Start-RemoteServerPassive $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
         Wait-StartRemoteServerPassive "$sudo$clientPath" $RemoteName $artifactDir
     } else {
-        $job = Start-RemoteServer $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs"
+        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -716,12 +727,12 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$sudo$clientPath" $clientArgs $artifactDir
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
             if ($extraOutput) {
-                if ($sudo -ne "") {
+                if ($useSudo) {
                     sudo chown $UserName $extraOutput
                 }
                 $latency[$tcp] += Get-LatencyOutput $extraOutput

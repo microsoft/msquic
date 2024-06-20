@@ -2220,6 +2220,15 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
+TEST(Basic, OperationPriority) {
+    TestLogger Logger("OperationPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
+    } else {
+        QuicTestOperationPriority();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
