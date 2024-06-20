@@ -162,6 +162,7 @@ namespace Microsoft.Quic
         FAIL_BLOCKED = 0x0002,
         SHUTDOWN_ON_FAIL = 0x0004,
         INDICATE_PEER_ACCEPT = 0x0008,
+        PRIORITY_WORK = 0x0010,
     }
 
     [System.Flags]
@@ -194,7 +195,8 @@ namespace Microsoft.Quic
         DGRAM_PRIORITY = 0x0008,
         DELAY_SEND = 0x0010,
         CANCEL_ON_LOSS = 0x0020,
-        CANCEL_ON_BLOCKED = 0x0040,
+        PRIORITY_WORK = 0x0040,
+        CANCEL_ON_BLOCKED = 0x0080,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -3261,6 +3263,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_STREAM 0x08000000")]
         internal const uint QUIC_PARAM_PREFIX_STREAM = 0x08000000;
+
+        [NativeTypeName("#define QUIC_PARAM_HIGH_PRIORITY 0x40000000")]
+        internal const uint QUIC_PARAM_HIGH_PRIORITY = 0x40000000;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x01000000")]
         internal const uint QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;

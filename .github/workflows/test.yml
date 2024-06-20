@@ -104,20 +104,20 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", useqtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", useqtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", useqtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       if: matrix.vec.plat == 'windows'
@@ -177,7 +177,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
       uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
       with: # note we always use binaries built on windows-2022.
@@ -224,7 +224,7 @@ jobs:
     - "1ES.ImageOverride=WinServerPrerelease"
     steps:
     - name: Checkout repository
-      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
