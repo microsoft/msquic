@@ -242,7 +242,8 @@ QuicOperationQueueClear(
     OperQ->PriorityTail = &OperQ->List.Flink;
     CxPlatDispatchLockRelease(&OperQ->Lock);
 
-    int64_t OperationsDequeued = 0;
+
+    int64_t OperationsDequeued = 0; 
 
     while (!CxPlatListIsEmpty(&OldList)) {
         QUIC_OPERATION* Oper =
