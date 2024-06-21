@@ -431,12 +431,12 @@ function Stop-RemoteServerAsyncAwait {
 }
 
 function Wait-StartRemoteServerPassive {
-    param ($FullPath, $RemoteName, $OutputDir)
+    param ($FullPath, $RemoteName, $OutputDir, $UseSudo)
 
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -714,7 +714,7 @@ function Invoke-Secnetperf {
     }
     if ($Environment -eq "azure") {
         Start-RemoteServerPassive $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
-        Wait-StartRemoteServerPassive "$sudo$clientPath" $RemoteName $artifactDir
+        Wait-StartRemoteServerPassive "$sudo$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
