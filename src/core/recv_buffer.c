@@ -915,7 +915,8 @@ QuicRecvBufferDrain(
         RecvBuffer->ReadPendingLength -= DrainLength;
     }
 
-    QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+    const QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+    UNREFERENCED_PARAMETER(FirstRange);
     CXPLAT_DBG_ASSERT(FirstRange);
     CXPLAT_DBG_ASSERT(FirstRange->Low == 0);
     do {
