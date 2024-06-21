@@ -3999,7 +3999,9 @@ struct MultiReceiveTestContext {
     uint8_t RecvdSignatures[MultiRecvNumSend] {0};
     uint64_t PseudoProcessingLength {0};
     CXPLAT_LOCK Lock;
-    uint64_t TotalLength {0};
+    uint64_t TotalReceivedBytes {0};
+    uint64_t TotalSendBytes {0};
+    uint8_t* RecvBuffer {nullptr};
 
     MultiReceiveTestContext() {
         CxPlatLockInitialize(&Lock);
@@ -4021,9 +4023,20 @@ struct MultiReceiveTestContext {
             CxPlatLockAcquire(&TestContext->Lock);
             TestContext->PseudoProcessingLength += Event->RECEIVE.TotalBufferLength;
             CxPlatLockRelease(&TestContext->Lock);
-            TestContext->TotalLength += Event->RECEIVE.TotalBufferLength;
-            if (TestContext->RecvdSignatures[TestContext->Recvd] != 0) {
-                TestContext->PktRecvd[TestContext->Recvd++].Set();
+            TestContext->TotalReceivedBytes += Event->RECEIVE.TotalBufferLength;
+            if (TestContext->RecvBuffer) {
+                uint32_t Offset = Event->RECEIVE.AbsoluteOffset;
+                for (uint32_t i = 0; i < BufferCount; i++) {
+                    memcpy(TestContext->RecvBuffer + Offset, Buffers[i].Buffer, Buffers[i].Length);
+                    Offset += Buffers[i].Length;
+                }
+                if (TestContext->TotalReceivedBytes == TestContext->TotalSendBytes) {
+                    TestContext->PktRecvd[0].Set();
+                }
+            } else {
+                if (TestContext->RecvdSignatures[TestContext->Recvd] != 0) {
+                    TestContext->PktRecvd[TestContext->Recvd++].Set();
+                }
             }
             Status = QUIC_STATUS_PENDING;
         }
@@ -4147,8 +4160,15 @@ QuicTestStreamMultiReceive(
         uint32_t BufferSize = sizeof(Buffer1G);
         QUIC_BUFFER Buffer { BufferSize, Buffer1G };
         int NumSend = 1;
-
         MultiReceiveTestContext Context;
+        for (uint32_t i = 0; i < BufferSize; i++) {
+            Buffer1G[i] = (uint8_t)(i % 255) + 1;
+        }
+        // alloc 1G
+        Context.RecvBuffer = new(std::nothrow) uint8_t[BufferSize];
+        memset(Context.RecvBuffer, 0, BufferSize);
+        Context.TotalSendBytes = BufferSize;
+
         MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MultiReceiveTestContext::ConnCallback, &Context);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
@@ -4167,11 +4187,10 @@ QuicTestStreamMultiReceive(
         TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
         for (int i = 0; i < NumSend; i++) {
-            Buffer.Buffer[BufferSize-1] = ((uint8_t)i % 255) + 1;
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
 
             uint64_t CompletingLength = 0;
-            while (!(Context.PktRecvd[i].WaitTimeout(1))) {
+            while (!(Context.PktRecvd[0].WaitTimeout(1))) {
                 CxPlatLockAcquire(&Context.Lock);
                 CompletingLength = Context.PseudoProcessingLength;
                 Context.PseudoProcessingLength = 0;
@@ -4186,9 +4205,8 @@ QuicTestStreamMultiReceive(
             }
         }
 
-        for (int i = 0; i < NumSend; i++) {
-            TEST_TRUE(Context.RecvdSignatures[i] == (uint8_t)(i % 255) + 1)
-        }
-        TEST_TRUE(Context.TotalLength == BufferSize * NumSend);
+        TEST_TRUE(Context.TotalReceivedBytes == BufferSize * NumSend);
+        TEST_EQUAL(0, memcmp(Buffer1G, Context.RecvBuffer, BufferSize));
+        delete Context.RecvBuffer;
     }
 }
