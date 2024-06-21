@@ -4170,7 +4170,7 @@ QuicTestStreamMultiReceive(
             Buffer.Buffer[BufferSize-1] = ((uint8_t)i % 255) + 1;
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
 
-            int CompletingLength = 0;
+            uint64_t CompletingLength = 0;
             while (!(Context.PktRecvd[i].WaitTimeout(1))) {
                 CxPlatLockAcquire(&Context.Lock);
                 CompletingLength = Context.PseudoProcessingLength;
