@@ -3990,16 +3990,16 @@ QuicTestStreamReliableResetMultipleSends(
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
-#define MultiRecvNumSend 3
+#define MultiRecvNumSend 10
 uint8_t Buffer1G[1000000000] = {};
 struct MultiReceiveTestContext {
-    CxPlatEvent PktRecvd[MultiRecvNumSend] {0};
+    CxPlatEvent PktRecvd[MultiRecvNumSend];
     MsQuicStream* ServerStream {nullptr};
     int Recvd {0};
     uint8_t RecvdSignatures[MultiRecvNumSend] {0};
-    int PseudoProcessingLength {0};
+    uint64_t PseudoProcessingLength {0};
     CXPLAT_LOCK Lock;
-    uint32_t TotalLength {0};
+    uint64_t TotalLength {0};
 
     MultiReceiveTestContext() {
         CxPlatLockInitialize(&Lock);
@@ -4085,14 +4085,14 @@ QuicTestStreamMultiReceive(
         TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
         for (int i = 0; i < NumSend; i++) {
-            Buffer.Buffer[BufferSize-1] = i + 1;
+            Buffer.Buffer[BufferSize-1] = ((uint8_t)i % 255) + 1;
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
             TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
         }
         Context.ServerStream->ReceiveComplete(BufferSize * NumSend);
 
         for (int i = 0; i < NumSend; i++) {
-            TEST_TRUE(Context.RecvdSignatures[i] == i + 1);
+            TEST_TRUE(Context.RecvdSignatures[i] == (uint8_t)(i % 255) + 1)
         }
     }
 
@@ -4123,7 +4123,7 @@ QuicTestStreamMultiReceive(
 
         int lastCompleted = -1;
         for (int i = 0; i < NumSend; i++) {
-            Buffer.Buffer[BufferSize-1] = (i % 255) + 1;
+            Buffer.Buffer[BufferSize-1] = ((uint8_t)i % 255) + 1;
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
             TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
             if ((i + 1) % 8 == 0) { // ReceiveComplete every 8 sends
@@ -4136,7 +4136,7 @@ QuicTestStreamMultiReceive(
         }
 
         for (int i = 0; i < NumSend; i++) {
-            TEST_TRUE(Context.RecvdSignatures[i] == (i % 255) + 1);
+            TEST_TRUE(Context.RecvdSignatures[i] == (uint8_t)(i % 255) + 1)
         }
     }
 
@@ -4167,7 +4167,7 @@ QuicTestStreamMultiReceive(
         TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
         for (int i = 0; i < NumSend; i++) {
-            Buffer.Buffer[BufferSize-1] = (i % 255) + 1;
+            Buffer.Buffer[BufferSize-1] = ((uint8_t)i % 255) + 1;
             TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
 
             int CompletingLength = 0;
@@ -4187,14 +4187,8 @@ QuicTestStreamMultiReceive(
         }
 
         for (int i = 0; i < NumSend; i++) {
-            TEST_TRUE(Context.RecvdSignatures[i] == (i % 255) + 1);
+            TEST_TRUE(Context.RecvdSignatures[i] == (uint8_t)(i % 255) + 1)
         }
         TEST_TRUE(Context.TotalLength == BufferSize * NumSend);
     }
-
-
-    // Client side multi receive TBD
-    {
-    }
-
 }
