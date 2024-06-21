@@ -713,8 +713,8 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Environment -eq "azure") {
-        Start-RemoteServerPassive $Session "$sudo$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
-        Wait-StartRemoteServerPassive "$sudo$clientPath" $RemoteName $artifactDir $useSudo
+        Start-RemoteServerPassive $Session "$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
+        Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
