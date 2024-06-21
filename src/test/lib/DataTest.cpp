@@ -3946,47 +3946,9 @@ QuicTestStreamMultiReceive(
         }
     }
 
-    // Server side multi receive.
-    // simple case of handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED
-    {
-        uint32_t BufferSize = 65537;
-        QUIC_BUFFER Buffer { BufferSize, Buffer1G };
-        int NumSend = 1;
-
-        MultiReceiveTestContext Context;
-        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MultiReceiveTestContext::ConnCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
-        QuicAddr ServerLocalAddr;
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        MsQuicConnection Connection(Registration);
-        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-
-        TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Connection.HandshakeComplete);
-
-        MsQuicStream Stream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, MultiReceiveTestContext::ClientStreamCallback, &Context);
-        TEST_QUIC_SUCCEEDED(Stream.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Stream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
-
-        for (int i = 0; i < NumSend; i++) {
-            Buffer.Buffer[BufferSize-1] = (i % 255) + 1;
-            TEST_QUIC_SUCCEEDED(Stream.Send(&Buffer, 1, i == NumSend - 1 ? QUIC_SEND_FLAG_FIN : QUIC_SEND_FLAG_NONE));
-            CxPlatSleep(10);
-            Context.ServerStream->ReceiveComplete(65536-i);
-            TEST_TRUE(Context.PktRecvd[i].WaitTimeout(TestWaitTimeout));
-            Context.ServerStream->ReceiveComplete(1+i);
-        }
-
-        for (int i = 0; i < NumSend; i++) {
-            TEST_TRUE(Context.RecvdSignatures[i] == (i % 255) + 1);
-        }
-    }
-
     // Server side multi receive. Send 1G bytes
-    // handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED
+    // handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED,
+    // potential multi chunk and multi range
     {
         uint32_t BufferSize = sizeof(Buffer1G);
         QUIC_BUFFER Buffer { BufferSize, Buffer1G };

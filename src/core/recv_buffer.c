@@ -915,15 +915,18 @@ QuicRecvBufferDrain(
         RecvBuffer->ReadPendingLength -= DrainLength;
     }
 
+    QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+    CXPLAT_DBG_ASSERT(FirstRange);
+    CXPLAT_DBG_ASSERT(FirstRange->Low == 0);
     do {
+        //
+        // If there are 2 or more written ranges, it means that there may be
+        // more data later in the chunk that couldn't be read because there is a gap.
+        // The DrainLength should not exceed the first range to avoid accessing the gap.
+        //
+        CXPLAT_DBG_ASSERT(RecvBuffer->BaseOffset + DrainLength <= FirstRange->Low + FirstRange->Count);
         BOOLEAN PartialDrain = (uint64_t)RecvBuffer->ReadLength > DrainLength;
-        if (PartialDrain ||
-            //
-            // If there are 2 or more written ranges, it means that there may be
-            // more data later in the chunk that couldn't be read because there is a gap.
-            // Reuse the partial drain logic to preserve data after the gap.
-            //
-            QuicRangeSize(&RecvBuffer->WrittenRanges) > 1) {
+        if (PartialDrain) {
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
             return !PartialDrain;
         }
