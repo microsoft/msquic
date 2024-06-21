@@ -521,6 +521,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(BOOLEAN),
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1453,8 +1454,12 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestNthPacketDrop());
         break;
 
-    case IOCTL_QUIC_RUN_NTH_PACKET_DROP:
+    case IOCTL_QUIC_RUN_OPERATION_PRIORITY:
+        QuicTestCtlRun(QuicTestOperationPriority());
+
+    case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
         QuicTestCtlRun(QuicTestStreamMultiReceive());
+
         break;
 
     default:

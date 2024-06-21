@@ -580,6 +580,14 @@ QuicTestStreamBlockUnblockConnFlowControl(
     );
 
 void
+QuicTestOperationPriority(
+    );
+
+void
+QuicTestConnectionStreamStartSendPriority(
+    );
+
+void
 QuicTestEcn(
     _In_ int Family
     );
@@ -1298,7 +1306,10 @@ typedef struct {
 #define IOCTL_QUIC_RUN_NTH_PACKET_DROP \
     QUIC_CTL_CODE(121, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
+#define IOCTL_QUIC_RUN_OPERATION_PRIORITY \
     QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 122
+#define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
+    QUIC_CTL_CODE(123, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 123
