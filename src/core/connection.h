@@ -917,6 +917,7 @@ QuicConnAddOutFlowBlockedReason(
             "[conn][%p] Send Blocked Flags: %hhu",
             Connection,
             Connection->OutFlowBlockedReasons);
+        // fprintf(stderr, "QuicConnAddOutFlowBlockedReason [strm][%p] Send Blocked Flags: %hhu\n", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -968,6 +969,7 @@ QuicConnRemoveOutFlowBlockedReason(
             "[conn][%p] Send Blocked Flags: %hhu",
             Connection,
             Connection->OutFlowBlockedReasons);
+        // fprintf(stderr, "QuicConnRemoveOutFlowBlockedReason [strm][%p] Send Blocked Flags: %hhu\n", Connection, Connection->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
