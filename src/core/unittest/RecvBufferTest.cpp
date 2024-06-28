@@ -693,6 +693,789 @@ TEST_P(WithMode, DrainFrontChunkWithPendingGap)
     ASSERT_TRUE(RecvBuf.Drain(1));
 }
 
+// Validate the gap can span the edge of a chunk
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
+// |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
+// |R, R, R, R, 4, 5, 6, x| ReadStart:0, ReadLength:7, Ext:1
+// |R, R, R, R, 4, 5, 6, G] [G,9,10,11,....] ReadStart:0, ReadLength:7, Ext:1
+// |R, R, R, R, 4, 5, 6, 7] [8,9,10,11,....] ReadStart:0, ReadLength:8, Ext:1
+TEST_P(WithMode, GapEdge)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    uint64_t ReadOffset;
+    QUIC_BUFFER ReadBuffers[3];
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+    ASSERT_EQ(1ul, BufferCount);
+    ASSERT_EQ(4ul, ReadBuffers[0].Length);
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(3ull, InOutWriteLength);
+    ASSERT_EQ(7ull, RecvBuf.GetTotalLength()); // ?
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            9,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(5ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            7,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+}
+
+// Validate the gap can span the edge of a chunk (cycle)
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
+// |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
+// |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
+// |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
+// |D, D, D, D, R, R, R, R] ReadStart:4, ReadLength:4, Ext:1
+// |8, 9,10, D, R, R, R, R] ReadStart:4, ReadLength:7, Ext:1
+// |8, 9,10, G, R, R, R, R] [ G,13,14,15, ...] ReadStart:4, ReadLength:7, Ext:1
+// |8, 9,10,11, R, R, R, R] [12,13,14,15, ...] ReadStart:4, ReadLength:8, Ext:1
+TEST_P(WithMode, GapCycleEdge)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength()); // ?
+
+    RecvBuf.Drain(4);
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(3ull, InOutWriteLength);
+    ASSERT_EQ(11ull, RecvBuf.GetTotalLength()); // ?
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            13,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(5ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength()); // ?
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            11,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+    
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(2ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+        ASSERT_EQ(4ul, ReadBuffers[1].Length);
+    }
+    RecvBuf.Drain(12);
+}
+
+// Validate if resized and copying content to bigger chunk
+// |0, 1, 2, 3, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:0
+// |R, R, R, R, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:1
+// |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
+// |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
+// [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
+TEST_P(WithMode, PartialDrainGrow)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+   ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength()); // ?
+
+    RecvBuf.Drain(4);
+
+    InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            8,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(8ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength()); // ?
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(12ul, ReadBuffers[0].Length);
+    }
+    RecvBuf.Drain(12);
+}
+
+// Validate if resized and copying content to bigger chunk
+// [0, 1, 2, 3, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:0
+// [R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
+// [D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
+// [8, G, G,11, 4, 5, 6, 7] ReadStart:4, ReadLengt:5, Ext:0
+// [4, 5, 6, 7, 8, G, G,11,12,13,14,15, ...] ReadStart:0, ReadLengt:5, Ext:0
+// [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
+TEST_P(WithMode, PartialDrainGapGrow)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(4);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            1,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(1ull, InOutWriteLength);
+    ASSERT_EQ(9ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            11,
+            1,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(3ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            12,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            9,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(12ul, ReadBuffers[0].Length);
+    }
+    RecvBuf.Drain(12);
+}
+
+// Validate if resized and copying content to bigger chunk
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
+// |R, R, R, R, 4, 5, 6, x| ReadStart:0, ReadLength:7, Ext:1
+// |D, D, D, D, 4, 5, 6, x] ReadStart:4, ReadLength:3, Ext:0
+// |G, 9,10,11, 4, 5, 6, G] ReadStart:4, ReadLength:3, Ext:0
+// [4, 5, 6, G, G, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:3,  Ext:0
+// [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
+TEST_P(WithMode, PartialDrainGapEdgeGrow)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+   ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(3ull, InOutWriteLength);
+    ASSERT_EQ(7ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(4);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            9,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(5ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            12,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            7,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(12ul, ReadBuffers[0].Length);
+    }
+    RecvBuf.Drain(12);
+}
+
+// Validate if resized and copying content to bigger chunk
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
+// |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
+// |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
+// |8, 9,10, D, 4, 5, 6, 7] ReadStart:4, ReadLength:6, Ext:0
+// [4, 5, 6, 7, 8, 9,10, G, G,13,14,15, ...] ReadStart:0, ReadLength:7,  Ext:0
+// [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
+TEST_P(WithMode, PartialDrainGapCycleEdgeGrow)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(4);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(3ull, InOutWriteLength);
+    ASSERT_EQ(11ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            13,
+            3,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_FALSE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(5ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            11,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(0ull, InOutWriteLength);
+    ASSERT_EQ(16ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(12ul, ReadBuffers[0].Length);
+    }
+    RecvBuf.Drain(12);
+}
+
+// Validate if resized, but appended
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
+// |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
+// |D, D, R, R, 4, 5, 6, 7] ReadStart:2, ReadLength:6, Ext:1
+// |8, 9, R, R, 4, 5, 6, 7] ReadStart:4, ReadLength:8, Ext:1
+// |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:8, Ext:1
+// |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:6, Ext:0
+// |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:4, ReadLength:6, Ext:0
+TEST_P(WithMode, PartialDrainSmallWriteAppend)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(2);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(2ull, InOutWriteLength);
+    ASSERT_EQ(10ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            10,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(2ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(2);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            12,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(2ull, InOutWriteLength);
+    ASSERT_EQ(14ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(3ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+        ASSERT_EQ(2ul, ReadBuffers[1].Length);
+        ASSERT_EQ(4ul, ReadBuffers[2].Length);
+    }
+    RecvBuf.Drain(10);
+}
+
+// Validate if resized, but appended
+// |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
+// |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
+// |D, D, R, R, 4, 5, 6, 7] ReadStart:2, ReadLength:6, Ext:1
+// |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:8, Ext:1
+// |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:6, Ext:0
+// |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:4, ReadLength:6, Ext:0
+TEST_P(WithMode, PartialDrainBigWriteAppend)
+{
+    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        GTEST_SKIP();
+    }
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = 8;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            0,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(4ull, RecvBuf.GetTotalLength());
+
+    {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(1ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+    }
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            4,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(8ull, RecvBuf.GetTotalLength());
+
+    RecvBuf.Drain(2);
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            8,
+            4,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(4ull, InOutWriteLength);
+    ASSERT_EQ(12ull, RecvBuf.GetTotalLength());
+
+    InOutWriteLength = 8;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(
+            12,
+            2,
+            &InOutWriteLength,
+            &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(2ull, InOutWriteLength);
+    ASSERT_EQ(14ull, RecvBuf.GetTotalLength());
+
+   {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers); // Lock 1st Chunk
+        ASSERT_EQ(3ul, BufferCount);
+        ASSERT_EQ(4ul, ReadBuffers[0].Length);
+        ASSERT_EQ(2ul, ReadBuffers[1].Length);
+        ASSERT_EQ(4ul, ReadBuffers[2].Length);
+    }
+    RecvBuf.Drain(10);
+}
+
 INSTANTIATE_TEST_SUITE_P(
     RecvBufferTest,
     WithMode,
