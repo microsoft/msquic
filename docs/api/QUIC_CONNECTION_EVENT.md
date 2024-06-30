@@ -190,6 +190,14 @@ The number of bidirectional streams the peer is willing to accept.
 
 The number of unidirectional streams the peer is willing to accept.
 
+`BidirectionalIncrement`
+
+The increment of how many additional bidirectional streams the peer is willing to accept.
+
+`UnidirectionalIncrement`
+
+The increment of how many additional of unidirectional streams the peer is willing to accept.
+
 ## QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS
 
 This event indicates the peer is currently blocked on the number of parallel streams the app has configured it is willing to accept.

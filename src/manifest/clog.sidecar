@@ -6106,7 +6106,7 @@
     },
     "IndicateStreamsAvailable": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]",
       "UniqueId": "IndicateStreamsAvailable",
       "splitArgs": [
         {
@@ -6120,6 +6120,14 @@
         {
           "DefinationEncoding": "hu",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg6"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -15032,9 +15040,9 @@
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_START_COMPLETE [Status=0x%x ID=%llu Accepted=%hhu]"
       },
       {
-        "UniquenessHash": "26bdd068-e9fa-9f1e-2d26-60dbed5c5080",
+        "UniquenessHash": "50a79808-57c9-3862-b8fd-ef4f4bf53b8d",
         "TraceID": "IndicateStreamsAvailable",
-        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]"
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]"
       },
       {
         "UniquenessHash": "c7899737-8445-73b7-9221-5db9217dbdce",

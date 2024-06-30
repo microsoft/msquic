@@ -2702,6 +2702,12 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("uint16_t")]
                 internal ushort UnidirectionalCount;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort BidirectionalIncrement;
+
+                [NativeTypeName("uint16_t")]
+                internal ushort UnidirectionalIncrement;
             }
 
             internal partial struct _PEER_NEEDS_STREAMS_e__Struct

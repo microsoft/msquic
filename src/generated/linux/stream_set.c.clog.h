@@ -117,20 +117,24 @@ tracepoint(CLOG_STREAM_SET_C, MaxStreamCountUpdated , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamsAvailable
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]
 // QuicTraceLogConnVerbose(
         IndicateStreamsAvailable,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
-        Event.STREAMS_AVAILABLE.UnidirectionalCount);
+        Event.STREAMS_AVAILABLE.UnidirectionalCount,
+        Event.STREAMS_AVAILABLE.BidirectionalIncrement,
+        Event.STREAMS_AVAILABLE.UnidirectionalIncrement);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Event.STREAMS_AVAILABLE.BidirectionalCount = arg3
 // arg4 = arg4 = Event.STREAMS_AVAILABLE.UnidirectionalCount = arg4
+// arg5 = arg5 = Event.STREAMS_AVAILABLE.BidirectionalIncrement = arg5
+// arg6 = arg6 = Event.STREAMS_AVAILABLE.UnidirectionalIncrement = arg6
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_IndicateStreamsAvailable
-#define _clog_5_ARGS_TRACE_IndicateStreamsAvailable(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_STREAM_SET_C, IndicateStreamsAvailable , arg1, arg3, arg4);\
+#ifndef _clog_7_ARGS_TRACE_IndicateStreamsAvailable
+#define _clog_7_ARGS_TRACE_IndicateStreamsAvailable(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_STREAM_SET_C, IndicateStreamsAvailable , arg1, arg3, arg4, arg5, arg6);\
 
 #endif
 

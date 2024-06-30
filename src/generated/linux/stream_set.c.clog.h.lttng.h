@@ -91,26 +91,34 @@ TRACEPOINT_EVENT(CLOG_STREAM_SET_C, MaxStreamCountUpdated,
 
 /*----------------------------------------------------------
 // Decoder Ring for IndicateStreamsAvailable
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]
 // QuicTraceLogConnVerbose(
         IndicateStreamsAvailable,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
-        Event.STREAMS_AVAILABLE.UnidirectionalCount);
+        Event.STREAMS_AVAILABLE.UnidirectionalCount,
+        Event.STREAMS_AVAILABLE.BidirectionalIncrement,
+        Event.STREAMS_AVAILABLE.UnidirectionalIncrement);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Event.STREAMS_AVAILABLE.BidirectionalCount = arg3
 // arg4 = arg4 = Event.STREAMS_AVAILABLE.UnidirectionalCount = arg4
+// arg5 = arg5 = Event.STREAMS_AVAILABLE.BidirectionalIncrement = arg5
+// arg6 = arg6 = Event.STREAMS_AVAILABLE.UnidirectionalIncrement = arg6
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_SET_C, IndicateStreamsAvailable,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned short, arg4), 
+        unsigned short, arg4,
+        unsigned short, arg5,
+        unsigned short, arg6), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
+        ctf_integer(unsigned short, arg5, arg5)
+        ctf_integer(unsigned short, arg6, arg6)
     )
 )
 

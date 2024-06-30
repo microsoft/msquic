@@ -235,7 +235,9 @@ QuicStreamSetDrainClosedStreams(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamSetIndicateStreamsAvailable(
-    _Inout_ QUIC_STREAM_SET* StreamSet
+    _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ uint64_t BidiIncrement,
+    _In_ uint64_t UnidiIncrement
     )
 {
     QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
@@ -249,13 +251,17 @@ QuicStreamSetIndicateStreamsAvailable(
         QuicStreamSetGetCountAvailable(StreamSet, Type | STREAM_ID_FLAG_IS_BI_DIR);
     Event.STREAMS_AVAILABLE.UnidirectionalCount =
         QuicStreamSetGetCountAvailable(StreamSet, Type | STREAM_ID_FLAG_IS_UNI_DIR);
+    Event.STREAMS_AVAILABLE.BidirectionalIncrement = (BidiIncrement > UINT16_MAX) ? UINT16_MAX : (uint16_t)BidiIncrement;
+    Event.STREAMS_AVAILABLE.UnidirectionalIncrement = (UnidiIncrement > UINT16_MAX) ? UINT16_MAX : (uint16_t)UnidiIncrement;
 
     QuicTraceLogConnVerbose(
         IndicateStreamsAvailable,
         Connection,
-        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu]",
+        "Indicating QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE [bi=%hu uni=%hu bi_inc=%hu uni_inc=%hu]",
         Event.STREAMS_AVAILABLE.BidirectionalCount,
-        Event.STREAMS_AVAILABLE.UnidirectionalCount);
+        Event.STREAMS_AVAILABLE.UnidirectionalCount,
+        Event.STREAMS_AVAILABLE.BidirectionalIncrement,
+        Event.STREAMS_AVAILABLE.UnidirectionalIncrement);
     (void)QuicConnIndicateEvent(Connection, &Event);
 }
 
@@ -350,7 +356,7 @@ QuicStreamSetInitializeTransportParameters(
     }
 
     if (UpdateAvailableStreams) {
-        QuicStreamSetIndicateStreamsAvailable(StreamSet);
+        QuicStreamSetIndicateStreamsAvailable(StreamSet, BidiStreamCount, UnidiStreamCount);
     }
 
     if (MightBeUnblocked && FlushIfUnblocked) {
@@ -423,9 +429,10 @@ QuicStreamSetUpdateMaxStreams(
             CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
         }
 
+        uint64_t increment = MaxStreams - Info->MaxTotalStreamCount;
         Info->MaxTotalStreamCount = MaxStreams;
 
-        QuicStreamSetIndicateStreamsAvailable(StreamSet);
+        QuicStreamSetIndicateStreamsAvailable(StreamSet, BidirectionalStreams ? increment : 0, BidirectionalStreams ? 0 : increment);
 
         if (FlushSend) {
             //
