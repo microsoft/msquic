@@ -8,7 +8,11 @@ Abstract:
     This tool creates a terminating QUIC proxy to forward all incoming traffic
     to a specified target.
 
+    N.B. Better synchronization between peer objects is needed around teardown.
+
 --*/
+
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1 // for multiple receive
 
 #include "msquichelper.h"
 #include "msquic.hpp"
@@ -19,6 +23,7 @@ const char* BackEndTarget;
 uint16_t BackEndPort;
 QUIC_CERTIFICATE_HASH Cert;
 bool BufferedMode = true;
+uint32_t FlowControlWindow = 0;
 
 const MsQuicApi* MsQuic;
 MsQuicRegistration* Registration;
@@ -26,7 +31,7 @@ MsQuicConfiguration* FrontEndConfiguration;
 MsQuicConfiguration* BackEndConfiguration;
 
 #define USAGE \
-    "Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint> [0/1-buffered-mode]\n"
+    "Usage: quicforward <alpn> <local-port> <target-name/ip>:<target-port> <thumbprint> [0/1-buffered-mode] [fc-window]\n"
 
 bool ParseArgs(int argc, char **argv) {
     if (argc < 5) {
@@ -49,12 +54,15 @@ bool ParseArgs(int argc, char **argv) {
     if (argc > 5) {
         BufferedMode = atoi(argv[5]) != 0;
     }
+    if (argc > 6) {
+        FlowControlWindow = (uint32_t)atoi(argv[6]);
+    }
     return true;
 }
 
 struct ForwardedSend {
     uint64_t TotalLength;
-    QUIC_BUFFER Buffers[2];
+    QUIC_BUFFER Buffers[3];
     static ForwardedSend* New(QUIC_STREAM_EVENT* Event) {
         if (BufferedMode) {
             auto SendContext = (ForwardedSend*)malloc(sizeof(ForwardedSend) + (size_t)Event->RECEIVE.TotalBufferLength);
@@ -73,7 +81,8 @@ struct ForwardedSend {
         auto SendContext = new(std::nothrow) ForwardedSend;
         SendContext->TotalLength = Event->RECEIVE.TotalBufferLength;
         for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
-            SendContext->Buffers[i] = Event->RECEIVE.Buffers[i];
+            SendContext->Buffers[i].Length = Event->RECEIVE.Buffers[i].Length;
+            SendContext->Buffers[i].Buffer = Event->RECEIVE.Buffers[i].Buffer;
         }
         return SendContext;
     }
@@ -90,15 +99,27 @@ QUIC_STATUS StreamCallback(
     )
 {
     auto PeerStream = (MsQuicStream*)Context;
+    if (!PeerStream || !PeerStream->Handle) { return QUIC_STATUS_SUCCESS; }
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE: {
         //printf("s[%p] Received %llu bytes\n", Stream, Event->RECEIVE.TotalBufferLength);
+        if (Event->RECEIVE.TotalBufferLength == 0) {
+            if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN) {
+                PeerStream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL);
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
         auto SendContext = ForwardedSend::New(Event);
         QUIC_SEND_FLAGS Flags = QUIC_SEND_FLAG_START;
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_FIN)   { Flags |= QUIC_SEND_FLAG_FIN; }
         if (Event->RECEIVE.Flags & QUIC_RECEIVE_FLAG_0_RTT) { Flags |= QUIC_SEND_FLAG_ALLOW_0_RTT; }
-        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(
-            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext)));
+        auto Status =
+            PeerStream->Send(SendContext->Buffers, Event->RECEIVE.BufferCount, Flags, SendContext);
+        if (Status == QUIC_STATUS_ABORTED || Status == QUIC_STATUS_INVALID_STATE) {
+            ForwardedSend::Delete(SendContext);
+            return QUIC_STATUS_SUCCESS;
+        }
+        CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
         return BufferedMode ? QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
     }
     case QUIC_STREAM_EVENT_SEND_COMPLETE: {
@@ -191,12 +212,17 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
     MsQuicApi _MsQuic;
     CXPLAT_FRE_ASSERT(_MsQuic.IsValid());
     MsQuic = &_MsQuic;
-    MsQuicRegistration Reg(true);
+    MsQuicRegistration Reg("forwarder", QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true); // TODO - make a knob for low lat vs max tput
     Registration = &Reg;
     MsQuicSettings Settings;
     Settings.SetSendBufferingEnabled(false);
+    Settings.SetStreamMultiReceiveEnabled(true);
     Settings.SetPeerBidiStreamCount(1000);
     Settings.SetPeerUnidiStreamCount(1000);
+    if (FlowControlWindow) {
+        Settings.SetStreamRecvWindowDefault(FlowControlWindow);
+        Settings.SetConnFlowControlWindow(FlowControlWindow);
+    }
     MsQuicConfiguration FrontEndConfig(Reg, Alpn, Settings, MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_NONE, &Cert));
     CXPLAT_FRE_ASSERT(FrontEndConfig.IsValid());
     FrontEndConfiguration = &FrontEndConfig;

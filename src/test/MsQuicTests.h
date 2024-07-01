@@ -571,6 +571,10 @@ QuicTestStreamReliableResetMultipleSends(
     );
 
 void
+QuicTestStreamMultiReceive(
+    );
+
+void
 QuicTestStreamBlockUnblockConnFlowControl(
     _In_ BOOLEAN Bidirectional
     );
@@ -1305,4 +1309,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_OPERATION_PRIORITY \
     QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 122
+#define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
+    QUIC_CTL_CODE(123, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 123
