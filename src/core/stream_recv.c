@@ -129,7 +129,10 @@ QuicStreamRecvQueueFlush(
     // The caller has indicated data is ready to be indicated to the
     // application. Queue a FLUSH_RECV if one isn't already queued.
     //
-    if (Stream->Flags.ReceiveEnabled && Stream->Flags.ReceiveDataPending) {
+
+    if (Stream->Flags.ReceiveEnabled &&
+        Stream->Flags.ReceiveDataPending &&
+        Stream->RecvPendingLength == 0) {
 
         if (AllowInlineFlush) {
             QuicStreamRecvFlush(Stream);
@@ -867,6 +870,8 @@ QuicStreamRecvFlush(
         return;
     }
 
+    CXPLAT_TEL_ASSERT(!Stream->RecvPendingLength); // N.B. - Will be an invalid assert once we support multiple receives
+
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
@@ -919,10 +924,9 @@ QuicStreamRecvFlush(
             Event.RECEIVE.Flags |= QUIC_RECEIVE_FLAG_FIN; // TODO - 0-RTT flag?
         }
 
-        Stream->Flags.ReceiveEnabled = Stream->Flags.ReceiveMultiple;
+        Stream->Flags.ReceiveEnabled = FALSE;
         Stream->Flags.ReceiveCallActive = TRUE;
         Stream->RecvPendingLength += Event.RECEIVE.TotalBufferLength;
-        CXPLAT_DBG_ASSERT(Stream->RecvPendingLength <= Stream->RecvBuffer.ReadPendingLength);
 
         QuicTraceEvent(
             StreamAppReceive,
@@ -938,19 +942,15 @@ QuicStreamRecvFlush(
 
         if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
+            FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
-            if (Event.RECEIVE.TotalBufferLength == 0) {
-                continue;
-            }
-
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
-            FlushRecv = TRUE;
 
         } else if (Status == QUIC_STATUS_PENDING) {
             //
@@ -1056,7 +1056,7 @@ QuicStreamReceiveComplete(
         //
         Stream->Flags.ReceiveEnabled = TRUE;
 
-    } else if (!Stream->Flags.ReceiveMultiple) {
+    } else {
         //
         // The app didn't drain all the data, so we will need to wait for them
         // to request a new receive.
@@ -1080,10 +1080,9 @@ QuicStreamReceiveComplete(
     if (Stream->Flags.ReceiveDataPending) {
         //
         // There is still more data for the app to process and it still has
-        // receive callbacks enabled, so do another recv flush (if not already
-        // doing multi-receive mode).
+        // receive callbacks enabled, so do another recv flush.
         //
-        return !Stream->Flags.ReceiveMultiple;
+        return TRUE;
     }
 
     if (Stream->RecvBuffer.BaseOffset == Stream->RecvMaxLength) {

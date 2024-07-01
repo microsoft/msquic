@@ -66,7 +66,6 @@ QuicStreamInitialize(
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
-    Stream->Flags.ReceiveMultiple = Connection->Settings.StreamMultiReceiveEnabled;
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
@@ -132,8 +131,7 @@ QuicStreamInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
             FlowControlWindowSize,
-            Stream->Flags.ReceiveMultiple ?
-                QUIC_RECV_BUF_MODE_MULTIPLE : QUIC_RECV_BUF_MODE_CIRCULAR,
+            QUIC_RECV_BUF_MODE_CIRCULAR,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;

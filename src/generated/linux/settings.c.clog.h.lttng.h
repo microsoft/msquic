@@ -811,22 +811,6 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingNetStatsEventEnabled,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingsStreamMultiReceiveEnabled
-// [sett] StreamMultiReceiveEnabled= %hhu
-// QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
-// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled,
-    TP_ARGS(
-        unsigned char, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned char, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
@@ -853,22 +837,6 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpStreamRecvBufferDefault,
         unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SettingStreamMultiReceiveEnabled
-// [sett] StreamMultiReceiveEnabled  = %hhu
-// QuicTraceLogVerbose(SettingStreamMultiReceiveEnabled,       "[sett] StreamMultiReceiveEnabled  = %hhu", Settings->StreamMultiReceiveEnabled);
-// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled,
-    TP_ARGS(
-        unsigned char, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned char, arg2, arg2)
     )
 )
 
