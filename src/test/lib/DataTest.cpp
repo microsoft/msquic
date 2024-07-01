@@ -4017,12 +4017,6 @@ struct MultiReceiveTestContext {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         auto TestContext = (MultiReceiveTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-            fprintf(stderr, "[CALLBACK] Recv Indicated. AbsoluteOffset %lu (->%lu) [", Event->RECEIVE.AbsoluteOffset, Event->RECEIVE.AbsoluteOffset + Event->RECEIVE.TotalBufferLength);
-            for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; i++) {
-                fprintf(stderr, " %u", Event->RECEIVE.Buffers[i].Length);
-            }
-            fprintf(stderr, "] -> %lu\n", Event->RECEIVE.TotalBufferLength);
-
             const QUIC_BUFFER* Buffers = Event->RECEIVE.Buffers;
             uint32_t BufferCount = Event->RECEIVE.BufferCount;
             TestContext->RecvdSignatures[TestContext->Recvd] = Buffers[BufferCount-1].Buffer[Buffers[BufferCount-1].Length-1];
@@ -4101,7 +4095,6 @@ QuicTestStreamMultiReceive(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     // Server side multi receive simple. 3 Sends and Complete at once
-    if (false)
     {
         uint32_t BufferSize = 128;
         QUIC_BUFFER Buffer { BufferSize, Buffer1G };
@@ -4139,7 +4132,6 @@ QuicTestStreamMultiReceive(
 
     // Server side multi receive. MultiRecvNumSend Sends and Complete every 8 sends
     // Possible packet split
-    if (false)
     {
         uint32_t BufferSize = 2048;
         QUIC_BUFFER Buffer { BufferSize, Buffer1G };
@@ -4186,8 +4178,7 @@ QuicTestStreamMultiReceive(
     // handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED,
     // potential multi chunk and multi range
     {
-        // uint32_t BufferSize = sizeof(Buffer1G);
-        uint32_t BufferSize = 10000000;
+        uint32_t BufferSize = sizeof(Buffer1G);
         QUIC_BUFFER Buffer { BufferSize, Buffer1G };
         int NumSend = 1;
         MultiReceiveTestContext Context;
@@ -4235,22 +4226,7 @@ QuicTestStreamMultiReceive(
             }
         }
 
-        // for (int i = 0; i < NumSend; i++) {
-        //     // print left and right
-        //     fprintf(stderr, "Recv %d: %d\n", (i % 255) + 1, Context.RecvdSignatures[i]);
-        //     TEST_TRUE(Context.RecvdSignatures[i] == (uint8_t)(i % 255) + 1)
-        // }
-        fprintf(stderr, "TotalLength: %llu\n", (unsigned long long)Context.TotalReceivedBytes);
         TEST_TRUE(Context.TotalReceivedBytes == BufferSize * NumSend);
-        // dump RecvBuffer
-        uint32_t WrongCount = 0;
-        for (uint32_t i = 0; i < BufferSize; i++) {
-            if (Buffer1G[i] != Context.RecvBuffer[i]) {
-            //     fprintf(stderr, "RecvBuffer[%d]: %d, Buffer1G[%d]: %d\n", i, Context.RecvBuffer[i], i, Buffer1G[i]);
-                WrongCount++;
-            }
-        }
-        fprintf(stderr, "WrongCount: %d\n", WrongCount);
         TEST_EQUAL(0, memcmp(Buffer1G, Context.RecvBuffer, BufferSize));
         delete Context.RecvBuffer;
     }
