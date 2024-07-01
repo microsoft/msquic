@@ -276,22 +276,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FailRxAlloc
-// [ xdp][rx  ] OOM for Rx
-// QuicTraceLogVerbose(
-                    FailRxAlloc,
-                    "[ xdp][rx  ] OOM for Rx");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_FailRxAlloc
-#define _clog_2_ARGS_TRACE_FailRxAlloc(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -496,8 +480,8 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo );\
 // [ xdp][cq  ] Release %d from completion queue
 // QuicTraceLogVerbose(
             ReleaseCons,
-            "[ xdp][cq  ] Release %d from completion queue", Completed);
-// arg2 = arg2 = Completed = arg2
+            "[ xdp][cq  ] Release %d from completion queue", Freeing);
+// arg2 = arg2 = Freeing = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ReleaseCons
 #define _clog_3_ARGS_TRACE_ReleaseCons(uniqueId, encoded_arg_string, arg2)\
@@ -536,6 +520,22 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
 #define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailRxAlloc
+// [ xdp][rx  ] OOM for Rx
+// QuicTraceLogVerbose(
+                FailRxAlloc,
+                "[ xdp][rx  ] OOM for Rx");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_FailRxAlloc
+#define _clog_2_ARGS_TRACE_FailRxAlloc(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
 
 #endif
 
