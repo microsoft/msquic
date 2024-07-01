@@ -1321,8 +1321,6 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
-    fprintf(stderr, "[R:%p] ReceiveCompleteAPI: Stream->RecvCompletionLength: %lu (->%lu)\n",
-            &Stream->RecvBuffer, Stream->RecvCompletionLength, BufferLength + Stream->RecvCompletionLength);
     InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
 

@@ -958,7 +958,6 @@ QuicStreamRecvFlush(
             // RecvCompletionLength is non-zero.
             //
             FlushRecv = (Stream->RecvCompletionLength != 0);
-            // FlushRecv = FALSE;
 
         } else {
             //
@@ -977,8 +976,6 @@ QuicStreamRecvFlush(
             FlushRecv = TRUE;
         }
 
-        fprintf(stderr, "[R:%p] QuicStreamRecvFlush:\tStream->RecvCompletionLength: %lu (->0)\tStream->RecvPendingLength: %lu FlushRecv:%d\n",
-                    &Stream->RecvBuffer, Stream->RecvCompletionLength, Stream->RecvPendingLength, FlushRecv);
         if (FlushRecv) {
             uint64_t BufferLength = Stream->RecvCompletionLength;
             InterlockedExchangeAdd64(
@@ -999,8 +996,6 @@ QuicStreamReceiveCompletePending(
         (void**)&Stream->ReceiveCompleteOperation,
         &Stream->ReceiveCompleteOperationStorage);
 
-    fprintf(stderr, "[R:%p] QuicStreamReceiveCompletePending:\tStream->RecvCompletionLength: %lu (->0)\tStream->RecvPendingLength: %lu\n",
-                &Stream->RecvBuffer, Stream->RecvCompletionLength, Stream->RecvPendingLength);
     uint64_t BufferLength = Stream->RecvCompletionLength;
     InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength,

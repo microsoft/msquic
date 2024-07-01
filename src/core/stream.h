@@ -786,7 +786,6 @@ QuicStreamAddOutFlowBlockedReason(
             "[strm][%p] Send Blocked Flags: %hhu",
             Stream,
             Stream->OutFlowBlockedReasons);
-        // fprintf(stderr, "QuicStreamAddOutFlowBlockedReason [strm][%p] Send Blocked Flags: %hhu\n", Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
@@ -831,7 +830,6 @@ QuicStreamRemoveOutFlowBlockedReason(
             "[strm][%p] Send Blocked Flags: %hhu",
             Stream,
             Stream->OutFlowBlockedReasons);
-        // fprintf(stderr, "QuicStreamRemoveOutFlowBlockedReason [strm][%p] Send Blocked Flags: %hhu\n", Stream, Stream->OutFlowBlockedReasons);
         return TRUE;
     }
     return FALSE;
