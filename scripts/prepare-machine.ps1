@@ -103,9 +103,10 @@ Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
 
-if ($IsLinux -and $UseXdp) {
+$IsUbuntu2404 = $false
+if ($IsLinux) {
     $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
-    if (!$IsUbuntu2404 -and !$ForceXdpInstall) {
+    if ($UseXdp -and !$IsUbuntu2404 -and !$ForceXdpInstall) {
         Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
         Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
         Write-Host "You need to understand the impact of this on your environment before proceeding"
@@ -541,8 +542,10 @@ if ($IsLinux) {
         # XDP dependencies
         if ($UseXdp) {
             sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-            sudo apt-get update -y
+            if (!$IsUbuntu2404) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+            }
             sudo apt-get -y install libxdp-dev libbpf-dev
             sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
         }
@@ -555,8 +558,10 @@ if ($IsLinux) {
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
         if ($UseXdp) {
-            sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
-            sudo apt-get update -y
+            if (!$IsUbuntu2404) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+            }
             sudo apt-get install -y libxdp1 libbpf1
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
             sudo apt-get install -y iproute2 iptables

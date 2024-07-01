@@ -200,7 +200,7 @@ $ pwsh ./scripts/build.ps1 -UseXdp
 
 `./scripts/prepare-machine.ps1` internally does the below commands. This might break your environment.
 ```sh
-# for libxdp v1.4.2
+# for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
 
 # install runtime dependencies
