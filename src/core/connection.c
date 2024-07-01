@@ -7483,6 +7483,7 @@ QuicConnProcessApiOperation(
         break;
 
     case QUIC_API_TYPE_STRM_RECV_COMPLETE:
+        fprintf(stderr, "QUIC_API_TYPE_STRM_RECV_COMPLETE %ld\n", ApiCtx->STRM_RECV_COMPLETE.Stream->RecvCompletionLength);
         QuicStreamReceiveCompletePending(
             ApiCtx->STRM_RECV_COMPLETE.Stream);
         break;

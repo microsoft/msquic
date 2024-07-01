@@ -4024,9 +4024,30 @@ struct MultiReceiveTestContext {
             TestContext->PseudoProcessingLength += Event->RECEIVE.TotalBufferLength;
             CxPlatLockRelease(&TestContext->Lock);
             TestContext->TotalReceivedBytes += Event->RECEIVE.TotalBufferLength;
+            bool Done = false;
             if (TestContext->RecvBuffer) {
                 uint32_t Offset = Event->RECEIVE.AbsoluteOffset;
                 for (uint32_t i = 0; i < BufferCount; i++) {
+                    for (uint32_t j = 0; j < Buffers[i].Length; j++) {
+                        if (Buffers[i].Buffer[j] != ((Offset + j) % 255) + 1) {
+                            Done = true;
+                            fprintf(stderr, "[CALLBACK ERR] BufferCount:%u, AbsoluteOffset:%lu (%lu) Offset:%u Buffers[%u].Buffer[%u]: %u != %u Len [%u %u %u]\n",
+                                    BufferCount, Event->RECEIVE.AbsoluteOffset, Event->RECEIVE.AbsoluteOffset + Event->RECEIVE.TotalBufferLength,
+                                    Offset + j, i, j, Buffers[i].Buffer[j], ((Offset + j) % 255) + 1,
+                                    Buffers[0].Length, BufferCount > 1 ? Buffers[1].Length : 0, BufferCount > 2 ? Buffers[2].Length : 0);
+
+                            for (int k = 0; k < 10; k++) {
+                                if (k == 0) {
+                                    fprintf(stderr, ">");
+                                }
+                                fprintf(stderr, "%02x ", Buffers[i].Buffer[j + k]);
+                            }
+                            fprintf(stderr, "\n");
+                        }
+                        if (Done) {
+                            break;
+                        }
+                    }
                     memcpy(TestContext->RecvBuffer + Offset, Buffers[i].Buffer, Buffers[i].Length);
                     Offset += Buffers[i].Length;
                 }

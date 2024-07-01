@@ -357,6 +357,7 @@ QuicRangeAddRange(
                 // Don't bother updating "Count" (the loop will terminate).
                 //
                 Sub->Count = Next->Low + Next->Count - Sub->Low;
+                fprintf(stderr, "MERGED? [%lu - %lu]\n", Low, Low + Count);
             }
             j++;
         }
