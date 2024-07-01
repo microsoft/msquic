@@ -758,6 +758,7 @@ QuicRecvBufferRead(
     } else {
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadPendingLength < ContiguousLength); // Shouldn't call read if there is nothing new to read
         uint64_t WrittenLength = ContiguousLength - RecvBuffer->ReadPendingLength;
+        CXPLAT_DBG_ASSERT(WrittenLength > 0);
 
         //
         // Walk the chunks to find the data after ReadPendingLength, up to
@@ -768,64 +769,64 @@ QuicRecvBufferRead(
                 RecvBuffer->Chunks.Flink,
                 QUIC_RECV_CHUNK,
                 Link);
-        QUIC_SUBRANGE* SubRange = QuicRangeGet(&Chunk->Ranges, 0);
         BOOLEAN IsFirstChunk = TRUE;
-        uint64_t AvailableDataLength = SubRange->Low + SubRange->Count;
-        uint64_t ReadOffset2 = RecvBuffer->BaseOffset + RecvBuffer->ReadPendingLength;
-        while (AvailableDataLength <= ReadOffset2) {
+        uint64_t ChunkReadOffset = RecvBuffer->ReadPendingLength;
+        uint64_t ChunkLength = RecvBuffer->ReadLength;
+        while (ChunkLength <= ChunkReadOffset) {
             Chunk =
                 CXPLAT_CONTAINING_RECORD(
                     Chunk->Link.Flink,
                     QUIC_RECV_CHUNK,
                     Link);
-            SubRange = QuicRangeGet(&Chunk->Ranges, 0);
-            ReadOffset2 -= AvailableDataLength;
-            AvailableDataLength = SubRange->Count;
+            ChunkReadOffset -= ChunkLength;
             IsFirstChunk = FALSE;
+            ChunkLength = Chunk->AllocLength;
         }
+
         if (IsFirstChunk) {
-            uint32_t ReadLength = (uint32_t)((uint64_t)RecvBuffer->ReadLength - RecvBuffer->ReadPendingLength);
-            ReadOffset2 = (RecvBuffer->ReadStart + RecvBuffer->ReadPendingLength) % Chunk->AllocLength;
             Chunk->ExternalReference = TRUE;
-            if (ReadOffset2 + ReadLength <= Chunk->AllocLength) {
-                Buffers[0].Length = ReadLength;
-                Buffers[0].Buffer = Chunk->Buffer + ReadOffset2;
+            uint32_t ChunkReadLength = RecvBuffer->ReadLength - RecvBuffer->ReadPendingLength;
+            ChunkReadOffset = (RecvBuffer->ReadStart + RecvBuffer->ReadPendingLength) % Chunk->AllocLength;
+            if (ChunkReadOffset + ChunkReadLength <= Chunk->AllocLength) {
+                Buffers[0].Length = ChunkReadLength;
+                Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
                 *BufferCount = 1;
             } else {
-                Buffers[0].Length = (uint32_t)((uint64_t)Chunk->AllocLength - ReadOffset2);
-                Buffers[0].Buffer = Chunk->Buffer + ReadOffset2;
-                Buffers[1].Length = ReadLength - Buffers[0].Length;
+                Buffers[0].Length = (uint32_t)((uint64_t)Chunk->AllocLength - ChunkReadOffset);
+                Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
+                Buffers[1].Length = ChunkReadLength - Buffers[0].Length;
                 Buffers[1].Buffer = Chunk->Buffer;
                 *BufferCount = 2;
             }
-            if (ReadLength < WrittenLength) {
+            if (ChunkReadLength < WrittenLength) {
                 Chunk =
                     CXPLAT_CONTAINING_RECORD(
                         Chunk->Link.Flink,
                         QUIC_RECV_CHUNK,
                         Link);
-                Buffers[*BufferCount].Length = (uint32_t)(WrittenLength - ReadLength);
-                Buffers[*BufferCount].Buffer = Chunk->Buffer;
                 Chunk->ExternalReference = TRUE;
+                Buffers[*BufferCount].Length = (uint32_t)(WrittenLength - ChunkReadLength);
+                Buffers[*BufferCount].Buffer = Chunk->Buffer;
                 *BufferCount += 1;
             }
-            // CXPLAT_DBG_ASSERT(ChunkLength <= WrittenLength);
         } else {
-            Buffers[0].Length = (uint32_t)(AvailableDataLength - ReadOffset2);
-            Buffers[0].Buffer = Chunk->Buffer + ReadOffset2;
             Chunk->ExternalReference = TRUE;
-            if (Buffers[0].Length < WrittenLength) {
+            if (ChunkReadOffset + WrittenLength <= ChunkLength) {
+                Buffers[0].Length = (uint32_t)WrittenLength;
+                Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
+                *BufferCount = 1;
+            } else {
+                Buffers[0].Length = (uint32_t)(ChunkLength - ChunkReadOffset);
+                Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
                 Chunk =
                     CXPLAT_CONTAINING_RECORD(
                         Chunk->Link.Flink,
                         QUIC_RECV_CHUNK,
                         Link);
-                Buffers[1].Length = (uint32_t)(WrittenLength - (uint64_t)Buffers[0].Length);
-                Buffers[1].Buffer = Chunk->Buffer;
                 Chunk->ExternalReference = TRUE;
+                Buffers[1].Length = (uint32_t)(WrittenLength - Buffers[0].Length);
+                Buffers[1].Buffer = Chunk->Buffer;
                 *BufferCount = 2;
-            } else {
-                *BufferCount = 1;
             }
         }
 
