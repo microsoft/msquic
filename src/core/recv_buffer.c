@@ -494,7 +494,7 @@ QuicRecvBufferCopyIntoChunks(
                 ChunkWriteOffset = (uint32_t)(WriteOffset - PrevChunkLength);
             }
             if (!IsFirstLoop) {
-                ChunkWriteOffset = 0; //?
+                ChunkWriteOffset = 0;
             }
 
             uint32_t ChunkWriteLength = WriteLength;
@@ -763,8 +763,6 @@ QuicRecvBufferRead(
         // Walk the chunks to find the data after ReadPendingLength, up to
         // WrittenLength, to return.
         //
-        // uint64_t ReadOffset = RecvBuffer->ReadPendingLength + RecvBuffer->BaseOffset;
-        // uint64_t ReadOffset = RecvBuffer->ReadStart + RecvBuffer->ReadPendingLength;
         QUIC_RECV_CHUNK* Chunk =
             CXPLAT_CONTAINING_RECORD(
                 RecvBuffer->Chunks.Flink,
@@ -772,9 +770,6 @@ QuicRecvBufferRead(
                 Link);
         QUIC_SUBRANGE* SubRange = QuicRangeGet(&Chunk->Ranges, 0);
         BOOLEAN IsFirstChunk = TRUE;
-        // uint32_t ChunkLength = SubRange->Low + SubRange->Count;
-        // uint32_t ChunkLength = RecvBuffer->ReadLength;
-        // uint32_t ChunkLength = WrittenLength;
         uint64_t AvailableDataLength = SubRange->Low + SubRange->Count;
         uint64_t ReadOffset2 = RecvBuffer->BaseOffset + RecvBuffer->ReadPendingLength;
         while (AvailableDataLength <= ReadOffset2) {
