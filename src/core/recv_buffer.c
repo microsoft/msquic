@@ -958,8 +958,7 @@ QuicRecvBufferFullDrain(
     } else {
         RecvBuffer->ReadPendingLength -= RecvBuffer->ReadLength;
         DrainLength -= RecvBuffer->ReadLength;
-        QUIC_SUBRANGE* SubRange = QuicRangeGet(&Chunk->Ranges, 0);
-        RecvBuffer->ReadLength = (uint32_t)(SubRange->Low + SubRange->Count - RecvBuffer->BaseOffset);
+        RecvBuffer->ReadLength = (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
     }
 
     if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
@@ -993,11 +992,8 @@ QuicRecvBufferFullDrain(
                 QUIC_RECV_CHUNK,
                 Link);
         Chunk = *ChunkP;
-        QUIC_SUBRANGE* SubRange = QuicRangeGet(&Chunk->Ranges, 0);
-        if (SubRange->Low - RecvBuffer->BaseOffset == 0) {
-            RecvBuffer->ReadLength = (uint32_t)SubRange->Count;
-        } else {
-            RecvBuffer->ReadLength = 0;
+        if (Chunk->AllocLength < RecvBuffer->ReadLength) {
+            RecvBuffer->ReadLength = Chunk->AllocLength;
         }
     }
 
@@ -1018,14 +1014,13 @@ QuicRecvBufferDrain(
             QUIC_RECV_CHUNK,
             Link);
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
-    UNREFERENCED_PARAMETER(FirstRange);
     CXPLAT_DBG_ASSERT(FirstRange);
     CXPLAT_DBG_ASSERT(FirstRange->Low == 0);
     do {
         BOOLEAN PartialDrain = (uint64_t)RecvBuffer->ReadLength > DrainLength;
         if (PartialDrain ||
-            QuicRangeSize(&Chunk->Ranges) > 1 ||
-            (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE && QuicRangeSize(&RecvBuffer->WrittenRanges) > 1)) {
+            (QuicRangeSize(&RecvBuffer->WrittenRanges) > 1 &&
+             RecvBuffer->BaseOffset + RecvBuffer->ReadLength == FirstRange->Count)) {
             //
             // If there are 2 or more written ranges, it means that there may be
             // more data later in the chunk that couldn't be read because there is a gap.
