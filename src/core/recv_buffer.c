@@ -264,6 +264,7 @@ QuicRecvBufferResize(
             &NewChunk->Ranges,
             &LastChunk->Ranges,
             sizeof(QUIC_RANGE));
+        NewChunk->Ranges.SubRanges = NewChunk->Ranges.PreAllocSubRanges;
 
         CxPlatListEntryRemove(&LastChunk->Link);
         if (LastChunk != RecvBuffer->PreallocatedChunk) {
@@ -309,6 +310,7 @@ QuicRecvBufferResize(
         &NewChunk->Ranges,
         &LastChunk->Ranges,
         sizeof(QUIC_RANGE));
+    NewChunk->Ranges.SubRanges = NewChunk->Ranges.PreAllocSubRanges;
     QuicRangeReset(&LastChunk->Ranges);
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &LastChunk->Ranges);
 
