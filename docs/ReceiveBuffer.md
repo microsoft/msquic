@@ -55,4 +55,22 @@ For these scenarios, the stream will change to use the **QUIC_RECV_BUF_MODE_MULT
 
 ## Memory Management
 
+As mentioned above, the receive buffer interface manages memory itself, and doesn't employ the common socket `recv` model of requiring the app the pre-post a buffer to copy into.
+The goal is to eliminate the cost and complexity of memory management for all applications built on top.
+This way the code is developed, tested and maintained in one place so that all may benefit.
+
+Internally, the receive buffer tries to minimize total memory usage, both in terms of bytes and number of unique buffers to keep at once.
+It will prefer one larger allocation over managing two smaller, separate buffers, even if this means data must be copied from one buffer to another (larger) one.
+The goal is the minimize the complexity of managing multiple buffer, as much as possible, for both the receive buffer internally as well as the caller on top.
+
+Because the receive buffer gives out pointers to the internal buffers, it must also keep track of these external references so as to not delete (to allocate additional space) those buffers out from underneath the caller.
+This means that while the receive buffer tries to keep only one internal buffer, it might have multiple while apps have outstanding read data.
+
+Another aspect of memory management is balancing what is advertised (in terms of flow control) to the peer, as the amount of memory we're willing to allocate, compared to how much we try to keep allocated.
+The caller controls both the advertised, maximum allocation size, as well as the initial buffer size to allocate.
+The receive buffer takes these values and dynamically allocates memory (doubling in size as necessary) up to the maximum size. Finally, it exposes the ability for the app to dynamically increase the max as necessary.
+
+## Design
+
+TODO
 
