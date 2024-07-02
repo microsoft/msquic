@@ -782,11 +782,8 @@ void ReadAndCheck(
 // |R, R, R, R, 4, 5, 6, x| ReadStart:0, ReadLength:7, Ext:1
 // |R, R, R, R, 4, 5, 6, G] [G,9,10,11,....] ReadStart:0, ReadLength:7, Ext:1
 // |R, R, R, R, 4, 5, 6, 7] [8,9,10,11,....] ReadStart:0, ReadLength:8, Ext:1
-TEST_P(WithMode, GapEdgeMulti)
+TEST(MultiRecvTest, GapEdge)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -819,11 +816,8 @@ TEST_P(WithMode, GapEdgeMulti)
 // |8, 9,10, D, R, R, R, R] ReadStart:4, ReadLength:7, Ext:1
 // |8, 9,10, G, R, R, R, R] [ G,13,14,15, ...] ReadStart:4, ReadLength:7, Ext:1
 // |8, 9,10,11, R, R, R, R] [12,13,14,15, ...] ReadStart:4, ReadLength:8, Ext:1
-TEST_P(WithMode, GapCycleEdgeMulti)
+TEST(MultiRecvTest, GapCycleEdge)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -859,11 +853,8 @@ TEST_P(WithMode, GapCycleEdgeMulti)
 // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
 // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
 // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
-TEST_P(WithMode, PartialDrainGrowMulti)
+TEST(MultiRecvTest, PartialDrainGrow)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -896,11 +887,8 @@ TEST_P(WithMode, PartialDrainGrowMulti)
 // [8, G, G,11, 4, 5, 6, 7] ReadStart:4, ReadLengt:5, Ext:0
 // [4, 5, 6, 7, 8, G, G,11,12,13,14,15, ...] ReadStart:0, ReadLengt:5, Ext:0
 // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
-TEST_P(WithMode, PartialDrainGapGrowMulti)
+TEST(MultiRecvTest, PartialDrainGapGrow)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -938,11 +926,8 @@ TEST_P(WithMode, PartialDrainGapGrowMulti)
 // |G, 9,10,11, 4, 5, 6, G] ReadStart:4, ReadLength:3, Ext:0
 // [4, 5, 6, G, G, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:3,  Ext:0
 // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
-TEST_P(WithMode, PartialDrainGapEdgeGrowMulti)
+TEST(MultiRecvTest, PartialDrainGapEdgeGrow)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -978,11 +963,8 @@ TEST_P(WithMode, PartialDrainGapEdgeGrowMulti)
 // |8, 9,10, D, 4, 5, 6, 7] ReadStart:4, ReadLength:7, Ext:0
 // [4, 5, 6, 7, 8, 9,10, G, G,13,14,15, ...] ReadStart:0, ReadLength:7,  Ext:0
 // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
-TEST_P(WithMode, PartialDrainGapCycleEdgeGrowMulti)
+TEST(MultiRecvTest, PartialDrainGapCycleEdgeGrow)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -1019,11 +1001,8 @@ TEST_P(WithMode, PartialDrainGapCycleEdgeGrowMulti)
 // |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:8, Ext:1
 // |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:6, Ext:0
 // |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:2, ReadLength:6, Ext:0
-TEST_P(WithMode, PartialDrainSmallWriteAppendMulti)
+TEST(MultiRecvTest, PartialDrainSmallWriteAppend)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -1064,11 +1043,8 @@ TEST_P(WithMode, PartialDrainSmallWriteAppendMulti)
 // |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:8, Ext:1
 // |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:6, Ext:0
 // |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:4, ReadLength:6, Ext:0
-TEST_P(WithMode, PartialDrainBigWriteAppendMulti)
+TEST(MultiRecvTest, PartialDrainBigWriteAppend)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -1111,11 +1087,8 @@ TEST_P(WithMode, PartialDrainBigWriteAppendMulti)
 // |D, D, D, D, R, R, R, R| [ R, G,10,11, x, ...] ReadStart:4, ReadLength:4, Ext:1
 // |D, G,10,11, x, ...] ReadStart:1, ReadLength:0, Ext:0
 // |D, 9,10,11, x, ...] ReadStart:1, ReadLength:3, Ext:0
-TEST_P(WithMode, TwoGapWithTwoChunkMulti)
+TEST(MultiRecvTest, TwoGapWithTwoChunk)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -1162,11 +1135,8 @@ TEST_P(WithMode, TwoGapWithTwoChunkMulti)
 // |8, 9,10, R, 4, 5, 6, 7| [ G,12, x, x, ...] ReadStart:3, ReadLength:8, Ext:0
 // |8, 9,10, R, 4, 5, 6, 7| [11,12, G,14, ...] ReadStart:3, ReadLength:8, Ext:0
 // |8, 9,10, R, 4, 5, 6, 7| [11,12,13,14, ...] ReadStart:3, ReadLength:8, Ext:0
-TEST_P(WithMode, TwoGapCycleEdgeWithTwoChunkMulti)
+TEST(MultiRecvTest, TwoGapCycleEdgeWithTwoChunk)
 {
-    if (GetParam() != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        GTEST_SKIP();
-    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
@@ -1204,7 +1174,7 @@ TEST_P(WithMode, TwoGapCycleEdgeWithTwoChunkMulti)
 // |D, D, R, R, R, R, D, D| [ R, R, x, x] ReadStart:2, ReadLength:4, Ext:1
 // |D, D, R, R, R, R, D, D| [ R, R,16,17,18, ...] ReadStart:2, ReadLength:4, Ext:1
 // [D, D,16,17,18, ...] ReadStart:2, ReadLength:3, Ext:0
-TEST_P(WithMode, ReadCycleSpanMulti)
+TEST(MultiRecvTest, ReadCycleSpan)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1242,7 +1212,7 @@ TEST_P(WithMode, ReadCycleSpanMulti)
 // |8, 9,10,11,12, G, R, R| |14, G,16, x, ...| ReadStart:6, ReadLength:7, Ext:1
 // |8, 9,10,11,12, G, R, R| |14,15,16, x, ...| ReadStart:6, ReadLength:7, Ext:1
 // |8, 9,10,11,12,13, R, R| |14,15,16, x, ...| ReadStart:6, ReadLength:8, Ext:1
-TEST_P(WithMode, MultiGapMulti)
+TEST(MultiRecvTest, MultiGap)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1282,7 +1252,7 @@ TEST_P(WithMode, MultiGapMulti)
 // |8, G,10,11, D, D, R, R| |12, G,14, ...| ReadStart:6, ReadLength:3, Ext:1
 // |8, G,10,11, D, D, R, R| |12,13,14, ...| ReadStart:6, ReadLength:3, Ext:1
 // |8, 9,10,11, D, D, R, R| |12,13,14, ...| ReadStart:6, ReadLength:6, Ext:1
-TEST_P(WithMode, MultiGapDeadMulti)
+TEST(MultiRecvTest, MultiGapDead)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1317,7 +1287,7 @@ TEST_P(WithMode, MultiGapDeadMulti)
 // |R, R, R, R, R, R, R, R| [ R, R, x, x] ReadStart:6, ReadLength:8, Ext:1
 // [ D, R, x, x, x, ...] ReadStart:1, ReadLength:1, Ext:1
 // [ D, R,16,17,18, ...] ReadStart:1, ReadLength:4, Ext:1
-TEST_P(WithMode, ReadDrainCycleSpanMulti)
+TEST(MultiRecvTest, ReadDrainCycleSpan)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1353,7 +1323,7 @@ TEST_P(WithMode, ReadDrainCycleSpanMulti)
 // |D, R, D, D, D, D, D, D| [ R, G,12,13,14, ...] ReadStart:1, ReadLength:1, Ext:1
 // [D, G,12,13,14, ...] ReadStart:1, ReadLength:0, Ext:0
 // [D,11,12,13,14, ...] ReadStart:1, ReadLength:4, Ext:0
-TEST_P(WithMode, Dead1stChunkMulti)
+TEST(MultiRecvTest, Dead1stChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1386,7 +1356,7 @@ TEST_P(WithMode, Dead1stChunkMulti)
     RecvBuf.Drain(4);
 }
 
-TEST_P(WithMode, Grow1stChunkMulti)
+TEST(MultiRecvTest, Grow1stChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1402,7 +1372,7 @@ TEST_P(WithMode, Grow1stChunkMulti)
     RecvBuf.Drain(160);
 }
 
-TEST_P(WithMode, Grow2ndChunkMulti)
+TEST(MultiRecvTest, Grow2ndChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1420,7 +1390,7 @@ TEST_P(WithMode, Grow2ndChunkMulti)
     RecvBuf.Drain(96);
 }
 
-TEST_P(WithMode, Grow3rdChunkMulti)
+TEST(MultiRecvTest, Grow3rdChunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
@@ -1441,7 +1411,7 @@ TEST_P(WithMode, Grow3rdChunkMulti)
     RecvBuf.Drain(124);
 }
 
-TEST_P(WithMode, ReadPendingOver2ChunkMulti)
+TEST(MultiRecvTest, ReadPendingOver2Chunk)
 {
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
