@@ -817,12 +817,15 @@ QuicRecvBufferRead(
 void
 QuicRecvBufferPartialDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ QUIC_RECV_CHUNK** ChunkP,
     _In_ uint64_t DrainLength
     )
 {
-    QUIC_RECV_CHUNK* Chunk = *ChunkP;
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
     CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
 
     if (Chunk->Link.Flink != &RecvBuffer->Chunks &&
@@ -873,13 +876,6 @@ QuicRecvBufferPartialDrain(
 
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength >= (uint32_t)DrainLength);
         RecvBuffer->ReadLength -= (uint32_t)DrainLength;
-        Chunk->ExternalReference = RecvBuffer->ReadPendingLength != DrainLength;
-        CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
-    }
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        RecvBuffer->ReadPendingLength = 0;
-    } else {
-        RecvBuffer->ReadPendingLength -= DrainLength;
     }
 
     if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
@@ -888,6 +884,13 @@ QuicRecvBufferPartialDrain(
         // referencing any chunks anymore.
         //
         Chunk->ExternalReference = FALSE;
+    } else {
+        //
+        // If all ReadPending data is drained, then we can release the external reference
+        //
+        Chunk->ExternalReference = RecvBuffer->ReadPendingLength != DrainLength;
+        CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
+        RecvBuffer->ReadPendingLength -= DrainLength;
     }
 }
 
@@ -900,27 +903,27 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint64_t
 QuicRecvBufferFullDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ QUIC_RECV_CHUNK** ChunkP,
     _In_ uint64_t DrainLength
     )
 {
-    QUIC_RECV_CHUNK* Chunk = *ChunkP;
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
     CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
 
     Chunk->ExternalReference = FALSE;
+    DrainLength -= RecvBuffer->ReadLength;
     RecvBuffer->ReadStart = 0;
     RecvBuffer->BaseOffset += RecvBuffer->ReadLength;
     RecvBuffer->LockedOffset = UINT64_MAX;
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        RecvBuffer->ReadPendingLength = 0;
-        DrainLength -= RecvBuffer->ReadLength;
-        RecvBuffer->ReadLength = (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-    } else {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         RecvBuffer->ReadPendingLength -= RecvBuffer->ReadLength;
-        DrainLength -= RecvBuffer->ReadLength;
-        RecvBuffer->ReadLength = (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
     }
+    RecvBuffer->ReadLength =
+        (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
 
     if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
         //
@@ -946,12 +949,11 @@ QuicRecvBufferFullDrain(
         // so we need to update the ReadLength of the first chunk to be no more
         // than the next chunk's allocation length.
         //
-        *ChunkP =
+        Chunk =
             CXPLAT_CONTAINING_RECORD(
                 RecvBuffer->Chunks.Flink,
                 QUIC_RECV_CHUNK,
                 Link);
-        Chunk = *ChunkP;
         if (Chunk->AllocLength < RecvBuffer->ReadLength) {
             RecvBuffer->ReadLength = Chunk->AllocLength;
         }
@@ -968,11 +970,9 @@ QuicRecvBufferDrain(
     )
 {
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
-    QUIC_RECV_CHUNK* Chunk =
-        CXPLAT_CONTAINING_RECORD(
-            RecvBuffer->Chunks.Flink,
-            QUIC_RECV_CHUNK,
-            Link);
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+        RecvBuffer->ReadPendingLength = 0;
+    }
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
     CXPLAT_DBG_ASSERT(FirstRange);
     CXPLAT_DBG_ASSERT(FirstRange->Low == 0);
@@ -982,14 +982,15 @@ QuicRecvBufferDrain(
             (QuicRangeSize(&RecvBuffer->WrittenRanges) > 1 &&
              RecvBuffer->BaseOffset + RecvBuffer->ReadLength == FirstRange->Count)) {
             //
-            // If there are 2 or more written ranges, it means that there may be
+            // If there are 2 or more written ranges in the first chunk, it means that there may be
             // more data later in the chunk that couldn't be read because there is a gap.
             // Reuse the partial drain logic to preserve data after the gap.
             //
-            QuicRecvBufferPartialDrain(RecvBuffer, &Chunk, DrainLength);
+            QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
             return !PartialDrain;
         }
-        DrainLength = QuicRecvBufferFullDrain(RecvBuffer, &Chunk, DrainLength);
+
+        DrainLength = QuicRecvBufferFullDrain(RecvBuffer, DrainLength);
     } while (DrainLength != 0);
 
     return TRUE;
