@@ -37,3 +37,22 @@ Throughout the lifetime of the receive buffer, the circle of write, read, drain 
 
 ### Different Modes of Operation
 
+To augment the above usage, the receive buffer has 3 different modes of operation:
+
+- **QUIC_RECV_BUF_MODE_SINGLE** - Only one read with a single contiguous buffer at a time.
+- **QUIC_RECV_BUF_MODE_CIRCULAR** - Only one read that may indicate two contiguous buffers at a time.
+- **QUIC_RECV_BUF_MODE_MULTIPLE** - Multiple independent reads that may indicate up to three contiguous buffers at a time.
+
+There are multiple different modes because there are different types of callers in QUIC.
+
+The crypto layer that manages received TLS payload uses the **QUIC_RECV_BUF_MODE_SINGLE** mode because the TLS libraries that the data is eventually passed to do not support 'gather' read semantics, and expect single, contiguous buffers each time.
+
+The stream layer supports 'gather' reads and indicates arrays of `QUIC_BUFFER` objects up to the application layer; but the apps only expect a single outstanding receive event at any one time.
+So, the stream layer uses the **QUIC_RECV_BUF_MODE_CIRCULAR** mode.
+
+Finally, applications may opt in to receiving multiple outstanding receive events at once for their streams.
+For these scenarios, the stream will change to use the **QUIC_RECV_BUF_MODE_MULTIPLE** mode.
+
+## Memory Management
+
+

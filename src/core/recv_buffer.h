@@ -10,9 +10,9 @@ extern "C" {
 #endif
 
 typedef enum QUIC_RECV_BUF_MODE {
-    QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
-    QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
-    QUIC_RECV_BUF_MODE_MULTIPLE     // Multiple independent receives that may indicate up to two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_SINGLE,      // Only one read with a single contiguous buffer at a time.
+    QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one read that may indicate two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_MULTIPLE     // Multiple independent reads that may indicate up to three contiguous buffers at a time.
 } QUIC_RECV_BUF_MODE;
 
 //
