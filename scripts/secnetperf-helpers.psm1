@@ -291,7 +291,7 @@ function Start-RemoteServerPassive {
         $headers = @{
             "secret" = "$SyncerSecret"
         }
-        $url = "https://netperfapiwebapp.azurewebsites.net"
+        $url = "https://netperfapi.azurewebsites.net"
         try {
             $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
         } catch {
@@ -386,7 +386,7 @@ function Stop-RemoteServerAsyncAwait {
             $headers = @{
                 "secret" = "$SyncerSecret"
             }
-            $url = "https://netperfapiwebapp.azurewebsites.net"
+            $url = "https://netperfapi.azurewebsites.net"
             $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
             if (!($Response.StatusCode -eq 200)) {
                 Write-GHError "[Stop-Remote-Passive] Failed to get the key value!"
