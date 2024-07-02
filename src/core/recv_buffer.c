@@ -437,12 +437,11 @@ QuicRecvBufferCopyIntoChunks(
 
             if (RecvBuffer->LockedOffset != UINT64_MAX &&
                 WriteOffset - RecvBuffer->LockedOffset < ChunkLength) {
-                uint32_t ContiguousLength =
-                    (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count);
+                uint64_t ContiguousLength = QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count;
                 if (ContiguousLength - RecvBuffer->LockedOffset <= ChunkLength) {
-                    RecvBuffer->ReadLength = ContiguousLength - RecvBuffer->BaseOffset;
+                    RecvBuffer->ReadLength = (uint32_t)(ContiguousLength - RecvBuffer->BaseOffset);
                 } else {
-                    RecvBuffer->ReadLength = RecvBuffer->LockedOffset + ChunkLength - RecvBuffer->BaseOffset;
+                    RecvBuffer->ReadLength = (uint32_t)(RecvBuffer->LockedOffset + ChunkLength - RecvBuffer->BaseOffset);
                 }
                 // Write to the first chunk
             } else {
@@ -754,7 +753,7 @@ QuicRecvBufferRead(
 
         if (IsFirstChunk) {
             Chunk->ExternalReference = TRUE;
-            uint32_t ChunkReadLength = RecvBuffer->ReadLength - RecvBuffer->ReadPendingLength;
+            uint32_t ChunkReadLength = RecvBuffer->ReadLength - (uint32_t)RecvBuffer->ReadPendingLength;
             ChunkReadOffset = (RecvBuffer->ReadStart + RecvBuffer->ReadPendingLength) % Chunk->AllocLength;
             if (ChunkReadOffset + ChunkReadLength <= Chunk->AllocLength) {
                 Buffers[0].Length = ChunkReadLength;
