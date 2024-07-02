@@ -23,7 +23,6 @@ struct RecvBuffer {
     ~RecvBuffer() {
         QuicRecvBufferUninitialize(&RecvBuf);
         if (PreallocChunk) {
-            QuicRangeUninitialize(&PreallocChunk->Ranges);
             CXPLAT_FREE(PreallocChunk, QUIC_POOL_TEST);
         }
     }
@@ -38,7 +37,6 @@ struct RecvBuffer {
                 (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
                     sizeof(QUIC_RECV_CHUNK) + AllocBufferLength,
                     QUIC_POOL_TEST);
-            QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &PreallocChunk->Ranges);
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
         auto Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
@@ -376,7 +374,7 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
         QUIC_STATUS_SUCCESS,
         RecvBuf.Write(
             0,
-            40,
+            20,
             &InOutWriteLength,
             &NewDataReady));
     ASSERT_TRUE(NewDataReady);
@@ -388,60 +386,22 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1u, BufferCount);
-    ASSERT_EQ(40u, ReadBuffers[0].Length);
-    ASSERT_FALSE(RecvBuf.Drain(20)); // Partial drain return false
+    ASSERT_EQ(20u, ReadBuffers[0].Length);
 
     InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         RecvBuf.Write(
-            60,
-            68,
+            20,
+            512,
             &InOutWriteLength,
             &NewDataReady));
-    // ASSERT_TRUE(RecvBuf.Drain(40));
-
-    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        RecvBuf.Write(
-            50,
-            10,
-            &InOutWriteLength,
-            &NewDataReady));
-
-    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        RecvBuf.Write(
-            45,
-            5,
-            &InOutWriteLength,
-            &NewDataReady));
-
-    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        RecvBuf.Write(
-            40,
-            5,
-            &InOutWriteLength,
-            &NewDataReady));
-
-    // ASSERT_EQ(
-    //     QUIC_STATUS_SUCCESS,
-    //     RecvBuf.Write(
-    //         40,
-    //         88,
-    //         &InOutWriteLength,
-    //         &NewDataReady));
 
     ASSERT_TRUE(NewDataReady); // Still ready to read
     ASSERT_TRUE(RecvBuf.HasUnreadData());
-    // ASSERT_EQ(88ull, InOutWriteLength);
-    ASSERT_EQ(128ull, RecvBuf.GetTotalLength());
-    // ASSERT_FALSE(RecvBuf.Drain(40) && Mode != QUIC_RECV_BUF_MODE_MULTIPLE);
-    // RecvBuf.Drain(21);
+    ASSERT_EQ(512ull, InOutWriteLength);
+    ASSERT_EQ(532ull, RecvBuf.GetTotalLength());
+    ASSERT_FALSE(RecvBuf.Drain(20) && Mode != QUIC_RECV_BUF_MODE_MULTIPLE);
     ASSERT_TRUE(RecvBuf.HasUnreadData());
 }
 
@@ -1274,7 +1234,8 @@ TEST_P(WithMode, ReadCycleSpanMulti)
 // |D, D, D, D, D, D, R, R| ReadStart:6, ReadLength:2, Ext:1
 // |8, D, D, D, D, D, R, R| ReadStart:6, ReadLength:3, Ext:1
 // |8, G, 7, D, D, D, R, R| ReadStart:6, ReadLength:3, Ext:1
-// |8, G,10, G,11, D, R, R| ReadStart:6, ReadLength:3, Ext:1
+// |8, G,10, G, D, D, R, R| ReadStart:6, ReadLength:3, Ext:1
+// |8, G,10, G,12, D, R, R| ReadStart:6, ReadLength:3, Ext:1
 // |8, G,10, G,12, G, R, R| |14, x, x, x, ...| ReadStart:6, ReadLength:3, Ext:1 // dead
 // |8, G,10, G,12, G, R, R| |14, G,16, x, ...| ReadStart:6, ReadLength:3, Ext:1
 // |8, G,10,11,12, G, R, R| |14, G,16, x, ...| ReadStart:6, ReadLength:3, Ext:1
@@ -1295,22 +1256,13 @@ TEST_P(WithMode, MultiGapMulti)
     RecvBuf.Drain(6);
     WriteAndCheck(&RecvBuf, 8, 1, 6, 3, 1, ExternalReferences);
     WriteAndCheck(&RecvBuf,10, 1, 6, 3, 1, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,12, 1, 6, 3, 1, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,16, 1, 6, 3, 2, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,11, 1, 6, 3, 2, ExternalReferences);
-    // WriteAndCheck(&RecvBuf, 9, 1, 6, 7, 2, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,15, 1, 6, 7, 2, ExternalReferences);
-    // WriteAndCheck(&RecvBuf,13, 1, 6, 8, 2, ExternalReferences);
-
-    WriteAndCheck(&RecvBuf,13, 1, 6, 3, 1, ExternalReferences);
+    WriteAndCheck(&RecvBuf,12, 1, 6, 3, 1, ExternalReferences);
     WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences); // dead
     WriteAndCheck(&RecvBuf,16, 1, 6, 3, 2, ExternalReferences);
     WriteAndCheck(&RecvBuf,11, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 9, 1, 6, 6, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,15, 1, 6, 6, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,12, 1, 6, 8, 2, ExternalReferences);
-
+    WriteAndCheck(&RecvBuf, 9, 1, 6, 7, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf,15, 1, 6, 7, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf,13, 1, 6, 8, 2, ExternalReferences);
 
     LengthList[0] = 6;
     LengthList[1] = 3;
