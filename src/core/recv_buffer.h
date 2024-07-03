@@ -69,11 +69,10 @@ typedef struct QUIC_RECV_BUFFER {
     uint32_t VirtualBufferLength;
 
     //
-    // BaseOffset when allocate second chunk. default is UINT64_MAX.
-    // At this state, the first chunk won't grow anymore. This is to know
-    // where to write incomming frame to which chunk.
+    // Basically same as Chunk->AllocLength of first chunk,
+    // but start shrinking by drain operation after next chunk is allocated.
     //
-    uint64_t LockedOffset;
+    uint32_t Capacity;
 
     //
     // Controls the behavior of the buffer, which changes the logic for

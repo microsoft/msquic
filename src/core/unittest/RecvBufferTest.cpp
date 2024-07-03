@@ -1241,6 +1241,35 @@ TEST(MultiRecvTest, MultiGap)
     RecvBuf.Drain(9);
 }
 
+TEST(MultiRecvTest, MultiGapOverwrap)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
+    BOOLEAN ExternalReferences[] = {FALSE, FALSE};
+    uint32_t LengthList[] = {0, 0, 0};
+
+    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    LengthList[0] = 8;
+    ExternalReferences[0] = TRUE;
+    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.Drain(6);
+    WriteAndCheck(&RecvBuf, 8, 1, 6, 3, 1, ExternalReferences);
+    WriteAndCheck(&RecvBuf,10, 1, 6, 3, 1, ExternalReferences);
+    WriteAndCheck(&RecvBuf,12, 1, 6, 3, 1, ExternalReferences);
+    WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences); // dead
+    WriteAndCheck(&RecvBuf,16, 1, 6, 3, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf,14, 2, 6, 3, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf,11, 2, 6, 3, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf, 8, 5, 6, 7, 2, ExternalReferences);
+    WriteAndCheck(&RecvBuf,11, 5, 6, 8, 2, ExternalReferences);
+
+    LengthList[0] = 6;
+    LengthList[1] = 3;
+    ExternalReferences[1] = TRUE;
+    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 8, 2, ExternalReferences);
+    RecvBuf.Drain(9);
+}
+
 // |0, 1, 2, 3, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:0
 // |R, R, R, R, R, R, R, R| ReadStart:0, ReadLength:8, Ext:1
 // |D, D, D, D, R, R, R, R| ReadStart:4, ReadLength:4, Ext:1
