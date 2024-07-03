@@ -422,13 +422,13 @@ QuicRecvBufferCopyIntoChunks(
                 QUIC_RECV_CHUNK,
                 Link);
 
-        uint64_t ChunkLength;
+        uint32_t ChunkLength;
         BOOLEAN IsFirstChunk = TRUE;
         uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
         uint32_t ChunkOffset = RecvBuffer->ReadStart;
         if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
             CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit if we only have one
-            ChunkLength = (uint64_t)Chunk->AllocLength;
+            ChunkLength = Chunk->AllocLength;
             RecvBuffer->ReadLength =
                 (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
         } else {
@@ -493,8 +493,8 @@ QuicRecvBufferCopyIntoChunks(
                     CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, ChunkWriteLength);
                 }
             } else {
-                if (ChunkWriteOffset + ChunkWriteLength >= (uint32_t)ChunkLength) {
-                    ChunkWriteLength = (uint32_t)ChunkLength - ChunkWriteOffset;
+                if (ChunkWriteOffset + ChunkWriteLength >= ChunkLength) {
+                    ChunkWriteLength = ChunkLength - ChunkWriteOffset;
                 }
                 CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, ChunkWriteLength);
             }
