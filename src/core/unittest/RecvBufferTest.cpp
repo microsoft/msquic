@@ -59,7 +59,7 @@ struct RecvBuffer {
         _Out_ BOOLEAN* NewDataReady
         ) {
         auto BufferToWrite = new (std::nothrow) uint8_t[WriteLength];
-        memset(BufferToWrite, 0, WriteLength); // Zero out the buffer (for debugging purposes
+        memset(BufferToWrite, 0, WriteLength); // Zero out the buffer (for debugging purposes)
         CXPLAT_FRE_ASSERT(BufferToWrite);
         for (uint16_t i = 0; i < WriteLength; ++i) {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
@@ -91,6 +91,72 @@ struct RecvBuffer {
         printf("Drain: Len=%llu, Res=%u\n", (unsigned long long)BufferLength, Result);
         Dump();
         return Result;
+    }
+    void Check(
+        _In_ uint32_t ReadStart,
+        _In_ uint32_t ReadLength,
+        _In_ uint32_t NumChunks,
+        _In_ BOOLEAN* ExternalReferences
+    ) {
+        ASSERT_EQ(RecvBuf.ReadStart, ReadStart);
+        ASSERT_EQ(RecvBuf.ReadLength, ReadLength);
+        int ChunkCount = 1;
+        QUIC_RECV_CHUNK* Chunk =
+            CXPLAT_CONTAINING_RECORD(
+                RecvBuf.Chunks.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        ASSERT_EQ(Chunk->ExternalReference, ExternalReferences[0]);
+        while (Chunk->Link.Flink != &RecvBuf.Chunks) {
+            ChunkCount++;
+            Chunk =
+                CXPLAT_CONTAINING_RECORD(
+                    Chunk->Link.Flink,
+                    QUIC_RECV_CHUNK,
+                    Link);
+            ASSERT_EQ(Chunk->ExternalReference, ExternalReferences[ChunkCount - 1]);
+        }
+        ASSERT_EQ(ChunkCount, NumChunks);
+    }
+    void WriteAndCheck(
+        _In_ uint64_t WriteOffset,
+        _In_ uint16_t WriteLength,
+        _In_ uint32_t ReadStart,
+        _In_ uint32_t ReadLength,
+        _In_ uint32_t NumChunks,
+        _In_ BOOLEAN* ExternalReferences
+    ) {
+        uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+        BOOLEAN NewDataReady = FALSE;
+
+        ASSERT_EQ(
+            QUIC_STATUS_SUCCESS,
+            Write(
+                WriteOffset,
+                WriteLength,
+                &InOutWriteLength,
+                &NewDataReady));
+
+        Check(ReadStart, ReadLength, NumChunks, ExternalReferences);
+    }
+    void ReadAndCheck(
+        _In_ uint32_t BufferCount,
+        _In_ uint32_t* LengthList,
+        _In_ uint32_t ReadStart,
+        _In_ uint32_t ReadLength,
+        _In_ uint32_t NumChunks,
+        _In_ BOOLEAN* ExternalReferences
+    ) {
+        uint64_t ReadOffset;
+        QUIC_BUFFER ReadBuffers[3];
+        uint32_t ActualBufferCount = ARRAYSIZE(ReadBuffers);
+        Read(&ReadOffset, &ActualBufferCount, ReadBuffers);
+
+        ASSERT_EQ(BufferCount, ActualBufferCount);
+        for (uint32_t i = 0; i < ActualBufferCount; ++i) {
+            ASSERT_EQ(LengthList[i], ReadBuffers[i].Length);
+        }
+        Check(ReadStart, ReadLength, NumChunks, ExternalReferences);
     }
     // Validates the value of the buffer is equal to the offset.
     static void ValidateBuffer(_In_reads_(BufferLength) const uint8_t* Buffer, _In_ uint32_t BufferLength, _In_ uint64_t BufferOffset) {
@@ -702,80 +768,6 @@ TEST_P(WithMode, DrainFrontChunkWithPendingGap)
     ASSERT_TRUE(RecvBuf.Drain(1));
 }
 
-void Check(
-    _In_ RecvBuffer* RecvBuf,
-    _In_ uint32_t ReadStart,
-    _In_ uint32_t ReadLength,
-    _In_ uint32_t NumChunks,
-    _In_ BOOLEAN* ExternalReferences
-) {
-    QUIC_RECV_BUFFER* PrivBuffer = &RecvBuf->RecvBuf;
-
-    ASSERT_EQ(PrivBuffer->ReadStart, ReadStart);
-    ASSERT_EQ(PrivBuffer->ReadLength, ReadLength);
-    int ChunkCount = 1;
-    QUIC_RECV_CHUNK* Chunk =
-        CXPLAT_CONTAINING_RECORD(
-            PrivBuffer->Chunks.Flink,
-            QUIC_RECV_CHUNK,
-            Link);
-    ASSERT_EQ(Chunk->ExternalReference, ExternalReferences[0]);
-    while (Chunk->Link.Flink != &PrivBuffer->Chunks) {
-        ChunkCount++;
-        Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                Chunk->Link.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        ASSERT_EQ(Chunk->ExternalReference, ExternalReferences[ChunkCount - 1]);
-    }
-    ASSERT_EQ(ChunkCount, NumChunks);
-}
-
-void WriteAndCheck(
-    _In_ RecvBuffer* RecvBuf,
-    _In_ uint64_t WriteOffset,
-    _In_ uint16_t WriteLength,
-    _In_ uint32_t ReadStart,
-    _In_ uint32_t ReadLength,
-    _In_ uint32_t NumChunks,
-    _In_ BOOLEAN* ExternalReferences
-) {
-    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
-    BOOLEAN NewDataReady = FALSE;
-
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        RecvBuf->Write(
-            WriteOffset,
-            WriteLength,
-            &InOutWriteLength,
-            &NewDataReady));
-
-    Check(RecvBuf, ReadStart, ReadLength, NumChunks, ExternalReferences);
-}
-
-void ReadAndCheck(
-    _In_ RecvBuffer* RecvBuf,
-    _In_ uint32_t BufferCount,
-    _In_ uint32_t* LengthList,
-    _In_ uint32_t ReadStart,
-    _In_ uint32_t ReadLength,
-    _In_ uint32_t NumChunks,
-    _In_ BOOLEAN* ExternalReferences
-) {
-    uint64_t ReadOffset;
-    QUIC_BUFFER ReadBuffers[3];
-    uint32_t ActualBufferCount = ARRAYSIZE(ReadBuffers);
-    RecvBuf->Read(&ReadOffset, &ActualBufferCount, ReadBuffers);
-
-    ASSERT_EQ(BufferCount, ActualBufferCount);
-    for (uint32_t i = 0; i < ActualBufferCount; ++i) {
-        ASSERT_EQ(LengthList[i], ReadBuffers[i].Length);
-    }
-    Check(RecvBuf, ReadStart, ReadLength, NumChunks, ExternalReferences);
-}
-
 // Validate the gap can span the edge of a chunk
 // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
 // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
@@ -789,22 +781,22 @@ TEST(MultiRecvTest, GapEdge)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, x| ReadStart:0, ReadLength:7, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 3, 0, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 3, 0, 7, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, G] [G,9,10,11,....] ReadStart:0, ReadLength:7, Ext:1
-    WriteAndCheck(&RecvBuf, 9, 3, 0, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 3, 0, 7, 2, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7] [8,9,10,11,....] ReadStart:0, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 7, 2, 0, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(7, 2, 0, 8, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 4;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 0, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 0, 8, 2, ExternalReferences);
 }
 
 // Validate the gap can span the edge of a chunk (cycle)
@@ -823,27 +815,27 @@ TEST(MultiRecvTest, GapCycleEdge)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
     RecvBuf.Drain(4);
     // |D, D, D, D, R, R, R, R] ReadStart:4, ReadLength:4, Ext:1
-    ReadAndCheck(&RecvBuf, 1, LengthList, 4, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 4, 4, 1, ExternalReferences);
     // |8, 9,10, D, R, R, R, R] ReadStart:4, ReadLength:7, Ext:1
-    WriteAndCheck(&RecvBuf, 8, 3, 4, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 3, 4, 7, 1, ExternalReferences);
     // |8, 9,10, G, R, R, R, R] [ G,13,14,15, ...] ReadStart:4, ReadLength:7, Ext:1
-    WriteAndCheck(&RecvBuf, 13, 3, 4, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 3, 4, 7, 2, ExternalReferences);
     // |8, 9,10,11, R, R, R, R] [12,13,14,15, ...] ReadStart:4, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 11, 2, 4, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 2, 4, 8, 2, ExternalReferences);
 
     LengthList[1] = 4;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 4, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 4, 8, 2, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -860,22 +852,22 @@ TEST(MultiRecvTest, PartialDrainGrow)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
     RecvBuf.Drain(4);
     // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
     ExternalReferences[0] = FALSE;
-    WriteAndCheck(&RecvBuf, 8, 8, 0, 12, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 8, 0, 12, 1, ExternalReferences);
 
     LengthList[0] = 12;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 12, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 12, 1, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -894,27 +886,27 @@ TEST(MultiRecvTest, PartialDrainGapGrow)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // [0, 1, 2, 3, x, x, x, x] ReadStart:0, ReadLengt:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // [R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // [D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
     RecvBuf.Drain(4);
     ExternalReferences[0] = FALSE;
     // [8, G, G,11, 4, 5, 6, 7] ReadStart:4, ReadLengt:5, Ext:0
-    WriteAndCheck(&RecvBuf, 8, 1, 4, 5, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 11, 1, 4, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 1, 4, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 1, 4, 5, 1, ExternalReferences);
     // [4, 5, 6, 7, 8, G, G,11,12,13,14,15, ...] ReadStart:0, ReadLengt:5, Ext:0
-    WriteAndCheck(&RecvBuf, 12, 4, 0, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 4, 0, 5, 1, ExternalReferences);
     // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
-    WriteAndCheck(&RecvBuf, 9, 2, 0, 12, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 2, 0, 12, 1, ExternalReferences);
 
     LengthList[0] = 12;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 12, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 12, 1, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -933,26 +925,26 @@ TEST(MultiRecvTest, PartialDrainGapEdgeGrow)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, x| ReadStart:0, ReadLength:7, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 3, 0, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 3, 0, 7, 1, ExternalReferences);
     // |D, D, D, D, 4, 5, 6, x] ReadStart:4, ReadLength:3, Ext:0
     RecvBuf.Drain(4);
     ExternalReferences[0] = FALSE;
     // |G, 9,10,11, 4, 5, 6, G] ReadStart:4, ReadLength:3, Ext:0
-    WriteAndCheck(&RecvBuf, 9, 3, 4, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 3, 4, 3, 1, ExternalReferences);
     // [4, 5, 6, G, G, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:3,  Ext:0
-    WriteAndCheck(&RecvBuf, 12, 4, 0, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 4, 0, 3, 1, ExternalReferences);
     // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
-    WriteAndCheck(&RecvBuf, 7, 2, 0, 12, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(7, 2, 0, 12, 1, ExternalReferences);
 
     LengthList[0] = 12;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 12, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 12, 1, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -970,26 +962,26 @@ TEST(MultiRecvTest, PartialDrainGapCycleEdgeGrow)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:8, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
     RecvBuf.Drain(4);
     ExternalReferences[0] = FALSE;
     // |8, 9,10, D, 4, 5, 6, 7] ReadStart:4, ReadLength:7, Ext:0
-    WriteAndCheck(&RecvBuf, 8, 3, 4, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 3, 4, 7, 1, ExternalReferences);
     // [4, 5, 6, 7, 8, 9,10, G, G,13,14,15, ...] ReadStart:0, ReadLength:7,  Ext:0
-    WriteAndCheck(&RecvBuf, 13, 3, 0, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 3, 0, 7, 1, ExternalReferences);
     // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLength:12, Ext:0
-    WriteAndCheck(&RecvBuf, 11, 2, 0, 12, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 2, 0, 12, 1, ExternalReferences);
 
     LengthList[0] = 12;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 12, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 12, 1, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -1008,31 +1000,31 @@ TEST(MultiRecvTest, PartialDrainSmallWriteAppend)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:8, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // |D, D, R, R, 4, 5, 6, 7] ReadStart:2, ReadLength:6, Ext:1
     RecvBuf.Drain(2);
     // |8, 9, R, R, 4, 5, 6, 7] ReadStart:2, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 8, 2, 2, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 2, 2, 8, 1, ExternalReferences);
     // |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 10, 2, 2, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 2, 2, 8, 2, ExternalReferences);
     // |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:6, Ext:0
     RecvBuf.Drain(2);
     ExternalReferences[0] = FALSE;
     // |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:2, ReadLength:6, Ext:0
-    WriteAndCheck(&RecvBuf, 12, 2, 4, 6, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 2, 4, 6, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 2;
     LengthList[2] = 4;
     ExternalReferences[0] = TRUE;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 3, LengthList, 4, 6, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(3, LengthList, 4, 6, 2, ExternalReferences);
     RecvBuf.Drain(10);
 }
 
@@ -1050,29 +1042,29 @@ TEST(MultiRecvTest, PartialDrainBigWriteAppend)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, 4, 5, 6, 7| ReadStart:0, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     // |D, D, R, R, 4, 5, 6, 7] ReadStart:2, ReadLength:6, Ext:1
     RecvBuf.Drain(2);
     // |8, 9, R, R, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:2, ReadLength:8, Ext:1
-    WriteAndCheck(&RecvBuf, 8, 4, 2, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 4, 2, 8, 2, ExternalReferences);
     // |8, 9, D, D, 4, 5, 6, 7] [10,11, x, x, ...] ReadStart:4, ReadLength:6, Ext:0
     RecvBuf.Drain(2);
     ExternalReferences[0] = FALSE;
     // |8, 9, D, D, 4, 5, 6, 7] [10,11,12,13, ...] ReadStart:4, ReadLength:6, Ext:0
-    WriteAndCheck(&RecvBuf, 12, 2, 4, 6, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 2, 4, 6, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 2;
     LengthList[2] = 4;
     ExternalReferences[0] = TRUE;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 3, LengthList, 4, 6, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(3, LengthList, 4, 6, 2, ExternalReferences);
     RecvBuf.Drain(10);
 }
 
@@ -1094,34 +1086,34 @@ TEST(MultiRecvTest, TwoGapWithTwoChunk)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
 
-    WriteAndCheck(&RecvBuf, 4, 1, 0, 5, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 7, 2, 0, 5, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 1, 0, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(7, 2, 0, 5, 2, ExternalReferences);
     RecvBuf.Drain(4);
     ExternalReferences[0] = FALSE;
 
-    WriteAndCheck(&RecvBuf, 10, 2, 4, 1, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 2, 4, 1, 2, ExternalReferences);
 
-    WriteAndCheck(&RecvBuf, 5, 2, 4, 4, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(5, 2, 4, 4, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 1;
     ExternalReferences[0] = TRUE;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 4, 4, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 4, 4, 2, ExternalReferences);
     RecvBuf.Drain(5);
     ExternalReferences[0] = FALSE;
     ExternalReferences[1] = FALSE;
-    WriteAndCheck(&RecvBuf, 9, 1, 1, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 1, 1, 3, 1, ExternalReferences);
 
     LengthList[0] = 3;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 1, 3, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 1, 3, 1, ExternalReferences);
     RecvBuf.Drain(3);
 }
 
@@ -1142,27 +1134,27 @@ TEST(MultiRecvTest, TwoGapCycleEdgeWithTwoChunk)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
     // |0, 1, 2, 3, x, x, x, x| ReadStart:0, ReadLength:4, Ext:0
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
     // |R, R, R, R, x, x, x, x| ReadStart:0, ReadLength:4, Ext:1
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
 
-    WriteAndCheck(&RecvBuf, 4, 4, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(3);
-    WriteAndCheck(&RecvBuf, 8, 2, 3, 7, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 2, 3, 7, 1, ExternalReferences);
 
-    WriteAndCheck(&RecvBuf, 12, 1, 3, 7, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 14, 1, 3, 7, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 10, 2, 3, 8, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 13, 1, 3, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 1, 3, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 1, 3, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 2, 3, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 1, 3, 8, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 3;
     LengthList[2] = 4;
     ExternalReferences[0] = TRUE;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 3, LengthList, 3, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(3, LengthList, 3, 8, 2, ExternalReferences);
     RecvBuf.Drain(12);
 }
 
@@ -1181,21 +1173,21 @@ TEST(MultiRecvTest, ReadCycleSpan)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(6);
-    WriteAndCheck(&RecvBuf, 8, 8, 6, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 8, 6, 8, 2, ExternalReferences);
     LengthList[0] = 6;
     LengthList[1] = 2;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 6, 8, 2, ExternalReferences);
     RecvBuf.Drain(4);
-    WriteAndCheck(&RecvBuf, 16, 3, 2, 4, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(16, 3, 2, 4, 2, ExternalReferences);
     RecvBuf.Drain(6);
     LengthList[0] = 3;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 2, 3, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 2, 3, 1, ExternalReferences);
     RecvBuf.Drain(3);
 }
 
@@ -1219,25 +1211,25 @@ TEST(MultiRecvTest, MultiGap)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(6);
-    WriteAndCheck(&RecvBuf, 8, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,10, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,12, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences); // dead
-    WriteAndCheck(&RecvBuf,16, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,11, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 9, 1, 6, 7, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,15, 1, 6, 7, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,13, 1, 6, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 1, 6, 3, 2, ExternalReferences); // dead
+    RecvBuf.WriteAndCheck(16, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 1, 6, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(15, 1, 6, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 1, 6, 8, 2, ExternalReferences);
 
     LengthList[0] = 6;
     LengthList[1] = 3;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 6, 8, 2, ExternalReferences);
     RecvBuf.Drain(9);
 }
 
@@ -1248,25 +1240,25 @@ TEST(MultiRecvTest, MultiGapOverwrap)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(6);
-    WriteAndCheck(&RecvBuf, 8, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,10, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,12, 1, 6, 3, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences); // dead
-    WriteAndCheck(&RecvBuf,16, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,14, 2, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,11, 2, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 8, 5, 6, 7, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,11, 5, 6, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 1, 6, 3, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 1, 6, 3, 2, ExternalReferences); // dead
+    RecvBuf.WriteAndCheck(16, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 2, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 2, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 5, 6, 7, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 5, 6, 8, 2, ExternalReferences);
 
     LengthList[0] = 6;
     LengthList[1] = 3;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 6, 8, 2, ExternalReferences);
     RecvBuf.Drain(9);
 }
 
@@ -1288,24 +1280,24 @@ TEST(MultiRecvTest, MultiGapDead)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(4);
-    WriteAndCheck(&RecvBuf, 8, 1, 4, 5, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,10, 1, 4, 5, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf,12, 1, 4, 5, 2, ExternalReferences); // dead
+    RecvBuf.WriteAndCheck(8, 1, 4, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(10, 1, 4, 5, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 1, 4, 5, 2, ExternalReferences); // dead
     RecvBuf.Drain(2);
-    WriteAndCheck(&RecvBuf,14, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,11, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf,13, 1, 6, 3, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 9, 1, 6, 6, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 1, 6, 3, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(9, 1, 6, 6, 2, ExternalReferences);
 
     LengthList[0] = 4;
     LengthList[1] = 3;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 6, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 6, 6, 2, ExternalReferences);
     RecvBuf.Drain(9);
 }
 
@@ -1323,20 +1315,20 @@ TEST(MultiRecvTest, ReadDrainCycleSpan)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(6);
-    WriteAndCheck(&RecvBuf, 8, 8, 6, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 8, 6, 8, 2, ExternalReferences);
     LengthList[0] = 6;
     LengthList[1] = 2;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 2, LengthList, 6, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(2, LengthList, 6, 8, 2, ExternalReferences);
     RecvBuf.Drain(9);
-    WriteAndCheck(&RecvBuf, 16, 3, 1, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(16, 3, 1, 4, 1, ExternalReferences);
     LengthList[0] = 3;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 1, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 1, 4, 1, ExternalReferences);
     RecvBuf.Drain(3);
 }
 
@@ -1359,29 +1351,29 @@ TEST(MultiRecvTest, Dead1stChunk)
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {0, 0, 0};
 
-    WriteAndCheck(&RecvBuf, 0, 6, 0, 6, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 6, 0, 6, 1, ExternalReferences);
     LengthList[0] = 6;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 6, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 6, 2, 0, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 6, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(6, 2, 0, 8, 1, ExternalReferences);
     RecvBuf.Drain(2);
-    WriteAndCheck(&RecvBuf, 8, 3, 2, 8, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 12, 1, 2, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 3, 2, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(12, 1, 2, 8, 2, ExternalReferences);
     LengthList[0] = 2;
     LengthList[1] = 2;
     LengthList[2] = 1;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 3, LengthList, 2, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(3, LengthList, 2, 8, 2, ExternalReferences);
     RecvBuf.Drain(2);
-    WriteAndCheck(&RecvBuf, 14, 1, 4, 6, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(14, 1, 4, 6, 2, ExternalReferences);
     RecvBuf.Drain(5);
-    WriteAndCheck(&RecvBuf, 13, 1, 1, 1, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(13, 1, 1, 1, 2, ExternalReferences);
     RecvBuf.Drain(2);
     ExternalReferences[0] = FALSE;
-    WriteAndCheck(&RecvBuf, 11, 1, 1, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(11, 1, 1, 4, 1, ExternalReferences);
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 1, 4, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 1, 4, 1, ExternalReferences);
     RecvBuf.Drain(4);
 }
 
@@ -1391,13 +1383,13 @@ TEST(MultiRecvTest, Grow1stChunk)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {160, 0, 0};
-    WriteAndCheck(&RecvBuf, 0, 4, 0, 4, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 4, 8, 0, 12, 1, ExternalReferences); // grow -> 16
-    WriteAndCheck(&RecvBuf, 12, 16, 0, 28, 1, ExternalReferences); // grow -> 32
-    WriteAndCheck(&RecvBuf, 28, 32, 0, 60, 1, ExternalReferences); // grow -> 64
-    WriteAndCheck(&RecvBuf, 60, 100, 0, 160, 1, ExternalReferences); // grow -> 256
+    RecvBuf.WriteAndCheck(0, 4, 0, 4, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(4, 8, 0, 12, 1, ExternalReferences); // grow -> 16
+    RecvBuf.WriteAndCheck(12, 16, 0, 28, 1, ExternalReferences); // grow -> 32
+    RecvBuf.WriteAndCheck(28, 32, 0, 60, 1, ExternalReferences); // grow -> 64
+    RecvBuf.WriteAndCheck(60, 100, 0, 160, 1, ExternalReferences); // grow -> 256
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 160, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 160, 1, ExternalReferences);
     RecvBuf.Drain(160);
 }
 
@@ -1407,15 +1399,15 @@ TEST(MultiRecvTest, Grow2ndChunk)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE};
     uint32_t LengthList[] = {8, 0, 0};
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 8, 8, 0, 8, 2, ExternalReferences); // append -> 16
-    WriteAndCheck(&RecvBuf, 16, 16, 0, 8, 2, ExternalReferences); // grow -> 32
-    WriteAndCheck(&RecvBuf, 32, 64, 0, 8, 2, ExternalReferences); // grow -> 128
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 8, 0, 8, 2, ExternalReferences); // append -> 16
+    RecvBuf.WriteAndCheck(16, 16, 0, 8, 2, ExternalReferences); // grow -> 32
+    RecvBuf.WriteAndCheck(32, 64, 0, 8, 2, ExternalReferences); // grow -> 128
     ExternalReferences[1] = TRUE;
     LengthList[0] = 88;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
     RecvBuf.Drain(96);
 }
 
@@ -1425,18 +1417,18 @@ TEST(MultiRecvTest, Grow3rdChunk)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE, FALSE};
     uint32_t LengthList[] = {8, 0, 0};
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 8, 32, 0, 8, 2, ExternalReferences); // append -> 32
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // append -> 32
     LengthList[0] = 32;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 2, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 40, 64, 0, 8, 3, ExternalReferences); // append -> 64
-    WriteAndCheck(&RecvBuf, 104, 20, 0, 8, 3, ExternalReferences); // grow -> 128
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
+    RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // append -> 64
+    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128
     ExternalReferences[2] = TRUE;
     LengthList[0] = 84;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 3, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 3, ExternalReferences);
     RecvBuf.Drain(124);
 }
 
@@ -1446,20 +1438,20 @@ TEST(MultiRecvTest, ReadPendingOver2Chunk)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE, FALSE};
     uint32_t LengthList[] = {8, 0, 0};
-    WriteAndCheck(&RecvBuf, 0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
     ExternalReferences[0] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 1, ExternalReferences);
-    WriteAndCheck(&RecvBuf, 8, 8, 0, 8, 2, ExternalReferences); // append -> 16
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(8, 8, 0, 8, 2, ExternalReferences); // append -> 16
     LengthList[0] = 8;
     ExternalReferences[1] = TRUE;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 0, 8, 2, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
 
-    WriteAndCheck(&RecvBuf, 16, 8, 0, 8, 2, ExternalReferences); // append -> 16
+    RecvBuf.WriteAndCheck(16, 8, 0, 8, 2, ExternalReferences); // append -> 16
     RecvBuf.Drain(16);
     // ExternalReferences[0] = FALSE;
     // ExternalReferences[1] = FALSE;
     LengthList[0] = 8;
-    ReadAndCheck(&RecvBuf, 1, LengthList, 8, 8, 1, ExternalReferences);
+    RecvBuf.ReadAndCheck(1, LengthList, 8, 8, 1, ExternalReferences);
     RecvBuf.Drain(8);
 }
 

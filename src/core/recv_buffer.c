@@ -469,7 +469,7 @@ QuicRecvBufferCopyIntoChunks(
             uint32_t ChunkWriteOffset = (ChunkOffset + RelativeOffset) % Chunk->AllocLength;
             if (!IsFirstChunk) {
                 // This RelativeOffset is already shrunk to represent the offset from beginning of the current chunk.
-                ChunkWriteOffset = RelativeOffset;
+                ChunkWriteOffset = (uint32_t)RelativeOffset;
             }
             if (!IsFirstLoop) {
                 // We are continue writing from previous chunk. So, start from the beginning of the currnet chunk.
@@ -869,7 +869,7 @@ QuicRecvBufferPartialDrain(
                 //
                 // If there is another chunk, then the capacity of first chunk is shrunk.
                 //
-                RecvBuffer->Capacity -= DrainLength;
+                RecvBuffer->Capacity -= (uint32_t)DrainLength;
             }
         }
 

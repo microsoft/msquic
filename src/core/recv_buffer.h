@@ -20,7 +20,7 @@ typedef enum QUIC_RECV_BUF_MODE {
 //
 typedef struct QUIC_RECV_CHUNK {
     CXPLAT_LIST_ENTRY Link;         // Link in the list of chunks.
-    uint32_t AllocLength : 31;      // Allocation size of Buffer,
+    uint32_t AllocLength : 31;      // Allocation size of Buffer
     uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
     uint8_t Buffer[0];
 } QUIC_RECV_CHUNK;
@@ -69,8 +69,8 @@ typedef struct QUIC_RECV_BUFFER {
     uint32_t VirtualBufferLength;
 
     //
-    // Basically same as Chunk->AllocLength of first chunk,
-    // but start shrinking by drain operation after next chunk is allocated.
+    // Basically same as Chunk->AllocLength of first chunk, but start shrinking
+    // by drain operation after next chunk is allocated.
     //
     uint32_t Capacity;
 
