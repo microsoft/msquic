@@ -56,7 +56,6 @@ CxPlatDataPathInitialize(
             QuicTraceLogVerbose(
                 RawDatapathInitFail,
                 "[ raw] Failed to initialize raw datapath, status:%d", Status);
-            Status = QUIC_STATUS_SUCCESS;
             (*NewDataPath)->RawDataPath = NULL;
         }
     }
