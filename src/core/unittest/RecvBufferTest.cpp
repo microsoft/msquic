@@ -453,7 +453,6 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1u, BufferCount);
     ASSERT_EQ(20u, ReadBuffers[0].Length);
-
     InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -462,7 +461,6 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
             512,
             &InOutWriteLength,
             &NewDataReady));
-
     ASSERT_TRUE(NewDataReady); // Still ready to read
     ASSERT_TRUE(RecvBuf.HasUnreadData());
     ASSERT_EQ(512ull, InOutWriteLength);
@@ -1448,8 +1446,6 @@ TEST(MultiRecvTest, ReadPendingOver2Chunk)
 
     RecvBuf.WriteAndCheck(16, 8, 0, 8, 2, ExternalReferences); // append -> 16
     RecvBuf.Drain(16);
-    // ExternalReferences[0] = FALSE;
-    // ExternalReferences[1] = FALSE;
     LengthList[0] = 8;
     RecvBuf.ReadAndCheck(1, LengthList, 8, 8, 1, ExternalReferences);
     RecvBuf.Drain(8);
