@@ -208,7 +208,9 @@ CxPlatSocketDelete(
     if (Socket->RawSocketAvailable) {
         RawSocketDelete(CxPlatSocketToRaw(Socket));
     }
-    SocketDelete(Socket);
+    if (!Socket->UseTcp) { // QTIP case doesn't use any normal socket at all
+        SocketDelete(Socket);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
