@@ -853,10 +853,6 @@ void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID)
         break;
     }
 
-    if (GetRandom(2)) {
-        Helper.SetPriority();
-    }
-
     Helper.Apply(Stream);
 }
 

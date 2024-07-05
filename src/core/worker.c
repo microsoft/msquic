@@ -76,7 +76,7 @@ QuicWorkerInitialize(
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
-    Worker->PriorityConnectionsTail = &Worker->Connections;
+    Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
     CxPlatListInitializeHead(&Worker->Operations);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK)+QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
@@ -277,15 +277,15 @@ QuicWorkerQueuePriorityConnection(
                 Connection,
                 QUIC_SCHEDULE_QUEUED);
             QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
-            CxPlatListInsertTail(Worker->PriorityConnectionsTail, &Connection->WorkerLink);
-            Worker->PriorityConnectionsTail = &Connection->WorkerLink;
+            CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
+            Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
             Connection->HasQueuedWork = TRUE;
             ConnectionQueued = TRUE;
         } else { // Moving from normal priority to high priority
             WakeWorkerThread = FALSE;
             CxPlatListEntryRemove(&Connection->WorkerLink);
-            CxPlatListInsertTail(Worker->PriorityConnectionsTail, &Connection->WorkerLink);
-            Worker->PriorityConnectionsTail = &Connection->WorkerLink;
+            CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
+            Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
         }
         Connection->HasPriorityWork = TRUE;
     } else {
@@ -414,8 +414,8 @@ QuicWorkerGetNextConnection(
             Connection =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
-            if (Worker->PriorityConnectionsTail == &Connection->WorkerLink) {
-                Worker->PriorityConnectionsTail = &Connection->WorkerLink;
+            if (Worker->PriorityConnectionsTail == &Connection->WorkerLink.Flink) {
+                Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
             }
             CXPLAT_DBG_ASSERT(!Connection->WorkerProcessing);
             CXPLAT_DBG_ASSERT(Connection->HasQueuedWork);

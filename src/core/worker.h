@@ -70,7 +70,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // Queue of connections with operations to be processed.
     //
     CXPLAT_LIST_ENTRY Connections;
-    CXPLAT_LIST_ENTRY* PriorityConnectionsTail;
+    CXPLAT_LIST_ENTRY** PriorityConnectionsTail;
 
     //
     // Queue of stateless operations to be processed.
