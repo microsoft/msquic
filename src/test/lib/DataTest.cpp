@@ -4012,8 +4012,6 @@ struct MultiReceiveTestContext {
 
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
         UNREFERENCED_PARAMETER(Stream);
-        UNREFERENCED_PARAMETER(Context);
-        UNREFERENCED_PARAMETER(Event);
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         auto TestContext = (MultiReceiveTestContext*)Context;
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
@@ -4044,10 +4042,7 @@ struct MultiReceiveTestContext {
         return Status;
     }
 
-    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
-        UNREFERENCED_PARAMETER(Stream);
-        UNREFERENCED_PARAMETER(Context);
-        UNREFERENCED_PARAMETER(Event);
+    static QUIC_STATUS ClientStreamCallback(_In_ MsQuicStream* , _In_opt_ void* , _Inout_ QUIC_STREAM_EVENT* ) {
         return QUIC_STATUS_SUCCESS;
     }
 

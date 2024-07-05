@@ -957,7 +957,7 @@ QuicStreamRecvFlush(
             // The app called the receive complete API inline if
             // RecvCompletionLength is non-zero.
             //
-            FlushRecv = FALSE;
+            FlushRecv = (Stream->RecvCompletionLength != 0);
 
         } else {
             //
