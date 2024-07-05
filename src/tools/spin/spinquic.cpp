@@ -582,9 +582,6 @@ struct SetParamHelper {
     void SetUint64(uint32_t _Type, uint64_t Value) {
         Type = _Type; Param.u64 = Value; Size = sizeof(Value);
     }
-    void SetPriority() {
-        Type |= QUIC_PARAM_HIGH_PRIORITY;
-    }
     void Apply(HQUIC Handle) {
         if (Type != -1) {
             MsQuic.SetParam(Handle, Type, Size, IsPtr ? Param.ptr : &Param);
@@ -831,10 +828,6 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
         break;
     }
 
-    if (GetRandom(2)) {
-        Helper.SetPriority();
-    }
-
     Helper.Apply(Connection);
 }
 
@@ -890,10 +883,6 @@ void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID)
         uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
         uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
         uint32_t Combined = ((Level+1) << 28) + Param;
-
-        if (GetRandom(2)) {
-            Combined |= QUIC_PARAM_HIGH_PRIORITY;
-        }
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
@@ -1024,7 +1013,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                     Buffer->Buffer = Gb.SendBuffer + StreamCtx->SendOffset;
                     Buffer->Length = Length;
                     if (QUIC_SUCCEEDED(
-                        MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(128), Buffer))) {
+                        MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer))) {
                         StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Length);
                     } else {
                         delete Buffer;
@@ -1159,7 +1148,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             if (Buffer) {
                 Buffer->Buffer = Gb.SendBuffer;
                 Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
-                if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(128), Buffer))) {
+                if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
                     delete Buffer;
                 }
             }
