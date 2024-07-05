@@ -243,11 +243,10 @@ QuicWorkerQueueConnection(
 
     CxPlatDispatchLockRelease(&Worker->Lock);
 
-    if (WakeWorkerThread) {
-        QuicWorkerThreadWake(Worker);
-    }
-
     if (ConnectionQueued) {
+        if (WakeWorkerThread) {
+            QuicWorkerThreadWake(Worker);
+        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
@@ -287,11 +286,10 @@ QuicWorkerQueuePriorityConnection(
 
     CxPlatDispatchLockRelease(&Worker->Lock);
 
-    if (WakeWorkerThread) {
-        QuicWorkerThreadWake(Worker);
-    }
-
     if (ConnectionQueued) {
+        if (WakeWorkerThread) {
+            QuicWorkerThreadWake(Worker);
+        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
