@@ -369,6 +369,7 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
@@ -1350,26 +1351,6 @@ QuicConnOnShutdownComplete(
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
 
-    if (Connection->State.ExternalOwner) {
-
-        QUIC_CONNECTION_EVENT Event;
-        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
-        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
-            Connection->State.Connected;
-        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
-            !Connection->State.ShutdownCompleteTimedOut;
-        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
-            Connection->State.HandleClosed;
-
-        QuicTraceLogConnVerbose(
-            IndicateConnectionShutdownComplete,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-        (void)QuicConnIndicateEvent(Connection, &Event);
-
-        Connection->ClientCallbackHandler = NULL;
-    }
-
     //
     // Clean up any pending state that is irrelevant now.
     //
@@ -1392,8 +1373,29 @@ QuicConnOnShutdownComplete(
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    QuicDatagramSendShutdown(&Connection->Datagram);
 
-    if (!Connection->State.ExternalOwner) {
+    if (Connection->State.ExternalOwner) {
+
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
+        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
+            Connection->State.Connected;
+        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
+            !Connection->State.ShutdownCompleteTimedOut;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Connection->State.HandleClosed;
+
+        QuicTraceLogConnVerbose(
+            IndicateConnectionShutdownComplete,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
+        (void)QuicConnIndicateEvent(Connection, &Event);
+
+        // This need to be later than QuicLossDetectionUninitialize to indicate
+        // status change of Datagram frame for an app to free its buffer
+        Connection->ClientCallbackHandler = NULL;
+    } else {
         //
         // If the connection was never indicated to the application, then the
         // "owner" ref still resides with the stack and needs to be released.

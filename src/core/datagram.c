@@ -144,7 +144,6 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDatagramSendShutdown(Datagram);
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);

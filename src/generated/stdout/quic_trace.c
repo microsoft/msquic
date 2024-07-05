@@ -49,7 +49,7 @@ char * casted_clog_bytearray(const uint8_t * const data,
         param->str = CXPLAT_ALLOC_PAGED(len * 2 + 1, QUIC_POOL_TMP_ALLOC);
         if (param->str) {
             EncodeHexBuffer((uint8_t *)data, (uint8_t)len, param->str);
-            param->str[len * 2 + 1] = 0;
+            param->str[len * 2] = 0;
         }
 
     } else {

@@ -68,7 +68,13 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallPerl,
+
+    [Parameter(Mandatory = $false)]
     [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ForceXdpInstall,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -96,6 +102,20 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+if ($IsLinux -and $UseXdp) {
+    $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
+    if (!$IsUbuntu2404 -and !$ForceXdpInstall) {
+        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
+        Write-Host "You need to understand the impact of this on your environment before proceeding"
+        $userInput = Read-Host "Type 'YES' to proceed"
+        if ($userInput -ne 'YES') {
+            Write-Output "User did not type YES. Exiting script."
+            exit
+        }
+    }
+}
 
 $PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
 $Tls = $PrepConfig.Tls
@@ -323,6 +343,13 @@ function Install-OpenCppCoverage {
     }
 }
 
+# Installs StrawberryPerl on Windows via Winget.
+function Install-Perl {
+    if (!$IsWindows) { return } # Windows only
+    Write-Host "Installing StrawberryPerl via winget..."
+    winget install StrawberryPerl.StrawberryPerl
+}
+
 # Checks the OS version number to see if it's recent enough (> 2019) to support
 # the necessary features for creating and installing the test certificates.
 function Win-SupportsCerts {
@@ -482,6 +509,7 @@ if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
+if ($InstallPerl) { Install-Perl }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
@@ -511,7 +539,7 @@ if ($IsLinux) {
         sudo gem install fpm
 
         # XDP dependencies
-        if ((bash -c 'lsb_release -r') -match '22.04') {
+        if ($UseXdp) {
             sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
             sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
             sudo apt-get update -y
@@ -526,15 +554,13 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
-        if ((bash -c 'lsb_release -r') -match '22.04') {
+        if ($UseXdp) {
             sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
             sudo apt-get update -y
             sudo apt-get install -y libxdp1 libbpf1
             sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
-            if ($UseXdp) {
-                sudo apt-get -y install iproute2 iptables
-                Install-DuoNic
-            }
+            sudo apt-get install -y iproute2 iptables
+            Install-DuoNic
         }
 
         # Enable core dumps for the system.
@@ -543,6 +569,11 @@ if ($IsLinux) {
         sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        # Increase the number of file descriptors.
+        sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
         #sudo cat /etc/security/limits.conf
 
         # Set the core dump pattern.

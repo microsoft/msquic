@@ -296,7 +296,7 @@ typedef struct QUIC_OPERATION_QUEUE {
     //
     CXPLAT_DISPATCH_LOCK Lock;
     CXPLAT_LIST_ENTRY List;
-    CXPLAT_LIST_ENTRY* PriorityTail; // Tail of the priority queue.
+    CXPLAT_LIST_ENTRY** PriorityTail; // Tail of the priority queue.
 
 } QUIC_OPERATION_QUEUE;
 

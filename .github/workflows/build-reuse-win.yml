@@ -69,12 +69,12 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@28eae78d12c2bba1163aec45d123f6d9228bc307
+      uses: shogo82148/actions-setup-perl@f551dafcc94572adc179bbddbb409b3ada8f8ff5
       with:
         perl-version: '5.34'
     - name: Install NASM

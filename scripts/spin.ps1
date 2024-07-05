@@ -188,7 +188,8 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 
 # Run the script.
 if ($IsLinux -and $UseXdp) {
-    Invoke-Expression ('sudo MSQUIC_ENABLE_XDP=1 pwsh -c "$RunExecutable $Arguments"')
+    $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
+    Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && pwsh $RunExecutable $Arguments"')
 } else {
     Invoke-Expression ($RunExecutable + " " + $Arguments)
 }
