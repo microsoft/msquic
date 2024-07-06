@@ -938,19 +938,15 @@ QuicStreamRecvFlush(
 
         if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
+            InterlockedExchangeAdd64(
+                (int64_t*)&Stream->RecvCompletionLength,
+                (int64_t)Event.RECEIVE.TotalBufferLength);
+            FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
-            FlushRecv = TRUE;
-            if (Event.RECEIVE.TotalBufferLength == 0) {
-                continue;
-            }
-
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
 
         } else if (Status == QUIC_STATUS_PENDING) {
             //

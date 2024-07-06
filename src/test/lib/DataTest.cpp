@@ -4202,6 +4202,6 @@ QuicTestStreamMultiReceive(
 
         TEST_TRUE(Context.TotalReceivedBytes == BufferSize * NumSend);
         TEST_EQUAL(0, memcmp(Buffer1G, Context.RecvBuffer, BufferSize));
-        delete Context.RecvBuffer;
+        delete[] Context.RecvBuffer;
     }
 }
