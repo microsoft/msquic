@@ -1026,7 +1026,11 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                MsQuic.StreamReceiveSetEnabled(Stream, GetRandom(2) == 0);
+                auto StreamCtx = SpinQuicStream::Get(Stream);
+                bool Enable = GetRandom(2) == 0;
+                if (!Enable || StreamCtx->PendingRecvLength == UINT64_MAX) {
+                    MsQuic.StreamReceiveSetEnabled(Stream, Enable);
+                }
             }
             break;
         }
