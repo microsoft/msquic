@@ -943,6 +943,7 @@ QuicStreamRecvFlush(
             // receive callbacks, even if all the data wasn't drained.
             //
             Stream->Flags.ReceiveEnabled = TRUE;
+            FlushRecv = TRUE;
             if (Event.RECEIVE.TotalBufferLength == 0) {
                 continue;
             }
@@ -950,7 +951,6 @@ QuicStreamRecvFlush(
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
-            FlushRecv = TRUE;
 
         } else if (Status == QUIC_STATUS_PENDING) {
             //
