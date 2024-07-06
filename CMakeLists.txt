@@ -310,7 +310,7 @@ else()
     if (CMAKE_COMPILER_IS_GNUCC AND CMAKE_CXX_COMPILER_VERSION VERSION_LESS 7.0)
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
+        list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag -Wno-invalid-unevaluated-string)
     endif()
 endif()
 
