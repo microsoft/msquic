@@ -97,12 +97,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -153,12 +153,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
