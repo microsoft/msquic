@@ -338,8 +338,9 @@ if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
 }
 ```
 3. Write the `WriteSslKeyLogFile` function. You can just copy the function from [src/inc/msquichelper.h#WriteSslKeyLogFile](https://github.com/microsoft/msquic/blob/main/src/inc/msquichelper.h#L564) if it serves your needs or write your own.
+4. Set the `SSLKEYLOGFILE` env variable set to the path of the log file and run the program. Then check the file with the secets.
 
-After modifying your program with the steps above you will be able to load the key log into Wireshark and decrypt the TLS packets. To learn how to load such file inside Wireshark refer to this documentation: [Using the (Pre)-Master-Secret](https://wiki.wireshark.org/TLS#using-the-pre-master-secret).
+5. Load the key log into Wireshark and start capturing to decrypt the packets. To learn how to load such file inside Wireshark refer to this documentation: [Using the (Pre)-Master-Secret](https://wiki.wireshark.org/TLS#using-the-pre-master-secret).
 
 Using a Wireshark that supports QUIC is not mandatory but could help when troubleshooting. To know which version supports QUIC refer to https://github.com/quicwg/base-drafts/wiki/Tools#wireshark.
  
