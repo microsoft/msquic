@@ -721,6 +721,7 @@ if(QUIC_CODE_CHECK)
             -llvmlibc-restrict-system-libc-headers
             -misc-include-cleaner
             -misc-no-recursion # do you really need recursion?
+            -misc-header-include-cycle
             -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
             -readability-avoid-nested-conditional-operator
@@ -728,6 +729,7 @@ if(QUIC_CODE_CHECK)
             -readability-function-cognitive-complexity
             -readability-function-size
             -readability-identifier-length
+            -readability-identifier-naming
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
