@@ -312,7 +312,7 @@ For some browsers all you have to do is to set an environment variable `SSLKEYLO
 
 1. Set the `QUIC_PARAM_CONN_TLS_SECRETS` connection param with a struct to be populared with the TLS secrets by MsQuic. 
 ```c
-// Define empty struc for the TLS Secrets
+// Define empty struct for the TLS Secrets
 QUIC_TLS_SECRETS ClientSecrets{};
 ...
 
