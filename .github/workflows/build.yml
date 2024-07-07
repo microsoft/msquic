@@ -117,6 +117,9 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
+        # TODO: android to support ubuntu-24.04
+        - plat: android
+          os: 'ubuntu-24.04'
         # No openssl3 system crypto on ubuntu-20.04
         - plat: linux
           os: 'ubuntu-20.04'
