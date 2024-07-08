@@ -154,7 +154,7 @@ QuicPacketBuilderCleanup(
         QuicLossDetectionUpdateTimer(&Builder->Connection->LossDetection, FALSE);
     }
 
-    QuicSentPacketMetadataReleaseFrames(Builder->Metadata);
+    QuicSentPacketMetadataReleaseFrames(Builder->Metadata, Builder->Connection);
 
     CxPlatSecureZeroMemory(Builder->HpMask, sizeof(Builder->HpMask));
 }

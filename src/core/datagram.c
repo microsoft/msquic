@@ -144,7 +144,6 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDatagramSendShutdown(Datagram);
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);
@@ -328,6 +327,7 @@ QuicDatagramQueueSend(
 {
     QUIC_STATUS Status;
     BOOLEAN QueueOper = TRUE;
+    const BOOLEAN IsPriority = !!(SendRequest->Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
     CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
@@ -388,7 +388,11 @@ QuicDatagramQueueSend(
         //
         // Queue the operation but don't wait for the completion.
         //
-        QuicConnQueueOper(Connection, Oper);
+        if (IsPriority) {
+            QuicConnQueuePriorityOper(Connection, Oper);
+        } else {
+            QuicConnQueueOper(Connection, Oper);
+        }
     }
 
 Exit:
