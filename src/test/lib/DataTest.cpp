@@ -3556,6 +3556,11 @@ void QuicTestOperationPriority()
     }
 }
 
+void QuicTestConnectionPriority()
+{
+
+}
+
 struct StreamBlockUnblockConnFlowControl {
     CxPlatEvent ClientStreamShutdownComplete;
     CxPlatEvent ClientStreamSendComplete;
