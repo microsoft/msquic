@@ -859,16 +859,23 @@ QuicStreamRecvFlush(
         return;
     }
 
-    if ((Stream->RecvBuffer.RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE &&
-         Stream->RecvBuffer.ReadPendingLength != 0) ||
-        !Stream->Flags.ReceiveEnabled) {
+
+    if (Stream->RecvBuffer.RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE &&
+        Stream->RecvBuffer.ReadPendingLength != 0) {
+        QuicTraceLogStreamVerbose(
+            IgnoreRecvFlushByReadPending,
+            Stream,
+            "Ignoring recv flush (ReadPendingLenght=%llu)",
+            Stream->RecvBuffer.ReadPendingLength);
+        return;
+    }
+
+
+    if (!Stream->Flags.ReceiveEnabled) {
         QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
             Stream,
-            "Ignoring recv flush (%s)",
-            !Stream->Flags.ReceiveEnabled ?
-                "recv disabled" :
-                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength));
+            "Ignoring recv flush (recv disabled)");
         return;
     }
 

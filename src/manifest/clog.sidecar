@@ -5634,15 +5634,27 @@
     },
     "IgnoreRecvFlush": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Ignoring recv flush (%s)",
+      "TraceString": "[strm][%p] Ignoring recv flush (recv disabled)",
       "UniqueId": "IgnoreRecvFlush",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "IgnoreRecvFlushByReadPending": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%lu)",
+      "UniqueId": "IgnoreRecvFlushByReadPending",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
         },
         {
-          "DefinationEncoding": "s",
+          "DefinationEncoding": "lu",
           "MacroVariableName": "arg3"
         }
       ],
@@ -14920,9 +14932,14 @@
         "EncodingString": "[strm][%p] Ignoring recv after close"
       },
       {
-        "UniquenessHash": "d9009522-4a03-ff39-003d-9b504c1c032a",
+        "UniquenessHash": "b7d10598-79a4-31fa-8455-0d393b45c1e7",
         "TraceID": "IgnoreRecvFlush",
-        "EncodingString": "[strm][%p] Ignoring recv flush (%s)"
+        "EncodingString": "[strm][%p] Ignoring recv flush (recv disabled)"
+      },
+      {
+        "UniquenessHash": "1537935d-ab2d-521e-a290-e59e29d2626d",
+        "TraceID": "IgnoreRecvFlushByReadPending",
+        "EncodingString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%llu)"
       },
       {
         "UniquenessHash": "1e752977-c5b3-6034-4b89-414f9c6ff50f",

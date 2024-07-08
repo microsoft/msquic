@@ -398,23 +398,37 @@ tracepoint(CLOG_STREAM_RECV_C, UpdateFlowControl , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IgnoreRecvFlushByReadPending
+// [strm][%p] Ignoring recv flush (ReadPendingLenght=%llu)
+// QuicTraceLogStreamVerbose(
+            IgnoreRecvFlushByReadPending,
+            Stream,
+            "Ignoring recv flush (ReadPendingLenght=%llu)",
+            Stream->RecvBuffer.ReadPendingLength);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Stream->RecvBuffer.ReadPendingLength = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IgnoreRecvFlushByReadPending
+#define _clog_4_ARGS_TRACE_IgnoreRecvFlushByReadPending(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlushByReadPending , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IgnoreRecvFlush
-// [strm][%p] Ignoring recv flush (%s)
+// [strm][%p] Ignoring recv flush (recv disabled)
 // QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
             Stream,
-            "Ignoring recv flush (%s)",
-            !Stream->Flags.ReceiveEnabled ?
-                "recv disabled" :
-                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength));
+            "Ignoring recv flush (recv disabled)");
 // arg1 = arg1 = Stream = arg1
-// arg3 = arg3 = !Stream->Flags.ReceiveEnabled ?
-                "recv disabled" :
-                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_IgnoreRecvFlush
-#define _clog_4_ARGS_TRACE_IgnoreRecvFlush(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1, arg3);\
+#ifndef _clog_3_ARGS_TRACE_IgnoreRecvFlush
+#define _clog_3_ARGS_TRACE_IgnoreRecvFlush(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
 
 #endif
 
