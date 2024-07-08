@@ -867,7 +867,7 @@ QuicStreamRecvFlush(
             IgnoreRecvFlush,
             Stream,
             "Ignoring recv flush (recv disabled)");
-        return;
+        return ;
     }
 
     CXPLAT_TEL_ASSERT(!Stream->RecvPendingLength); // N.B. - Will be an invalid assert once we support multiple receives
