@@ -77,7 +77,7 @@
 
       <div class="content">
         <div class="actionbar">
-          <button class="btn btn-lg border-0 d-md-none" style="margin-top: -.65em; margin-left: -.8em" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
             <i class="bi bi-list"></i>
           </button>
 
@@ -228,7 +228,7 @@ $ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
 $ pwsh ./scripts/build.ps1 -UseXdp
 </code></pre>
 <p><code>./scripts/prepare-machine.ps1</code> internally does the below commands. This might break your environment.</p>
-<pre><code class="lang-sh"># for libxdp v1.4.2
+<pre><code class="lang-sh"># for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
 sudo apt-add-repository &quot;deb http://mirrors.kernel.org/ubuntu noble main&quot; -y
 
 # install runtime dependencies
