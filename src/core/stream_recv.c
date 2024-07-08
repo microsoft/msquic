@@ -859,11 +859,16 @@ QuicStreamRecvFlush(
         return;
     }
 
-    if (!Stream->Flags.ReceiveEnabled) {
+    if ((Stream->RecvBuffer.RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE &&
+         Stream->RecvBuffer.ReadPendingLength != 0) ||
+        !Stream->Flags.ReceiveEnabled) {
         QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
             Stream,
-            "Ignoring recv flush (recv disabled)");
+            "Ignoring recv flush (%s)",
+            !Stream->Flags.ReceiveEnabled ?
+                "recv disabled" :
+                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength));
         return;
     }
 

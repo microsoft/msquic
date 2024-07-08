@@ -5634,12 +5634,16 @@
     },
     "IgnoreRecvFlush": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Ignoring recv flush (recv disabled)",
+      "TraceString": "[strm][%p] Ignoring recv flush (%s)",
       "UniqueId": "IgnoreRecvFlush",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -14916,9 +14920,9 @@
         "EncodingString": "[strm][%p] Ignoring recv after close"
       },
       {
-        "UniquenessHash": "b7d10598-79a4-31fa-8455-0d393b45c1e7",
+        "UniquenessHash": "d9009522-4a03-ff39-003d-9b504c1c032a",
         "TraceID": "IgnoreRecvFlush",
-        "EncodingString": "[strm][%p] Ignoring recv flush (recv disabled)"
+        "EncodingString": "[strm][%p] Ignoring recv flush (%s)"
       },
       {
         "UniquenessHash": "1e752977-c5b3-6034-4b89-414f9c6ff50f",

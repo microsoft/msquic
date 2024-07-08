@@ -154,9 +154,6 @@ QuicRecvBufferHasUnreadData(
     _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
-    if (RecvBuffer->ReadPendingLength != 0 && RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
-        return FALSE;
-    }
     const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
     if (FirstRange == NULL || FirstRange->Low != 0) {
         return FALSE;

@@ -399,16 +399,22 @@ tracepoint(CLOG_STREAM_RECV_C, UpdateFlowControl , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IgnoreRecvFlush
-// [strm][%p] Ignoring recv flush (recv disabled)
+// [strm][%p] Ignoring recv flush (%s)
 // QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
             Stream,
-            "Ignoring recv flush (recv disabled)");
+            "Ignoring recv flush (%s)",
+            !Stream->Flags.ReceiveEnabled ?
+                "recv disabled" :
+                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength));
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = !Stream->Flags.ReceiveEnabled ?
+                "recv disabled" :
+                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_IgnoreRecvFlush
-#define _clog_3_ARGS_TRACE_IgnoreRecvFlush(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1);\
+#ifndef _clog_4_ARGS_TRACE_IgnoreRecvFlush
+#define _clog_4_ARGS_TRACE_IgnoreRecvFlush(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvFlush , arg1, arg3);\
 
 #endif
 

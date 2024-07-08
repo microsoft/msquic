@@ -408,18 +408,26 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, UpdateFlowControl,
 
 /*----------------------------------------------------------
 // Decoder Ring for IgnoreRecvFlush
-// [strm][%p] Ignoring recv flush (recv disabled)
+// [strm][%p] Ignoring recv flush (%s)
 // QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
             Stream,
-            "Ignoring recv flush (recv disabled)");
+            "Ignoring recv flush (%s)",
+            !Stream->Flags.ReceiveEnabled ?
+                "recv disabled" :
+                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength));
 // arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = !Stream->Flags.ReceiveEnabled ?
+                "recv disabled" :
+                sprintf("ReadPendingLength=%lu", Stream->RecvBuffer.ReadPendingLength) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvFlush,
     TP_ARGS(
-        const void *, arg1), 
+        const void *, arg1,
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_string(arg3, arg3)
     )
 )
 
