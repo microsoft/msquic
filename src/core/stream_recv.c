@@ -538,7 +538,9 @@ QuicStreamProcessStreamFrame(
         }
     }
 
-    if (ReadyToDeliver) {
+    if (ReadyToDeliver &&
+        (Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+         Stream->RecvBuffer.ReadPendingLength == 0)) {
         Stream->Flags.ReceiveDataPending = TRUE;
         QuicStreamRecvQueueFlush(
             Stream,
@@ -859,18 +861,6 @@ QuicStreamRecvFlush(
         return;
     }
 
-
-    if (Stream->RecvBuffer.RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE &&
-        Stream->RecvBuffer.ReadPendingLength != 0) {
-        QuicTraceLogStreamVerbose(
-            IgnoreRecvFlushByReadPending,
-            Stream,
-            "Ignoring recv flush (ReadPendingLenght=%llu)",
-            Stream->RecvBuffer.ReadPendingLength);
-        return;
-    }
-
-
     if (!Stream->Flags.ReceiveEnabled) {
         QuicTraceLogStreamVerbose(
             IgnoreRecvFlush,
@@ -1166,7 +1156,9 @@ QuicStreamRecvSetEnabledState(
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
         Stream->Flags.ReceiveEnabled = NewRecvEnabled;
 
-        if (Stream->Flags.Started && NewRecvEnabled) {
+        if (Stream->Flags.Started && NewRecvEnabled &&
+            (Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+            Stream->RecvBuffer.ReadPendingLength == 0)) {
             //
             // The application just resumed receive callbacks. Queue a
             // flush receive operation to start draining the receive buffer.
