@@ -86,6 +86,8 @@ param (
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+NetperfSendCommand "Hello World!"
+
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
