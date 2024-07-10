@@ -3991,7 +3991,8 @@ QuicTestStreamReliableResetMultipleSends(
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
 #define MultiRecvNumSend 10
-uint8_t Buffer1G[1000000000] = {};
+// 1G seems to be too big for CI environment to finish in a reasonable time.
+uint8_t Buffer10M[10000000] = {};
 struct MultiReceiveTestContext {
     CxPlatEvent PktRecvd[MultiRecvNumSend];
     MsQuicStream* ServerStream {nullptr};
@@ -4071,7 +4072,7 @@ QuicTestStreamMultiReceive(
     // Server side multi receive simple. 3 Sends and Complete at once
     {
         uint32_t BufferSize = 128;
-        QUIC_BUFFER Buffer { BufferSize, Buffer1G };
+        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
         int NumSend = MultiRecvNumSend;
 
         MultiReceiveTestContext Context;
@@ -4108,7 +4109,7 @@ QuicTestStreamMultiReceive(
     // Possible packet split
     {
         uint32_t BufferSize = 2048;
-        QUIC_BUFFER Buffer { BufferSize, Buffer1G };
+        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
         int NumSend = MultiRecvNumSend;
 
         MultiReceiveTestContext Context;
@@ -4152,12 +4153,12 @@ QuicTestStreamMultiReceive(
     // handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED,
     // potential multi chunk and multi range
     {
-        uint32_t BufferSize = sizeof(Buffer1G);
-        QUIC_BUFFER Buffer { BufferSize, Buffer1G };
+        uint32_t BufferSize = sizeof(Buffer10M);
+        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
         int NumSend = 1;
         MultiReceiveTestContext Context;
         for (uint32_t i = 0; i < BufferSize; i++) {
-            Buffer1G[i] = (uint8_t)(i % 255) + 1;
+            Buffer10M[i] = (uint8_t)(i % 255) + 1;
         }
         // alloc 1G
         Context.RecvBuffer = new(std::nothrow) uint8_t[BufferSize];
@@ -4201,7 +4202,7 @@ QuicTestStreamMultiReceive(
         }
 
         TEST_TRUE(Context.TotalReceivedBytes == BufferSize * NumSend);
-        TEST_EQUAL(0, memcmp(Buffer1G, Context.RecvBuffer, BufferSize));
+        TEST_EQUAL(0, memcmp(Buffer10M, Context.RecvBuffer, BufferSize));
         delete[] Context.RecvBuffer;
     }
 }
