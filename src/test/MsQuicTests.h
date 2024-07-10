@@ -580,6 +580,10 @@ QuicTestOperationPriority(
     );
 
 void
+QuicTestConnectionPriority(
+    );
+
+void
 QuicTestConnectionStreamStartSendPriority(
     );
 
