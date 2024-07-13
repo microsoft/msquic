@@ -12,6 +12,7 @@
 #include "datapath_raw.h"
 
 #define RX_BATCH_SIZE 16
+#define TX_BATCH_SIZE 16
 #define MAX_ETH_FRAME_SIZE 1514
 #define ADAPTER_TAG   'ApdX' // XdpA
 #define IF_TAG        'IpdX' // XdpI
