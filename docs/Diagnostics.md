@@ -310,7 +310,7 @@ To enable this we must generate a [SSLKEYLOGFILE](https://www.ietf.org/archive/i
 
 For some browsers all you have to do is to set an environment variable `SSLKEYLOGFILE` with the absolute path of the log file to be generated and then you can load it into Wireshark for troubleshooting. For MsQuic applications we need to generate such file. A good practice is to check if the `SSLKEYLOGFILE` env variable is set and if so you write the file. The steps are: 
 
-1. Set the `QUIC_PARAM_CONN_TLS_SECRETS` connection param with a struct to be populared with the TLS secrets by MsQuic. 
+1. Set the `QUIC_PARAM_CONN_TLS_SECRETS` connection param with a struct to be populated with the TLS secrets by MsQuic. 
 ```c
 // Define empty struct for the TLS Secrets
 QUIC_TLS_SECRETS ClientSecrets{};
@@ -342,7 +342,7 @@ if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
 
 5. Load the key log into Wireshark and start capturing to decrypt the packets. To learn how to load such file inside Wireshark refer to this documentation: [Using the (Pre)-Master-Secret](https://wiki.wireshark.org/TLS#using-the-pre-master-secret).
 
-Using a Wireshark that supports QUIC is not mandatory but could help when troubleshooting. To know which version supports QUIC refer to https://github.com/quicwg/base-drafts/wiki/Tools#wireshark.
+Using a Wireshark version that supports QUIC is not mandatory but could help when troubleshooting. To know which version supports QUIC refer to https://github.com/quicwg/base-drafts/wiki/Tools#wireshark.
  
 If you need a working example on how to generate the key log file please refer to the Sample at src/tools/sample/sample.c.
 
