@@ -43,6 +43,7 @@ Abstract:
 // warning here. This is not an MsQuic bug but a Windows SDK bug.
 //
 #pragma warning(disable:5105)
+#include <share.h>
 #endif
 #include "msquic.h"
 #include <stdio.h>
