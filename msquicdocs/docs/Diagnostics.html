@@ -305,6 +305,49 @@ QUIC_PERF_COUNTER_CONN_LOAD_REJECT | Total connections rejected due to worker lo
 <p><img src="images/perfmon.png" alt=""></p>
 <h2 id="etw">ETW</h2>
 <p>Counters are also captured at the beginning of MsQuic ETW traces, and unlike PerfMon, includes all MsQuic instances running on the system, both user and kernel mode.</p>
+<h1 id="network-troubleshooting">Network Troubleshooting</h1>
+<p>To see what is being transmited on the wire you might use an open-source tool like <a href="https://www.wireshark.org">Wireshark</a>. The packets captured by such tool will be encrypted due to TLS, therefore we must provide the secrets to enable Wireshark to decrypt the packets.</p>
+<p>To enable this we must generate a <a href="https://www.ietf.org/archive/id/draft-thomson-tls-keylogfile-00.html#name-introduction-10">SSLKEYLOGFILE</a> with information about the secrets used in the TLS connection. With such file we will be able to decrypt the packets.</p>
+<p>For some browsers all you have to do is to set an environment variable <code>SSLKEYLOGFILE</code> with the absolute path of the log file to be generated and then you can load it into Wireshark for troubleshooting. For MsQuic applications we need to generate such file. A good practice is to check if the <code>SSLKEYLOGFILE</code> env variable is set and if so you write the file. The steps are:</p>
+<ol>
+<li>Set the <code>QUIC_PARAM_CONN_TLS_SECRETS</code> connection param with a struct to be populated with the TLS secrets by MsQuic.</li>
+</ol>
+<pre><code class="lang-c">// Define empty struct for the TLS Secrets
+QUIC_TLS_SECRETS ClientSecrets{};
+...
+
+// Get the value of the env variable to log the secrets 
+const char* SslKeyLogFile = getenv(&quot;SSLKEYLOGFILE&quot;);
+...
+
+// If the variable is set then we have a file to write the TLS secrets thus we
+// pass the struct to be filled
+if (SslKeyLogFile != NULL) {
+    MsQuic-&gt;SetParam(Connection, QUIC_PARAM_CONN_TLS_SECRETS, sizeof(ClientSecrets), &amp;ClientSecrets);
+    // Check for errors...
+}
+</code></pre>
+<ol start="2">
+<li>Write the file when the connection succeeds (event <code>QUIC_CONNECTION_EVENT_CONNECTED</code>).</li>
+</ol>
+<pre><code class="lang-c">// On your connection callback function
+...
+if (Event-&gt;Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+    if (SslKeyLogFile != NULL) {
+        WriteSslKeyLogFile(SslKeyLogFile, ClientSecrets);
+    }
+}
+</code></pre>
+<ol start="3">
+<li><p>Write the <code>WriteSslKeyLogFile</code> function. You can just copy the function from <a href="https://github.com/microsoft/msquic/blob/main/src/inc/msquichelper.h#L564">src/inc/msquichelper.h#WriteSslKeyLogFile</a> if it serves your needs or write your own.</p>
+</li>
+<li><p>Set the <code>SSLKEYLOGFILE</code> env variable set to the path of the log file and run the program. Then check the file with the secets.</p>
+</li>
+<li><p>Load the key log into Wireshark and start capturing to decrypt the packets. To learn how to load such file inside Wireshark refer to this documentation: <a href="https://wiki.wireshark.org/TLS#using-the-pre-master-secret">Using the (Pre)-Master-Secret</a>.</p>
+</li>
+</ol>
+<p>Using a Wireshark version that supports QUIC is not mandatory but could help when troubleshooting. To know which version supports QUIC refer to <a href="https://github.com/quicwg/base-drafts/wiki/Tools#wireshark">https://github.com/quicwg/base-drafts/wiki/Tools#wireshark</a>.</p>
+<p>If you need a working example on how to generate the key log file please refer to the Sample at src/tools/sample/sample.c.</p>
 <h1 id="detailed-troubleshooting">Detailed Troubleshooting</h1>
 <p>For detailed trouble shooting steps please see the MsQuic <a href="TSG.html">Trouble Shooting Guide</a>.</p>
 

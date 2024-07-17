@@ -107,6 +107,8 @@
 <p>Start the client providing the IP address for the server. Here 127.0.0.1 is used as an example.</p>
 <pre><code class="lang-Powershell">quicsample.exe -client -unsecure -target:{127.0.0.1}
 </code></pre>
+<h2 id="troubleshooting-with-wireshark">Troubleshooting with Wireshark</h2>
+<p>When running the client you can set the environment variable <code>SSLKEYLOGFILE</code> to the absolute path of the file that will receive the TLS secrets. Learn how to load such file inside Wireshark and see what is being transmitted on the wire: <a href="https://wiki.wireshark.org/TLS#using-the-pre-master-secret">Using the (Pre)-Master-Secret</a></p>
 <h2 id="console-output">Console Output</h2>
 <p>Here is what the console output looks like on the server and client sides after connection is established and data flows:</p>
 <h3 id="server-side">Server side</h3>
