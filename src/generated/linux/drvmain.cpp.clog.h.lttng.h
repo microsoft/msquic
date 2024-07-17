@@ -17,8 +17,8 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCanceledRequest,
         const void *, arg2,
         const void *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -69,7 +69,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCreated,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -88,7 +88,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientCleaningUp,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -149,7 +149,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctl,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -172,7 +172,7 @@ TRACEPOINT_EVENT(CLOG_DRVMAIN_CPP, PerfControlClientIoctlComplete,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
