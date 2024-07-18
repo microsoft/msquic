@@ -71,7 +71,7 @@ param (
     [string]$RemoteName = "netperf-peer",
 
     [Parameter(Mandatory = $false)]
-    [string]$UserName = "secnetperf",
+    [string]$UserName = "secnetperf"
 )
 
 Set-StrictMode -Version "Latest"
