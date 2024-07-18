@@ -72,19 +72,16 @@ param (
 
     [Parameter(Mandatory = $false)]
     [string]$UserName = "secnetperf",
-
-    [Parameter(Mandatory = $false)]
-    [string]$RemotePowershellSupported = "TRUE",
-
-    [Parameter(Mandatory = $false)]
-    [string]$RunId = "0",
-
-    [Parameter(Mandatory = $false)]
-    [string]$SyncerSecret = "0"
 )
 
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
+
+
+$RemotePowershellSupported = $env:netperf_remote_powershell_supported
+$RunId = $env:netperf_run_id
+$SyncerSecret = $env:netperf_syncer_secret
+
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
@@ -112,7 +109,7 @@ if ($isWindows -and $NoLogs) {
 }
 $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
-if ($RemotePowershellSupported -eq "TRUE") {
+if ($RemotePowershellSupported) {
 
     # Set up the connection to the peer over remote powershell.
     Write-Host "Connecting to $RemoteName"
