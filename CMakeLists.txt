@@ -1,11 +1,7 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
-    cmake_minimum_required(VERSION 3.20)
-else()
-    cmake_minimum_required(VERSION 3.16)
-endif()
+cmake_minimum_required(VERSION 3.20)
 
 # Disable in-source builds to prevent source tree corruption.
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")

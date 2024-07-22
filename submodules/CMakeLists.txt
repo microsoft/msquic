@@ -44,17 +44,17 @@ if (QUIC_USE_OPENSSL3)
     list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
 endif()
 
+set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(LIBSSL_PATH ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
+set(LIBCRYPTO_PATH ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
+
 if (WIN32)
 
     if (DEFINED ENV{CommonProgramFiles})
         message(STATUS "Setting openssldir to $ENV{CommonProgramFiles}\\SSL")
         list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=\"$ENV{CommonProgramFiles}\\SSL\")
     endif()
-
-    set(LIBSSL_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-    set(LIBCRYPTO_DEBUG_PATH ${OPENSSL_DIR}/debug/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
-    set(LIBSSL_PATH ${OPENSSL_DIR}/release/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-    set(LIBCRYPTO_PATH ${OPENSSL_DIR}/release/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
     if (QUIC_UWP_BUILD)
         # Translate target architecture into corresponding OpenSSL build flag
@@ -117,14 +117,14 @@ if (WIN32)
     # Create working and output directories as needed
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/${QUIC_OPENSSL}/openssl/debug)
+    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug)
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release)
 
     # Configure steps for debug and release variants
     add_custom_command(
         WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release>
         OUTPUT $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug/makefile,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release/makefile>
-        COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<$<CONFIG:Debug>:--prefix=${OPENSSL_DIR}/debug> $<$<NOT:$<CONFIG:Debug>>:--prefix=${OPENSSL_DIR}/release>
+        COMMAND perl ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<IF:$<CONFIG:Debug>,--prefix=${OPENSSL_DIR}/debug,--prefix=${OPENSSL_DIR}/release>
 
         COMMENT "OpenSSL configure"
     )
@@ -143,10 +143,8 @@ if (WIN32)
     add_custom_target(
         OpenSSL_Target
         DEPENDS
-        $<$<CONFIG:Debug>:${LIBSSL_DEBUG_PATH}>
-        $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
-        $<$<CONFIG:Debug>:${LIBCRYPTO_DEBUG_PATH}>
-        $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
+        $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+        $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
     )
     set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
@@ -157,24 +155,18 @@ if (WIN32)
     target_include_directories(
         OpenSSLQuic
         INTERFACE
-        $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-        $<$<NOT:$<CONFIG:Debug>>:${OPENSSL_DIR}/release/include>
+        $<IF:$<CONFIG:Debug>,${OPENSSL_DIR}/debug/include,${OPENSSL_DIR}/release/include>
     )
     target_link_libraries(
         OpenSSLQuic
         INTERFACE
-        $<$<CONFIG:Debug>:${LIBSSL_DEBUG_PATH}>
-        $<$<CONFIG:Debug>:${LIBCRYPTO_DEBUG_PATH}>
-        $<$<NOT:$<CONFIG:Debug>>:${LIBSSL_PATH}>
-        $<$<NOT:$<CONFIG:Debug>>:${LIBCRYPTO_PATH}>
+        $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+        $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
     )
 
     add_library(OpenSSLQuic::OpenSSLQuic ALIAS OpenSSLQuic)
 
 else()
-
-    set(LIBSSL_PATH ${OPENSSL_DIR}/lib/libssl${CMAKE_STATIC_LIBRARY_SUFFIX})
-    set(LIBCRYPTO_PATH ${OPENSSL_DIR}/lib/libcrypto${CMAKE_STATIC_LIBRARY_SUFFIX})
 
     # Figure out the default cert directory
     execute_process(
@@ -196,8 +188,6 @@ else()
         message(STATUS "Setting openssldir to default /usr/local/ssl")
         list(APPEND OPENSSL_CONFIG_FLAGS --openssldir=/usr/local/ssl)
     endif()
-
-    list(APPEND OPENSSL_CONFIG_FLAGS --prefix=${OPENSSL_DIR})
 
     if (QUIC_ENABLE_SANITIZERS)
         list(APPEND OPENSSL_CONFIG_FLAGS enable-asan enable-ubsan)
@@ -271,15 +261,17 @@ else()
     endif()
 
     # Create working and output directories as needed
-    file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL})
+    file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
+    file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
+    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug)
+    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release)
 
     # Configure steps for debug and release variants
     add_custom_command(
-        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
-        OUTPUT ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/Makefile
+        WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release>
+        OUTPUT $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug/Makefile,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release/Makefile>
         COMMAND SYSTEM=${CMAKE_HOST_SYSTEM_NAME}
-            ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}
+            ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS} $<$<CONFIG:Debug>:--debug> $<IF:$<CONFIG:Debug>,--prefix=${OPENSSL_DIR}/debug,--prefix=${OPENSSL_DIR}/release>
         COMMENT "OpenSSL configure"
     )
 
@@ -289,10 +281,10 @@ else()
     message(STATUS "Configuring OpenSSL: ${OPENSSL_CONFIG_CMD} ${OPENSSL_CONFIG_FLAGS}")
     # Compile/install commands for debug and release variants
     add_custom_command(
-        OUTPUT ${LIBSSL_PATH}
-        OUTPUT ${LIBCRYPTO_PATH}
-        DEPENDS ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/Makefile
-        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
+        OUTPUT $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+        OUTPUT $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
+        DEPENDS $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug/Makefile,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release/Makefile>
+        WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release>
         COMMAND make install_dev -j${NPROCS}
         COMMENT "OpenSSL build"
     )
@@ -302,12 +294,12 @@ else()
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
         # To fix that we need little hackery - see openssl3/ssl/build.info
         add_custom_command(
-            OUTPUT ${LIBSSL_PATH}
-            OUTPUT ${LIBCRYPTO_PATH}
+            OUTPUT $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+            OUTPUT $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
             APPEND
-            WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
-            COMMAND ar x ${LIBCRYPTO_PATH} libcrypto-lib-packet.o libcommon-lib-tls_pad.o
-            COMMAND ar r ${LIBSSL_PATH} libcrypto-lib-packet.o libcommon-lib-tls_pad.o
+            WORKING_DIRECTORY $<IF:$<CONFIG:Debug>,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/debug,${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release>
+            COMMAND ar x $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}> libcrypto-lib-packet.o libcommon-lib-tls_pad.o
+            COMMAND ar r $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}> libcrypto-lib-packet.o libcommon-lib-tls_pad.o
         )
     endif()
 
@@ -315,8 +307,8 @@ else()
     add_custom_target(
         OpenSSL_Target
         DEPENDS
-        ${LIBSSL_PATH}
-        ${LIBCRYPTO_PATH}
+        $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
+        $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
     )
     set_property(TARGET OpenSSL_Target PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
@@ -327,13 +319,13 @@ else()
     target_include_directories(
         OpenSSLQuic
         INTERFACE
-        ${OPENSSL_DIR}/include
+        $<IF:$<CONFIG:Debug>,${OPENSSL_DIR}/debug/include,${OPENSSL_DIR}/release/include>
     )
 
     target_link_libraries(
         OpenSSLQuic
         INTERFACE
-        ${LIBSSL_PATH}
+        $<IF:$<CONFIG:Debug>,${LIBSSL_DEBUG_PATH},${LIBSSL_PATH}>
     )
 
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
@@ -359,7 +351,7 @@ else()
         target_link_libraries(
             OpenSSLQuic
             INTERFACE
-            ${LIBCRYPTO_PATH}
+            $<IF:$<CONFIG:Debug>,${LIBCRYPTO_DEBUG_PATH},${LIBCRYPTO_PATH}>
         )
     endif()
 
