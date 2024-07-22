@@ -223,10 +223,10 @@ QuicWorkerQueueConnection(
 {
     CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
     BOOLEAN ConnectionQueued = FALSE;
-    BOOLEAN WakeWorkerThread = FALSE;
 
     CxPlatDispatchLockAcquire(&Worker->Lock);
 
+    BOOLEAN WakeWorkerThread;
     if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
         WakeWorkerThread = QuicWorkerIsIdle(Worker);
         Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
@@ -237,17 +237,21 @@ QuicWorkerQueueConnection(
             QUIC_SCHEDULE_QUEUED);
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
-        Connection->HasQueuedWork = TRUE;
         ConnectionQueued = TRUE;
+    } else {
+        WakeWorkerThread = FALSE;
     }
+
+    Connection->HasQueuedWork = TRUE;
 
     CxPlatDispatchLockRelease(&Worker->Lock);
 
     if (ConnectionQueued) {
-        if (WakeWorkerThread) {
-            QuicWorkerThreadWake(Worker);
-        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    }
+
+    if (WakeWorkerThread) {
+        QuicWorkerThreadWake(Worker);
     }
 }
 
