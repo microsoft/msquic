@@ -82,6 +82,8 @@ $RemotePowershellSupported = $env:netperf_remote_powershell_supported
 $RunId = $env:netperf_run_id
 $SyncerSecret = $env:netperf_syncer_secret
 
+Write-Host "Running tests with the following parameters:"
+Write-Host "$RemotePowershellSupported, $RunId"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
