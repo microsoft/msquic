@@ -170,6 +170,7 @@ QuicWorkerUninitialize(
     CxPlatEventUninitialize(Worker->Ready);
 
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
+    Worker->PriorityConnectionsTail = NULL;
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
 
     CxPlatPoolUninitialize(&Worker->StreamPool);
@@ -223,10 +224,10 @@ QuicWorkerQueueConnection(
 {
     CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
     BOOLEAN ConnectionQueued = FALSE;
+    BOOLEAN WakeWorkerThread = FALSE;
 
     CxPlatDispatchLockAcquire(&Worker->Lock);
 
-    BOOLEAN WakeWorkerThread;
     if (!Connection->WorkerProcessing && !Connection->HasQueuedWork) {
         WakeWorkerThread = QuicWorkerIsIdle(Worker);
         Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
@@ -238,8 +239,6 @@ QuicWorkerQueueConnection(
         QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
         ConnectionQueued = TRUE;
-    } else {
-        WakeWorkerThread = FALSE;
     }
 
     Connection->HasQueuedWork = TRUE;
@@ -247,11 +246,10 @@ QuicWorkerQueueConnection(
     CxPlatDispatchLockRelease(&Worker->Lock);
 
     if (ConnectionQueued) {
+        if (WakeWorkerThread) {
+            QuicWorkerThreadWake(Worker);
+        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
-    }
-
-    if (WakeWorkerThread) {
-        QuicWorkerThreadWake(Worker);
     }
 }
 
@@ -292,11 +290,10 @@ QuicWorkerQueuePriorityConnection(
     CxPlatDispatchLockRelease(&Worker->Lock);
 
     if (ConnectionQueued) {
+        if (WakeWorkerThread) {
+           QuicWorkerThreadWake(Worker);
+        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
-    }
-
-    if (WakeWorkerThread) {
-        QuicWorkerThreadWake(Worker);
     }
 }
 
@@ -627,6 +624,9 @@ QuicWorkerLoopCleanup(
         QUIC_CONNECTION* Connection =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Worker->Connections), QUIC_CONNECTION, WorkerLink);
+        if (Worker->PriorityConnectionsTail == &Connection->WorkerLink.Flink) {
+            Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
+        }
         if (!Connection->State.ExternalOwner) {
             //
             // If there is no external owner, shut down the connection so
