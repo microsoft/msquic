@@ -260,7 +260,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, HandshakeConfirmedAck,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -282,7 +282,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathMinMtuValidated,
         const void *, arg1,
         unsigned char, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -305,7 +305,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PathValidationTimeout,
         const void *, arg1,
         unsigned char, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -328,7 +328,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ScheduleProbe,
         const void *, arg1,
         unsigned short, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -348,7 +348,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, KeyChangeConfirmed,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -376,7 +376,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnLossDetectionTimerSet,
         unsigned int, arg4,
         unsigned short, arg5), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
@@ -430,7 +430,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketLost,
         unsigned char, arg4,
         unsigned char, arg5), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -458,7 +458,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnPacketACKed,
         unsigned long long, arg3,
         unsigned char, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
     )
@@ -482,7 +482,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnError,
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -505,7 +505,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnEcnCapable,
         const void *, arg2,
         unsigned short, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -542,7 +542,7 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, ConnEcnFailed,
         long long, arg7,
         unsigned short, arg8), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(int, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)

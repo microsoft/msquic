@@ -58,12 +58,12 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: ${{ inputs.config }}-macos-macos-12-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: ${{ inputs.config }}-macos-macos-12-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -71,7 +71,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: ${{ inputs.config }}-macos-macos-12-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -95,7 +95,7 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -103,7 +103,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-12-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -119,17 +119,17 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Framework-${{ inputs.config }}-ios-macos-12-x64-openssl
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Framework-${{ inputs.config }}-ios-macos-12-arm64-openssl
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Framework-${{ inputs.config }}-macos-macos-12-universal-openssl
         path: artifacts
@@ -137,7 +137,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: XCFramework-${{ inputs.config }}
         path: artifacts/frameworks

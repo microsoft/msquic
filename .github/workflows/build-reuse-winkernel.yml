@@ -88,7 +88,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

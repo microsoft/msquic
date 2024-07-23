@@ -30,7 +30,7 @@ jobs:
       uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+    - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
         path: |
@@ -51,12 +51,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Setup .NET
-      uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
         dotnet-version: 6.0.x
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+    - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: bin_quictrace_${{ matrix.configuration }}
         path: artifacts/bin/quictrace/${{ matrix.configuration }}
@@ -74,7 +74,7 @@ jobs:
         $packageName = "$pluginId-$pluginVersion.ptix"
         Write-Host "Creating $packageName"
         & plugintool pack -s $sourceDir -o "artifacts/bin/quictrace/$packageName"
-    - uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+    - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: ptix_quictrace_${{ matrix.configuration }}
         path: artifacts/bin/quictrace/QuicTrace-1.0.0.ptix

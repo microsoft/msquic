@@ -81,7 +81,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelOutBufferTooSmall,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -103,7 +103,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelHandshakeComplete,
         const void *, arg1,
         unsigned short, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -126,7 +126,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelConsumedBytes,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -146,7 +146,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelReadHandshakeStart,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -165,7 +165,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelRead1RttStart,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -187,7 +187,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWriteHandshakeStart,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -210,7 +210,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelWrite1RttStart,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -233,7 +233,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProducedData,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -256,7 +256,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelMissingData,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -286,7 +286,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall,
         unsigned int, arg3,
         unsigned int, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -307,7 +307,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCreated,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -326,7 +326,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelContextCleaningUp,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -354,7 +354,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelKeyReady,
         unsigned short, arg4,
         unsigned short, arg5), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)
@@ -379,7 +379,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -402,7 +402,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProcessingData,
         const void *, arg1,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -490,7 +490,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -516,7 +516,7 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsErrorStatus,
         unsigned int, arg3,
         const char *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
