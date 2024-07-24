@@ -763,7 +763,7 @@ function Invoke-Secnetperf {
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and !($Session -eq "NOT_SUPPORTED")) {
             try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
