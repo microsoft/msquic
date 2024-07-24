@@ -3824,7 +3824,6 @@ QuicConnRecvHeader(
         QUIC_PATH* Path = &Connection->Paths[0];
         if (!Path->IsPeerValidated && (Packet->ValidToken || TokenLength != 0)) {
 
-            BOOLEAN InvalidRetryToken = FALSE;
             if (Packet->ValidToken) {
                 CXPLAT_DBG_ASSERT(TokenBuffer == NULL);
                 CXPLAT_DBG_ASSERT(TokenLength == 0);
@@ -3835,14 +3834,12 @@ QuicConnRecvHeader(
                         Connection,
                         Packet,
                         TokenLength,
-                        TokenBuffer,
-                        &InvalidRetryToken) &&
-                    InvalidRetryToken) {
-                    return FALSE;
+                        TokenBuffer)) {
+                    Packet->ValidToken = TRUE;
                 }
             }
 
-            if (!InvalidRetryToken) {
+            if (Packet->ValidToken) {
                 CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
                 CXPLAT_DBG_ASSERT(TokenLength == sizeof(QUIC_TOKEN_CONTENTS));
 
