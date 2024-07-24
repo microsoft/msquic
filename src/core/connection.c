@@ -3830,7 +3830,7 @@ QuicConnRecvHeader(
                 QuicPacketDecodeRetryTokenV1(Packet, &TokenBuffer, &TokenLength);
             } else {
                 CXPLAT_DBG_ASSERT(TokenBuffer != NULL);
-                if (!QuicPacketValidateInitialToken(
+                if (QuicPacketValidateInitialToken(
                         Connection,
                         Packet,
                         TokenLength,
