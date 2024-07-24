@@ -796,6 +796,8 @@ MsQuicStreamStart(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_CONNECTION* Connection;
+    BOOLEAN IsPriority = !!(Flags & QUIC_STREAM_START_FLAG_PRIORITY_WORK);
+    Flags &= ~QUIC_STREAM_START_FLAG_PRIORITY_WORK;
 
     QuicTraceEvent(
         ApiEnter,
@@ -853,7 +855,7 @@ MsQuicStreamStart(
     //
     // Queue the operation but don't wait for the completion.
     //
-    if (Flags & QUIC_STREAM_START_FLAG_PRIORITY_WORK) {
+    if (IsPriority) {
         QuicConnQueuePriorityOper(Connection, Oper);
     } else {
         QuicConnQueueOper(Connection, Oper);
@@ -1009,6 +1011,7 @@ MsQuicStreamSend(
     QUIC_SEND_REQUEST* SendRequest;
     BOOLEAN QueueOper = TRUE;
     const BOOLEAN IsPriority = !!(Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
+    Flags &= ~QUIC_SEND_FLAG_PRIORITY_WORK;
     BOOLEAN SendInline;
     QUIC_OPERATION* Oper;
 
