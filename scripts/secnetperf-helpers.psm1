@@ -6,6 +6,10 @@
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+
+$notWindows = $isWindows -eq $false
+
+
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
 
@@ -23,7 +27,7 @@ function Repo-Path {
 # Configured the remote machine to collect dumps on crash.
 function Configure-DumpCollection {
     param ($Session)
-    if ($isWindows) {
+    if (!$notWindows) {
         Invoke-Command -Session $Session -ScriptBlock {
             $DumpDir = "C:/_work/quic/artifacts/crashdumps"
             New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -44,7 +48,7 @@ function Configure-DumpCollection {
 # Collects any crash dumps that were generated locally by secnetperf.
 function Collect-LocalDumps {
     param ($OutputDir)
-    if ($isWindows) {
+    if (!$notWindows) {
         $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             mkdir $OutputDir -ErrorAction Ignore | Out-Null
@@ -64,7 +68,7 @@ function Collect-LocalDumps {
 # Collect any crash dumps that were generated on the remote machine.
 function Collect-RemoteDumps {
     param ($Session, $OutputDir)
-    if ($isWindows) {
+    if (!$notWindows) {
         $DumpFiles = Invoke-Command -Session $Session -ScriptBlock {
             Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
         }
@@ -90,7 +94,7 @@ function Collect-RemoteDumps {
 # Use procdump64.exe to collect a dump of a local process.
 function Collect-LocalDump {
     param ($Process, $OutputDir)
-    if (!$isWindows) { return } # Not supported on Windows
+    if (!!$notWindows) { return } # Not supported on Windows
     $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
     if (!(Test-Path $procDump)) {
         Write-Host "procdump64.exe not found!"
@@ -103,7 +107,7 @@ function Collect-LocalDump {
 # Use livekd64.exe to collect a dump of the kernel.
 function Collect-LiveKD {
     param ($OutputDir, $Prefix)
-    if (!$isWindows) { return } # Not supported on Windows
+    if (!!$notWindows) { return } # Not supported on Windows
     $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
     $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
     $dumpPath = Join-Path $OutputDir "kernel.$Prefix.$(New-Guid).dmp"
@@ -209,7 +213,7 @@ function Cleanup-State {
     Invoke-Command -Session $Session -ScriptBlock {
         if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
     }
-    if ($IsWindows) {
+    if (!$notWindows) {
         Uninstall-Kernel $Session | Out-Null
         Uninstall-XDP $Session $RemoteDir | Out-Null
         if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
@@ -452,7 +456,7 @@ function Wait-StartRemoteServerPassive {
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if ($IsWindows) {
+    if (!$notWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
@@ -630,7 +634,7 @@ function Invoke-Secnetperf {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
-        if (!$isWindows) {
+        if (!!$notWindows) {
             chmod +rw "$extraOutput"
         }
     } elseif ($exeArgs.Contains("prate:1")) {
@@ -675,7 +679,7 @@ function Invoke-Secnetperf {
     }
 
      # Linux XDP requires sudo for now
-    $useSudo = (!$IsWindows -and $io -eq "xdp")
+    $useSudo = (!!$notWindows -and $io -eq "xdp")
 
     $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
@@ -709,7 +713,7 @@ function Invoke-Secnetperf {
     "> secnetperf $serverArgs" | Add-Content $serverOut
 
     $StateDir = "C:/_state"
-    if (!$IsWindows) {
+    if (!!$notWindows) {
         $StateDir = "/etc/_state"
     }
     if ($Environment -eq "azure") {

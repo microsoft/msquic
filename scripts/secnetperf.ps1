@@ -82,12 +82,14 @@ $RemotePowershellSupported = $env:netperf_remote_powershell_supported
 $RunId = $env:netperf_run_id
 $SyncerSecret = $env:netperf_syncer_secret
 
+$notWindows = $isWindows -eq $false
+
 Write-Host "Running tests with the following parameters:"
 Write-Host "$RemotePowershellSupported, $RunId"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
-if (!$isWindows) {
+if (!!$notWindows) {
     if ($UserName -eq "root") {
         $RemoteDir = "/$UserName/_work/quic"
     } else {
@@ -98,14 +100,14 @@ if (!$isWindows) {
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 if ($io -eq "") {
-    if ($isWindows) {
+    if (!$notWindows) {
         $io = "iocp"
     } else {
         $io = "epoll"
     }
 }
 $NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
-if ($isWindows -and $NoLogs) {
+if (!$notWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
@@ -120,7 +122,7 @@ if ($RemotePowershellSupported -eq $true) {
     $Attempts = 0
     while ($Attempts -lt 5) {
         if ($environment -eq "azure") {
-            if ($isWindows) {
+            if (!$notWindows) {
                 Write-Host "Attempting to connect..."
                 $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
                 break
@@ -132,7 +134,7 @@ if ($RemotePowershellSupported -eq $true) {
             }
         }
         try {
-            if ($isWindows) {
+            if (!$notWindows) {
                 $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
                 $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
                 $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
@@ -202,7 +204,7 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
+if (!$NoLogs -and !$notWindows -and !($Session -eq "NOT_SUPPORTED")) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -238,7 +240,7 @@ if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
 # Persist environment information:
-if ($isWindows) {
+if (!$notWindows) {
     $windowsEnv = Get-CimInstance Win32_OperatingSystem | Select-Object Version
     $json["os_version"] = $windowsEnv.Version
 } else {
@@ -262,7 +264,7 @@ $json["run_args"] = $allTests
 try {
 
 # Prepare the machines for the testing.
-if ($isWindows -and !($environment -eq "azure")) {
+if (!$notWindows -and !($environment -eq "azure")) {
     Write-Host "Preparing local machine for testing"
     ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
@@ -282,10 +284,10 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Install any dependent drivers.
-if ($useXDP -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
+if ($useXDP -and !$notWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
-if (!$isWindows) {
+if (!!$notWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
@@ -377,7 +379,7 @@ Write-Host "Tests complete!"
             # Logs or dumps were generated. Copy the necessary symbols/files to
             # the same direcotry be able to open them.
             Write-Host "Copying debugging files to logs directory"
-            if ($isWindows) {
+            if (!$notWindows) {
                 Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
             } else {
                 Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs
