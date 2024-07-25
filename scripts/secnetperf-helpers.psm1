@@ -140,7 +140,7 @@ function Install-XDP {
     $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
+    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
     Wait-DriverStarted "xdp" 10000
@@ -302,7 +302,7 @@ function Start-RemoteServerPassive {
         }
         $url = "https://netperfapi.azurewebsites.net"
         try {
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
+            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers -UseBasicParsing
         } catch {
             Write-Host "Unable to fetch state. Creating a new one now."
             $state = [pscustomobject]@{
@@ -311,7 +311,7 @@ function Start-RemoteServerPassive {
                 "Commands" = @($Command)
             }}
             $StateJson = $state | ConvertTo-Json
-            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json" -UseBasicParsing
             if ($Response.StatusCode -ne 200) {
                 Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
                 throw "Failed to set the key value!"
@@ -324,7 +324,7 @@ function Start-RemoteServerPassive {
             value=$CurrState
         }
         $StateJson = $CurrState | ConvertTo-Json
-        $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
+        $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json" -UseBasicParsing
         if ($Response.StatusCode -ne 200) {
             Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
             throw "Failed to set the key value!"
@@ -396,7 +396,7 @@ function Stop-RemoteServerAsyncAwait {
                 "secret" = "$SyncerSecret"
             }
             $url = "https://netperfapi.azurewebsites.net"
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
+            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers -UseBasicParsing
             if (!($Response.StatusCode -eq 200)) {
                 Write-GHError "[Stop-Remote-Passive] Failed to get the key value!"
                 throw "Failed to get the key value!"
