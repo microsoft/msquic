@@ -628,7 +628,11 @@ function Invoke-Secnetperf {
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
+    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+        $tcpSupported = 1
+    } else {
+        $tcpSupported = 0
+    }
     $metric = "throughput"
     if ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
