@@ -86,7 +86,7 @@ $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
     $notWindows = $false
 } else {
-    $notWindows = !$IsWindows
+    $notWindows = !$isWindows
 }
 
 Write-Host "Running tests with the following parameters:"

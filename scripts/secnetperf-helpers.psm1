@@ -7,7 +7,12 @@ Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 
-$notWindows = $isWindows -eq $false
+$psVersion = $PSVersionTable.PSVersion
+if ($psVersion.Major -lt 7) {
+    $notWindows = $false
+} else {
+    $notWindows = !$isWindows
+}
 
 
 # Path to the WER registry key used for collecting dumps on Windows.
