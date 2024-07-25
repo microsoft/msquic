@@ -342,7 +342,11 @@ foreach ($testId in $allTests.Keys) {
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
-        $transport = $tcp -eq 1 ? "tcp" : "quic"
+        if ($tcp -eq 1) {
+            $transport = "tcp"
+        } else {
+            $transport = "quic"
+        }
         $json["$testId-$transport"] = $Test.Values[$tcp]
 
         if ($Test.Metric -eq "latency") {

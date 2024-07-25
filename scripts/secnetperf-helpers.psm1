@@ -681,7 +681,11 @@ function Invoke-Secnetperf {
      # Linux XDP requires sudo for now
     $useSudo = (!!$notWindows -and $io -eq "xdp")
 
-    $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
+    if ($tcp -eq 0) {
+        $artifactName = "$TestId-quic"
+    } else {
+        $artifactName = "$TestId-tcp"
+    }
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
     $remoteArtifactDir = "$RemoteDir/artifacts/logs/$artifactName"
