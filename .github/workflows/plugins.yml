@@ -77,4 +77,4 @@ jobs:
     - uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: ptix_quictrace_${{ matrix.configuration }}
-        path: artifacts/bin/quictrace/QuicTrace-1.0.0.ptix
+        path: artifacts/bin/quictrace/*.ptix
