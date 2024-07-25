@@ -82,7 +82,12 @@ $RemotePowershellSupported = $env:netperf_remote_powershell_supported
 $RunId = $env:netperf_run_id
 $SyncerSecret = $env:netperf_syncer_secret
 
-$notWindows = $isWindows -eq $false
+$psVersion = $PSVersionTable.PSVersion
+if ($psVersion.Major -lt 7) {
+    $notWindows = $true
+else {
+    $notWindows = !$IsWindows
+}
 
 Write-Host "Running tests with the following parameters:"
 Write-Host "$RemotePowershellSupported, $RunId"
