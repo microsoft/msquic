@@ -84,8 +84,8 @@ $SyncerSecret = $env:netperf_syncer_secret
 
 $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
-    $notWindows = $true
-else {
+    $notWindows = $false
+} else {
     $notWindows = !$IsWindows
 }
 
