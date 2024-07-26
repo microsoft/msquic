@@ -140,6 +140,7 @@ function Install-XDP {
     $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
+    whoami
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
