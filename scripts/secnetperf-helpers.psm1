@@ -145,9 +145,6 @@ function Install-XDP {
     msiexec.exe /i $msiPath /quiet | Out-Null
     Wait-DriverStarted "xdp" 10000
     Write-Host "Installing XDP driver on peer"
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
-    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
-    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
 
     if ($Session -eq "NOT_SUPPORTED") {
         NetperfSendCommand "Install_XDP"
@@ -155,6 +152,9 @@ function Install-XDP {
         return
     }
     
+    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
+    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
+    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
         msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
         $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
