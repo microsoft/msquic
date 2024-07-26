@@ -143,6 +143,8 @@ function Install-XDP {
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
+    $Size = (Get-Item $msiPath).Length
+    Write-Host "MSI file size: $Size"
     Wait-DriverStarted "xdp" 10000
     Write-Host "Installing XDP driver on peer"
 
