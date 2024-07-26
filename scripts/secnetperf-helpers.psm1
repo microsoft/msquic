@@ -147,11 +147,11 @@ function Install-XDP {
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP"
+        NetperfSendCommand "Install_XDP;$installerUri"
         NetperfWaitServerFinishExecution
         return
     }
-    
+
     $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
     $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
