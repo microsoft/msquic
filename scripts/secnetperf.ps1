@@ -289,7 +289,7 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Install any dependent drivers.
-if ($useXDP -and !$notWindows) { Install-XDP $Session $RemoteDir }
+if ($useXDP -and !$notWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!!$notWindows) {
