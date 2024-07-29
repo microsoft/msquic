@@ -348,7 +348,7 @@ CXPLAT_STATIC_ASSERT(
 // The minimum number of bytes of send allowance we must have before we will
 // send another packet.
 //
-#define QUIC_MIN_SEND_ALLOWANCE                 75
+#define QUIC_MIN_SEND_ALLOWANCE                 76
 
 //
 // The minimum buffer space that we require before we will pack another
