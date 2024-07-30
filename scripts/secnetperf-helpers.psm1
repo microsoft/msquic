@@ -188,6 +188,13 @@ function Install-Kernel {
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
+
+    if (($Session -eq "NOT_SUPPORTED")) {
+        NetperfSendCommand "Install_Kernel"
+        NetperfWaitServerFinishExecution
+        return
+    }
+
     Invoke-Command -Session $Session -ScriptBlock {
         if (!(Test-Path $Using:remoteSysPath)) { throw "msquicpriv.sys not found!" }
         sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null

@@ -290,7 +290,7 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 
 # Install any dependent drivers.
 if ($useXDP -and !$notWindows) { Install-XDP $Session $RemoteDir }
-if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
+if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!!$notWindows) {
     # Make sure the secnetperf binary is executable.
