@@ -84,9 +84,7 @@ $SyncerSecret = $env:netperf_syncer_secret
 
 $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
-    $notWindows = $false
-} else {
-    $notWindows = !$isWindows
+    $isWindows = $true
 }
 
 Write-Host "Running tests with the following parameters:"
@@ -94,7 +92,7 @@ Write-Host "$RemotePowershellSupported, $RunId"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
-if (!!$notWindows) {
+if (!$isWindows) {
     if ($UserName -eq "root") {
         $RemoteDir = "/$UserName/_work/quic"
     } else {
@@ -105,21 +103,19 @@ if (!!$notWindows) {
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 if ($io -eq "") {
-    if (!$notWindows) {
+    if ($isWindows) {
         $io = "iocp"
     } else {
         $io = "epoll"
     }
 }
 $NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
-if (!$notWindows -and $NoLogs) {
+if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
+
 $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
-
-Write-Host $RemotePowershellSupported
-
 if ($RemotePowershellSupported -eq $true) {
 
     # Set up the connection to the peer over remote powershell.
@@ -127,7 +123,7 @@ if ($RemotePowershellSupported -eq $true) {
     $Attempts = 0
     while ($Attempts -lt 5) {
         if ($environment -eq "azure") {
-            if (!$notWindows) {
+            if ($isWindows) {
                 Write-Host "Attempting to connect..."
                 $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
                 break
@@ -139,7 +135,7 @@ if ($RemotePowershellSupported -eq $true) {
             }
         }
         try {
-            if (!$notWindows) {
+            if ($isWindows) {
                 $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
                 $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
                 $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
@@ -165,7 +161,7 @@ if ($RemotePowershellSupported -eq $true) {
     Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-if (!($environment -eq "azure") -and !($Session -eq "NOT_SUPPORTED")) {
+if (!($Session -eq "NOT_SUPPORTED")) {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
     Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
     Write-Host "Session: $Session, $(!($Session -eq "NOT_SUPPORTED"))"
@@ -209,7 +205,7 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and !$notWindows -and !($Session -eq "NOT_SUPPORTED")) {
+if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -245,7 +241,7 @@ if (!$NoLogs -and !$notWindows -and !($Session -eq "NOT_SUPPORTED")) {
 $json = @{}
 $json["commit"] = "$MsQuicCommit"
 # Persist environment information:
-if (!$notWindows) {
+if ($isWindows) {
     $windowsEnv = Get-CimInstance Win32_OperatingSystem | Select-Object Version
     $json["os_version"] = $windowsEnv.Version
 } else {
@@ -269,7 +265,7 @@ $json["run_args"] = $allTests
 try {
 
 # Prepare the machines for the testing.
-if (!$notWindows -and !($environment -eq "azure")) {
+if ($isWindows -and !($environment -eq "azure")) {
     Write-Host "Preparing local machine for testing"
     ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
@@ -289,10 +285,10 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Install any dependent drivers.
-if ($useXDP -and !$notWindows) { Install-XDP $Session $RemoteDir }
+if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
-if (!!$notWindows) {
+if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
     $GRO = "on"
@@ -388,7 +384,7 @@ Write-Host "Tests complete!"
             # Logs or dumps were generated. Copy the necessary symbols/files to
             # the same direcotry be able to open them.
             Write-Host "Copying debugging files to logs directory"
-            if (!$notWindows) {
+            if ($isWindows) {
                 Copy-Item "$SecNetPerfDir/*.pdb" ./artifacts/logs
             } else {
                 Copy-Item "$SecNetPerfDir/libmsquic.so" ./artifacts/logs

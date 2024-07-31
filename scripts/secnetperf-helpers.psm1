@@ -311,67 +311,8 @@ function Start-RemoteServer {
 
 # Passively starts the server on the remote machine by queuing up a new script to execute.
 function Start-RemoteServerPassive {
-    param ($Session, $Command, $RemoteStateDir, $RunId, $SyncerSecret)
-    if ($Session -eq "NOT_SUPPORTED") {
-        Write-Host "Command to start server: $Command"
-        $headers = @{
-            "secret" = "$SyncerSecret"
-        }
-        $url = "https://netperfapi.azurewebsites.net"
-        try {
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers -UseBasicParsing
-        } catch {
-            Write-Host "Unable to fetch state. Creating a new one now."
-            $state = [pscustomobject]@{
-                value=[pscustomobject]@{
-                "SeqNum" = 0
-                "Commands" = @($Command)
-            }}
-            $StateJson = $state | ConvertTo-Json
-            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json" -UseBasicParsing
-            if ($Response.StatusCode -ne 200) {
-                Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-                throw "Failed to set the key value!"
-            }
-            return
-        }
-        $CurrState = $Response.Content | ConvertFrom-Json
-        $CurrState.Commands += $Command
-        $CurrState = [pscustomobject]@{
-            value=$CurrState
-        }
-        $StateJson = $CurrState | ConvertTo-Json
-        $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json" -UseBasicParsing
-        if ($Response.StatusCode -ne 200) {
-            Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-            throw "Failed to set the key value!"
-        }
-        return
-    }
-
-    Invoke-Command -Session $Session -ScriptBlock {
-        if (!(Test-Path $Using:RemoteStateDir)) {
-            New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
-        }
-        # Fetch all files names inside the directory
-        $files = Get-ChildItem $Using:RemoteStateDir
-        # Find the highest lexicographically sorted file name
-        $max = 0
-        foreach ($file in $files) {
-            # Remove .ps1 extension from file.Name
-            $filename = $file.Name.split(".")[0]
-            $num = [int]($filename -replace "[^0-9]", "")
-            if ($num -gt $max) {
-                $max = $num
-            }
-        }
-        $newmax = $max + 1
-        # Create a new file with the next number
-        Write-Host "Creating new file execute_$newmax.ps1"
-        New-Item -ItemType File (Join-Path $Using:RemoteStateDir ("execute_$newmax.ps1")) | Out-Null
-        $newFile = Join-Path $Using:RemoteStateDir ("execute_$newmax.ps1")
-        Set-Content -Path $newFile -Value $Using:Command
-    }
+    param ($Command)
+    NetperfSendCommand $Command
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
@@ -395,65 +336,6 @@ function Stop-RemoteServer {
     Stop-Job -Job $Job | Out-Null
     $RemoteResult = Receive-Job -Job $Job -ErrorAction Ignore
     return $RemoteResult -join "`n"
-}
-
-function Stop-RemoteServerAsyncAwait {
-    param ($Session, $RemoteStateDir, $RemoteAddress, $RunId, $SyncerSecret)
-    # Ping side-channel socket on 9999 to tell the app to die
-    $Socket = New-Object System.Net.Sockets.UDPClient
-    $BytesToSend = @(
-        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
-    )
-    if ($Session -eq "NOT_SUPPORTED") {
-        for ($i = 0; $i -lt 30; $i++) {
-            $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-            Start-Sleep -Seconds 8 | Out-Null
-            $headers = @{
-                "secret" = "$SyncerSecret"
-            }
-            $url = "https://netperfapi.azurewebsites.net"
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers -UseBasicParsing
-            if (!($Response.StatusCode -eq 200)) {
-                Write-GHError "[Stop-Remote-Passive] Failed to get the key value!"
-                throw "Failed to get the key value!"
-            }
-            $CurrState = $Response.Content | ConvertFrom-Json
-            if ($CurrState.SeqNum -eq $CurrState.Commands.Count) {
-                return
-            }
-        }
-        Write-GHError "[Stop-Remote-Passive] SeqNum less than Commands Count!"
-        throw "Unable to stop the remote server in time!"
-    }
-    $done = $false
-    $MaxSeqNum = 0
-    for ($i = 0; $i -lt 30; $i++) {
-        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-        Start-Sleep -Seconds 5 | Out-Null
-        $files = Invoke-Command -Session $Session -ScriptBlock { Get-ChildItem $Using:RemoteStateDir }
-        foreach ($file in $files) {
-            $filename = $file.Name.split(".")[0]
-            $num = [int]($filename -replace "[^0-9]", "")
-            if ($num -gt $MaxSeqNum) {
-                $MaxSeqNum = $num
-            }
-        }
-        # Check if completed_<MaxSeqNum>.txt exists
-        foreach ($file in $files) {
-            if ($file.Name -eq "completed_$MaxSeqNum.txt") {
-                $done = $true
-                break
-            }
-        }
-        if ($done) {
-            break
-        }
-    }
-    if (!$done) {
-        Write-GHError "[Stop-Remote-Passive] Unable to find a corresponding 'completed_$MaxSeqNum' file!"
-        throw "Unable to stop the remote server in time!"
-    }
 }
 
 function Wait-StartRemoteServerPassive {
@@ -746,8 +628,8 @@ function Invoke-Secnetperf {
     if (!!$notWindows) {
         $StateDir = "/etc/_state"
     }
-    if ($Environment -eq "azure") {
-        Start-RemoteServerPassive $Session "$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
+    if ($Session -eq "NOT_SUPPORTED") {
+        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
@@ -790,8 +672,15 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        if ($Environment -eq "azure") {
-            Stop-RemoteServerAsyncAwait $Session $StateDir $RemoteName $RunId $SyncerSecret
+        if ($Session -eq "NOT_SUPPORTED") {
+            NetperfWaitServerFinishExecution -UnblockRoutine {
+                $Socket = New-Object System.Net.Sockets.UDPClient
+                $BytesToSend = @(
+                    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+                    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
+                )
+                $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
+            }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
         }
