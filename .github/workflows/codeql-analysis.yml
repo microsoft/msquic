@@ -27,7 +27,7 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@17d0e2bd7d51742c71671bd19fa12bdc9d40a3d6
+        uses: step-security/harden-runner@0d381219ddf674d61a7572ddd19d7941e271515c
         with:
           egress-policy: audit
       - name: Checkout repository
@@ -51,7 +51,7 @@ jobs:
          cmake --build . --target OpenSSL_Target
 
       - name: Initialize CodeQL
-        uses: github/codeql-action/init@23acc5c183826b7a8a97bce3cecc52db901f8251
+        uses: github/codeql-action/init@2d790406f505036ef40ecba973cc774a50395aac
         with:
           languages: cpp
           config-file: ./.github/codeql/codeql-config.yml
@@ -62,4 +62,4 @@ jobs:
          cmake --build .
 
       - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@23acc5c183826b7a8a97bce3cecc52db901f8251
+        uses: github/codeql-action/analyze@2d790406f505036ef40ecba973cc774a50395aac

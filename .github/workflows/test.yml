@@ -73,6 +73,8 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -100,6 +102,8 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
@@ -119,13 +123,13 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -156,7 +160,7 @@ jobs:
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       if: failure()
       with:
         name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
@@ -179,12 +183,12 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Build Artifacts for Testing From WinUser
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-windows-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
@@ -203,7 +207,7 @@ jobs:
       timeout-minutes: 90
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       if: failure()
       with:
         name: BVT-Kernel-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
@@ -227,7 +231,7 @@ jobs:
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -238,7 +242,7 @@ jobs:
       shell: pwsh
       run: scripts/interop.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -GenerateXmlResults
     - name: Upload results
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:
         name: InteropWinlatest-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts

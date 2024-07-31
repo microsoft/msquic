@@ -18,7 +18,7 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiEnter,
         const void *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -114,7 +114,7 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamError,
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -143,7 +143,7 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppSend,
         unsigned int, arg4,
         unsigned int, arg5), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -168,7 +168,7 @@ TRACEPOINT_EVENT(CLOG_API_C, StreamAppReceiveCompleteCall,
         const void *, arg2,
         unsigned long long, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )
@@ -191,7 +191,7 @@ TRACEPOINT_EVENT(CLOG_API_C, ConnError,
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
