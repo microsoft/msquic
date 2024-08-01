@@ -84,7 +84,7 @@ $SyncerSecret = $env:netperf_syncer_secret
 
 $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
-    $isWindows = $true
+    $IsWindows = $true
 }
 
 Write-Host "Running tests with the following parameters:"
