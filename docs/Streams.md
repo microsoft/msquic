@@ -78,7 +78,7 @@ Typically, the buffer count is one, which means that most events will include a 
 
 When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.
 
-Currently, the maximum buffer count is 3 in the case of partial receive, where only a portion of the buffer data is consumed (as explained below).
+Currently, the maximum buffer count is 3 in the case of partial receive, where only a portion of the buffer data is consumed (as explained below). However, it is strongly advised not to assume in application code that the upper limit is always 3. This caution is important because future releases may change internal algorithm, leading to potential changes in the buffer count limit.
 
 The app then may respond to the event in a number of ways:
 
