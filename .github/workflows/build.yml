@@ -135,10 +135,12 @@ jobs:
           os: 'ubuntu-24.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # linux xdp is for ubuntu22.04 only for now
+        # linux xdp is for ubuntu24.04 only for now
         - plat: android
           xdp: "-UseXdp"
         - os: 'ubuntu-20.04'
+          xdp: "-UseXdp"
+        - os: 'ubuntu-22.04'
           xdp: "-UseXdp"
         - arch: x86
           xdp: "-UseXdp"
