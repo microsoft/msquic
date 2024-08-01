@@ -9,9 +9,7 @@ $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
 $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
-    $notWindows = $false
-} else {
-    $notWindows = !$isWindows
+    $isWindows = $true
 }
 
 
@@ -32,7 +30,7 @@ function Repo-Path {
 # Configured the remote machine to collect dumps on crash.
 function Configure-DumpCollection {
     param ($Session)
-    if (!$notWindows) {
+    if ($isWindows) {
         Invoke-Command -Session $Session -ScriptBlock {
             $DumpDir = "C:/_work/quic/artifacts/crashdumps"
             New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
@@ -53,7 +51,7 @@ function Configure-DumpCollection {
 # Collects any crash dumps that were generated locally by secnetperf.
 function Collect-LocalDumps {
     param ($OutputDir)
-    if (!$notWindows) {
+    if ($isWindows) {
         $DumpFiles = (Get-ChildItem "./artifacts/crashdumps") | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             mkdir $OutputDir -ErrorAction Ignore | Out-Null
@@ -73,7 +71,7 @@ function Collect-LocalDumps {
 # Collect any crash dumps that were generated on the remote machine.
 function Collect-RemoteDumps {
     param ($Session, $OutputDir)
-    if (!$notWindows) {
+    if ($isWindows) {
         $DumpFiles = Invoke-Command -Session $Session -ScriptBlock {
             Get-ChildItem "C:/_work/quic/artifacts/crashdumps" | Where-Object { $_.Extension -eq ".dmp" }
         }
@@ -99,7 +97,7 @@ function Collect-RemoteDumps {
 # Use procdump64.exe to collect a dump of a local process.
 function Collect-LocalDump {
     param ($Process, $OutputDir)
-    if (!!$notWindows) { return } # Not supported on Windows
+    if (!$isWindows) { return } # Not supported on Windows
     $procDump = Repo-Path "artifacts/corenet-ci-main/vm-setup/procdump64.exe"
     if (!(Test-Path $procDump)) {
         Write-Host "procdump64.exe not found!"
@@ -112,7 +110,7 @@ function Collect-LocalDump {
 # Use livekd64.exe to collect a dump of the kernel.
 function Collect-LiveKD {
     param ($OutputDir, $Prefix)
-    if (!!$notWindows) { return } # Not supported on Windows
+    if (!$isWindows) { return } # Not supported on Windows
     $liveKD = Repo-Path "artifacts/corenet-ci-main/vm-setup/livekd64.exe"
     $KD = Repo-Path "artifacts/corenet-ci-main/vm-setup/kd.exe"
     $dumpPath = Join-Path $OutputDir "kernel.$Prefix.$(New-Guid).dmp"
@@ -235,7 +233,7 @@ function Cleanup-State {
     Invoke-Command -Session $Session -ScriptBlock {
         if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
     }
-    if (!$notWindows) {
+    if ($isWindows) {
         Uninstall-Kernel $Session | Out-Null
         Uninstall-XDP $Session $RemoteDir | Out-Null
         if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
@@ -360,7 +358,7 @@ function Wait-StartRemoteServerPassive {
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if (!$notWindows) {
+    if ($isWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
@@ -542,7 +540,7 @@ function Invoke-Secnetperf {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
-        if (!!$notWindows) {
+        if (!$isWindows) {
             chmod +rw "$extraOutput"
         }
     } elseif ($exeArgs.Contains("prate:1")) {
@@ -587,7 +585,7 @@ function Invoke-Secnetperf {
     }
 
      # Linux XDP requires sudo for now
-    $useSudo = (!!$notWindows -and $io -eq "xdp")
+    $useSudo = (!$isWindows -and $io -eq "xdp")
 
     if ($tcp -eq 0) {
         $artifactName = "$TestId-quic"
@@ -625,7 +623,7 @@ function Invoke-Secnetperf {
     "> secnetperf $serverArgs" | Add-Content $serverOut
 
     $StateDir = "C:/_state"
-    if (!!$notWindows) {
+    if (!$isWindows) {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
