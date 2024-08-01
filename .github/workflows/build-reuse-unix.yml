@@ -86,7 +86,7 @@ jobs:
     name: Build
     runs-on: ${{ inputs.os }}
     container:
-      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-{1}', inputs.os, ((inputs.xdp == '-UseXdp' && inputs.os == 'ubuntu-22.04') && 'xdp') || 'cross')) || '' }}
+      image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
