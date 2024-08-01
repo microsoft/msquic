@@ -187,7 +187,7 @@ function Install-Kernel {
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
 
-    if (($Session -eq "NOT_SUPPORTED")) {
+    if ($Session -eq "NOT_SUPPORTED") {
         NetperfSendCommand "Install_Kernel"
         NetperfWaitServerFinishExecution
         return
