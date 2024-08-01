@@ -64,6 +64,7 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Stateless Operation Expiration     | uint16_t   | StatelessOperationExpirationMs |            100 | The time limit between operations for the same endpoint, in milliseconds.                                                     |
 | Congestion Control Algorithm       | uint16_t   | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for the connection.                                                                     |
 | ECN                                | uint8_t    | EcnEnabled                  |         0 (FALSE) | Enable sender-side ECN support.                                                                                               |
+| Stream Multi Receive               | uint8_t    | StreamMultiReceiveEnabled   |         0 (FALSE) | Enable multi receive support                                                                                                  |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
