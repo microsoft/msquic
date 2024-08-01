@@ -137,7 +137,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp == '-UseXdp' && '-UseXdp -ForceXdpInstall' || '' }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: Install ETW Manifest
       if: matrix.vec.plat == 'windows'
@@ -234,7 +234,7 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp == '-UseXdp' && '-UseXdp -ForceXdpInstall' || '' }}
+      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: Interop
       shell: pwsh
