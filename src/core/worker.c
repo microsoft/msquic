@@ -278,6 +278,7 @@ QuicWorkerQueuePriorityConnection(
             QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
             ConnectionQueued = TRUE;
         } else { // Moving from normal priority to high priority
+            WakeWorkerThread = TRUE;
             CxPlatListEntryRemove(&Connection->WorkerLink);
         }
         CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
@@ -290,10 +291,11 @@ QuicWorkerQueuePriorityConnection(
     CxPlatDispatchLockRelease(&Worker->Lock);
 
     if (ConnectionQueued) {
-        if (WakeWorkerThread) {
-           QuicWorkerThreadWake(Worker);
-        }
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+    }
+
+    if (WakeWorkerThread) {
+        QuicWorkerThreadWake(Worker);
     }
 }
 
