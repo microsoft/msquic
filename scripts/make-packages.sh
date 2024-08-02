@@ -14,6 +14,7 @@ CONFIG=Release
 NAME=libmsquic
 TLS=openssl
 TLSVERSION=1.1
+UBUNTU=
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
@@ -85,6 +86,10 @@ while :; do
             shift
             OUTPUT=$1
             ;;
+        -u|-ubuntu|--ubuntu)
+            shift
+            UBUNTU=$1
+            ;;
         -t|-tls|--tls)
             shift
             TLS=$1
@@ -129,16 +134,8 @@ echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
-  IsUbuntu2404=0
-  if [ -e /etc/os-release ]; then
-    # Ubuntu24.04 has xdp dependencies, but it is not validated on other distros
-    source /etc/os-release
-    if [ "$ID" == "ubuntu" ] && [ "$VERSION_ID" == "24.04" ]; then
-      IsUbuntu2404=1
-    fi
-  fi
-
-  if [ "$IsUbuntu2404" -eq 0 ]; then
+  # Ubuntu 24.04 dependencies are not fully validated on redhat/centos etc.
+  if [ "$UBUNTU" != '2404' ]; then
     # RedHat/CentOS
     FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
     FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
@@ -186,7 +183,7 @@ if [ "$OS" == "linux" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
 
-  if [ "$IsUbuntu2404" -eq 1 ]; then
+  if [ "$UBUNTU" == '2404' ]; then
     fpm \
       --force \
       --input-type dir \
