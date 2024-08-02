@@ -278,7 +278,6 @@ QuicWorkerQueuePriorityConnection(
             QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
             ConnectionQueued = TRUE;
         } else { // Moving from normal priority to high priority
-            WakeWorkerThread = TRUE;
             CxPlatListEntryRemove(&Connection->WorkerLink);
         }
         CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
@@ -566,7 +565,14 @@ QuicWorkerProcessConnection(
     if (!Connection->State.UpdateWorker) {
         if (Connection->HasQueuedWork) {
             Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
-            CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+            if (&Connection->OperQ.List.Flink != Connection->OperQ.PriorityTail) {
+                // priority operations are still pending
+                CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
+                Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
+                Connection->HasPriorityWork = TRUE;
+            } else {
+                CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
+            }
             QuicTraceEvent(
                 ConnScheduleState,
                 "[conn][%p] Scheduling: %u",
