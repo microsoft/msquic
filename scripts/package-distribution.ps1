@@ -168,7 +168,7 @@ foreach ($Build in $AllBuilds) {
             $Tls = "openssl3"
         }
         $UbuntuVersion = "none"
-        $match = [regex]::Match($string, "ubuntu_(\d{4})")
+        $match = [regex]::Match($BuildBaseName, "ubuntu_(\d{4})")
         if ($match.Success) {
             $UbuntuVersion = $match.Groups[1].Value
         }
