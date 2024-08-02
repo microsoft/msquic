@@ -174,25 +174,63 @@ if [ "$OS" == "linux" ]; then
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
-  fpm \
-    --force \
-    --input-type dir \
-    --output-type deb \
-    --architecture ${PKGARCH} \
-    --name ${NAME} \
-    --provides ${NAME} \
-    --conflicts ${CONFLICTS} \
-    --depends "libssl${TLSVERSION}" \
-    --depends "libnuma1" \
-    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-    --description "${DESCRIPTION}" \
-    --vendor "${VENDOR}" \
-    --maintainer "${MAINTAINER}" \
-    --package "${OUTPUT}" \
-    --license MIT \
-    --url https://github.com/microsoft/msquic \
-    --log error \
-    ${FILES}
+
+  DONE_DEBIAN=0
+  if [ -e /etc/os-release ]; then
+    source /etc/os-release
+    # Ubuntu 24.04 support xdp
+    if [ "$ID" == "ubuntu" ] && [ "$VERSION_ID" == "24.04" ]; then
+      fpm \
+        --force \
+        --input-type dir \
+        --output-type deb \
+        --architecture ${PKGARCH} \
+        --name ${NAME} \
+        --provides ${NAME} \
+        --conflicts ${CONFLICTS} \
+        --depends "libssl${TLSVERSION}" \
+        --depends "libnuma1" \
+        --depends "libxdp1" \
+        --depends "libbpf1" \
+        --depends "libnl-3-200" \
+        --depends "libnl-route-3-200" \
+        --depends "libelf1t64" \
+        --depends "libz3-4" \
+        --depends "libzstd1" \
+        --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+        --description "${DESCRIPTION}" \
+        --vendor "${VENDOR}" \
+        --maintainer "${MAINTAINER}" \
+        --package "${OUTPUT}" \
+        --license MIT \
+        --url https://github.com/microsoft/msquic \
+        --log error \
+        ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
+      DONE_DEBIAN=1
+    fi
+  fi
+
+  if [ $DONE_DEBIAN -eq 0 ]; then
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type deb \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --conflicts ${CONFLICTS} \
+      --depends "libssl${TLSVERSION}" \
+      --depends "libnuma1" \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES}
+  fi
 fi
 
 # macOS
