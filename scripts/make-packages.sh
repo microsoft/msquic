@@ -129,34 +129,45 @@ echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
-  # RedHat/CentOS
-  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
-  FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
-  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
-     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+  IsUbuntu2404=0
+  if [ -e /etc/os-release ]; then
+    # Ubuntu24.04 has xdp dependencies, but it is not validated on other distros
+    source /etc/os-release
+    if [ "$ID" == "ubuntu" ] && [ "$VERSION_ID" == "24.04" ]; then
+      IsUbuntu2404=1
+    fi
   fi
-  if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
+
+  if [ "$IsUbuntu2404" -eq 0 ]; then
+    # RedHat/CentOS
+    FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+    FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
+    if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+       FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+    fi
+    if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
       BITS='64bit'
+    fi
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type rpm \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+      --depends "libnuma.so.1()(${BITS})" \
+      --conflicts ${CONFLICTS} \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES}
   fi
-  fpm \
-    --force \
-    --input-type dir \
-    --output-type rpm \
-    --architecture ${PKGARCH} \
-    --name ${NAME} \
-    --provides ${NAME} \
-    --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
-    --depends "libnuma.so.1()(${BITS})" \
-    --conflicts ${CONFLICTS} \
-    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-    --description "${DESCRIPTION}" \
-    --vendor "${VENDOR}" \
-    --maintainer "${MAINTAINER}" \
-    --package "${OUTPUT}" \
-    --license MIT \
-    --url https://github.com/microsoft/msquic \
-    --log error \
-    ${FILES}
 
   # Debian/Ubuntu
   if [ "$ARCH" == 'x64' ]; then
@@ -175,42 +186,34 @@ if [ "$OS" == "linux" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
 
-  DONE_DEBIAN=0
-  if [ -e /etc/os-release ]; then
-    source /etc/os-release
-    # Ubuntu 24.04 support xdp
-    if [ "$ID" == "ubuntu" ] && [ "$VERSION_ID" == "24.04" ]; then
-      fpm \
-        --force \
-        --input-type dir \
-        --output-type deb \
-        --architecture ${PKGARCH} \
-        --name ${NAME} \
-        --provides ${NAME} \
-        --conflicts ${CONFLICTS} \
-        --depends "libssl${TLSVERSION}" \
-        --depends "libnuma1" \
-        --depends "libxdp1" \
-        --depends "libbpf1" \
-        --depends "libnl-3-200" \
-        --depends "libnl-route-3-200" \
-        --depends "libelf1t64" \
-        --depends "libz3-4" \
-        --depends "libzstd1" \
-        --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-        --description "${DESCRIPTION}" \
-        --vendor "${VENDOR}" \
-        --maintainer "${MAINTAINER}" \
-        --package "${OUTPUT}" \
-        --license MIT \
-        --url https://github.com/microsoft/msquic \
-        --log error \
-        ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
-      DONE_DEBIAN=1
-    fi
-  fi
-
-  if [ $DONE_DEBIAN -eq 0 ]; then
+  if [ "$IsUbuntu2404" -eq 1 ]; then
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type deb \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --conflicts ${CONFLICTS} \
+      --depends "libssl${TLSVERSION}" \
+      --depends "libnuma1" \
+      --depends "libxdp1" \
+      --depends "libbpf1" \
+      --depends "libnl-3-200" \
+      --depends "libnl-route-3-200" \
+      --depends "libelf1t64" \
+      --depends "libz3-4" \
+      --depends "libzstd1" \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
+  else
     fpm \
       --force \
       --input-type dir \
