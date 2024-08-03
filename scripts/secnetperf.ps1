@@ -84,7 +84,7 @@ $SyncerSecret = $env:netperf_syncer_secret
 
 $psVersion = $PSVersionTable.PSVersion
 if ($psVersion.Major -lt 7) {
-    $isWindows = $true
+    $IsWindows = $true
 }
 
 Write-Host "Running tests with the following parameters:"
@@ -161,7 +161,7 @@ if ($RemotePowershellSupported -eq $true) {
     Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-if (!($Session -eq "NOT_SUPPORTED")) {
+if ($Session -ne "NOT_SUPPORTED") {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
     Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
     Write-Host "Session: $Session, $(!($Session -eq "NOT_SUPPORTED"))"
