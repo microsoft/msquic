@@ -678,6 +678,7 @@ function Invoke-Secnetperf {
                     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
                 )
                 $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
+                Write-Host "Sent special UDP packet to tell the server to die."
             }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
