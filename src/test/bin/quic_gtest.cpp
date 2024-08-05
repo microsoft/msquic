@@ -2202,6 +2202,16 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
+TEST(Misc, StreamMultiReceive) {
+    TestLogger Logger("StreamMultiReceive");
+    if (TestingKernelMode) {
+        GTEST_SKIP();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE));
+    } else {
+        QuicTestStreamMultiReceive();
+    }
+}
+
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
     if (TestingKernelMode) {
@@ -2226,6 +2236,15 @@ TEST(Basic, OperationPriority) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
     } else {
         QuicTestOperationPriority();
+    }
+}
+
+TEST(Basic, ConnectionPriority) {
+    TestLogger Logger("ConnectionPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
+    } else {
+        QuicTestConnectionPriority();
     }
 }
 

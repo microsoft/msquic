@@ -426,6 +426,7 @@ typedef struct QUIC_CONNECTION {
     //
     BOOLEAN WorkerProcessing : 1;
     BOOLEAN HasQueuedWork : 1;
+    BOOLEAN HasPriorityWork : 1;
 
     //
     // Set of current reasons sending more packets is currently blocked.

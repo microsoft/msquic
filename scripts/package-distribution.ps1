@@ -19,7 +19,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.4.0"
+$Version = "2.5.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -167,12 +167,17 @@ foreach ($Build in $AllBuilds) {
         if ($BuildBaseName -like "*openssl3*") {
             $Tls = "openssl3"
         }
+        $UbuntuVersion = "none"
+        $match = [regex]::Match($BuildBaseName, "ubuntu_(\d{4})")
+        if ($match.Success) {
+            $UbuntuVersion = $match.Groups[1].Value
+        }
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --ubuntu $UbuntuVersion
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --ubuntu $UbuntuVersion
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --ubuntu $UbuntuVersion # x64
         }
         Set-Location $OldLoc
     }

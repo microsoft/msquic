@@ -1167,7 +1167,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
 
     if (Datapath->UseTcp) {
         //
@@ -2255,10 +2255,15 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    const uint16_t SocketCount =
-        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-    for (uint16_t i = 0; i < SocketCount; ++i) {
-        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
+    if (Socket->UseTcp) {
+        // QTIP did not initialize PerProcSockets
+        CxPlatSocketRelease(Socket);
+    } else {
+        const uint16_t SocketCount =
+            Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
+        for (uint16_t i = 0; i < SocketCount; ++i) {
+            CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
+        }
     }
 }
 

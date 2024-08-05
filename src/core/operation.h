@@ -351,7 +351,8 @@ QuicOperationEnqueue(
 
 //
 // Enqueues an operation into the priority part of the queue. Returns TRUE if
-// the queue was previously empty and not already being processed.
+// the priority queue was previously empty and not already being processed. Note
+// that the regular queue might not have been empty.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
