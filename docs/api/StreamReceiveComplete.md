@@ -22,7 +22,7 @@ void
 # Remarks
 
 This is an asynchronous API but can run inline if called in a callback.
-The application without setting `StreamMultiReceiveEnabled` must ensure that one `StreamReceiveComplete` call corresponds to one `QUIC_STREAM_EVENT_RECEIVE` event.
+The application, without setting `StreamMultiReceiveEnabled`, must ensure that one `StreamReceiveComplete` call corresponds to one `QUIC_STREAM_EVENT_RECEIVE` event.
 Duplicate `StreamReceiveComplete` calls after one `QUIC_STREAM_EVENT_RECEIVE` event are ignored silently even with different `BufferLength`.
 The `StreamMultiReceiveEnabled` mode doesn't follow this rule. Multiple `QUIC_STREAM_EVENT_RECEIVE` events can be indicated at once by `StreamReceiveComplete`. The application needs to keep track of accumulated `TotalBufferLength` with this mode.
 
