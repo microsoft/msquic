@@ -1462,6 +1462,10 @@ QuicTestCtlEvtIoDeviceControl(
 
         break;
 
+    case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
+        QuicTestCtlRun(QuicTestConnectionPriority());
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;

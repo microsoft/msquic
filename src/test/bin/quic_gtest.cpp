@@ -2239,6 +2239,15 @@ TEST(Basic, OperationPriority) {
     }
 }
 
+TEST(Basic, ConnectionPriority) {
+    TestLogger Logger("ConnectionPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
+    } else {
+        QuicTestConnectionPriority();
+    }
+}
+
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
     if (TestingKernelMode) {
