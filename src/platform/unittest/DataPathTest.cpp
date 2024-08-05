@@ -674,6 +674,13 @@ TEST_F(DataPathTest, Initialize)
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
+    if (UseDuoNic)
+    {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+        ASSERT_NE(nullptr, Datapath.Datapath);
+    }
 }
 
 TEST_F(DataPathTest, InitializeInvalid)
@@ -691,6 +698,21 @@ TEST_F(DataPathTest, InitializeInvalid)
         ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
+#ifdef _WIN32
+#elif CX_PLATFORM_LINUX
+    uid_t OriginalUid = getuid();
+    if (UseDuoNic && OriginalUid == 0) // sudo execution
+    {
+        uid_t RegularUid = 1000; // normal user
+        ASSERT_EQ(setuid(RegularUid), 0);
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        // cannot initialize any interface in XDP mode without root privileges
+        ASSERT_EQ(QUIC_STATUS_NOT_FOUND, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+        ASSERT_EQ(seteuid(OriginalUid), 0);
+    }
+#endif
 }
 
 TEST_F(DataPathTest, UdpBind)
