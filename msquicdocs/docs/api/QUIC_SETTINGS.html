@@ -137,7 +137,8 @@
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
-            uint64_t RESERVED                               : 22;
+            uint64_t StreamMultiReceiveEnabled              : 1;
+            uint64_t RESERVED                               : 21;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -187,7 +188,8 @@
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
-            uint64_t ReservedFlags             : 59;
+            uint64_t StreamMultiReceiveEnabled : 1;
+            uint64_t ReservedFlags             : 58;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -316,6 +318,9 @@
 <p><code>StreamRecvWindowUnidiDefault</code></p>
 <p>Initial stream receive flow control window size for remotely initiated unidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
 <p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamMultiReceiveEnabled</code></p>
+<p>Enable multi receive mode. An app can continue receiving stream data without calling <code>StreamReceiveComplete</code> for each <code>QUIC_STREAM_EVENT_RECEIVE</code> indication.</p>
+<p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
 <h1 id="remarks">Remarks</h1>
 <p>When setting new values for the settings, the app must set the corresponding <code>.IsSet.*</code> parameter for each actual parameter that is being set or updated. For example:</p>
 <pre><code class="lang-C">QUIC_SETTINGS Settings {0};

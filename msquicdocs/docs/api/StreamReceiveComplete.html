@@ -101,8 +101,9 @@ void
 <p><strong>TODO</strong></p>
 <h1 id="remarks">Remarks</h1>
 <p>This is an asynchronous API but can run inline if called in a callback.
-The application must ensure that one <code>StreamReceiveComplete</code> call corresponds to one <code>QUIC_STREAM_EVENT_RECEIVE</code> event.
-Duplicate <code>StreamReceiveComplete</code> calls after one <code>QUIC_STREAM_EVENT_RECEIVE</code> event are ignored silently even with different <code>BufferLength</code>.</p>
+The application, without setting <code>StreamMultiReceiveEnabled</code>, must ensure that one <code>StreamReceiveComplete</code> call corresponds to one <code>QUIC_STREAM_EVENT_RECEIVE</code> event.
+Duplicate <code>StreamReceiveComplete</code> calls after one <code>QUIC_STREAM_EVENT_RECEIVE</code> event are ignored silently even with different <code>BufferLength</code>.
+The <code>StreamMultiReceiveEnabled</code> mode doesn't follow this rule. Multiple <code>QUIC_STREAM_EVENT_RECEIVE</code> events can be indicated at once by <code>StreamReceiveComplete</code>. The application needs to keep track of accumulated <code>TotalBufferLength</code> with this mode.</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="StreamOpen.html">StreamOpen</a><br>
 <a href="StreamClose.html">StreamClose</a><br>
