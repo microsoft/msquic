@@ -238,6 +238,12 @@
 </li>
 <li>Update (via PR) <code>main</code> branch's <code>test-down-level.yml</code> to point the newly uploaded <code>*_test.zip</code> release binaries.</li>
 </ol>
+<h2 id="publishing-linux-packages-to-packagesmicrosoftcom-pmc">Publishing Linux packages to packages.microsoft.com (PMC)</h2>
+<ol>
+<li>The publishing <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068">pipeline</a> automatically uploads packages into PMC when a tag is created.</li>
+</ol>
+<p>Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint returning errors). The publishing pipeline can be run manually to retry. When running manually, please ensure that the right tag is chosen and the right resources (under &quot;Advanced options&quot;) are chosen. By default, the pipeline picks up the latest resources from the official build pipeline which are not always the right ones.</p>
+<p>When testing the pipeline, please make sure to comment out the PMC cli commands in <a href="https://github.com/microsoft/msquic/blob/main/scripts/upload-linux-packages.sh">upload-linux-packages.sh</a> to avoid accidentally publishing packages into prod.</p>
 <h2 id="synchronizing-with-windows">Synchronizing with Windows</h2>
 <ol>
 <li>Once the release branch is created, set the pipeline <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868">here</a> to ingest the release branch into Windows, and run it.</li>
