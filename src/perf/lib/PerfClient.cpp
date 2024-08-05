@@ -945,8 +945,7 @@ PerfClientStream::OnShutdown() {
         }
 
         if (Client.PrintThroughput && SendSuccess) {
-            //const auto ElapsedMicroseconds = SendEndTime - StartTime;
-            const auto ElapsedMicroseconds = RecvEndTime - StartTime;
+            const auto ElapsedMicroseconds = CXPLAT_MAX(SendEndTime - StartTime, RecvEndTime - StartTime);
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
