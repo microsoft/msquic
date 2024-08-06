@@ -13,8 +13,10 @@ param (
 )
 
 $UseXdp = $false
+$Time64Distro = $false
 if ($OS -eq "ubuntu_2404") {
     $UseXdp = $true
+    $Time64Distro = $true
 }
 
 Set-StrictMode -Version 'Latest'
@@ -180,11 +182,11 @@ foreach ($Build in $AllBuilds) {
         }
 
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64Distro # x64
         }
         Set-Location $OldLoc
     }

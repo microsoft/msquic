@@ -14,6 +14,7 @@ CONFIG=Release
 NAME=libmsquic
 TLS=openssl
 TLSVERSION=1.1
+TIME64DISTRO="False"
 XDP="False"
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
@@ -89,6 +90,10 @@ while :; do
         -x|-xdp|--xdp)
             shift
             XDP=$1
+            ;;
+        -time64|--time64)
+            shift
+            TIME64DISTRO=$1
             ;;
         -t|-tls|--tls)
             shift
@@ -184,9 +189,8 @@ if [ "$OS" == "linux" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
 
-  # XDP means Ubuntu 24.04 which installs libssl3t64 instead of libssl3
   BITS=''
-  if [ "$XDP" == "True" ]; then
+  if [ "$TIME64DISTRO" == "True" ]; then
       BITS='t64'
   fi
 
