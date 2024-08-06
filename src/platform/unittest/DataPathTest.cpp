@@ -427,7 +427,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 0, {0} };
+    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
@@ -437,6 +437,9 @@ struct CxPlatDataPath {
         _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
     {
+        if (UseDuoNic && Config == nullptr) {
+            DefaultExecutionConfig.Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        }
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,
@@ -664,12 +667,6 @@ TEST_F(DataPathTest, Initialize)
     }
     {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 1, {0} };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
-        VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
-        ASSERT_NE(nullptr, Datapath.Datapath);
-    }
-    {
-        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
