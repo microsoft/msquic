@@ -14,7 +14,8 @@ CONFIG=Release
 NAME=libmsquic
 TLS=openssl
 TLSVERSION=1.1
-UBUNTU=
+TIME64DISTRO="False"
+XDP="False"
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
@@ -86,9 +87,13 @@ while :; do
             shift
             OUTPUT=$1
             ;;
-        -u|-ubuntu|--ubuntu)
+        -x|-xdp|--xdp)
             shift
-            UBUNTU=$1
+            XDP=$1
+            ;;
+        -time64|--time64)
+            shift
+            TIME64DISTRO=$1
             ;;
         -t|-tls|--tls)
             shift
@@ -134,8 +139,9 @@ echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
-  # Ubuntu 24.04 dependencies are not fully validated on redhat/centos etc.
-  if [ "$UBUNTU" != '2404' ]; then
+  # XDP is only validated on Ubuntu 24.04 and x64
+  if [ "$XDP" == "False" ] || [[ "$ARCH" == arm* ]]; then
+    echo "Building rpm package"
     # RedHat/CentOS
     FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
     FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
@@ -183,7 +189,13 @@ if [ "$OS" == "linux" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
 
-  if [ "$UBUNTU" == '2404' ]; then
+  BITS=''
+  if [ "$TIME64DISTRO" == "True" ]; then
+      BITS='t64'
+  fi
+
+  if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
+    echo "Building deb package (XDP)"
     fpm \
       --force \
       --input-type dir \
@@ -192,7 +204,7 @@ if [ "$OS" == "linux" ]; then
       --name ${NAME} \
       --provides ${NAME} \
       --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}" \
+      --depends "libssl${TLSVERSION}${BITS}" \
       --depends "libnuma1" \
       --depends "libxdp1" \
       --depends "libbpf1" \
@@ -211,6 +223,7 @@ if [ "$OS" == "linux" ]; then
       --log error \
       ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
   else
+    echo "Building deb package"
     fpm \
       --force \
       --input-type dir \
@@ -219,7 +232,7 @@ if [ "$OS" == "linux" ]; then
       --name ${NAME} \
       --provides ${NAME} \
       --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}" \
+      --depends "libssl${TLSVERSION}${BITS}" \
       --depends "libnuma1" \
       --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
       --description "${DESCRIPTION}" \
