@@ -3651,6 +3651,13 @@ void QuicTestConnectionPriority()
             MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             Context.ExpectedStream = &Stream1;
 
+            // NOTE: This is to flush all operations in the queue.
+            //       If this is not done, the operation order is not guaranteed.
+            //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
+            //            This happens when [3] is already in the worker queue.
+            //            Normal enqueue doesn't re-queue the Connection
+            CxPlatSleep(300);
+
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
             TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
@@ -3701,6 +3708,13 @@ void QuicTestConnectionPriority()
             MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
             Context.ExpectedStream = &Stream1;
+
+            // NOTE: This is to flush all operations in the queue.
+            //       If this is not done, the operation order is not guaranteed.
+            //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
+            //            This happens when [3] is already in the worker queue.
+            //            Normal enqueue doesn't re-queue the Connection
+            CxPlatSleep(300);
 
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
@@ -3773,7 +3787,7 @@ void QuicTestConnectionPriority()
             //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
             //            This happens when [3] is already in the worker queue.
             //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(1000);
+            CxPlatSleep(300);
 
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
