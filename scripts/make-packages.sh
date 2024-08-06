@@ -184,6 +184,12 @@ if [ "$OS" == "linux" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
 
+  # XDP means Ubuntu 24.04 which installs libssl3t64 instead of libssl3
+  BITS=''
+  if [ "$XDP" == "True" ]; then
+      BITS='t64'
+  fi
+
   if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
     echo "Building deb package (XDP)"
     fpm \
@@ -194,7 +200,7 @@ if [ "$OS" == "linux" ]; then
       --name ${NAME} \
       --provides ${NAME} \
       --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}" \
+      --depends "libssl${TLSVERSION}${BITS}" \
       --depends "libnuma1" \
       --depends "libxdp1" \
       --depends "libbpf1" \
@@ -222,7 +228,7 @@ if [ "$OS" == "linux" ]; then
       --name ${NAME} \
       --provides ${NAME} \
       --conflicts ${CONFLICTS} \
-      --depends "libssl${TLSVERSION}" \
+      --depends "libssl${TLSVERSION}${BITS}" \
       --depends "libnuma1" \
       --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
       --description "${DESCRIPTION}" \
