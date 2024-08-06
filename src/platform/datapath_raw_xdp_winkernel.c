@@ -246,9 +246,9 @@ CxPlatXdpReadConfig(
     //
     // Default config.
     //
-    Xdp->RxBufferCount = 8192;
+    Xdp->RxBufferCount = 8192 << 2; // temporarily increased to 32k
     Xdp->RxRingSize = 256;
-    Xdp->TxBufferCount = 8192;
+    Xdp->TxBufferCount = 8192 << 2; // temporarily increased to 32k
     Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
 }
