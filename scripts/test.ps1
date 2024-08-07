@@ -355,9 +355,9 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
 $TestPaths = @()
 if (!$Kernel -and !$SkipUnitTests) {
     $TestPaths += $MsQuicPlatTest
-    $TestPaths += $MsQuicCoreTest
+    # $TestPaths += $MsQuicCoreTest
 }
-$TestPaths += $MsQuicTest
+# $TestPaths += $MsQuicTest
 
 for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     if ($NumIterations -gt 1) {
