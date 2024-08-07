@@ -950,26 +950,26 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             break;
         case SpinQuicAPICallConnectionStart: {
             auto Connection = Connections.TryGetRandom();
-            BAIL_ON_NULL_CONNECTION(Connection);
+            // BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Configuration = GetRandomFromVector(Gb.ClientConfigurations);
             MsQuic.ConnectionStart(Connection, Configuration, QUIC_ADDRESS_FAMILY_INET, SpinSettings.ServerName, GetRandomFromVector(SpinSettings.Ports));
             break;
         }
         case SpinQuicAPICallConnectionShutdown: {
             auto Connection = Connections.TryGetRandom();
-            BAIL_ON_NULL_CONNECTION(Connection);
+            // BAIL_ON_NULL_CONNECTION(Connection);
             MsQuic.ConnectionShutdown(Connection, (QUIC_CONNECTION_SHUTDOWN_FLAGS)GetRandom(2), 0);
             break;
         }
         case SpinQuicAPICallConnectionClose: {
             auto Connection = Connections.TryGetRandom(true);
-            BAIL_ON_NULL_CONNECTION(Connection);
+            // BAIL_ON_NULL_CONNECTION(Connection);
             delete SpinQuicConnection::Get(Connection);
             break;
         }
         case SpinQuicAPICallStreamOpen: {
             auto Connection = Connections.TryGetRandom();
-            BAIL_ON_NULL_CONNECTION(Connection);
+            // BAIL_ON_NULL_CONNECTION(Connection);
             HQUIC Stream;
             auto ctx = new SpinQuicStream(*SpinQuicConnection::Get(Connection));
             QUIC_STATUS Status = MsQuic.StreamOpen(Connection, (QUIC_STREAM_OPEN_FLAGS)GetRandom(8), SpinQuicHandleStreamEvent, ctx, &Stream);
@@ -990,7 +990,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                // if (Stream == nullptr) continue;
                 MsQuic.StreamStart(Stream, (QUIC_STREAM_START_FLAGS)GetRandom(16));
             }
             break;
@@ -1002,7 +1002,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                // if (Stream == nullptr) continue;
                 auto StreamCtx = SpinQuicStream::Get(Stream);
                 auto Buffer = new(std::nothrow) QUIC_BUFFER;
                 if (Buffer) {
@@ -1026,7 +1026,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                // if (Stream == nullptr) continue;
                 MsQuic.StreamReceiveSetEnabled(Stream, GetRandom(2) == 0);
             }
             break;
@@ -1038,7 +1038,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                // if (Stream == nullptr) continue;
                 auto StreamCtx = SpinQuicStream::Get(Stream);
                 if (StreamCtx->PendingRecvLength == UINT64_MAX) continue; // Nothing to complete (yet
                 auto BytesRemaining = StreamCtx->PendingRecvLength;
@@ -1059,7 +1059,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
             {
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
-                if (Stream == nullptr) continue;
+                // if (Stream == nullptr) continue;
                 auto Flags = (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16);
                 if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE) {
                     auto StreamCtx = SpinQuicStream::Get(Stream);
@@ -1078,7 +1078,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 Stream = ctx->TryGetStream(true);
             }
-            if (Stream == nullptr) continue;
+            // if (Stream == nullptr) continue;
             delete SpinQuicStream::Get(Stream);
             break;
         }
