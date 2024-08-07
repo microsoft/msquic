@@ -2202,6 +2202,7 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(Misc, StreamMultiReceive) {
     TestLogger Logger("StreamMultiReceive");
     if (TestingKernelMode) {
@@ -2211,6 +2212,7 @@ TEST(Misc, StreamMultiReceive) {
         QuicTestStreamMultiReceive();
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
