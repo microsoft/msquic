@@ -4265,6 +4265,7 @@ QuicTestStreamReliableResetMultipleSends(
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define MultiRecvNumSend 10
 // 1G seems to be too big for CI environment to finish in a reasonable time.
 uint8_t Buffer10M[10000000] = {};
@@ -4481,3 +4482,4 @@ QuicTestStreamMultiReceive(
         delete[] Context.RecvBuffer;
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
