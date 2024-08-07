@@ -156,9 +156,11 @@ jobs:
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: |
+        echo plat: ${{ matrix.vec.plat }} xdp: ${{ matrix.vec.xdp }}
+        scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Fix log permissions for Linux XDP
-      if: (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp')
+      if: ${{ matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp' }}
       run: |
         sudo chmod -R 777 artifacts
     - name: Upload on Failure
