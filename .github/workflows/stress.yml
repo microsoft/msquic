@@ -128,7 +128,7 @@ jobs:
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Fix log permissions for Linux XDP
-      if: matrix.vec.plat == 'linux' || matrix.vec.xdp == '-UseXdp'
+      if: matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp'
       run: |
         sudo chmod -R 777 artifacts
     - name: Upload on Failure
