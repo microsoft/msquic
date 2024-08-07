@@ -579,10 +579,10 @@ function Invoke-Secnetperf {
     }
 
     # These scenarios are currently broken! TODO - Figure out why and fix them.
-    if ($io -eq "wsk" -and $metric -eq "hps") {
-        Write-Host "> secnetperf $clientArgs BROKEN!"
-        continue
-    }
+    # if ($io -eq "wsk" -and $metric -eq "hps") {
+    #     Write-Host "> secnetperf $clientArgs BROKEN!"
+    #     continue
+    # }
 
      # Linux XDP requires sudo for now
     $useSudo = (!$isWindows -and $io -eq "xdp")
