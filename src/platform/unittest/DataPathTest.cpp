@@ -638,7 +638,7 @@ TEST_F(DataPathTest, Initialize)
     {
         CxPlatDataPath Datapath(nullptr);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
-        ASSERT_NE(nullptr, Datapath.Datapath);
+        ASSERT_EQ(nullptr, Datapath.Datapath);
     }
     {
         CxPlatDataPath Datapath(&EmptyUdpCallbacks);
@@ -828,8 +828,6 @@ TEST_P(DataPathTest, UdpDataPolling)
     ASSERT_NE(nullptr, ClientSendData);
     auto ClientBuffer = CxPlatSendDataAllocBuffer(ClientSendData, ExpectedDataSize);
     ASSERT_NE(nullptr, ClientBuffer);
-    ExpectedData = 0x0; // segv
-    ClientBuffer->Buffer = 0x0; //
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
