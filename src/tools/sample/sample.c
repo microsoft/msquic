@@ -36,6 +36,8 @@ Abstract:
 
 --*/
 
+#define _CRT_SECURE_NO_WARNINGS 1
+
 #ifdef _WIN32
 //
 // The conformant preprocessor along with the newest SDK throws this warning for
