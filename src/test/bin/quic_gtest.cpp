@@ -2298,6 +2298,15 @@ TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket) {
     }
 }
 
+TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
+    TestLoggerT<ParamType> Logger("QuicDrillTestKeyUpdateDuringHandshake", GetParam());
+    if (TestingKernelMode) {
+        //ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DRILL_VN_PACKET_TOKEN, GetParam().Family));
+    } else {
+        QuicDrillTestKeyUpdateDuringHandshake(GetParam().Family);
+    }
+}
+
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
     if (TestingKernelMode) {
