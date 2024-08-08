@@ -427,7 +427,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 0, {0} };
+    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
@@ -437,6 +437,9 @@ struct CxPlatDataPath {
         _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
     {
+        if (UseDuoNic && Config == nullptr) {
+            DefaultExecutionConfig.Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        }
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,
@@ -668,8 +671,9 @@ TEST_F(DataPathTest, Initialize)
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
+    if (UseDuoNic)
     {
-        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
@@ -691,6 +695,26 @@ TEST_F(DataPathTest, InitializeInvalid)
         ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
+    if (!UseDuoNic) {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        ASSERT_EQ(QUIC_STATUS_NOT_SUPPORTED, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+    }
+#ifdef CX_PLATFORM_LINUX
+    uid_t OriginalUid = getuid();
+    if (UseDuoNic && OriginalUid == 0) // sudo execution
+    {
+        uid_t RegularUid = 1000; // normal user
+        ASSERT_EQ(setuid(RegularUid), 0);
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        // cannot initialize any interface in XDP mode without root privileges
+        ASSERT_EQ(QUIC_STATUS_NOT_FOUND, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+        ASSERT_EQ(seteuid(OriginalUid), 0);
+    }
+#endif
 }
 
 TEST_F(DataPathTest, UdpBind)
