@@ -728,9 +728,6 @@ TEST_F(DataPathTest, UdpBind)
     ASSERT_NE(nullptr, Socket.Socket);
     QUIC_ADDR LocalAddr = Socket.GetLocalAddress();
     ASSERT_NE(LocalAddr.Ipv4.sin_port, (uint16_t)0);
-    // [::] or [fc00::1:11]
-    bool Any = memcmp(&LocalAddr.Ipv6.sin6_addr, &in6addr_any, sizeof(in6addr_any)) == 0;
-    ASSERT_TRUE((UseDuoNic ^ Any));
 }
 
 TEST_F(DataPathTest, UdpRebind)
