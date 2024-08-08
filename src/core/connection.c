@@ -7559,7 +7559,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
     QUIC_OPERATION* Oper;
@@ -7719,5 +7720,10 @@ QuicConnDrainOperations(
 
     QuicConnValidate(Connection);
 
-    return HasMoreWorkToDo;
+    if (HasMoreWorkToDo) {
+        *StillHasPriorityWork = QuicOperationHasPriority(&Connection->OperQ);
+        return TRUE;
+    }
+
+    return FALSE;
 }
