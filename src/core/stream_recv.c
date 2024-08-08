@@ -866,7 +866,7 @@ QuicStreamRecvFlush(
             IgnoreRecvFlush,
             Stream,
             "Ignoring recv flush (recv disabled)");
-        return;
+        return ;
     }
 
     BOOLEAN FlushRecv = TRUE;
