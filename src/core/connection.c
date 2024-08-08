@@ -735,7 +735,7 @@ QuicConnQueuePriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection); // TODO - Support priority connections on worker?
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
@@ -751,7 +751,7 @@ QuicConnQueueHighestPriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection);
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
@@ -7559,7 +7559,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
     QUIC_OPERATION* Oper;
@@ -7719,5 +7720,10 @@ QuicConnDrainOperations(
 
     QuicConnValidate(Connection);
 
-    return HasMoreWorkToDo;
+    if (HasMoreWorkToDo) {
+        *StillHasPriorityWork = QuicOperationHasPriority(&Connection->OperQ);
+        return TRUE;
+    }
+
+    return FALSE;
 }

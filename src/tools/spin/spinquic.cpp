@@ -890,6 +890,7 @@ void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID)
         uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
         uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
         uint32_t Combined = ((Level+1) << 28) + Param;
+        Combined &= ~QUIC_PARAM_HIGH_PRIORITY; // TODO: enable high priority GetParam
 
         if (GetRandom(2)) {
             Combined |= QUIC_PARAM_HIGH_PRIORITY;

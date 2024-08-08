@@ -71,7 +71,6 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
@@ -100,7 +99,6 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
@@ -139,7 +137,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp == '-UseXdp' && '-UseXdp -ForceXdpInstall' || '' }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: Install ETW Manifest
       if: matrix.vec.plat == 'windows'
@@ -159,6 +157,10 @@ jobs:
       shell: pwsh
       timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+    - name: Fix log permissions for Linux XDP
+      if: failure() && matrix.vec.plat == 'linux' # (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp') doesn't work for some reason
+      run: |
+        sudo chmod -R 777 artifacts
     - name: Upload on Failure
       uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       if: failure()
@@ -236,7 +238,7 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp == '-UseXdp' && '-UseXdp -ForceXdpInstall' || '' }}
+      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: Interop
       shell: pwsh

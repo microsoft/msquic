@@ -71,20 +71,24 @@ param (
     [string]$RemoteName = "netperf-peer",
 
     [Parameter(Mandatory = $false)]
-    [string]$UserName = "secnetperf",
-
-    [Parameter(Mandatory = $false)]
-    [string]$RemotePowershellSupported = "TRUE",
-
-    [Parameter(Mandatory = $false)]
-    [string]$RunId = "0",
-
-    [Parameter(Mandatory = $false)]
-    [string]$SyncerSecret = "0"
+    [string]$UserName = "secnetperf"
 )
 
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
+
+
+$RemotePowershellSupported = $env:netperf_remote_powershell_supported
+$RunId = $env:netperf_run_id
+$SyncerSecret = $env:netperf_syncer_secret
+
+$psVersion = $PSVersionTable.PSVersion
+if ($psVersion.Major -lt 7) {
+    $IsWindows = $true
+}
+
+Write-Host "Running tests with the following parameters:"
+Write-Host "$RemotePowershellSupported, $RunId"
 
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
@@ -110,9 +114,9 @@ if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
-$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
 
-if ($RemotePowershellSupported -eq "TRUE") {
+$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
+if ($RemotePowershellSupported -eq $true) {
 
     # Set up the connection to the peer over remote powershell.
     Write-Host "Connecting to $RemoteName"
@@ -157,7 +161,7 @@ if ($RemotePowershellSupported -eq "TRUE") {
     Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-if (!($environment -eq "azure") -and !($Session -eq "NOT_SUPPORTED")) {
+if ($Session -ne "NOT_SUPPORTED") {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
     Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
     Write-Host "Session: $Session, $(!($Session -eq "NOT_SUPPORTED"))"
@@ -281,8 +285,8 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Install any dependent drivers.
-if ($useXDP -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) { Install-XDP $Session $RemoteDir }
-if ($io -eq "wsk" -and !($Session -eq "NOT_SUPPORTED")) { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
+if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
+if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
@@ -339,7 +343,11 @@ foreach ($testId in $allTests.Keys) {
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
-        $transport = $tcp -eq 1 ? "tcp" : "quic"
+        if ($tcp -eq 1) {
+            $transport = "tcp"
+        } else {
+            $transport = "quic"
+        }
         $json["$testId-$transport"] = $Test.Values[$tcp]
 
         if ($Test.Metric -eq "latency") {

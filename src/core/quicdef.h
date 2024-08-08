@@ -348,7 +348,7 @@ CXPLAT_STATIC_ASSERT(
 // The minimum number of bytes of send allowance we must have before we will
 // send another packet.
 //
-#define QUIC_MIN_SEND_ALLOWANCE                 75
+#define QUIC_MIN_SEND_ALLOWANCE                 76  // Magic number to indicate a threshold of 'enough' allowance to send another packet.
 
 //
 // The minimum buffer space that we require before we will pack another
@@ -528,6 +528,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_NET_STATS_EVENT_ENABLED         FALSE
 
 //
+// The default settings for using multiple parallel receives for streams.
+//
+#define QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED    FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -633,6 +638,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
+#define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"

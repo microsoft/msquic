@@ -426,6 +426,7 @@ typedef struct QUIC_CONNECTION {
     //
     BOOLEAN WorkerProcessing : 1;
     BOOLEAN HasQueuedWork : 1;
+    BOOLEAN HasPriorityWork : 1;
 
     //
     // Set of current reasons sending more packets is currently blocked.
@@ -1143,7 +1144,8 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     );
 
 //
