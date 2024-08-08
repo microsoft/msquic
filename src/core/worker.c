@@ -301,25 +301,30 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerMoveConnection(
     _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ BOOLEAN IsPriority
     )
 {
     CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
+    CXPLAT_DBG_ASSERT(Connection->HasQueuedWork);
 
     CxPlatDispatchLockAcquire(&Worker->Lock);
 
-    BOOLEAN WakeWorkerThread = QuicWorkerIsIdle(Worker);
-
-    if (Connection->HasQueuedWork) {
-        Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
-        QuicTraceEvent(
-            ConnScheduleState,
-            "[conn][%p] Scheduling: %u",
-            Connection,
-            QUIC_SCHEDULE_QUEUED);
-        QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
+    const BOOLEAN WakeWorkerThread = QuicWorkerIsIdle(Worker);
+    Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
+    if (IsPriority) {
+        CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
+        Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
+        Connection->HasPriorityWork = TRUE;
+    } else {
         CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);
     }
+    QuicTraceEvent(
+        ConnScheduleState,
+        "[conn][%p] Scheduling: %u",
+        Connection,
+        QUIC_SCHEDULE_QUEUED);
+    QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
 
     CxPlatDispatchLockRelease(&Worker->Lock);
 
@@ -549,8 +554,9 @@ QuicWorkerProcessConnection(
     //
     // Process some operations.
     //
+    BOOLEAN StillHasPriorityWork = FALSE;
     BOOLEAN StillHasWorkToDo =
-        QuicConnDrainOperations(Connection) | Connection->State.UpdateWorker;
+        QuicConnDrainOperations(Connection, &StillHasPriorityWork) | Connection->State.UpdateWorker;
     Connection->WorkerThreadID = 0;
 
     //
@@ -564,11 +570,7 @@ QuicWorkerProcessConnection(
     if (!Connection->State.UpdateWorker) {
         if (Connection->HasQueuedWork) {
             Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
-            CxPlatDispatchLockAcquire(&Connection->OperQ.Lock);
-            BOOLEAN HasPriorityWork = (&Connection->OperQ.List.Flink != Connection->OperQ.PriorityTail);
-            CxPlatDispatchLockRelease(&Connection->OperQ.Lock);
-            if (HasPriorityWork) {
-                // priority operations are still pending
+            if (StillHasPriorityWork) {
                 CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
                 Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
                 Connection->HasPriorityWork = TRUE;
@@ -605,7 +607,7 @@ QuicWorkerProcessConnection(
             CXPLAT_FRE_ASSERT(Connection->Registration != NULL);
             QuicRegistrationQueueNewConnection(Connection->Registration, Connection);
             CXPLAT_DBG_ASSERT(Worker != Connection->Worker);
-            QuicWorkerMoveConnection(Connection->Worker, Connection);
+            QuicWorkerMoveConnection(Connection->Worker, Connection, StillHasPriorityWork);
         }
 
         //
