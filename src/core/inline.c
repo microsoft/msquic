@@ -816,3 +816,9 @@ QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint64_t TimeNow
     );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicOperationHasPriority(
+    _In_ QUIC_OPERATION_QUEUE* OperQ
+    );
