@@ -564,7 +564,10 @@ QuicWorkerProcessConnection(
     if (!Connection->State.UpdateWorker) {
         if (Connection->HasQueuedWork) {
             Connection->Stats.Schedule.LastQueueTime = CxPlatTimeUs32();
-            if (&Connection->OperQ.List.Flink != Connection->OperQ.PriorityTail) {
+            CxPlatDispatchLockAcquire(&Connection->OperQ.Lock);
+            BOOLEAN HasPriorityWork = (&Connection->OperQ.List.Flink != Connection->OperQ.PriorityTail);
+            CxPlatDispatchLockRelease(&Connection->OperQ.Lock);
+            if (HasPriorityWork) {
                 // priority operations are still pending
                 CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
                 Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
