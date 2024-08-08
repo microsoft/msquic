@@ -278,7 +278,7 @@ QuicWorkerQueuePriorityConnection(
             QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
             ConnectionQueued = TRUE;
         } else { // Moving from normal priority to high priority
-            CxPlatListEntryRemove(&Connection->WorkerLink);
+           CxPlatListEntryRemove(&Connection->WorkerLink);
         }
         CxPlatListInsertTail(*Worker->PriorityConnectionsTail, &Connection->WorkerLink);
         Worker->PriorityConnectionsTail = &Connection->WorkerLink.Flink;
