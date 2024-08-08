@@ -726,8 +726,7 @@ TEST_F(DataPathTest, UdpBind)
     CxPlatSocket Socket(Datapath);
     VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
     ASSERT_NE(nullptr, Socket.Socket);
-    QUIC_ADDR LocalAddr = Socket.GetLocalAddress();
-    ASSERT_NE(LocalAddr.Ipv4.sin_port, (uint16_t)0);
+    ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
 TEST_F(DataPathTest, UdpRebind)
