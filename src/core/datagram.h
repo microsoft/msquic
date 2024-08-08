@@ -103,3 +103,9 @@ QuicDatagramProcessFrame(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramCancelBlocked(
+    _In_ QUIC_CONNECTION* Connection
+    );
