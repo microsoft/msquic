@@ -695,8 +695,13 @@ TEST_F(DataPathTest, InitializeInvalid)
         ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
-#ifdef _WIN32
-#elif CX_PLATFORM_LINUX
+    if (!UseDuoNic) {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        ASSERT_EQ(QUIC_STATUS_NOT_SUPPORTED, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+    }
+#ifdef CX_PLATFORM_LINUX
     uid_t OriginalUid = getuid();
     if (UseDuoNic && OriginalUid == 0) // sudo execution
     {
@@ -721,7 +726,13 @@ TEST_F(DataPathTest, UdpBind)
     CxPlatSocket Socket(Datapath);
     VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
     ASSERT_NE(nullptr, Socket.Socket);
-    ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+    QUIC_ADDR LocalAddr = Socket.GetLocalAddress();
+    ASSERT_NE(LocalAddr.Ipv4.sin_port, (uint16_t)0);
+    if (!UseDuoNic) {
+        // [::] or [fc00::1:11]
+        bool Any = memcmp(&LocalAddr.Ipv6.sin6_addr, &in6addr_any, sizeof(in6addr_any)) == 0;
+        ASSERT_TRUE((!UseDuoNic ^ Any));
+    }
 }
 
 TEST_F(DataPathTest, UdpRebind)
