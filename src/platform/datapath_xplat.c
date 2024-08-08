@@ -57,6 +57,8 @@ CxPlatDataPathInitialize(
                 RawDatapathInitFail,
                 "[ raw] Failed to initialize raw datapath, status:%d", Status);
             (*NewDataPath)->RawDataPath = NULL;
+            CxPlatDataPathUninitialize(*NewDataPath);
+            *NewDataPath = NULL;
         }
     }
 
