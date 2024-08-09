@@ -46,40 +46,12 @@ RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsof
     sudo apt-get install -y \
         # INSTALL POWERSHELl
         powershell \
+        iproute2 iptables \
    && rm -rf /var/lib/apt/lists/*
 
 RUN git config --global safe.directory '*'
 
-# Stage 2-2: dependencies for cross-build
-FROM base AS cross-build
-
-RUN apt-get update && apt-get install -y \
-    gcc-arm-linux-gnueabihf \
-    g++-arm-linux-gnueabihf \
-    binutils-arm-linux-gnueabihf \
-    gcc-aarch64-linux-gnu \
-    g++-aarch64-linux-gnu \
-    binutils-aarch64-linux-gnu \
-    && rm -rf /var/lib/apt/lists/*
-
-RUN dpkg --add-architecture arm64 && \
-    dpkg --add-architecture armhf
-
-RUN mv /etc/apt/sources.list /etc/apt/sources.list.int && \
-    cat /etc/apt/sources.list.int | grep "^deb" | sed 's/deb /deb [arch=amd64] /g' > /etc/apt/sources.list && \
-    rm /etc/apt/sources.list.int
-
-RUN echo $' \n\
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal main restricted universe multiverse \n\
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-updates main restricted universe multiverse \n\
-deb [arch=armhf,arm64] http://ports.ubuntu.com/ focal-backports main restricted universe multiverse \n\
-' > /etc/apt/sources.list.d/arm-cross-compile-sources.list
-
-RUN apt-get update \
-    && apt-get install --no-install-recommends -y liblttng-ust-dev:arm64 \
-    liblttng-ust-dev:armhf \
-    libssl-dev:arm64 \
-    libssl-dev:armhf \
-    libnuma-dev:arm64 \
-    libnuma-dev:armhf \
-    && rm -rf /var/lib/apt/lists/*
+RUN git clone https://github.com/microsoft/msquic /msquic && \
+    cd /msquic && \
+    pwsh ./scripts/prepare-machine.ps1 -Tls openssl && \
+    pwsh ./scripts/build.ps1 -Config Release -Tls openssl
