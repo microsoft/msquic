@@ -1,3 +1,4 @@
+cd ~
 sudo apt-get update -y
 sudo apt-get install -y tmux zsh tree htop cgdb gdb git tig gpg wget apt-transport-https
 # oh-my-tmux
