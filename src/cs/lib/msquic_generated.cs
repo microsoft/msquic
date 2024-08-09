@@ -162,6 +162,7 @@ namespace Microsoft.Quic
         FAIL_BLOCKED = 0x0002,
         SHUTDOWN_ON_FAIL = 0x0004,
         INDICATE_PEER_ACCEPT = 0x0008,
+        PRIORITY_WORK = 0x0010,
     }
 
     [System.Flags]
@@ -194,6 +195,7 @@ namespace Microsoft.Quic
         DGRAM_PRIORITY = 0x0008,
         DELAY_SEND = 0x0010,
         CANCEL_ON_LOSS = 0x0020,
+        PRIORITY_WORK = 0x0040,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -1347,6 +1349,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong StreamMultiReceiveEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.StreamMultiReceiveEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.StreamMultiReceiveEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1963,17 +1978,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 22")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong StreamMultiReceiveEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 42) & 0x3FFFFFUL;
+                        return (_bitfield >> 42) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFUL << 42)) | ((value & 0x3FFFFFUL) << 42);
+                        _bitfield = (_bitfield & ~(0x1UL << 42)) | ((value & 0x1UL) << 42);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 21")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 43) & 0x1FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFUL << 43)) | ((value & 0x1FFFFFUL) << 43);
                     }
                 }
             }
@@ -2064,17 +2093,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 59")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong StreamMultiReceiveEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 5) & 0x7FFFFFFUL;
+                        return (_bitfield >> 5) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 5)) | ((value & 0x7FFFFFFUL) << 5);
+                        _bitfield = (_bitfield & ~(0x1UL << 5)) | ((value & 0x1UL) << 5);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 58")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 6) & 0x3FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 6)) | ((value & 0x3FFFFFFUL) << 6);
                     }
                 }
             }
@@ -3260,6 +3303,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_PREFIX_STREAM 0x08000000")]
         internal const uint QUIC_PARAM_PREFIX_STREAM = 0x08000000;
+
+        [NativeTypeName("#define QUIC_PARAM_HIGH_PRIORITY 0x40000000")]
+        internal const uint QUIC_PARAM_HIGH_PRIORITY = 0x40000000;
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT 0x01000000")]
         internal const uint QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT = 0x01000000;

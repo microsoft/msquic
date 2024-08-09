@@ -719,6 +719,28 @@ QuicConnQueueOper(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicConnQueuePriorityOper(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
+    )
+{
+#if DEBUG
+    if (!Connection->State.Initialized) {
+        CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+#endif
+    if (QuicOperationEnqueuePriority(&Connection->OperQ, Oper)) {
+        //
+        // The connection needs to be queued on the worker because this was the
+        // first operation in our OperQ.
+        //
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicConnQueueHighestPriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
@@ -729,7 +751,7 @@ QuicConnQueueHighestPriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection);
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
@@ -7537,7 +7559,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
     QUIC_OPERATION* Oper;
@@ -7697,5 +7720,10 @@ QuicConnDrainOperations(
 
     QuicConnValidate(Connection);
 
-    return HasMoreWorkToDo;
+    if (HasMoreWorkToDo) {
+        *StillHasPriorityWork = QuicOperationHasPriority(&Connection->OperQ);
+        return TRUE;
+    }
+
+    return FALSE;
 }

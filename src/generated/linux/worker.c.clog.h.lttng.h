@@ -20,7 +20,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, IndicateIdealProcChanged,
         unsigned short, arg3,
         unsigned short, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned short, arg4, arg4)
     )
@@ -41,7 +41,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, AbandonOnLibShutdown,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -66,9 +66,9 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCreated,
         unsigned short, arg3,
         const void *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
-        ctf_integer_hex(uint64_t, arg4, arg4)
+        ctf_integer_hex(uint64_t, arg4, (uint64_t)arg4)
     )
 )
 
@@ -93,7 +93,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerErrorStatus,
         unsigned int, arg3,
         const char *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -114,7 +114,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerCleanup,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -133,7 +133,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerDestroyed,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -155,8 +155,8 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, ConnAssignWorker,
         const void *, arg2,
         const void *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -178,7 +178,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, ConnScheduleState,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -201,7 +201,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerQueueDelayUpdated,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -227,7 +227,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerActivityStateUpdated,
         unsigned char, arg3,
         unsigned int, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -248,7 +248,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStart,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -267,7 +267,7 @@ TRACEPOINT_EVENT(CLOG_WORKER_C, WorkerStop,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 

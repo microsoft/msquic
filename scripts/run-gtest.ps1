@@ -379,7 +379,11 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
 # Asynchronously starts a single msquictest test case running.
 function Start-TestCase([String]$Name, [int]$Trial = 1) {
 
-    $InstanceName = $Name.Replace("/", "_")
+    # Get a string of invalid chars for filenames
+    $InvalidChars = [System.IO.Path]::GetInvalidFileNameChars() -join ''
+    # Escape those chars for use in a regex and put them inside a regex set (the square brackets)
+    $InvalidCharsToReplace = "[{0}]" -f [RegEx]::Escape($InvalidChars)
+    $InstanceName = $Name -replace $InvalidCharsToReplace, "_"
     $LocalLogDir = Join-Path $LogDir ($InstanceName + "_$Trial")
     mkdir $LocalLogDir | Out-Null
 
