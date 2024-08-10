@@ -1,6 +1,11 @@
 cd ~
 sudo apt-get update -y
-sudo apt-get install -y tmux zsh tree htop cgdb gdb git tig gpg wget apt-transport-https
+sudo apt-get install -y tmux zsh tree htop cgdb gdb git tig gpg wget apt-transport-https cloud-guest-utils
+
+# expand /dev/sda1
+sudo growpart /dev/sda 1
+sudo resize2fs /dev/sda1
+
 # oh-my-tmux
 git clone https://github.com/gpakosz/.tmux.git
 ln -s -f .tmux/.tmux.conf
