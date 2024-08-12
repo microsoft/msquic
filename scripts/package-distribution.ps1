@@ -8,14 +8,11 @@
 
 param (
     [Parameter(Mandatory = $false)]
-    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "")]
-    [string]$OS = ""
+    [switch]$UseXdp
 )
 
-$UseXdp = $false
 $Time64Distro = $false
-if ($OS -eq "ubuntu_2404") {
-    $UseXdp = $true
+if ($UseXdp) {
     $Time64Distro = $true
 }
 

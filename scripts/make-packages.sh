@@ -151,25 +151,51 @@ if [ "$OS" == "linux" ]; then
     if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
       BITS='64bit'
     fi
-    fpm \
-      --force \
-      --input-type dir \
-      --output-type rpm \
-      --architecture ${PKGARCH} \
-      --name ${NAME} \
-      --provides ${NAME} \
-      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
-      --depends "libnuma.so.1()(${BITS})" \
-      --conflicts ${CONFLICTS} \
-      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-      --description "${DESCRIPTION}" \
-      --vendor "${VENDOR}" \
-      --maintainer "${MAINTAINER}" \
-      --package "${OUTPUT}" \
-      --license MIT \
-      --url https://github.com/microsoft/msquic \
-      --log error \
-      ${FILES}
+    if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
+      echo "Building rpm package (XDP)"
+      fpm \
+        --force \
+        --input-type dir \
+        --output-type rpm \
+        --architecture ${PKGARCH} \
+        --name ${NAME} \
+        --provides ${NAME} \
+        --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+        --depends "libnuma.so.1()(${BITS})" \
+        --depends "libxdp.so.1.4.0" \
+        --depends "libnl-route-3.so.200" \
+        --conflicts ${CONFLICTS} \
+        --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+        --description "${DESCRIPTION}" \
+        --vendor "${VENDOR}" \
+        --maintainer "${MAINTAINER}" \
+        --package "${OUTPUT}" \
+        --license MIT \
+        --url https://github.com/microsoft/msquic \
+        --log error \
+        ${FILES}
+    else
+      echo "Building rpm package"
+      fpm \
+        --force \
+        --input-type dir \
+        --output-type rpm \
+        --architecture ${PKGARCH} \
+        --name ${NAME} \
+        --provides ${NAME} \
+        --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+        --depends "libnuma.so.1()(${BITS})" \
+        --conflicts ${CONFLICTS} \
+        --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+        --description "${DESCRIPTION}" \
+        --vendor "${VENDOR}" \
+        --maintainer "${MAINTAINER}" \
+        --package "${OUTPUT}" \
+        --license MIT \
+        --url https://github.com/microsoft/msquic \
+        --log error \
+        ${FILES}
+    fi
   fi
 
   # Debian/Ubuntu
