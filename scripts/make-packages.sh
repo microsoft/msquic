@@ -194,7 +194,7 @@ if [ "$OS" == "linux" ]; then
         --license MIT \
         --url https://github.com/microsoft/msquic \
         --log error \
-        ${FILES}
+        ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
     fi
   fi
 
