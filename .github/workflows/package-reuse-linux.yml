@@ -96,7 +96,7 @@ jobs:
         find -name "*.tar" -exec tar -xvf '{}' \;
     - name: Build Package
       shell: pwsh
-      run: scripts/package-distribution.ps1
+      run: scripts/package-distribution.ps1 -OS ${{ inputs.os }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
       with:

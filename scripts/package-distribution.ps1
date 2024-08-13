@@ -8,9 +8,22 @@
 
 param (
     [Parameter(Mandatory = $false)]
-    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "")]
+    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "")]
     [string]$OS = ""
 )
+
+# Convert GH Actions OS names to our internal names
+if ($OS -eq "ubuntu-20.04") {
+    $OS = "ubuntu_2004"
+}
+
+if ($OS -eq "ubuntu-22.04") {
+    $OS = "ubuntu_2204"
+}
+
+if ($OS -eq "ubuntu-24.04") {
+    $OS = "ubuntu_2404"
+}
 
 $UseXdp = $false
 $Time64Distro = $false
