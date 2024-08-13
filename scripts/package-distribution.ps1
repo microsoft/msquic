@@ -8,7 +8,7 @@
 
 param (
     [Parameter(Mandatory = $false)]
-    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "")]
+    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "")]
     [string]$OS = ""
 )
 
