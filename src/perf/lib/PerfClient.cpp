@@ -229,7 +229,8 @@ PerfClient::Init(
                 nullptr,
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
-                PerfClientConnection::TcpSendCompleteCallback));
+                PerfClientConnection::TcpSendCompleteCallback,
+                TCP_EXECUTION_PROFILE_MAX_THROUGHPUT)); // TODO: Client should always be max tput?
     } else {
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;

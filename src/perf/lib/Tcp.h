@@ -95,12 +95,14 @@ public:
     const TcpConnectHandler ConnectHandler;
     const TcpReceiveHandler ReceiveHandler;
     const TcpSendCompleteHandler SendCompleteHandler;
+    const TCP_EXECUTION_PROFILE TcpExecutionProfile;
 public:
     TcpEngine(
         TcpAcceptHandler AcceptHandler,
         TcpConnectHandler ConnectHandler,
         TcpReceiveHandler ReceiveHandler,
-        TcpSendCompleteHandler SendCompleteHandler) noexcept;
+        TcpSendCompleteHandler SendCompleteHandler,
+        TCP_EXECUTION_PROFILE TcpExecutionProfile) noexcept;
     ~TcpEngine() noexcept;
     bool IsInitialized() const { return Initialized; }
     bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
