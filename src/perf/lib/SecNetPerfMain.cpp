@@ -22,7 +22,7 @@ PerfClient* Client;
 
 uint32_t MaxRuntime = 0;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
-TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
+TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
@@ -200,10 +200,8 @@ QuicMainStart(
             TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
         } else if (IsValue(ExecStr, "scavenger")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
-            // TODO: Should we add a scavenger profile for TCP?
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
-            // TODO: Should we add a realtime profile for TCP?
         } else {
             WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, maxtput as default for TCP.\n", ExecStr);
         }
