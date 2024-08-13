@@ -12,6 +12,19 @@ param (
     [string]$OS = ""
 )
 
+# Convert GH Actions OS names to our internal names
+if ($OS -eq "ubuntu-20.04") {
+    $OS = "ubuntu_2004"
+}
+
+if ($OS -eq "ubuntu-22.04") {
+    $OS = "ubuntu_2204"
+}
+
+if ($OS -eq "ubuntu-24.04") {
+    $OS = "ubuntu_2404"
+}
+
 $UseXdp = $false
 $Time64Distro = $false
 if ($OS -eq "ubuntu_2404") {
