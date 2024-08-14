@@ -351,17 +351,17 @@ function Install-TestCertificates {
         Write-Debug "Found existing MsQuicTestRoot certificate!"
     }
 
-    $NewRsaRoot = $false
+    $NewRootRsa = $false
     Write-Debug "Searching for MsQuicTestRootRSA certificate..."
     $RootCertRsa = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRootRSA"}
     if (!$RootCertRsa) {
         Write-Host "MsQuicTestRootRSA not found! Creating new MsQuicTestRootRSA certificate..."
-        $RootCertRsa = New-SelfSignedCertificate -Subject "CN=MsQuicTestRootRSA" -FriendlyName MsQuicTestRootRSA -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA-NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
+        $RootCertRsa = New-SelfSignedCertificate -Subject "CN=MsQuicTestRootRSA" -FriendlyName MsQuicTestRootRSA -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
         $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRootRSA.cer"
         Export-Certificate -Type CERT -Cert $RootCertRsa -FilePath $TempRootPath
         CertUtil.exe -addstore Root $TempRootPath 2>&1 | Out-Null
         Remove-Item $TempRootPath
-        $NewRsaRoot = $true
+        $NewRootRsa = $true
         Write-Host "New MsQuicTestRootRSA certificate installed!"
     } else {
         Write-Debug "Found existing MsQuicTestRootRSA certificate!"
