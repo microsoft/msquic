@@ -203,7 +203,7 @@ QuicMainStart(
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, maxtput as default for TCP.\n", ExecStr);
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, lowlat as default for TCP.\n", ExecStr);
         }
     }
 
