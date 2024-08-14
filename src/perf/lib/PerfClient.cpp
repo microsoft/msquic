@@ -230,7 +230,7 @@ PerfClient::Init(
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
                 PerfClientConnection::TcpSendCompleteCallback,
-                TCP_EXECUTION_PROFILE_MAX_THROUGHPUT)); // TODO: Client should always be max tput?
+                TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;
