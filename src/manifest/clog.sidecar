@@ -5644,6 +5644,22 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
+    "IgnoreRecvFlushByReadPending": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%lu)",
+      "UniqueId": "IgnoreRecvFlushByReadPending",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "IgnoreUnreachable": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ignoring received unreachable event (inline)",
@@ -10994,6 +11010,30 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "SettingsStreamMultiReceiveEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamMultiReceiveEnabled= %hhu",
+      "UniqueId": "SettingsStreamMultiReceiveEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingStreamMultiReceiveEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] StreamMultiReceiveEnabled  = %hhu",
+      "UniqueId": "SettingStreamMultiReceiveEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "ShutdownImmediatePendingReliableReset": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset).",
@@ -14897,6 +14937,11 @@
         "EncodingString": "[strm][%p] Ignoring recv flush (recv disabled)"
       },
       {
+        "UniquenessHash": "1537935d-ab2d-521e-a290-e59e29d2626d",
+        "TraceID": "IgnoreRecvFlushByReadPending",
+        "EncodingString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%llu)"
+      },
+      {
         "UniquenessHash": "1e752977-c5b3-6034-4b89-414f9c6ff50f",
         "TraceID": "IgnoreUnreachable",
         "EncodingString": "[conn][%p] Ignoring received unreachable event (inline)"
@@ -16650,6 +16695,16 @@
         "UniquenessHash": "81035efa-7e5c-22d0-3a02-16a2f7cc7f1f",
         "TraceID": "SettingsLoadInvalidOfferedVersion",
         "EncodingString": "Invalid OfferedVersion loaded from storage! 0x%x at position %d"
+      },
+      {
+        "UniquenessHash": "7db0f817-cc89-749d-01ec-356d35f7189a",
+        "TraceID": "SettingsStreamMultiReceiveEnabled",
+        "EncodingString": "[sett] StreamMultiReceiveEnabled= %hhu"
+      },
+      {
+        "UniquenessHash": "45ba4873-08cc-5dee-18d4-fe33c464ee1f",
+        "TraceID": "SettingStreamMultiReceiveEnabled",
+        "EncodingString": "[sett] StreamMultiReceiveEnabled  = %hhu"
       },
       {
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",

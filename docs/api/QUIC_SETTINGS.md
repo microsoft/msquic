@@ -54,7 +54,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
-            uint64_t RESERVED                               : 22;
+            uint64_t StreamMultiReceiveEnabled              : 1;
+            uint64_t RESERVED                               : 21;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -104,7 +105,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
-            uint64_t ReservedFlags             : 59;
+            uint64_t StreamMultiReceiveEnabled : 1;
+            uint64_t ReservedFlags             : 58;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -350,6 +352,12 @@ Initial stream receive flow control window size for remotely initiated bidirecti
 Initial stream receive flow control window size for remotely initiated unidirectional streams. If set, this value overwrites the `StreamRecvWindowDefault`.
 
 **Default value:** 0 (no overwrite)
+
+`StreamMultiReceiveEnabled`
+
+Enable multi receive mode. An app can continue receiving stream data without calling `StreamReceiveComplete` for each `QUIC_STREAM_EVENT_RECEIVE` indication.
+
+**Default value:** 0 (`FALSE`)
 
 # Remarks
 
