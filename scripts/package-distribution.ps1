@@ -6,32 +6,6 @@
 
 #>
 
-param (
-    [Parameter(Mandatory = $false)]
-    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "")]
-    [string]$OS = ""
-)
-
-# Convert GH Actions OS names to our internal names
-if ($OS -eq "ubuntu-20.04") {
-    $OS = "ubuntu_2004"
-}
-
-if ($OS -eq "ubuntu-22.04") {
-    $OS = "ubuntu_2204"
-}
-
-if ($OS -eq "ubuntu-24.04") {
-    $OS = "ubuntu_2404"
-}
-
-$UseXdp = $false
-$Time64Distro = $false
-if ($OS -eq "ubuntu_2404") {
-    $UseXdp = $true
-    $Time64Distro = $true
-}
-
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -139,6 +113,17 @@ foreach ($Build in $AllBuilds) {
 
     if ($Platform -eq "windows" -or $Platform -eq "uwp" -or $Platform -eq "gamecore_console") {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
+    }
+
+    # if datapath_raw_xdp_kern.o exists under $ArtifactsDir, $UseXdp to be true
+    $Time64Distro = $false
+    $UseXdp = $false
+    if ($Platform -eq "linux") {
+        $XdpBin = Join-Path $ArtifactsDir "datapath_raw_xdp_kern.o"
+        if (Test-Path $XdpBin) {
+            $UseXdp = $true
+            $Time64Distro = $true
+        }
     }
 
     # Copy items into temp folder that can be zipped in 1 command
