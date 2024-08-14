@@ -33,6 +33,9 @@ jobs:
           { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -40,42 +43,37 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
+      xdp: ${{ matrix.vec.xdp }}
 
   test-packages:
     name: Test Linux Packages
     needs: [build-packages]
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         vec: [
           { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
         ]
+    runs-on: ${{ matrix.vec.os }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@a5ac7e51b41094c92402da3b24376905380afc29
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest
     - name: Download Package
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Install Package
       run: |
         sudo apt-add-repository ppa:lttng/stable-2.13
         sudo apt-get update
         sudo apt-get install -y lttng-tools
-        sudo find -name "*.deb" -exec dpkg -i {} \;
+        sudo find -name "*.deb" -exec sudo apt install -y ./{} \;
         rm artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/libmsquic.so*
         ls artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}
     - name: Test

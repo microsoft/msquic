@@ -577,8 +577,24 @@ QuicTestStreamReliableResetMultipleSends(
     );
 
 void
+QuicTestStreamMultiReceive(
+    );
+
+void
 QuicTestStreamBlockUnblockConnFlowControl(
     _In_ BOOLEAN Bidirectional
+    );
+
+void
+QuicTestOperationPriority(
+    );
+
+void
+QuicTestConnectionPriority(
+    );
+
+void
+QuicTestConnectionStreamStartSendPriority(
     );
 
 void
@@ -1300,6 +1316,15 @@ typedef struct {
 #define IOCTL_QUIC_RUN_NTH_PACKET_DROP \
     QUIC_CTL_CODE(121, METHOD_BUFFERED, FILE_WRITE_DATA)
 
+#define IOCTL_QUIC_RUN_OPERATION_PRIORITY \
+    QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_CONNECTION_PRIORITY \
+    QUIC_CTL_CODE(123, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
+    QUIC_CTL_CODE(124, METHOD_BUFFERED, FILE_WRITE_DATA)
+
 typedef struct {
     QUIC_CREDENTIAL_CONFIG CredConfig;
     QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;
@@ -1310,6 +1335,6 @@ typedef struct {
 } QUIC_RUN_CERT_ALG_VALIDATION;
 
 #define IOCTL_QUIC_RUN_CERT_ALG_VALIDATION \
-    QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 122
+#define QUIC_MAX_IOCTL_FUNC_CODE 125

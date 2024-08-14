@@ -14,6 +14,8 @@ CONFIG=Release
 NAME=libmsquic
 TLS=openssl
 TLSVERSION=1.1
+TIME64DISTRO="False"
+XDP="False"
 CONFLICTS=
 DESCRIPTION="Microsoft implementation of the IETF QUIC protocol"
 VENDOR="Microsoft"
@@ -85,6 +87,14 @@ while :; do
             shift
             OUTPUT=$1
             ;;
+        -x|-xdp|--xdp)
+            shift
+            XDP=$1
+            ;;
+        -time64|--time64)
+            shift
+            TIME64DISTRO=$1
+            ;;
         -t|-tls|--tls)
             shift
             TLS=$1
@@ -129,34 +139,38 @@ echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
-  # RedHat/CentOS
-  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
-  FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
-  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
-     FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
-  fi
-  if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
+  # XDP is only validated on Ubuntu 24.04 and x64
+  if [ "$XDP" == "False" ] || [[ "$ARCH" == arm* ]]; then
+    echo "Building rpm package"
+    # RedHat/CentOS
+    FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+    FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
+    if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+       FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+    fi
+    if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
       BITS='64bit'
+    fi
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type rpm \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+      --depends "libnuma.so.1()(${BITS})" \
+      --conflicts ${CONFLICTS} \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES}
   fi
-  fpm \
-    --force \
-    --input-type dir \
-    --output-type rpm \
-    --architecture ${PKGARCH} \
-    --name ${NAME} \
-    --provides ${NAME} \
-    --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
-    --depends "libnuma.so.1()(${BITS})" \
-    --conflicts ${CONFLICTS} \
-    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-    --description "${DESCRIPTION}" \
-    --vendor "${VENDOR}" \
-    --maintainer "${MAINTAINER}" \
-    --package "${OUTPUT}" \
-    --license MIT \
-    --url https://github.com/microsoft/msquic \
-    --log error \
-    ${FILES}
 
   # Debian/Ubuntu
   if [ "$ARCH" == 'x64' ]; then
@@ -174,25 +188,57 @@ if [ "$OS" == "linux" ]; then
   if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
   fi
-  fpm \
-    --force \
-    --input-type dir \
-    --output-type deb \
-    --architecture ${PKGARCH} \
-    --name ${NAME} \
-    --provides ${NAME} \
-    --conflicts ${CONFLICTS} \
-    --depends "libssl${TLSVERSION}" \
-    --depends "libnuma1" \
-    --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
-    --description "${DESCRIPTION}" \
-    --vendor "${VENDOR}" \
-    --maintainer "${MAINTAINER}" \
-    --package "${OUTPUT}" \
-    --license MIT \
-    --url https://github.com/microsoft/msquic \
-    --log error \
-    ${FILES}
+
+  BITS=''
+  if [ "$TIME64DISTRO" == "True" ]; then
+      BITS='t64'
+  fi
+
+  if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
+    echo "Building deb package (XDP)"
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type deb \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --conflicts ${CONFLICTS} \
+      --depends "libssl${TLSVERSION}${BITS}" \
+      --depends "libnuma1" \
+      --depends "libxdp1" \
+      --depends "libnl-route-3-200" \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
+  else
+    echo "Building deb package"
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type deb \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --conflicts ${CONFLICTS} \
+      --depends "libssl${TLSVERSION}${BITS}" \
+      --depends "libnuma1" \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES}
+  fi
 fi
 
 # macOS

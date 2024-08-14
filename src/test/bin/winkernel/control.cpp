@@ -520,6 +520,9 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(uint32_t),
     sizeof(BOOLEAN),
     0,
+    0,
+    0,
+    0,
     sizeof(QUIC_RUN_CERT_ALG_VALIDATION),
 };
 
@@ -1452,6 +1455,18 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_NTH_PACKET_DROP:
         QuicTestCtlRun(QuicTestNthPacketDrop());
+        break;
+
+    case IOCTL_QUIC_RUN_OPERATION_PRIORITY:
+        QuicTestCtlRun(QuicTestOperationPriority());
+
+    case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
+        QuicTestCtlRun(QuicTestStreamMultiReceive());
+
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
+        QuicTestCtlRun(QuicTestConnectionPriority());
         break;
 
     case IOCTL_QUIC_RUN_CERT_ALG_VALIDATION:

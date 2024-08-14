@@ -408,7 +408,7 @@ QuicLossDetectionOnPacketSent(
             "Sent packet metadata",
             SIZEOF_QUIC_SENT_PACKET_METADATA(TempSentPacket->FrameCount));
         QuicLossDetectionRetransmitFrames(LossDetection, TempSentPacket, FALSE);
-        QuicSentPacketMetadataReleaseFrames(TempSentPacket);
+        QuicSentPacketMetadataReleaseFrames(TempSentPacket, Connection);
         return;
     }
 
@@ -623,6 +623,7 @@ QuicLossDetectionOnPacketAcknowledged(
                 Packet->Flags.SuspectedLost ?
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS :
                     QUIC_DATAGRAM_SEND_ACKNOWLEDGED);
+            Packet->Frames[i].DATAGRAM.ClientContext = NULL;
             break;
 
         case QUIC_FRAME_HANDSHAKE_DONE:
@@ -882,7 +883,7 @@ QuicLossDetectionRetransmitFrames(
     Packet->Flags.SuspectedLost = TRUE;
 
     if (ReleasePacket) {
-        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+        QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
     }
 
     return NewDataQueued;
@@ -898,32 +899,20 @@ QuicLossDetectionOnPacketDiscarded(
 {
     QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
 
-    for (uint8_t i = 0; i < Packet->FrameCount; i++) {
-        switch (Packet->Frames[i].Type) {
-
-        case QUIC_FRAME_DATAGRAM:
-        case QUIC_FRAME_DATAGRAM_1:
-            QuicDatagramIndicateSendStateChange(
-                Connection,
-                &Packet->Frames[i].DATAGRAM.ClientContext,
-                QUIC_DATAGRAM_SEND_LOST_DISCARDED);
-            break;
-        }
-        if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
-            uint8_t PathIndex;
-            QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
-            UNREFERENCED_PARAMETER(PathIndex);
-            if (Path != NULL) {
-                uint16_t PacketMtu =
-                    PacketSizeFromUdpPayloadSize(
-                        QuicAddrGetFamily(&Path->Route.RemoteAddress),
-                        Packet->PacketLength);
-                QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
-            }
+    if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
+        uint8_t PathIndex;
+        QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+        UNREFERENCED_PARAMETER(PathIndex);
+        if (Path != NULL) {
+            uint16_t PacketMtu =
+                PacketSizeFromUdpPayloadSize(
+                    QuicAddrGetFamily(&Path->Route.RemoteAddress),
+                    Packet->PacketLength);
+            QuicMtuDiscoveryProbePacketDiscarded(&Path->MtuDiscovery, Connection, PacketMtu);
         }
     }
 
-    QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+    QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 }
 
 //
@@ -1145,7 +1134,7 @@ QuicLossDetectionDiscardPackets(
 
             QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
 
-            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+            QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 
             Packet = NextPacket;
 
@@ -1194,7 +1183,7 @@ QuicLossDetectionDiscardPackets(
 
             QuicLossDetectionOnPacketAcknowledged(LossDetection, EncryptLevel, Packet, TRUE, TimeNow, 0);
 
-            QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, Packet);
+            QuicSentPacketPoolReturnPacketMetadata(Packet, Connection);
 
             Packet = NextPacket;
 
@@ -1628,7 +1617,7 @@ QuicLossDetectionProcessAckBlocks(
     while (AckedPacketsIterator != NULL) {
         QUIC_SENT_PACKET_METADATA* PacketMeta = AckedPacketsIterator;
         AckedPacketsIterator = AckedPacketsIterator->Next;
-        QuicSentPacketPoolReturnPacketMetadata(&Connection->Worker->SentPacketPool, PacketMeta);
+        QuicSentPacketPoolReturnPacketMetadata(PacketMeta, Connection);
     }
 
     //

@@ -139,6 +139,7 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN SendEnabled             : 1;    // Application is allowed to send data.
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
+        BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
