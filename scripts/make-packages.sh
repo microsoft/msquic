@@ -141,7 +141,6 @@ mkdir -p ${OUTPUT}
 if [ "$OS" == "linux" ]; then
   # XDP is only validated on Ubuntu 24.04 and x64
   if [ "$XDP" == "False" ] || [[ "$ARCH" == arm* ]]; then
-    echo "Building rpm package"
     # RedHat/CentOS
     FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
     FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
