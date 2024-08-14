@@ -6,6 +6,32 @@
 
 #>
 
+param (
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("ubuntu_2404", "ubuntu_2204", "ubuntu_2004", "ubuntu-20.04", "ubuntu-22.04", "ubuntu-24.04", "")]
+    [string]$OS = ""
+)
+
+# Convert GH Actions OS names to our internal names
+if ($OS -eq "ubuntu-20.04") {
+    $OS = "ubuntu_2004"
+}
+
+if ($OS -eq "ubuntu-22.04") {
+    $OS = "ubuntu_2204"
+}
+
+if ($OS -eq "ubuntu-24.04") {
+    $OS = "ubuntu_2404"
+}
+
+$UseXdp = $false
+$Time64Distro = $false
+if ($OS -eq "ubuntu_2404") {
+    $UseXdp = $true
+    $Time64Distro = $true
+}
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -19,7 +45,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.4.0"
+$Version = "2.5.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -167,12 +193,13 @@ foreach ($Build in $AllBuilds) {
         if ($BuildBaseName -like "*openssl3*") {
             $Tls = "openssl3"
         }
+
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64Distro # x64
         }
         Set-Location $OldLoc
     }

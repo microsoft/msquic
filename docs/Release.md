@@ -99,6 +99,13 @@ This table describes all officially supported MsQuic releases.
    - Run `cargo publish` from the `release/X.Y` branch.
 9. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
 
+## Publishing Linux packages to packages.microsoft.com (PMC)
+1. The publishing [pipeline](https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068) automatically uploads packages into PMC when a tag is created.
+
+Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint returning errors). The publishing pipeline can be run manually to retry. When running manually, please ensure that the right tag is chosen and the right resources (under "Advanced options") are chosen. By default, the pipeline picks up the latest resources from the official build pipeline which are not always the right ones.
+
+When testing the pipeline, please make sure to comment out the PMC cli commands in [upload-linux-packages.sh](https://github.com/microsoft/msquic/blob/main/scripts/upload-linux-packages.sh) to avoid accidentally publishing packages into prod.
+
 ## Synchronizing with Windows
 
 1. Once the release branch is created, set the pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868) to ingest the release branch into Windows, and run it.
