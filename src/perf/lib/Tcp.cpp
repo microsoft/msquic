@@ -226,14 +226,14 @@ void TcpWorker::Shutdown()
 // Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
 //
 BOOLEAN
-TcpWorker::WorkerLoop(
+TcpWorker::DoWork(
     _Inout_ void* Context,
     _Inout_ CXPLAT_EXECUTION_STATE* // State
     )
 {
     TcpWorker* This = (TcpWorker*)Context;
     TcpConnection* Connection;
-    if (This->Engine->ShuttingDown) {
+    if (This->Engine->Shutdown) {
         return FALSE;
     }
     CxPlatDispatchLockAcquire(&This->Lock);
@@ -252,7 +252,7 @@ TcpWorker::WorkerLoop(
     if (Connection) {
         Connection->Process();
         Connection->Release();
-        This->ExecutionContext.Ready = TRUE;
+        This->ExecutionContext.Ready = TRUE; // Keep this thread hot.
     }
     return TRUE;
 }
@@ -260,14 +260,12 @@ TcpWorker::WorkerLoop(
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
+    BOOLEAN MoreWorkIncoming = TRUE;
 
-    while (true) {
-        BOOLEAN hasMoreWork = WorkerLoop(This, nullptr);
-        if (!hasMoreWork) {
-            break;
-        }
-        if (!This->ExecutionContext.Ready) {
-            CxPlatEventWaitForever(This->WakeEvent);
+    while (MoreWorkIncoming == TRUE) {
+        MoreWorkIncoming = DoWork(This, nullptr);
+        if (!This->ExecutionContext.Ready) { // No work for the moment, but more will come.
+            CxPlatEventWaitForever(This->WakeEvent); // Sleep until there is time to do more work.
         }
         This->ExecutionContext.Ready = FALSE;
     }

@@ -127,7 +127,7 @@ class TcpWorker {
     void Shutdown();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     bool QueueConnection(TcpConnection* Connection);
-    static BOOLEAN WorkerLoop(
+    static BOOLEAN DoWork(
         _Inout_ void* Context,
         _Inout_ CXPLAT_EXECUTION_STATE* State
     );
