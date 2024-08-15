@@ -3076,8 +3076,6 @@ QuicTestConnectValidServerCertificateAlgorithms(
                 if (!Client.WaitForConnectionComplete()) {
                     return;
                 }
-                WriteSslKeyLogFile("sslkeylogfile.txt", ClientSecrets);
-                WriteSslKeyLogFile("sslkeylogfile.txt", ServerSecrets);
                 TEST_EQUAL(ExpectedConnectionSuccess, Client.GetIsConnected());
 
                 if (ExpectedConnectionSuccess) {

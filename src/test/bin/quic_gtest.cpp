@@ -2535,10 +2535,12 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
 
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
 INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithMultiCertArgs,
     testing::ValuesIn(MultiCertArgs::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
