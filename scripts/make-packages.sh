@@ -160,8 +160,8 @@ if [ "$OS" == "linux" ]; then
       --provides ${NAME} \
       --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
       --depends "libnuma.so.1()(${BITS})" \
-      --depends "libxdp.so.1.4.0" \
-      --depends "libnl-route-3.so.200" \
+      --depends "libxdp >= 1.4.0" \
+      --depends "libnl3 >= 3.0" \
       --conflicts ${CONFLICTS} \
       --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
       --description "${DESCRIPTION}" \
