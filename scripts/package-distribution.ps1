@@ -8,13 +8,8 @@
 
 param (
     [Parameter(Mandatory = $false)]
-    [switch]$Time64Distro
+    [switch]$Time64Distro = $false
 )
-
-$Time64 = $false
-if ($Time64Distro) {
-    $Time64 = $true
-}
 
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
@@ -188,11 +183,11 @@ foreach ($Build in $AllBuilds) {
         }
 
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64 # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64Distro # x64
         }
         Set-Location $OldLoc
     }
