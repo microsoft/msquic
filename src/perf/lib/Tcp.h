@@ -21,7 +21,6 @@ class TcpServer;
 class TcpConnection;
 struct TcpFrame;
 
-
 struct TcpSendData {
     TcpSendData* Next;
     uint32_t StreamId : 29;
