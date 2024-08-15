@@ -58,13 +58,6 @@ jobs:
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
     - name: Download Package
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
@@ -80,7 +73,7 @@ jobs:
         sudo apt-add-repository ppa:lttng/stable-2.13
         sudo apt-get update
         sudo apt-get install -y lttng-tools
-        sudo find -name "*.deb" -exec dpkg -i {} \;
+        sudo find -name "*.deb" -exec sudo apt install -y ./{} \;
         rm artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/libmsquic.so*
         ls artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}
     - name: Test
