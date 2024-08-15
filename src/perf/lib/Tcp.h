@@ -21,6 +21,7 @@ class TcpServer;
 class TcpConnection;
 struct TcpFrame;
 
+
 struct TcpSendData {
     TcpSendData* Next;
     uint32_t StreamId : 29;
@@ -112,6 +113,7 @@ public:
 class TcpWorker {
     friend class TcpEngine;
     friend class TcpConnection;
+    CXPLAT_EXECUTION_CONTEXT ExecutionContext;
     bool Initialized{false};
     TcpEngine* Engine{nullptr};
     CXPLAT_THREAD Thread;
@@ -125,6 +127,10 @@ class TcpWorker {
     void Shutdown();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     bool QueueConnection(TcpConnection* Connection);
+    static BOOLEAN WorkerLoop(
+        _Inout_ void* Context,
+        _Inout_ CXPLAT_EXECUTION_STATE* State
+    );
 };
 
 class TcpServer {

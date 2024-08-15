@@ -222,31 +222,54 @@ void TcpWorker::Shutdown()
     }
 }
 
+//
+// Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
+//
+BOOLEAN
+TcpWorker::WorkerLoop(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* // State
+    )
+{
+    TcpWorker* This = (TcpWorker*)Context;
+    TcpConnection* Connection;
+    if (This->Engine->ShuttingDown) {
+        return FALSE;
+    }
+    CxPlatDispatchLockAcquire(&This->Lock);
+    if (!This->Connections) {
+        Connection = nullptr;
+    } else {
+        Connection = This->Connections;
+        This->Connections = Connection->Next;
+        if (This->ConnectionsTail == &Connection->Next) {
+            This->ConnectionsTail = &This->Connections;
+        }
+        Connection->QueuedOnWorker = false;
+        Connection->Next = NULL;
+    }
+    CxPlatDispatchLockRelease(&This->Lock);
+    if (Connection) {
+        Connection->Process();
+        Connection->Release();
+        This->ExecutionContext.Ready = TRUE;
+    }
+    return TRUE;
+}
+
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
 
-    while (!This->Engine->Shutdown) {
-        TcpConnection* Connection;
-        CxPlatDispatchLockAcquire(&This->Lock);
-        if (!This->Connections) {
-            Connection = nullptr;
-        } else {
-            Connection = This->Connections;
-            This->Connections = Connection->Next;
-            if (This->ConnectionsTail == &Connection->Next) {
-                This->ConnectionsTail = &This->Connections;
-            }
-            Connection->QueuedOnWorker = false;
-            Connection->Next = NULL;
+    while (true) {
+        BOOLEAN hasMoreWork = WorkerLoop(This, nullptr);
+        if (!hasMoreWork) {
+            break;
         }
-        CxPlatDispatchLockRelease(&This->Lock);
-        if (Connection) {
-            Connection->Process();
-            Connection->Release();
-        } else {
+        if (!This->ExecutionContext.Ready) {
             CxPlatEventWaitForever(This->WakeEvent);
         }
+        This->ExecutionContext.Ready = FALSE;
     }
 
     CXPLAT_THREAD_RETURN(0);
