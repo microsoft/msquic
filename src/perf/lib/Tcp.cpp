@@ -204,9 +204,9 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t)
     Engine = _Engine;
     CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
 
-    this->ExecutionContext.Callback = DoWork;
-    this->ExecutionContext.Context = this;
-    this->ExecutionContext.Ready = TRUE;
+    ExecutionContext.Callback = DoWork;
+    ExecutionContext.Context = this;
+    ExecutionContext.Ready = TRUE;
 
     if (QUIC_FAILED(
         CxPlatThreadCreate(
