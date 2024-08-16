@@ -257,7 +257,9 @@ TcpWorker::DoWork(
     if (Connection) {
         Connection->Process();
         Connection->Release();
-        This->ExecutionContext.Ready = TRUE; // Keep this thread hot.
+        This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
+    } else {
+        This->ExecutionContext.Ready = FALSE; // No work to do right now.
     }
     return TRUE;
 }
@@ -272,7 +274,6 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
         if (!This->ExecutionContext.Ready) { // No work for the moment, but more will come.
             CxPlatEventWaitForever(This->WakeEvent); // Sleep until there is time to do more work.
         }
-        This->ExecutionContext.Ready = FALSE;
     }
 
     CXPLAT_THREAD_RETURN(0);
