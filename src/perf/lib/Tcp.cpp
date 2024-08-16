@@ -206,10 +206,12 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
     ExecutionContext.Context = this;
     ExecutionContext.Ready = TRUE;
     ExecutionContext.NextTimeUs = 0; // TODO: Figure out why adding this line makes lowlat tcp work?
+    PartitionIndex = AssignedCPU;
 
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
         CxPlatAddExecutionContext(&ExecutionContext, AssignedCPU);
         Initialized = true;
+        IsExternal = true;
         return true;
     }
 

@@ -114,6 +114,8 @@ class TcpWorker {
     friend class TcpConnection;
     CXPLAT_EXECUTION_CONTEXT ExecutionContext;
     bool Initialized{false};
+    bool IsExternal{false};
+    uint16_t PartitionIndex{0};
     TcpEngine* Engine{nullptr};
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
