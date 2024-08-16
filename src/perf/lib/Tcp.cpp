@@ -199,15 +199,20 @@ TcpWorker::~TcpWorker()
     CxPlatEventUninitialize(WakeEvent);
 }
 
-bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t)
+bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
 {
     Engine = _Engine;
-    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
-
     ExecutionContext.Callback = DoWork;
     ExecutionContext.Context = this;
     ExecutionContext.Ready = TRUE;
 
+    if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY && AssignedCPU != UINT16_MAX) {
+        // CxPlatAddExecutionContext(&ExecutionContext, AssignedCPU); TODO - This code does not work.
+        // Initialized = true;
+        // return true;
+    }
+
+    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -258,8 +263,6 @@ TcpWorker::DoWork(
         Connection->Process();
         Connection->Release();
         This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
-    } else {
-        This->ExecutionContext.Ready = FALSE; 
     }
     return TRUE;
 }
@@ -271,6 +274,7 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
         if (This->ExecutionContext.Ready == FALSE) { // No work for the moment, but more will come.
             CxPlatEventWaitForever(This->WakeEvent);
         }
+        This->ExecutionContext.Ready = FALSE;
     }
 
     CXPLAT_THREAD_RETURN(0);
