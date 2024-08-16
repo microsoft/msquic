@@ -81,7 +81,7 @@ jobs:
     runs-on: ${{ matrix.vec.os }}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@v4
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Package
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
@@ -93,9 +93,9 @@ jobs:
         name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@v3
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
     - name: Set up .NET 9.0
-      uses: actions/setup-dotnet@v4
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
       with:
         dotnet-version: ${{ matrix.vec.dotnetVersion }}
     - name: Build .NET QUIC Test Project
