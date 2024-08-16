@@ -58,6 +58,10 @@ jobs:
       run: dotnet tool install --global Microsoft.Performance.Toolkit.Plugins.Cli --version 0.1.25-preview
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
+    - uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      with:
+        name: bin_quictrace_${{ matrix.configuration }}
+        path: artifacts/bin/quictrace/${{ matrix.configuration }}
     - name: Package
       shell: pwsh
       run: |
