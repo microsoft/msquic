@@ -40,6 +40,7 @@ jobs:
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
       xdp: ${{ matrix.vec.xdp }}
+      time64: ${{ matrix.vec.time64 }}
   
   test-packages:
     name: Test Linux Packages
