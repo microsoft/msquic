@@ -259,7 +259,7 @@ TcpWorker::DoWork(
         Connection->Release();
         This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
     } else {
-        This->ExecutionContext.Ready = FALSE; // No work to do right now.
+        This->ExecutionContext.Ready = FALSE; 
     }
     return TRUE;
 }
@@ -267,12 +267,9 @@ TcpWorker::DoWork(
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
-    BOOLEAN MoreWorkIncoming = TRUE;
-
-    while (MoreWorkIncoming == TRUE) {
-        MoreWorkIncoming = DoWork(This, nullptr);
-        if (!This->ExecutionContext.Ready) { // No work for the moment, but more will come.
-            CxPlatEventWaitForever(This->WakeEvent); // Sleep until there is time to do more work.
+    while (DoWork(This, nullptr)) {
+        if (This->ExecutionContext.Ready == FALSE) { // No work for the moment, but more will come.
+            CxPlatEventWaitForever(This->WakeEvent);
         }
     }
 
