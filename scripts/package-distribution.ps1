@@ -6,6 +6,11 @@
 
 #>
 
+param (
+    [Parameter(Mandatory = $false)]
+    [switch]$Time64Distro = $false
+)
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -116,13 +121,11 @@ foreach ($Build in $AllBuilds) {
     }
 
     # if datapath_raw_xdp_kern.o exists under $ArtifactsDir, $UseXdp to be true
-    $Time64Distro = $false
     $UseXdp = $false
     if ($Platform -eq "linux") {
         $XdpBin = Join-Path $ArtifactsDir "datapath_raw_xdp_kern.o"
         if (Test-Path $XdpBin) {
             $UseXdp = $true
-            $Time64Distro = $true
         }
     }
 
