@@ -114,7 +114,7 @@ TcpEngine::TcpEngine(
 {
     CxPlatListInitializeHead(&Connections);
     for (uint16_t i = 0; i < ProcCount; ++i) {
-        if (!Workers[i].Initialize(this)) {
+        if (!Workers[i].Initialize(this, i)) {
             return;
         }
     }
@@ -199,11 +199,19 @@ TcpWorker::~TcpWorker()
     CxPlatEventUninitialize(WakeEvent);
 }
 
-bool TcpWorker::Initialize(TcpEngine* _Engine)
+bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
 {
     Engine = _Engine;
     CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
-    if (QUIC_FAILED(
+
+    this->ExecutionContext.Callback = DoWork;
+    this->ExecutionContext.Context = this;
+    this->ExecutionContext.Ready = TRUE;
+
+    if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
+        // The CxPlat worker thread should also handle any 'Perf' protocol work, instead of creating a new thread for it.
+        CxPlatAddExecutionContext(&this->ExecutionContext, AssignedCPU);
+    } else if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
             &Thread))) {

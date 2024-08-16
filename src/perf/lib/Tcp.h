@@ -122,7 +122,7 @@ class TcpWorker {
     TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
-    bool Initialize(TcpEngine* _Engine);
+    bool Initialize(TcpEngine* _Engine, uint16_t AssignedCPU);
     void Shutdown();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     bool QueueConnection(TcpConnection* Connection);
