@@ -81,7 +81,7 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
-    Status = SetPriorityScheme(QUIC_STREAM_SCHEDULING_SCHEME_ROUND_ROBIN); //SetTlsSecrets(&TlsSecrets);
+    Status = SetTlsSecrets(&TlsSecrets);
     if (QUIC_FAILED(Status)) {
         TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
     }
@@ -100,11 +100,9 @@ TestConnection::~TestConnection()
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
     }
-#ifndef _KERNEL_MODE
     if (SslKeyLogFilePath != nullptr) {
         WriteSslKeyLogFile(SslKeyLogFilePath, TlsSecrets);
     }
-#endif
 }
 
 QUIC_STATUS
