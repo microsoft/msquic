@@ -1695,7 +1695,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, ConnError,
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )

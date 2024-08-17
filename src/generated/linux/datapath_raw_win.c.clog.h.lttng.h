@@ -66,7 +66,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, DatapathErrorStatus,
         unsigned int, arg3,
         const char *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )

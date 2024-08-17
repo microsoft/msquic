@@ -1123,6 +1123,10 @@ struct OperQueue : Struct {
     LinkedList GetOperations() {
         return LinkedList(AddrOf("List"));
     }
+
+    ULONG64 GetPriorityTail() {
+        return ReadPointer("PriorityTail");
+    }
 };
 
 struct StreamSet : Struct {
@@ -1214,6 +1218,18 @@ struct Connection : Struct {
         } else {
             return "INVALID";
         }
+    }
+
+    BYTE WorkerProcessing() {
+        return ReadType<BYTE>("WorkerProcessing");
+    }
+
+    BYTE HasQueuedWork() {
+        return ReadType<BYTE>("HasQueuedWork");
+    }
+
+    BYTE HasPriorityWork() {
+        return ReadType<BYTE>("HasPriorityWork");
     }
 
     IpAddress GetLocalAddress() {

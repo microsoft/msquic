@@ -70,6 +70,7 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // Queue of connections with operations to be processed.
     //
     CXPLAT_LIST_ENTRY Connections;
+    CXPLAT_LIST_ENTRY** PriorityConnectionsTail;
 
     //
     // Queue of stateless operations to be processed.
@@ -180,6 +181,17 @@ QuicWorkerAssignConnection(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicWorkerQueueConnection(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Queues a priority connection onto the worker, and kicks the worker thread if
+// necessary.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicWorkerQueuePriorityConnection(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_CONNECTION* Connection
     );
