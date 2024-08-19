@@ -677,6 +677,7 @@ TEST_F(DataPathTest, Initialize)
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
+        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW));
     }
 }
 
@@ -727,6 +728,10 @@ TEST_F(DataPathTest, UdpBind)
     VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
     ASSERT_NE(nullptr, Socket.Socket);
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+    if (UseDuoNic) {
+        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseDuoNic);
+        ASSERT_TRUE(Socket.Route.DatapathType == 2); // CXPLAT_DATAPATH_TYPE_RAW
+    }
 }
 
 TEST_F(DataPathTest, UdpRebind)
