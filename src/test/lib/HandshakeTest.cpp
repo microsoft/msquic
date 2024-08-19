@@ -2998,6 +2998,99 @@ QuicTestConnectValidServerCertificate(
 }
 
 void
+QuicTestConnectValidServerCertificateAlgorithms(
+    _In_ const QUIC_CREDENTIAL_CONFIG* ServerConfig,
+    _In_ QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS Flags
+    )
+{
+    bool ExpectedConnectionSuccess = (Flags != QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE);
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, *ServerConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig(
+        QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CERTIFICATE_ALGORITHMS |
+        QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED);
+    ClientCredConfig.AllowedCertAlgs = Flags;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = QUIC_ADDRESS_FAMILY_INET;
+    QUIC_TLS_SECRETS ServerSecrets, ClientSecrets;
+
+    QUIC_CERTIFICATE_KEY_ALGORITHM ExpectedPeerCertAlg;
+    if (Flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA &&
+        Flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
+        ExpectedPeerCertAlg = QUIC_CERTIFICATE_KEY_ALGORITHM_ECDSA;
+    } else if (Flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA) {
+        ExpectedPeerCertAlg = QUIC_CERTIFICATE_KEY_ALGORITHM_ECDSA;
+    } else if(Flags & QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA) {
+        ExpectedPeerCertAlg = QUIC_CERTIFICATE_KEY_ALGORITHM_RSA;
+    } else {
+        ExpectedPeerCertAlg = QUIC_CERTIFICATE_KEY_ALGORITHM_NONE;
+    }
+
+    {
+        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        QuicAddr ServerLocalAddr(QuicAddrFamily);
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        {
+            UniquePtr<TestConnection> Server;
+            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+            ServerAcceptCtx.ExpectedTransportCloseStatus =
+                ExpectedConnectionSuccess ?
+                    QUIC_STATUS_SUCCESS :
+                    QUIC_STATUS_UNSUPPORTED_CERTIFICATE;
+            ServerAcceptCtx.TlsSecrets = &ServerSecrets;
+            Listener.Context = &ServerAcceptCtx;
+
+            {
+                TestConnection Client(Registration);
+                TEST_TRUE(Client.IsValid());
+                Client.SetPeerCertAlg(ExpectedPeerCertAlg);
+                Client.SetExpectedTransportCloseStatus(
+                    ExpectedConnectionSuccess ?
+                        QUIC_STATUS_SUCCESS :
+                        QUIC_STATUS_UNSUPPORTED_CERTIFICATE);
+                Client.SetTlsSecrets(&ClientSecrets);
+
+                TEST_QUIC_SUCCEEDED(
+                    Client.Start(
+                        ClientConfiguration,
+                        QuicAddrFamily,
+                        QUIC_TEST_LOOPBACK_FOR_AF(
+                            QuicAddrGetFamily(&ServerLocalAddr.SockAddr)),
+                        ServerLocalAddr.GetPort()));
+
+                if (!Client.WaitForConnectionComplete()) {
+                    return;
+                }
+                TEST_EQUAL(ExpectedConnectionSuccess, Client.GetIsConnected());
+
+                if (ExpectedConnectionSuccess) {
+                    TEST_NOT_EQUAL(nullptr, Server);
+                    if (!Server->WaitForConnectionComplete()) {
+                        return;
+                    }
+                    TEST_EQUAL(true, Server->GetIsConnected());
+                }
+            }
+        }
+    }
+}
+
+void
 QuicTestConnectValidClientCertificate(
     _In_ const QUIC_CREDENTIAL_CONFIG* Config
     )

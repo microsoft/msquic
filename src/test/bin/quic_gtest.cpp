@@ -1276,6 +1276,60 @@ TEST(CredValidation, ConnectValidServerCertificate) {
     }
 }
 
+TEST_P(WithMultiCertArgs, ConnectServerAllowedCertificateAlgorithms) {
+#ifdef QUIC_DISABLE_CERT_ALG_TESTS
+    GTEST_SKIP_("This TLS doesn't support multiple certificates per config yet");
+#endif
+    QUIC_RUN_CERT_ALG_VALIDATION Params;
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[1],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[1],
+        &Params.CertHashStore[1],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    //
+    // The first certificate is retrieved second because CxPlatGetTestCertificate
+    // overwrites the settings in the CredConfig. This way, it'll point to the
+    // start of the array of CertHashes/CertHashStores.
+    //
+    ASSERT_TRUE(CxPlatGetTestCertificate(
+        GetParam().CertTypes[0],
+        TestingKernelMode ?
+            CXPLAT_SELF_SIGN_CERT_MACHINE :
+            CXPLAT_SELF_SIGN_CERT_USER,
+        GetParam().CredType,
+        &Params.CredConfig,
+        &Params.CertHash[0],
+        &Params.CertHashStore[0],
+        NULL,
+        NULL,
+        NULL,
+        NULL));
+
+    //
+    // Fix up the Credential config to support multiple certificates.
+    //
+    Params.CredConfig.Flags =
+        QUIC_CREDENTIAL_FLAG_SET_MULTIPLE;
+    Params.CredConfig.MultipleCount = 2;
+    Params.AllowedCertAlgs = GetParam().AllowedAlgs;
+
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CERT_ALG_VALIDATION, Params));
+    } else {
+        QuicTestConnectValidServerCertificateAlgorithms(&Params.CredConfig, Params.AllowedCertAlgs);
+    }
+    CxPlatFreeTestCert((QUIC_CREDENTIAL_CONFIG*)&Params.CredConfig);
+}
+
 TEST(CredValidation, ConnectExpiredClientCertificate) {
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -2480,6 +2534,13 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
+
+#if QUIC_TEST_FAILING_TEST_CERTIFICATES
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithMultiCertArgs,
+    testing::ValuesIn(MultiCertArgs::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

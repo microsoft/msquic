@@ -99,6 +99,8 @@ namespace Microsoft.Quic
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
+        SET_MULTIPLE = 0x00200000,
+        SET_ALLOWED_CERTIFICATE_ALGORITHMS = 0x00400000,
     }
 
     [System.Flags]
@@ -108,6 +110,14 @@ namespace Microsoft.Quic
         AES_128_GCM_SHA256 = 0x1,
         AES_256_GCM_SHA384 = 0x2,
         CHACHA20_POLY1305_SHA256 = 0x4,
+    }
+
+    [System.Flags]
+    internal enum QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS
+    {
+        QUIC_ALLOWED_CERTIFICATE_ALGORITHM_NONE = 0x0,
+        QUIC_ALLOWED_CERTIFICATE_ALGORITHM_RSA = 0x1,
+        QUIC_ALLOWED_CERTIFICATE_ALGORITHM_ECDSA = 0x2,
     }
 
     [System.Flags]
@@ -311,6 +321,11 @@ namespace Microsoft.Quic
 
         [NativeTypeName("const char *")]
         internal sbyte* CaCertificateFile;
+
+        [NativeTypeName("uint32_t")]
+        internal uint MultipleCount;
+
+        internal QUIC_ALLOWED_CERTIFICATE_ALGORITHM_FLAGS AllowedCertAlgs;
 
         internal ref QUIC_CERTIFICATE_HASH* CertificateHash
         {

@@ -379,8 +379,24 @@ function Install-TestCertificates {
         Write-Debug "Found existing MsQuicTestRoot certificate!"
     }
 
+    $NewRootRsa = $false
+    Write-Debug "Searching for MsQuicTestRootRSA certificate..."
+    $RootCertRsa = Get-ChildItem -path Cert:\LocalMachine\Root\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestRootRSA"}
+    if (!$RootCertRsa) {
+        Write-Host "MsQuicTestRootRSA not found! Creating new MsQuicTestRootRSA certificate..."
+        $RootCertRsa = New-SelfSignedCertificate -Subject "CN=MsQuicTestRootRSA" -FriendlyName MsQuicTestRootRSA -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
+        $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRootRSA.cer"
+        Export-Certificate -Type CERT -Cert $RootCertRsa -FilePath $TempRootPath
+        CertUtil.exe -addstore Root $TempRootPath 2>&1 | Out-Null
+        Remove-Item $TempRootPath
+        $NewRootRsa = $true
+        Write-Host "New MsQuicTestRootRSA certificate installed!"
+    } else {
+        Write-Debug "Found existing MsQuicTestRootRSA certificate!"
+    }
+
     Write-Debug "Searching for MsQuicTestServer certificate..."
-    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestServer"}
+    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.FriendlyName -eq "MsQuicTestServer"}
     if (!$ServerCert) {
         Write-Host "MsQuicTestServer not found! Creating new MsQuicTestServer certificate..."
         $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCert
@@ -391,6 +407,20 @@ function Install-TestCertificates {
         Write-Host "New MsQuicTestServer certificate installed!"
     } else {
         Write-Debug "Found existing MsQuicTestServer certificate!"
+    }
+
+    Write-Debug "Searching for MsQuicTestServerRSA certificate..."
+    $ServerCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.FriendlyName -eq "MsQuicTestServerRSA"}
+    if (!$ServerCert) {
+        Write-Host "MsQuicTestServerRSA not found! Creating new MsQuicTestServerRSA certificate..."
+        $ServerCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestServer" -DnsName $DnsNames -FriendlyName MsQuicTestServerRSA -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA1 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm RSA -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.1") -Signer $RootCertRsa
+        $TempServerPath = Join-Path $Env:TEMP "MsQuicTestServerCert.pfx"
+        Export-PfxCertificate -Cert $ServerCert -Password $PfxPassword -FilePath $TempServerPath
+        Import-PfxCertificate -FilePath $TempServerPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
+        Remove-Item $TempServerPath
+        Write-Host "New MsQuicTestServerRSA certificate installed!"
+    } else {
+        Write-Debug "Found existing MsQuicTestServerRSA certificate!"
     }
 
     Write-Debug "Searching for MsQuicTestExpiredServer certificate..."
@@ -438,6 +468,10 @@ function Install-TestCertificates {
     if ($NewRoot) {
         Write-Host "Deleting MsQuicTestRoot from MY store..."
         Remove-Item $rootCert.PSPath
+    }
+    if ($NewRootRsa) {
+        Write-Host "Deleting MsQuicTestRootRSA from MY store..."
+        Remove-Item $RootCertRsa.PSPath
     }
 }
 
