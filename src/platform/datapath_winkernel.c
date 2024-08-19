@@ -2076,6 +2076,15 @@ CxPlatSocketGetRemoteAddress(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 DATAPATH_RX_IO_BLOCK*
 CxPlatSocketAllocRxIoBlock(
     _In_ CXPLAT_DATAPATH* Datapath,
