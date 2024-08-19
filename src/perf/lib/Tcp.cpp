@@ -205,7 +205,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
     ExecutionContext.Callback = DoWork;
     ExecutionContext.Context = this;
     ExecutionContext.Ready = TRUE;
-    ExecutionContext.NextTimeUs = 0; // TODO: Figure out why adding this line makes lowlat tcp work?
+    ExecutionContext.NextTimeUs = 0;
     PartitionIndex = AssignedCPU;
 
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
@@ -241,7 +241,7 @@ void TcpWorker::Shutdown()
 BOOLEAN
 TcpWorker::DoWork(
     _Inout_ void* Context,
-    _Inout_ CXPLAT_EXECUTION_STATE*
+    _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
     TcpWorker* This = (TcpWorker*)Context;
@@ -266,6 +266,7 @@ TcpWorker::DoWork(
         Connection->Process();
         Connection->Release();
         This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
+        State->NoWorkCount = 0;
     }
     return TRUE;
 }
@@ -273,7 +274,10 @@ TcpWorker::DoWork(
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
-    while (DoWork(This, nullptr)) {
+    CXPLAT_EXECUTION_STATE DummyState = {
+        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+    };
+    while (DoWork(This, &DummyState)) {
         if (This->ExecutionContext.Ready == FALSE) { // No work for the moment, but more will come.
             CxPlatEventWaitForever(This->WakeEvent);
         }
