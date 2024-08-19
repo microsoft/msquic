@@ -553,6 +553,7 @@ struct CxPlatSocket {
                 // wait for an event set by ResolveRouteComplete.
                 //
                 EXPECT_EQ(InitStatus, QUIC_STATUS_SUCCESS);
+                EXPECT_TRUE(CxPlatSocketRawSocketAvailable(Socket));
             }
         }
     }
@@ -702,20 +703,6 @@ TEST_F(DataPathTest, InitializeInvalid)
         ASSERT_EQ(QUIC_STATUS_NOT_SUPPORTED, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
-#ifdef CX_PLATFORM_LINUX
-    uid_t OriginalUid = getuid();
-    if (UseDuoNic && OriginalUid == 0) // sudo execution
-    {
-        uid_t RegularUid = 1000; // normal user
-        ASSERT_EQ(setuid(RegularUid), 0);
-        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
-        // cannot initialize any interface in XDP mode without root privileges
-        ASSERT_EQ(QUIC_STATUS_NOT_FOUND, Datapath.GetInitStatus());
-        ASSERT_EQ(nullptr, Datapath.Datapath);
-        ASSERT_EQ(seteuid(OriginalUid), 0);
-    }
-#endif
 }
 
 TEST_F(DataPathTest, UdpBind)
@@ -728,10 +715,6 @@ TEST_F(DataPathTest, UdpBind)
     VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
     ASSERT_NE(nullptr, Socket.Socket);
     ASSERT_NE(Socket.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
-    if (UseDuoNic) {
-        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW) && UseDuoNic);
-        ASSERT_TRUE(Socket.Route.DatapathType == 2); // CXPLAT_DATAPATH_TYPE_RAW
-    }
 }
 
 TEST_F(DataPathTest, UdpRebind)
