@@ -1586,6 +1586,7 @@ CxPlatSocketRawSocketAvailable(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
+    UNREFERENCED_PARAMETER(Socket);
     return FALSE;
 }
 
