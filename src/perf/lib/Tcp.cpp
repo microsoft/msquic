@@ -192,7 +192,7 @@ TcpWorker::TcpWorker()
 TcpWorker::~TcpWorker()
 {
     CXPLAT_FRE_ASSERT(!Connections);
-    if (Initialized) {
+    if (Initialized && !IsExternal) {
         CxPlatThreadDelete(&Thread);
     }
     CxPlatDispatchLockUninitialize(&Lock);
@@ -229,7 +229,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
 
 void TcpWorker::Shutdown()
 {
-    if (Initialized) {
+    if (Initialized && !IsExternal) {
         CxPlatEventSet(WakeEvent);
         CxPlatThreadWait(&Thread);
     }
