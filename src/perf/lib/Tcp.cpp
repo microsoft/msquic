@@ -217,7 +217,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
     }
     #endif
 
-    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
+    CXPLAT_THREAD_CONFIG Config = { 0, AssignedCPU, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -234,6 +234,10 @@ void TcpWorker::Shutdown()
     if (Initialized && !IsExternal) {
         CxPlatEventSet(WakeEvent);
         CxPlatThreadWait(&Thread);
+    }
+    if (IsExternal) {
+       // TODO: Do we need to wake up external thread?
+       // TODO: Do we need to wait for external thread to finish?
     }
 }
 
@@ -289,6 +293,15 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
     CXPLAT_THREAD_RETURN(0);
 }
 
+void TcpWorker::WakeWorkerThread() {
+    ExecutionContext.Ready = TRUE;
+    if (IsExternal) {
+        CxPlatWakeExecutionContext(&ExecutionContext);
+    } else {
+        CxPlatEventSet(WakeEvent);
+    }
+}
+
 bool TcpWorker::QueueConnection(TcpConnection* Connection)
 {
     bool Result = true;
@@ -302,7 +315,7 @@ bool TcpWorker::QueueConnection(TcpConnection* Connection)
             Connection->QueuedOnWorker = true;
             *ConnectionsTail = Connection;
             ConnectionsTail = &Connection->Next;
-            CxPlatEventSet(WakeEvent);
+            WakeWorkerThread();
         } else {
             Result = false;
         }

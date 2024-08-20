@@ -126,6 +126,7 @@ class TcpWorker {
     ~TcpWorker();
     bool Initialize(TcpEngine* _Engine, uint16_t AssignedCPU);
     void Shutdown();
+    void WakeWorkerThread();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     bool QueueConnection(TcpConnection* Connection);
     static BOOLEAN DoWork(
