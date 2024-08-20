@@ -573,7 +573,7 @@ inline
 void
 WriteSslKeyLogFileKernelMode(
     _In_z_ const char* FileName,
-    _In_ QUIC_TLS_SECRETS* TlsSecrets
+    _In_ QUIC_TLS_SECRETS& TlsSecrets
     )
 {
     WCHAR ConvertedFileName[MAX_PATH + 1] = {0};
@@ -705,7 +705,7 @@ WriteSslKeyLogFileKernelMode(
                 NULL,
                 &IoStatusBlock,
                 TempLogBuffer,
-                (ULONG)sizeof(TempLogBuffer) - RemainingLengthBytes,
+                (ULONG)(sizeof(TempLogBuffer) - RemainingLengthBytes),
                 NULL,
                 NULL);
         if (!NT_SUCCESS(Status)) {
@@ -751,7 +751,7 @@ WriteSslKeyLogFileKernelMode(
                 NULL,
                 &IoStatusBlock,
                 TempLogBuffer,
-                (ULONG)sizeof(TempLogBuffer) - RemainingLengthBytes,
+                (ULONG)(sizeof(TempLogBuffer) - RemainingLengthBytes),
                 NULL,
                 NULL);
         if (!NT_SUCCESS(Status)) {
@@ -797,7 +797,7 @@ WriteSslKeyLogFileKernelMode(
                 NULL,
                 &IoStatusBlock,
                 TempLogBuffer,
-                (ULONG)sizeof(TempLogBuffer) - RemainingLengthBytes,
+                (ULONG)(sizeof(TempLogBuffer) - RemainingLengthBytes),
                 NULL,
                 NULL);
         if (!NT_SUCCESS(Status)) {
@@ -843,7 +843,7 @@ WriteSslKeyLogFileKernelMode(
                 NULL,
                 &IoStatusBlock,
                 TempLogBuffer,
-                (ULONG)sizeof(TempLogBuffer) - RemainingLengthBytes,
+                (ULONG)(sizeof(TempLogBuffer) - RemainingLengthBytes),
                 NULL,
                 NULL);
         if (!NT_SUCCESS(Status)) {
@@ -889,7 +889,7 @@ WriteSslKeyLogFileKernelMode(
                 NULL,
                 &IoStatusBlock,
                 TempLogBuffer,
-                (ULONG)sizeof(TempLogBuffer) - RemainingLengthBytes,
+                (ULONG)(sizeof(TempLogBuffer) - RemainingLengthBytes),
                 NULL,
                 NULL);
         if (!NT_SUCCESS(Status)) {
