@@ -208,12 +208,14 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
     ExecutionContext.NextTimeUs = 0;
     PartitionIndex = AssignedCPU;
 
+    #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
         CxPlatAddExecutionContext(&ExecutionContext, AssignedCPU);
         Initialized = true;
         IsExternal = true;
         return true;
     }
+    #endif
 
     CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
