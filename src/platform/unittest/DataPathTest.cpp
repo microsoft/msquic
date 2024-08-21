@@ -672,8 +672,7 @@ TEST_F(DataPathTest, Initialize)
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
-    if (UseDuoNic)
-    {
+    if (UseDuoNic) {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
