@@ -427,7 +427,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
