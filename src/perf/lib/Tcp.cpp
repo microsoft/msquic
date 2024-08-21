@@ -252,7 +252,7 @@ TcpWorker::DoWork(
 {
     TcpWorker* This = (TcpWorker*)Context;
     TcpConnection* Connection;
-    if (This->Engine->Shutdown) {
+    if (This == NULL || This->Engine->Shutdown) {
         return FALSE;
     }
     CxPlatDispatchLockAcquire(&This->Lock);
