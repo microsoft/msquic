@@ -158,16 +158,14 @@ CxPlatGetRssQueueProcessors(
     _In_ XDP_DATAPATH* Xdp,
     _In_ uint32_t InterfaceIndex,
     _Inout_ uint16_t* Count,
-    _Out_writes_(*Count) uint32_t* Queues
+    _Out_writes_to_(*Count, *Count) uint32_t* Queues
     )
 {
-    const uint16_t MaxCount = *Count;
     uint32_t TxRingSize = 1;
     XDP_TX_PACKET TxPacket = { 0 };
     CreateNoOpEthernetPacket(&TxPacket);
 
-    *Count = 0;
-    for (*Count = 0; *Count < MaxCount; ++(*Count)) { // TODO - Add cleanup code
+    for (uint16_t i = 0; i < *Count; ++i) { // TODO - Add cleanup code
 
         HANDLE TxXsk = NULL;
         QUIC_STATUS Status = Xdp->XdpApi->XskCreate(&TxXsk);
@@ -189,8 +187,12 @@ CxPlatGetRssQueueProcessors(
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
-        Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, *Count, Flags);
-        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); break; } // No more queues. Break out.
+        Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, i, Flags);
+        if (QUIC_FAILED(Status)) { // No more queues. Break out.
+            *Count = i;
+            CloseHandle(TxXsk);
+            break;
+        }
 
         Status = Xdp->XdpApi->XskActivate(TxXsk, 0);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
@@ -229,7 +231,7 @@ CxPlatGetRssQueueProcessors(
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
-        Queues[*Count] = Group->Offset + (ProcNumber.Number % Group->Count);
+        Queues[i] = Group->Offset + (ProcNumber.Number % Group->Count);
 
         CloseHandle(TxXsk);
     }
