@@ -107,22 +107,69 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
+void CreateNoOpEthernetPacket(
+    _Inout_ XDP_TX_PACKET* Packet
+    )
+{
+    ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)Packet->FrameBuffer;
+    IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Ethernet + 1);
+    UDP_HEADER* UDP = (UDP_HEADER*)(IPv4 + 1);
+
+    // Set Ethernet header
+    memset(Ethernet->Destination, 0xFF, sizeof(Ethernet->Destination)); // Broadcast address
+    memset(Ethernet->Source, 0x00, sizeof(Ethernet->Source)); // Source MAC address
+    Ethernet->Type = htons(0x0800); // IPv4
+
+    // Set IPv4 header
+    IPv4->VersionAndHeaderLength = 0x45; // Version 4, Header length 20 bytes
+    IPv4->TypeOfService = 0;
+    IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER));
+    IPv4->Identification = 0;
+    IPv4->FlagsAndFragmentOffset = 0;
+    IPv4->TimeToLive = 64;
+    IPv4->Protocol = 17; // UDP
+    IPv4->HeaderChecksum = 0; // Will be calculated later
+    *(uint32_t*)IPv4->Source = htonl(0xC0A80001); // 192.168.0.1
+    *(uint32_t*)IPv4->Destination = htonl(0xC0A80002); // 192.168.0.2
+
+    // Set UDP header
+    UDP->SourcePort = htons(12345);
+    UDP->DestinationPort = htons(80);
+    UDP->Length = htons(sizeof(UDP_HEADER));
+    UDP->Checksum = 0; // Optional for IPv4
+
+    // Calculate IPv4 header checksum
+    uint32_t sum = 0;
+    uint16_t* header = (uint16_t*)IPv4;
+    for (int i = 0; i < sizeof(IPV4_HEADER) / 2; ++i) {
+        sum += header[i];
+    }
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
+    }
+    IPv4->HeaderChecksum = (uint16_t)~sum;
+
+    // Set packet length
+    Packet->Buffer.Length = sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER);
+}
+
 QUIC_STATUS
 CxPlatGetRssQueueProcessors(
     _In_ XDP_DATAPATH* Xdp,
-    _In_ HANDLE XdpHandle,
     _In_ uint32_t InterfaceIndex,
-    _Inout_count_(*Count) PROCESSOR_NUMBER* Queues,
-    _Inout_ uint16_t* Count
+    _Inout_ uint16_t* Count,
+    _Out_writes_(*Count) PROCESSOR_NUMBER* Queues
     )
 {
     const uint16_t MaxCount = *Count;
+    uint32_t TxRingSize = 1;
+    XDP_TX_PACKET TxPacket = { 0 };
+    CreateNoOpEthernetPacket(&TxPacket);
 
     *Count = 0;
-    for (*Count = 0; i < MaxCount; ++i) { // TODO - Add cleanup code
-        XDP_TX_PACKET TxPacket = { 0 }; // TODO - Write Payload
+    for (*Count = 0; *Count < MaxCount; ++(*Count)) { // TODO - Add cleanup code
+
         HANDLE TxXsk = NULL;
-        uint32_t TxRingSize = 1;
         QUIC_STATUS Status = Xdp->XdpApi->XskCreate(&TxXsk);
         if (QUIC_FAILED(Status)) { return Status; }
 
@@ -133,53 +180,54 @@ CxPlatGetRssQueueProcessors(
         TxUmem.TotalSize = sizeof(XDP_TX_PACKET);
 
         Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
-        Status = Xdp->XdpApi->XskBind(TxXsk, Interface->ActualIfIndex, *Count, Flags);
-        if (QUIC_FAILED(Status)) { break; } // No more queues. Break out.
+        Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, *Count, Flags);
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); break; } // No more queues. Break out.
 
         Status = Xdp->XdpApi->XskActivate(TxXsk, 0);
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         XSK_RING_INFO_SET TxRingInfo;
         uint32_t TxRingInfoSize = sizeof(TxRingInfo);
         Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         XSK_RING TxRing, TxCompletionRing;
         XskRingInitialize(&TxRing, &TxRingInfo.Tx);
         XskRingInitialize(&TxCompletionRing, &TxRingInfo.Completion);
 
         uint32_t TxIndex;
-        uint32_t TxAvailable = XskRingProducerReserve(&TxRing, MAXUINT32, &TxIndex);
+        XskRingProducerReserve(&TxRing, MAXUINT32, &TxIndex);
 
         XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&TxRing, TxIndex++);
         Buffer->Address.BaseAddress = 0;
         Buffer->Address.Offset = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         Buffer->Length = TxPacket.Buffer.Length;
-        XskRingProducerSubmit(&Queue->TxRing, 1);
+        XskRingProducerSubmit(&TxRing, 1);
 
         XSK_NOTIFY_RESULT_FLAGS OutFlags;
         Status = Xdp->XdpApi->XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
 
         uint32_t CompIndex;
-        uint32_t CompAvailable = XskRingConsumerReserve(&TxCompletionRing, MAXUINT32, &CompIndex);
         while (XskRingConsumerReserve(&TxCompletionRing, MAXUINT32, &CompIndex) == 0) {
             Sleep(0); // TODO - Wait?
         }
 
-        XskRingConsumerRelease(&Queue->TxCompletionRing, 1);
+        XskRingConsumerRelease(&TxCompletionRing, 1);
 
         uint32_t ProcNumberSize = sizeof(PROCESSOR_NUMBER);
         Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, Queues + *Count, &ProcNumberSize);
-        if (QUIC_FAILED(Status)) { return Status; }
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        CloseHandle(TxXsk);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -558,7 +606,7 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
-    PROCESSOR_NUMBER Processors[256];
+    PROCESSOR_NUMBER Processors[256]; // TODO - Use max processor count
     uint16_t ProcessorCount = ARRAYSIZE(Processors);
 
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
@@ -571,8 +619,13 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->XdpHandle, Interface->ActualIfIndex, Processors, &ProcessorCount);
+    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &ProcessorCount, Processors);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetRssQueueProcessors");
         goto Error;
     }
 
