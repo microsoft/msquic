@@ -107,7 +107,8 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-void CreateNoOpEthernetPacket(
+void
+CreateNoOpEthernetPacket(
     _Inout_ XDP_TX_PACKET* Packet
     )
 {
@@ -165,8 +166,7 @@ CxPlatGetRssQueueProcessors(
     XDP_TX_PACKET TxPacket = { 0 };
     CreateNoOpEthernetPacket(&TxPacket);
 
-    for (uint16_t i = 0; i < *Count; ++i) { // TODO - Add cleanup code
-
+    for (uint16_t i = 0; i < *Count; ++i) {
         HANDLE TxXsk = NULL;
         QUIC_STATUS Status = Xdp->XdpApi->XskCreate(&TxXsk);
         if (QUIC_FAILED(Status)) { return Status; }
