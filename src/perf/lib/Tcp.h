@@ -115,16 +115,16 @@ class TcpWorker {
     CXPLAT_EXECUTION_CONTEXT ExecutionContext;
     bool Initialized{false};
     bool IsExternal{false};
-    uint16_t PartitionIndex{0};
     TcpEngine* Engine{nullptr};
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
+    CXPLAT_EVENT DoneEvent;
     CXPLAT_DISPATCH_LOCK Lock;
     TcpConnection* Connections{nullptr};
     TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
-    bool Initialize(TcpEngine* _Engine, uint16_t AssignedCPU);
+    bool Initialize(TcpEngine* _Engine, uint16_t PartitionIndex);
     void Shutdown();
     void WakeWorkerThread();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);

@@ -119,12 +119,6 @@ TcpEngine::TcpEngine(
         }
     }
     Initialized = true;
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        WriteOutput("Initialized TCP Engine with Low Latency mode!\n");
-    }
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_MAX_THROUGHPUT) {
-        WriteOutput("Initialized TCP Engine with Max Throughput mode!\n");
-    }
 }
 
 TcpEngine::~TcpEngine() noexcept
@@ -186,38 +180,37 @@ void TcpEngine::RemoveConnection(TcpConnection* Connection)
 TcpWorker::TcpWorker()
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+    CxPlatEventInitialize(&DoneEvent, TRUE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
 }
 
 TcpWorker::~TcpWorker()
 {
     CXPLAT_FRE_ASSERT(!Connections);
-    if (Initialized && !IsExternal) {
-        CxPlatThreadDelete(&Thread);
-    }
+    CXPLAT_FRE_ASSERT(!Initialized); // Shutdown should have been called
     CxPlatDispatchLockUninitialize(&Lock);
+    CxPlatEventUninitialize(DoneEvent);
     CxPlatEventUninitialize(WakeEvent);
 }
 
-bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
+bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 {
     Engine = _Engine;
     ExecutionContext.Callback = DoWork;
     ExecutionContext.Context = this;
     ExecutionContext.Ready = TRUE;
-    ExecutionContext.NextTimeUs = 0;
-    PartitionIndex = AssignedCPU;
+    ExecutionContext.NextTimeUs = UINT64_MAX;
 
     #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        CxPlatAddExecutionContext(&ExecutionContext, AssignedCPU);
+        CxPlatAddExecutionContext(&ExecutionContext, PartitionIndex);
         Initialized = true;
         IsExternal = true;
         return true;
     }
     #endif
 
-    CXPLAT_THREAD_CONFIG Config = { 0, AssignedCPU, "TcpPerfWorker", WorkerThread, this };
+    CXPLAT_THREAD_CONFIG Config = { 0, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -231,13 +224,25 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t AssignedCPU)
 
 void TcpWorker::Shutdown()
 {
-    if (Initialized && !IsExternal) {
-        CxPlatEventSet(WakeEvent);
-        CxPlatThreadWait(&Thread);
+    if (Initialized) {
+        WakeWorkerThread();
+        if (IsExternal) {
+            CxPlatEventWaitForever(DoneEvent);
+            CxPlatThreadDelete(&Thread);
+        } else {
+            CxPlatThreadWait(&Thread);
+        }
+        Initialized = false;
     }
-    if (IsExternal) {
-       // TODO: Do we need to wake up external thread?
-       // TODO: Do we need to wait for external thread to finish?
+}
+
+void TcpWorker::WakeWorkerThread() {
+    if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
+        if (IsExternal) {
+            CxPlatWakeExecutionContext(&ExecutionContext);
+        } else {
+            CxPlatEventSet(WakeEvent);
+        }
     }
 }
 
@@ -251,14 +256,14 @@ TcpWorker::DoWork(
     )
 {
     TcpWorker* This = (TcpWorker*)Context;
-    TcpConnection* Connection;
-    if (This == NULL || This->Engine->Shutdown) {
+    if (This->Engine->Shutdown) {
+        CxPlatEventSet(This->DoneEvent);
         return FALSE;
     }
+
+    TcpConnection* Connection = nullptr;
     CxPlatDispatchLockAcquire(&This->Lock);
-    if (!This->Connections) {
-        Connection = nullptr;
-    } else {
+    if (This->Connections) {
         Connection = This->Connections;
         This->Connections = Connection->Next;
         if (This->ConnectionsTail == &Connection->Next) {
@@ -268,12 +273,14 @@ TcpWorker::DoWork(
         Connection->Next = NULL;
     }
     CxPlatDispatchLockRelease(&This->Lock);
+
     if (Connection) {
         Connection->Process();
         Connection->Release();
         This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
         State->NoWorkCount = 0;
     }
+
     return TRUE;
 }
 
@@ -284,22 +291,11 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
         0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
     };
     while (DoWork(This, &DummyState)) {
-        if (This->ExecutionContext.Ready == FALSE) { // No work for the moment, but more will come.
-            CxPlatEventWaitForever(This->WakeEvent);
+        if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
+            CxPlatEventWaitForever(This->WakeEvent); // Wait for more work
         }
-        This->ExecutionContext.Ready = FALSE;
     }
-
     CXPLAT_THREAD_RETURN(0);
-}
-
-void TcpWorker::WakeWorkerThread() {
-    ExecutionContext.Ready = TRUE;
-    if (IsExternal) {
-        CxPlatWakeExecutionContext(&ExecutionContext);
-    } else {
-        CxPlatEventSet(WakeEvent);
-    }
 }
 
 bool TcpWorker::QueueConnection(TcpConnection* Connection)
