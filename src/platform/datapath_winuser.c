@@ -4086,7 +4086,6 @@ CxPlatSocketSendInline(
         return QUIC_STATUS_PENDING;
     }
 
-    QUIC_STATUS Status;
     int Result;
     DWORD BytesSent;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
@@ -4201,24 +4200,17 @@ CxPlatSocketSendInline(
                 NULL);
     }
 
-    int WsaError = NO_ERROR;
     if (Result == SOCKET_ERROR) {
-        WsaError = WSAGetLastError();
-        if (WsaError == WSA_IO_PENDING) {
-            return QUIC_STATUS_SUCCESS;
-        }
-        Status = HRESULT_FROM_WIN32(WsaError);
-    } else {
-        Status = QUIC_STATUS_SUCCESS;
+        return QUIC_STATUS_SUCCESS; // Always processed asynchronously
     }
 
     //
     // Completed synchronously, so process the completion inline.
     //
+    CxPlatSendDataComplete(SendData, NO_ERROR);
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
-    CxPlatSendDataComplete(SendData, WsaError);
 
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
