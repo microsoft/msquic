@@ -158,7 +158,7 @@ CxPlatGetRssQueueProcessors(
     _In_ XDP_DATAPATH* Xdp,
     _In_ uint32_t InterfaceIndex,
     _Inout_ uint16_t* Count,
-    _Out_writes_(*Count) PROCESSOR_NUMBER* Queues
+    _Out_writes_(*Count) uint32_t* Queues
     )
 {
     const uint16_t MaxCount = *Count;
@@ -223,9 +223,13 @@ CxPlatGetRssQueueProcessors(
 
         XskRingConsumerRelease(&TxCompletionRing, 1);
 
+        PROCESSOR_NUMBER ProcNumber;
         uint32_t ProcNumberSize = sizeof(PROCESSOR_NUMBER);
-        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, Queues + *Count, &ProcNumberSize);
+        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
+        Queues[*Count] = Group->Offset + (ProcNumber.Number % Group->Count);
 
         CloseHandle(TxXsk);
     }
@@ -606,7 +610,7 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
-    PROCESSOR_NUMBER Processors[256]; // TODO - Use max processor count
+    uint32_t Processors[256]; // TODO - Use max processor count
     uint16_t ProcessorCount = ARRAYSIZE(Processors);
 
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
@@ -665,6 +669,23 @@ CxPlatDpRawInterfaceInitialize(
         Queue->RxIoSqe.IoType = DATAPATH_XDP_IO_RECV;
         CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
         Queue->TxIoSqe.IoType = DATAPATH_XDP_IO_SEND;
+
+        uint32_t QueueIndex = UINT32_MAX;
+        for (uint32_t j = 0; j < ProcessorCount; j++) {
+            if (Processors[j] == i) {
+                QueueIndex = j;
+                break;
+            }
+        }
+        if (QueueIndex == UINT32_MAX) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "QueueIndex");
+            goto Error;
+        }
 
         //
         // RX datapath.
@@ -733,7 +754,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         uint32_t Flags = XSK_BIND_FLAG_RX;
-        Status = Xdp->XdpApi->XskBind(Queue->RxXsk, Interface->ActualIfIndex, i, Flags);
+        Status = Xdp->XdpApi->XskBind(Queue->RxXsk, Interface->ActualIfIndex, QueueIndex, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -855,7 +876,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
-        Status = Xdp->XdpApi->XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
+        Status = Xdp->XdpApi->XskBind(Queue->TxXsk, Interface->ActualIfIndex, QueueIndex, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
