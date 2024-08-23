@@ -127,8 +127,7 @@ Exit:
         printf("App Main returning status %d\n", Status);
     }
     if (!QUIC_SUCCEEDED(Status) && AbortOnFailure) {
-        printf("AbortOnFailure: non zero exit code: %d, Aborting to generate core dump. \n", Status);
-        abort();
+        CXPLAT_FRE_ASSERTMSG(FALSE, "AbortOnFailure: Non zero exit code detected. Abort to generate core dump.");
     }
     return Status;
 }
