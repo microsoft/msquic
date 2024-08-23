@@ -4207,8 +4207,8 @@ CxPlatSocketSendInline(
     //
     // Completed synchronously, so process the completion inline.
     //
-    CxPlatSendDataComplete(SendData, NO_ERROR);
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
+    CxPlatSendDataComplete(SendData, NO_ERROR);
 
     return QUIC_STATUS_SUCCESS;
 }
