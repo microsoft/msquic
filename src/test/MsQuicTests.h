@@ -24,7 +24,7 @@ extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 #ifndef MAX_PATH
 #define MAX_PATH 260
 #endif
-extern char CurrentWorkingDirectory[MAX_PATH];
+extern char CurrentWorkingDirectory[MAX_PATH + 1];
 
 #ifdef __cplusplus
 extern "C" {

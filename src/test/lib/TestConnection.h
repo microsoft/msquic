@@ -17,7 +17,7 @@ enum NEW_STREAM_START_TYPE {
     NEW_STREAM_START_ASYNC      // Start asynchronously
 };
 
-#define DEFAULT_SSLKEYLOGFILE_PATH "sslkeylogfile.txt"
+#define DEFAULT_SSLKEYLOGFILE_NAME "sslkeylogfile.txt"
 
 //
 // Callback for processing peer created streams.
@@ -99,7 +99,7 @@ class TestConnection
     uint8_t NegotiatedAlpnLength;
 
     QUIC_TLS_SECRETS TlsSecrets;
-    const char* SslKeyLogFilePath;
+    const char* SslKeyLogFileName;
 
     QUIC_STATUS
     HandleConnectionEvent(
@@ -315,5 +315,5 @@ public:
 
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 
-    void SetSslKeyLogFilePath(const char* Path = DEFAULT_SSLKEYLOGFILE_PATH) { SslKeyLogFilePath = Path; }
+    void SetSslKeyLogFilePath(const char* Path = DEFAULT_SSLKEYLOGFILE_NAME) { SslKeyLogFileName = Path; }
 };

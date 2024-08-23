@@ -14,7 +14,7 @@ Abstract:
 #include "HandshakeTest.cpp.clog.h"
 #endif
 
-char CurrentWorkingDirectory[MAX_PATH];
+char CurrentWorkingDirectory[MAX_PATH + 1];
 
 QUIC_TEST_DATAPATH_HOOKS DatapathHooks::FuncTable = {
     DatapathHooks::CreateCallback,

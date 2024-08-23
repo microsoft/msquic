@@ -30,7 +30,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), SslKeyLogFilePath(nullptr), Context(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -64,7 +64,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), SslKeyLogFilePath(nullptr), Context(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -100,8 +100,34 @@ TestConnection::~TestConnection()
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
     }
-    if (SslKeyLogFilePath != nullptr) {
-        WriteSslKeyLogFile(SslKeyLogFilePath, TlsSecrets);
+    if (SslKeyLogFileName != nullptr) {
+#ifdef _KERNEL_MODE
+        char SslKeyLogFileFullPathName[MAX_PATH + 1];
+        NTSTATUS Status =
+            RtlStringCbCopyA(
+                SslKeyLogFileFullPathName,
+                sizeof(SslKeyLogFileFullPathName),
+                CurrentWorkingDirectory);
+        if (!NT_SUCCESS(Status)) {
+            TEST_FAILURE("RtlStringCbCopyA failed");
+            return;
+        }
+        Status =
+            RtlStringCbCatExA(
+                SslKeyLogFileFullPathName,
+                sizeof(SslKeyLogFileFullPathName),
+                SslKeyLogFileName,
+                nullptr,
+                nullptr,
+                STRSAFE_NULL_ON_FAILURE);
+        if (!NT_SUCCESS(Status)) {
+            TEST_FAILURE("RtlStringCbCatExA failed");
+            return;
+        }
+        WriteSslKeyLogFile(SslKeyLogFileFullPathName, TlsSecrets);
+#else
+        WriteSslKeyLogFile(SslKeyLogFileName, TlsSecrets);
+#endif
     }
 }
 

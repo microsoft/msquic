@@ -685,8 +685,8 @@ QuicTestCtlEvtIoDeviceControl(
                 CurrentWorkingDirectory,
                 sizeof(CurrentWorkingDirectory),
                 Params->TestConfigurationParams.CurrentDirectory,
-                NULL,
-                NULL,
+                nullptr,
+                nullptr,
                 STRSAFE_NULL_ON_FAILURE);
         break;
 
