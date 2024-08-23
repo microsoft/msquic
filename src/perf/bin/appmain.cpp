@@ -336,5 +336,10 @@ Exit:
     CxPlatUninitialize();
     CxPlatSystemUnload();
 
+    if (!QUIC_SUCCEEDED(Status)) {
+        printf("Error: non zero exit code: %d, Aborting to generate core dump. \n", Status);
+        abort();
+    }
+
     return Status;
 }
