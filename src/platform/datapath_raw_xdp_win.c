@@ -613,7 +613,7 @@ CxPlatDpRawInterfaceInitialize(
     Interface->Xdp = Xdp;
 
     uint32_t Processors[256]; // TODO - Use max processor count
-    uint16_t ProcessorCount = ARRAYSIZE(Processors);
+    Interface->QueueCount = ARRAYSIZE(Processors);
 
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
     if (QUIC_FAILED(Status)) {
@@ -625,7 +625,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &ProcessorCount, Processors);
+    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &Interface->QueueCount, Processors);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -635,7 +635,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    if (ProcessorCount == 0) {
+    if (Interface->QueueCount == 0) {
         Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -673,7 +673,7 @@ CxPlatDpRawInterfaceInitialize(
         Queue->TxIoSqe.IoType = DATAPATH_XDP_IO_SEND;
 
         uint32_t QueueIndex = UINT32_MAX;
-        for (uint32_t j = 0; j < ProcessorCount; j++) {
+        for (uint32_t j = 0; j < Interface->QueueCount; j++) {
             if (Processors[j] == i) {
                 QueueIndex = j;
                 break;
