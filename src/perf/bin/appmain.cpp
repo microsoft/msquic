@@ -108,7 +108,10 @@ QuicUserMain(
         printf("Started!\n\n");
     }
     fflush(stdout);
-    QuicMainWaitForCompletion();
+    Status = QuicMainWaitForCompletion();
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
 
     if (const uint32_t DataLength = QuicMainGetExtraDataLength(); DataLength) {
         auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);

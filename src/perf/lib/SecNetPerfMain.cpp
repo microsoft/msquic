@@ -256,7 +256,7 @@ QuicMainStart(
     return Status; // QuicMainFree is called on failure
 }
 
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     ) {
     Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);

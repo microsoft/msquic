@@ -337,7 +337,7 @@ PerfClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
+QUIC_STATUS
 PerfClient::Wait(
     _In_ int Timeout
     ) {
@@ -360,7 +360,7 @@ PerfClient::Wait(
 
     if (GetConnectedConnections() == 0) {
         WriteOutput("Error: No Successful Connections!\n");
-        return;
+        return QUIC_STATUS_CONNECTION_REFUSED;
     }
 
     unsigned long long CompletedConnections = GetConnectionsCompleted();
