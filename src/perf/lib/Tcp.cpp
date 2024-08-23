@@ -114,17 +114,11 @@ TcpEngine::TcpEngine(
 {
     CxPlatListInitializeHead(&Connections);
     for (uint16_t i = 0; i < ProcCount; ++i) {
-        if (!Workers[i].Initialize(this)) {
+        if (!Workers[i].Initialize(this, i)) {
             return;
         }
     }
     Initialized = true;
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        WriteOutput("Initialized TCP Engine with Low Latency mode!\n");
-    }
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_MAX_THROUGHPUT) {
-        WriteOutput("Initialized TCP Engine with Max Throughput mode!\n");
-    }
 }
 
 TcpEngine::~TcpEngine() noexcept
@@ -186,23 +180,37 @@ void TcpEngine::RemoveConnection(TcpConnection* Connection)
 TcpWorker::TcpWorker()
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+    CxPlatEventInitialize(&DoneEvent, TRUE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
 }
 
 TcpWorker::~TcpWorker()
 {
     CXPLAT_FRE_ASSERT(!Connections);
-    if (Initialized) {
-        CxPlatThreadDelete(&Thread);
-    }
+    CXPLAT_FRE_ASSERT(!Initialized); // Shutdown should have been called
     CxPlatDispatchLockUninitialize(&Lock);
+    CxPlatEventUninitialize(DoneEvent);
     CxPlatEventUninitialize(WakeEvent);
 }
 
-bool TcpWorker::Initialize(TcpEngine* _Engine)
+bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 {
     Engine = _Engine;
-    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
+    ExecutionContext.Callback = DoWork;
+    ExecutionContext.Context = this;
+    ExecutionContext.Ready = TRUE;
+    ExecutionContext.NextTimeUs = UINT64_MAX;
+
+    #ifndef _KERNEL_MODE // Not supported on kernel mode
+    if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
+        CxPlatAddExecutionContext(&ExecutionContext, PartitionIndex);
+        Initialized = true;
+        IsExternal = true;
+        return true;
+    }
+    #endif
+
+    CXPLAT_THREAD_CONFIG Config = { 0, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -217,38 +225,76 @@ bool TcpWorker::Initialize(TcpEngine* _Engine)
 void TcpWorker::Shutdown()
 {
     if (Initialized) {
-        CxPlatEventSet(WakeEvent);
-        CxPlatThreadWait(&Thread);
+        WakeWorkerThread();
+        if (IsExternal) {
+            CxPlatEventWaitForever(DoneEvent);
+            CxPlatThreadDelete(&Thread);
+        } else {
+            CxPlatThreadWait(&Thread);
+        }
+        Initialized = false;
     }
+}
+
+void TcpWorker::WakeWorkerThread() {
+    if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
+        if (IsExternal) {
+            CxPlatWakeExecutionContext(&ExecutionContext);
+        } else {
+            CxPlatEventSet(WakeEvent);
+        }
+    }
+}
+
+//
+// Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
+//
+BOOLEAN
+TcpWorker::DoWork(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    TcpWorker* This = (TcpWorker*)Context;
+    if (This->Engine->Shutdown) {
+        CxPlatEventSet(This->DoneEvent);
+        return FALSE;
+    }
+
+    TcpConnection* Connection = nullptr;
+    CxPlatDispatchLockAcquire(&This->Lock);
+    if (This->Connections) {
+        Connection = This->Connections;
+        This->Connections = Connection->Next;
+        if (This->ConnectionsTail == &Connection->Next) {
+            This->ConnectionsTail = &This->Connections;
+        }
+        Connection->QueuedOnWorker = false;
+        Connection->Next = NULL;
+    }
+    CxPlatDispatchLockRelease(&This->Lock);
+
+    if (Connection) {
+        Connection->Process();
+        Connection->Release();
+        This->ExecutionContext.Ready = TRUE; // We just did work, let's keep this thread hot.
+        State->NoWorkCount = 0;
+    }
+
+    return TRUE;
 }
 
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
-
-    while (!This->Engine->Shutdown) {
-        TcpConnection* Connection;
-        CxPlatDispatchLockAcquire(&This->Lock);
-        if (!This->Connections) {
-            Connection = nullptr;
-        } else {
-            Connection = This->Connections;
-            This->Connections = Connection->Next;
-            if (This->ConnectionsTail == &Connection->Next) {
-                This->ConnectionsTail = &This->Connections;
-            }
-            Connection->QueuedOnWorker = false;
-            Connection->Next = NULL;
-        }
-        CxPlatDispatchLockRelease(&This->Lock);
-        if (Connection) {
-            Connection->Process();
-            Connection->Release();
-        } else {
-            CxPlatEventWaitForever(This->WakeEvent);
+    CXPLAT_EXECUTION_STATE DummyState = {
+        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+    };
+    while (DoWork(This, &DummyState)) {
+        if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
+            CxPlatEventWaitForever(This->WakeEvent); // Wait for more work
         }
     }
-
     CXPLAT_THREAD_RETURN(0);
 }
 
@@ -265,7 +311,7 @@ bool TcpWorker::QueueConnection(TcpConnection* Connection)
             Connection->QueuedOnWorker = true;
             *ConnectionsTail = Connection;
             ConnectionsTail = &Connection->Next;
-            CxPlatEventSet(WakeEvent);
+            WakeWorkerThread();
         } else {
             Result = false;
         }
