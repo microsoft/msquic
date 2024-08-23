@@ -679,6 +679,15 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_TEST_CONFIGURATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
+        RtlCopyMemory(CurrentWorkingDirectory, "\\DosDevices\\", sizeof("\\DosDevices\\"));
+        Status =
+            RtlStringCbCatExA(
+                CurrentWorkingDirectory,
+                sizeof(CurrentWorkingDirectory),
+                Params->TestConfigurationParams.CurrentDirectory,
+                NULL,
+                NULL,
+                STRSAFE_NULL_ON_FAILURE);
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
