@@ -274,10 +274,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 // QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
-            ret,
-            "ConvertInterfaceIndexToLuid");
-// arg2 = arg2 = ret = arg2
-// arg3 = arg3 = "ConvertInterfaceIndexToLuid" = arg3
+            Status,
+            "XdpInterfaceOpen");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "XdpInterfaceOpen" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryErrorStatus,
     TP_ARGS(

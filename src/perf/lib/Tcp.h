@@ -112,19 +112,27 @@ public:
 class TcpWorker {
     friend class TcpEngine;
     friend class TcpConnection;
+    CXPLAT_EXECUTION_CONTEXT ExecutionContext;
     bool Initialized{false};
+    bool IsExternal{false};
     TcpEngine* Engine{nullptr};
     CXPLAT_THREAD Thread;
     CXPLAT_EVENT WakeEvent;
+    CXPLAT_EVENT DoneEvent;
     CXPLAT_DISPATCH_LOCK Lock;
     TcpConnection* Connections{nullptr};
     TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
-    bool Initialize(TcpEngine* _Engine);
+    bool Initialize(TcpEngine* _Engine, uint16_t PartitionIndex);
     void Shutdown();
+    void WakeWorkerThread();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
     bool QueueConnection(TcpConnection* Connection);
+    static BOOLEAN DoWork(
+        _Inout_ void* Context,
+        _Inout_ CXPLAT_EXECUTION_STATE* State
+    );
 };
 
 class TcpServer {
