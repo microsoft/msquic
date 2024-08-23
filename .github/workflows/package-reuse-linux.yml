@@ -50,6 +50,14 @@ on:
         required: false
         default: '' # Empty string means build all
         type: string
+      xdp:
+        required: false
+        default: ''
+        type: string
+      time64:
+        required: false
+        default: ''
+        type: string
 
 permissions: read-all
 
@@ -66,23 +74,24 @@ jobs:
       systemcrypto: '-UseSystemOpenSSLCrypto' # packages must use libcrypto on system
       clang: ${{ inputs.clang }}
       build: ${{ inputs.build }}
+      xdp: ${{ inputs.xdp }}
 
   package:
     name: Package
     needs: [build-unix-reuse]
-    runs-on: ubuntu-22.04
+    runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       with:
         fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForBuild
+      run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.build }}
+        name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts
     - name: Extract binaries # they are tar'd to preserve permissions and symlinks.
       run: |
@@ -91,9 +100,9 @@ jobs:
         find -name "*.tar" -exec tar -xvf '{}' \;
     - name: Build Package
       shell: pwsh
-      run: scripts/package-distribution.ps1
+      run: scripts/package-distribution.ps1 ${{ inputs.time64 }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
       with:
-        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.build }}
+        name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts/dist

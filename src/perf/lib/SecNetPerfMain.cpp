@@ -22,6 +22,7 @@ PerfClient* Client;
 
 uint32_t MaxRuntime = 0;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
@@ -151,6 +152,11 @@ QuicMainStart(
         SetConfig = true;
     }
 
+    if (IoMode && IsValue(IoMode, "xdp")) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        SetConfig = true;
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
@@ -188,14 +194,16 @@ QuicMainStart(
     if (ExecStr != nullptr) {
         if (IsValue(ExecStr, "lowlat")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
         } else if (IsValue(ExecStr, "maxtput")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
         } else if (IsValue(ExecStr, "scavenger")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s], use lowlat as default\n", ExecStr);
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, lowlat as default for TCP.\n", ExecStr);
         }
     }
 

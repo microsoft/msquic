@@ -81,7 +81,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
@@ -102,13 +102,14 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04']
+        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
+        xdp: ['', '-UseXdp']
         exclude:
         # Android doesn't support x86
         - plat: android
@@ -116,6 +117,9 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
+        # TODO: android to support ubuntu-24.04
+        - plat: android
+          os: 'ubuntu-24.04'
         # No openssl3 system crypto on ubuntu-20.04
         - plat: linux
           os: 'ubuntu-20.04'
@@ -126,6 +130,20 @@ jobs:
           os: 'ubuntu-22.04'
           tls: 'openssl'
           systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl system crypto on ubuntu-24.04
+        - plat: linux
+          os: 'ubuntu-24.04'
+          tls: 'openssl'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # linux xdp is for ubuntu24.04 only for now
+        - plat: android
+          xdp: "-UseXdp"
+        - os: 'ubuntu-20.04'
+          xdp: "-UseXdp"
+        - os: 'ubuntu-22.04'
+          xdp: "-UseXdp"
+        - arch: x86
+          xdp: "-UseXdp"
         # Android doesn't use Clang
         - plat: android
           clang: '-Clang'
@@ -158,6 +176,7 @@ jobs:
       static: ${{ matrix.static }}
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
+      xdp: ${{ matrix.xdp }}
 
   build-darwin:
     name: MacOs
@@ -194,21 +213,21 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@0ad4b8fadaa221de15dcec353f45205ec38ea70b
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
+      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
+      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@09f2f74827fd3a8607589e5ad7f9398816f540fe
+      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
@@ -217,7 +236,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg

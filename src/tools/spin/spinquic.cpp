@@ -389,13 +389,10 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
 
     if (!ctx->Deleting && GetRandom(20) == 0) {
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
-        return QUIC_STATUS_SUCCESS;
+        goto Exit;
     }
 
     switch (Event->Type) {
-    case QUIC_STREAM_EVENT_SEND_COMPLETE:
-        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
-        break;
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
@@ -434,6 +431,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     }
     default:
         break;
+    }
+
+Exit:
+    if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -877,6 +879,7 @@ void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID)
         uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
         uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
         uint32_t Combined = ((Level+1) << 28) + Param;
+        Combined &= ~QUIC_PARAM_HIGH_PRIORITY; // TODO: enable high priority GetParam
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
@@ -1556,7 +1559,11 @@ void start() {
             printf("Using %u partitions...\n", ProcCount);
             ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
             ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
-            ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            } else {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            }
             ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
             ExecConfig->ProcessorCount = ProcCount;
             for (uint32_t i = 0; i < ProcCount; ++i) {

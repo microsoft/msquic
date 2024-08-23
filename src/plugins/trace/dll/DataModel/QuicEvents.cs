@@ -32,7 +32,6 @@ namespace QuicTrace.DataModel
         ConnectionStart,
         ConnectionSetConfiguration,
         ConnectionSendResumptionTicket,
-        ConnectionCompleteResumptionTicketValidation,
         StreamOpen,
         StreamClose,
         StreamStart,
@@ -40,7 +39,9 @@ namespace QuicTrace.DataModel
         StreamSend,
         StreamReceiveComplete,
         StreamReceiveSetEnabled,
-        StreamDatagramSend
+        StreamDatagramSend,
+        ConnectionCompleteResumptionTicketValidation,
+        ConnectionCompleteCertificateValidation
     }
 
     public enum QuicConnectionState

@@ -183,16 +183,24 @@ sudo dnf install libatomic
 
 #### Linux XDP
 Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-Commands below automatically install dependencies and setup runtime environment.
+Commands below install dependencies and setup runtime environment.  
+**<span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by `-ForceXdpInstall` </span>**
 ```sh
-pwsh ./scripts/prepare-machine.ps1 -UseXdp
-pwsh ./scripts/build.ps1
-export MSQUIC_ENABLE_XDP=1
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment
+You need to understand the impact of this on your environment before proceeding
+Type 'YES' to proceed: YES
+
+or
+
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
+$ pwsh ./scripts/build.ps1 -UseXdp
 ```
 
-`./scripts/prepare-machine.ps1` internally does the below commands:
+`./scripts/prepare-machine.ps1` internally does the below commands. This might break your environment.
 ```sh
-# for libxdp v1.4.2
+# for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
 
 # install runtime dependencies
@@ -208,11 +216,11 @@ sudo ./scripts/duonic.sh install
 
 Test
 ```sh
-# "sudo" and MSQUIC_ENABLE_XDP=1 required
+# "sudo" and --duoNic required
 # You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket
-sudo MSQUIC_ENABLE_XDP=1 ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
 ```
 
 **Q&A**

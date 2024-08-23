@@ -783,6 +783,21 @@ tracepoint(CLOG_SETTINGS_C, SettingNetStatsEventEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingsStreamMultiReceiveEnabled
+// [sett] StreamMultiReceiveEnabled= %hhu
+// QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
+// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingsStreamMultiReceiveEnabled
+#define _clog_3_ARGS_TRACE_SettingsStreamMultiReceiveEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
@@ -806,6 +821,21 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpLFixedServerID , arg2);\
 #ifndef _clog_3_ARGS_TRACE_SettingDumpStreamRecvBufferDefault
 #define _clog_3_ARGS_TRACE_SettingDumpStreamRecvBufferDefault(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_SETTINGS_C, SettingDumpStreamRecvBufferDefault , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingStreamMultiReceiveEnabled
+// [sett] StreamMultiReceiveEnabled  = %hhu
+// QuicTraceLogVerbose(SettingStreamMultiReceiveEnabled,       "[sett] StreamMultiReceiveEnabled  = %hhu", Settings->StreamMultiReceiveEnabled);
+// arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingStreamMultiReceiveEnabled
+#define _clog_3_ARGS_TRACE_SettingStreamMultiReceiveEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled , arg2);\
 
 #endif
 

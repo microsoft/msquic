@@ -229,7 +229,8 @@ PerfClient::Init(
                 nullptr,
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
-                PerfClientConnection::TcpSendCompleteCallback));
+                PerfClientConnection::TcpSendCompleteCallback,
+                TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;
@@ -945,8 +946,7 @@ PerfClientStream::OnShutdown() {
         }
 
         if (Client.PrintThroughput && SendSuccess) {
-            //const auto ElapsedMicroseconds = SendEndTime - StartTime;
-            const auto ElapsedMicroseconds = RecvEndTime - StartTime;
+            const auto ElapsedMicroseconds = CXPLAT_MAX(SendEndTime - StartTime, RecvEndTime - StartTime);
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
             WriteOutput(
                 "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",

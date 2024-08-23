@@ -105,10 +105,12 @@ TcpEngine::TcpEngine(
     TcpAcceptHandler AcceptHandler,
     TcpConnectHandler ConnectHandler,
     TcpReceiveHandler ReceiveHandler,
-    TcpSendCompleteHandler SendCompleteHandler) noexcept :
+    TcpSendCompleteHandler SendCompleteHandler,
+    TCP_EXECUTION_PROFILE TcpExecutionProfile) noexcept :
     ProcCount((uint16_t)CxPlatProcCount()), Workers(new(std::nothrow) TcpWorker[ProcCount]),
     AcceptHandler(AcceptHandler), ConnectHandler(ConnectHandler),
-    ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler)
+    ReceiveHandler(ReceiveHandler), SendCompleteHandler(SendCompleteHandler),
+    TcpExecutionProfile(TcpExecutionProfile)
 {
     CxPlatListInitializeHead(&Connections);
     for (uint16_t i = 0; i < ProcCount; ++i) {
@@ -117,6 +119,12 @@ TcpEngine::TcpEngine(
         }
     }
     Initialized = true;
+    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
+        WriteOutput("Initialized TCP Engine with Low Latency mode!\n");
+    }
+    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_MAX_THROUGHPUT) {
+        WriteOutput("Initialized TCP Engine with Max Throughput mode!\n");
+    }
 }
 
 TcpEngine::~TcpEngine() noexcept

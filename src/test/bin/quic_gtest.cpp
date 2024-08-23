@@ -96,8 +96,13 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
             if (UseQTIP) {
-                QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 10000, 0, {0}};
+                Config.PollingIdleTimeoutUs = 10000;
+                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+            }
+            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
@@ -1586,7 +1591,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 
 TEST_P(WithFamilyArgs, RebindDatapathAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (UseQTIP) {
+    if (UseQTIP || !UseDuoNic) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -2197,6 +2202,18 @@ TEST(Misc, StreamReliableResetMultipleSends) {
 }
 #endif // QUIC_PARAM_STREAM_RELIABLE_OFFSET
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(Misc, StreamMultiReceive) {
+    TestLogger Logger("StreamMultiReceive");
+    if (TestingKernelMode) {
+        GTEST_SKIP();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE));
+    } else {
+        QuicTestStreamMultiReceive();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
     TestLogger Logger("StreamBlockUnblockUnidiConnFlowControl");
     if (TestingKernelMode) {
@@ -2212,6 +2229,24 @@ TEST(Misc, StreamAbortConnFlowControl) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_ABORT_CONN_FLOW_CONTROL));
     } else {
         QuicTestStreamAbortConnFlowControl();
+    }
+}
+
+TEST(Basic, OperationPriority) {
+    TestLogger Logger("OperationPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
+    } else {
+        QuicTestOperationPriority();
+    }
+}
+
+TEST(Basic, ConnectionPriority) {
+    TestLogger Logger("ConnectionPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
+    } else {
+        QuicTestConnectionPriority();
     }
 }
 

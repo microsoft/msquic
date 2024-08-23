@@ -187,7 +187,8 @@ QuicPacketTraceType(
 
 void
 QuicSentPacketMetadataReleaseFrames(
-    _In_ QUIC_SENT_PACKET_METADATA* Metadata
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata,
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
@@ -243,6 +244,6 @@ QuicSentPacketPoolGetPacketMetadata(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolReturnPacketMetadata(
-    _In_ QUIC_SENT_PACKET_POOL* Pool,
-    _In_ QUIC_SENT_PACKET_METADATA* Metadata
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata,
+    _In_ QUIC_CONNECTION* Connection
     );

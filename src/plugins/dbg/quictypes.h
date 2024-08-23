@@ -1123,6 +1123,10 @@ struct OperQueue : Struct {
     LinkedList GetOperations() {
         return LinkedList(AddrOf("List"));
     }
+
+    ULONG64 GetPriorityTail() {
+        return ReadPointer("PriorityTail");
+    }
 };
 
 struct StreamSet : Struct {
@@ -1216,6 +1220,18 @@ struct Connection : Struct {
         }
     }
 
+    BYTE WorkerProcessing() {
+        return ReadType<BYTE>("WorkerProcessing");
+    }
+
+    BYTE HasQueuedWork() {
+        return ReadType<BYTE>("HasQueuedWork");
+    }
+
+    BYTE HasPriorityWork() {
+        return ReadType<BYTE>("HasPriorityWork");
+    }
+
     IpAddress GetLocalAddress() {
         return IpAddress(AddrOf("LocalAddress")); // TODO - Broken
     }
@@ -1303,6 +1319,28 @@ struct Listener : Struct {
     }
 };
 
+struct CxPlatWorker : Struct {
+
+    CxPlatWorker(ULONG64 Addr) : Struct("msquic!CXPLAT_WORKER", Addr) { }
+
+    ULONG64 Thread() {
+        return ReadPointer("Thread");
+    }
+};
+
+struct CxPlatExecutionContext : Struct {
+
+    CxPlatExecutionContext(ULONG64 Addr) : Struct("msquic!CXPLAT_EXECUTION_CONTEXT", Addr) { }
+
+    ULONG64 CxPlatContext() {
+        return ReadPointer("CxPlatContext");
+    }
+
+    CxPlatWorker GetCxPlatWorker() {
+        return CxPlatWorker(CxPlatContext());
+    }
+};
+
 struct Worker : Struct {
 
     Worker(ULONG64 Addr) : Struct("msquic!QUIC_WORKER", Addr) { }
@@ -1315,12 +1353,15 @@ struct Worker : Struct {
         return ReadType<BOOLEAN>("IsActive");
     }
 
+    bool HasWorkQueue() {
+        return !GetConnections().IsEmpty() || !GetOperations().IsEmpty();
+    }
+
     PSTR StateStr() {
-        bool HasWorkQueue = !GetConnections().IsEmpty() || !GetOperations().IsEmpty();
         if (IsActive()) {
-            return HasWorkQueue ? "ACTIVE (+queue)" : "ACTIVE";
+            return HasWorkQueue() ? "ACTIVE (+queue)" : "ACTIVE (no queue)";
         } else {
-            return HasWorkQueue ? "QUEUE" : "IDLE";
+            return HasWorkQueue() ? "QUEUE" : "IDLE (no queue)";
         }
     }
 
@@ -1328,12 +1369,16 @@ struct Worker : Struct {
         return ReadType<UINT16>("PartitionIndex");
     }
 
-    UINT32 ThreadID() {
-        return ReadType<UINT32>("ThreadID");
+    CxPlatExecutionContext GetCxPlatExecutionContext() {
+        return CxPlatExecutionContext(AddrOf("ExecutionContext"));
     }
 
     ULONG64 Thread() {
-        return ReadPointer("Thread");
+        ULONG64 thread = ReadPointer("Thread");
+        if (!thread) {
+            thread = GetCxPlatExecutionContext().GetCxPlatWorker().Thread();
+        }
+        return thread;
     }
 
     LinkedList GetConnections() {
@@ -1428,6 +1473,21 @@ struct Registration : Struct {
 
     String GetAppName() {
         return String(AddrOf("AppName"));
+    }
+
+    PSTR GetWorkersState() {
+        auto Workers = GetWorkerPool();
+        UCHAR WorkerCount = Workers.WorkerCount();
+        bool HasQueuedWorker = false;
+        for (UCHAR i = 0; i < WorkerCount; i++) {
+            if (Workers.GetWorker(i).IsActive()) {
+                return "ACTIVE";
+            }
+            if (Workers.GetWorker(i).HasWorkQueue()) {
+                HasQueuedWorker = true;
+            }
+        }
+        return HasQueuedWorker ? "QUEUED" : "  IDLE";
     }
 };
 

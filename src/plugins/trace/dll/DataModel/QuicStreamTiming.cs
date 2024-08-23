@@ -49,6 +49,11 @@ namespace QuicTrace.DataModel
         public bool IsServer { get; internal set; }
 
         //
+        // The stream has been allocated
+        //
+        public bool IsAllocated { get; internal set; }
+
+        //
         // The application is actively handling a receive.
         //
         public bool InAppRecv { get; internal set; }
@@ -179,7 +184,7 @@ namespace QuicTrace.DataModel
             {
                 if (!ignorePrevious)
                 {
-                    //Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, state);
+                    //Console.WriteLine("ERROR: Invalid state change from {0} to {1}", State, newState);
                     EncounteredError = true;
                 }
                 else if (State == QuicStreamState.Alloc && newState == QuicStreamState.QueueRecv)
@@ -205,6 +210,10 @@ namespace QuicTrace.DataModel
 
             LastStateChangeTime = time;
             State = newState;
+            if (newState == QuicStreamState.Alloc)
+            {
+                IsAllocated = true;
+            }
         }
 
         internal void UpdateToIdle(Timestamp time)

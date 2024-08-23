@@ -1,0 +1,19 @@
+{
+	"$schema": "https://raw.githubusercontent.com/microsoft/microsoft-performance-toolkit-sdk/main/src/PluginsSystem/Tools/Microsoft.Performance.Toolkit.Plugins.Cli/Manifest/PluginManifestSchema.json",
+	"identity": {
+		"id": "QuicTrace",
+		"version": "1.0.3"
+	},
+	"displayName": "QuicTrace",
+	"description": "Used to open MsQuic trace files.",
+	"owners": [
+		{
+			"name": "Datapath and Transports Team",
+			"address": "1 Microsoft Way, Redmond, WA 98052",
+			"emailAddresses": [ "noreply@microsoft.com" ],
+			"phoneNumbers": [ "123-333-4566" ]
+		}
+	],
+	"projectUrl": "https://github.com/microsoft/msquic",
+	"manifestVersion": 1.0
+}

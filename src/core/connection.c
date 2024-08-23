@@ -369,6 +369,7 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
@@ -718,6 +719,28 @@ QuicConnQueueOper(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicConnQueuePriorityOper(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
+    )
+{
+#if DEBUG
+    if (!Connection->State.Initialized) {
+        CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+#endif
+    if (QuicOperationEnqueuePriority(&Connection->OperQ, Oper)) {
+        //
+        // The connection needs to be queued on the worker because this was the
+        // first operation in our OperQ.
+        //
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicConnQueueHighestPriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
@@ -728,7 +751,7 @@ QuicConnQueueHighestPriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection);
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
@@ -1328,26 +1351,6 @@ QuicConnOnShutdownComplete(
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
 
-    if (Connection->State.ExternalOwner) {
-
-        QUIC_CONNECTION_EVENT Event;
-        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
-        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
-            Connection->State.Connected;
-        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
-            !Connection->State.ShutdownCompleteTimedOut;
-        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
-            Connection->State.HandleClosed;
-
-        QuicTraceLogConnVerbose(
-            IndicateConnectionShutdownComplete,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-        (void)QuicConnIndicateEvent(Connection, &Event);
-
-        Connection->ClientCallbackHandler = NULL;
-    }
-
     //
     // Clean up any pending state that is irrelevant now.
     //
@@ -1370,8 +1373,29 @@ QuicConnOnShutdownComplete(
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    QuicDatagramSendShutdown(&Connection->Datagram);
 
-    if (!Connection->State.ExternalOwner) {
+    if (Connection->State.ExternalOwner) {
+
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
+        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
+            Connection->State.Connected;
+        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
+            !Connection->State.ShutdownCompleteTimedOut;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Connection->State.HandleClosed;
+
+        QuicTraceLogConnVerbose(
+            IndicateConnectionShutdownComplete,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
+        (void)QuicConnIndicateEvent(Connection, &Event);
+
+        // This need to be later than QuicLossDetectionUninitialize to indicate
+        // status change of Datagram frame for an app to free its buffer
+        Connection->ClientCallbackHandler = NULL;
+    } else {
         //
         // If the connection was never indicated to the application, then the
         // "owner" ref still resides with the stack and needs to be released.
@@ -7535,7 +7559,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
     QUIC_OPERATION* Oper;
@@ -7695,5 +7720,10 @@ QuicConnDrainOperations(
 
     QuicConnValidate(Connection);
 
-    return HasMoreWorkToDo;
+    if (HasMoreWorkToDo) {
+        *StillHasPriorityWork = QuicOperationHasPriority(&Connection->OperQ);
+        return TRUE;
+    }
+
+    return FALSE;
 }

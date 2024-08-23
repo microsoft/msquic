@@ -23,7 +23,8 @@ Abstract:
 
 void
 QuicSentPacketMetadataReleaseFrames(
-    _In_ QUIC_SENT_PACKET_METADATA* Metadata
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     for (uint8_t i = 0; i < Metadata->FrameCount; i++) {
@@ -50,6 +51,15 @@ QuicSentPacketMetadataReleaseFrames(
             QuicStreamSentMetadataDecrement(Metadata->Frames[i].RELIABLE_RESET_STREAM.Stream);
             break;
 #pragma warning(pop)
+        case QUIC_FRAME_DATAGRAM:
+        case QUIC_FRAME_DATAGRAM_1:
+            if (Metadata->Frames[i].DATAGRAM.ClientContext != NULL) {
+                QuicDatagramIndicateSendStateChange(
+                    Connection,
+                    &Metadata->Frames[i].DATAGRAM.ClientContext,
+                    QUIC_DATAGRAM_SEND_LOST_DISCARDED);
+            }
+            break;
         default:
             //
             // Nothing to clean up for other frame types.
@@ -109,8 +119,8 @@ QuicSentPacketPoolGetPacketMetadata(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicSentPacketPoolReturnPacketMetadata(
-    _In_ QUIC_SENT_PACKET_POOL* Pool,
-    _In_ QUIC_SENT_PACKET_METADATA* Metadata
+    _In_ QUIC_SENT_PACKET_METADATA* Metadata,
+    _In_ QUIC_CONNECTION* Connection
     )
 {
     _Analysis_assume_(
@@ -121,6 +131,6 @@ QuicSentPacketPoolReturnPacketMetadata(
     Metadata->Flags.Freed = TRUE;
 #endif
 
-    QuicSentPacketMetadataReleaseFrames(Metadata);
-    CxPlatPoolFree(Pool->Pools + Metadata->FrameCount - 1, Metadata);
+    QuicSentPacketMetadataReleaseFrames(Metadata, Connection);
+    CxPlatPoolFree(Connection->Worker->SentPacketPool.Pools + Metadata->FrameCount - 1, Metadata);
 }

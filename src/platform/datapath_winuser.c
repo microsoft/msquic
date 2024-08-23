@@ -1167,7 +1167,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
 
     if (Datapath->UseTcp) {
         //
@@ -2255,10 +2255,15 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    const uint16_t SocketCount =
-        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-    for (uint16_t i = 0; i < SocketCount; ++i) {
-        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
+    if (Socket->UseTcp) {
+        // QTIP did not initialize PerProcSockets
+        CxPlatSocketRelease(Socket);
+    } else {
+        const uint16_t SocketCount =
+            Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
+        for (uint16_t i = 0; i < SocketCount; ++i) {
+            CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
+        }
     }
 }
 
@@ -4081,7 +4086,6 @@ CxPlatSocketSendInline(
         return QUIC_STATUS_PENDING;
     }
 
-    QUIC_STATUS Status;
     int Result;
     DWORD BytesSent;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
@@ -4196,24 +4200,17 @@ CxPlatSocketSendInline(
                 NULL);
     }
 
-    int WsaError = NO_ERROR;
     if (Result == SOCKET_ERROR) {
-        WsaError = WSAGetLastError();
-        if (WsaError == WSA_IO_PENDING) {
-            return QUIC_STATUS_SUCCESS;
-        }
-        Status = HRESULT_FROM_WIN32(WsaError);
-    } else {
-        Status = QUIC_STATUS_SUCCESS;
+        return QUIC_STATUS_SUCCESS; // Always processed asynchronously
     }
 
     //
     // Completed synchronously, so process the completion inline.
     //
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
-    CxPlatSendDataComplete(SendData, WsaError);
+    CxPlatSendDataComplete(SendData, NO_ERROR);
 
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 QUIC_STATUS
