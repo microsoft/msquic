@@ -388,6 +388,8 @@ PerfClient::Wait(
             WriteOutput("No connections or streams completed!\n");
         }
     }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 uint32_t
