@@ -3603,7 +3603,6 @@ QuicTestChangeAlpn(
                     {
                         TestConnection Client(Registration);
                         TEST_TRUE(Client.IsValid());
-                        Client.SetSslKeyLogFilePath();
 
                         TEST_QUIC_SUCCEEDED(
                             Client.Start(
@@ -3619,7 +3618,6 @@ QuicTestChangeAlpn(
                         TEST_TRUE(Client.GetIsConnected());
 
                         TEST_NOT_EQUAL(nullptr, Server);
-                        Server->SetSslKeyLogFilePath();
                         if (!Server->WaitForConnectionComplete()) {
                             return;
                         }
