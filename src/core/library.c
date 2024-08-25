@@ -680,7 +680,7 @@ QuicLibraryLazyInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
-            NULL,                   // WorkerCallbacks
+            NULL,                   // WorkerManager
             MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {

@@ -379,37 +379,18 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 
 } CXPLAT_TCP_DATAPATH_CALLBACKS;
 
-typedef
-_IRQL_requires_max_(DISPATCH_LEVEL)
-CXPLAT_EVENTQ*
-(QUIC_API * CXPLAT_WORKER_GET_EVENTQ)(
-    _In_opt_ void* Context,
-    _In_ uint16_t Index // Into the config processor array
-    );
+typedef struct CXPLAT_WORKER CXPLAT_WORKER;
 
-typedef
-_IRQL_requires_max_(DISPATCH_LEVEL)
-CXPLAT_RUNDOWN_REF*
-(QUIC_API * CXPLAT_WORKER_GET_RUNDOWN_REF)(
-    _In_opt_ void* Context
-    );
+typedef struct CXPLAT_WORKER_MANAGER {
 
-typedef
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-(QUIC_API * CXPLAT_WORKER_LAZY_START)(
-    _In_opt_ void* Context,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
-    );
+    CXPLAT_WORKER* Workers;
+    CXPLAT_LOCK WorkerLock;
+    CXPLAT_RUNDOWN_REF Rundown;
+    uint32_t WorkerCount;
 
-typedef struct CXPLAT_WORKER_CALLBACKS {
+} CXPLAT_WORKER_MANAGER;
 
-    CXPLAT_WORKER_GET_EVENTQ GetEventQ;
-    CXPLAT_WORKER_GET_RUNDOWN_REF GetRundownRef;
-    CXPLAT_WORKER_LAZY_START LazyStart;
-    void* Context;
-
-} CXPLAT_WORKER_CALLBACKS;
+extern CXPLAT_WORKER_MANAGER CxPlatWorkerManager;
 
 //
 // Function pointer type for send complete callbacks.
@@ -436,7 +417,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );

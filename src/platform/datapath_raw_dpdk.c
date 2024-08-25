@@ -138,11 +138,11 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(WorkerCallbacks);
+    UNREFERENCED_PARAMETER(WorkerManager);
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     CXPLAT_THREAD_CONFIG Config = {
         0, 0, "DpdkMain", CxPlatDpdkMainThread, Dpdk

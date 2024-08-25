@@ -48,9 +48,9 @@ typedef struct CXPLAT_DATAPATH_RAW {
     const CXPLAT_DATAPATH *ParentDataPath;
 
     //
-    // The Worker callback function pointers
+    // The Worker manager
     //
-    CXPLAT_WORKER_CALLBACKS WorkerHandlers;
+    CXPLAT_WORKER_MANAGER* WorkerManager;
 
     CXPLAT_SOCKET_POOL SocketPool;
 
@@ -112,7 +112,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     );
 

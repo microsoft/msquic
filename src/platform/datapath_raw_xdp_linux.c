@@ -672,15 +672,15 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (WorkerCallbacks == NULL) {
-        WorkerCallbacks = CxPlatGetWorkersDefaultCallbacks();
+    if (WorkerManager == NULL) {
+        WorkerManager = &CxPlatWorkerManager;
     }
 
     CxPlatXdpReadConfig(Xdp);
@@ -796,7 +796,7 @@ CxPlatDpRawInitialize(
         Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_XDP_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
         CxPlatRundownAcquire(&Xdp->Rundown);
-        Partition->EventQ = WorkerCallbacks->GetEventQ(WorkerCallbacks->Context, (uint16_t)i);
+        Partition->EventQ = CxPlatWorkerGetEventQ(WorkerManager, (uint16_t)i);
 
         if (!CxPlatSqeInitialize(
                 Partition->EventQ,
@@ -838,7 +838,7 @@ CxPlatDpRawInitialize(
             Partition,
             QueueCount);
 
-        CxPlatAddExecutionContext(&Partition->Ec, Partition->PartitionIndex);
+        CxPlatAddExecutionContext(WorkerManager, &Partition->Ec, Partition->PartitionIndex);
     }
 
 Error:

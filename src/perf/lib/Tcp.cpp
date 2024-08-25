@@ -203,7 +203,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 
     #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        CxPlatAddExecutionContext(&ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&CxPlatWorkerManager, &ExecutionContext, PartitionIndex);
         Initialized = true;
         IsExternal = true;
         return true;

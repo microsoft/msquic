@@ -99,10 +99,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 } CXPLAT_WORKER;
 
-static CXPLAT_LOCK CxPlatWorkerLock;
-static CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
-static uint32_t CxPlatWorkerCount;
-static CXPLAT_WORKER* CxPlatWorkers;
+CXPLAT_WORKER_MANAGER CxPlatWorkerManager;
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 void
@@ -110,45 +107,44 @@ CxPlatWorkersInit(
     void
     )
 {
-    CxPlatLockInitialize(&CxPlatWorkerLock);
+    CxPlatLockInitialize(&CxPlatWorkerManager.WorkerLock);
 }
 
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
-static
 BOOLEAN
 CxPlatWorkersLazyStart(
-    _In_opt_ void* Context,
+    _In_ CXPLAT_WORKER_MANAGER* Manager,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-    CxPlatLockAcquire(&CxPlatWorkerLock);
-    if (CxPlatWorkers != NULL) {
-        CxPlatLockRelease(&CxPlatWorkerLock);
+    CXPLAT_DBG_ASSERT(Manager);
+    CxPlatLockAcquire(&Manager->WorkerLock);
+    if (Manager->Workers != NULL) {
+        CxPlatLockRelease(&Manager->WorkerLock);
         return TRUE;
     }
 
     const uint16_t* ProcessorList;
     if (Config && Config->ProcessorCount) {
-        CxPlatWorkerCount = Config->ProcessorCount;
+        Manager->WorkerCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
     } else {
-        CxPlatWorkerCount = CxPlatProcCount();
+        Manager->WorkerCount = CxPlatProcCount();
         ProcessorList = NULL;
     }
-    CXPLAT_DBG_ASSERT(CxPlatWorkerCount > 0 && CxPlatWorkerCount <= UINT16_MAX);
+    CXPLAT_DBG_ASSERT(Manager->WorkerCount > 0 && Manager->WorkerCount <= UINT16_MAX);
 
-    const size_t WorkersSize = sizeof(CXPLAT_WORKER) * CxPlatWorkerCount;
-    CxPlatWorkers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
-    if (CxPlatWorkers == NULL) {
+    const size_t WorkersSize = sizeof(CXPLAT_WORKER) * Manager->WorkerCount;
+    Manager->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
+    if (Manager->Workers == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_WORKER",
             WorkersSize);
-        CxPlatWorkerCount = 0;
+        Manager->WorkerCount = 0;
         goto Error;
     }
 
@@ -160,194 +156,179 @@ CxPlatWorkersLazyStart(
         NULL
     };
 
-    CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
-    for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-        CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
-        CxPlatWorkers[i].InitializedECLock = TRUE;
-        CxPlatWorkers[i].IdealProcessor = ProcessorList ? ProcessorList[i] : (uint16_t)i;
-        CXPLAT_DBG_ASSERT(CxPlatWorkers[i].IdealProcessor < CxPlatProcCount());
-        ThreadConfig.IdealProcessor = CxPlatWorkers[i].IdealProcessor;
-        ThreadConfig.Context = &CxPlatWorkers[i];
-        if (!CxPlatEventQInitialize(&CxPlatWorkers[i].EventQ)) {
+    CxPlatZeroMemory(Manager->Workers, WorkersSize);
+    for (uint32_t i = 0; i < Manager->WorkerCount; ++i) {
+        CxPlatLockInitialize(&Manager->Workers[i].ECLock);
+        Manager->Workers[i].InitializedECLock = TRUE;
+        Manager->Workers[i].IdealProcessor = ProcessorList ? ProcessorList[i] : (uint16_t)i;
+        CXPLAT_DBG_ASSERT(Manager->Workers[i].IdealProcessor < CxPlatProcCount());
+        ThreadConfig.IdealProcessor = Manager->Workers[i].IdealProcessor;
+        ThreadConfig.Context = &Manager->Workers[i];
+        if (!CxPlatEventQInitialize(&Manager->Workers[i].EventQ)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "CxPlatEventQInitialize");
             goto Error;
         }
-        CxPlatWorkers[i].InitializedEventQ = TRUE;
+        Manager->Workers[i].InitializedEventQ = TRUE;
 #ifdef CXPLAT_SQE_INIT
-        CxPlatWorkers[i].ShutdownSqe = (CXPLAT_SQE)CxPlatWorkers[i].EventQ;
-        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe, NULL)) {
+        Manager->Workers[i].ShutdownSqe = (CXPLAT_SQE)Manager->Workers[i].EventQ;
+        if (!CxPlatSqeInitialize(&Manager->Workers[i].EventQ, &Manager->Workers[i].ShutdownSqe, NULL)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "CxPlatSqeInitialize(shutdown)");
             goto Error;
         }
-        CxPlatWorkers[i].InitializedShutdownSqe = TRUE;
-        CxPlatWorkers[i].WakeSqe = (CXPLAT_SQE)WorkerWakeEventPayload;
-        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe, (void*)&WorkerWakeEventPayload)) {
+        Manager->Workers[i].InitializedShutdownSqe = TRUE;
+        Manager->Workers[i].WakeSqe = (CXPLAT_SQE)WorkerWakeEventPayload;
+        if (!CxPlatSqeInitialize(&Manager->Workers[i].EventQ, &Manager->Workers[i].WakeSqe, (void*)&WorkerWakeEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "CxPlatSqeInitialize(wake)");
             goto Error;
         }
-        CxPlatWorkers[i].InitializedWakeSqe = TRUE;
-        CxPlatWorkers[i].UpdatePollSqe = (CXPLAT_SQE)WorkerUpdatePollEventPayload;
-        if (!CxPlatSqeInitialize(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe, (void*)&WorkerUpdatePollEventPayload)) {
+        Manager->Workers[i].InitializedWakeSqe = TRUE;
+        Manager->Workers[i].UpdatePollSqe = (CXPLAT_SQE)WorkerUpdatePollEventPayload;
+        if (!CxPlatSqeInitialize(&Manager->Workers[i].EventQ, &Manager->Workers[i].UpdatePollSqe, (void*)&WorkerUpdatePollEventPayload)) {
             QuicTraceEvent(
                 LibraryError,
                 "[ lib] ERROR, %s.",
                 "CxPlatSqeInitialize(updatepoll)");
             goto Error;
         }
-        CxPlatWorkers[i].InitializedUpdatePollSqe = TRUE;
+        Manager->Workers[i].InitializedUpdatePollSqe = TRUE;
 #endif
         if (QUIC_FAILED(
-            CxPlatThreadCreate(&ThreadConfig, &CxPlatWorkers[i].Thread))) {
+            CxPlatThreadCreate(&ThreadConfig, &Manager->Workers[i].Thread))) {
             goto Error;
         }
-        CxPlatWorkers[i].InitializedThread = TRUE;
+        Manager->Workers[i].InitializedThread = TRUE;
     }
 
-    CxPlatRundownInitialize(&CxPlatWorkerRundown);
+    CxPlatRundownInitialize(&Manager->Rundown);
 
-    CxPlatLockRelease(&CxPlatWorkerLock);
+    CxPlatLockRelease(&Manager->WorkerLock);
 
     return TRUE;
 
 Error:
 
-    if (CxPlatWorkers) {
-        for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-            if (CxPlatWorkers[i].InitializedThread) {
-                CxPlatWorkers[i].StoppingThread = TRUE;
+    if (Manager->Workers) {
+        for (uint32_t i = 0; i < Manager->WorkerCount; ++i) {
+            if (Manager->Workers[i].InitializedThread) {
+                Manager->Workers[i].StoppingThread = TRUE;
                 CxPlatEventQEnqueue(
-                    &CxPlatWorkers[i].EventQ,
-                    &CxPlatWorkers[i].ShutdownSqe,
+                    &Manager->Workers[i].EventQ,
+                    &Manager->Workers[i].ShutdownSqe,
                     NULL);
-                CxPlatThreadWait(&CxPlatWorkers[i].Thread);
-                CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
+                CxPlatThreadWait(&Manager->Workers[i].Thread);
+                CxPlatThreadDelete(&Manager->Workers[i].Thread);
 #if DEBUG
-                CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadStarted);
-                CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadFinished);
+                CXPLAT_DBG_ASSERT(Manager->Workers[i].ThreadStarted);
+                CXPLAT_DBG_ASSERT(Manager->Workers[i].ThreadFinished);
 #endif
-                CxPlatWorkers[i].DestroyedThread = TRUE;
+                Manager->Workers[i].DestroyedThread = TRUE;
             }
 #ifdef CXPLAT_SQE_INIT
-            if (CxPlatWorkers[i].InitializedUpdatePollSqe) {
-                CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe);
+            if (Manager->Workers[i].InitializedUpdatePollSqe) {
+                CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].UpdatePollSqe);
             }
-            if (CxPlatWorkers[i].InitializedWakeSqe) {
-                CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe);
+            if (Manager->Workers[i].InitializedWakeSqe) {
+                CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].WakeSqe);
             }
-            if (CxPlatWorkers[i].InitializedShutdownSqe) {
-                CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
+            if (Manager->Workers[i].InitializedShutdownSqe) {
+                CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].ShutdownSqe);
             }
 #endif // CXPLAT_SQE_INIT
-            if (CxPlatWorkers[i].InitializedEventQ) {
-                CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
+            if (Manager->Workers[i].InitializedEventQ) {
+                CxPlatEventQCleanup(&Manager->Workers[i].EventQ);
             }
-            if (CxPlatWorkers[i].InitializedECLock) {
-                CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
+            if (Manager->Workers[i].InitializedECLock) {
+                CxPlatLockUninitialize(&Manager->Workers[i].ECLock);
             }
         }
 
-        CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
-        CxPlatWorkers = NULL;
+        CXPLAT_FREE(Manager->Workers, QUIC_POOL_PLATFORM_WORKER);
+        Manager->Workers = NULL;
     }
 
-    CxPlatLockRelease(&CxPlatWorkerLock);
+    CxPlatLockRelease(&Manager->WorkerLock);
     return FALSE;
 }
 #pragma warning(pop)
+
+void
+CxPlatWorkersStop(
+    _In_ CXPLAT_WORKER_MANAGER* Manager
+    )
+{
+    CXPLAT_DBG_ASSERT(Manager);
+    if (Manager->Workers != NULL) {
+        CxPlatRundownReleaseAndWait(&Manager->Rundown);
+
+        for (uint32_t i = 0; i < Manager->WorkerCount; ++i) {
+            Manager->Workers[i].StoppingThread = TRUE;
+            CxPlatEventQEnqueue(
+                &Manager->Workers[i].EventQ,
+                &Manager->Workers[i].ShutdownSqe,
+                NULL);
+            CxPlatThreadWait(&Manager->Workers[i].Thread);
+            CxPlatThreadDelete(&Manager->Workers[i].Thread);
+#if DEBUG
+            CXPLAT_DBG_ASSERT(Manager->Workers[i].ThreadStarted);
+            CXPLAT_DBG_ASSERT(Manager->Workers[i].ThreadFinished);
+#endif
+            Manager->Workers[i].DestroyedThread = TRUE;
+#ifdef CXPLAT_SQE_INIT
+            CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].UpdatePollSqe);
+            CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].WakeSqe);
+            CxPlatSqeCleanup(&Manager->Workers[i].EventQ, &Manager->Workers[i].ShutdownSqe);
+#endif // CXPLAT_SQE_INIT
+            CxPlatEventQCleanup(&Manager->Workers[i].EventQ);
+            CxPlatLockUninitialize(&Manager->Workers[i].ECLock);
+        }
+
+        CXPLAT_FREE(Manager->Workers, QUIC_POOL_PLATFORM_WORKER);
+        Manager->Workers = NULL;
+
+        CxPlatRundownUninitialize(&Manager->Rundown);
+    }
+
+    CxPlatLockUninitialize(&Manager->WorkerLock);
+}
 
 void
 CxPlatWorkersUninit(
     void
     )
 {
-    if (CxPlatWorkers != NULL) {
-        CxPlatRundownReleaseAndWait(&CxPlatWorkerRundown);
-
-        for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
-            CxPlatWorkers[i].StoppingThread = TRUE;
-            CxPlatEventQEnqueue(
-                &CxPlatWorkers[i].EventQ,
-                &CxPlatWorkers[i].ShutdownSqe,
-                NULL);
-            CxPlatThreadWait(&CxPlatWorkers[i].Thread);
-            CxPlatThreadDelete(&CxPlatWorkers[i].Thread);
-#if DEBUG
-            CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadStarted);
-            CXPLAT_DBG_ASSERT(CxPlatWorkers[i].ThreadFinished);
-#endif
-            CxPlatWorkers[i].DestroyedThread = TRUE;
-#ifdef CXPLAT_SQE_INIT
-            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].UpdatePollSqe);
-            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].WakeSqe);
-            CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
-#endif // CXPLAT_SQE_INIT
-            CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
-            CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
-        }
-
-        CXPLAT_FREE(CxPlatWorkers, QUIC_POOL_PLATFORM_WORKER);
-        CxPlatWorkers = NULL;
-
-        CxPlatRundownUninitialize(&CxPlatWorkerRundown);
-    }
-
-    CxPlatLockUninitialize(&CxPlatWorkerLock);
+    CxPlatWorkersStop(&CxPlatWorkerManager);
 }
 
-static
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
-    _In_opt_ void* Context,
+    _In_ const CXPLAT_WORKER_MANAGER* Manager,
     _In_ uint16_t Index
     )
 {
-    UNREFERENCED_PARAMETER(Context);
-    CXPLAT_FRE_ASSERT(Index < CxPlatWorkerCount);
-    return &CxPlatWorkers[Index].EventQ;
-}
-
-static
-CXPLAT_RUNDOWN_REF*
-CxPlatWorkerGetRundownRef(
-    _In_opt_ void* Context
-    )
-{
-    UNREFERENCED_PARAMETER(Context);
-    return &CxPlatWorkerRundown;
-}
-
-static CXPLAT_WORKER_CALLBACKS CxPlatWorkerCallbacks = {
-    .GetEventQ = CxPlatWorkerGetEventQ,
-    .GetRundownRef = CxPlatWorkerGetRundownRef,
-    .LazyStart = CxPlatWorkersLazyStart,
-    .Context = NULL,
-};
-
-CXPLAT_WORKER_CALLBACKS*
-CxPlatGetWorkersDefaultCallbacks(
-    void
-    )
-{
-    return &CxPlatWorkerCallbacks;
+    CXPLAT_DBG_ASSERT(Manager);
+    CXPLAT_FRE_ASSERT(Index < Manager->WorkerCount);
+    return &Manager->Workers[Index].EventQ;
 }
 
 void
 CxPlatAddExecutionContext(
+    _In_ CXPLAT_WORKER_MANAGER* Manager,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
     _In_ uint16_t Index
     )
 {
-    CXPLAT_FRE_ASSERT(Index < CxPlatWorkerCount);
-    CXPLAT_WORKER* Worker = &CxPlatWorkers[Index];
+    CXPLAT_DBG_ASSERT(Manager);
+    CXPLAT_FRE_ASSERT(Index < Manager->WorkerCount);
+    CXPLAT_WORKER* Worker = &Manager->Workers[Index];
 
     Context->CxPlatContext = Worker;
     CxPlatLockAcquire(&Worker->ECLock);

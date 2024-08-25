@@ -361,7 +361,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     // The Worker callback function pointers
     //
-    CXPLAT_WORKER_CALLBACKS WorkerHandlers;
+    CXPLAT_WORKER_MANAGER WorkerHandlers;
 
     //
     // Synchronization mechanism for cleanup.
@@ -443,7 +443,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -457,11 +457,11 @@ CxPlatDataPathInitialize(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
-    if (WorkerCallbacks == NULL) {
-        WorkerCallbacks = CxPlatGetWorkersDefaultCallbacks();
+    if (WorkerManager == NULL) {
+        WorkerManager = &CxPlatWorkerManager;
     }
 
-    if (!WorkerCallbacks->LazyStart(WorkerCallbacks->Context, Config)) {
+    if (!CxPlatWorkersLazyStart(WorkerManager, Config)) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -489,7 +489,7 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
-    Datapath->WorkerHandlers = *WorkerCallbacks;
+    Datapath->WorkerManager = WorkerManager;
     Datapath->PartitionCount = 1; //PartitionCount; // Darwin only supports a single receiver
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
 
@@ -501,9 +501,7 @@ CxPlatDataPathInitialize(
             &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(
-        CxPlatRundownAcquire(
-            WorkerCallbacks->GetRundownRef(WorkerCallbacks->Context)));
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerManager->Rundown));
     *NewDataPath = Datapath;
 
     return QUIC_STATUS_SUCCESS;

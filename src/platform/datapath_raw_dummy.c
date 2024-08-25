@@ -56,14 +56,14 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
+    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
     _Out_ CXPLAT_DATAPATH_RAW** DataPath
     )
 {
     UNREFERENCED_PARAMETER(ClientRecvContextLength);
     UNREFERENCED_PARAMETER(Config);
     UNREFERENCED_PARAMETER(ParentDataPath);
-    UNREFERENCED_PARAMETER(WorkerCallbacks);
+    UNREFERENCED_PARAMETER(WorkerManager);
     UNREFERENCED_PARAMETER(DataPath);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
