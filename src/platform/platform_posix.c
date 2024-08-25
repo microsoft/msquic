@@ -245,7 +245,7 @@ CxPlatInitialize(
         return Status;
     }
 
-    CxPlatWorkerGlobalInit();
+    CxPlatWorkerPoolDefaultInit();
 
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
@@ -262,7 +262,7 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatWorkerGlobalUninit();
+    CxPlatWorkerPoolDefaultUninit();
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(

@@ -381,16 +381,16 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 
 typedef struct CXPLAT_WORKER CXPLAT_WORKER;
 
-typedef struct CXPLAT_WORKER_MANAGER {
+typedef struct CXPLAT_WORKER_POOL {
 
     CXPLAT_WORKER* Workers;
     CXPLAT_LOCK WorkerLock;
     CXPLAT_RUNDOWN_REF Rundown;
     uint32_t WorkerCount;
 
-} CXPLAT_WORKER_MANAGER;
+} CXPLAT_WORKER_POOL;
 
-extern CXPLAT_WORKER_MANAGER CxPlatWorkerManager;
+extern CXPLAT_WORKER_POOL CxPlatDefaultWorkerPool;
 
 //
 // Function pointer type for send complete callbacks.
@@ -417,7 +417,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );

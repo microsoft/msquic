@@ -24,7 +24,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
@@ -33,8 +33,8 @@ RawDataPathInitialize(
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
 
-    if (WorkerManager == NULL) {
-        WorkerManager = &CxPlatWorkerManager;
+    if (WorkerPool == NULL) {
+        WorkerPool = &CxPlatDefaultWorkerPool;
     }
 
     if (NewDataPath == NULL) {
@@ -51,9 +51,9 @@ RawDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerManager->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
 
-    DataPath->WorkerManager = WorkerManager;
+    DataPath->WorkerPool = WorkerPool;
 
     if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
         DataPath->UseTcp = TRUE;
@@ -65,7 +65,7 @@ RawDataPathInitialize(
     }
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerManager, Config);
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerPool, Config);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -93,7 +93,7 @@ Error:
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
             CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
-            CxPlatRundownRelease(&WorkerManager->Rundown);
+            CxPlatRundownRelease(&WorkerPool->Rundown);
         }
     }
 
@@ -129,7 +129,7 @@ CxPlatDataPathUninitializeComplete(
     Datapath->Freed = TRUE;
 #endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
-    CxPlatRundownRelease(&Datapath->WorkerManager->Rundown);
+    CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 

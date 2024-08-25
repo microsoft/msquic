@@ -99,7 +99,7 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&CxPlatWorkerManager, &Worker->ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&CxPlatDefaultWorkerPool, &Worker->ExecutionContext, PartitionIndex);
     } else
 #endif // _KERNEL_MODE
     {

@@ -58,9 +58,9 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
     //
-    // The Worker Manager
+    // The Worker WorkerPool
     //
-    CXPLAT_WORKER_MANAGER* WorkerManager;
+    CXPLAT_WORKER_POOL* WorkerPool;
 } CXPLAT_DATAPATH_COMMON;
 
 typedef struct CXPLAT_SOCKET_COMMON {
@@ -651,34 +651,34 @@ CxPlatCryptUninitialize(
 //
 
 void
-CxPlatWorkerGlobalInit(
+CxPlatWorkerPoolDefaultInit(
     void
     );
 
 void
-CxPlatWorkerGlobalUninit(
+CxPlatWorkerPoolDefaultUninit(
     void
     );
 
 void
-CxPlatWorkerInit(
-    _In_ CXPLAT_WORKER_MANAGER* Manager
+CxPlatWorkerPoolInit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
 void
-CxPlatWorkerUninit(
-    _In_ CXPLAT_WORKER_MANAGER* Manager
+CxPlatWorkerPoolUninit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     );   
 
 BOOLEAN
-CxPlatWorkerLazyStart(
-    _In_ CXPLAT_WORKER_MANAGER* Manager,
+CxPlatWorkerPoolLazyStart(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     );
 
 CXPLAT_EVENTQ*
-CxPlatWorkerGetEventQ(
-    _In_ const CXPLAT_WORKER_MANAGER* Manager,
+CxPlatWorkerPoolGetEventQ(
+    _In_ const CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint16_t Index // Into the config processor array
     );
 
@@ -1020,7 +1020,7 @@ DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
@@ -1137,7 +1137,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** DataPath
     );
 

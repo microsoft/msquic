@@ -467,15 +467,15 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-typedef struct CXPLAT_WORKER_MANAGER CXPLAT_WORKER_MANAGER;
+typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(WorkerManager, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
+#define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
 #define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
 #else
 void
 CxPlatAddExecutionContext(
-    _In_ CXPLAT_WORKER_MANAGER* Manager,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
     _In_ uint16_t Index // Into the execution config processor array
     );

@@ -758,7 +758,7 @@ DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_WORKER_MANAGER* WorkerManager,
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
@@ -790,11 +790,11 @@ DataPathInitialize(
             goto Exit;
         }
     }
-    if (WorkerManager == NULL) {
-        WorkerManager = &CxPlatWorkerManager;
+    if (WorkerPool == NULL) {
+        WorkerPool = &CxPlatDefaultWorkerPool;
     }
 
-    if (!CxPlatWorkerLazyStart(WorkerManager, Config)) {
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
@@ -836,7 +836,7 @@ DataPathInitialize(
     if (TcpCallbacks) {
         Datapath->TcpHandlers = *TcpCallbacks;
     }
-    Datapath->WorkerManager = WorkerManager;
+    Datapath->WorkerPool = WorkerPool;
 
     if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
         Datapath->UseTcp = TRUE;
@@ -910,7 +910,7 @@ DataPathInitialize(
 
         Datapath->Partitions[i].Datapath = Datapath;
         Datapath->Partitions[i].PartitionIndex = (uint16_t)i;
-        Datapath->Partitions[i].EventQ = CxPlatWorkerGetEventQ(Datapath->WorkerManager, i);
+        Datapath->Partitions[i].EventQ = CxPlatWorkerPoolGetEventQ(Datapath->WorkerPool, i);
         CxPlatRefInitialize(&Datapath->Partitions[i].RefCount);
 
         CxPlatPoolInitialize(
@@ -974,7 +974,7 @@ DataPathInitialize(
             &Datapath->Partitions[i].RioRecvPool);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerManager->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
     *NewDatapath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -1005,7 +1005,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
         WSACleanup();
-        CxPlatRundownRelease(&Datapath->WorkerManager->Rundown);
+        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
