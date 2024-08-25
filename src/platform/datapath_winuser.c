@@ -794,7 +794,7 @@ DataPathInitialize(
         WorkerManager = &CxPlatWorkerManager;
     }
 
-    if (!CxPlatWorkersLazyStart(WorkerManager, Config)) {
+    if (!CxPlatWorkerLazyStart(WorkerManager, Config)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }

@@ -103,18 +103,27 @@ CXPLAT_WORKER_MANAGER CxPlatWorkerManager;
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 void
-CxPlatWorkersInit(
+CxPlatWorkerInit(
+    _In_ CXPLAT_WORKER_MANAGER* Manager
+    )
+{
+    CXPLAT_DBG_ASSERT(Manager);
+    CxPlatLockInitialize(&Manager->WorkerLock);
+}
+
+void
+CxPlatWorkerGlobalInit(
     void
     )
 {
-    CxPlatLockInitialize(&CxPlatWorkerManager.WorkerLock);
+    CxPlatWorkerInit(&CxPlatWorkerManager);
 }
 
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
 BOOLEAN
-CxPlatWorkersLazyStart(
+CxPlatWorkerLazyStart(
     _In_ CXPLAT_WORKER_MANAGER* Manager,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     )
@@ -261,7 +270,7 @@ Error:
 #pragma warning(pop)
 
 void
-CxPlatWorkersStop(
+CxPlatWorkerUninit(
     _In_ CXPLAT_WORKER_MANAGER* Manager
     )
 {
@@ -301,11 +310,11 @@ CxPlatWorkersStop(
 }
 
 void
-CxPlatWorkersUninit(
+CxPlatWorkerGlobalUninit(
     void
     )
 {
-    CxPlatWorkersStop(&CxPlatWorkerManager);
+    CxPlatWorkerUninit(&CxPlatWorkerManager);
 }
 
 CXPLAT_EVENTQ*

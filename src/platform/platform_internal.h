@@ -651,17 +651,27 @@ CxPlatCryptUninitialize(
 //
 
 void
-CxPlatWorkersInit(
+CxPlatWorkerGlobalInit(
     void
     );
 
 void
-CxPlatWorkersUninit(
+CxPlatWorkerGlobalUninit(
     void
     );
 
+void
+CxPlatWorkerInit(
+    _In_ CXPLAT_WORKER_MANAGER* Manager
+    );
+
+void
+CxPlatWorkerUninit(
+    _In_ CXPLAT_WORKER_MANAGER* Manager
+    );   
+
 BOOLEAN
-CxPlatWorkersLazyStart(
+CxPlatWorkerLazyStart(
     _In_ CXPLAT_WORKER_MANAGER* Manager,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     );

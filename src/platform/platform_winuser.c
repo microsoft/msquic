@@ -294,7 +294,7 @@ CxPlatInitialize(
     }
     CryptoInitialized = TRUE;
 
-    CxPlatWorkersInit();
+    CxPlatWorkerGlobalInit();
 
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
@@ -334,7 +334,7 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatWorkersUninit();
+    CxPlatWorkerGlobalUninit();
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
