@@ -467,6 +467,7 @@ main(
             0,
             &DatapathCallbacks,
             NULL,
+            NULL,
             &DatapathFlags,
             &Datapath);
 

@@ -99,10 +99,10 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 } CXPLAT_WORKER;
 
-CXPLAT_LOCK CxPlatWorkerLock;
-CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
-uint32_t CxPlatWorkerCount;
-CXPLAT_WORKER* CxPlatWorkers;
+static CXPLAT_LOCK CxPlatWorkerLock;
+static CXPLAT_RUNDOWN_REF CxPlatWorkerRundown;
+static uint32_t CxPlatWorkerCount;
+static CXPLAT_WORKER* CxPlatWorkers;
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 void
@@ -116,11 +116,14 @@ CxPlatWorkersInit(
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
+static
 BOOLEAN
 CxPlatWorkersLazyStart(
+    _In_opt_ void* Context,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     )
 {
+    UNREFERENCED_PARAMETER(Context);
     CxPlatLockAcquire(&CxPlatWorkerLock);
     if (CxPlatWorkers != NULL) {
         CxPlatLockRelease(&CxPlatWorkerLock);
@@ -300,13 +303,41 @@ CxPlatWorkersUninit(
     CxPlatLockUninitialize(&CxPlatWorkerLock);
 }
 
+static
 CXPLAT_EVENTQ*
 CxPlatWorkerGetEventQ(
+    _In_opt_ void* Context,
     _In_ uint16_t Index
     )
 {
+    UNREFERENCED_PARAMETER(Context);
     CXPLAT_FRE_ASSERT(Index < CxPlatWorkerCount);
     return &CxPlatWorkers[Index].EventQ;
+}
+
+static
+CXPLAT_RUNDOWN_REF*
+CxPlatWorkerGetRundownRef(
+    _In_opt_ void* Context
+    )
+{
+    UNREFERENCED_PARAMETER(Context);
+    return &CxPlatWorkerRundown;
+}
+
+static CXPLAT_WORKER_CALLBACKS CxPlatWorkerCallbacks = {
+    .GetEventQ = CxPlatWorkerGetEventQ,
+    .GetRundownRef = CxPlatWorkerGetRundownRef,
+    .LazyStart = CxPlatWorkersLazyStart,
+    .Context = NULL,
+};
+
+CXPLAT_WORKER_CALLBACKS*
+CxPlatGetWorkersDefaultCallbacks(
+    void
+    )
+{
+    return &CxPlatWorkerCallbacks;
 }
 
 void

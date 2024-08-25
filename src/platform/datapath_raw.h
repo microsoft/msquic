@@ -47,6 +47,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
 typedef struct CXPLAT_DATAPATH_RAW {
     const CXPLAT_DATAPATH *ParentDataPath;
 
+    //
+    // The Worker callback function pointers
+    //
+    CXPLAT_WORKER_CALLBACKS WorkerHandlers;
+
     CXPLAT_SOCKET_POOL SocketPool;
 
     CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
@@ -107,6 +112,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     );
 

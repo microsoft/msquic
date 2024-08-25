@@ -21,6 +21,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -36,6 +37,7 @@ CxPlatDataPathInitialize(
             ClientRecvContextLength,
             UdpCallbacks,
             TcpCallbacks,
+            WorkerCallbacks,
             Config,
             NewDataPath);
     if (QUIC_FAILED(Status)) {
@@ -51,6 +53,7 @@ CxPlatDataPathInitialize(
                 ClientRecvContextLength,
                 Config,
                 (*NewDataPath),
+                WorkerCallbacks,
                 &((*NewDataPath)->RawDataPath));
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(

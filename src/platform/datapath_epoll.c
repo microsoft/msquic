@@ -354,7 +354,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathPartition->Datapath = Datapath;
     DatapathPartition->PartitionIndex = PartitionIndex;
-    DatapathPartition->EventQ = CxPlatWorkerGetEventQ(PartitionIndex);
+    DatapathPartition->EventQ = Datapath->WorkerHandlers.GetEventQ(Datapath->WorkerHandlers.Context, PartitionIndex);
     CxPlatRefInitialize(&DatapathPartition->RefCount);
     CxPlatPoolInitialize(TRUE, Datapath->RecvBlockSize, QUIC_POOL_DATA, &DatapathPartition->RecvBlockPool);
     CxPlatPoolInitialize(TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathPartition->SendBlockPool);
@@ -365,6 +365,7 @@ DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
@@ -386,8 +387,11 @@ DataPathInitialize(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
+    if (WorkerCallbacks == NULL) {
+        WorkerCallbacks = CxPlatGetWorkersDefaultCallbacks();
+    }
 
-    if (!CxPlatWorkersLazyStart(Config)) {
+    if (!WorkerCallbacks->LazyStart(WorkerCallbacks->Context, Config)) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -415,6 +419,7 @@ DataPathInitialize(
     if (TcpCallbacks) {
         Datapath->TcpHandlers = *TcpCallbacks;
     }
+    Datapath->WorkerHandlers = *WorkerCallbacks;
 
     Datapath->PartitionCount = PartitionCount;
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
@@ -429,7 +434,9 @@ DataPathInitialize(
             Datapath, i, &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    CXPLAT_FRE_ASSERT(
+        CxPlatRundownAcquire(
+            WorkerCallbacks->GetRundownRef(WorkerCallbacks->Context)));
     *NewDatapath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -447,8 +454,8 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
+        CxPlatRundownRelease(Datapath->WorkerHandlers.GetRundownRef(Datapath->WorkerHandlers.Contxt));
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-        CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
 }
 

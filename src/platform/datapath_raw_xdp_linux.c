@@ -672,11 +672,16 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
+    _In_opt_ const CXPLAT_WORKER_CALLBACKS* WorkerCallbacks,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (WorkerCallbacks == NULL) {
+        WorkerCallbacks = CxPlatGetWorkersDefaultCallbacks();
+    }
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
@@ -791,7 +796,7 @@ CxPlatDpRawInitialize(
         Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_XDP_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
         CxPlatRundownAcquire(&Xdp->Rundown);
-        Partition->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
+        Partition->EventQ = WorkerCallbacks->GetEventQ(WorkerCallbacks->Context, (uint16_t)i);
 
         if (!CxPlatSqeInitialize(
                 Partition->EventQ,

@@ -214,7 +214,7 @@ main(int argc, char **argv)
     CxPlatInitialize();
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, nullptr, &Datapath);
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, nullptr, nullptr, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
