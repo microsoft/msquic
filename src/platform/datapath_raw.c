@@ -129,7 +129,7 @@ CxPlatDataPathUninitializeComplete(
     Datapath->Freed = TRUE;
 #endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
-    CxPlatRundownRelease(Datapath->WorkerHandlers.GetRundownRef(Datapath->WorkerHandlers.Context));
+    CxPlatRundownRelease(&Datapath->WorkerManager->Rundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 

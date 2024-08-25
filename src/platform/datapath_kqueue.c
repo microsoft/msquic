@@ -519,7 +519,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
-        CxPlatRundownRelease(Datapath->WorkerHandlers.GetRundownRef(Datapath->WorkerHandlers.Contxt));
+        CxPlatRundownRelease(&Datapath->WorkerManager->Rundown);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
