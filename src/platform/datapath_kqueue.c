@@ -359,9 +359,9 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
-    // The Worker callback function pointers
+    // The Worker manager
     //
-    CXPLAT_WORKER_MANAGER WorkerHandlers;
+    CXPLAT_WORKER_MANAGER* WorkerManager;
 
     //
     // Synchronization mechanism for cleanup.
@@ -413,7 +413,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathPartition->Datapath = Datapath;
     DatapathPartition->PartitionIndex = PartitionIndex;
-    DatapathPartition->EventQ = Datapath->WorkerHandlers.GetEventQ(Datapath->WorkerHandlers.Context, PartitionIndex);
+    DatapathPartition->EventQ = CxPlatWorkerGetEventQ(Datapath->WorkerManager, PartitionIndex);
     CxPlatRefInitialize(&DatapathPartition->RefCount);
 
     CxPlatPoolInitialize(
