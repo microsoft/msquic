@@ -99,7 +99,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 } CXPLAT_WORKER;
 
-CXPLAT_WORKER_POOL CxPlatDefaultWorkerPool;
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 void
@@ -109,14 +108,6 @@ CxPlatWorkerPoolInit(
 {
     CXPLAT_DBG_ASSERT(WorkerPool);
     CxPlatLockInitialize(&WorkerPool->WorkerLock);
-}
-
-void
-CxPlatWorkerPoolDefaultInit(
-    void
-    )
-{
-    CxPlatWorkerPoolInit(&CxPlatDefaultWorkerPool);
 }
 
 #pragma warning(push)
@@ -307,14 +298,6 @@ CxPlatWorkerPoolUninit(
     }
 
     CxPlatLockUninitialize(&WorkerPool->WorkerLock);
-}
-
-void
-CxPlatWorkerPoolDefaultUninit(
-    void
-    )
-{
-    CxPlatWorkerPoolUninit(&CxPlatDefaultWorkerPool);
 }
 
 CXPLAT_EVENTQ*

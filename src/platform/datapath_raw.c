@@ -24,7 +24,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
@@ -34,7 +34,7 @@ RawDataPathInitialize(
     BOOLEAN SockPoolInitialized = FALSE;
 
     if (WorkerPool == NULL) {
-        WorkerPool = &CxPlatDefaultWorkerPool;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (NewDataPath == NULL) {

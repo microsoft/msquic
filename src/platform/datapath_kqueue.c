@@ -443,7 +443,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -458,7 +458,7 @@ CxPlatDataPathInitialize(
         }
     }
     if (WorkerPool == NULL) {
-        WorkerPool = &CxPlatDefaultWorkerPool;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {

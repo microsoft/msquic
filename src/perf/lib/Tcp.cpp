@@ -16,6 +16,7 @@ Abstract:
 #endif
 
 extern CXPLAT_DATAPATH* Datapath;
+extern CXPLAT_WORKER_POOL WorkerPool;
 
 // ############################# HELPERS #############################
 
@@ -203,7 +204,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 
     #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        CxPlatAddExecutionContext(&CxPlatDefaultWorkerPool, &ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&WorkerPool, &ExecutionContext, PartitionIndex);
         Initialized = true;
         IsExternal = true;
         return true;

@@ -422,6 +422,31 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
+// Worker pool API used for driving execution contexts
+//
+
+typedef struct CXPLAT_WORKER CXPLAT_WORKER;
+
+typedef struct CXPLAT_WORKER_POOL {
+
+    CXPLAT_WORKER* Workers;
+    CXPLAT_LOCK WorkerLock;
+    CXPLAT_RUNDOWN_REF Rundown;
+    uint32_t WorkerCount;
+
+} CXPLAT_WORKER_POOL;
+
+void
+CxPlatWorkerPoolInit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+void
+CxPlatWorkerPoolUninit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+//
 // General purpose execution context abstraction layer. Used for driving worker
 // loops.
 //
@@ -465,9 +490,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     uint64_t NextTimeUs;
     volatile BOOLEAN Ready;
 
-} CXPLAT_EXECUTION_CONTEXT;
-
-typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
+} CXPLAT_EXECUTION_CONTEXT;  
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
 #define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)

@@ -648,27 +648,7 @@ CxPlatCryptUninitialize(
 
 //
 // Platform Worker APIs
-//
-
-void
-CxPlatWorkerPoolDefaultInit(
-    void
-    );
-
-void
-CxPlatWorkerPoolDefaultUninit(
-    void
-    );
-
-void
-CxPlatWorkerPoolInit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-
-void
-CxPlatWorkerPoolUninit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );   
+// 
 
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
@@ -1020,7 +1000,7 @@ DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
@@ -1137,7 +1117,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** DataPath
     );
 

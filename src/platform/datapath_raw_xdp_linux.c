@@ -672,7 +672,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
@@ -680,7 +680,7 @@ CxPlatDpRawInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (WorkerPool == NULL) {
-        WorkerPool = &CxPlatDefaultWorkerPool;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     CxPlatXdpReadConfig(Xdp);
