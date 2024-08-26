@@ -436,6 +436,10 @@ typedef struct CXPLAT_WORKER_POOL {
 
 } CXPLAT_WORKER_POOL;
 
+#ifdef _KERNEL_MODE // Not supported on kernel mode
+CxPlatWorkerPoolInit(WorkerPool) (UNREFERENCED_PARAMETER)(WorkerPool)
+CxPlatWorkerPoolUninit(WorkerPool) (UNREFERENCED_PARAMETER)(WorkerPool)
+#else
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
@@ -445,6 +449,7 @@ void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
+#endif
 
 //
 // General purpose execution context abstraction layer. Used for driving worker
