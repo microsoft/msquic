@@ -26,6 +26,7 @@ Abstract:
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
@@ -944,7 +945,7 @@ void start() {
         0,
         &DatapathCallbacks,
         NULL,
-        NULL,
+        &WorkerPool,
         NULL,
         &Datapath);
     if (QUIC_FAILED(Status)) {
@@ -1015,6 +1016,10 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv) {
+    CxPlatSystemLoad();
+    CxPlatInitialize();
+    CxPlatWorkerPoolInit(&WorkerPool);
+
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
@@ -1023,6 +1028,10 @@ main(int argc, char **argv) {
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
     start();
+
+    CxPlatWorkerPoolUninit(&WorkerPool);
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 
     return 0;
 }

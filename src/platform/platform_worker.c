@@ -107,6 +107,7 @@ CxPlatWorkerPoolInit(
     )
 {
     CXPLAT_DBG_ASSERT(WorkerPool);
+    CxPlatZeroMemory(WorkerPool, sizeof(*WorkerPool));
     CxPlatLockInitialize(&WorkerPool->WorkerLock);
 }
 

@@ -24,6 +24,8 @@ extern "C" {
 #include "quic_datapath.h"
 }
 
+extern CXPLAT_WORKER_POOL WorkerPool;
+
 void
 QuicDrillTestVarIntEncoder(
     )
@@ -140,7 +142,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
-                NULL,
+                &WorkerPool,
                 NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {

@@ -10,12 +10,14 @@
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 volatile long ConnectedCount;
 volatile long ConnectionsActive;
 
 void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CxPlatWorkerPoolInit(&WorkerPool);
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
     if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,nullptr,nullptr,&Datapath)) ||
@@ -24,6 +26,7 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
         exit(1);
     }
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolUninit(&WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 }
