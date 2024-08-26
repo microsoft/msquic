@@ -59,8 +59,9 @@ CxPlatDataPathInitialize(
             QuicTraceLogVerbose(
                 RawDatapathInitFail,
                 "[ raw] Failed to initialize raw datapath, status:%d", Status);
-            Status = QUIC_STATUS_SUCCESS;
             (*NewDataPath)->RawDataPath = NULL;
+            CxPlatDataPathUninitialize(*NewDataPath);
+            *NewDataPath = NULL;
         }
     }
 
@@ -248,6 +249,15 @@ CxPlatSocketGetRemoteAddress(
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
     *Address = Socket->RemoteAddress;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    return Socket->RawSocketAvailable;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

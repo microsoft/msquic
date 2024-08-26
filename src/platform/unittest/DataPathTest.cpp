@@ -429,7 +429,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 0, {0} };
+    QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
@@ -439,6 +439,9 @@ struct CxPlatDataPath {
         _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
     {
+        if (UseDuoNic && Config == nullptr) {
+            DefaultExecutionConfig.Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        }
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,
@@ -553,6 +556,7 @@ struct CxPlatSocket {
                 // wait for an event set by ResolveRouteComplete.
                 //
                 EXPECT_EQ(InitStatus, QUIC_STATUS_SUCCESS);
+                EXPECT_TRUE(CxPlatSocketRawSocketAvailable(Socket));
             }
         }
     }
@@ -671,11 +675,12 @@ TEST_F(DataPathTest, Initialize)
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
-    {
-        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, {0} };
+    if (UseDuoNic) {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
+        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW));
     }
 }
 
@@ -692,6 +697,12 @@ TEST_F(DataPathTest, InitializeInvalid)
         const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { EmptyReceiveCallback, nullptr };
         CxPlatDataPath Datapath(&InvalidUdpCallbacks);
         ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
+        ASSERT_EQ(nullptr, Datapath.Datapath);
+    }
+    if (!UseDuoNic) {
+        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        ASSERT_EQ(QUIC_STATUS_NOT_SUPPORTED, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
 }

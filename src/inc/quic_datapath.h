@@ -638,6 +638,15 @@ CxPlatSocketGetRemoteAddress(
     );
 
 //
+// Queries a raw socket availability.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+//
 // Called to return a chain of datagrams received from the registered receive
 // callback.
 //
