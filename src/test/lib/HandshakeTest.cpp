@@ -260,6 +260,7 @@ QuicTestConnect(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
                 TEST_QUIC_SUCCEEDED(Client.SetTlsSecrets(&ClientSecrets));
 
@@ -319,6 +320,7 @@ QuicTestConnect(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -863,6 +865,7 @@ QuicTestCustomServerCertificateValidation(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
 
+                Client.SetSslKeyLogFilePath();
                 Client.SetExpectedCustomValidationResult(AcceptCert);
                 Client.SetAsyncCustomValidationResult(AsyncValidation);
                 if (!AcceptCert) {
@@ -888,6 +891,7 @@ QuicTestCustomServerCertificateValidation(
                 TEST_EQUAL(AcceptCert, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -965,6 +969,7 @@ QuicTestCustomClientCertificateValidation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 if (!AcceptCert) {
                     Client.SetExpectedTransportCloseStatus(QUIC_STATUS_BAD_CERTIFICATE);
@@ -1002,6 +1007,7 @@ QuicTestCustomClientCertificateValidation(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1050,6 +1056,7 @@ QuicTestShutdownDuringHandshake(
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
 
+                Client.SetSslKeyLogFilePath();
                 Client.SetExpectedCustomValidationResult(TRUE);
                 Client.SetAsyncCustomValidationResult(TRUE);
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_USER_CANCELED);
@@ -1063,6 +1070,9 @@ QuicTestShutdownDuringHandshake(
                         ServerLocalAddr.GetPort()));
 
                 CxPlatSleep(1000);
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
 
                 //
                 // By now, the handshake is waiting for custom certificate validation.
@@ -1258,6 +1268,7 @@ QuicTestVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1272,6 +1283,9 @@ QuicTestVersionNegotiation(
                 TEST_TRUE(Client.GetIsConnected());
                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
                 TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
             }
         }
     }
@@ -1355,6 +1369,7 @@ QuicTestVersionNegotiationRetry(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1370,6 +1385,9 @@ QuicTestVersionNegotiationRetry(
                 TEST_TRUE(Client.GetStatistics().VersionNegotiation);
                 TEST_TRUE(Client.GetStatistics().StatelessRetry);
                 TEST_EQUAL(Client.GetQuicVersion(), LATEST_SUPPORTED_VERSION);
+
+                TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
             }
         }
     }
@@ -1446,6 +1464,7 @@ QuicTestCompatibleVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1460,6 +1479,7 @@ QuicTestCompatibleVersionNegotiation(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1552,6 +1572,7 @@ QuicTestCompatibleVersionNegotiationRetry(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1566,6 +1587,7 @@ QuicTestCompatibleVersionNegotiationRetry(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1642,6 +1664,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1656,6 +1679,7 @@ QuicTestCompatibleVersionNegotiationDefaultServer(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1739,6 +1763,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1753,6 +1778,7 @@ QuicTestCompatibleVersionNegotiationDefaultClient(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1829,6 +1855,7 @@ QuicTestIncompatibleVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -1843,6 +1870,7 @@ QuicTestIncompatibleVersionNegotiation(
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -1932,6 +1960,7 @@ RunFailedVersionNegotiation(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
                 Client.SetExpectedTransportCloseStatus(ExpectedClientError);
 
                 TEST_QUIC_SUCCEEDED(
@@ -1946,6 +1975,7 @@ RunFailedVersionNegotiation(
 
                 if (QUIC_FAILED(ExpectedServerError)) {
                     TEST_NOT_EQUAL(nullptr, Server);
+                    Server->SetSslKeyLogFilePath();
                 } else {
                     TEST_EQUAL(nullptr, Server);
                 }
@@ -2171,6 +2201,7 @@ QuicTestConnectBadAlpn(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_ALPN_NEG_FAILURE);
                 TEST_QUIC_SUCCEEDED(
@@ -2228,6 +2259,7 @@ QuicTestConnectBadSni(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 QuicAddr RemoteAddr(Family == 4 ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6, true);
                 if (UseDuoNic) {
@@ -2746,6 +2778,7 @@ QuicTestConnectClientCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
                 if (!UseClientCertificate) {
                     Client.SetExpectedTransportCloseStatus(QUIC_STATUS_REQUIRED_CERTIFICATE);
                 }
@@ -2763,12 +2796,13 @@ QuicTestConnectClientCertificate(
                 }
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (UseClientCertificate) {
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
                 }
-                TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
+                TEST_NOT_EQUAL(UseClientCertificate, Server->GetIsConnected()); // UNDO THIS CHANGE BEFORE COMPLETING PR
             }
         }
     }
@@ -2846,6 +2880,7 @@ QuicTestValidAlpnLengths(
                 {
                     TestConnection Client(Registration);
                     TEST_TRUE(Client.IsValid());
+                    Client.SetSslKeyLogFilePath();
 
                     TEST_QUIC_SUCCEEDED(
                         Client.Start(
@@ -2861,6 +2896,7 @@ QuicTestValidAlpnLengths(
                     TEST_TRUE(Client.GetIsConnected());
 
                     TEST_NOT_EQUAL(nullptr, Server);
+                    Server->SetSslKeyLogFilePath();
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
@@ -2911,6 +2947,7 @@ QuicTestConnectExpiredServerCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_EXPIRED_CERTIFICATE);
 
                 TEST_QUIC_SUCCEEDED(
@@ -2927,6 +2964,7 @@ QuicTestConnectExpiredServerCertificate(
                 TEST_EQUAL(false, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -2975,6 +3013,7 @@ QuicTestConnectValidServerCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -2990,6 +3029,7 @@ QuicTestConnectValidServerCertificate(
                 TEST_EQUAL(true, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -3038,6 +3078,7 @@ QuicTestConnectValidClientCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -3053,6 +3094,7 @@ QuicTestConnectValidClientCertificate(
                 TEST_EQUAL(true, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -3101,6 +3143,7 @@ QuicTestConnectExpiredClientCertificate(
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
@@ -3120,6 +3163,7 @@ QuicTestConnectExpiredClientCertificate(
                 TEST_EQUAL(true, Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -3482,6 +3526,7 @@ QuicTestResumptionAcrossVersions()
             {
                 TestConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
 
                 VersionSettings.SetAllVersionLists(SecondClientVersions, ARRAYSIZE(SecondClientVersions));
                 TEST_QUIC_SUCCEEDED(ClientConfiguration.SetVersionSettings(VersionSettings));
@@ -3508,6 +3553,7 @@ QuicTestResumptionAcrossVersions()
                 TEST_TRUE(Client.GetIsConnected());
 
                 TEST_NOT_EQUAL(nullptr, Server);
+                Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {
                     return;
                 }
@@ -3603,6 +3649,7 @@ QuicTestChangeAlpn(
                     {
                         TestConnection Client(Registration);
                         TEST_TRUE(Client.IsValid());
+                        Client.SetSslKeyLogFilePath();
 
                         TEST_QUIC_SUCCEEDED(
                             Client.Start(
@@ -3618,6 +3665,7 @@ QuicTestChangeAlpn(
                         TEST_TRUE(Client.GetIsConnected());
 
                         TEST_NOT_EQUAL(nullptr, Server);
+                        Server->SetSslKeyLogFilePath();
                         if (!Server->WaitForConnectionComplete()) {
                             return;
                         }
@@ -3793,6 +3841,7 @@ QuicTestCustomVNTP(
                             &Disable));
                 }
                 TEST_TRUE(Client.IsValid());
+                Client.SetSslKeyLogFilePath();
                 Client.SetExpectedTransportCloseStatus(QUIC_STATUS_INTERNAL_ERROR);
 
                 TEST_QUIC_SUCCEEDED(
@@ -3809,6 +3858,7 @@ QuicTestCustomVNTP(
 
                 if (TestServer) {
                     TEST_NOT_EQUAL(nullptr, Server);
+                    Server->SetSslKeyLogFilePath();
                     if (!Server->WaitForConnectionComplete()) {
                         return;
                     }
