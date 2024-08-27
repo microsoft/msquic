@@ -92,6 +92,7 @@ public:
 
 #ifdef _WIN32
             ASSERT_NE(GetCurrentDirectoryA(sizeof(Params.CurrentDirectory), Params.CurrentDirectory), 0);
+            strcat_s(Params.CurrentDirectory, "\\");
 #endif
 
             ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_CONFIGURATION, Params));
