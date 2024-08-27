@@ -253,7 +253,6 @@ QuicTestConnect(
                     ServerAcceptCtx.ExpectedCustomTicketValidationResult = QUIC_STATUS_INTERNAL_ERROR;
                 }
             }
-            ServerAcceptCtx.TlsSecrets = &ServerSecrets;
 
             Listener.Context = &ServerAcceptCtx;
 
@@ -262,7 +261,6 @@ QuicTestConnect(
                 TEST_TRUE(Client.IsValid());
                 Client.SetSslKeyLogFilePath();
                 Client.SetHasRandomLoss(RandomLossPercentage != 0);
-                TEST_QUIC_SUCCEEDED(Client.SetTlsSecrets(&ClientSecrets));
 
                 if (ClientUsesOldVersion) {
                     TEST_QUIC_SUCCEEDED(
@@ -325,6 +323,9 @@ QuicTestConnect(
                     return;
                 }
                 TEST_TRUE(Server->GetIsConnected());
+
+                ClientSecrets = Client.GetTlsSecrets();
+                ServerSecrets = Server->GetTlsSecrets();
 
                 TEST_EQUAL(
                     ServerSecrets.IsSet.ClientRandom,
@@ -433,6 +434,8 @@ QuicTestConnect(
             } else {
                 Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
+
+            TEST_EQUAL(Family, 4); // REMOVE THIS
         }
     }
 }
@@ -2802,7 +2805,7 @@ QuicTestConnectClientCertificate(
                         return;
                     }
                 }
-                TEST_NOT_EQUAL(UseClientCertificate, Server->GetIsConnected()); // UNDO THIS CHANGE BEFORE COMPLETING PR
+                TEST_EQUAL(UseClientCertificate, Server->GetIsConnected());
             }
         }
     }

@@ -315,5 +315,7 @@ public:
 
     QUIC_STATUS SetTlsSecrets(QUIC_TLS_SECRETS* Secrets);
 
+    QUIC_TLS_SECRETS GetTlsSecrets() const { return TlsSecrets; }
+
     void SetSslKeyLogFilePath(const char* Path = DEFAULT_SSLKEYLOGFILE_NAME) { SslKeyLogFileName = Path; }
 };
