@@ -3999,11 +3999,14 @@ CxPlatSendDataComplete(
     }
 
     if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
-        SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            IoResult,
-            SendData->TotalSize);
+        if (CxPlatRundownAcquire(&SocketProc->RundownRef)) {
+            SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
+                SocketProc->Parent,
+                SocketProc->Parent->ClientContext,
+                IoResult,
+                SendData->TotalSize);
+            CxPlatRundownRelease(&SocketProc->RundownRef);
+        }
     }
 
     SendDataFree(SendData);
@@ -4086,6 +4089,7 @@ CxPlatSocketSendInline(
         return QUIC_STATUS_PENDING;
     }
 
+    QUIC_STATUS Status;
     int Result;
     DWORD BytesSent;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
@@ -4200,17 +4204,24 @@ CxPlatSocketSendInline(
                 NULL);
     }
 
+    int WsaError = NO_ERROR;
     if (Result == SOCKET_ERROR) {
-        return QUIC_STATUS_SUCCESS; // Always processed asynchronously
+        WsaError = WSAGetLastError();
+        if (WsaError == WSA_IO_PENDING) {
+            return QUIC_STATUS_SUCCESS;
+        }
+        Status = HRESULT_FROM_WIN32(WsaError);
+    } else {
+        Status = QUIC_STATUS_SUCCESS;
     }
 
     //
     // Completed synchronously, so process the completion inline.
     //
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
-    CxPlatSendDataComplete(SendData, NO_ERROR);
+    CxPlatSendDataComplete(SendData, WsaError);
 
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 QUIC_STATUS
