@@ -89,6 +89,12 @@ public:
             QUIC_TEST_CONFIGURATION_PARAMS Params {
                 UseDuoNic,
             };
+
+#ifdef _WIN32
+            ASSERT_NE(GetCurrentDirectoryA(sizeof(Params.CurrentDirectory), Params.CurrentDirectory), 0);
+            strcat_s(Params.CurrentDirectory, "\\");
+#endif
+
             ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_CONFIGURATION, Params));
 
         } else {
@@ -120,6 +126,12 @@ public:
             memcpy(&ClientCertCredConfig, ClientCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ClientCertCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION;
             QuicTestInitialize();
+
+#ifdef _WIN32
+            ASSERT_NE(GetCurrentDirectoryA(sizeof(CurrentWorkingDirectory), CurrentWorkingDirectory), 0);
+#else
+            ASSERT_NE(getcwd(CurrentWorkingDirectory, sizeof(CurrentWorkingDirectory)), nullptr);
+#endif
         }
     }
     void TearDown() override {
