@@ -3987,7 +3987,7 @@ CxPlatSendDataComplete(
     _In_ ULONG IoResult
     )
 {
-    const CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
+    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
