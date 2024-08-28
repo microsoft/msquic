@@ -434,8 +434,6 @@ QuicTestConnect(
             } else {
                 Server->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT, 0);
             }
-
-            TEST_EQUAL(Family, 4); // REMOVE THIS
         }
     }
 }
