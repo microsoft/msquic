@@ -437,8 +437,8 @@ typedef struct CXPLAT_WORKER_POOL {
 } CXPLAT_WORKER_POOL;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
-CxPlatWorkerPoolInit(WorkerPool) (UNREFERENCED_PARAMETER)(WorkerPool)
-CxPlatWorkerPoolUninit(WorkerPool) (UNREFERENCED_PARAMETER)(WorkerPool)
+CxPlatWorkerPoolInit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
+CxPlatWorkerPoolUninit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
 #else
 void
 CxPlatWorkerPoolInit(
