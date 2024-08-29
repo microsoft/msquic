@@ -12418,6 +12418,38 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpInterfaceInitialize": {
+      "ModuleProperites": {},
+      "TraceString": "[ixdp][%p] Initializing interface %u",
+      "UniqueId": "XdpInterfaceInitialize",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "XdpInterfaceQueues": {
+      "ModuleProperites": {},
+      "TraceString": "[ixdp][%p] Initializing %u queues on interface",
+      "UniqueId": "XdpInterfaceQueues",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "XdpLoadBpfObjectError": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
@@ -17200,6 +17232,16 @@
         "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",
         "TraceID": "XdpInitialize",
         "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
+      },
+      {
+        "UniquenessHash": "1b9f0d89-3821-2037-08c6-88d59b4e4dae",
+        "TraceID": "XdpInterfaceInitialize",
+        "EncodingString": "[ixdp][%p] Initializing interface %u"
+      },
+      {
+        "UniquenessHash": "8101710f-c411-8be4-bddb-9cffaaa1cac3",
+        "TraceID": "XdpInterfaceQueues",
+        "EncodingString": "[ixdp][%p] Initializing %u queues on interface"
       },
       {
         "UniquenessHash": "83b58d1d-bb4b-653f-d379-3631b103ed34",
