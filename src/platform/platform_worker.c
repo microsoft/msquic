@@ -149,7 +149,7 @@ CxPlatWorkersLazyStart(
         goto Error;
     }
 
-    BOOLEAN SetIdealProc = !(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC);
+    BOOLEAN SetIdealProc = !Config || !(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC);
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         SetIdealProc ? 
