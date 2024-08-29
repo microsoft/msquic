@@ -722,7 +722,7 @@ CxPlatSendDataIsFull(
 // Sends the data over the socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,

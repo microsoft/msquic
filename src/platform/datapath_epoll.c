@@ -2222,7 +2222,7 @@ CxPlatSendDataSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-QUIC_STATUS
+void
 SocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -2272,7 +2272,7 @@ SocketSend(
                     &SocketContext->FlushTxSqe.Sqe,
                     &SocketContext->FlushTxSqe));
         }
-        return QUIC_STATUS_SUCCESS;
+        return;
     }
 
     //
@@ -2299,8 +2299,6 @@ SocketSend(
         }
         CxPlatSendDataFree(SendData);
     }
-
-    return Status;
 }
 
 //
