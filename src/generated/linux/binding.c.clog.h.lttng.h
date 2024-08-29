@@ -24,29 +24,6 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingListenerAlreadyRegistered,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for BindingSendFailed
-// [bind][%p] Send failed, 0x%x
-// QuicTraceLogWarning(
-                    BindingSendFailed,
-                    "[bind][%p] Send failed, 0x%x",
-                    Binding,
-                    Status);
-// arg2 = arg2 = Binding = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendFailed,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for PacketTxVersionNegotiation
 // [S][TX][-] VN
 // QuicTraceLogVerbose(
