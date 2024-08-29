@@ -102,18 +102,22 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpReceiveCallback,
 
 /*----------------------------------------------------------
 // Decoder Ring for PerfTcpSendCompleteCallback
-// [perf][tcp][%p] SendComplete callback
+// [perf][tcp][%p] SendComplete callback, %u
 // QuicTraceLogVerbose(
         PerfTcpSendCompleteCallback,
-        "[perf][tcp][%p] SendComplete callback",
-        This);
+        "[perf][tcp][%p] SendComplete callback, %u",
+        This,
+        (uint32_t)Status);
 // arg2 = arg2 = This = arg2
+// arg3 = arg3 = (uint32_t)Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendCompleteCallback,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

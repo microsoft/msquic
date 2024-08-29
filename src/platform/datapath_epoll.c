@@ -2222,7 +2222,7 @@ CxPlatSendDataSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-QUIC_STATUS
+void
 SocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -2272,14 +2272,13 @@ SocketSend(
                     &SocketContext->FlushTxSqe.Sqe,
                     &SocketContext->FlushTxSqe));
         }
-        return QUIC_STATUS_SUCCESS;
+        return;
     }
 
     //
     // Go ahead and try to send on the socket.
     //
-    QUIC_STATUS Status = CxPlatSendDataSend(SendData);
-    if (Status == QUIC_STATUS_PENDING) {
+    if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
         //
         // Couldn't send right now, so queue up the send and wait for send
         // (EPOLLOUT) to be ready.
@@ -2288,7 +2287,6 @@ SocketSend(
         CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
         CxPlatLockRelease(&SocketContext->TxQueueLock);
         CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
-        Status = QUIC_STATUS_SUCCESS;
     } else {
         if (Socket->Type != CXPLAT_SOCKET_UDP) {
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
@@ -2299,8 +2297,6 @@ SocketSend(
         }
         CxPlatSendDataFree(SendData);
     }
-
-    return Status;
 }
 
 //

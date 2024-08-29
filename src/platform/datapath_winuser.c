@@ -4013,7 +4013,7 @@ CxPlatSendDataComplete(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSendWithRio(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ WSAMSG* WSAMhdr
@@ -4066,18 +4066,16 @@ CxPlatSocketSendWithRio(
                 WsaError,
                 "RIOSendEx");
             SendDataFree(SendData);
-            return HRESULT_FROM_WIN32(WsaError);
+            return;
         }
 
         SocketProc->RioSendCount++;
         CxPlatSocketArmRioNotify(SocketProc);
     }
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSendInline(
     _In_ const QUIC_ADDR* LocalAddress,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -4086,10 +4084,9 @@ CxPlatSocketSendInline(
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
     if (SocketProc->RioSendCount == RIO_SEND_QUEUE_DEPTH) {
         CxPlatListInsertTail(&SocketProc->RioSendOverflow, &SendData->RioOverflowEntry);
-        return QUIC_STATUS_PENDING;
+        return;
     }
 
-    QUIC_STATUS Status;
     int Result;
     DWORD BytesSent;
     CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
@@ -4174,7 +4171,8 @@ CxPlatSocketSendInline(
     }
 
     if (Socket->Type == CXPLAT_SOCKET_UDP && Socket->UseRio) {
-        return CxPlatSocketSendWithRio(SendData, &WSAMhdr);
+        CxPlatSocketSendWithRio(SendData, &WSAMhdr);
+        return;
     }
 
     //
@@ -4208,11 +4206,8 @@ CxPlatSocketSendInline(
     if (Result == SOCKET_ERROR) {
         WsaError = WSAGetLastError();
         if (WsaError == WSA_IO_PENDING) {
-            return QUIC_STATUS_SUCCESS;
+            return;
         }
-        Status = HRESULT_FROM_WIN32(WsaError);
-    } else {
-        Status = QUIC_STATUS_SUCCESS;
     }
 
     //
@@ -4220,11 +4215,9 @@ CxPlatSocketSendInline(
     //
     CxPlatCancelDatapathIo(SocketProc, &SendData->Sqe);
     CxPlatSendDataComplete(SendData, WsaError);
-
-    return Status;
 }
 
-QUIC_STATUS
+void
 CxPlatSocketSendEnqueue(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -4237,11 +4230,10 @@ CxPlatSocketSendEnqueue(
     if (QUIC_FAILED(Status)) {
         CxPlatCancelDatapathIo(SendData->SocketProc, &SendData->Sqe);
     }
-    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 SocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -4265,21 +4257,18 @@ SocketSend(
         //
         // Currently RIO always queues sends.
         //
-        return CxPlatSocketSendEnqueue(Route, SendData);
-    }
+        CxPlatSocketSendEnqueue(Route, SendData);
 
-    if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
+    } else if ((Socket->Type != CXPLAT_SOCKET_UDP) ||
         !(SendData->SendFlags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT)) {
         //
         // Currently TCP always sends inline.
         //
-        return
-            CxPlatSocketSendInline(
-                &Route->LocalAddress,
-                SendData);
-    }
+        CxPlatSocketSendInline(&Route->LocalAddress, SendData);
 
-    return CxPlatSocketSendEnqueue(Route, SendData);
+    } else {
+        CxPlatSocketSendEnqueue(Route, SendData);
+    }
 }
 
 void
