@@ -34,6 +34,12 @@ else()
     else()
         set(SOURCES ${SOURCES} datapath_kqueue.c)
     endif()
+
+    # Compile for Android failed by __atomic_add_fetch(), only emulator and some old ChromeBooks are X86, so the performance penalty may be acceptable, do not patch all the atomic usage for now
+    # > error: misaligned atomic operation may incur significant performance penalty; the expected alignment (8 bytes) exceeds the actual alignment (4 bytes)
+    if (ANDROID AND ANDROID_ABI STREQUAL "x86")
+        add_compile_options(-Wno-atomic-alignment)
+    endif()
 endif()
 
 if (QUIC_TLS STREQUAL "schannel")
