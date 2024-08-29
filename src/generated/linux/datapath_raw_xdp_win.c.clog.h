@@ -52,6 +52,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpInterfaceQueues
+// [ixdp][%p] Initializing %u queues on interface
+// QuicTraceLogVerbose(
+        XdpInterfaceQueues,
+        "[ixdp][%p] Initializing %u queues on interface",
+        Interface,
+        Interface->QueueCount);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->QueueCount = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpInterfaceQueues
+#define _clog_4_ARGS_TRACE_XdpInterfaceQueues(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceQueues , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -65,6 +85,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF , arg2, arg3, arg4);\
 #ifndef _clog_4_ARGS_TRACE_XdpInitialize
 #define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpInterfaceInitialize
+// [ixdp][%p] Initializing interface %u
+// QuicTraceLogVerbose(
+                    XdpInterfaceInitialize,
+                    "[ixdp][%p] Initializing interface %u",
+                    Interface,
+                    Interface->ActualIfIndex);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->ActualIfIndex = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpInterfaceInitialize
+#define _clog_4_ARGS_TRACE_XdpInterfaceInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceInitialize , arg2, arg3);\
 
 #endif
 
