@@ -53,6 +53,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_LOCK ECLock;
 
     //
+    // List of dynamic pools to manage.
+    //
+    CXPLAT_LIST_ENTRY DynamicPoolList;
+
+    //
     // Execution contexts that are waiting to be added to CXPLAT_WORKER::ExecutionContexts.
     //
     CXPLAT_SLIST_ENTRY* PendingECs;
@@ -160,6 +165,7 @@ CxPlatWorkersLazyStart(
     CxPlatZeroMemory(CxPlatWorkers, WorkersSize);
     for (uint32_t i = 0; i < CxPlatWorkerCount; ++i) {
         CxPlatLockInitialize(&CxPlatWorkers[i].ECLock);
+        CxPlatListInitializeHead(&CxPlatWorkers[i].DynamicPoolList);
         CxPlatWorkers[i].InitializedECLock = TRUE;
         CxPlatWorkers[i].IdealProcessor = ProcessorList ? ProcessorList[i] : (uint16_t)i;
         CXPLAT_DBG_ASSERT(CxPlatWorkers[i].IdealProcessor < CxPlatProcCount());
@@ -288,6 +294,7 @@ CxPlatWorkersUninit(
             CxPlatSqeCleanup(&CxPlatWorkers[i].EventQ, &CxPlatWorkers[i].ShutdownSqe);
 #endif // CXPLAT_SQE_INIT
             CxPlatEventQCleanup(&CxPlatWorkers[i].EventQ);
+            CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&CxPlatWorkers[i].DynamicPoolList));
             CxPlatLockUninitialize(&CxPlatWorkers[i].ECLock);
         }
 
@@ -298,6 +305,65 @@ CxPlatWorkersUninit(
     }
 
     CxPlatLockUninitialize(&CxPlatWorkerLock);
+}
+
+#define DYNAMIC_POOL_PROCESSING_TIME 1000000 // 1 second
+#define DYNAMIC_POOL_PRUNE_COUNT     8
+
+void
+CxPlatAddDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool,
+    _In_ uint16_t Index // Into the execution config processor array
+    )
+{
+    CXPLAT_WORKER* Worker = &CxPlatWorkers[Index];
+    Pool->Owner = Worker;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListInsertTail(&CxPlatWorkers[Index].DynamicPoolList, &Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatRemoveDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Pool->Owner;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListEntryRemove(&Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatProcessDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    for (uint32_t i = 0; i < DYNAMIC_POOL_PRUNE_COUNT; ++i) {
+        void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
+        if (!Entry) break;
+        Pool->Free(Entry, Pool->Tag, (CXPLAT_POOL*)Pool);
+    }
+}
+
+void
+CxPlatProcessDynamicPoolAllocators(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+    QuicTraceLogVerbose(
+        PlatformWorkerProcessPools,
+        "[ lib][%p] Processing pools",
+        Worker);
+
+    CxPlatLockAcquire(&Worker->ECLock);
+    CXPLAT_LIST_ENTRY* Entry = Worker->DynamicPoolList.Flink;
+    while (Entry != &Worker->DynamicPoolList) {
+        CXPLAT_POOL_EX* Pool = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_POOL_EX, Link);
+        Entry = Entry->Flink;
+        CxPlatProcessDynamicPoolAllocator(Pool);
+    }
+    CxPlatLockRelease(&Worker->ECLock);
 }
 
 CXPLAT_EVENTQ*
@@ -503,6 +569,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         } else if (State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();
             State.NoWorkCount = 0;
+        }
+
+        if (State.TimeNow - State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_TIME) {
+            CxPlatProcessDynamicPoolAllocators(Worker);
+            State.LastPoolProcessTime = State.TimeNow;
         }
     }
 
