@@ -405,6 +405,12 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
+    QuicTraceLogVerbose(
+        XdpInterfaceQueues,
+        "[ixdp][%p] Initializing %u queues on interface",
+        Interface,
+        Interface->QueueCount);
+
     Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
@@ -681,6 +687,7 @@ CxPlatDpRawInterfaceInitialize(
     //
     // Add each queue to the correct partition.
     //
+    uint16_t RoundRobinIndex = 0;
     for (uint16_t i = 0; i < Interface->QueueCount; i++) {
         BOOLEAN Found = FALSE;
         for (uint16_t j = 0; j < Xdp->PartitionCount; j++) {
@@ -691,7 +698,12 @@ CxPlatDpRawInterfaceInitialize(
             }
         }
         if (!Found) {
-            CXPLAT_FRE_ASSERT(FALSE); // TODO - What do we do if there is no partition for this processor?
+            //
+            // Assign leftovers based on round robin.
+            //
+            XdpWorkerAddQueue(
+                &Xdp->Partitions[RoundRobinIndex++ % Xdp->PartitionCount],
+                &Interface->Queues[i]);
         }
     }
 
@@ -1010,6 +1022,12 @@ CxPlatDpRawInitialize(
                         break; // assuming there is 1:1 matching
                     }
                 }*/
+
+                QuicTraceLogVerbose(
+                    XdpInterfaceInitialize,
+                    "[ixdp][%p] Initializing interface %u",
+                    Interface,
+                    Interface->ActualIfIndex);
 
                 Status =
                     CxPlatDpRawInterfaceInitialize(
