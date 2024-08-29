@@ -302,11 +302,7 @@ protected:
                 ASSERT_NE(nullptr, ServerBuffer);
                 memcpy(ServerBuffer->Buffer, RecvData->Buffer, RecvData->BufferLength);
 
-                VERIFY_QUIC_SUCCESS(
-                    CxPlatSocketSend(
-                        Socket,
-                        RecvData->Route,
-                        ServerSendData));
+                CxPlatSocketSend(Socket, RecvData->Route, ServerSendData);
 
             } else if (RecvData->Route->RemoteAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
                 CxPlatEventSet(RecvContext->ClientCompletion);
@@ -609,19 +605,15 @@ struct CxPlatSocket {
     QUIC_ADDR GetRemoteAddress() const noexcept {
         return Route.RemoteAddress;
     }
-    QUIC_STATUS
+    void
     Send(
         _In_ const CXPLAT_ROUTE& _Route,
         _In_ CXPLAT_SEND_DATA* SendData
         ) const noexcept
     {
-        return
-            CxPlatSocketSend(
-                Socket,
-                &_Route,
-                SendData);
+        CxPlatSocketSend(Socket, &_Route, SendData);
     }
-    QUIC_STATUS
+    void
     Send(
         _In_ const QUIC_ADDR& RemoteAddress,
         _In_ CXPLAT_SEND_DATA* SendData
@@ -629,14 +621,14 @@ struct CxPlatSocket {
     {
         CXPLAT_ROUTE _Route = Route;
         _Route.RemoteAddress = RemoteAddress;
-        return Send(_Route, SendData);
+        Send(_Route, SendData);
     }
-    QUIC_STATUS
+    void
     Send(
         _In_ CXPLAT_SEND_DATA* SendData
         ) const noexcept
     {
-        return Send(Route, SendData);
+        Send(Route, SendData);
     }
 };
 
@@ -807,7 +799,7 @@ TEST_P(DataPathTest, UdpData)
     ASSERT_NE(nullptr, ClientBuffer);
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+    Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
@@ -844,7 +836,7 @@ TEST_P(DataPathTest, UdpDataPolling)
     ASSERT_NE(nullptr, ClientBuffer);
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+    Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
@@ -881,7 +873,7 @@ TEST_P(DataPathTest, UdpDataRebind)
         ASSERT_NE(nullptr, ClientBuffer);
         memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-        VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+        Client.Send(ClientSendData);
         ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
         CxPlatEventReset(RecvContext.ClientCompletion);
     }
@@ -898,7 +890,7 @@ TEST_P(DataPathTest, UdpDataRebind)
         ASSERT_NE(nullptr, ClientBuffer);
         memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-        VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+        Client.Send(ClientSendData);
         ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
     }
 }
@@ -936,7 +928,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     ASSERT_NE(nullptr, ClientBuffer);
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(Client.Send(ClientSendData));
+    Client.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
 }
 
@@ -985,7 +977,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     RecvContext.DestinationAddress = Server1.GetLocalAddress();
-    VERIFY_QUIC_SUCCESS(Client1.Send(ClientSendData));
+    Client1.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
     CxPlatEventReset(RecvContext.ClientCompletion);
 
@@ -997,7 +989,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     memcpy(ClientBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
     RecvContext.DestinationAddress = Server2.GetLocalAddress();
-    VERIFY_QUIC_SUCCESS(Client2.Send(ClientSendData));
+    Client2.Send(ClientSendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(RecvContext.ClientCompletion, 2000));
     CxPlatEventReset(RecvContext.ClientCompletion);
 }
@@ -1148,7 +1140,7 @@ TEST_P(DataPathTest, TcpDataClient)
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(Client.Send(SendData));
+    Client.Send(SendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.ServerContext.ReceiveEvent, 500));
 }
 
@@ -1193,11 +1185,7 @@ TEST_P(DataPathTest, TcpDataServer)
     ASSERT_NE(nullptr, SendBuffer);
     memcpy(SendBuffer->Buffer, ExpectedData, ExpectedDataSize);
 
-    VERIFY_QUIC_SUCCESS(
-        CxPlatSocketSend(
-            ListenerContext.Server,
-            &Route,
-            SendData));
+    CxPlatSocketSend(ListenerContext.Server, &Route, SendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
 }
 

@@ -194,7 +194,6 @@ struct DrillSender {
         _In_ const DrillBuffer& PacketBuffer
         )
     {
-        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         CXPLAT_FRE_ASSERT(PacketBuffer.size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer.size();
 
@@ -211,8 +210,7 @@ struct DrillSender {
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            return Status;
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
 
         //
@@ -220,13 +218,12 @@ struct DrillSender {
         //
         memcpy(SendBuffer->Buffer, PacketBuffer.data(), DatagramLength);
 
-        Status =
-            CxPlatSocketSend(
-                Binding,
-                &Route,
-                SendData);
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData);
 
-        return Status;
+        return QUIC_STATUS_SUCCESS;
     }
 };
 

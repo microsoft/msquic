@@ -3004,7 +3004,7 @@ CxPlatSocketPrepareSendData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const CXPLAT_ROUTE* Route,
@@ -3122,8 +3122,6 @@ CxPlatSocketSend(
         // Callback still gets invoked on failure to do the cleanup.
         //
     }
-
-    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

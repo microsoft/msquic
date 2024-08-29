@@ -345,6 +345,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
+            $pinfo.WorkingDirectory = $OutputDir
             if (Test-Administrator) {
                 # Enable WER dump collection.
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null

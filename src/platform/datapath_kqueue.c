@@ -2099,7 +2099,7 @@ Exit:
     return Status;
 }
 
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -2108,18 +2108,12 @@ CxPlatSocketSend(
 {
     UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
-    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
-    QUIC_STATUS Status =
-        CxPlatSocketSendInternal(
-            SocketContext,
-            &Route->LocalAddress,
-            &Route->RemoteAddress,
-            SendData,
-            FALSE);
-    if (Status == QUIC_STATUS_PENDING) {
-        Status = QUIC_STATUS_SUCCESS;
-    }
-    return Status;
+    CxPlatSocketSendInternal(
+        Route->Queue,
+        &Route->LocalAddress,
+        &Route->RemoteAddress,
+        SendData,
+        FALSE);
 }
 
 uint16_t

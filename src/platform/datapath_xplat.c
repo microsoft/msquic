@@ -353,18 +353,19 @@ CxPlatSendDataIsFull(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
-        SocketSend(Socket, Route, SendData) : RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
+        SocketSend(Socket, Route, SendData);
+     } else {
+        CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+        RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

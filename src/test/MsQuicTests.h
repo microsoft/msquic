@@ -21,6 +21,11 @@ extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+extern char CurrentWorkingDirectory[MAX_PATH + 1];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -706,6 +711,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 typedef struct {
     BOOLEAN UseDuoNic;
+    char CurrentDirectory[MAX_PATH];
 } QUIC_TEST_CONFIGURATION_PARAMS;
 
 #define IOCTL_QUIC_TEST_CONFIGURATION \

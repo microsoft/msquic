@@ -149,8 +149,12 @@ CxPlatWorkerPoolLazyStart(
         goto Error;
     }
 
+    BOOLEAN SetIdealProc = !Config || !(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC);
+
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        CXPLAT_THREAD_FLAG_SET_IDEAL_PROC,
+        SetIdealProc ? 
+            CXPLAT_THREAD_FLAG_SET_IDEAL_PROC :
+            CXPLAT_THREAD_FLAG_NONE,
         0,
         "cxplat_worker",
         CxPlatWorkerThread,
