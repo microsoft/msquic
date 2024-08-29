@@ -495,7 +495,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     uint64_t NextTimeUs;
     volatile BOOLEAN Ready;
 
-} CXPLAT_EXECUTION_CONTEXT;  
+} CXPLAT_EXECUTION_CONTEXT;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
 #define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
