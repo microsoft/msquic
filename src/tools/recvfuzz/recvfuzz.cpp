@@ -934,6 +934,7 @@ void start() {
         UdpUnreachCallback,
     };
     MsQuic = new MsQuicApi();
+    CxPlatWorkerPoolInit(&WorkerPool);
     QUIC_STATUS Status = CxPlatDataPathInitialize(
         0,
         &DatapathCallbacks,
@@ -1009,10 +1010,6 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size) {
 int
 QUIC_MAIN_EXPORT
 main(int argc, char **argv) {
-    CxPlatSystemLoad();
-    CxPlatInitialize();
-    CxPlatWorkerPoolInit(&WorkerPool);
-
     TryGetValue(argc, argv, "timeout", &RunTimeMs);
     uint32_t RngSeed = 0;
     if (!TryGetValue(argc, argv, "seed", &RngSeed)) {
@@ -1021,10 +1018,6 @@ main(int argc, char **argv) {
     printf("Using seed value: %u\n", RngSeed);
     srand(RngSeed);
     start();
-
-    CxPlatWorkerPoolUninit(&WorkerPool);
-    CxPlatUninitialize();
-    CxPlatSystemUnload();
 
     return 0;
 }
