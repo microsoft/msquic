@@ -4607,7 +4607,7 @@ void QuicTestTlsParam()
                 CxPlatEventInitialize(&ServerContext.Event, FALSE, FALSE);
                 Listener.Context = &ServerContext;
 
-                QuicAddr ServerLocalAddr;
+                QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
                 TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
                 TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -4617,7 +4617,7 @@ void QuicTestTlsParam()
                     Client.Start(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_INET,
-                        "localhost",
+                        QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                         ServerLocalAddr.GetPort()));
 
                 TEST_TRUE(Client.WaitForConnectionComplete());
@@ -4672,7 +4672,7 @@ void QuicTestTlsParam()
                 CxPlatEventInitialize(&ServerContext.Event, FALSE, FALSE);
                 Listener.Context = &ServerContext;
 
-                QuicAddr ServerLocalAddr;
+                QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
                 TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
                 TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
@@ -4682,7 +4682,7 @@ void QuicTestTlsParam()
                     Client.Start(
                         ClientConfiguration,
                         QUIC_ADDRESS_FAMILY_INET,
-                        "localhost",
+                        QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                         ServerLocalAddr.GetPort()));
 
                 TEST_TRUE(Client.WaitForConnectionComplete());
