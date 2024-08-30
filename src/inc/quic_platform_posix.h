@@ -585,6 +585,26 @@ CxPlatPoolFree(
     }
 }
 
+inline
+BOOLEAN
+CxPlatPoolPrune(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CxPlatLockAcquire(&Pool->Lock);
+    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
+    if (Entry != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Entry == NULL) {
+        return FALSE;
+    }
+    CxPlatFree(Entry, Pool->Tag);
+    return TRUE;
+}
+
 //
 // Reference Count Interface
 //

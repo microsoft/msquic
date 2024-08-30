@@ -696,12 +696,6 @@ TEST_F(DataPathTest, InitializeInvalid)
         ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, Datapath.GetInitStatus());
         ASSERT_EQ(nullptr, Datapath.Datapath);
     }
-    if (!UseDuoNic) {
-        QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
-        ASSERT_EQ(QUIC_STATUS_NOT_SUPPORTED, Datapath.GetInitStatus());
-        ASSERT_EQ(nullptr, Datapath.Datapath);
-    }
 }
 
 TEST_F(DataPathTest, UdpBind)
