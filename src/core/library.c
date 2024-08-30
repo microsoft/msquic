@@ -1667,8 +1667,10 @@ QuicLibraryGetParam(
 
     case QUIC_PARAM_PREFIX_TLS:
     case QUIC_PARAM_PREFIX_TLS_SCHANNEL:
-        if (Connection == NULL || Connection->Crypto.TLS == NULL) {
+        if (Connection == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
+        } else if (Connection->Crypto.TLS == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
         } else {
             Status = CxPlatTlsParamGet(Connection->Crypto.TLS, Param, BufferLength, Buffer);
         }
