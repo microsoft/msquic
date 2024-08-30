@@ -4486,7 +4486,6 @@ void QuicTestConnectionParam()
 
 struct TestTlsParamServerContext {
     MsQuicConnection** Server;
-    CXPLAT_EVENT Event;
     QUIC_STATUS GetParamStatus;
 };
 
@@ -4509,7 +4508,6 @@ TestTlsParamListenerCallback(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
                         &Info);
-                CxPlatEventSet(((TestTlsParamServerContext*)Context)->Event);
             }
             return QUIC_STATUS_SUCCESS;
         },
@@ -4590,6 +4588,7 @@ void QuicTestTlsParam()
                 ), QUIC_STATUS_SUCCESS);
             }
 
+#ifndef _KERNEL_MODE
             //
             // After handshake, no resumption
             //
@@ -4603,16 +4602,22 @@ void QuicTestTlsParam()
                     ServerConfiguration);
                 TEST_QUIC_SUCCEEDED(Listener.IsValid());
                 UniquePtr<MsQuicConnection> Server;
-                TestTlsParamServerContext ServerContext = { (MsQuicConnection**)&Server, {}, QUIC_STATUS_SUCCESS };
-                CxPlatEventInitialize(&ServerContext.Event, FALSE, FALSE);
+                TestTlsParamServerContext ServerContext = { (MsQuicConnection**)&Server, QUIC_STATUS_SUCCESS };
                 Listener.Context = &ServerContext;
 
                 QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
-                TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+                TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerLocalAddr));
                 TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-                TestConnection Client(Registration);
+                MsQuicConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(ServerLocalAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
+
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
@@ -4620,9 +4625,11 @@ void QuicTestTlsParam()
                         QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                         ServerLocalAddr.GetPort()));
 
-                TEST_TRUE(Client.WaitForConnectionComplete());
+                Client.HandshakeCompleteEvent.WaitForever();
+                TEST_TRUE(Client.HandshakeComplete);
                 TEST_TRUE(Server);
-                CxPlatEventWaitForever(ServerContext.Event);
+                Server->HandshakeCompleteEvent.WaitForever();
+                TEST_TRUE(Server->HandshakeComplete);
 
                 //
                 // Validate the GetParam succeeded in the CONNECTED callback.
@@ -4632,8 +4639,7 @@ void QuicTestTlsParam()
                 QUIC_HANDSHAKE_INFO Info = {};
                 Length = sizeof(Info);
                 TEST_QUIC_SUCCEEDED(
-                    MsQuic->GetParam(
-                        Client.GetConnection(),
+                    Client.GetParam(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
                         &Info
@@ -4645,8 +4651,7 @@ void QuicTestTlsParam()
                 //
                 Length = sizeof(Info);
                 TEST_EQUAL(
-                    MsQuic->GetParam(
-                        *Server,
+                    Server->GetParam(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
                         &Info),
@@ -4668,16 +4673,22 @@ void QuicTestTlsParam()
                     ServerConfiguration);
                 TEST_QUIC_SUCCEEDED(Listener.IsValid());
                 UniquePtr<MsQuicConnection> Server;
-                TestTlsParamServerContext ServerContext = { (MsQuicConnection**)&Server, {}, QUIC_STATUS_SUCCESS };
-                CxPlatEventInitialize(&ServerContext.Event, FALSE, FALSE);
+                TestTlsParamServerContext ServerContext = { (MsQuicConnection**)&Server, QUIC_STATUS_SUCCESS };
                 Listener.Context = &ServerContext;
 
                 QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
-                TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+                TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerLocalAddr));
                 TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-                TestConnection Client(Registration);
+                MsQuicConnection Client(Registration);
                 TEST_TRUE(Client.IsValid());
+
+                if (UseDuoNic) {
+                    QuicAddr RemoteAddr{QuicAddrGetFamily(ServerLocalAddr), ServerLocalAddr.GetPort()};
+                    QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+                    TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+                }
+
                 TEST_QUIC_SUCCEEDED(
                     Client.Start(
                         ClientConfiguration,
@@ -4685,9 +4696,11 @@ void QuicTestTlsParam()
                         QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
                         ServerLocalAddr.GetPort()));
 
-                TEST_TRUE(Client.WaitForConnectionComplete());
+                Client.HandshakeCompleteEvent.WaitForever();
+                TEST_TRUE(Client.HandshakeComplete);
                 TEST_TRUE(Server);
-                CxPlatEventWaitForever(ServerContext.Event);
+                Server->HandshakeCompleteEvent.WaitForever();
+                TEST_TRUE(Server->HandshakeComplete);
 
                 //
                 // Validate the GetParam succeeded in the CONNECTED callback.
@@ -4700,8 +4713,7 @@ void QuicTestTlsParam()
                 QUIC_HANDSHAKE_INFO Info = {};
                 Length = sizeof(Info);
                 TEST_QUIC_SUCCEEDED(
-                    MsQuic->GetParam(
-                        Client.GetConnection(),
+                    Client.GetParam(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
                         &Info
@@ -4711,14 +4723,13 @@ void QuicTestTlsParam()
                 // The server should NOT have freed the TLS state, so this
                 // should succeed.
                 //
-                TEST_EQUAL(
-                    MsQuic->GetParam(
-                        *Server,
+                TEST_QUIC_SUCCEEDED(
+                    Server->GetParam(
                         QUIC_PARAM_TLS_HANDSHAKE_INFO,
                         &Length,
-                        &Info),
-                    QUIC_STATUS_SUCCESS);
+                        &Info));
             }
+#endif // ifndef _KERNEL_MODE
 
             {
                 TestScopeLogger LogScope2("Successful case is covered by TlsTest.HandshakeParamInfo*");
