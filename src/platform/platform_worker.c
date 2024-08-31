@@ -343,10 +343,6 @@ CxPlatProcessDynamicPoolAllocator(
         if (!CxPlatPoolPrune((CXPLAT_POOL*)Pool)) {
             return;
         }
-        QuicTraceLogVerbose(
-            PlatformPrunePool,
-            "[ lib][%p] Pruned pool",
-            Pool);
     }
 }
 
