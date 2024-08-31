@@ -439,17 +439,17 @@ typedef struct CXPLAT_EXECUTION_STATE {
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
 
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+
 //
 // Supports more dynamic operations, but must be submitted to the platform worker
 // to manage.
 //
 typedef struct CXPLAT_POOL_EX {
-    struct CXPLAT_POOL Base;
+    CXPLAT_POOL Base;
     CXPLAT_LIST_ENTRY Link;
     void* Owner;
 } CXPLAT_POOL_EX;
-
-#ifndef _KERNEL_MODE // Not supported on kernel mode
 
 void
 CxPlatAddDynamicPoolAllocator(
