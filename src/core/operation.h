@@ -339,6 +339,22 @@ QuicOperationFree(
     );
 
 //
+// Returns TRUE if the operation queue has priority operations queued.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+QuicOperationHasPriority(
+    _In_ QUIC_OPERATION_QUEUE* OperQ
+    )
+{
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
+    BOOLEAN HasPriorityWork = (&OperQ->List.Flink != OperQ->PriorityTail);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
+    return HasPriorityWork;
+}
+
+//
 // Enqueues an operation. Returns TRUE if the queue was previously empty and not
 // already being processed.
 //

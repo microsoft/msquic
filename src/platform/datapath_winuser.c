@@ -3987,7 +3987,7 @@ CxPlatSendDataComplete(
     _In_ ULONG IoResult
     )
 {
-    const CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
+    CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
 
     if (IoResult != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
@@ -3999,11 +3999,14 @@ CxPlatSendDataComplete(
     }
 
     if (SocketProc->Parent->Type != CXPLAT_SOCKET_UDP) {
-        SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            IoResult,
-            SendData->TotalSize);
+        if (CxPlatRundownAcquire(&SocketProc->RundownRef)) {
+            SocketProc->Parent->Datapath->TcpHandlers.SendComplete(
+                SocketProc->Parent,
+                SocketProc->Parent->ClientContext,
+                IoResult,
+                SendData->TotalSize);
+            CxPlatRundownRelease(&SocketProc->RundownRef);
+        }
     }
 
     SendDataFree(SendData);

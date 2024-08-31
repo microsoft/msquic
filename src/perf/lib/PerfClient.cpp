@@ -229,7 +229,8 @@ PerfClient::Init(
                 nullptr,
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
-                PerfClientConnection::TcpSendCompleteCallback));
+                PerfClientConnection::TcpSendCompleteCallback,
+                TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;

@@ -19,6 +19,10 @@ Supported Environments:
 
 #include <stddef.h>
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 #define IS_POWER_OF_TWO(x) (((x) != 0) && (((x) & ((x) - 1)) == 0))
 
 #define CXPLAT_MAX(a,b) (((a) > (b)) ? (a) : (b))
@@ -592,3 +596,7 @@ CxPlatFreeTestCert(
 #endif
 
 #endif // QUIC_TEST_APIS
+
+#if defined(__cplusplus)
+}
+#endif

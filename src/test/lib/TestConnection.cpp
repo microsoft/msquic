@@ -30,7 +30,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -41,6 +41,10 @@ TestConnection::TestConnection(
         TEST_FAILURE("Invalid handle passed into TestConnection.");
     } else {
         MsQuic->SetCallbackHandler(QuicConnection, (void*)QuicConnectionHandler, this);
+    }
+    QUIC_STATUS Status = SetTlsSecrets(&TlsSecrets);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
     }
 }
 
@@ -60,7 +64,7 @@ TestConnection::TestConnection(
     NewStreamCallback(NewStreamCallbackHandler), ShutdownCompleteCallback(nullptr),
     DatagramsSent(0), DatagramsCanceled(0), DatagramsSuspectLost(0),
     DatagramsLost(0), DatagramsAcknowledged(0), NegotiatedAlpn(nullptr),
-    NegotiatedAlpnLength(0), Context(nullptr)
+    NegotiatedAlpnLength(0), SslKeyLogFileName(nullptr), Context(nullptr)
 {
     CxPlatEventInitialize(&EventConnectionComplete, TRUE, FALSE);
     CxPlatEventInitialize(&EventPeerClosed, TRUE, FALSE);
@@ -77,6 +81,10 @@ TestConnection::TestConnection(
         TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
         QuicConnection = nullptr;
     }
+    Status = SetTlsSecrets(&TlsSecrets);
+    if (QUIC_FAILED(Status)) {
+        TEST_FAILURE("SetTlsSecrets failed, 0x%x", Status);
+    }
 }
 
 TestConnection::~TestConnection()
@@ -91,6 +99,35 @@ TestConnection::~TestConnection()
     }
     if (EventDeleted) {
         CxPlatEventSet(*EventDeleted);
+    }
+    if (SslKeyLogFileName != nullptr) {
+#ifdef _KERNEL_MODE
+        char SslKeyLogFileFullPathName[MAX_PATH + 1];
+        NTSTATUS Status =
+            RtlStringCbCopyA(
+                SslKeyLogFileFullPathName,
+                sizeof(SslKeyLogFileFullPathName),
+                CurrentWorkingDirectory);
+        if (!NT_SUCCESS(Status)) {
+            TEST_FAILURE("RtlStringCbCopyA failed");
+            return;
+        }
+        Status =
+            RtlStringCbCatExA(
+                SslKeyLogFileFullPathName,
+                sizeof(SslKeyLogFileFullPathName),
+                SslKeyLogFileName,
+                nullptr,
+                nullptr,
+                STRSAFE_NULL_ON_FAILURE);
+        if (!NT_SUCCESS(Status)) {
+            TEST_FAILURE("RtlStringCbCatExA failed");
+            return;
+        }
+        WriteSslKeyLogFile(SslKeyLogFileFullPathName, TlsSecrets);
+#else
+        WriteSslKeyLogFile(SslKeyLogFileName, TlsSecrets);
+#endif
     }
 }
 

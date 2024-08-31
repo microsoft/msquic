@@ -139,18 +139,41 @@ echo "ARCH=$ARCH PKGARCH=$PKGARCH ARTIFACTS=$ARTIFACTS"
 mkdir -p ${OUTPUT}
 
 if [ "$OS" == "linux" ]; then
+  # RedHat/CentOS
+  FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+  FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
+  if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
+      FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
+  fi
+  if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
+    BITS='64bit'
+  fi
   # XDP is only validated on Ubuntu 24.04 and x64
-  if [ "$XDP" == "False" ] || [[ "$ARCH" == arm* ]]; then
+  if [ "$XDP" == "True" ] && [[ "$ARCH" == x* ]]; then
+    echo "Building rpm package (XDP)"
+    fpm \
+      --force \
+      --input-type dir \
+      --output-type rpm \
+      --architecture ${PKGARCH} \
+      --name ${NAME} \
+      --provides ${NAME} \
+      --depends "libcrypto.so.${TLSVERSION}()(${BITS})" \
+      --depends "libnuma.so.1()(${BITS})" \
+      --depends "libxdp >= 1.4.0" \
+      --depends "libnl3 >= 3.0" \
+      --conflicts ${CONFLICTS} \
+      --version ${VER_MAJOR}.${VER_MINOR}.${VER_PATCH} \
+      --description "${DESCRIPTION}" \
+      --vendor "${VENDOR}" \
+      --maintainer "${MAINTAINER}" \
+      --package "${OUTPUT}" \
+      --license MIT \
+      --url https://github.com/microsoft/msquic \
+      --log error \
+      ${FILES} ${ARTIFACTS}/datapath_raw_xdp_kern.o=/usr/${LIBDIR}/datapath_raw_xdp_kern.o
+  else
     echo "Building rpm package"
-    # RedHat/CentOS
-    FILES="${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
-    FILES="${FILES} ${ARTIFACTS}/libmsquic.${LIBEXT}.${VER_MAJOR}=/usr/${LIBDIR}/libmsquic.${LIBEXT}.${VER_MAJOR}"
-    if [ -e "$ARTIFACTS/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}" ]; then
-       FILES="${FILES} ${ARTIFACTS}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}=/usr/${LIBDIR}/libmsquic.lttng.${LIBEXT}.${VER_MAJOR}.${VER_MINOR}.${VER_PATCH}"
-    fi
-    if [ "$PKGARCH" == 'aarch64' ] || [ "$PKGARCH" == 'x86_64' ]; then
-      BITS='64bit'
-    fi
     fpm \
       --force \
       --input-type dir \
