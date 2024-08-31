@@ -288,7 +288,7 @@ CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
     CXPLAT_EXECUTION_STATE DummyState = {
-        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
     while (DoWork(This, &DummyState)) {
         if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
