@@ -18,6 +18,8 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
         CXPLAT_FRE_ASSERT(append(value));
     }
 
+    uint8_t* data() { return &(*this)[0]; }
+
     const uint8_t* data() const { return &(*this)[0]; }
 
     size_t size() const { return count(); }
