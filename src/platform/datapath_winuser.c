@@ -957,7 +957,7 @@ DataPathInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
-            (CXPLAT_POOL*)&Datapath->Partitions[i].RecvDatagramPool);
+            &Datapath->Partitions[i].RecvDatagramPool.Base);
         CxPlatAddDynamicPoolAllocator(
             &Datapath->Partitions[i].RecvDatagramPool,
             i);
@@ -1024,7 +1024,7 @@ CxPlatProcessorContextRelease(
         CxPlatPoolUninitialize(&DatapathProc->RioSendBufferPool);
         CxPlatPoolUninitialize(&DatapathProc->RioLargeSendBufferPool);
         CxPlatRemoveDynamicPoolAllocator(&DatapathProc->RecvDatagramPool);
-        CxPlatPoolUninitialize((CXPLAT_POOL*)&DatapathProc->RecvDatagramPool);
+        CxPlatPoolUninitialize(&DatapathProc->RecvDatagramPool.Base);
         CxPlatPoolUninitialize(&DatapathProc->RioRecvPool);
         CxPlatDataPathRelease(DatapathProc->Datapath);
     }
@@ -2469,7 +2469,7 @@ CxPlatSocketAllocRxIoBlock(
     if (SocketProc->Parent->UseRio) {
         OwningPool = &DatapathProc->RioRecvPool;
     } else {
-        OwningPool = (CXPLAT_POOL*)&DatapathProc->RecvDatagramPool;
+        OwningPool = &DatapathProc->RecvDatagramPool.Base;
     }
 
     IoBlock = CxPlatPoolAlloc(OwningPool);

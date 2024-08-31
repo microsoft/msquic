@@ -444,11 +444,7 @@ typedef struct CXPLAT_EXECUTION_STATE {
 // to manage.
 //
 typedef struct CXPLAT_POOL_EX {
-#ifdef __cplusplus
-    struct CXPLAT_POOL _;
-#else
-    struct CXPLAT_POOL;
-#endif
+    struct CXPLAT_POOL Base;
     CXPLAT_LIST_ENTRY Link;
     void* Owner;
 } CXPLAT_POOL_EX;
