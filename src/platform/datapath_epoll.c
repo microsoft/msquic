@@ -2333,7 +2333,7 @@ CxPlatSendDataPopulateAncillaryData(
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
             struct in_pktinfo *PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
             PktInfo->ipi_ifindex = SendData->LocalAddress.Ipv6.sin6_scope_id;
-            PktInfo->ipi_spec_dst.s_addr = 0;
+            PktInfo->ipi_spec_dst = SendData->LocalAddress.Ipv4.sin_addr;
             PktInfo->ipi_addr = SendData->LocalAddress.Ipv4.sin_addr;
         } else {
             Mhdr->msg_controllen += CMSG_SPACE(sizeof(struct in6_pktinfo));
