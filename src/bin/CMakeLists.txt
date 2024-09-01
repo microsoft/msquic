@@ -266,11 +266,7 @@ else()
         $<INSTALL_INTERFACE:${include_dest}>)
 endif()
 
-set(PUBLIC_HEADERS
-    ../inc/msquic.h
-    ../inc/msquic_winuser.h
-    ../inc/msquic_posix.h
-    ../inc/quic_sal_stub.h)
+file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
 if(BUILD_SHARED_LIBS)
   install(TARGETS msquic EXPORT msquic DESTINATION lib)
