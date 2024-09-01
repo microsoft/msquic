@@ -1862,6 +1862,7 @@ CxPlatTlsUninitialize(
 
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
+        OPENSSL_thread_stop();
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
