@@ -4526,7 +4526,9 @@ TestTlsParamListenerCallback(
 // This need to be fixed in the future.
 // see src/platform/tsl_schannel.c about the TODO
 //
-void QuicTestTlsParam()
+void QuicTestTlsParam(
+    _In_ bool SkipHandshakeTest
+    )
 {
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
@@ -4596,6 +4598,7 @@ void QuicTestTlsParam()
             //
             // After handshake, no resumption
             //
+            if (!SkipHandshakeTest)
             {
                 TestScopeLogger LogScope2("After handshake - no resumption");
                 MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
@@ -4667,6 +4670,7 @@ void QuicTestTlsParam()
             //
             // After handshake, with resumption
             //
+            if (!SkipHandshakeTest)
             {
                 TestScopeLogger LogScope2("After handshake - with resumption");
                 MsQuicSettings Settings;

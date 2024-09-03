@@ -289,9 +289,9 @@ TEST(ParameterValidation, ValidateConnectionParam) {
 TEST(ParameterValidation, ValidateTlsParam) {
     TestLogger Logger("QuicTestValidateTlsParam");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM, (BOOLEAN)(IsWindows2022() || IsWindows2019())));
     } else {
-        QuicTestTlsParam();
+        QuicTestTlsParam(FALSE);
     }
 }
 
