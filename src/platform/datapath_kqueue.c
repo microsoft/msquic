@@ -2012,6 +2012,7 @@ CxPlatSocketSendInternal(
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.
             PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_spec_dst = LocalAddress->Ipv4.sin_addr;
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         } else {
             CMsg->cmsg_level = IPPROTO_IPV6;
