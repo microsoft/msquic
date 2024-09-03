@@ -20,6 +20,7 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
+extern CXPLAT_WORKER_POOL WorkerPool;
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
@@ -64,6 +65,7 @@ struct QuicAddr
                 0,
                 NULL,
                 NULL,
+                &WorkerPool,
                 NULL,
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
@@ -441,6 +443,7 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
+                &WorkerPool,
                 Config ? Config : &DefaultExecutionConfig,
                 &Datapath);
     }
@@ -675,7 +678,7 @@ TEST_F(DataPathTest, Initialize)
 
 TEST_F(DataPathTest, InitializeInvalid)
 {
-    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, nullptr));
+    ASSERT_EQ(QUIC_STATUS_INVALID_PARAMETER, CxPlatDataPathInitialize(0, nullptr, nullptr, nullptr, nullptr, nullptr));
     {
         const CXPLAT_UDP_DATAPATH_CALLBACKS InvalidUdpCallbacks = { nullptr, EmptyUnreachableCallback };
         CxPlatDataPath Datapath(&InvalidUdpCallbacks);

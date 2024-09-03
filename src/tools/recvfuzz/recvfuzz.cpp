@@ -26,6 +26,7 @@ Abstract:
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
@@ -933,10 +934,12 @@ void start() {
         UdpUnreachCallback,
     };
     MsQuic = new MsQuicApi();
+    CxPlatWorkerPoolInit(&WorkerPool);
     QUIC_STATUS Status = CxPlatDataPathInitialize(
         0,
         &DatapathCallbacks,
         NULL,
+        &WorkerPool,
         NULL,
         &Datapath);
     if (QUIC_FAILED(Status)) {
