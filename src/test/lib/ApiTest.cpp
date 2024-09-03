@@ -4606,7 +4606,7 @@ void QuicTestTlsParam()
                     CleanUpManual,
                     TestTlsParamListenerCallback,
                     &ServerContext);
-                TEST_QUIC_SUCCEEDED(Listener.IsValid());
+                TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
                 UniquePtr<MsQuicConnection> Server;
                 ServerContext.Server = (MsQuicConnection**)&Server;
                 Listener.Context = &ServerContext;
@@ -4679,7 +4679,7 @@ void QuicTestTlsParam()
                     CleanUpManual,
                     TestTlsParamListenerCallback,
                     &ServerContext);
-                TEST_QUIC_SUCCEEDED(Listener.IsValid());
+                TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
                 UniquePtr<MsQuicConnection> Server;
                 ServerContext.Server = (MsQuicConnection**)&Server;
                 Listener.Context = &ServerContext;
