@@ -1125,7 +1125,7 @@ CxPlatCqeUserData(
 #include <fcntl.h>
 
 typedef int CXPLAT_EVENTQ;
-#define CXPLAT_SQE int
+#define CXPLAT_SQE uintptr_t
 #define CXPLAT_SQE_DEFAULT 0
 typedef struct kevent CXPLAT_CQE;
 
@@ -1193,7 +1193,7 @@ CxPlatEventQReturn(
 
 #define CXPLAT_SQE_INIT 1
 
-extern long CxPlatCurrentSqe;
+extern uintptr_t CxPlatCurrentSqe;
 
 inline
 BOOLEAN
@@ -1205,7 +1205,7 @@ CxPlatSqeInitialize(
 {
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(user_data);
-    *sqe = (CXPLAT_SQE)InterlockedIncrement(&CxPlatCurrentSqe);
+    *sqe = __sync_add_and_fetch(&CxPlatCurrentSqe, 1);
     return TRUE;
 }
 

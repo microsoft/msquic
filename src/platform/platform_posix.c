@@ -56,7 +56,7 @@ uint32_t CxPlatProcessorCount;
 uint64_t CxPlatTotalMemory;
 
 #if __APPLE__ || __FreeBSD__
-long CxPlatCurrentSqe = 0x80000000;
+uintptr_t CxPlatCurrentSqe = 0x80000000;
 #endif
 
 #ifdef __clang__
