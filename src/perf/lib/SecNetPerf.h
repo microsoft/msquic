@@ -65,7 +65,7 @@ QuicMainStart(
     );
 
 extern
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     );
 
