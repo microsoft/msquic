@@ -219,7 +219,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 90
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure
       uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
       if: failure()

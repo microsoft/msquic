@@ -4533,6 +4533,13 @@ void QuicTestTlsParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                    nullptr,
+                    nullptr));
+
             uint32_t Length = 0;
             TEST_QUIC_STATUS(
                 QUIC_STATUS_BUFFER_TOO_SMALL,
@@ -4753,7 +4760,8 @@ TestTlsHandshakeInfoListenerCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-void QuicTestTlsHandshakeInfo(
+void
+QuicTestTlsHandshakeInfo(
     _In_ bool EnableResumption
     )
 {
