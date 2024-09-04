@@ -1252,7 +1252,7 @@ SocketCreateUdp(
             goto Error;
         }
 
-        if (Config->RemoteAddress == NULL) {
+        if (Config->RemoteAddress == NULL && Datapath->PartitionCount > 1) {
             uint16_t Processor = i; // API only supports 16-bit proc index.
             Result =
                 WSAIoctl(

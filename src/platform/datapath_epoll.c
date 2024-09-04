@@ -901,7 +901,8 @@ CxPlatSocketContextInitialize(
         // Only set SO_REUSEPORT on a server socket, otherwise the client could be
         // assigned a server port (unless it's forcing sharing).
         //
-        if (Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) {
+        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) && 
+            SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
             //
