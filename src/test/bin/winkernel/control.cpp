@@ -494,7 +494,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(BOOLEAN),
+    0,
     0,
     0,
     0,
@@ -523,6 +523,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(BOOLEAN),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -563,7 +564,7 @@ typedef union {
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
-    BOOLEAN SkipHandshakeTest;
+    BOOLEAN EnableResumption;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1321,8 +1322,7 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM:
-        CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(QuicTestTlsParam(Params->SkipHandshakeTest));
+        QuicTestCtlRun(QuicTestTlsParam());
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_STREAM_PARAM:
@@ -1476,6 +1476,11 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
         QuicTestCtlRun(QuicTestConnectionPriority());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
         break;
 
     default:

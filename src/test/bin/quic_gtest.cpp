@@ -289,10 +289,20 @@ TEST(ParameterValidation, ValidateConnectionParam) {
 TEST(ParameterValidation, ValidateTlsParam) {
     TestLogger Logger("QuicTestValidateTlsParam");
     if (TestingKernelMode) {
-        BOOLEAN SkipHandshakeTest = IsWindows2022() || IsWindows2019();
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM, SkipHandshakeTest));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM));
     } else {
-        QuicTestTlsParam(FALSE);
+        QuicTestTlsParam();
+    }
+}
+
+TEST_P(WithBool, ValidateTlsHandshakeInfo) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
+    if (TestingKernelMode) {
+        if (IsWindows2022() || IsWindows2019()) GTEST_SKIP(); // Not supported on WS2019 or WS2022
+        uint8_t EnableResumption = (uint8_t)GetParam();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO, EnableResumption));
+    } else {
+        QuicTestTlsHandshakeInfo(GetParam());
     }
 }
 
