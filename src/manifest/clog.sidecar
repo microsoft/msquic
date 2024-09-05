@@ -8672,12 +8672,16 @@
     },
     "PerfTcpSendCompleteCallback": {
       "ModuleProperites": {},
-      "TraceString": "[perf][tcp][%p] SendComplete callback",
+      "TraceString": "[perf][tcp][%p] SendComplete callback, %u",
       "UniqueId": "PerfTcpSendCompleteCallback",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -15924,9 +15928,9 @@
         "EncodingString": "[perf][tcp][%p] Receive callback"
       },
       {
-        "UniquenessHash": "c0732f05-6611-2c1d-ad74-42718c7269cc",
+        "UniquenessHash": "40ccb9a5-a92a-6a46-3b50-7628487e2415",
         "TraceID": "PerfTcpSendCompleteCallback",
-        "EncodingString": "[perf][tcp][%p] SendComplete callback"
+        "EncodingString": "[perf][tcp][%p] SendComplete callback, %u"
       },
       {
         "UniquenessHash": "87a3325f-51ea-bece-2c7f-5a1e55cf6415",

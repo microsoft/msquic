@@ -1781,7 +1781,7 @@ QuicBindingUnreachable(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const CXPLAT_ROUTE* Route,
@@ -1790,8 +1790,6 @@ QuicBindingSend(
     _In_ uint32_t DatagramsToSend
     )
 {
-    QUIC_STATUS Status;
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
@@ -1810,35 +1808,12 @@ QuicBindingSend(
                 "[bind][%p] Test dropped packet",
                 Binding);
             CxPlatSendDataFree(SendData);
-            Status = QUIC_STATUS_SUCCESS;
         } else {
-            Status =
-                CxPlatSocketSend(
-                    Binding->Socket,
-                    &RouteCopy,
-                    SendData);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogWarning(
-                    BindingSendFailed,
-                    "[bind][%p] Send failed, 0x%x",
-                    Binding,
-                    Status);
-            }
+            CxPlatSocketSend(Binding->Socket, &RouteCopy, SendData);
         }
     } else {
 #endif
-        Status =
-            CxPlatSocketSend(
-                Binding->Socket,
-                Route,
-                SendData);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                BindingSendFailed,
-                "[bind][%p] Send failed, 0x%x",
-                Binding,
-                Status);
-        }
+        CxPlatSocketSend(Binding->Socket, Route, SendData);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
@@ -1846,6 +1821,4 @@ QuicBindingSend(
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
-
-    return Status;
 }
