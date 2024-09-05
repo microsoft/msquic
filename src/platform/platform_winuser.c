@@ -176,7 +176,7 @@ CxPlatProcessorInfoInit(
             if (Proc >= CxPlatProcessorGroupInfo[Group].Offset &&
                 Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].ActiveProcessorCount) {
                 CxPlatProcessorInfo[Proc].Group = Group;
-                CXPLAT_DBG_ASSERT(Proc - CxPlatProcessorGroupInfo[Group].Offset < UINT8_MAX);
+                CXPLAT_DBG_ASSERT(Proc - CxPlatProcessorGroupInfo[Group].Offset <= UINT8_MAX);
                 CxPlatProcessorInfo[Proc].Index = (uint8_t)(Proc - CxPlatProcessorGroupInfo[Group].Offset);
                 QuicTraceLogInfo(
                     ProcessorInfoV3,
