@@ -53,6 +53,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     CXPLAT_LOCK ECLock;
 
     //
+    // List of dynamic pools to manage.
+    //
+    CXPLAT_LIST_ENTRY DynamicPoolList;
+
+    //
     // Execution contexts that are waiting to be added to CXPLAT_WORKER::ExecutionContexts.
     //
     CXPLAT_SLIST_ENTRY* PendingECs;
@@ -164,6 +169,7 @@ CxPlatWorkerPoolLazyStart(
     CxPlatZeroMemory(WorkerPool->Workers, WorkersSize);
     for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
         CxPlatLockInitialize(&WorkerPool->Workers[i].ECLock);
+        CxPlatListInitializeHead(&WorkerPool->Workers[i].DynamicPoolList);
         WorkerPool->Workers[i].InitializedECLock = TRUE;
         WorkerPool->Workers[i].IdealProcessor = ProcessorList ? ProcessorList[i] : (uint16_t)i;
         CXPLAT_DBG_ASSERT(WorkerPool->Workers[i].IdealProcessor < CxPlatProcCount());
@@ -293,6 +299,7 @@ CxPlatWorkerPoolUninit(
             CxPlatSqeCleanup(&WorkerPool->Workers[i].EventQ, &WorkerPool->Workers[i].ShutdownSqe);
 #endif // CXPLAT_SQE_INIT
             CxPlatEventQCleanup(&WorkerPool->Workers[i].EventQ);
+            CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&WorkerPool->Workers[i].DynamicPoolList));
             CxPlatLockUninitialize(&WorkerPool->Workers[i].ECLock);
         }
 
@@ -303,6 +310,68 @@ CxPlatWorkerPoolUninit(
     }
 
     CxPlatLockUninitialize(&WorkerPool->WorkerLock);
+}
+
+#define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
+#define DYNAMIC_POOL_PRUNE_COUNT        8
+
+void
+CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_POOL_EX* Pool,
+    _In_ uint16_t Index // Into the execution config processor array
+    )
+{
+    CXPLAT_DBG_ASSERT(WorkerPool);
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+    CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
+    Pool->Owner = Worker;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListInsertTail(&Worker->DynamicPoolList, &Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatRemoveDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Pool->Owner;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListEntryRemove(&Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatProcessDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    for (uint32_t i = 0; i < DYNAMIC_POOL_PRUNE_COUNT; ++i) {
+        if (!CxPlatPoolPrune((CXPLAT_POOL*)Pool)) {
+            return;
+        }
+    }
+}
+
+void
+CxPlatProcessDynamicPoolAllocators(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+    QuicTraceLogVerbose(
+        PlatformWorkerProcessPools,
+        "[ lib][%p] Processing pools",
+        Worker);
+
+    CxPlatLockAcquire(&Worker->ECLock);
+    CXPLAT_LIST_ENTRY* Entry = Worker->DynamicPoolList.Flink;
+    while (Entry != &Worker->DynamicPoolList) {
+        CXPLAT_POOL_EX* Pool = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_POOL_EX, Link);
+        Entry = Entry->Flink;
+        CxPlatProcessDynamicPoolAllocator(Pool);
+    }
+    CxPlatLockRelease(&Worker->ECLock);
 }
 
 CXPLAT_EVENTQ*
@@ -388,7 +457,6 @@ CxPlatRunExecutionContexts(
 #if DEBUG // Debug statistics
     ++Worker->EcPollCount;
 #endif
-    State->TimeNow = CxPlatTimeUs64();
 
     uint64_t NextTime = UINT64_MAX;
     CXPLAT_SLIST_ENTRY** EC = &Worker->ExecutionContexts;
@@ -487,7 +555,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
     Worker->ThreadStarted = TRUE;
 #endif
 
-    CXPLAT_EXECUTION_STATE State = { 0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID() };
+    CXPLAT_EXECUTION_STATE State = { 0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID() };
 
     Worker->Running = TRUE;
 
@@ -497,9 +565,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
 #if DEBUG // Debug statistics
         ++Worker->LoopCount;
 #endif
+        State.TimeNow = CxPlatTimeUs64();
 
         CxPlatRunExecutionContexts(Worker, &State);
         if (State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
+            State.TimeNow = CxPlatTimeUs64();
             CxPlatRunExecutionContexts(Worker, &State); // Run once more to handle race conditions
         }
 
@@ -512,6 +582,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         } else if (State.NoWorkCount > CXPLAT_WORKER_IDLE_WORK_THRESHOLD_COUNT) {
             CxPlatSchedulerYield();
             State.NoWorkCount = 0;
+        }
+
+        if (State.TimeNow - State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
+            CxPlatProcessDynamicPoolAllocators(Worker);
+            State.LastPoolProcessTime = State.TimeNow;
         }
     }
 

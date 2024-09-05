@@ -8749,6 +8749,18 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
     },
+    "PlatformWorkerProcessPools": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Processing pools",
+      "UniqueId": "PlatformWorkerProcessPools",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "PlatformWorkerThreadStart": {
       "ModuleProperites": {},
       "TraceString": "[ lib][%p] Worker start",
@@ -15939,6 +15951,11 @@
         "UniquenessHash": "c77e1439-2c2d-7baf-4509-bd2f7eeea771",
         "TraceID": "PlatformThreadCreateFailed",
         "EncodingString": "[ lib] pthread_create failed, retrying without affinitization"
+      },
+      {
+        "UniquenessHash": "3f46cbc3-c609-dab4-07c9-fbe956e68f5c",
+        "TraceID": "PlatformWorkerProcessPools",
+        "EncodingString": "[ lib][%p] Processing pools"
       },
       {
         "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",

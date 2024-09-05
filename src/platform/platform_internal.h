@@ -265,7 +265,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     // Pool of receive datagram contexts and buffers to be shared by all sockets
     // on this core.
     //
-    CXPLAT_POOL RecvDatagramPool;
+    CXPLAT_POOL_EX RecvDatagramPool;
 
     //
     // Pool of RIO receive datagram contexts and buffers to be shared by all

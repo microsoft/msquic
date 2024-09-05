@@ -773,7 +773,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
 
     CXPLAT_EXECUTION_STATE State = {
-        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
 
     QuicTraceEvent(
