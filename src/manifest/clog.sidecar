@@ -8862,6 +8862,30 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "ProcessorInfoV3": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu",
+      "UniqueId": "ProcessorInfoV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "ProviderAttachClient": {
       "ModuleProperites": {},
       "TraceString": "[ nmr][%p] Client attached Ver %hu Size %hu Number %u ModuleID { %x-%x-%x-%llx }",
@@ -15984,6 +16008,11 @@
         "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
         "TraceID": "ProcessorInfoV2",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
+      },
+      {
+        "UniquenessHash": "c224289c-70bc-0be5-bc16-ea902175e280",
+        "TraceID": "ProcessorInfoV3",
+        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu"
       },
       {
         "UniquenessHash": "6509226e-b945-543f-bf07-0147bcb93ca5",

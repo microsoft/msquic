@@ -103,9 +103,24 @@ QuicWorkerInitialize(
     } else
 #endif // _KERNEL_MODE
     {
-        const uint16_t ThreadFlags =
-            ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
-                CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        uint16_t ThreadFlags;
+        switch (ExecProfile) {
+        default:
+        case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
+        case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
+            ThreadFlags = CXPLAT_THREAD_FLAG_NONE;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_AFFINITIZE | CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+            break;
+        }
+
+        if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+            ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+        }
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
