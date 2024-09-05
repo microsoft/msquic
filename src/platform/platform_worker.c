@@ -317,14 +317,17 @@ CxPlatWorkerPoolUninit(
 
 void
 CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_POOL_EX* Pool,
     _In_ uint16_t Index // Into the execution config processor array
     )
 {
-    CXPLAT_WORKER* Worker = &CxPlatWorkers[Index];
+    CXPLAT_DBG_ASSERT(WorkerPool);
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+    CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
     Pool->Owner = Worker;
     CxPlatLockAcquire(&Worker->ECLock);
-    CxPlatListInsertTail(&CxPlatWorkers[Index].DynamicPoolList, &Pool->Link);
+    CxPlatListInsertTail(&Worker->DynamicPoolList, &Pool->Link);
     CxPlatLockRelease(&Worker->ECLock);
 }
 

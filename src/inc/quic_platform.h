@@ -483,6 +483,7 @@ typedef struct CXPLAT_POOL_EX {
 
 void
 CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_POOL_EX* Pool,
     _In_ uint16_t Index // Into the execution config processor array
     );

@@ -964,6 +964,7 @@ DataPathInitialize(
             QUIC_POOL_DATA,
             &Datapath->Partitions[i].RecvDatagramPool.Base);
         CxPlatAddDynamicPoolAllocator(
+            Datapath->WorkerPool,
             &Datapath->Partitions[i].RecvDatagramPool,
             i);
 
