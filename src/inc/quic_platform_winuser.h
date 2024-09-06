@@ -465,6 +465,20 @@ CxPlatPoolFree(
     }
 }
 
+inline
+BOOLEAN
+CxPlatPoolPrune(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
+    if (Entry == NULL) {
+        return FALSE;
+    }
+    Pool->Free(Entry, Pool->Tag, Pool);
+    return TRUE;
+}
+
 #define CxPlatZeroMemory RtlZeroMemory
 #define CxPlatCopyMemory RtlCopyMemory
 #define CxPlatMoveMemory RtlMoveMemory

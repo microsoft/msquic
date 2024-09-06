@@ -793,10 +793,12 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
+    UNREFERENCED_PARAMETER(WorkerPool);
     QUIC_STATUS Status;
     WSK_CLIENT_NPI WskClientNpi = { NULL, &WskAppDispatch };
     uint32_t DatapathLength;
@@ -2076,6 +2078,16 @@ CxPlatSocketGetRemoteAddress(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    return FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 DATAPATH_RX_IO_BLOCK*
 CxPlatSocketAllocRxIoBlock(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -2992,7 +3004,7 @@ CxPlatSocketPrepareSendData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const CXPLAT_ROUTE* Route,
@@ -3110,8 +3122,6 @@ CxPlatSocketSend(
         // Callback still gets invoked on failure to do the cleanup.
         //
     }
-
-    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

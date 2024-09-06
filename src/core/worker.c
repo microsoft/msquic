@@ -99,7 +99,7 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&MsQuicLib.WorkerPool, &Worker->ExecutionContext, PartitionIndex);
     } else
 #endif // _KERNEL_MODE
     {
@@ -773,7 +773,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
 
     CXPLAT_EXECUTION_STATE State = {
-        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
 
     QuicTraceEvent(
