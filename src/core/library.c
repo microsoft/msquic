@@ -1422,6 +1422,24 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL:
+
+        if (*BufferLength != sizeof(CXPLAT_WORKER_POOL**)) {
+            *BufferLength = sizeof(CXPLAT_WORKER_POOL**);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *(CXPLAT_WORKER_POOL**)Buffer = &MsQuicLib.WorkerPool;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
