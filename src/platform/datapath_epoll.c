@@ -901,7 +901,7 @@ CxPlatSocketContextInitialize(
         // Only set SO_REUSEPORT on a server socket, otherwise the client could be
         // assigned a server port (unless it's forcing sharing).
         //
-        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) && 
+        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
@@ -1538,7 +1538,11 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
-    SocketContext->AcceptSocket->SocketContexts[0].SocketFd = accept(SocketContext->SocketFd, NULL, NULL);
+    SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
+        accept(
+            SocketContext->SocketFd,
+            &SocketContext->AcceptSocket.RemoteAddress,
+            sizeof(SocketContext->AcceptSocket.RemoteAddress));
     if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
@@ -1549,6 +1553,28 @@ CxPlatSocketContextAcceptCompletion(
             "accept failed");
         goto Error;
     }
+
+    int Result =
+        getsockname(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            &SocketContext->AcceptSocket.LocalAddress,
+            sizeof(SocketContext->AcceptSocket.LocalAddress));
+    if (Result == SOCKET_ERROR) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "getsockname failed");
+        goto Error;
+    }
+
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->LocalAddress,
+        &SocketContext->AcceptSocket->LocalAddress);
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->RemoteAddress,
+        &SocketContext->AcceptSocket->RemoteAddress);
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
