@@ -2714,10 +2714,10 @@ void QuicTestGlobalParam()
                     QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(CXPLAT_WORKER_POOL**));
+            TEST_EQUAL(Length, sizeof(CXPLAT_WORKER_POOL*));
 
             CXPLAT_WORKER_POOL* WorkerPool = 0;
-            TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE,
+            TEST_QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
