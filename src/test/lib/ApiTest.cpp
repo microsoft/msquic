@@ -2682,10 +2682,10 @@ void QuicTestGlobalParam()
     }
 
     //
-    // QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL
+    // QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL");
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL");
         {
             TestScopeLogger LogScope1("SetParam");
             //
@@ -2697,7 +2697,7 @@ void QuicTestGlobalParam()
                     QUIC_STATUS_INVALID_PARAMETER,
                     MsQuic->SetParam(
                         nullptr,
-                        QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL,
+                        QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
                         0,
                         nullptr));
             }
@@ -2710,7 +2710,7 @@ void QuicTestGlobalParam()
                 QUIC_STATUS_BUFFER_TOO_SMALL,
                 MsQuic->GetParam(
                     nullptr,
-                    QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
                     &Length,
                     nullptr));
             TEST_EQUAL(Length, sizeof(CXPLAT_WORKER_POOL**));
@@ -2719,7 +2719,7 @@ void QuicTestGlobalParam()
             TEST_QUIC_STATUS(QUIC_STATUS_INVALID_STATE,
                 MsQuic->GetParam(
                     nullptr,
-                    QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
                     &Length,
                     &WorkerPool));
         }

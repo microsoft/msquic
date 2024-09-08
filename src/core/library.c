@@ -1422,10 +1422,10 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_GET_DATAPATH_WORKER_POOL:
+    case QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL:
 
-        if (*BufferLength != sizeof(CXPLAT_WORKER_POOL**)) {
-            *BufferLength = sizeof(CXPLAT_WORKER_POOL**);
+        if (*BufferLength != sizeof(CXPLAT_WORKER_POOL*)) {
+            *BufferLength = sizeof(CXPLAT_WORKER_POOL*);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             break;
         }
