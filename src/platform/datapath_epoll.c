@@ -1538,11 +1538,12 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
+    socklen_t AssignedRemoteAddressLength = sizeof(SocketContext->AcceptSocket->RemoteAddress);
     SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
         accept(
             SocketContext->SocketFd,
-            &SocketContext->AcceptSocket->RemoteAddress,
-            sizeof(SocketContext->AcceptSocket->RemoteAddress));
+            (struct sockaddr*)&SocketContext->AcceptSocket->RemoteAddress,
+            &AssignedRemoteAddressLength);
     if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
