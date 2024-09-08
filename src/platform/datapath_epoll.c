@@ -1554,11 +1554,12 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
+    socklen_t AssignedLocalAddressLength = sizeof(SocketContext->AcceptSocket->LocalAddress);
     int Result =
         getsockname(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            &SocketContext->AcceptSocket->LocalAddress,
-            sizeof(SocketContext->AcceptSocket->LocalAddress));
+            (struct sockaddr*)&SocketContext->AcceptSocket->LocalAddress,
+            &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         QuicTraceEvent(
             DatapathErrorStatus,
