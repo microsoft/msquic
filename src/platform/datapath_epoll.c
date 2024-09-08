@@ -1541,8 +1541,8 @@ CxPlatSocketContextAcceptCompletion(
     SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
         accept(
             SocketContext->SocketFd,
-            &SocketContext->AcceptSocket.RemoteAddress,
-            sizeof(SocketContext->AcceptSocket.RemoteAddress));
+            &SocketContext->AcceptSocket->RemoteAddress,
+            sizeof(SocketContext->AcceptSocket->RemoteAddress));
     if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
@@ -1557,8 +1557,8 @@ CxPlatSocketContextAcceptCompletion(
     int Result =
         getsockname(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            &SocketContext->AcceptSocket.LocalAddress,
-            sizeof(SocketContext->AcceptSocket.LocalAddress));
+            &SocketContext->AcceptSocket->LocalAddress,
+            sizeof(SocketContext->AcceptSocket->LocalAddress));
     if (Result == SOCKET_ERROR) {
         QuicTraceEvent(
             DatapathErrorStatus,
