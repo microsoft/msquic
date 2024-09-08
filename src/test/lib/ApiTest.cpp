@@ -2681,6 +2681,7 @@ void QuicTestGlobalParam()
         }
     }
 
+#if DEBUG
     //
     // QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL
     //
@@ -2724,6 +2725,7 @@ void QuicTestGlobalParam()
                     &WorkerPool));
         }
     }
+#endif
 
     //
     // Invalid parameter
