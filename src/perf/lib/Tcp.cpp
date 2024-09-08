@@ -362,7 +362,7 @@ bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
+QUIC_STATUS
 TcpServer::AcceptCallback(
     _In_ CXPLAT_SOCKET* /* ListenerSocket */,
     _In_ void* ListenerContext,
@@ -373,6 +373,7 @@ TcpServer::AcceptCallback(
     auto This = (TcpServer*)ListenerContext;
     auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket, This);
     *AcceptClientContext = Connection;
+    return QUIC_STATUS_SUCCESS;
 }
 
 // ############################ CONNECTION ############################

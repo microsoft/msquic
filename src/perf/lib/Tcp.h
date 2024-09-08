@@ -155,7 +155,7 @@ class TcpServer {
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-    void
+    QUIC_STATUS
     AcceptCallback(
         _In_ CXPLAT_SOCKET* ListenerSocket,
         _In_ void* ListenerContext,
