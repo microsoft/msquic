@@ -2315,7 +2315,8 @@ SocketSend(
     //
     // Go ahead and try to send on the socket.
     //
-    if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+    QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+    if (Status == QUIC_STATUS_PENDING) {
         //
         // Couldn't send right now, so queue up the send and wait for send
         // (EPOLLOUT) to be ready.
@@ -2329,7 +2330,7 @@ SocketSend(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
@@ -2626,7 +2627,8 @@ CxPlatSocketContextFlushTxQueue(
     CxPlatLockRelease(&SocketContext->TxQueueLock);
 
     while (SendData != NULL) {
-        if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+        QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+        if (Status == QUIC_STATUS_PENDING) {
             if (!SendAlreadyPending) {
                 //
                 // Add the EPOLLOUT event since we have more pending sends.
@@ -2642,7 +2644,7 @@ CxPlatSocketContextFlushTxQueue(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
