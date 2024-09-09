@@ -211,7 +211,11 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
     }
     #endif
 
-    CXPLAT_THREAD_CONFIG Config = { 0, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
+    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
+    CXPLAT_THREAD_CONFIG Config = { ThreadFlags, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
