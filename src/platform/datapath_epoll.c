@@ -1579,7 +1579,7 @@ CxPlatSocketContextAcceptCompletion(
         &SocketContext->AcceptSocket->RemoteAddress,
         &SocketContext->AcceptSocket->RemoteAddress);
 
-    a//
+    //
     // Set non blocking mode
     //
     Flags =
