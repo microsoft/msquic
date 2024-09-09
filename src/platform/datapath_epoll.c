@@ -1393,7 +1393,7 @@ CxPlatSocketCreateTcpInternal(
     //
     *NewBinding = Binding;
 
-    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN | EPOLLOUT);
+    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->IoStarted = TRUE;
 
     Binding = NULL;
