@@ -2601,6 +2601,17 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
         uint16_t PartitionIndex = 0;
 
+        ListenerSocketProc->AcceptSocket->LocalAddress =
+            *(const QUIC_ADDR*)ListenerSocketProc->AcceptAddrSpace;
+        ListenerSocketProc->AcceptSocket->RemoteAddress =
+            *(const QUIC_ADDR*)(ListenerSocketProc->AcceptAddrSpace + (sizeof(SOCKADDR_INET) + 16));
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->LocalAddress,
+            &ListenerSocketProc->AcceptSocket->LocalAddress);
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->RemoteAddress,
+            &ListenerSocketProc->AcceptSocket->RemoteAddress);
+
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

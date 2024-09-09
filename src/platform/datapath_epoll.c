@@ -1538,7 +1538,12 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
-    SocketContext->AcceptSocket->SocketContexts[0].SocketFd = accept(SocketContext->SocketFd, NULL, NULL);
+    socklen_t AssignedRemoteAddressLength = sizeof(SocketContext->AcceptSocket->RemoteAddress);
+    SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
+        accept(
+            SocketContext->SocketFd,
+            (struct sockaddr*)&SocketContext->AcceptSocket->RemoteAddress,
+            &AssignedRemoteAddressLength);
     if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
@@ -1549,6 +1554,29 @@ CxPlatSocketContextAcceptCompletion(
             "accept failed");
         goto Error;
     }
+
+    socklen_t AssignedLocalAddressLength = sizeof(SocketContext->AcceptSocket->LocalAddress);
+    int Result =
+        getsockname(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            (struct sockaddr*)&SocketContext->AcceptSocket->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "getsockname failed");
+        goto Error;
+    }
+
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->LocalAddress,
+        &SocketContext->AcceptSocket->LocalAddress);
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->RemoteAddress,
+        &SocketContext->AcceptSocket->RemoteAddress);
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;

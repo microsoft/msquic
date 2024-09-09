@@ -1081,6 +1081,13 @@ TEST_P(DataPathTest, TcpConnect)
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
     ASSERT_NE(nullptr, ListenerContext.Server);
+    QUIC_ADDR ServerRemote = {};
+    CxPlatSocketGetRemoteAddress(ListenerContext.Server, &ServerRemote);
+    QUIC_ADDR ServerLocal = {};
+    CxPlatSocketGetLocalAddress(ListenerContext.Server, &ServerLocal);
+    ASSERT_NE(ServerRemote.Ipv4.sin_port, (uint16_t)0);
+    ASSERT_NE(ServerLocal.Ipv4.sin_port, (uint16_t)0);
+    ASSERT_EQ(ServerRemote.Ipv4.sin_port, Client.GetLocalAddress().Ipv4.sin_port);
 
     ListenerContext.DeleteSocket();
 
