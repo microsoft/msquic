@@ -117,8 +117,10 @@ struct TcpListenerContext {
     CXPLAT_SOCKET* Server;
     TcpClientContext ServerContext;
     bool Accepted : 1;
+    bool Reject : 1;
+    bool Rejected : 1;
     CXPLAT_EVENT AcceptEvent;
-    TcpListenerContext() : Server(nullptr), Accepted(false) {
+    TcpListenerContext() : Server(nullptr), Accepted(false), Reject{false}, Rejected{false} {
         CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
     }
     ~TcpListenerContext() {
@@ -317,7 +319,7 @@ protected:
         CxPlatRecvDataReturn(RecvDataChain);
     }
 
-    static void
+    static QUIC_STATUS
     EmptyAcceptCallback(
         _In_ CXPLAT_SOCKET* /* ListenerSocket */,
         _In_ void* /* ListenerContext */,
@@ -325,6 +327,8 @@ protected:
         _Out_ void** /* ClientContext */
         )
     {
+        // If we somehow get a connection here, reject it
+        return QUIC_STATUS_CONNECTION_REFUSED;
     }
 
     static void
@@ -336,7 +340,7 @@ protected:
     {
     }
 
-    static void
+    static QUIC_STATUS
     TcpAcceptCallback(
         _In_ CXPLAT_SOCKET* /* ListenerSocket */,
         _In_ void* Context,
@@ -345,10 +349,16 @@ protected:
         )
     {
         TcpListenerContext* ListenerContext = (TcpListenerContext*)Context;
+        if (ListenerContext->Reject) {
+            ListenerContext->Rejected = true;
+            CxPlatEventSet(ListenerContext->AcceptEvent);
+            return QUIC_STATUS_CONNECTION_REFUSED;
+        }
         ListenerContext->Server = ClientSocket;
         *ClientContext = &ListenerContext->ServerContext;
         ListenerContext->Accepted = true;
         CxPlatEventSet(ListenerContext->AcceptEvent);
+        return QUIC_STATUS_SUCCESS;
     }
 
     static void
@@ -1080,6 +1090,43 @@ TEST_P(DataPathTest, TcpConnect)
     ASSERT_EQ(ServerRemote.Ipv4.sin_port, Client.GetLocalAddress().Ipv4.sin_port);
 
     ListenerContext.DeleteSocket();
+
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
+}
+
+TEST_P(DataPathTest, TcpRejectConnect)
+{
+    CxPlatDataPath Datapath(nullptr, &TcpRecvCallbacks);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TCP)) {
+        GTEST_SKIP_("TCP is not supported");
+    }
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    TcpListenerContext ListenerContext;
+    auto serverAddress = GetNewLocalAddr();
+    CxPlatSocket Listener; Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    while (Listener.GetInitStatus() == QUIC_STATUS_ADDRESS_IN_USE) {
+        serverAddress.SockAddr.Ipv4.sin_port = GetNextPort();
+        Listener.CreateTcpListener(Datapath, &serverAddress.SockAddr, &ListenerContext);
+    }
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    serverAddress.SockAddr = Listener.GetLocalAddress();
+    ASSERT_NE(serverAddress.SockAddr.Ipv4.sin_port, (uint16_t)0);
+
+    ListenerContext.Reject = true;
+
+    TcpClientContext ClientContext;
+    CxPlatSocket Client; Client.CreateTcp(Datapath, nullptr, &serverAddress.SockAddr, &ClientContext);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+    ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
+    ASSERT_EQ(true, ListenerContext.Rejected);
+    ASSERT_EQ(nullptr, ListenerContext.Server);
 
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
 }

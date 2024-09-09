@@ -2678,11 +2678,15 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto Error;
         }
 
-        Datapath->TcpHandlers.Accept(
+        QUIC_STATUS Status = Datapath->TcpHandlers.Accept(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
             ListenerSocketProc->AcceptSocket,
             &ListenerSocketProc->AcceptSocket->ClientContext);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+
         ListenerSocketProc->AcceptSocket = NULL;
 
         AcceptSocketProc->IoStarted = TRUE;

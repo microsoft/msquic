@@ -294,8 +294,15 @@ PerfClient::Start(
     //
     // Configure and start all the workers.
     //
+    uint16_t ThreadFlags =
+        AffinitizeWorkers ?
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_AFFINITIZE :
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_SET_IDEAL_PROC),
+        ThreadFlags,
         0,
         "Perf Worker",
         PerfClientWorker::s_WorkerThread,

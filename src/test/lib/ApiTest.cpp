@@ -2681,6 +2681,52 @@ void QuicTestGlobalParam()
         }
     }
 
+#if DEBUG
+    //
+    // QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // Invalid features
+            //
+            {
+                TestScopeLogger LogScope2("SetParam is not allowed");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                        0,
+                        nullptr));
+            }
+        }
+
+        {
+            TestScopeLogger LogScope2("GetParam. Failed by missing MsQuicLib.WorkerPool");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(CXPLAT_WORKER_POOL*));
+
+            CXPLAT_WORKER_POOL* WorkerPool = 0;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                    &Length,
+                    &WorkerPool));
+        }
+    }
+#endif
+
     //
     // Invalid parameter
     //

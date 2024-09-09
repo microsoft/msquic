@@ -211,7 +211,11 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
     }
     #endif
 
-    CXPLAT_THREAD_CONFIG Config = { 0, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
+    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
+    CXPLAT_THREAD_CONFIG Config = { ThreadFlags, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -362,7 +366,7 @@ bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
+QUIC_STATUS
 TcpServer::AcceptCallback(
     _In_ CXPLAT_SOCKET* /* ListenerSocket */,
     _In_ void* ListenerContext,
@@ -373,6 +377,7 @@ TcpServer::AcceptCallback(
     auto This = (TcpServer*)ListenerContext;
     auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket, This);
     *AcceptClientContext = Connection;
+    return QUIC_STATUS_SUCCESS;
 }
 
 // ############################ CONNECTION ############################

@@ -17,6 +17,7 @@ Environment:
 #include <linux/filter.h>
 #include <linux/in6.h>
 #include <netinet/udp.h>
+#include <fcntl.h>
 
 #ifdef QUIC_CLOG
 #include "datapath_epoll.c.clog.h"
@@ -1595,11 +1596,14 @@ CxPlatSocketContextAcceptCompletion(
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
-    Datapath->TcpHandlers.Accept(
+    Status = Datapath->TcpHandlers.Accept(
         SocketContext->Binding,
         SocketContext->Binding->ClientContext,
         SocketContext->AcceptSocket,
         &SocketContext->AcceptSocket->ClientContext);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
     SocketContext->AcceptSocket = NULL;
 
@@ -2327,7 +2331,8 @@ SocketSend(
     //
     // Go ahead and try to send on the socket.
     //
-    if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+    QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+    if (Status == QUIC_STATUS_PENDING) {
         //
         // Couldn't send right now, so queue up the send and wait for send
         // (EPOLLOUT) to be ready.
@@ -2341,7 +2346,7 @@ SocketSend(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
@@ -2638,7 +2643,8 @@ CxPlatSocketContextFlushTxQueue(
     CxPlatLockRelease(&SocketContext->TxQueueLock);
 
     while (SendData != NULL) {
-        if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+        QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+        if (Status == QUIC_STATUS_PENDING) {
             if (!SendAlreadyPending) {
                 //
                 // Add the EPOLLOUT event since we have more pending sends.
@@ -2654,7 +2660,7 @@ CxPlatSocketContextFlushTxQueue(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
