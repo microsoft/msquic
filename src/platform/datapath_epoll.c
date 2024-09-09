@@ -1582,7 +1582,7 @@ CxPlatSocketContextAcceptCompletion(
     //
     // Set non blocking mode
     //
-    Flags =
+    int Flags =
         fcntl(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
             F_GETFL,
@@ -1595,7 +1595,7 @@ CxPlatSocketContextAcceptCompletion(
             SocketContext->Binding,
             Status,
             "fcntl(F_GETFL) failed");
-        goto Exit;
+        goto Error;
     }
 
     Flags |= O_NONBLOCK;
@@ -1612,7 +1612,7 @@ CxPlatSocketContextAcceptCompletion(
             SocketContext->Binding,
             Status,
             "fcntl(F_SETFL) failed");
-        goto Exit;
+        goto Error;
     }
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
