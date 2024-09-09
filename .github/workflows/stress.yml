@@ -132,7 +132,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Upload on Failure
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       if: failure()
       with:
         name: stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
@@ -188,7 +188,7 @@ jobs:
       shell: pwsh
       run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       if: failure()
       with:
         name: recvfuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}

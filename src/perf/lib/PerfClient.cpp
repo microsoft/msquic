@@ -229,7 +229,8 @@ PerfClient::Init(
                 nullptr,
                 PerfClientConnection::TcpConnectCallback,
                 PerfClientConnection::TcpReceiveCallback,
-                PerfClientConnection::TcpSendCompleteCallback));
+                PerfClientConnection::TcpSendCompleteCallback,
+                TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
         if (UseSendBuffering || !UsePacing) { // Update settings if non-default
             MsQuicSettings Settings;
@@ -293,8 +294,15 @@ PerfClient::Start(
     //
     // Configure and start all the workers.
     //
+    uint16_t ThreadFlags =
+        AffinitizeWorkers ?
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_AFFINITIZE :
+            (uint16_t)CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
     CXPLAT_THREAD_CONFIG ThreadConfig = {
-        (uint16_t)(AffinitizeWorkers ? CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_SET_IDEAL_PROC),
+        ThreadFlags,
         0,
         "Perf Worker",
         PerfClientWorker::s_WorkerThread,
@@ -336,7 +344,7 @@ PerfClient::Start(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
+QUIC_STATUS
 PerfClient::Wait(
     _In_ int Timeout
     ) {
@@ -359,7 +367,7 @@ PerfClient::Wait(
 
     if (GetConnectedConnections() == 0) {
         WriteOutput("Error: No Successful Connections!\n");
-        return;
+        return QUIC_STATUS_CONNECTION_REFUSED;
     }
 
     unsigned long long CompletedConnections = GetConnectionsCompleted();
@@ -387,6 +395,8 @@ PerfClient::Wait(
             WriteOutput("No connections or streams completed!\n");
         }
     }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 uint32_t

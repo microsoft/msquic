@@ -15,6 +15,7 @@ Abstract:
 #include "Tcp.h"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
 PerfServer* Server;
@@ -22,9 +23,11 @@ PerfClient* Client;
 
 uint32_t MaxRuntime = 0;
 QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
+uint8_t PerfDefaultHighPriority = false;
 
 #ifdef _KERNEL_MODE
 volatile int BufferCurrent;
@@ -92,11 +95,12 @@ PrintHelp(
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
+#ifndef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
         "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
-#ifndef _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
+        "  -highpri:<0/1>           Configures MsQuic to run threads at high priority. (def:0)\n"
 #endif // _KERNEL_MODE
         "\n",
         PERF_DEFAULT_PORT,
@@ -135,7 +139,7 @@ QuicMainStart(
 
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
-    Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
+    Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
 
 #ifndef _KERNEL_MODE
@@ -171,6 +175,12 @@ QuicMainStart(
             } while (*CpuStr && Config->ProcessorCount < 256);
         }
     }
+
+    TryGetValue(argc, argv, "highpri", &PerfDefaultHighPriority);
+    if (PerfDefaultHighPriority) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY;
+        SetConfig = true;
+    }
 #endif // _KERNEL_MODE
 
     if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
@@ -193,14 +203,16 @@ QuicMainStart(
     if (ExecStr != nullptr) {
         if (IsValue(ExecStr, "lowlat")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
         } else if (IsValue(ExecStr, "maxtput")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
         } else if (IsValue(ExecStr, "scavenger")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER;
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s], use lowlat as default\n", ExecStr);
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, lowlat as default for TCP.\n", ExecStr);
         }
     }
 
@@ -223,12 +235,15 @@ QuicMainStart(
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
+    CxPlatWorkerPoolInit(&WorkerPool);
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
+        CxPlatWorkerPoolUninit(&WorkerPool);
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -253,10 +268,10 @@ QuicMainStart(
     return Status; // QuicMainFree is called on failure
 }
 
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     ) {
-    Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
+    return Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
 }
 
 void
@@ -272,6 +287,7 @@ QuicMainFree(
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolUninit(&WorkerPool);
         Datapath = nullptr;
     }
 

@@ -42,10 +42,17 @@ Abstract:
 #define PERF_MAX_THREAD_COUNT               128
 #define PERF_MAX_REQUESTS_PER_SECOND        2000000 // best guess - must increase if we can do better
 
+typedef enum TCP_EXECUTION_PROFILE {
+    TCP_EXECUTION_PROFILE_LOW_LATENCY,
+    TCP_EXECUTION_PROFILE_MAX_THROUGHPUT,
+} TCP_EXECUTION_PROFILE;
+
 extern QUIC_EXECUTION_PROFILE PerfDefaultExecutionProfile;
+extern TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile;
 extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
+extern uint8_t PerfDefaultHighPriority;
 
 extern CXPLAT_DATAPATH* Datapath;
 
@@ -59,7 +66,7 @@ QuicMainStart(
     );
 
 extern
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     );
 

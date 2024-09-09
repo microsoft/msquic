@@ -99,6 +99,7 @@ QuicUserMain(
     ) {
     CxPlatEvent StopEvent {true};
     auto SimpleOutput = GetFlag(argc, argv, "trimout");
+    auto AbortOnFailure = GetFlag(argc, argv, "abortOnFailure");
     QUIC_STATUS Status = QuicMainStart(argc, argv, &StopEvent.Handle, SelfSignedCredConfig);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -108,7 +109,10 @@ QuicUserMain(
         printf("Started!\n\n");
     }
     fflush(stdout);
-    QuicMainWaitForCompletion();
+    Status = QuicMainWaitForCompletion();
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
 
     if (const uint32_t DataLength = QuicMainGetExtraDataLength(); DataLength) {
         auto Buffer = UniquePtr<uint8_t[]>(new (std::nothrow) uint8_t[DataLength]);
@@ -121,6 +125,9 @@ Exit:
     QuicMainFree();
     if (!SimpleOutput) {
         printf("App Main returning status %d\n", Status);
+    }
+    if (!QUIC_SUCCEEDED(Status) && AbortOnFailure) {
+        CXPLAT_FRE_ASSERTMSG(FALSE, "AbortOnFailure: Non zero exit code detected. Abort to generate core dump.");
     }
     return Status;
 }

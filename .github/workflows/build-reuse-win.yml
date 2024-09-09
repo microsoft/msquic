@@ -74,7 +74,7 @@ jobs:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@f551dafcc94572adc179bbddbb409b3ada8f8ff5
+      uses: shogo82148/actions-setup-perl@9c1eca9952ccc07f9ca4a2097b63df93d9d138e9
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -101,7 +101,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@0b2256b8c012f0828dc542b3febcab082c67f72b
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
         path: artifacts

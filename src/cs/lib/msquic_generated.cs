@@ -216,6 +216,8 @@ namespace Microsoft.Quic
         QTIP = 0x0001,
         RIO = 0x0002,
         XDP = 0x0004,
+        NO_IDEAL_PROC = 0x0008,
+        HIGH_PRIORITY = 0x0010,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
