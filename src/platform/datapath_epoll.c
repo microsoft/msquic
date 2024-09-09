@@ -1578,6 +1578,21 @@ CxPlatSocketContextAcceptCompletion(
         &SocketContext->AcceptSocket->RemoteAddress,
         &SocketContext->AcceptSocket->RemoteAddress);
 
+    Result =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_SETFL, fcntl(SocketContext->AcceptSocket->SocketContexts[0].SocketFd, F_GETFL, 0) | O_NONBLOCK);
+    if (Result == SOCKET_ERROR){
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "fcntl failed");
+        goto Error;
+    }
+
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
     Datapath->TcpHandlers.Accept(
