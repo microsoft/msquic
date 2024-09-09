@@ -1579,7 +1579,7 @@ CxPlatSocketContextAcceptCompletion(
         &SocketContext->AcceptSocket->RemoteAddress,
         &SocketContext->AcceptSocket->RemoteAddress);
 
-    //
+    a//
     // Set non blocking mode
     //
     Flags =
@@ -1592,7 +1592,7 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            SocketContext->Binding,
             Status,
             "fcntl(F_GETFL) failed");
         goto Exit;
@@ -1609,7 +1609,7 @@ CxPlatSocketContextAcceptCompletion(
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            SocketContext->Binding,
             Status,
             "fcntl(F_SETFL) failed");
         goto Exit;
