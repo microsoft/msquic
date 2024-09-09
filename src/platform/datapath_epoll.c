@@ -1579,19 +1579,40 @@ CxPlatSocketContextAcceptCompletion(
         &SocketContext->AcceptSocket->RemoteAddress,
         &SocketContext->AcceptSocket->RemoteAddress);
 
-    Result =
+    //
+    // Set non blocking mode
+    //
+    Flags =
         fcntl(
             SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            F_SETFL, fcntl(SocketContext->AcceptSocket->SocketContexts[0].SocketFd, F_GETFL, 0) | O_NONBLOCK);
-    if (Result == SOCKET_ERROR){
+            F_GETFL,
+            NULL);
+    if (Flags < 0) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            Binding,
             Status,
-            "fcntl failed");
-        goto Error;
+            "fcntl(F_GETFL) failed");
+        goto Exit;
+    }
+
+    Flags |= O_NONBLOCK;
+    Result =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_SETFL,
+            Flags);
+    if (Result < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "fcntl(F_SETFL) failed");
+        goto Exit;
     }
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
