@@ -319,7 +319,7 @@ typedef struct CXPLAT_POOL {
 #define CXPLAT_POOL_MAXIMUM_DEPTH       0x4000  // 16384
 #define CXPLAT_POOL_DEFAULT_MAX_DEPTH   256     // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 #else
-#define CXPLAT_POOL_MAXIMUM_DEPTH       0
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0       // TODO - Optimize this scenario better
 #define CXPLAT_POOL_DEFAULT_MAX_DEPTH   0
 #endif
 
