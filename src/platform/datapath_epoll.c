@@ -14,6 +14,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#include <fcntl.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
 #include <netinet/udp.h>
@@ -1577,6 +1578,42 @@ CxPlatSocketContextAcceptCompletion(
     CxPlatConvertFromMappedV6(
         &SocketContext->AcceptSocket->RemoteAddress,
         &SocketContext->AcceptSocket->RemoteAddress);
+
+    //
+    // Set non blocking mode
+    //
+    int Flags =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_GETFL,
+            NULL);
+    if (Flags < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "fcntl(F_GETFL) failed");
+        goto Error;
+    }
+
+    Flags |= O_NONBLOCK;
+    Result =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_SETFL,
+            Flags);
+    if (Result < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "fcntl(F_SETFL) failed");
+        goto Error;
+    }
 
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
