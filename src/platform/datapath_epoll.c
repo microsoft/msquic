@@ -14,10 +14,10 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#include <fcntl.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
 #include <netinet/udp.h>
-#include <fcntl.h>
 
 #ifdef QUIC_CLOG
 #include "datapath_epoll.c.clog.h"
