@@ -926,6 +926,29 @@ CxPlatSocketContextInitialize(
                 goto Exit;
             }
         }
+    } else if (SocketType == CXPLAT_SOCKET_TCP_LISTENER) {
+        //
+        // Set SO_REUSEADDR on listener sockets to avoid
+        // TIME_WAIT state on shutdown.
+        //
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                SOL_SOCKET,
+                SO_REUSEADDR,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
+        }
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
