@@ -275,22 +275,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailXskSocketCreate,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for FailRxAlloc
-// [ xdp][rx  ] OOM for Rx
-// QuicTraceLogVerbose(
-                    FailRxAlloc,
-                    "[ xdp][rx  ] OOM for Rx");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -516,8 +500,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, DoneSendTo,
 // [ xdp][cq  ] Release %d from completion queue
 // QuicTraceLogVerbose(
             ReleaseCons,
-            "[ xdp][cq  ] Release %d from completion queue", Completed);
-// arg2 = arg2 = Completed = arg2
+            "[ xdp][cq  ] Release %d from completion queue", Freeing);
+// arg2 = arg2 = Freeing = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, ReleaseCons,
     TP_ARGS(
@@ -559,6 +543,22 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
         const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FailRxAlloc
+// [ xdp][rx  ] OOM for Rx
+// QuicTraceLogVerbose(
+                FailRxAlloc,
+                "[ xdp][rx  ] OOM for Rx");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc,
+    TP_ARGS(
+), 
+    TP_FIELDS(
     )
 )
 
