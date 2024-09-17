@@ -10,20 +10,23 @@
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 volatile long ConnectedCount;
 volatile long ConnectionsActive;
 
 void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CxPlatWorkerPoolInit(&WorkerPool);
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
-    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,nullptr,&Datapath)) ||
+    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,&WorkerPool,nullptr,&Datapath)) ||
         QUIC_FAILED(CxPlatDataPathResolveAddress(Datapath,ServerName,&ServerAddress))) {
         printf("Failed to resolve IP address!\n");
         exit(1);
     }
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolUninit(&WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 }

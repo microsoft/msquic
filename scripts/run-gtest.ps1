@@ -345,6 +345,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
+            $pinfo.WorkingDirectory = $OutputDir
             if (Test-Administrator) {
                 # Enable WER dump collection.
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
@@ -381,6 +382,10 @@ function Start-TestCase([String]$Name, [int]$Trial = 1) {
 
     # Get a string of invalid chars for filenames
     $InvalidChars = [System.IO.Path]::GetInvalidFileNameChars() -join ''
+    if (!$IsWindows) {
+        # Add characters that Azure disallows in filenames, but aren't invalid on POSIX
+        $InvalidChars = $InvalidChars,'"', ":", "<", ">", "|", "*", "?", "`r", "`n" -join ''
+    }
     # Escape those chars for use in a regex and put them inside a regex set (the square brackets)
     $InvalidCharsToReplace = "[{0}]" -f [RegEx]::Escape($InvalidChars)
     $InstanceName = $Name -replace $InvalidCharsToReplace, "_"
