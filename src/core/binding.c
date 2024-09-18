@@ -1054,7 +1054,8 @@ QuicBindingProcessStatelessOperation(
         RecvPacket->Route,
         SendData,
         SendDatagram->Length,
-        1);
+        1,
+        FALSE); // ?
     SendData = NULL;
 
 Exit:
@@ -1787,9 +1788,11 @@ QuicBindingSend(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
+    _In_ uint32_t DatagramsToSend,
+    _In_ BOOLEAN Connected
     )
 {
+    CxPlatSetHandshakeDone(SendData, Connected);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
@@ -1817,6 +1820,7 @@ QuicBindingSend(
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
+    CxPlatSetHandshakeDone(SendData, FALSE);
 
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);

@@ -462,7 +462,8 @@ QuicBindingSend(
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
-    _In_ uint32_t DatagramsToSend
+    _In_ uint32_t DatagramsToSend,
+    _In_ BOOLEAN Connected // hack to identify whether the connection handshake is done
     );
 
 //

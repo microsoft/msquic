@@ -381,7 +381,8 @@ CxPlatFramingWriteHeaders(
     _In_ BOOLEAN SkipTransportLayerXsum,
     _In_ uint32_t TcpSeqNum,
     _In_ uint32_t TcpAckNum,
-    _In_ uint8_t TcpFlags
+    _In_ uint8_t TcpFlags,
+    _In_ BOOLEAN FakeNatRebinding
     );
 
 
