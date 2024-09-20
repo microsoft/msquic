@@ -31,6 +31,7 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+static int ClientPort;
 
 uint32_t
 CxPlatGetRawSocketSize(void) {
@@ -179,7 +180,15 @@ CxPlatDpRawParseUdp(
     Packet->Reserved = L4_TYPE_UDP;
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
-    Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    if (htons(55555) == Udp->SourcePort) {
+        fprintf(stderr, "Source port 55555 arrived\n");
+    }
+    if (htons(55555) == Udp->DestinationPort) {
+        fprintf(stderr, "Destination port 55555 arrived, rewrite to %d\n", ntohs(ClientPort));
+        Packet->Route->LocalAddress.Ipv4.sin_port = ClientPort;
+    } else {
+        Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    }
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = QuicNetByteSwapShort(Udp->Length) - sizeof(UDP_HEADER);
@@ -737,23 +746,25 @@ CxPlatFramingWriteHeaders(
         UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
         UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
 
-        if (true)
-        // if (false)
+        char* EnvPath = getenv("MSQUIC_FAKE_NAT_REBINDING");
+        if (EnvPath && EnvPath[0] == '1')
         {
-            static BOOLEAN toggleSwitch = FALSE;
+            static BOOLEAN toggleRebinding = FALSE;
+            static uint64_t waitUntil = 1000;
             static uint64_t count = 0;
             if (FakeNatRebinding && !Socket->ServerOwned) {
-                if (toggleSwitch) {
-                    // set to 55555
+                if (toggleRebinding) {
                     fprintf(stderr, "FakeNatRebinding. set to 55555 (%d)\n", htons(55555));
+                    ClientPort = Route->LocalAddress.Ipv4.sin_port;
                     UDP->SourcePort = htons(55555);
                 } else {
+                    fprintf(stderr, "No FakeNatRebinding. set to %d (%d)\n", ntohs(Route->LocalAddress.Ipv4.sin_port), Route->LocalAddress.Ipv4.sin_port);
                     UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
                 }
                 count++;
-                if (count == 5) {
-                    count = 0;
-                    toggleSwitch = !toggleSwitch;
+                if (count > waitUntil && count % 2 == 0) {
+                    count = waitUntil;
+                    toggleRebinding = !toggleRebinding;
                 }
             } else {
                 UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;

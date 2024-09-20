@@ -955,6 +955,15 @@ CxPlatDpRawPlumbRulesOnSocket(
                         XdpSetPortFails,
                         "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
                 }
+                char* FakeNatRebinding = getenv("MSQUIC_FAKE_NAT_REBINDING");
+                if (FakeNatRebinding && FakeNatRebinding[0] == '1') {
+                    port = htons(55555);
+                    if (bpf_map_update_elem(bpf_map__fd(port_map), &port, &exist, BPF_ANY)) {
+                        QuicTraceLogVerbose(
+                            XdpSetPortFails,
+                            "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
+                    }
+                }
             } else {
                 if (bpf_map_delete_elem(bpf_map__fd(port_map), &port)) {
                     QuicTraceLogVerbose(
@@ -994,7 +1003,6 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
 
-
         // Debug info
         // TODO: set flag to enable dump in xdp program
         struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ifname_map");
@@ -1031,11 +1039,41 @@ CxPlatDpRawPlumbRulesOnSocket(
         struct bpf_map *feature_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "feature_map");
         if (feature_map) {
             uint8_t key = 0;
-            uint8_t val = 0x03; // CID_RSS 0x01, DROP_PATH_CHALLENGE 0x02
+            uint8_t val = 0b11100000; // TODO: set appropriate value
+            char* NormalDatapath = getenv("MSQUIC_XDP_NORMAL_DATAPATH");
+            if (NormalDatapath && NormalDatapath[0] == '1') {
+                fprintf(stderr, "Use normal datapath %c\n", NormalDatapath[0]);
+                val |= 0x04;
+            }
+            char* DropPathChallenge = getenv("MSQUIC_XDP_DROP_PATH_CHALLENGE");
+            if (DropPathChallenge && DropPathChallenge[0] == '1') {
+                fprintf(stderr, "Use drop path challenge %c\n", DropPathChallenge[0]);
+                val |= 0x02;
+            }
+            char* RssType = getenv("MSQUIC_XDP_RSS_TYPE");
+            if (RssType) {
+                fprintf(stderr, "RSS type %s\n", RssType);
+                val |= atoi(RssType); // 0x01: MAP, 0x08: HASH
+            }
             if (bpf_map_update_elem(bpf_map__fd(feature_map), &key, &val, BPF_ANY)) {
                 fprintf(stderr, "Failed to set feature %d on %s\n", key, Interface->IfName);
             } else {
-                fprintf(stderr, "Set feature %d on %s\n", key, Interface->IfName);
+                fprintf(stderr, "Set feature %02x on %s\n", val, Interface->IfName);
+            }
+        }
+
+        struct bpf_map *cpu_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "cpu_map");
+        if (cpu_map && IsCreated) {
+            struct bpf_cpumap_val value = {
+                .qsize = 2048,
+                .bpf_prog.fd = 0,
+            };
+            for (__u32 cpu = 0; cpu < 8; cpu++) {
+                if (bpf_map_update_elem(bpf_map__fd(cpu_map), &cpu, &value, BPF_ANY)) {
+                    fprintf(stderr, "Failed to set CPUMAP %d on %s\n", cpu, Interface->IfName);
+                } else {
+                    fprintf(stderr, "Set CPUMAP %d on %s\n", cpu, Interface->IfName);
+                }
             }
         }
     }
