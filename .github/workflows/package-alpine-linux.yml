@@ -1,0 +1,99 @@
+name: Alpine Linux Packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: package-linux-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  build-alpine-packages:
+    name: Generate Alpine Packages
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
+          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm64v8" },
+          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
+          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm32v7" },
+        ]
+    runs-on: ubuntu-latest
+    env:
+        REPO_TAR_URL: ${{ github.api_url }}/repos/${{ github.repository }}/tarball/${{ github.sha }}
+        REPO: https://github.com/microsoft/msquic
+        SHA: ${{ github.sha }}
+        TARGETARCH: ${{ matrix.vec.arch }}
+        REPO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
+    steps:
+    - name: Get Files
+      run: |
+        wget $REPO_URL/scripts/package-build.sh
+        mkdir artifacts
+        cp package-build.sh artifacts/package-build.sh
+        chmod +x artifacts/package-build.sh
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Docker Run and Build Package
+      run: |
+        docker run \
+                -e REPO_URL=$REPO_URL \
+                -e REPO_TAR_URL=$REPO_TAR_URL \
+                -e REPO=$REPO \
+                -e SHA=$SHA \
+                -e TARGETARCH=$TARGETARCH \
+                -v $(pwd)/artifacts:/artifacts \
+                ${{ matrix.vec.image }} /artifacts/package-build.sh
+    - name: Upload Package
+      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      with:
+        name: ${{ matrix.vec.friendlyName }}-package
+        path: artifacts/*.apk
+
+  test-packages-on-docker:
+    name: Test Linux Packages
+    needs: [build-alpine-packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm64v8", dotnetVersion: "9.0" },
+          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm32v7", dotnetVersion: "9.0" },
+        ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+    - name: Download Package
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: ${{ matrix.vec.friendlyName }}-package
+        path: artifacts
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Set up .NET 9.0
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
+      with:
+        dotnet-version: ${{ matrix.vec.dotnetVersion }}
+    - name: Build .NET QUIC Test Project
+      run: |
+        pushd src/cs/QuicSimpleTest && dotnet build QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -a ${{ matrix.vec.arch }} -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} && popd
+    - name: Docker Run
+      run: |
+        docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
+  
