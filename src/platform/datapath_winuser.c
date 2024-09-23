@@ -962,7 +962,11 @@ DataPathInitialize(
             FALSE,
             RecvDatagramLength,
             QUIC_POOL_DATA,
-            &Datapath->Partitions[i].RecvDatagramPool);
+            &Datapath->Partitions[i].RecvDatagramPool.Base);
+        CxPlatAddDynamicPoolAllocator(
+            Datapath->WorkerPool,
+            &Datapath->Partitions[i].RecvDatagramPool,
+            i);
 
         CxPlatPoolInitializeEx(
             FALSE,
@@ -1025,7 +1029,8 @@ CxPlatProcessorContextRelease(
         CxPlatPoolUninitialize(&DatapathProc->LargeSendBufferPool);
         CxPlatPoolUninitialize(&DatapathProc->RioSendBufferPool);
         CxPlatPoolUninitialize(&DatapathProc->RioLargeSendBufferPool);
-        CxPlatPoolUninitialize(&DatapathProc->RecvDatagramPool);
+        CxPlatRemoveDynamicPoolAllocator(&DatapathProc->RecvDatagramPool);
+        CxPlatPoolUninitialize(&DatapathProc->RecvDatagramPool.Base);
         CxPlatPoolUninitialize(&DatapathProc->RioRecvPool);
         CxPlatDataPathRelease(DatapathProc->Datapath);
     }
@@ -2470,7 +2475,7 @@ CxPlatSocketAllocRxIoBlock(
     if (SocketProc->Parent->UseRio) {
         OwningPool = &DatapathProc->RioRecvPool;
     } else {
-        OwningPool = &DatapathProc->RecvDatagramPool;
+        OwningPool = &DatapathProc->RecvDatagramPool.Base;
     }
 
     IoBlock = CxPlatPoolAlloc(OwningPool);
@@ -2596,6 +2601,17 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         SOCKET_PROCESSOR_AFFINITY RssAffinity = { 0 };
         uint16_t PartitionIndex = 0;
 
+        ListenerSocketProc->AcceptSocket->LocalAddress =
+            *(const QUIC_ADDR*)ListenerSocketProc->AcceptAddrSpace;
+        ListenerSocketProc->AcceptSocket->RemoteAddress =
+            *(const QUIC_ADDR*)(ListenerSocketProc->AcceptAddrSpace + (sizeof(SOCKADDR_INET) + 16));
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->LocalAddress,
+            &ListenerSocketProc->AcceptSocket->LocalAddress);
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->RemoteAddress,
+            &ListenerSocketProc->AcceptSocket->RemoteAddress);
+
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -2662,11 +2678,15 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto Error;
         }
 
-        Datapath->TcpHandlers.Accept(
+        QUIC_STATUS Status = Datapath->TcpHandlers.Accept(
             ListenerSocketProc->Parent,
             ListenerSocketProc->Parent->ClientContext,
             ListenerSocketProc->AcceptSocket,
             &ListenerSocketProc->AcceptSocket->ClientContext);
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+
         ListenerSocketProc->AcceptSocket = NULL;
 
         AcceptSocketProc->IoStarted = TRUE;

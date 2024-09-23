@@ -461,12 +461,39 @@ typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
-    uint64_t TimeNow;           // in microseconds
-    uint64_t LastWorkTime;      // in microseconds
+    uint64_t TimeNow;               // in microseconds
+    uint64_t LastWorkTime;          // in microseconds
+    uint64_t LastPoolProcessTime;   // in microseconds
     uint32_t WaitTime;
     uint32_t NoWorkCount;
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
+
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+
+//
+// Supports more dynamic operations, but must be submitted to the platform worker
+// to manage.
+//
+typedef struct CXPLAT_POOL_EX {
+    CXPLAT_POOL Base;
+    CXPLAT_LIST_ENTRY Link;
+    void* Owner;
+} CXPLAT_POOL_EX;
+
+void
+CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_POOL_EX* Pool,
+    _In_ uint16_t Index // Into the execution config processor array
+    );
+
+void
+CxPlatRemoveDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    );
+
+#endif
 
 //
 // Returns FALSE when it's time to cleanup.

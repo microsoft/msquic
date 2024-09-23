@@ -14,6 +14,7 @@ Environment:
 --*/
 
 #include "platform_internal.h"
+#include <fcntl.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
 #include <netinet/udp.h>
@@ -901,7 +902,7 @@ CxPlatSocketContextInitialize(
         // Only set SO_REUSEPORT on a server socket, otherwise the client could be
         // assigned a server port (unless it's forcing sharing).
         //
-        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) && 
+        if ((Config->Flags & CXPLAT_SOCKET_FLAG_SHARE || Config->RemoteAddress == NULL) &&
             SocketContext->Binding->Datapath->PartitionCount > 1) {
             //
             // The port is shared across processors.
@@ -924,6 +925,29 @@ CxPlatSocketContextInitialize(
                     "setsockopt(SO_REUSEPORT) failed");
                 goto Exit;
             }
+        }
+    } else if (SocketType == CXPLAT_SOCKET_TCP_LISTENER) {
+        //
+        // Set SO_REUSEADDR on listener sockets to avoid
+        // TIME_WAIT state on shutdown.
+        //
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                SOL_SOCKET,
+                SO_REUSEADDR,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
         }
     }
 
@@ -1538,7 +1562,12 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
-    SocketContext->AcceptSocket->SocketContexts[0].SocketFd = accept(SocketContext->SocketFd, NULL, NULL);
+    socklen_t AssignedRemoteAddressLength = sizeof(SocketContext->AcceptSocket->RemoteAddress);
+    SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
+        accept(
+            SocketContext->SocketFd,
+            (struct sockaddr*)&SocketContext->AcceptSocket->RemoteAddress,
+            &AssignedRemoteAddressLength);
     if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
@@ -1550,13 +1579,75 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
+    socklen_t AssignedLocalAddressLength = sizeof(SocketContext->AcceptSocket->LocalAddress);
+    int Result =
+        getsockname(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            (struct sockaddr*)&SocketContext->AcceptSocket->LocalAddress,
+            &AssignedLocalAddressLength);
+    if (Result == SOCKET_ERROR) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "getsockname failed");
+        goto Error;
+    }
+
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->LocalAddress,
+        &SocketContext->AcceptSocket->LocalAddress);
+    CxPlatConvertFromMappedV6(
+        &SocketContext->AcceptSocket->RemoteAddress,
+        &SocketContext->AcceptSocket->RemoteAddress);
+
+    //
+    // Set non blocking mode
+    //
+    int Flags =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_GETFL,
+            NULL);
+    if (Flags < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "fcntl(F_GETFL) failed");
+        goto Error;
+    }
+
+    Flags |= O_NONBLOCK;
+    Result =
+        fcntl(
+            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
+            F_SETFL,
+            Flags);
+    if (Result < 0) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketContext->Binding,
+            Status,
+            "fcntl(F_SETFL) failed");
+        goto Error;
+    }
+
     CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
     SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
-    Datapath->TcpHandlers.Accept(
+    Status = Datapath->TcpHandlers.Accept(
         SocketContext->Binding,
         SocketContext->Binding->ClientContext,
         SocketContext->AcceptSocket,
         &SocketContext->AcceptSocket->ClientContext);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
     SocketContext->AcceptSocket = NULL;
 
@@ -2284,7 +2375,8 @@ SocketSend(
     //
     // Go ahead and try to send on the socket.
     //
-    if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+    QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+    if (Status == QUIC_STATUS_PENDING) {
         //
         // Couldn't send right now, so queue up the send and wait for send
         // (EPOLLOUT) to be ready.
@@ -2298,7 +2390,7 @@ SocketSend(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
@@ -2595,7 +2687,8 @@ CxPlatSocketContextFlushTxQueue(
     CxPlatLockRelease(&SocketContext->TxQueueLock);
 
     while (SendData != NULL) {
-        if (CxPlatSendDataSend(SendData) == QUIC_STATUS_PENDING) {
+        QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+        if (Status == QUIC_STATUS_PENDING) {
             if (!SendAlreadyPending) {
                 //
                 // Add the EPOLLOUT event since we have more pending sends.
@@ -2611,7 +2704,7 @@ CxPlatSocketContextFlushTxQueue(
             SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
                 SocketContext->Binding,
                 SocketContext->Binding->ClientContext,
-                errno,
+                Status,
                 SendData->TotalSize);
         }
         CxPlatSendDataFree(SendData);
