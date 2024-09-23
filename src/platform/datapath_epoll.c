@@ -33,8 +33,9 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)
 
 //
 // The maximum single buffer size for coalesced IO payloads.
+// Payload size: 65535 - 8 (UDP header) - 20 (IP header) = 65507 bytes.
 //
-#define CXPLAT_LARGE_IO_BUFFER_SIZE         0xFFFF
+#define CXPLAT_LARGE_IO_BUFFER_SIZE         0xFFE3
 
 //
 // The maximum batch size of IOs in that can use a single coalesced IO buffer.
