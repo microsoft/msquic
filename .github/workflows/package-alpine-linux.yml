@@ -33,36 +33,25 @@ jobs:
           # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm32v7" },
         ]
     runs-on: ubuntu-latest
-    env:
-        REPO_TAR_URL: ${{ github.api_url }}/repos/${{ github.repository }}/tarball/${{ github.sha }}
-        REPO: https://github.com/${{ github.repository }}
-        SHA: ${{ github.sha }}
-        TARGETARCH: ${{ matrix.vec.arch }}
-        REPO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
     steps:
-    - name: Get Files
-      run: |
-        wget $REPO_URL/scripts/package-build.sh
-        mkdir artifacts
-        cp package-build.sh artifacts/package-build.sh
-        chmod +x artifacts/package-build.sh
+    - name: Checkout Repository
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Set up QEMU
       uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Generate APKBUILD
+      shell: pwsh
+      run: |
+        ./scripts/generate-alpine-packaging-file.ps1 -ArchiveUri https://github.com/${{ github.repository }}/archive/${{ github.sha }}.tar.gz
     - name: Docker Run and Build Package
       run: |
         docker run \
-                -e REPO_URL=$REPO_URL \
-                -e REPO_TAR_URL=$REPO_TAR_URL \
-                -e REPO=$REPO \
-                -e SHA=$SHA \
-                -e TARGETARCH=$TARGETARCH \
-                -v $(pwd)/artifacts:/artifacts \
-                ${{ matrix.vec.image }} /artifacts/package-build.sh
+                -v $(pwd):/msquic \
+                ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
     - name: Upload Package
       uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
       with:
         name: ${{ matrix.vec.friendlyName }}-package
-        path: artifacts/*.apk
+        path: /artifacts/*.apk
 
   test-packages-on-docker:
     name: Test Linux Packages

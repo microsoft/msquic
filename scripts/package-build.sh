@@ -1,11 +1,5 @@
 #! /bin/sh
 
-wget $REPO_URL/packaging/github-actions/APKBUILD
-wget $REPO_URL/scripts/alpine-configure-packaging-key.sh
-wget $REPO_URL/scripts/alpine-packaging-prepare-script.sh
-chmod +x alpine-configure-packaging-key.sh
-chmod +x alpine-packaging-prepare-script.sh
-
 ./alpine-packaging-prepare-script.sh
 mkdir -p /home/packaging/tools
 cp APKBUILD /home/packaging/tools
@@ -20,4 +14,5 @@ su packaging -c "abuild snapshot"
 su packaging -c "abuild checksum"
 su packaging -c "abuild -r"
 
+mkdir -p /artifacts
 cp /home/packaging/packages/packaging/**/*.apk /artifacts
