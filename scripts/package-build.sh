@@ -19,7 +19,7 @@ mkdir -p /home/packaging/github-actions/packages/
 chown -R packaging:abuild /home/packaging/github-actions/packages/
 
 mkdir -p /home/packaging/tools
-cp APKBUILD /home/packaging/tools
+cp /msquic/APKBUILD /home/packaging/tools
 chown -R packaging:abuild /home/packaging/tools
 
 su packaging -c "abuild-keygen -n"
