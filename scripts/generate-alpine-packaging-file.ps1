@@ -1,6 +1,9 @@
 param (
     [Parameter(Mandatory = $false)]
     [string]$ArchiveUri = 'https://github.com/microsoft/msquic/archive/refs/tags/v$pkgver.tar.gz'
+
+    [Parameter(Mandatory = $false)]
+    [string]$SHA = ""
 )
 
 class Version
@@ -21,6 +24,16 @@ $placeholderVariables = @{
 $versionPlaceholder = "VERSION_PLACEHOLDER"
 $alpinePackagingFile = ((Get-Content "$PSScriptRoot/templates/APKBUILD.template") -join "`n") + "`n"
 $alpinePackagingFile = $alpinePackagingFile -replace "ARCHIVE_URI_PLACEHOLDER", $ArchiveUri
+
+if ($SHA -ne "")
+{
+    $alpinePackagingFile = $alpinePackagingFile -replace "SHA_PLACEHOLDER", $SHA
+}
+else
+{
+    $alpinePackagingFile = $alpinePackagingFile -replace "SHA_PLACEHOLDER", '$pkgver'
+}
+
 foreach ($submodule in $submodules)
 {
     $submoduleInfo = $submodule.Trim().Trim('-').Split(" ")
@@ -31,7 +44,7 @@ foreach ($submodule in $submodules)
     }
 }
 
-$version = [Version](Get-Content 'version.json' | Out-String | ConvertFrom-Json)
+$version = [Version](Get-Content "$PSScriptRoot/../version.json" | Out-String | ConvertFrom-Json)
 $alpinePackagingFile = $alpinePackagingFile -replace $versionPlaceholder, "$($version.Major).$($version.Minor).$($version.Patch)"
 Write-Output $alpinePackagingFile | Out-File APKBUILD -NoNewline
 Write-Output "APKBUILD file for msquic v$($version.Major).$($version.Minor).$($version.Patch) has been generated successfully."

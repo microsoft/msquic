@@ -41,7 +41,7 @@ jobs:
     - name: Generate APKBUILD
       shell: pwsh
       run: |
-        ./scripts/generate-alpine-packaging-file.ps1 -ArchiveUri https://github.com/${{ github.repository }}/archive/${{ github.sha }}.tar.gz
+        ./scripts/generate-alpine-packaging-file.ps1 -ArchiveUri https://github.com/${{ github.repository }}/archive/${{ github.sha }}.tar.gz -SHA ${{ github.sha }}
     - name: Docker Run and Build Package
       run: |
         docker run \

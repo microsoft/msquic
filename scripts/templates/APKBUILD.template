@@ -18,7 +18,7 @@ source="msquic-$pkgver.tar.gz::ARCHIVE_URI_PLACEHOLDER
 	gtest-$_gtest.tar.gz::https://github.com/google/googletest/archive/$_gtest.tar.gz
 	openssl3-$_openssl3.tar.gz::https://github.com/quictls/openssl/archive/$_openssl3.tar.gz
 	"
-builddir="$srcdir/msquic-$pkgver"
+builddir="$srcdir/msquic-SHA_PLACEHOLDER"
 
 prepare() {
 	default_prepare
