@@ -29,5 +29,4 @@ find /home/packaging/.abuild -name '*.rsa' -exec /msquic/scripts/alpine-configur
 cd /home/packaging/tools
 su packaging -c "abuild -r"
 
-mkdir -p /artifacts
 cp /home/packaging/packages/packaging/**/*.apk /artifacts

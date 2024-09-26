@@ -42,16 +42,18 @@ jobs:
       shell: pwsh
       run: |
         ./scripts/generate-alpine-packaging-file.ps1 -ArchiveUri https://github.com/${{ github.repository }}/archive/${{ github.sha }}.tar.gz -SHA ${{ github.sha }}
+        mkdir -p packages
     - name: Docker Run and Build Package
       run: |
         docker run \
+                -v $(pwd)/packages:/artifacts \
                 -v $(pwd):/msquic \
                 ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
     - name: Upload Package
       uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
       with:
         name: ${{ matrix.vec.friendlyName }}-package
-        path: /artifacts/*.apk
+        path: packages/*.apk
 
   test-packages-on-docker:
     name: Test Linux Packages

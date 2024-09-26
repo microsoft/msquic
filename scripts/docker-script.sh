@@ -54,6 +54,14 @@ install_libmsquic_azure_linux()
     find -name "libmsquic*.rpm" -exec tdnf install -y {} \;
 }
 
+install_libmsquic_alpine()
+{
+    if ! [ -f /usr/bin/dotnet ]; then
+        apk add --upgrade --no-cache wget gzip tar
+    fi
+    find -name "libmsquic*.apk" -exec apk add --allow-untrusted {} \;
+}
+
 if [[ "$OS" == "ubuntu" ]] || [[ "$OS" == "debian" ]]; then
     install_dependencies_apt
 elif [[ "$OS" == "centos" ]] || [[ "$OS" == "almalinux" ]] || [[ "$OS" == "rhel" ]] || [[ "$OS" == "fedora" ]]; then
@@ -62,6 +70,8 @@ elif [[ "$OS" == 'opensuse-leap' ]]; then
     install_dependencies_opensuse
 elif [[ "$OS" == 'azurelinux' ]] || [[ "$OS" == 'mariner' ]]; then
     install_libmsquic_azure_linux
+elif [[ "$OS" == 'alpine' ]]; then
+    install_libmsquic_alpine
 else
     echo "Unsupported OS: ${OS}"
     exit 1
