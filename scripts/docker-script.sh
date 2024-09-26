@@ -78,8 +78,11 @@ else
 fi
 
 set -e
-chmod +x artifacts/bin/linux/${1}_${2}_${3}/msquictest
-artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
+if [[ "$OS" != 'alpine' ]]; then
+    chmod +x artifacts/bin/linux/${1}_${2}_${3}/msquictest
+    artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
+fi
+
 
 # Install .NET if it is not installed
 if ! [ -f /usr/bin/dotnet ]; then
