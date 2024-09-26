@@ -199,7 +199,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
     Engine = _Engine;
     ExecutionContext.Callback = DoWork;
     ExecutionContext.Context = this;
-    WriteBooleanNoFence(&ExecutionContext.Ready, TRUE);
+    InterlockedFetchAndSetBoolean(&ExecutionContext.Ready); // TODO - Use WriteBooleanNoFence equivalent instead?
     ExecutionContext.NextTimeUs = UINT64_MAX;
 
     #ifndef _KERNEL_MODE // Not supported on kernel mode
@@ -282,7 +282,7 @@ TcpWorker::DoWork(
     if (Connection) {
         Connection->Process();
         Connection->Release();
-        WriteBooleanNoFence(&This->ExecutionContext.Ready, TRUE); // We just did work, let's keep this thread hot.
+        InterlockedFetchAndSetBoolean(&This->ExecutionContext.Ready); // We just did work, let's keep this thread hot.
         State->NoWorkCount = 0;
     }
 
