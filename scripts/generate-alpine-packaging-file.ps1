@@ -1,6 +1,6 @@
 param (
     [Parameter(Mandatory = $false)]
-    [string]$ArchiveUri = 'https://github.com/microsoft/msquic/archive/refs/tags/v$pkgver.tar.gz'
+    [string]$ArchiveUri = 'https://github.com/microsoft/msquic/archive/refs/tags/v$pkgver.tar.gz',
 
     [Parameter(Mandatory = $false)]
     [string]$SHA = ""
