@@ -13,7 +13,7 @@ license="MIT"
 makedepends="cmake numactl-dev linux-headers lttng-ust-dev openssl-dev perl xz"
 checkdepends="perf"
 subpackages="$pkgname-dev $pkgname-doc"
-source="msquic-$pkgver.tar.gz::https://github.com/microsoft/msquic/archive/refs/tags/v$pkgver.tar.gz
+source="msquic-$pkgver.tar.gz::ARCHIVE_URI_PLACEHOLDER
 	clog-$_clog.tar.gz::https://github.com/microsoft/CLOG/archive/$_clog.tar.gz
 	gtest-$_gtest.tar.gz::https://github.com/google/googletest/archive/$_gtest.tar.gz
 	openssl3-$_openssl3.tar.gz::https://github.com/quictls/openssl/archive/$_openssl3.tar.gz

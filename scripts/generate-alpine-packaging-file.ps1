@@ -1,3 +1,8 @@
+param (
+    [Parameter(Mandatory = $false)]
+    [string]$ArchiveUri = 'https://github.com/microsoft/msquic/archive/refs/tags/v$pkgver.tar.gz'
+)
+
 class Version
 {
     [string]$Major
@@ -15,7 +20,7 @@ $placeholderVariables = @{
 }
 $versionPlaceholder = "VERSION_PLACEHOLDER"
 $alpinePackagingFile = ((Get-Content "$PSScriptRoot/templates/APKBUILD.template") -join "`n") + "`n"
-
+$alpinePackagingFile = $alpinePackagingFile -replace "ARCHIVE_URI_PLACEHOLDER", $ArchiveUri
 foreach ($submodule in $submodules)
 {
     $submoduleInfo = $submodule.Trim().Split(" ")
