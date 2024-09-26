@@ -23,7 +23,7 @@ $alpinePackagingFile = ((Get-Content "$PSScriptRoot/templates/APKBUILD.template"
 $alpinePackagingFile = $alpinePackagingFile -replace "ARCHIVE_URI_PLACEHOLDER", $ArchiveUri
 foreach ($submodule in $submodules)
 {
-    $submoduleInfo = $submodule.Trim().Split(" ")
+    $submoduleInfo = $submodule.Trim().Trim('-').Split(" ")
     $submoduleName = $submoduleInfo[1].Replace("submodules/", "")
     if ($processedSubmodules -contains $submoduleName)
     {
