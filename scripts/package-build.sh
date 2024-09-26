@@ -1,7 +1,7 @@
 #! /bin/sh
 
 set -e
-apk add --upgrade --no-cache sudo alpine-sdk
+apk add --upgrade sudo alpine-sdk
 
 git config --global user.name "Microsoft QUIC Team"
 git config --global user.email "quicdev@microsoft.com"
