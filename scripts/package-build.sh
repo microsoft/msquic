@@ -27,8 +27,6 @@ find /home/packaging/.abuild -name '*.rsa' -exec /msquic/scripts/alpine-configur
 
 # msquic is using submodules and we need to get them inside
 cd /home/packaging/tools
-su packaging -c "abuild snapshot"
-su packaging -c "abuild checksum"
 su packaging -c "abuild -r"
 
 mkdir -p /artifacts
