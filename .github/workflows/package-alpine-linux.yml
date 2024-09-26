@@ -14,7 +14,7 @@ on:
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
   # Allow running concurrently with any other commits.
-  group: package-linux-${{ github.event.pull_request.number || github.sha }}
+  group: package-alpine-linux-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
 permissions: read-all
@@ -35,7 +35,7 @@ jobs:
     runs-on: ubuntu-latest
     env:
         REPO_TAR_URL: ${{ github.api_url }}/repos/${{ github.repository }}/tarball/${{ github.sha }}
-        REPO: https://github.com/microsoft/msquic
+        REPO: https://github.com/${{ github.repository }}
         SHA: ${{ github.sha }}
         TARGETARCH: ${{ matrix.vec.arch }}
         REPO_URL: https://raw.githubusercontent.com/${{ github.repository }}/${{ github.sha }}
