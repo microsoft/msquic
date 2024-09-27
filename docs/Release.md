@@ -106,6 +106,20 @@ Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint
 
 When testing the pipeline, please make sure to comment out the PMC cli commands in [upload-linux-packages.sh](https://github.com/microsoft/msquic/blob/main/scripts/upload-linux-packages.sh) to avoid accidentally publishing packages into prod.
 
+## Publishing MsQuic for Alpine
+
+1. Run `generate-alpine-packaging-file.ps1` script to create `APKBUILD` file for the release. (This script can run on any Linux distro.)
+2. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org). Create an account and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
+3. If you didn't fork `aports` repository yet, Fork `https://gitlab.alpinelinux.org/alpine/aports`.
+4. Clone `https://gitlab.alpinelinux.org/<your_username>/aports` repository.
+5. Navigate to `aports/testing/libmsquic` folder.
+6. Replace the `APKBUILD` file with newly created `APKBUILD` file.
+7. Create a commit using `testing/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
+8. Create a merge request using `testing/libmsquic: upgrade to <version_number>` (version_number e.g. 2.5.0 or 2.4.4).
+9. Owners of the `aports` repository will respond to the PR or merge it in couple of days/hours.
+
+For future reference: [Official documentation](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
+
 ## Synchronizing with Windows
 
 1. Once the release branch is created, set the pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868) to ingest the release branch into Windows, and run it.
