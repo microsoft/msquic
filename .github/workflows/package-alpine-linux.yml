@@ -87,4 +87,3 @@ jobs:
     - name: Docker Run
       run: |
         docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
-  
