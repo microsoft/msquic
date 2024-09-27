@@ -77,16 +77,19 @@
 <p>This page provides the install, setup and usage instructions for Windows Performance Analyzer (WPA) and use it to analyze MsQuic traces.</p>
 <h1 id="install-instructions">Install Instructions</h1>
 <p>The following are currently only possible on Windows. Other platforms may be supported by WPA in the future.</p>
-<p>The easiest way to use WPA is via the <code>./scripts/wpa.ps1</code> script, but additional detailed instructions can be found below.</p>
 <h2 id="install-wpa">Install WPA</h2>
+<p>Download the preview version from <a href="https://www.microsoft.com/store/productId/9N58QRW40DFW">the Windows Store</a> or (for MSFT internal) from <a href="http://aka.ms/getwpa">http://aka.ms/getwpa</a>.</p>
+<h2 id="download-msquic-wpa-plugin">Download MsQuic WPA Plugin</h2>
 <ol>
-<li>Download the preview version from <a href="https://www.microsoft.com/store/productId/9N58QRW40DFW">the Windows Store</a>.</li>
-<li>You should then be able to run WPA from: <code>$env:LOCALAPPDATA\Microsoft\WindowsApps\wpa.exe</code></li>
+<li>Navigate to our <a href="https://github.com/microsoft/msquic/actions/workflows/plugins.yml?query=branch%3Amain">GitHub Action</a> for building the plugin.</li>
+<li>Click on the latest build.</li>
+<li>Scroll to the bottom and download the <code>ptix_quictrace_Release</code> artifact.</li>
+<li>Extract the <code>.ptix</code> file.</li>
 </ol>
-<h2 id="install-msquic-wpa-plugin">Install MsQuic WPA Plugin</h2>
+<h2 id="install-the-plugin">Install the Plugin</h2>
 <ol>
-<li>Build the plugin via <code>QuicTrace.sln</code> or download it from the latest release (i.e. <a href="https://github.com/microsoft/msquic/releases/download/v1.0.0-129524/quic.wpa.zip">v1.0.0</a>).</li>
-<li>Update/create your WPA shortcut by adding <code>-addsearchdir &lt;path_to_quic_plugin_folder&gt;</code>.</li>
+<li>Open WPA and use the <code>Install Plugin</code> dialog to install the MsQuic WPA plugin.</li>
+<li>Restart WPA.</li>
 </ol>
 <h1 id="usage-instructions">Usage Instructions</h1>
 <p>WPA is extremely powerful. It can operate very quickly on multi-gigabyte trace files and let you slice &amp; dice the data many different ways to really drill down into what's going on.</p>
