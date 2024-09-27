@@ -1,8 +1,7 @@
-#! /bin/bash
+#! /bin/sh
 
-if [[ $(id -u) -ne 0 ]]; 
-then
-    #Beware of how you compose the command
+if [ $(id -u) -ne 0 ]; then
+    # Beware of how you compose the command
     echo "This script must be run as root. Running the script with sudo..."
     printf -v cmd_str '%q ' "$0" "$@"
     exec sudo su -c "$cmd_str"
@@ -54,22 +53,34 @@ install_libmsquic_azure_linux()
     find -name "libmsquic*.rpm" -exec tdnf install -y {} \;
 }
 
-if [[ "$OS" == "ubuntu" ]] || [[ "$OS" == "debian" ]]; then
+install_libmsquic_alpine()
+{
+    if ! [ -f /usr/bin/dotnet ]; then
+        apk add --upgrade --no-cache wget gzip tar
+    fi
+    find -name "libmsquic*.apk" -exec apk add --allow-untrusted {} \;
+}
+
+if [ "$OS" = "ubuntu" ] || [ "$OS" = "debian" ]; then
     install_dependencies_apt
-elif [[ "$OS" == "centos" ]] || [[ "$OS" == "almalinux" ]] || [[ "$OS" == "rhel" ]] || [[ "$OS" == "fedora" ]]; then
+elif [ "$OS" = "centos" ] || [ "$OS" = "almalinux" ] || [ "$OS" = "rhel" ] || [ "$OS" = "fedora" ]; then
     install_dependencies_rpm
-elif [[ "$OS" == 'opensuse-leap' ]]; then
+elif [ "$OS" = 'opensuse-leap' ]; then
     install_dependencies_opensuse
-elif [[ "$OS" == 'azurelinux' ]] || [[ "$OS" == 'mariner' ]]; then
+elif [ "$OS" = 'azurelinux' ] || [ "$OS" = 'mariner' ]; then
     install_libmsquic_azure_linux
+elif [ "$OS" = 'alpine' ]; then
+    install_libmsquic_alpine
 else
     echo "Unsupported OS: ${OS}"
     exit 1
 fi
 
 set -e
-chmod +x artifacts/bin/linux/${1}_${2}_${3}/msquictest
-artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
+if ! [ "$OS" = 'alpine' ]; then
+    chmod +x artifacts/bin/linux/${1}_${2}_${3}/msquictest
+    artifacts/bin/linux/${1}_${2}_${3}/msquictest --gtest_filter=ParameterValidation.ValidateApi
+fi
 
 # Install .NET if it is not installed
 if ! [ -f /usr/bin/dotnet ]; then
