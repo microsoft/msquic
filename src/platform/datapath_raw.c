@@ -24,6 +24,7 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
@@ -31,6 +32,10 @@ RawDataPathInitialize(
     const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
+
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -46,7 +51,9 @@ RawDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+
+    DataPath->WorkerPool = WorkerPool;
 
     if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
         DataPath->UseTcp = TRUE;
@@ -58,7 +65,7 @@ RawDataPathInitialize(
     }
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, Config);
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerPool, Config);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -86,7 +93,7 @@ Error:
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
             CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
-            CxPlatRundownRelease(&CxPlatWorkerRundown);
+            CxPlatRundownRelease(&WorkerPool->Rundown);
         }
     }
 
@@ -122,8 +129,8 @@ CxPlatDataPathUninitializeComplete(
     Datapath->Freed = TRUE;
 #endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
+    CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-    CxPlatRundownRelease(&CxPlatWorkerRundown);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

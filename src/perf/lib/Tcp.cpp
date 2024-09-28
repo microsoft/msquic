@@ -16,6 +16,7 @@ Abstract:
 #endif
 
 extern CXPLAT_DATAPATH* Datapath;
+extern CXPLAT_WORKER_POOL WorkerPool;
 
 // ############################# HELPERS #############################
 
@@ -114,17 +115,11 @@ TcpEngine::TcpEngine(
 {
     CxPlatListInitializeHead(&Connections);
     for (uint16_t i = 0; i < ProcCount; ++i) {
-        if (!Workers[i].Initialize(this)) {
+        if (!Workers[i].Initialize(this, i)) {
             return;
         }
     }
     Initialized = true;
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        WriteOutput("Initialized TCP Engine with Low Latency mode!\n");
-    }
-    if (TcpExecutionProfile == TCP_EXECUTION_PROFILE_MAX_THROUGHPUT) {
-        WriteOutput("Initialized TCP Engine with Max Throughput mode!\n");
-    }
 }
 
 TcpEngine::~TcpEngine() noexcept
@@ -186,23 +181,41 @@ void TcpEngine::RemoveConnection(TcpConnection* Connection)
 TcpWorker::TcpWorker()
 {
     CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+    CxPlatEventInitialize(&DoneEvent, TRUE, FALSE);
     CxPlatDispatchLockInitialize(&Lock);
 }
 
 TcpWorker::~TcpWorker()
 {
     CXPLAT_FRE_ASSERT(!Connections);
-    if (Initialized) {
-        CxPlatThreadDelete(&Thread);
-    }
+    CXPLAT_FRE_ASSERT(!Initialized); // Shutdown should have been called
     CxPlatDispatchLockUninitialize(&Lock);
+    CxPlatEventUninitialize(DoneEvent);
     CxPlatEventUninitialize(WakeEvent);
 }
 
-bool TcpWorker::Initialize(TcpEngine* _Engine)
+bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 {
     Engine = _Engine;
-    CXPLAT_THREAD_CONFIG Config = { 0, 0, "TcpPerfWorker", WorkerThread, this };
+    ExecutionContext.Callback = DoWork;
+    ExecutionContext.Context = this;
+    InterlockedFetchAndSetBoolean(&ExecutionContext.Ready); // TODO - Use WriteBooleanNoFence equivalent instead?
+    ExecutionContext.NextTimeUs = UINT64_MAX;
+
+    #ifndef _KERNEL_MODE // Not supported on kernel mode
+    if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
+        CxPlatAddExecutionContext(&WorkerPool, &ExecutionContext, PartitionIndex);
+        Initialized = true;
+        IsExternal = true;
+        return true;
+    }
+    #endif
+
+    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    if (PerfDefaultHighPriority) {
+        ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+    }
+    CXPLAT_THREAD_CONFIG Config = { ThreadFlags, PartitionIndex, "TcpPerfWorker", WorkerThread, this };
     if (QUIC_FAILED(
         CxPlatThreadCreate(
             &Config,
@@ -217,38 +230,76 @@ bool TcpWorker::Initialize(TcpEngine* _Engine)
 void TcpWorker::Shutdown()
 {
     if (Initialized) {
-        CxPlatEventSet(WakeEvent);
-        CxPlatThreadWait(&Thread);
+        WakeWorkerThread();
+        if (IsExternal) {
+            CxPlatEventWaitForever(DoneEvent);
+            CxPlatThreadDelete(&Thread);
+        } else {
+            CxPlatThreadWait(&Thread);
+        }
+        Initialized = false;
     }
+}
+
+void TcpWorker::WakeWorkerThread() {
+    if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
+        if (IsExternal) {
+            CxPlatWakeExecutionContext(&ExecutionContext);
+        } else {
+            CxPlatEventSet(WakeEvent);
+        }
+    }
+}
+
+//
+// Runs one iteration of the worker loop. Returns FALSE when it's time to exit.
+//
+BOOLEAN
+TcpWorker::DoWork(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    TcpWorker* This = (TcpWorker*)Context;
+    if (This->Engine->Shutdown) {
+        CxPlatEventSet(This->DoneEvent);
+        return FALSE;
+    }
+
+    TcpConnection* Connection = nullptr;
+    CxPlatDispatchLockAcquire(&This->Lock);
+    if (This->Connections) {
+        Connection = This->Connections;
+        This->Connections = Connection->Next;
+        if (This->ConnectionsTail == &Connection->Next) {
+            This->ConnectionsTail = &This->Connections;
+        }
+        Connection->QueuedOnWorker = false;
+        Connection->Next = NULL;
+    }
+    CxPlatDispatchLockRelease(&This->Lock);
+
+    if (Connection) {
+        Connection->Process();
+        Connection->Release();
+        InterlockedFetchAndSetBoolean(&This->ExecutionContext.Ready); // We just did work, let's keep this thread hot.
+        State->NoWorkCount = 0;
+    }
+
+    return TRUE;
 }
 
 CXPLAT_THREAD_CALLBACK(TcpWorker::WorkerThread, Context)
 {
     TcpWorker* This = (TcpWorker*)Context;
-
-    while (!This->Engine->Shutdown) {
-        TcpConnection* Connection;
-        CxPlatDispatchLockAcquire(&This->Lock);
-        if (!This->Connections) {
-            Connection = nullptr;
-        } else {
-            Connection = This->Connections;
-            This->Connections = Connection->Next;
-            if (This->ConnectionsTail == &Connection->Next) {
-                This->ConnectionsTail = &This->Connections;
-            }
-            Connection->QueuedOnWorker = false;
-            Connection->Next = NULL;
-        }
-        CxPlatDispatchLockRelease(&This->Lock);
-        if (Connection) {
-            Connection->Process();
-            Connection->Release();
-        } else {
-            CxPlatEventWaitForever(This->WakeEvent);
+    CXPLAT_EXECUTION_STATE DummyState = {
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
+    };
+    while (DoWork(This, &DummyState)) {
+        if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
+            CxPlatEventWaitForever(This->WakeEvent); // Wait for more work
         }
     }
-
     CXPLAT_THREAD_RETURN(0);
 }
 
@@ -265,7 +316,7 @@ bool TcpWorker::QueueConnection(TcpConnection* Connection)
             Connection->QueuedOnWorker = true;
             *ConnectionsTail = Connection;
             ConnectionsTail = &Connection->Next;
-            CxPlatEventSet(WakeEvent);
+            WakeWorkerThread();
         } else {
             Result = false;
         }
@@ -315,7 +366,7 @@ bool TcpServer::Start(const QUIC_ADDR* LocalAddress)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
+QUIC_STATUS
 TcpServer::AcceptCallback(
     _In_ CXPLAT_SOCKET* /* ListenerSocket */,
     _In_ void* ListenerContext,
@@ -326,6 +377,7 @@ TcpServer::AcceptCallback(
     auto This = (TcpServer*)ListenerContext;
     auto Connection = new(std::nothrow) TcpConnection(This->Engine, This->SecConfig, AcceptSocket, This);
     *AcceptClientContext = Connection;
+    return QUIC_STATUS_SUCCESS;
 }
 
 // ############################ CONNECTION ############################
@@ -473,10 +525,11 @@ TcpConnection::ConnectCallback(
         Connected);
     if (Connected) {
         This->StartTls = true;
-    } else {
+        This->Queue();
+    } else if (!This->Shutdown) {
         This->Shutdown = true;
+        This->Queue();
     }
-    This->Queue();
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -520,22 +573,30 @@ void
 TcpConnection::SendCompleteCallback(
     _In_ CXPLAT_SOCKET* /* Socket */,
     _In_ void* Context,
-    _In_ QUIC_STATUS /* Status */,
+    _In_ QUIC_STATUS Status,
     _In_ uint32_t ByteCount
     )
 {
     TcpConnection* This = (TcpConnection*)Context;
+    bool QueueWork = false;
     QuicTraceLogVerbose(
         PerfTcpSendCompleteCallback,
-        "[perf][tcp][%p] SendComplete callback",
-        This);
+        "[perf][tcp][%p] SendComplete callback, %u",
+        This,
+        (uint32_t)Status);
     CxPlatDispatchLockAcquire(&This->Lock);
-    if (This->TotalSendCompleteOffset != UINT64_MAX) {
+    if (QUIC_FAILED(Status)) {
+        if (!This->Shutdown) {
+            This->Shutdown = true;
+            QueueWork = true;
+        }
+    } else if (This->TotalSendCompleteOffset != UINT64_MAX) {
         This->TotalSendCompleteOffset += ByteCount;
         This->IndicateSendComplete = true;
+        QueueWork = true;
     }
     CxPlatDispatchLockRelease(&This->Lock);
-    if (This->TotalSendCompleteOffset != UINT64_MAX) {
+    if (QueueWork) {
         This->Queue();
     }
 }
@@ -610,10 +671,7 @@ void TcpConnection::Process()
         }
     }
     if (BatchedSendData && !Shutdown) {
-        if (QUIC_FAILED(
-            CxPlatSocketSend(Socket, &Route, BatchedSendData))) {
-            Shutdown = true;
-        }
+        CxPlatSocketSend(Socket, &Route, BatchedSendData);
         BatchedSendData = nullptr;
     }
     if (IndicateSendComplete) {
@@ -708,7 +766,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
         IndicateConnect = true;
     }
 
-    while (BaseOffset < TlsState.BufferTotalLength) {
+    while (!Shutdown && BaseOffset < TlsState.BufferTotalLength) {
         if (TlsState.BufferOffsetHandshake) {
             if (BaseOffset < TlsState.BufferOffsetHandshake) {
                 uint16_t Length = (uint16_t)(TlsState.BufferOffsetHandshake - BaseOffset);
@@ -762,7 +820,9 @@ bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, ui
     }
 
     SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-    return FinalizeSendBuffer(SendBuffer);
+    FinalizeSendBuffer(SendBuffer);
+
+    return true;
 }
 
 bool TcpConnection::ProcessReceive()
@@ -962,11 +1022,9 @@ bool TcpConnection::ProcessSend()
             }
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
-            if (!FinalizeSendBuffer(SendBuffer)) {
-                return false;
-            }
+            FinalizeSendBuffer(SendBuffer);
 
-        } while (NextSendData->Length > Offset);
+        } while (!Shutdown && NextSendData->Length > Offset);
 
         NextSendData->Offset = TotalSendOffset;
         NextSendData = NextSendData->Next;
@@ -1042,18 +1100,14 @@ void TcpConnection::FreeSendBuffer(QUIC_BUFFER* SendBuffer)
     CxPlatSendDataFreeBuffer(BatchedSendData, SendBuffer);
 }
 
-bool TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
+void TcpConnection::FinalizeSendBuffer(QUIC_BUFFER* SendBuffer)
 {
     TotalSendOffset += SendBuffer->Length;
     if (SendBuffer->Length != TLS_BLOCK_SIZE ||
         CxPlatSendDataIsFull(BatchedSendData)) {
-        auto Status = CxPlatSocketSend(Socket, &Route, BatchedSendData);
+        CxPlatSocketSend(Socket, &Route, BatchedSendData);
         BatchedSendData = nullptr;
-        if (QUIC_FAILED(Status)) {
-            return false;
-        }
     }
-    return true;
 }
 
 bool TcpConnection::Send(TcpSendData* Data)
