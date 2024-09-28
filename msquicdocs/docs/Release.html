@@ -191,14 +191,6 @@
 <li>Put relavent information in the notes of the release (see previous releases for examples)</li>
 </ul>
 </li>
-<li>Wait for <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&amp;_a=summary">msquic-Official</a> pipeline to run for the newly created tag.</li>
-<li>Download the signed Windows NuGet packages (under <code>drop_package_windows_nuget</code>) and upload them to <a href="https://www.nuget.org/packages/manage/upload">NuGet</a>:
-<ul>
-<li>Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z.BUILD.nupkg</li>
-<li>Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z.BUILD.nupkg</li>
-<li>Use <a href="https://raw.githubusercontent.com/microsoft/msquic/vX.Y.Z/README.md">https://raw.githubusercontent.com/microsoft/msquic/vX.Y.Z/README.md</a> as package description URL.</li>
-</ul>
-</li>
 <li>Wait for <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&amp;_a=summary">msquic-Official-Tests</a> pipeline to run for the newly created tag.</li>
 <li>Download the <code>distribution</code> packages from the artifacts and upload them to the GitHub release:
 <ul>
@@ -230,6 +222,9 @@
 </li>
 <li>Update (via PR) <code>main</code> branch's <code>test-down-level.yml</code> to point the newly uploaded <code>*_test.zip</code> release binaries.</li>
 </ol>
+<blockquote>
+<p><strong>Note</strong> - NuGet packages are automatically published to nuget.org by the pipeline.</p>
+</blockquote>
 <h3 id="publishing-linux-packages-to-packagesmicrosoftcom-pmc">Publishing Linux packages to packages.microsoft.com (PMC)</h3>
 <p>The publishing <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=2068">pipeline</a> automatically uploads packages into PMC when a tag is created.</p>
 <p>Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint returning errors). The publishing pipeline can be run manually to retry. When running manually, please ensure that the right tag is chosen and the right resources (under &quot;Advanced options&quot;) are chosen. By default, the pipeline picks up the latest resources from the official build pipeline which are not always the right ones.</p>
