@@ -251,25 +251,19 @@ elseif (CX_PLATFORM STREQUAL "darwin")
 endif()
 
 include(GNUInstallDirs)
-set(include_dest ${CMAKE_INSTALL_INCLUDEDIR})
-
-if(BUILD_SHARED_LIBS)
-    target_include_directories(msquic PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-else()
-    target_include_directories(msquic_static INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-    target_include_directories(msquic INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-endif()
 
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
+    set(OTHER_TARGETS OpenSSL OpenSSLQuic)
+endif()
+
+if(WIN32)
+    list(APPEND OTHER_TARGETS MsQuicEtw_Header)
+endif()
+
 if(BUILD_SHARED_LIBS)
-  install(TARGETS msquic EXPORT msquic DESTINATION lib)
+  install(TARGETS msquic platform inc logging_inc warnings main_binary_link_args ${OTHER_TARGETS} EXPORT msquic DESTINATION lib)
 else()
   install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
 endif()
