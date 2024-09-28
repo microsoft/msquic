@@ -67,11 +67,6 @@ This table describes all officially supported MsQuic releases.
    - The tag should be the full version number: `vX.Y.Z`
    - The release title should be `MsQuic vX.Y.Z`
    - Put relavent information in the notes of the release (see previous releases for examples)
-1. Wait for [msquic-Official](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738&_a=summary) pipeline to run for the newly created tag.
-1. Download the signed Windows NuGet packages (under `drop_package_windows_nuget`) and upload them to [NuGet](https://www.nuget.org/packages/manage/upload):
-   - Microsoft.Native.Quic.MsQuic.OpenSSL.X.Y.Z.BUILD.nupkg
-   - Microsoft.Native.Quic.MsQuic.Schannel.X.Y.Z.BUILD.nupkg
-   - Use https://raw.githubusercontent.com/microsoft/msquic/vX.Y.Z/README.md as package description URL.
 1. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
 1. Download the `distribution` packages from the artifacts and upload them to the GitHub release:
    - msquic_gamecore_console_x64_Release_schannel.zip
@@ -96,6 +91,8 @@ This table describes all officially supported MsQuic releases.
 1. From Linux (use GitHub Codespace) to publish the latest Rust Crate. (CURRENTLY BROKEN)
    - Run `cargo publish` from the `release/X.Y` branch.
 1. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
+
+> **Note** - NuGet packages are automatically published to nuget.org by the pipeline.
 
 ### Publishing Linux packages to packages.microsoft.com (PMC)
 
