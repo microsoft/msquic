@@ -8672,12 +8672,16 @@
     },
     "PerfTcpSendCompleteCallback": {
       "ModuleProperites": {},
-      "TraceString": "[perf][tcp][%p] SendComplete callback",
+      "TraceString": "[perf][tcp][%p] SendComplete callback, %u",
       "UniqueId": "PerfTcpSendCompleteCallback",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -8744,6 +8748,18 @@
       "UniqueId": "PlatformThreadCreateFailed",
       "splitArgs": [],
       "macroName": "QuicTraceLogWarning"
+    },
+    "PlatformWorkerProcessPools": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib][%p] Processing pools",
+      "UniqueId": "PlatformWorkerProcessPools",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
     },
     "PlatformWorkerThreadStart": {
       "ModuleProperites": {},
@@ -8849,6 +8865,30 @@
         },
         {
           "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
+    "ProcessorInfoV3": {
+      "ModuleProperites": {},
+      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu",
+      "UniqueId": "ProcessorInfoV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
         },
         {
@@ -15944,9 +15984,9 @@
         "EncodingString": "[perf][tcp][%p] Receive callback"
       },
       {
-        "UniquenessHash": "c0732f05-6611-2c1d-ad74-42718c7269cc",
+        "UniquenessHash": "40ccb9a5-a92a-6a46-3b50-7628487e2415",
         "TraceID": "PerfTcpSendCompleteCallback",
-        "EncodingString": "[perf][tcp][%p] SendComplete callback"
+        "EncodingString": "[perf][tcp][%p] SendComplete callback, %u"
       },
       {
         "UniquenessHash": "87a3325f-51ea-bece-2c7f-5a1e55cf6415",
@@ -15967,6 +16007,11 @@
         "UniquenessHash": "c77e1439-2c2d-7baf-4509-bd2f7eeea771",
         "TraceID": "PlatformThreadCreateFailed",
         "EncodingString": "[ lib] pthread_create failed, retrying without affinitization"
+      },
+      {
+        "UniquenessHash": "3f46cbc3-c609-dab4-07c9-fbe956e68f5c",
+        "TraceID": "PlatformWorkerProcessPools",
+        "EncodingString": "[ lib][%p] Processing pools"
       },
       {
         "UniquenessHash": "5c3773e2-ef60-26b9-4b3c-d433ca2656df",
@@ -16012,6 +16057,11 @@
         "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
         "TraceID": "ProcessorInfoV2",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
+      },
+      {
+        "UniquenessHash": "c224289c-70bc-0be5-bc16-ea902175e280",
+        "TraceID": "ProcessorInfoV3",
+        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu"
       },
       {
         "UniquenessHash": "6509226e-b945-543f-bf07-0147bcb93ca5",

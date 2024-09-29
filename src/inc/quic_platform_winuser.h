@@ -319,7 +319,7 @@ typedef struct CXPLAT_POOL {
 #define CXPLAT_POOL_MAXIMUM_DEPTH       0x4000  // 16384
 #define CXPLAT_POOL_DEFAULT_MAX_DEPTH   256     // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 #else
-#define CXPLAT_POOL_MAXIMUM_DEPTH       0
+#define CXPLAT_POOL_MAXIMUM_DEPTH       0       // TODO - Optimize this scenario better
 #define CXPLAT_POOL_DEFAULT_MAX_DEPTH   0
 #endif
 
@@ -463,6 +463,20 @@ CxPlatPoolFree(
     } else {
         InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
     }
+}
+
+inline
+BOOLEAN
+CxPlatPoolPrune(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
+    if (Entry == NULL) {
+        return FALSE;
+    }
+    Pool->Free(Entry, Pool->Tag, Pool);
+    return TRUE;
 }
 
 #define CxPlatZeroMemory RtlZeroMemory
@@ -771,7 +785,7 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return FALSE;
+    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return 0;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
 #if DEBUG
@@ -987,9 +1001,12 @@ CxPlatTimeAtOrBefore32(
 //
 
 typedef struct CXPLAT_PROCESSOR_INFO {
-    uint32_t Index;  // Index in the current group
     uint16_t Group;  // The group number this processor is a part of
+    uint8_t Index;   // Index in the current group
+    uint8_t PADDING; // Here to align with PROCESSOR_NUMBER struct
 } CXPLAT_PROCESSOR_INFO;
+
+CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_PROCESSOR_INFO) == sizeof(PROCESSOR_NUMBER), "Size check");
 
 typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
     KAFFINITY Mask;  // Bit mask of active processors in the group
@@ -1094,90 +1111,11 @@ CXPLAT_THREAD_CALLBACK(CxPlatThreadCustomStart, CustomContext); // CXPLAT_THREAD
 
 #endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
 
-inline
 QUIC_STATUS
 CxPlatThreadCreate(
     _In_ CXPLAT_THREAD_CONFIG* Config,
     _Out_ CXPLAT_THREAD* Thread
-    )
-{
-#ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-    CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
-        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
-    if (CustomContext == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Custom thread context",
-            sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-    CustomContext->Callback = Config->Callback;
-    CustomContext->Context = Config->Context;
-    *Thread =
-        CreateThread(
-            NULL,
-            0,
-            CxPlatThreadCustomStart,
-            CustomContext,
-            0,
-            NULL);
-    if (*Thread == NULL) {
-        CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
-        return GetLastError();
-    }
-#else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-    *Thread =
-        CreateThread(
-            NULL,
-            0,
-            Config->Callback,
-            Config->Context,
-            0,
-            NULL);
-    if (*Thread == NULL) {
-        return GetLastError();
-    }
-#endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
-    CXPLAT_DBG_ASSERT(Config->IdealProcessor < CxPlatProcCount());
-    const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[Config->IdealProcessor];
-    GROUP_AFFINITY Group = {0};
-    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
-        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
-    } else {
-        Group.Mask = CxPlatProcessorGroupInfo[ProcInfo->Group].Mask;
-    }
-    Group.Group = ProcInfo->Group;
-    SetThreadGroupAffinity(*Thread, &Group, NULL);
-    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_IDEAL_PROC) {
-        SetThreadIdealProcessor(*Thread, ProcInfo->Index);
-    }
-    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY) {
-        SetThreadPriority(*Thread, THREAD_PRIORITY_HIGHEST);
-    }
-    if (Config->Name) {
-        WCHAR WideName[64] = L"";
-        size_t WideNameLength;
-        mbstowcs_s(
-            &WideNameLength,
-            WideName,
-            ARRAYSIZE(WideName) - 1,
-            Config->Name,
-            _TRUNCATE);
-#if defined(QUIC_RESTRICTED_BUILD)
-        SetThreadDescription(*Thread, WideName);
-#else
-        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
-        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
-        NtSetInformationThread(
-            *Thread,
-            ThreadNameInformationPrivate,
-            &ThreadNameInfo,
-            sizeof(ThreadNameInfo));
-#endif
-    }
-    return QUIC_STATUS_SUCCESS;
-}
+    );
 #define CxPlatThreadDelete(Thread) CxPlatCloseHandle(*(Thread))
 #define CxPlatThreadWait(Thread) WaitForSingleObject(*(Thread), INFINITE)
 typedef uint32_t CXPLAT_THREAD_ID;

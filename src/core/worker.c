@@ -99,13 +99,28 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&MsQuicLib.WorkerPool, &Worker->ExecutionContext, PartitionIndex);
     } else
 #endif // _KERNEL_MODE
     {
-        const uint16_t ThreadFlags =
-            ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
-                CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        uint16_t ThreadFlags;
+        switch (ExecProfile) {
+        default:
+        case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
+        case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
+            ThreadFlags = CXPLAT_THREAD_FLAG_NONE;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_AFFINITIZE | CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+            break;
+        }
+
+        if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+            ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+        }
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
@@ -773,7 +788,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
 
     CXPLAT_EXECUTION_STATE State = {
-        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
 
     QuicTraceEvent(

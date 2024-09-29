@@ -56,7 +56,7 @@ uint32_t CxPlatProcessorCount;
 uint64_t CxPlatTotalMemory;
 
 #if __APPLE__ || __FreeBSD__
-long CxPlatCurrentSqe = 0x80000000;
+uintptr_t CxPlatCurrentSqe = 0x80000000;
 #endif
 
 #ifdef __clang__
@@ -245,8 +245,6 @@ CxPlatInitialize(
         return Status;
     }
 
-    CxPlatWorkersInit();
-
     CxPlatTotalMemory = CGroupGetMemoryLimit();
 
     QuicTraceLogInfo(
@@ -262,7 +260,6 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
@@ -441,7 +438,7 @@ CxPlatTimespecToUs(
     _In_ const struct timespec *Time
     )
 {
-    return (Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + (Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
+    return ((uint64_t)Time->tv_sec * CXPLAT_MICROSEC_PER_SEC) + ((uint64_t)Time->tv_nsec / CXPLAT_NANOSEC_PER_MICROSEC);
 }
 
 uint64_t

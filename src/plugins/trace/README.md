@@ -8,17 +8,21 @@ This page provides the install, setup and usage instructions for Windows Perform
 
 The following are currently only possible on Windows. Other platforms may be supported by WPA in the future.
 
-The easiest way to use WPA is via the `./scripts/wpa.ps1` script, but additional detailed instructions can be found below.
-
 ## Install WPA
 
-1. Download the preview version from [the Windows Store](https://www.microsoft.com/store/productId/9N58QRW40DFW).
-2. You should then be able to run WPA from: `$env:LOCALAPPDATA\Microsoft\WindowsApps\wpa.exe`
+Download the preview version from [the Windows Store](https://www.microsoft.com/store/productId/9N58QRW40DFW) or (for MSFT internal) from http://aka.ms/getwpa.
 
-## Install MsQuic WPA Plugin
+## Download MsQuic WPA Plugin
 
-1. Build the plugin via `QuicTrace.sln` or download it from the latest release (i.e. [v1.0.0](https://github.com/microsoft/msquic/releases/download/v1.0.0-129524/quic.wpa.zip)).
-2. Update/create your WPA shortcut by adding `-addsearchdir <path_to_quic_plugin_folder>`.
+1. Navigate to our [GitHub Action](https://github.com/microsoft/msquic/actions/workflows/plugins.yml?query=branch%3Amain) for building the plugin.
+2. Click on the latest build.
+3. Scroll to the bottom and download the `ptix_quictrace_Release` artifact.
+4. Extract the `.ptix` file.
+
+## Install the Plugin
+
+1. Open WPA and use the `Install Plugin` dialog to install the MsQuic WPA plugin.
+2. Restart WPA.
 
 # Usage Instructions
 
