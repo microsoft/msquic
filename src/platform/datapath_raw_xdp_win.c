@@ -23,6 +23,8 @@ Abstract:
 #include "datapath_raw_xdp_win.c.clog.h"
 #endif
 
+#define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
+
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
@@ -57,6 +59,7 @@ typedef struct XDP_INTERFACE {
 
 typedef struct XDP_QUEUE {
     XDP_QUEUE_COMMON;
+    uint16_t RssProcessor;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
     DATAPATH_XDP_IO_SQE RxIoSqe;
@@ -107,246 +110,153 @@ CxPlatXdpExecute(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-QUIC_STATUS
-CxPlatGetInterfaceRssQueueCount(
-    _In_ uint32_t InterfaceIndex,
-    _Out_ uint16_t* Count
+void
+CreateNoOpEthernetPacket(
+    _Inout_ XDP_TX_PACKET* Packet
     )
 {
-    HRESULT hRes;
-    IWbemLocator *pLoc = NULL;
-    IEnumWbemClassObject *pEnum = NULL;
-    IWbemServices *pSvc = NULL;
-    DWORD ret = 0;
-    uint16_t cnt = 0;
-    NET_LUID if_luid = { 0 };
-    WCHAR if_alias[256 + 1] = { 0 };
+    ETHERNET_HEADER* Ethernet = (ETHERNET_HEADER*)Packet->FrameBuffer;
+    IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Ethernet + 1);
+    UDP_HEADER* UDP = (UDP_HEADER*)(IPv4 + 1);
 
-    ret = ConvertInterfaceIndexToLuid(InterfaceIndex, &if_luid);
-    if (ret != NO_ERROR) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "ConvertInterfaceIndexToLuid");
-        return HRESULT_FROM_WIN32(ret);
+    // Set Ethernet header
+    memset(Ethernet->Destination, 0xFF, sizeof(Ethernet->Destination)); // Broadcast address
+    memset(Ethernet->Source, 0x00, sizeof(Ethernet->Source)); // Source MAC address
+    Ethernet->Type = htons(0x0800); // IPv4
+
+    // Set IPv4 header
+    IPv4->VersionAndHeaderLength = 0x45; // Version 4, Header length 20 bytes
+    IPv4->TypeOfService = 0;
+    IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + sizeof(UDP_HEADER));
+    IPv4->Identification = 0;
+    IPv4->FlagsAndFragmentOffset = 0;
+    IPv4->TimeToLive = 64;
+    IPv4->Protocol = 17; // UDP
+    IPv4->HeaderChecksum = 0; // Will be calculated later
+    *(uint32_t*)IPv4->Source = htonl(0xC0A80001); // 192.168.0.1
+    *(uint32_t*)IPv4->Destination = htonl(0xC0A80002); // 192.168.0.2
+
+    // Set UDP header
+    UDP->SourcePort = htons(12345);
+    UDP->DestinationPort = htons(80);
+    UDP->Length = htons(sizeof(UDP_HEADER));
+    UDP->Checksum = 0; // Optional for IPv4
+
+    // Calculate IPv4 header checksum
+    uint32_t sum = 0;
+    uint16_t* header = (uint16_t*)IPv4;
+    for (int i = 0; i < sizeof(IPV4_HEADER) / 2; ++i) {
+        sum += header[i];
     }
-
-    ret = ConvertInterfaceLuidToAlias(&if_luid, if_alias, RTL_NUMBER_OF(if_alias));
-    if (ret != NO_ERROR) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "ConvertInterfaceLuidToAlias");
-        return HRESULT_FROM_WIN32(ret);
+    while (sum >> 16) {
+        sum = (sum & 0xFFFF) + (sum >> 16);
     }
+    IPv4->HeaderChecksum = (uint16_t)~sum;
 
-    // Step 1: --------------------------------------------------
-    // Initialize COM. ------------------------------------------
-    hRes =  CoInitializeEx(0, COINIT_MULTITHREADED);
-    if (FAILED(hRes)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hRes,
-            "CoInitializeEx");
-        return hRes;
-    }
+    // Set packet length
+    Packet->Buffer.Length = sizeof(ETHERNET_HEADER) + sizeof(IPV4_HEADER) + sizeof(UDP_HEADER);
+}
 
-    // Step 2: ---------------------------------------------------
-    // Obtain the initial locator to WMI -------------------------
-    hRes = CoCreateInstance(
-        &CLSID_WbemLocator,
-        0,
-        CLSCTX_INPROC_SERVER,
-        &IID_IWbemLocator, (LPVOID *) &pLoc);
-    if (FAILED(hRes)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hRes,
-            "CoCreateInstance IWbemLocator");
-        goto Cleanup;
-    }
+QUIC_STATUS
+CxPlatGetRssQueueProcessors(
+    _In_ XDP_DATAPATH* Xdp,
+    _In_ uint32_t InterfaceIndex,
+    _Inout_ uint16_t* Count,
+    _Out_writes_to_(*Count, *Count) uint32_t* Queues
+    )
+{
+    uint32_t TxRingSize = 1;
+    XDP_TX_PACKET TxPacket = { 0 };
+    CreateNoOpEthernetPacket(&TxPacket);
 
-    // Step 3: -----------------------------------------------------
-    // Connect to WMI through the IWbemLocator::ConnectServer method
-    // Connect to the root\cimv2 namespace with
-    // the current user and obtain pointer pSvc
-    // to make IWbemServices calls.
-    BSTR Namespace = SysAllocString(L"ROOT\\STANDARDCIMV2");
-    hRes = pLoc->lpVtbl->ConnectServer(pLoc,
-         Namespace,               // Object path of WMI namespace
-         NULL,                    // User name. NULL = current user
-         NULL,                    // User password. NULL = current
-         0,                       // Locale. NULL indicates current
-         0,                       // Security flags.
-         0,                       // Authority (for example, Kerberos)
-         0,                       // Context object
-         &pSvc                    // pointer to IWbemServices proxy
-         );
-    SysFreeString(Namespace);
-    if (FAILED(hRes)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hRes,
-            "ConnectServer");
-        goto Cleanup;
-    }
+    for (uint16_t i = 0; i < *Count; ++i) {
+        HANDLE TxXsk = NULL;
+        QUIC_STATUS Status = Xdp->XdpApi->XskCreate(&TxXsk);
+        if (QUIC_FAILED(Status)) { return Status; }
 
-    // Step 4: --------------------------------------------------
-    // Set security levels on the proxy -------------------------
-    hRes = CoSetProxyBlanket(
-       (IUnknown*)pSvc,             // Indicates the proxy to set
-       RPC_C_AUTHN_WINNT,           // RPC_C_AUTHN_xxx
-       RPC_C_AUTHZ_NONE,            // RPC_C_AUTHZ_xxx
-       NULL,                        // Server principal name
-       RPC_C_AUTHN_LEVEL_CALL,      // RPC_C_AUTHN_LEVEL_xxx
-       RPC_C_IMP_LEVEL_IMPERSONATE, // RPC_C_IMP_LEVEL_xxx
-       NULL,                        // client identity
-       EOAC_NONE                    // proxy capabilities
-    );
-    if (FAILED(hRes)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hRes,
-            "CoSetProxyBlanket");
-        goto Cleanup;
-    }
+        XSK_UMEM_REG TxUmem = {0};
+        TxUmem.Address = &TxPacket;
+        TxUmem.ChunkSize = sizeof(XDP_TX_PACKET);
+        TxUmem.Headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
+        TxUmem.TotalSize = sizeof(XDP_TX_PACKET);
 
-    // Step 5: --------------------------------------------------
-    // Use the IWbemServices pointer to make requests of WMI ----
-    wchar_t query[512] = { '\0' };
-    (void)wcscat_s(query, 512, L"SELECT * FROM MSFT_NetAdapterRssSettingData WHERE Name='");
-    (void)wcscat_s(query, 512, if_alias);
-    (void)wcscat_s(query, 512, L"'");
-    //AF_XDP_LOG(INFO, "WMI query = \"%ws\"\n", query);
+        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-    BSTR Language = SysAllocString(L"WQL");
-    BSTR Query = SysAllocString(query);
-    hRes = pSvc->lpVtbl->ExecQuery(pSvc,
-        Language,
-        Query,
-        WBEM_FLAG_FORWARD_ONLY,         // Flags
-        0,                              // Context
-        &pEnum
-        );
-    SysFreeString(Query);
-    SysFreeString(Language);
-    if (FAILED(hRes)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            hRes,
-            "ExecQuery");
-        goto Cleanup;
-    }
+        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-    // Step 6: -------------------------------------------------
-    // Get the data from the query in step 6 -------------------
-    IWbemClassObject *pclsObj = NULL;
-    ULONG uReturn = 0;
-    while (pEnum) {
-        HRESULT hr = pEnum->lpVtbl->Next(pEnum, WBEM_INFINITE, 1,
-            &pclsObj, &uReturn);
+        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-        if (0 == uReturn) {
-            break;
+        uint32_t Flags = XSK_BIND_FLAG_TX;
+        Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, i, Flags);
+        if (QUIC_FAILED(Status)) {
+            CloseHandle(TxXsk);
+            if (Status == E_INVALIDARG) { // No more queues. Break out.
+                *Count = i;
+                break; // Expected failure if there is no more queue.
+            }
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskBind (GetRssQueueProcessors)");
+            return Status;
         }
 
-        VARIANT vtProp;
-
-        // Get the value of the IndirectionTable property
-        hr = pclsObj->lpVtbl->Get(pclsObj, L"IndirectionTable", 0, &vtProp, 0, 0);
-        if ((vtProp.vt == VT_NULL) || (vtProp.vt == VT_EMPTY)) {
-            //AF_XDP_LOG(INFO, "No RSS indirection table, assuming 1 default queue\n");
-            cnt++;
-            CXPLAT_FRE_ASSERT(cnt != 0);
-        } else if ((vtProp.vt & VT_ARRAY) == 0) {
-            //AF_XDP_LOG(ERR, "not ARRAY\n");
-        } else {
-            long lLower, lUpper;
-            SAFEARRAY *pSafeArray = vtProp.parray;
-            UINT8 *rssTable = NULL;
-            DWORD rssTableSize;
-            DWORD numberOfProcs;
-            DWORD numberOfProcGroups;
-
-            SafeArrayGetLBound(pSafeArray, 1, &lLower);
-            SafeArrayGetUBound(pSafeArray, 1, &lUpper);
-
-            IUnknown** rawArray;
-            SafeArrayAccessData(pSafeArray, (void**)&rawArray);
-
-            // Set up the RSS table according to number of procs and proc groups.
-            numberOfProcs = GetActiveProcessorCount(ALL_PROCESSOR_GROUPS);
-            numberOfProcGroups = GetActiveProcessorGroupCount();
-            rssTableSize = numberOfProcs * numberOfProcGroups;
-            rssTable = malloc(rssTableSize);
-            memset(rssTable, 0, rssTableSize);
-
-            for (long i = lLower; i <= lUpper; i++)
-            {
-                IUnknown* pIUnk = rawArray[i];
-                IWbemClassObject *obj = NULL;
-                pIUnk->lpVtbl->QueryInterface(pIUnk, &IID_IWbemClassObject, (void **)&obj);
-                if (obj == NULL) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        hRes,
-                        "QueryInterface");
-                    free(rssTable);
-                    hRes = QUIC_STATUS_OUT_OF_MEMORY;
-                    goto Cleanup;
-                }
-
-                hr = obj->lpVtbl->Get(obj, L"ProcessorNumber", 0, &vtProp, 0, 0);
-                UINT32 procNum = vtProp.iVal;
-                VariantClear(&vtProp);
-                hr = obj->lpVtbl->Get(obj, L"ProcessorGroup", 0, &vtProp, 0, 0);
-                UINT32 groupNum = vtProp.iVal;
-                VariantClear(&vtProp);
-                CXPLAT_DBG_ASSERT(groupNum < numberOfProcGroups);
-                CXPLAT_DBG_ASSERT(procNum < numberOfProcs);
-                *(rssTable + groupNum * numberOfProcs + procNum) = 1;
-                obj->lpVtbl->Release(obj);
-            }
-
-            SafeArrayUnaccessData(pSafeArray);
-
-            // Count unique RSS procs by counting ones in rssTable.
-            for (DWORD i = 0; i < rssTableSize; ++i) {
-                cnt += rssTable[i];
-            }
-
-            free(rssTable);
+        Status = Xdp->XdpApi->XskActivate(TxXsk, 0);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate (GetRssQueueProcessors)");
+            CloseHandle(TxXsk);
+            return Status;
         }
 
-        VariantClear(&vtProp);
-        pclsObj->lpVtbl->Release(pclsObj);
+        XSK_RING_INFO_SET TxRingInfo;
+        uint32_t TxRingInfoSize = sizeof(TxRingInfo);
+        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        XSK_RING TxRing, TxCompletionRing;
+        XskRingInitialize(&TxRing, &TxRingInfo.Tx);
+        XskRingInitialize(&TxCompletionRing, &TxRingInfo.Completion);
+
+        uint32_t TxIndex;
+        XskRingProducerReserve(&TxRing, MAXUINT32, &TxIndex);
+
+        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&TxRing, TxIndex++);
+        Buffer->Address.BaseAddress = 0;
+        Buffer->Address.Offset = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
+        Buffer->Length = TxPacket.Buffer.Length;
+        XskRingProducerSubmit(&TxRing, 1);
+
+        XSK_NOTIFY_RESULT_FLAGS OutFlags;
+        Status = Xdp->XdpApi->XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX|XSK_NOTIFY_FLAG_WAIT_TX, XDP_MAX_SYNC_WAIT_TIMEOUT_MS, &OutFlags);
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        uint32_t CompIndex;
+        if (XskRingConsumerReserve(&TxCompletionRing, MAXUINT32, &CompIndex) == 0) {
+            CloseHandle(TxXsk);
+            return E_ABORT;
+        }
+        XskRingConsumerRelease(&TxCompletionRing, 1);
+
+        PROCESSOR_NUMBER ProcNumber;
+        uint32_t ProcNumberSize = sizeof(PROCESSOR_NUMBER);
+        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
+        Queues[i] = Group->Offset + (ProcNumber.Number % Group->Count);
+
+        CloseHandle(TxXsk);
     }
 
-    //AF_XDP_LOG(INFO, "counted %u active queues on %s\n", cnt, if_name);
-    *Count = cnt;
-
-Cleanup:
-
-    if (pEnum != NULL) {
-        pEnum->lpVtbl->Release(pEnum);
-    }
-    if (pSvc != NULL) {
-        pSvc->lpVtbl->Release(pSvc);
-    }
-    if (pLoc != NULL) {
-        pLoc->lpVtbl->Release(pLoc);
-    }
-    CoUninitialize();
-
-    return hRes;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -480,6 +390,16 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
+    Interface->QueueCount = (uint16_t)CxPlatProcCount();
+    uint32_t* Processors =
+        CXPLAT_ALLOC_NONPAGED(
+            Interface->QueueCount * sizeof(uint32_t),
+            QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Processors == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -490,8 +410,13 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetInterfaceRssQueueCount(Interface->ActualIfIndex, &Interface->QueueCount);
+    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &Interface->QueueCount, Processors);
     if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "CxPlatGetRssQueueProcessors");
         goto Error;
     }
 
@@ -501,11 +426,17 @@ CxPlatDpRawInterfaceInitialize(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
             Status,
-            "CxPlatGetInterfaceRssQueueCount");
+            "CxPlatGetRssQueueProcessors");
         goto Error;
     }
 
-    Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
+    QuicTraceLogVerbose(
+        XdpInterfaceQueues,
+        "[ixdp][%p] Initializing %u queues on interface",
+        Interface,
+        Interface->QueueCount);
+
+    Interface->Queues = CXPLAT_ALLOC_NONPAGED(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -521,6 +452,7 @@ CxPlatDpRawInterfaceInitialize(
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 
+        Queue->RssProcessor = (uint16_t)Processors[i]; // TODO - Should memory be aligned with this?
         Queue->Interface = Interface;
         InitializeSListHead(&Queue->RxPool);
         InitializeSListHead(&Queue->TxPool);
@@ -536,7 +468,7 @@ CxPlatDpRawInterfaceInitialize(
         // RX datapath.
         //
 
-        Queue->RxBuffers = CxPlatAlloc(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
+        Queue->RxBuffers = CXPLAT_ALLOC_NONPAGED(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
         if (Queue->RxBuffers == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -658,7 +590,7 @@ CxPlatDpRawInterfaceInitialize(
         // TX datapath.
         //
 
-        Queue->TxBuffers = CxPlatAlloc(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
+        Queue->TxBuffers = CXPLAT_ALLOC_NONPAGED(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
         if (Queue->TxBuffers == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -778,15 +710,34 @@ CxPlatDpRawInterfaceInitialize(
     }
 
     //
-    // Add each queue to a partition (round robin).
+    // Add each queue to the correct partition.
     //
-    for (uint8_t i = 0; i < Interface->QueueCount; i++) {
-        XdpWorkerAddQueue(&Xdp->Partitions[i % Xdp->PartitionCount], &Interface->Queues[i]);
+    uint16_t RoundRobinIndex = 0;
+    for (uint16_t i = 0; i < Interface->QueueCount; i++) {
+        BOOLEAN Found = FALSE;
+        for (uint16_t j = 0; j < Xdp->PartitionCount; j++) {
+            if (Xdp->Partitions[j].Processor == Interface->Queues[i].RssProcessor) {
+                XdpWorkerAddQueue(&Xdp->Partitions[j], &Interface->Queues[i]);
+                Found = TRUE;
+                break;
+            }
+        }
+        if (!Found) {
+            //
+            // Assign leftovers based on round robin.
+            //
+            XdpWorkerAddQueue(
+                &Xdp->Partitions[RoundRobinIndex++ % Xdp->PartitionCount],
+                &Interface->Queues[i]);
+        }
     }
 
 Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
+    }
+    if (Processors != NULL) {
+        CXPLAT_FREE(Processors, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
@@ -870,7 +821,7 @@ CxPlatDpRawInterfaceAddRules(
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
     const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + Count);
 
-    XDP_RULE* NewRules = CxPlatAlloc(NewSize, RULE_TAG);
+    XDP_RULE* NewRules = CXPLAT_ALLOC_NONPAGED(NewSize, RULE_TAG);
     if (NewRules == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1004,8 +955,14 @@ CxPlatDpRawInitialize(
 
     if (Config && Config->ProcessorCount) {
         Xdp->PartitionCount = Config->ProcessorCount;
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = Config->ProcessorList[i];
+        }
     } else {
         Xdp->PartitionCount = CxPlatProcCount();
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = (uint16_t)i;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -1033,7 +990,7 @@ CxPlatDpRawInitialize(
         GAA_FLAG_SKIP_DNS_INFO;
 
     do {
-        Adapters = (IP_ADAPTER_ADDRESSES*)CxPlatAlloc(AdaptersBufferSize, ADAPTER_TAG);
+        Adapters = (IP_ADAPTER_ADDRESSES*)CXPLAT_ALLOC_NONPAGED(AdaptersBufferSize, ADAPTER_TAG);
         if (Adapters == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1061,7 +1018,7 @@ CxPlatDpRawInitialize(
             if (Adapter->IfType == IF_TYPE_ETHERNET_CSMACD &&
                 Adapter->OperStatus == IfOperStatusUp &&
                 Adapter->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
-                XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
+                XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
                 if (Interface == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
@@ -1098,6 +1055,12 @@ CxPlatDpRawInitialize(
                         break; // assuming there is 1:1 matching
                     }
                 }*/
+
+                QuicTraceLogVerbose(
+                    XdpInterfaceInitialize,
+                    "[ixdp][%p] Initializing interface %u",
+                    Interface,
+                    Interface->ActualIfIndex);
 
                 Status =
                     CxPlatDpRawInterfaceInitialize(
@@ -1139,15 +1102,7 @@ CxPlatDpRawInitialize(
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
 
         XDP_PARTITION* Partition = &Xdp->Partitions[i];
-        if (Partition->Queues == NULL) {
-            //
-            // Because queues are assigned in a round-robin manner, subsequent
-            // partitions will not have a queue assigned. Stop the loop and update
-            // partition count.
-            //
-            Xdp->PartitionCount = i;
-            break;
-        }
+        if (Partition->Queues == NULL) { continue; } // No RSS queues for this partition.
 
         Partition->Xdp = Xdp;
         Partition->PartitionIndex = (uint16_t)i;
@@ -1253,8 +1208,10 @@ CxPlatDpRawUninitialize(
         Xdp);
     Xdp->Running = FALSE;
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
-        Xdp->Partitions[i].Ec.Ready = TRUE;
-        CxPlatWakeExecutionContext(&Xdp->Partitions[i].Ec);
+        if (Xdp->Partitions[i].Queues != NULL) {
+            Xdp->Partitions[i].Ec.Ready = TRUE;
+            CxPlatWakeExecutionContext(&Xdp->Partitions[i].Ec);
+        }
     }
     CxPlatDpRawRelease(Xdp);
 }
@@ -1466,7 +1423,7 @@ CxPlatDpRawPlumbRulesOnSocket(
                     CxPlatLockRelease(&Interface->RuleLock);
                     XDP_RULE NewRule = {
                         .Match = MatchType,
-                        .Pattern.IpPortSet.PortSet.PortSet = CxPlatAlloc(XDP_PORT_SET_BUFFER_SIZE, PORT_SET_TAG),
+                        .Pattern.IpPortSet.PortSet.PortSet = CXPLAT_ALLOC_NONPAGED(XDP_PORT_SET_BUFFER_SIZE, PORT_SET_TAG),
                         .Action = XDP_PROGRAM_ACTION_REDIRECT,
                         .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
                         .Redirect.Target = NULL,

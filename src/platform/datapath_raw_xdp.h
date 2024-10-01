@@ -57,6 +57,7 @@ typedef struct QUIC_CACHEALIGN XDP_PARTITION {
     CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.
     uint16_t PartitionIndex;
+    uint16_t Processor;
 } XDP_PARTITION;
 
 void XdpWorkerAddQueue(_In_ XDP_PARTITION* Partition, _In_ XDP_QUEUE* Queue) {
@@ -78,7 +79,9 @@ CxPlatDpRawAssignQueue(
     )
 {
     const XDP_INTERFACE_COMMON* Interface = (const XDP_INTERFACE_COMMON*)_Interface;
-    Route->Queue = &((XDP_QUEUE_COMMON*)Interface->Queues)[0];
+    XDP_QUEUE_COMMON* Queues = (XDP_QUEUE_COMMON*)Interface->Queues;
+    CXPLAT_FRE_ASSERT(Queues[0].Partition != NULL); // What if there was no partition?
+    Route->Queue = &Queues[0]; // TODO - Can we do better than just the first queue?
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

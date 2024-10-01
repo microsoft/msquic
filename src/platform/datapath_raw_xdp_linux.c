@@ -332,7 +332,7 @@ static uint64_t XskUmemFrameAlloc(struct XskSocketInfo *Xsk)
     if (Xsk->UmemFrameFree == 0) {
         QuicTraceLogVerbose(
             XdpUmemAllocFails,
-            "[ xdp][umem] Out of UMEM frame, OOM");        
+            "[ xdp][umem] Out of UMEM frame, OOM");
         return INVALID_UMEM_FRAME;
     }
     Frame = Xsk->UmemFrameAddr[--Xsk->UmemFrameFree];
@@ -689,8 +689,14 @@ CxPlatDpRawInitialize(
 
     if (Config && Config->ProcessorCount) {
         Xdp->PartitionCount = Config->ProcessorCount;
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = Config->ProcessorList[i];
+        }
     } else {
         Xdp->PartitionCount = CxPlatProcCount();
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = (uint16_t)i;
+        }
     }
 
     QuicTraceLogVerbose(
