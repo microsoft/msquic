@@ -23,6 +23,8 @@ Abstract:
 #include "datapath_raw_xdp_win.c.clog.h"
 #endif
 
+#define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
+
 typedef struct XDP_DATAPATH {
     CXPLAT_DATAPATH_RAW;
     DECLSPEC_CACHEALIGN
@@ -189,14 +191,30 @@ CxPlatGetRssQueueProcessors(
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
         Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, i, Flags);
-        if (QUIC_FAILED(Status)) { // No more queues. Break out.
-            *Count = i;
+        if (QUIC_FAILED(Status)) {
             CloseHandle(TxXsk);
-            break;
+            if (Status == E_INVALIDARG) { // No more queues. Break out.
+                *Count = i;
+                break; // Expected failure if there is no more queue.
+            }
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskBind (GetRssQueueProcessors)");
+            return Status;
         }
 
         Status = Xdp->XdpApi->XskActivate(TxXsk, 0);
-        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskActivate (GetRssQueueProcessors)");
+            CloseHandle(TxXsk);
+            return Status;
+        }
 
         XSK_RING_INFO_SET TxRingInfo;
         uint32_t TxRingInfoSize = sizeof(TxRingInfo);
@@ -217,7 +235,7 @@ CxPlatGetRssQueueProcessors(
         XskRingProducerSubmit(&TxRing, 1);
 
         XSK_NOTIFY_RESULT_FLAGS OutFlags;
-        Status = Xdp->XdpApi->XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX|XSK_NOTIFY_FLAG_WAIT_TX, 1000, &OutFlags);
+        Status = Xdp->XdpApi->XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX|XSK_NOTIFY_FLAG_WAIT_TX, XDP_MAX_SYNC_WAIT_TIMEOUT_MS, &OutFlags);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t CompIndex;
@@ -372,8 +390,15 @@ CxPlatDpRawInterfaceInitialize(
     Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
-    uint32_t Processors[256]; // TODO - Use max processor count
-    Interface->QueueCount = ARRAYSIZE(Processors);
+    Interface->QueueCount = (uint16_t)CxPlatProcCount();
+    uint32_t* Processors =
+        CXPLAT_ALLOC_NONPAGED(
+            Interface->QueueCount * sizeof(uint32_t),
+            QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Processors == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
 
     Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
     if (QUIC_FAILED(Status)) {
@@ -411,7 +436,7 @@ CxPlatDpRawInterfaceInitialize(
         Interface,
         Interface->QueueCount);
 
-    Interface->Queues = CxPlatAlloc(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
+    Interface->Queues = CXPLAT_ALLOC_NONPAGED(Interface->QueueCount * sizeof(*Interface->Queues), QUEUE_TAG);
     if (Interface->Queues == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -443,7 +468,7 @@ CxPlatDpRawInterfaceInitialize(
         // RX datapath.
         //
 
-        Queue->RxBuffers = CxPlatAlloc(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
+        Queue->RxBuffers = CXPLAT_ALLOC_NONPAGED(Xdp->RxBufferCount * RxPacketSize, RX_BUFFER_TAG);
         if (Queue->RxBuffers == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -565,7 +590,7 @@ CxPlatDpRawInterfaceInitialize(
         // TX datapath.
         //
 
-        Queue->TxBuffers = CxPlatAlloc(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
+        Queue->TxBuffers = CXPLAT_ALLOC_NONPAGED(Xdp->TxBufferCount * sizeof(XDP_TX_PACKET), TX_BUFFER_TAG);
         if (Queue->TxBuffers == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -711,6 +736,9 @@ Error:
     if (QUIC_FAILED(Status)) {
         CxPlatDpRawInterfaceUninitialize(Interface);
     }
+    if (Processors != NULL) {
+        CXPLAT_FREE(Processors, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
 
     return Status;
 }
@@ -793,7 +821,7 @@ CxPlatDpRawInterfaceAddRules(
     const size_t OldSize = sizeof(XDP_RULE) * (size_t)Interface->RuleCount;
     const size_t NewSize = sizeof(XDP_RULE) * ((size_t)Interface->RuleCount + Count);
 
-    XDP_RULE* NewRules = CxPlatAlloc(NewSize, RULE_TAG);
+    XDP_RULE* NewRules = CXPLAT_ALLOC_NONPAGED(NewSize, RULE_TAG);
     if (NewRules == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -962,7 +990,7 @@ CxPlatDpRawInitialize(
         GAA_FLAG_SKIP_DNS_INFO;
 
     do {
-        Adapters = (IP_ADAPTER_ADDRESSES*)CxPlatAlloc(AdaptersBufferSize, ADAPTER_TAG);
+        Adapters = (IP_ADAPTER_ADDRESSES*)CXPLAT_ALLOC_NONPAGED(AdaptersBufferSize, ADAPTER_TAG);
         if (Adapters == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -990,7 +1018,7 @@ CxPlatDpRawInitialize(
             if (Adapter->IfType == IF_TYPE_ETHERNET_CSMACD &&
                 Adapter->OperStatus == IfOperStatusUp &&
                 Adapter->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
-                XDP_INTERFACE* Interface = CxPlatAlloc(sizeof(XDP_INTERFACE), IF_TAG);
+                XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
                 if (Interface == NULL) {
                     QuicTraceEvent(
                         AllocFailure,
@@ -1395,7 +1423,7 @@ CxPlatDpRawPlumbRulesOnSocket(
                     CxPlatLockRelease(&Interface->RuleLock);
                     XDP_RULE NewRule = {
                         .Match = MatchType,
-                        .Pattern.IpPortSet.PortSet.PortSet = CxPlatAlloc(XDP_PORT_SET_BUFFER_SIZE, PORT_SET_TAG),
+                        .Pattern.IpPortSet.PortSet.PortSet = CXPLAT_ALLOC_NONPAGED(XDP_PORT_SET_BUFFER_SIZE, PORT_SET_TAG),
                         .Action = XDP_PROGRAM_ACTION_REDIRECT,
                         .Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK,
                         .Redirect.Target = NULL,
