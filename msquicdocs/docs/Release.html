@@ -230,8 +230,12 @@
 <p>Sometimes the pipeline fails due to PMC infra issues (e.g. the PMC HTTP endpoint returning errors). The publishing pipeline can be run manually to retry. When running manually, please ensure that the right tag is chosen and the right resources (under &quot;Advanced options&quot;) are chosen. By default, the pipeline picks up the latest resources from the official build pipeline which are not always the right ones.</p>
 <p>When testing the pipeline, please make sure to comment out the PMC cli commands in <a href="https://github.com/microsoft/msquic/blob/main/scripts/upload-linux-packages.sh">upload-linux-packages.sh</a> to avoid accidentally publishing packages into prod.</p>
 <h3 id="publishing-msquic-for-alpine">Publishing MsQuic for Alpine</h3>
+<p>Prerequisites:</p>
+<ul>
+<li>Docker</li>
+</ul>
 <ol>
-<li>Run <code>generate-alpine-packaging-file.ps1</code> script to create <code>APKBUILD</code> file for the release. (This script can run on any Linux distro.)</li>
+<li>Run <code>generate-alpine-packaging-file.ps1</code> script on host computer to create <code>APKBUILD</code> file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)</li>
 <li>If you don't have account for <a href="https://gitlab.alpinelinux.org">AlpineLinux GitLab</a>. Create an account and <a href="https://docs.gitlab.com/ee/user/ssh.html">configure your SSH</a>.</li>
 <li>If you didn't fork <code>aports</code> repository yet, Fork <code>https://gitlab.alpinelinux.org/alpine/aports</code>.</li>
 <li>Clone <code>https://gitlab.alpinelinux.org/&lt;your_username&gt;/aports</code> repository.</li>
