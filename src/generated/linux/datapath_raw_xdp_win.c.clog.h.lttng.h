@@ -318,12 +318,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "XdpInterfaceOpen");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskBind (GetRssQueueProcessors)");
 // arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "XdpInterfaceOpen" = arg3
+// arg3 = arg3 = "XskBind (GetRssQueueProcessors)" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryErrorStatus,
     TP_ARGS(
