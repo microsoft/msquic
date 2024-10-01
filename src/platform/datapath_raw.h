@@ -90,6 +90,9 @@ typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;
 
+    UINT16 L2HeaderSize;
+    UINT16 L3HeaderSize;
+    uint8_t IsIpv4 : 1;
 } CXPLAT_SEND_DATA;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -375,6 +378,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_SEND_DATA* SendData,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ BOOLEAN SkipNetworkLayerXsum,

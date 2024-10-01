@@ -273,6 +273,7 @@ CxPlatXdpReadConfig(
     Xdp->TxBufferCount = 8192;
     Xdp->TxRingSize = 256;
     Xdp->TxAlwaysPoke = FALSE;
+    Xdp->SkipXsum = TRUE;
 
     //
     // Read config from config file.
@@ -1687,13 +1688,27 @@ CxPlatXdpTx(
     uint32_t TxIndex;
     uint32_t TxAvailable = XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex);
     while (TxAvailable-- > 0 && !CxPlatListIsEmpty(&Queue->PartitionTxQueue)) {
-        XSK_BUFFER_DESCRIPTOR* Buffer = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        XSK_FRAME_DESCRIPTOR* Frame = XskRingGetElement(&Queue->TxRing, TxIndex++);
+        XSK_BUFFER_DESCRIPTOR* Buffer = &Frame->Buffer;
         CXPLAT_LIST_ENTRY* Entry = CxPlatListRemoveHead(&Queue->PartitionTxQueue);
         XDP_TX_PACKET* Packet = CONTAINING_RECORD(Entry, XDP_TX_PACKET, Link);
 
         Buffer->Address.BaseAddress = (uint8_t*)Packet - Queue->TxBuffers;
         Buffer->Address.Offset = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         Buffer->Length = Packet->Buffer.Length;
+
+        Frame->Layout.Layer2Type = XdpFrameLayer2TypeEthernet;
+        Frame->Layout.Layer2HeaderLength = Packet->L2HeaderSize;
+        Frame->Layout.Layer3Type =
+            Packet->IsIpv4 ?
+                XdpFrameLayer3TypeIPv4UnspecifiedOptions :
+                    XdpFrameLayer3TypeIPv6UnspecifiedExtensions;
+        Frame->Layout.Layer3HeaderLength = Packet->L3HeaderSize;
+        Frame->Layout.Layer4Type = XdpFrameLayer4TypeUdp;
+        Frame->Checksum.Layer3 =
+            Packet->IsIpv4 ? XdpFrameTxChecksumActionRequired : XdpFrameTxChecksumActionPassthrough;
+        Frame->Checksum.Layer4 = XdpFrameTxChecksumActionRequired;
+
         ProdCount++;
     }
 
