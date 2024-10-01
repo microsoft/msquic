@@ -123,7 +123,7 @@ jobs:
     runs-on: ${{ matrix.vec.os }}
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
     - name: Download Package
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
@@ -146,4 +146,15 @@ jobs:
     - name: Docker Run
       run: |
         docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
-  
+
+  Complete:
+    name: Package Linux Complete
+    if: always()
+    needs: [build-packages, test-packages, test-packages-on-docker]
+    runs-on: ubuntu-latest
+    permissions: {} # No need for any permissions.
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      with:
+        jobs: ${{ toJSON(needs) }}

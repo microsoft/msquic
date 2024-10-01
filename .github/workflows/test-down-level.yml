@@ -47,7 +47,7 @@ jobs:
     name: Test
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
     - name: Install Perl
       if: runner.os == 'Windows'
       uses: shogo82148/actions-setup-perl@9c1eca9952ccc07f9ca4a2097b63df93d9d138e9
@@ -78,3 +78,15 @@ jobs:
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
       run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+
+  Complete:
+    name: Down Level Complete
+    if: always()
+    needs: [test-down-level]
+    runs-on: ubuntu-latest
+    permissions: {} # No need for any permissions.
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      with:
+        jobs: ${{ toJSON(needs) }}
