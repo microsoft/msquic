@@ -90,8 +90,8 @@ typedef struct CXPLAT_SEND_DATA {
 
     QUIC_BUFFER Buffer;
 
-    UINT16 L2HeaderSize;
-    UINT16 L3HeaderSize;
+    uint16_t L2HeaderSize;
+    uint16_t L3HeaderSize;
     uint8_t IsIpv4 : 1;
 } CXPLAT_SEND_DATA;
 
