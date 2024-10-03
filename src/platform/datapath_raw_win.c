@@ -176,6 +176,10 @@ Error:
     return Status;
 }
 
+//
+// Change some real code, too.
+//
+
 CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
 {
     CXPLAT_ROUTE_RESOLUTION_WORKER* Worker = (CXPLAT_ROUTE_RESOLUTION_WORKER*)Context;
