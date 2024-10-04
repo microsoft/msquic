@@ -489,7 +489,7 @@ QuicPacketKeyUpdate(
     _Out_ QUIC_PACKET_KEY** NewKey
     )
 {
-    if (OldKey->Type != QUIC_PACKET_KEY_1_RTT) {
+    if (OldKey == NULL || OldKey->Type != QUIC_PACKET_KEY_1_RTT) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
