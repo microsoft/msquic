@@ -76,8 +76,8 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Wait-DriverStarted "xdp" 10000
 } elseif ($Command -eq "Install_Kernel") {
     Write-Host "Executing command: Install_Kernel"
-    $KernelDir = Repo-Path "../../artifacts/bin/winkernel/x64_Release_schannel"
-    $SecNetPerfDir = Repo-Path "../../artifacts/bin/windows/x64_Release_schannel"
+    $KernelDir = Repo-Path "./artifacts/bin/winkernel/x64_Release_schannel"
+    $SecNetPerfDir = Repo-Path "./artifacts/bin/windows/x64_Release_schannel"
     if (Test-Path $KernelDir) {
         # WSK also needs the kernel mode binaries in the usermode path.
         Write-Host "Moving kernel binaries to usermode path"
