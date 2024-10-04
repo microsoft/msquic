@@ -1,11 +1,15 @@
 FROM    martenseemann/quic-network-simulator-endpoint@sha256:2ec0a19a54f4547f068a81afcb3e92251b8808934eb86e5cb6919d91c4958791 as source
 ENV     DEBIAN_FRONTEND=noninteractive
 RUN     apt-get update -y \
-            && apt-get install -y \
-            build-essential \
-            cmake \
-            liblttng-ust-dev \
-            libnuma-dev \
+            && apt-get install -y ca-certificates gpg wget \
+            && test -f /usr/share/doc/kitware-archive-keyring/copyright \
+            || wget -O - https://apt.kitware.com/keys/kitware-archive-latest.asc 2>/dev/null | gpg --dearmor - | tee /usr/share/keyrings/kitware-archive-keyring.gpg >/dev/null \
+            && echo 'deb [signed-by=/usr/share/keyrings/kitware-archive-keyring.gpg] https://apt.kitware.com/ubuntu/ focal main' | tee /etc/apt/sources.list.d/kitware.list >/dev/null \
+            && apt-get update -y \
+            && test -f /usr/share/doc/kitware-archive-keyring/copyright \
+            || rm /usr/share/keyrings/kitware-archive-keyring.gpg \
+            && apt-get install -y kitware-archive-keyring \
+            && apt-get install -y build-essential cmake liblttng-ust-dev libnuma-dev \
             && apt-get clean
 COPY    . /src
 
