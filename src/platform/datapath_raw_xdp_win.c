@@ -942,6 +942,40 @@ CxPlatDpRawInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    {
+        QuicTraceLogVerbose(
+            XdpInitialize,
+            "[ xdp][%p] XDP loading library",
+            Xdp);
+
+        HMODULE Lib = LoadLibraryA("xdpapi.dll");
+        if (Lib == NULL) {
+            QuicTraceLogError(
+                XdpInitialize,
+                "[ xdp][%p] XDP loading library error %u",
+                Xdp, GetLastError());
+        } else {
+            QuicTraceLogVerbose(
+                XdpInitialize,
+                "[ xdp][%p] XDP resolving XdpOpenApi",
+                Xdp);
+
+            if (GetProcAddress(Lib, "XdpOpenApi") == NULL) {
+                QuicTraceLogError(
+                    XdpInitialize,
+                    "[ xdp][%p] XDP resolving XdpOpenApi error %u",
+                    Xdp, GetLastError());
+            }
+
+            FreeLibrary(Lib);
+
+            QuicTraceLogVerbose(
+                XdpInitialize,
+                "[ xdp][%p] XDP unloaded library",
+                Xdp);
+        }
+    }
+
     CxPlatListInitializeHead(&Xdp->Interfaces);
     if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
         Status = QUIC_STATUS_NOT_SUPPORTED;
