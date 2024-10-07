@@ -1040,6 +1040,7 @@ CxPlatCqeUserData(
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
+#include <errno.h>
 
 typedef int CXPLAT_EVENTQ;
 #define CXPLAT_SQE int
@@ -1052,7 +1053,13 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return (*queue = epoll_create1(EPOLL_CLOEXEC)) != -1;
+    BOOLEAN ret = TRUE;
+    *queue = epoll_create1(EPOLL_CLOEXEC);
+    if(*queue == -1){
+            printf("ERROR:  %s\n", strerror(errno));
+            ret = FALSE;
+    }
+    return ret;
 }
 
 inline
