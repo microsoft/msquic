@@ -1697,9 +1697,8 @@ CxPlatXdpTx(
         ProdCount++;
     }
 
-    if (ProdCount > 0 ||
+    if ((ProdCount > 0 && (XskRingProducerSubmit(&Queue->TxRing, ProdCount), TRUE)) ||
         (CompCount > 0 && XskRingProducerReserve(&Queue->TxRing, MAXUINT32, &TxIndex) != Queue->TxRing.Size)) {
-        XskRingProducerSubmit(&Queue->TxRing, ProdCount);
         MemoryBarrier();
         if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
             XSK_NOTIFY_RESULT_FLAGS OutFlags;
