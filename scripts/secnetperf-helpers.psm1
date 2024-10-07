@@ -161,6 +161,9 @@ function Install-XDP {
         $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
         & $WaitDriverStarted xdp 10000
     }
+
+    Write-Host "Setting XDP XskDisableTxBounce=1"
+    reg.exe add HKLM\SYSTEM\CurrentControlSet\Services\xdp\Parameters /v XskDisableTxBounce /d 1 /t REG_DWORD /f
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
