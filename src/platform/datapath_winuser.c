@@ -153,7 +153,8 @@ typedef struct DATAPATH_RX_IO_BLOCK {
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
         WSA_CMSG_SPACE(sizeof(DWORD)) +         // UDP_COALESCED_INFO
-        WSA_CMSG_SPACE(sizeof(INT))             // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT))             // IP_HOP_LIMIT
         ];
 
 } DATAPATH_RX_IO_BLOCK;
@@ -1399,6 +1400,46 @@ SocketCreateUdp(
                 Socket,
                 WsaError,
                 "Set IP_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_HOPLIMIT,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_HOPLIMIT");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_HOPLIMIT,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_HOPLIMIT");
             Status = HRESULT_FROM_WIN32(WsaError);
             goto Error;
         }
@@ -3103,7 +3144,7 @@ CxPlatDataPathUdpRecvComplete(
         ULONG MessageCount = 0;
         BOOLEAN IsCoalesced = FALSE;
         INT ECN = 0;
-
+        INT HopLimitTTL = 0;
         if (SocketProc->Parent->UseRio) {
             PRIO_CMSG_BUFFER RioRcvMsg = (PRIO_CMSG_BUFFER)IoBlock->ControlBuf;
             IoBlock->WsaMsgHdr.Control.buf = IoBlock->ControlBuf + RIO_CMSG_BASE_SIZE;
@@ -3126,6 +3167,10 @@ CxPlatDataPathUdpRecvComplete(
                 } else if (CMsg->cmsg_type == IPV6_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL <= 256);
+                    // printf("HopLimitTTL: %d \n", HopLimitTTL);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -3138,6 +3183,10 @@ CxPlatDataPathUdpRecvComplete(
                 } else if (CMsg->cmsg_type == IP_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IP_TTL) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL <= 256);
+                    // printf("HopLimitTTL: %d \n", HopLimitTTL);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
@@ -3195,6 +3244,7 @@ CxPlatDataPathUdpRecvComplete(
             Datagram->PartitionIndex =
                 SocketProc->DatapathProc->PartitionIndex % SocketProc->DatapathProc->Datapath->PartitionCount;
             Datagram->TypeOfService = (uint8_t)ECN;
+            Datagram->HopLimitTTL = (uint8_t) HopLimitTTL;
             Datagram->Allocated = TRUE;
             Datagram->Route->DatapathType = Datagram->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             Datagram->QueuedOnConnection = FALSE;
