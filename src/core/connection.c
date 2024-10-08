@@ -5639,7 +5639,7 @@ QuicConnRecvDatagrams(
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
             if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
-                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HandshakeHopLimitTTL;
+                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HopLimitTTL;
             }
             QuicConnLogInFlowStats(Connection);
 
