@@ -2463,6 +2463,7 @@ CxPlatDataPathSocketReceive(
             Datagram->Data.Next = NULL;
             Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
             Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.HopLimitTTL = (uint8_t)HopLimitTTL;
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
 
