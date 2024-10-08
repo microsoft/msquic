@@ -3170,6 +3170,7 @@ CxPlatDataPathUdpRecvComplete(
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -3185,6 +3186,7 @@ CxPlatDataPathUdpRecvComplete(
                 } else if (CMsg->cmsg_type == IP_TTL) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
