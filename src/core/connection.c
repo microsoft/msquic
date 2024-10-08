@@ -5512,8 +5512,6 @@ QuicConnRecvDatagramBatch(
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
         Packet = Packets[i];
 
-        Connection->Stats.Handshake.HopLimitTTL = Packet->HopLimitTTL; // TODO: Right now, this will update on EVERY packet. How can we filter to just the handshake packets?
-
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
@@ -5640,6 +5638,9 @@ QuicConnRecvDatagrams(
 
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
+            if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
+                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HandshakeHopLimitTTL;
+            }
             QuicConnLogInFlowStats(Connection);
 
             if (!CurrentPath->IsPeerValidated) {
@@ -6825,8 +6826,8 @@ QuicConnGetV2Statistics(
         Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
     }
 
-    if (STATISTICS_HAS_FIELD(*StatsLength, HopLimitTTL)) {
-        Stats->HopLimitTTL = Connection->Stats.Handshake.HopLimitTTL;
+    if (STATISTICS_HAS_FIELD(*StatsLength, HandshakeHopLimitTTL)) {
+        Stats->HandshakeHopLimitTTL = Connection->Stats.Handshake.HandshakeHopLimitTTL;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

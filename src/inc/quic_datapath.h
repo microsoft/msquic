@@ -225,7 +225,7 @@ typedef struct CXPLAT_RECV_DATA {
     //
     // TTL Hoplimit field of the IP header of the received packet on handshake.
     //
-    uint8_t HopLimitTTL;
+    uint8_t HandshakeHopLimitTTL;
 
     //
     // Flags.
