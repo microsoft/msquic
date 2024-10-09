@@ -106,6 +106,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
@@ -119,6 +120,7 @@ CxPlatWorkerPoolInit(
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -277,6 +279,7 @@ Error:
 }
 #pragma warning(pop)
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool

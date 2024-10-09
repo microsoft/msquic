@@ -491,7 +491,6 @@ typedef struct CXPLAT_CQE {
 typedef struct CXPLAT_SQE {
     LIST_ENTRY Link;
     void* UserData;
-    //int Overlapped; // Used as the completion context to platform IO routines.
     BOOLEAN IsQueued; // Prevent double queueing.
 } CXPLAT_SQE;
 
@@ -567,7 +566,8 @@ CxPlatEventQDequeue(
         CxPlatLockRelease(&queue->Lock);
         if (wait_time == 0) {
             return 0;
-        } else if (wait_time == UINT32_MAX) {
+        }
+        if (wait_time == UINT32_MAX) {
             CxPlatEventWaitForever(queue->EventsAvailable);
         } else {
             CxPlatEventWaitWithTimeout(queue->EventsAvailable, wait_time);
