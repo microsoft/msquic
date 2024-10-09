@@ -251,20 +251,6 @@ elseif (CX_PLATFORM STREQUAL "darwin")
 endif()
 
 include(GNUInstallDirs)
-set(include_dest ${CMAKE_INSTALL_INCLUDEDIR})
-
-if(BUILD_SHARED_LIBS)
-    target_include_directories(msquic PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-else()
-    target_include_directories(msquic_static INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-    target_include_directories(msquic INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-endif()
 
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
