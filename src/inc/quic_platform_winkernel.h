@@ -476,56 +476,122 @@ _CxPlatEventWaitWithTimeout(
 // Event Queue Interfaces
 //
 
-typedef KEVENT CXPLAT_EVENTQ; // Event queue
-typedef void* CXPLAT_CQE;
+typedef struct CXPLAT_EVENTQ {
+    CXPLAT_LOCK Lock;
+    LIST_ENTRY Events;
+    CXPLAT_EVENT EventsAvailable;
+} CXPLAT_EVENTQ;
 
+typedef struct CXPLAT_CQE {
+    void* UserData;
+} CXPLAT_CQE;
+
+#define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
+typedef struct CXPLAT_SQE {
+    LIST_ENTRY Link;
+    void* UserData;
+    //int Overlapped; // Used as the completion context to platform IO routines.
+    BOOLEAN IsQueued; // Prevent double queueing.
+} CXPLAT_SQE;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
+    CxPlatLockInitialize(&queue->Lock);
+    InitializeListHead(&queue->Events);
+    CxPlatEventInitialize(&queue->EventsAvailable, TRUE, FALSE);
     return TRUE;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    UNREFERENCED_PARAMETER(queue);
+    CxPlatEventUninitialize(queue->EventsAvailable);
+    CXPLAT_DBG_ASSERT(IsListEmpty(&queue->Events));
+    CxPlatLockUninitialize(&queue->Lock);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
-_CxPlatEventQEnqueue(
+CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
     _In_opt_ void* user_data
     )
 {
-    UNREFERENCED_PARAMETER(user_data);
-    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
+    CxPlatLockAcquire(&queue->Lock);
+
+    if (sqe->IsQueued) {
+        CxPlatLockRelease(&queue->Lock);
+        return TRUE;
+    }
+
+    sqe->IsQueued = TRUE;
+    sqe->UserData = user_data;
+    BOOLEAN SignalEvent = IsListEmpty(&queue->Events);
+    InsertTailList(&queue->Events, &sqe->Link);
+
+    CxPlatLockRelease(&queue->Lock);
+
+    if (SignalEvent) {
+        CxPlatEventSet(queue->EventsAvailable);
+    }
+
     return TRUE;
 }
 
-#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
-
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
+    _Out_writes_to_(count, return) CXPLAT_CQE* events,
     _In_ uint32_t count,
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    UNREFERENCED_PARAMETER(count);
-    *events = NULL;
-    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+    CxPlatEventReset(queue->EventsAvailable);
+    CxPlatLockAcquire(&queue->Lock);
+
+    if (IsListEmpty(&queue->Events)) {
+        CxPlatLockRelease(&queue->Lock);
+        if (wait_time == 0) {
+            return 0;
+        } else if (wait_time == UINT32_MAX) {
+            CxPlatEventWaitForever(queue->EventsAvailable);
+        } else {
+            CxPlatEventWaitWithTimeout(queue->EventsAvailable, wait_time);
+        }
+        CxPlatLockAcquire(&queue->Lock);
+    }
+
+    uint32_t EventsDequeued = 0;
+    while (EventsDequeued < count && !IsListEmpty(&queue->Events)) {
+        CXPLAT_SQE* Sqe =
+            CXPLAT_CONTAINING_RECORD(
+                RemoveHeadList(&queue->Events), CXPLAT_SQE, Link);
+        events[EventsDequeued++].UserData = Sqe->UserData;
+
+        CXPLAT_DBG_ASSERT(Sqe->IsQueued);
+        Sqe->IsQueued = FALSE;
+    }
+
+    CxPlatLockRelease(&queue->Lock);
+
+    return EventsDequeued;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQReturn(
@@ -543,7 +609,7 @@ CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return *cqe;
+    return cqe->UserData;
 }
 
 //

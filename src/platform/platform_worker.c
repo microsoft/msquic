@@ -143,7 +143,7 @@ CxPlatWorkerPoolLazyStart(
     CXPLAT_DBG_ASSERT(WorkerPool->WorkerCount > 0 && WorkerPool->WorkerCount <= UINT16_MAX);
 
     const size_t WorkersSize = sizeof(CXPLAT_WORKER) * WorkerPool->WorkerCount;
-    WorkerPool->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
+    WorkerPool->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_NONPAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
     if (WorkerPool->Workers == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -318,6 +318,8 @@ CxPlatWorkerPoolUninit(
     CxPlatLockUninitialize(&WorkerPool->WorkerLock);
 }
 
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
 #define DYNAMIC_POOL_PRUNE_COUNT        8
 
@@ -380,6 +382,8 @@ CxPlatProcessDynamicPoolAllocators(
     CxPlatLockRelease(&Worker->ECLock);
 }
 
+#endif // _KERNEL_MODE
+
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ const CXPLAT_WORKER_POOL* WorkerPool,
@@ -391,6 +395,7 @@ CxPlatWorkerPoolGetEventQ(
     return &WorkerPool->Workers[Index].EventQ;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -417,6 +422,7 @@ CxPlatAddExecutionContext(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
@@ -428,6 +434,7 @@ CxPlatWakeExecutionContext(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
@@ -449,6 +456,7 @@ CxPlatUpdateExecutionContexts(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatRunExecutionContexts(
     _In_ CXPLAT_WORKER* Worker,
@@ -506,6 +514,7 @@ CxPlatRunExecutionContexts(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatProcessEvents(
     _In_ CXPLAT_WORKER* Worker,
@@ -590,10 +599,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             State.NoWorkCount = 0;
         }
 
+#ifndef _KERNEL_MODE // Unnecessary on kernel mode
         if (State.TimeNow - State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
             CxPlatProcessDynamicPoolAllocators(Worker);
             State.LastPoolProcessTime = State.TimeNow;
         }
+#endif // _KERNEL_MODE
     }
 
 Shutdown:
