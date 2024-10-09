@@ -455,6 +455,7 @@ typedef KEVENT CXPLAT_EVENT;
 #define CxPlatEventUninitialize(Event) UNREFERENCED_PARAMETER(Event)
 #define CxPlatEventSet(Event) KeSetEvent(&(Event), IO_NO_INCREMENT, FALSE)
 #define CxPlatEventReset(Event) KeResetEvent(&(Event))
+#define CxPlatEventClear(Event) KeClearEvent(&(Event))
 #define CxPlatEventWaitForever(Event) \
     KeWaitForSingleObject(&(Event), Executive, KernelMode, FALSE, NULL)
 inline
@@ -559,10 +560,10 @@ CxPlatEventQDequeue(
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    CxPlatEventReset(queue->EventsAvailable);
     CxPlatLockAcquire(&queue->Lock);
 
     if (IsListEmpty(&queue->Events)) {
+        CxPlatEventClear(queue->EventsAvailable);
         CxPlatLockRelease(&queue->Lock);
         if (wait_time == 0) {
             return 0;
