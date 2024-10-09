@@ -436,11 +436,13 @@ typedef struct CXPLAT_WORKER_POOL {
 
 } CXPLAT_WORKER_POOL;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
