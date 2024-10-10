@@ -536,7 +536,7 @@ function Invoke-Secnetperf {
         $tcpSupported = 0
     }
     $metric = "throughput"
-    if ($exeArgs.Contains("conns:2cpu")) {
+    if ($exeArgs.Contains("conns:16cpu")) { # TODO: figure out a better way to detect max RPS tests
         $metric = "rps"
     } elseif ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
