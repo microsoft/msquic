@@ -118,6 +118,7 @@ RawSocketCreateUdp(
     NewSocket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     NewSocket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
     NewSocket->AuxSocket = INVALID_SOCKET;
+    NewSocket->ServerOwned = !!(Config->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     NewSocket->UseTcp = Raw->UseTcp;
     if (Config->CibirIdLength) {
         memcpy(NewSocket->CibirId, Config->CibirId, Config->CibirIdLength);
