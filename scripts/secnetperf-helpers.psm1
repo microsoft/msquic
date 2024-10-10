@@ -6,6 +6,13 @@
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+
+$psVersion = $PSVersionTable.PSVersion
+if ($psVersion.Major -lt 7) {
+    $isWindows = $true
+}
+
+
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
 
@@ -131,11 +138,21 @@ function Install-XDP {
     $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath
+    whoami
+    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
+    $Size = Get-FileHash $msiPath
+    Write-Host "MSI file hash: $Size"
     Wait-DriverStarted "xdp" 10000
     Write-Host "Installing XDP driver on peer"
+
+    if ($Session -eq "NOT_SUPPORTED") {
+        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfWaitServerFinishExecution
+        return
+    }
+
     $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
     $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
@@ -169,6 +186,13 @@ function Install-Kernel {
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
     Write-Host "Installing msquicpriv on peer"
+
+    if ($Session -eq "NOT_SUPPORTED") {
+        NetperfSendCommand "Install_Kernel"
+        NetperfWaitServerFinishExecution
+        return
+    }
+
     Invoke-Command -Session $Session -ScriptBlock {
         if (!(Test-Path $Using:remoteSysPath)) { throw "msquicpriv.sys not found!" }
         sc.exe create "msquicpriv" type= kernel binpath= $Using:remoteSysPath start= demand | Out-Null
@@ -209,7 +233,7 @@ function Cleanup-State {
     Invoke-Command -Session $Session -ScriptBlock {
         if ($null -ne (Get-Process | Where-Object { $_.Name -eq "secnetperf" })) { throw "secnetperf still running remotely!" }
     }
-    if ($IsWindows) {
+    if ($isWindows) {
         Uninstall-Kernel $Session | Out-Null
         Uninstall-XDP $Session $RemoteDir | Out-Null
         if ($null -ne (Get-Service xdp -ErrorAction Ignore)) { throw "xdp still running!" }
@@ -285,67 +309,8 @@ function Start-RemoteServer {
 
 # Passively starts the server on the remote machine by queuing up a new script to execute.
 function Start-RemoteServerPassive {
-    param ($Session, $Command, $RemoteStateDir, $RunId, $SyncerSecret)
-    if ($Session -eq "NOT_SUPPORTED") {
-        Write-Host "Command to start server: $Command"
-        $headers = @{
-            "secret" = "$SyncerSecret"
-        }
-        $url = "https://netperfapiwebapp.azurewebsites.net"
-        try {
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
-        } catch {
-            Write-Host "Unable to fetch state. Creating a new one now."
-            $state = [pscustomobject]@{
-                value=[pscustomobject]@{
-                "SeqNum" = 0
-                "Commands" = @($Command)
-            }}
-            $StateJson = $state | ConvertTo-Json
-            $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
-            if ($Response.StatusCode -ne 200) {
-                Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-                throw "Failed to set the key value!"
-            }
-            return
-        }
-        $CurrState = $Response.Content | ConvertFrom-Json
-        $CurrState.Commands += $Command
-        $CurrState = [pscustomobject]@{
-            value=$CurrState
-        }
-        $StateJson = $CurrState | ConvertTo-Json
-        $Response = Invoke-WebRequest -Uri "$url/setkeyvalue?key=$RunId" -Headers $headers -Method Post -Body $StateJson -ContentType "application/json"
-        if ($Response.StatusCode -ne 200) {
-            Write-GHError "[Start-Remote-Passive] Failed to set the key value!"
-            throw "Failed to set the key value!"
-        }
-        return
-    }
-
-    Invoke-Command -Session $Session -ScriptBlock {
-        if (!(Test-Path $Using:RemoteStateDir)) {
-            New-Item -ItemType Directory $Using:RemoteStateDir | Out-Null
-        }
-        # Fetch all files names inside the directory
-        $files = Get-ChildItem $Using:RemoteStateDir
-        # Find the highest lexicographically sorted file name
-        $max = 0
-        foreach ($file in $files) {
-            # Remove .ps1 extension from file.Name
-            $filename = $file.Name.split(".")[0]
-            $num = [int]($filename -replace "[^0-9]", "")
-            if ($num -gt $max) {
-                $max = $num
-            }
-        }
-        $newmax = $max + 1
-        # Create a new file with the next number
-        Write-Host "Creating new file execute_$newmax.ps1"
-        New-Item -ItemType File (Join-Path $Using:RemoteStateDir ("execute_$newmax.ps1")) | Out-Null
-        $newFile = Join-Path $Using:RemoteStateDir ("execute_$newmax.ps1")
-        Set-Content -Path $newFile -Value $Using:Command
-    }
+    param ($Command)
+    NetperfSendCommand $Command
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
@@ -371,65 +336,6 @@ function Stop-RemoteServer {
     return $RemoteResult -join "`n"
 }
 
-function Stop-RemoteServerAsyncAwait {
-    param ($Session, $RemoteStateDir, $RemoteAddress, $RunId, $SyncerSecret)
-    # Ping side-channel socket on 9999 to tell the app to die
-    $Socket = New-Object System.Net.Sockets.UDPClient
-    $BytesToSend = @(
-        0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
-        0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
-    )
-    if ($Session -eq "NOT_SUPPORTED") {
-        for ($i = 0; $i -lt 30; $i++) {
-            $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-            Start-Sleep -Seconds 8 | Out-Null
-            $headers = @{
-                "secret" = "$SyncerSecret"
-            }
-            $url = "https://netperfapiwebapp.azurewebsites.net"
-            $Response = Invoke-WebRequest -Uri "$url/getkeyvalue?key=$RunId" -Headers $headers
-            if (!($Response.StatusCode -eq 200)) {
-                Write-GHError "[Stop-Remote-Passive] Failed to get the key value!"
-                throw "Failed to get the key value!"
-            }
-            $CurrState = $Response.Content | ConvertFrom-Json
-            if ($CurrState.SeqNum -eq $CurrState.Commands.Count) {
-                return
-            }
-        }
-        Write-GHError "[Stop-Remote-Passive] SeqNum less than Commands Count!"
-        throw "Unable to stop the remote server in time!"
-    }
-    $done = $false
-    $MaxSeqNum = 0
-    for ($i = 0; $i -lt 30; $i++) {
-        $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteAddress, 9999) | Out-Null
-        Start-Sleep -Seconds 5 | Out-Null
-        $files = Invoke-Command -Session $Session -ScriptBlock { Get-ChildItem $Using:RemoteStateDir }
-        foreach ($file in $files) {
-            $filename = $file.Name.split(".")[0]
-            $num = [int]($filename -replace "[^0-9]", "")
-            if ($num -gt $MaxSeqNum) {
-                $MaxSeqNum = $num
-            }
-        }
-        # Check if completed_<MaxSeqNum>.txt exists
-        foreach ($file in $files) {
-            if ($file.Name -eq "completed_$MaxSeqNum.txt") {
-                $done = $true
-                break
-            }
-        }
-        if ($done) {
-            break
-        }
-    }
-    if (!$done) {
-        Write-GHError "[Stop-Remote-Passive] Unable to find a corresponding 'completed_$MaxSeqNum' file!"
-        throw "Unable to stop the remote server in time!"
-    }
-}
-
 function Wait-StartRemoteServerPassive {
     param ($FullPath, $RemoteName, $OutputDir, $UseSudo)
 
@@ -452,7 +358,7 @@ function Wait-StartRemoteServerPassive {
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-    if ($IsWindows) {
+    if ($isWindows) {
         $pinfo.FileName = $FullPath
         $pinfo.Arguments = $FullArgs
     } else {
@@ -563,7 +469,7 @@ function Check-TestFilter {
 # Parses the console output of secnetperf to extract the metric value.
 function Get-TestOutput {
     param ($Output, $Metric)
-    if ($Metric -eq "latency") {
+    if ($Metric -eq "latency" -or $Metric -eq "rps") {
         $latency_percentiles = "(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+"
         $RPS_regex = "(?<=Result: )\d+"
         $percentiles = [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
@@ -624,9 +530,15 @@ function Invoke-Secnetperf {
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    $tcpSupported = ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") ? 1 : 0
+    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+        $tcpSupported = 1
+    } else {
+        $tcpSupported = 0
+    }
     $metric = "throughput"
-    if ($exeArgs.Contains("plat:1")) {
+    if ($exeArgs.Contains("conns:16cpu")) { # TODO: figure out a better way to detect max RPS tests
+        $metric = "rps"
+    } elseif ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
@@ -668,16 +580,14 @@ function Invoke-Secnetperf {
         continue
     }
 
-    # These scenarios are currently broken! TODO - Figure out why and fix them.
-    if ($io -eq "wsk" -and $metric -eq "hps") {
-        Write-Host "> secnetperf $clientArgs BROKEN!"
-        continue
-    }
-
      # Linux XDP requires sudo for now
-    $useSudo = (!$IsWindows -and $io -eq "xdp")
+    $useSudo = (!$isWindows -and $io -eq "xdp")
 
-    $artifactName = $tcp -eq 0 ? "$TestId-quic" : "$TestId-tcp"
+    if ($tcp -eq 0) {
+        $artifactName = "$TestId-quic"
+    } else {
+        $artifactName = "$TestId-tcp"
+    }
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
     $remoteArtifactDir = "$RemoteDir/artifacts/logs/$artifactName"
@@ -709,11 +619,11 @@ function Invoke-Secnetperf {
     "> secnetperf $serverArgs" | Add-Content $serverOut
 
     $StateDir = "C:/_state"
-    if (!$IsWindows) {
+    if (!$isWindows) {
         $StateDir = "/etc/_state"
     }
-    if ($Environment -eq "azure") {
-        Start-RemoteServerPassive $Session "$RemoteDir/$SecNetPerfPath $serverArgs" $StateDir $RunId $SyncerSecret
+    if ($Session -eq "NOT_SUPPORTED") {
+        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
@@ -756,14 +666,22 @@ function Invoke-Secnetperf {
         $testFailures = $true
     } finally {
         # Stop the server.
-        if ($Environment -eq "azure") {
-            Stop-RemoteServerAsyncAwait $Session $StateDir $RemoteName $RunId $SyncerSecret
+        if ($Session -eq "NOT_SUPPORTED") {
+            NetperfWaitServerFinishExecution -UnblockRoutine {
+                $Socket = New-Object System.Net.Sockets.UDPClient
+                $BytesToSend = @(
+                    0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
+                    0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c
+                )
+                $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
+                Write-Host "Sent special UDP packet to tell the server to die."
+            }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
-        if ($LogProfile -ne "" -and $LogProfile -ne "NULL") {
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and $Session -ne "NOT_SUPPORTED") {
             try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
             catch { Write-Host "Failed to stop logging on client!" }
             Invoke-Command -Session $Session -ScriptBlock {
@@ -775,11 +693,12 @@ function Invoke-Secnetperf {
         }
 
         # Grab any crash dumps that were generated.
-        if (Collect-LocalDumps $artifactDir) { }
-        if (Collect-RemoteDumps $Session $artifactDir) {
-            Write-GHError "Dump file(s) generated by server"
+        if ($Session -ne "NOT_SUPPORTED") {
+            if (Collect-LocalDumps $artifactDir) { }
+            if (Collect-RemoteDumps $Session $artifactDir) {
+                Write-GHError "Dump file(s) generated by server"
+            }
         }
-
         Write-Host "::endgroup::"
         if ($testFailures) {
             $hasFailures = $true

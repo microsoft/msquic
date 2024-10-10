@@ -17,7 +17,7 @@ TRACEPOINT_EVENT(CLOG_SEND_BUFFER_C, IndicateIdealSendBuffer,
         const void *, arg1,
         unsigned long long, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
     )
 )

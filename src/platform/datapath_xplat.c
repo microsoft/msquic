@@ -21,6 +21,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -36,6 +37,7 @@ CxPlatDataPathInitialize(
             ClientRecvContextLength,
             UdpCallbacks,
             TcpCallbacks,
+            WorkerPool,
             Config,
             NewDataPath);
     if (QUIC_FAILED(Status)) {
@@ -51,13 +53,15 @@ CxPlatDataPathInitialize(
                 ClientRecvContextLength,
                 Config,
                 (*NewDataPath),
+                WorkerPool,
                 &((*NewDataPath)->RawDataPath));
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
                 RawDatapathInitFail,
                 "[ raw] Failed to initialize raw datapath, status:%d", Status);
-            Status = QUIC_STATUS_SUCCESS;
             (*NewDataPath)->RawDataPath = NULL;
+            CxPlatDataPathUninitialize(*NewDataPath);
+            *NewDataPath = NULL;
         }
     }
 
@@ -248,6 +252,15 @@ CxPlatSocketGetRemoteAddress(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    return Socket->RawSocketAvailable;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
@@ -340,18 +353,19 @@ CxPlatSendDataIsFull(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
-        SocketSend(Socket, Route, SendData) : RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
+        SocketSend(Socket, Route, SendData);
+     } else {
+        CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+        RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

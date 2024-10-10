@@ -11,6 +11,7 @@ on:
     - scripts/secnetperf.ps1
     - scripts/secnetperf-helpers.psm1
     - scripts/prepare-machine.ps1
+    - scripts/xdp.json
     - src/bin/**
     - src/core/**
     - src/platform/**
@@ -27,6 +28,7 @@ on:
     - scripts/secnetperf.ps1
     - scripts/secnetperf-helpers.psm1
     - scripts/prepare-machine.ps1
+    - scripts/xdp.json
     - src/bin/**
     - src/core/**
     - src/platform/**

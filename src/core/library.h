@@ -281,6 +281,11 @@ typedef struct QUIC_LIBRARY {
     uint64_t PerfCounterSamplesTime;
     int64_t PerfCounterSamples[QUIC_PERF_COUNTER_MAX];
 
+    //
+    // The worker pool
+    //
+    CXPLAT_WORKER_POOL WorkerPool;
+
 } QUIC_LIBRARY;
 
 extern QUIC_LIBRARY MsQuicLib;

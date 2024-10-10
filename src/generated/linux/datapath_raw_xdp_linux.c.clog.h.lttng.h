@@ -72,7 +72,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, InterfaceFree,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -94,8 +94,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, QueueFree,
         const void *, arg2,
         const void *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -306,7 +306,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpInitialize,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -329,7 +329,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpWorkerStart,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -349,7 +349,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpRelease,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -368,7 +368,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitializeComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -387,7 +387,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpUninitialize,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -558,7 +558,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -577,7 +577,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -596,7 +596,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 

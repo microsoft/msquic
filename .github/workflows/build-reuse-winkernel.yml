@@ -58,7 +58,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
       with:
         repository: microsoft/msquic
         ref: ${{ inputs.ref }}
@@ -88,7 +88,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts
