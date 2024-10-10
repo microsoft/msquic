@@ -149,7 +149,7 @@ PerfClient::Init(
             RepeatStreams = TRUE;
             PrintLatency = TRUE;
         } else {
-            WriteOutput("Failed to parse scenario profile[%s]!\n");
+            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }

@@ -215,7 +215,7 @@ QuicMainStart(
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
             TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
         } else {
-            WriteOutput("Failed to parse scenario profile[%s]!\n");
+            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
@@ -233,7 +233,7 @@ QuicMainStart(
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s]!\n");
+            WriteOutput("Failed to parse execution profile[%s]!\n", ExecStr);
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
