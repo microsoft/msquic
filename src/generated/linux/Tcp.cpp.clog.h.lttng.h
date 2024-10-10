@@ -14,7 +14,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateClient,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -33,7 +33,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpCreateServer,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -52,7 +52,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpDestroyed,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -74,7 +74,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpConnectCallback,
         const void *, arg2,
         unsigned char, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
@@ -94,7 +94,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpReceiveCallback,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -102,18 +102,22 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpReceiveCallback,
 
 /*----------------------------------------------------------
 // Decoder Ring for PerfTcpSendCompleteCallback
-// [perf][tcp][%p] SendComplete callback
+// [perf][tcp][%p] SendComplete callback, %u
 // QuicTraceLogVerbose(
         PerfTcpSendCompleteCallback,
-        "[perf][tcp][%p] SendComplete callback",
-        This);
+        "[perf][tcp][%p] SendComplete callback, %u",
+        This,
+        (uint32_t)Status);
 // arg2 = arg2 = This = arg2
+// arg3 = arg3 = (uint32_t)Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendCompleteCallback,
     TP_ARGS(
-        const void *, arg2), 
+        const void *, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -132,7 +136,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppAccept,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -151,7 +155,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpStartTls,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -170,7 +174,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppConnect,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -189,7 +193,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppDisconnect,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -220,7 +224,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppReceive,
         unsigned char, arg5,
         unsigned char, arg6), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -255,7 +259,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpSendFrame,
         unsigned char, arg5,
         unsigned char, arg6), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -281,7 +285,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSendComplete,
         const void *, arg2,
         unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
     )
 )
@@ -313,7 +317,7 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppSend,
         unsigned char, arg5,
         unsigned char, arg6), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -336,6 +340,6 @@ TRACEPOINT_EVENT(CLOG_TCP_CPP, PerfTcpAppClose,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )

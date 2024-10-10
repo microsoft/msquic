@@ -1,0 +1,90 @@
+name: Alpine Linux Packages
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+    - main
+    - release/*
+  pull_request:
+    branches:
+    - main
+    - release/*
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: package-alpine-linux-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+jobs:
+  build-alpine-packages:
+    name: Generate Alpine Packages
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
+          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm64v8" },
+          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
+          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm32v7" },
+        ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Generate APKBUILD
+      shell: pwsh
+      run: |
+        ./scripts/generate-alpine-packaging-file.ps1 -ArchiveUri https://github.com/${{ github.repository }}/archive/${{ github.sha }}.tar.gz -SHA ${{ github.sha }}
+        mkdir -p packages
+    - name: Docker Run and Build Package
+      run: |
+        docker run \
+                -v $(pwd)/packages:/artifacts \
+                -v $(pwd):/msquic \
+                ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
+    - name: Upload Package
+      uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
+      with:
+        name: ${{ matrix.vec.friendlyName }}-package
+        path: packages/*.apk
+
+  test-packages-on-docker:
+    name: Test Linux Packages
+    needs: [build-alpine-packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm64v8", dotnetVersion: "9.0" },
+          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
+          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm32v7", dotnetVersion: "9.0" },
+        ]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@d632683dd7b4114ad314bca15554477dd762a938
+    - name: Download Package
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: ${{ matrix.vec.friendlyName }}-package
+        path: artifacts
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Set up .NET 9.0
+      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
+      with:
+        dotnet-version: ${{ matrix.vec.dotnetVersion }}
+    - name: Build .NET QUIC Test Project
+      run: |
+        pushd src/cs/QuicSimpleTest && dotnet build QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -a ${{ matrix.vec.arch }} -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} && popd
+    - name: Docker Run
+      run: |
+        docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}

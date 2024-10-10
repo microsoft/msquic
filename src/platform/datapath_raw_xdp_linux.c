@@ -332,7 +332,7 @@ static uint64_t XskUmemFrameAlloc(struct XskSocketInfo *Xsk)
     if (Xsk->UmemFrameFree == 0) {
         QuicTraceLogVerbose(
             XdpUmemAllocFails,
-            "[ xdp][umem] Out of UMEM frame, OOM");        
+            "[ xdp][umem] Out of UMEM frame, OOM");
         return INVALID_UMEM_FRAME;
     }
     Frame = Xsk->UmemFrameAddr[--Xsk->UmemFrameFree];
@@ -672,11 +672,16 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
@@ -684,8 +689,14 @@ CxPlatDpRawInitialize(
 
     if (Config && Config->ProcessorCount) {
         Xdp->PartitionCount = Config->ProcessorCount;
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = Config->ProcessorList[i];
+        }
     } else {
         Xdp->PartitionCount = CxPlatProcCount();
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = (uint16_t)i;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -791,7 +802,7 @@ CxPlatDpRawInitialize(
         Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_XDP_SHUTDOWN;
         CxPlatRefIncrement(&Xdp->RefCount);
         CxPlatRundownAcquire(&Xdp->Rundown);
-        Partition->EventQ = CxPlatWorkerGetEventQ((uint16_t)i);
+        Partition->EventQ = CxPlatWorkerPoolGetEventQ(WorkerPool, (uint16_t)i);
 
         if (!CxPlatSqeInitialize(
                 Partition->EventQ,
@@ -833,7 +844,7 @@ CxPlatDpRawInitialize(
             Partition,
             QueueCount);
 
-        CxPlatAddExecutionContext(&Partition->Ec, Partition->PartitionIndex);
+        CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
 
 Error:

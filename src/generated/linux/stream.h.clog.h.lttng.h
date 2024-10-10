@@ -17,7 +17,7 @@ TRACEPOINT_EVENT(CLOG_STREAM_H, StreamOutFlowBlocked,
         const void *, arg2,
         unsigned char, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
     )
 )

@@ -21,6 +21,11 @@ extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 extern QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 
+#ifndef MAX_PATH
+#define MAX_PATH 260
+#endif
+extern char CurrentWorkingDirectory[MAX_PATH + 1];
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -46,6 +51,7 @@ void QuicTestConfigurationParam();
 void QuicTestListenerParam();
 void QuicTestConnectionParam();
 void QuicTestTlsParam();
+void QuicTestTlsHandshakeInfo(_In_ bool EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
@@ -571,12 +577,20 @@ QuicTestStreamReliableResetMultipleSends(
     );
 
 void
+QuicTestStreamMultiReceive(
+    );
+
+void
 QuicTestStreamBlockUnblockConnFlowControl(
     _In_ BOOLEAN Bidirectional
     );
 
 void
 QuicTestOperationPriority(
+    );
+
+void
+QuicTestConnectionPriority(
     );
 
 void
@@ -698,6 +712,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 typedef struct {
     BOOLEAN UseDuoNic;
+    char CurrentDirectory[MAX_PATH];
 } QUIC_TEST_CONFIGURATION_PARAMS;
 
 #define IOCTL_QUIC_TEST_CONFIGURATION \
@@ -1305,4 +1320,14 @@ typedef struct {
 #define IOCTL_QUIC_RUN_OPERATION_PRIORITY \
     QUIC_CTL_CODE(122, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 122
+#define IOCTL_QUIC_RUN_CONNECTION_PRIORITY \
+    QUIC_CTL_CODE(123, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
+    QUIC_CTL_CODE(124, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO \
+    QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // BOOLEAN - EnableResumption
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 125

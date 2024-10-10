@@ -84,6 +84,21 @@ namespace QuicTrace.Tables
                 new ColumnMetadata(new Guid("{D0612FB2-4243-4C13-9164-5D55837F7E04}"), "Type"),
                 new UIHints { AggregationMode = AggregationMode.UniqueCount });
 
+        private static readonly ColumnConfiguration processIdColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{73bf47c1-a87e-473e-8337-dfc8442da9bb}"), "Process (ID)"),
+                new UIHints { AggregationMode = AggregationMode.Max });
+
+        private static readonly ColumnConfiguration threadIdColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{b58d4999-21b8-4462-8dd7-6bf483d45b15}"), "ThreadId"),
+                new UIHints { AggregationMode = AggregationMode.Max });
+
+        private static readonly ColumnConfiguration cpuColumnConfig =
+            new ColumnConfiguration(
+                new ColumnMetadata(new Guid("{48ab57b9-e0df-4068-856a-a2c2ffdfa8f3}"), "CPU"),
+                new UIHints { AggregationMode = AggregationMode.Sum });
+
         private static readonly ColumnConfiguration countColumnConfig =
             new ColumnConfiguration(
                 new ColumnMetadata(new Guid("{9583D245-BD70-4BA3-A249-088F0D6C0D8C}"), "Count"),
@@ -102,6 +117,9 @@ namespace QuicTrace.Tables
                      typeColumnConfig,
                      TableConfiguration.PivotColumn,
                      TableConfiguration.LeftFreezeColumn,
+                     processIdColumnConfig,
+                     threadIdColumnConfig,
+                     cpuColumnConfig,
                      timeColumnConfig,
                      TableConfiguration.RightFreezeColumn,
                      TableConfiguration.GraphColumn,
@@ -123,6 +141,9 @@ namespace QuicTrace.Tables
             var dataProjection = Projection.Index(events);
 
             table.AddColumn(typeColumnConfig, dataProjection.Compose(ProjectType));
+            table.AddColumn(processIdColumnConfig, dataProjection.Compose(ProjectProcessId));
+            table.AddColumn(threadIdColumnConfig, dataProjection.Compose(ProjectThreadId));
+            table.AddColumn(cpuColumnConfig, dataProjection.Compose(ProjectCpu));
             table.AddColumn(countColumnConfig, Projection.Constant<uint>(1));
             table.AddColumn(timeColumnConfig, dataProjection.Compose(ProjectTime));
 
@@ -137,6 +158,21 @@ namespace QuicTrace.Tables
         private static string ProjectType(QuicEvent evt)
         {
             return evt.EventId == QuicEventId.StreamCreated ? "Stream Create" : "Stream Destroy";
+        }
+
+        private static uint ProjectProcessId(QuicEvent evt)
+        {
+            return evt.ProcessId;
+        }
+
+        private static uint ProjectThreadId(QuicEvent evt)
+        {
+            return evt.ThreadId;
+        }
+
+        private static ushort ProjectCpu(QuicEvent evt)
+        {
+            return evt.Processor;
         }
 
         private static Timestamp ProjectTime(QuicEvent evt)

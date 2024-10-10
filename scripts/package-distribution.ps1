@@ -6,6 +6,11 @@
 
 #>
 
+param (
+    [Parameter(Mandatory = $false)]
+    [switch]$Time64Distro = $false
+)
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
@@ -19,7 +24,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.4.0"
+$Version = "2.5.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -115,6 +120,15 @@ foreach ($Build in $AllBuilds) {
         $Libraries += Join-Path $ArtifactsDir "msquic.lib"
     }
 
+    # if datapath_raw_xdp_kern.o exists under $ArtifactsDir, $UseXdp to be true
+    $UseXdp = $false
+    if ($Platform -eq "linux") {
+        $XdpBin = Join-Path $ArtifactsDir "datapath_raw_xdp_kern.o"
+        if (Test-Path $XdpBin) {
+            $UseXdp = $true
+        }
+    }
+
     # Copy items into temp folder that can be zipped in 1 command
 
     $IncludeDir = Join-Path $TempDir "include"
@@ -167,12 +181,13 @@ foreach ($Build in $AllBuilds) {
         if ($BuildBaseName -like "*openssl3*") {
             $Tls = "openssl3"
         }
+
         if ($BuildBaseName -like "*arm64_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } elseif ($BuildBaseName -like "*arm_*") {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls
+            & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm --tls $Tls --xdp $UseXdp --time64 $Time64Distro
         } else {
-            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls # x64
+            & $RootDir/scripts/make-packages.sh --output $DistDir --tls $Tls --xdp $UseXdp --time64 $Time64Distro # x64
         }
         Set-Location $OldLoc
     }

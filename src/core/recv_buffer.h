@@ -69,6 +69,12 @@ typedef struct QUIC_RECV_BUFFER {
     uint32_t VirtualBufferLength;
 
     //
+    // Basically same as Chunk->AllocLength of first chunk, but start shrinking
+    // by drain operation after next chunk is allocated.
+    //
+    uint32_t Capacity;
+
+    //
     // Controls the behavior of the buffer, which changes the logic for
     // writing, reading and draining.
     //

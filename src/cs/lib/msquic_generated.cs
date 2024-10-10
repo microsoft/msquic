@@ -216,6 +216,8 @@ namespace Microsoft.Quic
         QTIP = 0x0001,
         RIO = 0x0002,
         XDP = 0x0004,
+        NO_IDEAL_PROC = 0x0008,
+        HIGH_PRIORITY = 0x0010,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
@@ -1349,6 +1351,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong StreamMultiReceiveEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.StreamMultiReceiveEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.StreamMultiReceiveEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -1965,17 +1980,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 22")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong StreamMultiReceiveEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 42) & 0x3FFFFFUL;
+                        return (_bitfield >> 42) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFUL << 42)) | ((value & 0x3FFFFFUL) << 42);
+                        _bitfield = (_bitfield & ~(0x1UL << 42)) | ((value & 0x1UL) << 42);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 21")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 43) & 0x1FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFUL << 43)) | ((value & 0x1FFFFFUL) << 43);
                     }
                 }
             }
@@ -2066,17 +2095,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 59")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong StreamMultiReceiveEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 5) & 0x7FFFFFFUL;
+                        return (_bitfield >> 5) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x7FFFFFFUL << 5)) | ((value & 0x7FFFFFFUL) << 5);
+                        _bitfield = (_bitfield & ~(0x1UL << 5)) | ((value & 0x1UL) << 5);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 58")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 6) & 0x3FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 6)) | ((value & 0x3FFFFFFUL) << 6);
                     }
                 }
             }

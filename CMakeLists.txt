@@ -56,7 +56,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.4.0)
+set(QUIC_FULL_VERSION 2.5.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -85,6 +85,7 @@ option(QUIC_BUILD_PERF "Builds the perf code" OFF)
 option(QUIC_BUILD_SHARED "Builds msquic as a dynamic library" ON)
 option(QUIC_ENABLE_LOGGING "Enables logging" OFF)
 option(QUIC_ENABLE_SANITIZERS "Enables sanitizers" OFF)
+option(QUIC_ENABLE_POOL_ALLOC "Enables pool allocations" ON)
 option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_STATIC_LINK_PARTIAL_CRT "Statically links the compiler-specific portion of the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
@@ -311,6 +312,9 @@ else()
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
+            list(APPEND QUIC_WARNING_FLAGS -Wno-invalid-unevaluated-string)
+        endif()
     endif()
 endif()
 
@@ -329,7 +333,7 @@ if(QUIC_HIGH_RES_TIMERS)
     list(APPEND QUIC_COMMON_DEFINES QUIC_HIGH_RES_TIMERS=1)
 endif()
 
-if (QUIC_ENABLE_SANITIZERS)
+if (QUIC_ENABLE_SANITIZERS OR NOT QUIC_ENABLE_POOL_ALLOC)
     list(APPEND QUIC_COMMON_DEFINES DISABLE_CXPLAT_POOL=1)
 endif()
 
@@ -687,38 +691,50 @@ if(QUIC_CODE_CHECK)
             -android-cloexec-fopen
             -android-cloexec-socket
             -bugprone-assignment-in-if-condition
+            -bugprone-casting-through-void
             -bugprone-easily-swappable-parameters
             -bugprone-implicit-widening-of-multiplication-result
             -bugprone-macro-parentheses
+            -bugprone-multi-level-implicit-pointer-conversion
             -bugprone-narrowing-conversions
             -bugprone-reserved-identifier
             -bugprone-sizeof-expression
+            -bugprone-switch-missing-default-case
             -cert-dcl37-c
             -cert-dcl51-cpp
             -cert-err33-c
+            -clang-analyzer-optin.core.EnumCastOutOfRange
             -clang-analyzer-security.insecureAPI.DeprecatedOrUnsafeBufferHandling
+            -clang-diagnostic-invalid-unevaluated-string
             -clang-diagnostic-microsoft-anon-tag
             -concurrency-mt-unsafe
             -cppcoreguidelines-avoid-magic-numbers
             -cppcoreguidelines-avoid-non-const-global-variables
             -cppcoreguidelines-init-variables
+            -cppcoreguidelines-macro-to-enum
             -cppcoreguidelines-narrowing-conversions
+            -google-readability-casting
             -google-readability-function-size
             -google-readability-todo
             -hicpp-function-size
             -hicpp-no-assembler
             -hicpp-signed-bitwise
             -llvmlibc-restrict-system-libc-headers
+            -misc-include-cleaner
             -misc-no-recursion # do you really need recursion?
+            -misc-header-include-cycle
             -modernize-macro-to-enum
             -readability-avoid-const-params-in-decls
+            -readability-avoid-nested-conditional-operator
             -readability-duplicate-include
             -readability-function-cognitive-complexity
             -readability-function-size
             -readability-identifier-length
+            -readability-identifier-naming
             -readability-isolate-declaration
             -readability-magic-numbers
             -readability-non-const-parameter
+            -readability-redundant-casting
         )
         string(REPLACE ";" "," CLANG_TIDY_CHECKS "${CLANG_TIDY_CHECKS}")
         set(CMAKE_C_CLANG_TIDY_AVAILABLE ${CLANGTIDY} -checks=${CLANG_TIDY_CHECKS}
