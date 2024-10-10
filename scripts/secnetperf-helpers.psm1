@@ -524,7 +524,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
@@ -536,26 +536,25 @@ function Invoke-Secnetperf {
         $tcpSupported = 0
     }
     $metric = "throughput"
-    if ($exeArgs.Contains("conns:16cpu")) { # TODO: figure out a better way to detect max RPS tests
+    if ($Scenario.Contains("rps")) {
         $metric = "rps"
-    } elseif ($exeArgs.Contains("plat:1")) {
+    } elseif ($Scenario.Contains("latency")) {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
         if (!$isWindows) {
             chmod +rw "$extraOutput"
         }
-    } elseif ($exeArgs.Contains("prate:1")) {
+    } elseif ($Scenario.Contains("hps")) {
         $metric = "hps"
     }
 
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(" ")) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "$execMode -io:$io"
-    $clientArgs = "-target:$RemoteName $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
+    $serverArgs = "-scenario:$Scenario -io:$io"
+    $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -584,9 +583,9 @@ function Invoke-Secnetperf {
     $useSudo = (!$isWindows -and $io -eq "xdp")
 
     if ($tcp -eq 0) {
-        $artifactName = "$TestId-quic"
+        $artifactName = "$Scenario-quic"
     } else {
-        $artifactName = "$TestId-tcp"
+        $artifactName = "$Scenario-tcp"
     }
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -715,14 +714,14 @@ function Invoke-Secnetperf {
     }
 }
 
-function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
+function CheckRegressionResult($values, $scenario, $transport, $regressionJson, $envStr) {
 
     $sum = 0
     foreach ($item in $values) {
         $sum += $item
     }
     $avg = $sum / $values.Length
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -734,14 +733,14 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $avg
         $res.AggregateFunction = "AVG"
 
         if ($avg -lt $res.Baseline) {
-            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
@@ -751,7 +750,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     return $res
 }
 
-function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
+function CheckRegressionLat($values, $regressionJson, $scenario, $transport, $envStr) {
 
     # TODO: Right now, we are not using a watermark based method for regression detection of latency percentile values because we don't know how to determine a "Best Ever" distribution.
     #       (we are just looking at P0, P50, P99 columns, and computing the baseline for each percentile as the mean - 2 * std of the last 20 runs. )
@@ -764,7 +763,7 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     $RpsAvg /= $NumRuns
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -776,14 +775,14 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $RpsAvg
         $res.AggregateFunction = "AVG"
 
         if ($RpsAvg -lt $res.Baseline) {
-            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "RPS Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
