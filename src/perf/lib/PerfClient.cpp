@@ -127,7 +127,7 @@ PerfClient::Init(
             RunTime = S_TO_US(12); // 12 seconds
             RepeatConnections = TRUE;
             PrintIoRate = TRUE;
-        } else if (IsValue(ScenarioStr, "rps-single")) {
+        } else if (IsValue(ScenarioStr, "rps")) {
             Upload = 512;
             Download = 4000;
             StreamCount = 100;

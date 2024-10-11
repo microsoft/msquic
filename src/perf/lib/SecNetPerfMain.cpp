@@ -78,7 +78,7 @@ PrintHelp(
         "\n"
         "  Scenario options:\n"
         "  -scenario:<profile>      Scenario profile to use.\n"
-        "                            - {upload, download, hps, rps-single, rps-multi, latency}.\n"
+        "                            - {upload, download, hps, rps, rps-multi, latency}.\n"
         "  -conns:<####>            The number of connections to use. (def:1)\n"
         "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
         "  -upload:<####>[unit]     The length of bytes to send on each stream, with an optional (time or length) unit. (def:0)\n"
@@ -209,7 +209,7 @@ QuicMainStart(
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
             TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
         } else if (
-            IsValue(ScenarioStr, "rps-single") ||
+            IsValue(ScenarioStr, "rps") ||
             IsValue(ScenarioStr, "rps-multi") ||
             IsValue(ScenarioStr, "latency")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;

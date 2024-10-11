@@ -251,13 +251,11 @@ if ($isWindows) {
     $kernelVersion = bash -c "uname -r"
     $json["os_version"] = "$osName $kernelVersion"
 }
-$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
-# > All tests:
-$allTests = @("upload", "download", "hps", "rps-single", "rps-multi", "latency")
+# Test all supported scenarios.
+$allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 
 $hasFailures = $false
-$json["run_args"] = $allTests
 
 try {
 
@@ -332,7 +330,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-foreach ($scenario in $allTests) {
+foreach ($scenario in $allScenarios) {
     $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
