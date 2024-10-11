@@ -131,7 +131,7 @@ PerfClient::Init(
             Upload = 512;
             Download = 4000;
             ConnectionCount = 16 * CxPlatProcCount();
-            StreamCount = 10;
+            StreamCount = 100;
             RunTime = S_TO_US(20); // 20 seconds
             RepeatStreams = TRUE;
             PrintLatency = TRUE;
