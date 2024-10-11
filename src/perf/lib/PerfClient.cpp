@@ -127,18 +127,18 @@ PerfClient::Init(
             RunTime = S_TO_US(12); // 12 seconds
             RepeatConnections = TRUE;
             PrintIoRate = TRUE;
-        } else if (IsValue(ScenarioStr, "rps")) {
-            Upload = 512;
-            Download = 4000;
-            StreamCount = 100;
-            RunTime = S_TO_US(20); // 20 seconds
-            RepeatStreams = TRUE;
-            PrintLatency = TRUE;
         } else if (IsValue(ScenarioStr, "rps-multi")) {
             Upload = 512;
             Download = 4000;
             ConnectionCount = 16 * CxPlatProcCount();
             StreamCount = 10;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else if (IsValue(ScenarioStr, "rps")) {
+            Upload = 512;
+            Download = 4000;
+            StreamCount = 100;
             RunTime = S_TO_US(20); // 20 seconds
             RepeatStreams = TRUE;
             PrintLatency = TRUE;
