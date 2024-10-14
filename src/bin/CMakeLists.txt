@@ -250,18 +250,7 @@ elseif (CX_PLATFORM STREQUAL "darwin")
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
-if(BUILD_SHARED_LIBS)
-    target_include_directories(msquic PUBLIC
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-else()
-    target_include_directories(msquic_static INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-    target_include_directories(msquic INTERFACE
-        $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/../inc>
-        $<INSTALL_INTERFACE:${include_dest}>)
-endif()
+include(GNUInstallDirs)
 
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
