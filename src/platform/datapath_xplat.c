@@ -171,6 +171,21 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
+CxPlatUpdateRSSRule(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t CIDLength,
+    _In_ uint8_t* CIDData
+    )
+{
+    if (Socket->RawSocketAvailable) {
+        return RawUpdateRSSRule(CxPlatSocketToRaw(Socket), CIDLength, CIDData);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
 CxPlatSocketCreateTcp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
@@ -350,6 +365,21 @@ CxPlatSendDataIsFull(
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
         SendDataIsFull(SendData) : RawSendDataIsFull(SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSetHandshakeDone(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN HandshakeDone
+    )
+{
+    UNREFERENCED_PARAMETER(HandshakeDone);
+    UNREFERENCED_PARAMETER(SendData);
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW) {
+        RawSetHandshakeDone(SendData, HandshakeDone);
+    } else {
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

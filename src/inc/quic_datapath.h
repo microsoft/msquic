@@ -559,6 +559,14 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** Socket
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatUpdateRSSRule(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t CIDLength,
+    _In_ uint8_t* CIDData
+    );
+
 //
 // Creates a TCP socket for the given (optional) local address and (required)
 // remote address. This function immediately registers for upcalls from the
@@ -720,6 +728,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatSetHandshakeDone(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN HandshakeDone
     );
 
 //

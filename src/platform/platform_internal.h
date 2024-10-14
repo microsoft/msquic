@@ -73,6 +73,8 @@ typedef struct CXPLAT_SOCKET_COMMON {
     // The remote address and port.
     //
     QUIC_ADDR RemoteAddress;
+
+    BOOLEAN ServerOwned; // hack to determine if the datapath is owned by the server
 } CXPLAT_SOCKET_COMMON;
 
 typedef struct CXPLAT_SEND_DATA_COMMON {
@@ -82,6 +84,8 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     // The type of ECN markings needed for send.
     //
     uint8_t ECN; // CXPLAT_ECN_TYPE
+
+    BOOLEAN HandshakeDone; // hack to determine if the handshake is done.
 } CXPLAT_SEND_DATA_COMMON;
 
 typedef enum CXPLAT_DATAPATH_TYPE {
@@ -836,6 +840,8 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t RawSocketAvailable : 1;
 
+    // uint8_t HandshakeDone: 1 // NOTE: hack. this indicate whether "1" connection has been established
+
     //
     // Set of socket contexts one per proc.
     //
@@ -1105,6 +1111,13 @@ RawSocketCreateUdp(
     _Inout_ CXPLAT_SOCKET_RAW* NewSocket
     );
 
+QUIC_STATUS
+RawUpdateRSSRule(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ uint8_t CIDLength,
+    _In_ uint8_t* CIDData
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawSocketDelete(
@@ -1200,6 +1213,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 RawSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+RawSetHandshakeDone(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN HandshakeDone
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

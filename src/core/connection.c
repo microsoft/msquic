@@ -4553,6 +4553,19 @@ QuicConnRecvFrames(
                     &Frame);
             if (QUIC_SUCCEEDED(Status)) {
                 AckEliciting = TRUE;
+                if (QuicConnIsServer(Connection) && Connection->State.Connected) {
+                    QUIC_CID_HASH_ENTRY* SourceCid =
+                        CXPLAT_CONTAINING_RECORD(
+                            Connection->SourceCids.Next,
+                            QUIC_CID_HASH_ENTRY,
+                            Link);
+                    CxPlatUpdateRSSRule(
+                        Connection->Paths[0].Binding->Socket,
+                        SourceCid->CID.Length,
+                        SourceCid->CID.Data
+                    );
+                    // CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
+                }
             } else if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
                 QuicPacketLogDrop(Connection, Packet, "Crypto frame process OOM");
                 return FALSE;
