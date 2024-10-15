@@ -1782,7 +1782,7 @@ CxPlatSocketContextRecvComplete(
         BytesTransferred += RecvMsgHdr[CurrentMessage].msg_len;
 
         uint8_t TOS = 0;
-        uint8_t HopLimitTTL = 0;
+        // uint8_t HopLimitTTL = 0;
         uint16_t SegmentLength = 0;
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE;
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
