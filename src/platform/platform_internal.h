@@ -648,8 +648,9 @@ CxPlatCryptUninitialize(
 
 //
 // Platform Worker APIs
-// 
+//
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -662,10 +663,14 @@ CxPlatWorkerPoolGetEventQ(
     _In_ uint16_t Index // Into the config processor array
     );
 
+#ifdef _KERNEL_MODE // Not supported on kernel mode (yet)
+#define CxPlatDataPathProcessCqe(X) CXPLAT_FRE_ASSERT(FALSE)
+#else
 void
 CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     );
+#endif
 
 BOOLEAN // Returns FALSE no work was done.
 CxPlatDataPathPoll(
