@@ -5511,7 +5511,6 @@ QuicConnRecvDatagramBatch(
         CXPLAT_DBG_ASSERT(Packets[i]->Allocated);
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
         Packet = Packets[i];
-
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
