@@ -1683,9 +1683,11 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
-    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;
-    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;
-    QUIC_EXECUTION_POLL_FN              ExecutionPoll;
+#ifndef _KERNEL_MODE
+    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
+    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
+    QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
+#endif
 
 } QUIC_API_TABLE;
 
