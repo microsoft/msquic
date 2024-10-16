@@ -854,13 +854,12 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
-        // On Linux, IP_TTL is used instead of IP_HOPLIMIT on Windows.
         Option = TRUE;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IP,
-                IP_TTL,
+                IP_HOPLIMIT,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -870,17 +869,16 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IP_TTL) failed");
+                "setsockopt(IP_HOPLIMIT) failed");
             goto Exit;
         }
 
-        // On Linux, IPV6_UNICAST_HOPS is used instead of IPV6_HOPLIMIT on Windows.
         Option = TRUE;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IPV6,
-                IPV6_UNICAST_HOPS,
+                IPV6_HOPLIMIT,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -890,7 +888,7 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IPV6_UNICAST_HOPS) failed");
+                "setsockopt(IPV6_HOPLIMIT) failed");
             goto Exit;
         }
 
@@ -1925,7 +1923,7 @@ CxPlatSocketContextRecvComplete(
             }
             RecvData->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
             RecvData->TypeOfService = TOS;
-            RecvData->HopLimitTTL = (uint8_t) HopLimitTTL;
+            RecvData->HopLimitTTL = (uint8_t)HopLimitTTL;
             RecvData->Allocated = TRUE;
             RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             RecvData->QueuedOnConnection = FALSE;
