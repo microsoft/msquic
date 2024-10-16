@@ -275,6 +275,7 @@ typedef struct QUIC_CONN_STATS {
         uint32_t ClientFlight1Bytes;    // Sum of TLS payloads
         uint32_t ServerFlight1Bytes;    // Sum of TLS payloads
         uint32_t ClientFlight2Bytes;    // Sum of TLS payloads
+        uint8_t HandshakeHopLimitTTL;   // TTL value in the initial packet of the handshake.
     } Handshake;
 
     struct {
