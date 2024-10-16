@@ -293,6 +293,8 @@ typedef struct QUIC_EXECUTION_CONFIG {
 #define QUIC_EXECUTION_CONFIG_MIN_SIZE \
     (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)
 
+#ifndef _KERNEL_MODE
+
 //
 // Execution Context abstraction, which allows the application layer to
 // completely control execution of all MsQuic work.
@@ -367,7 +369,9 @@ typedef struct QUIC_EXECUTION_TABLE {
 
 } QUIC_EXECUTION_TABLE;
 
-#endif
+#endif // _KERNEL_MODE
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
