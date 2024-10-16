@@ -346,6 +346,19 @@ uint32_t
     );
 
 //
+// This is used to check if a completion event belongs to MsQuic or not.
+//
+// TODO: This makes certain assumptions for the layout of completion event
+// payload. How do we generalize this?
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+(QUIC_API * QUIC_EXECUTION_CHECK_CQE_FN)(
+    _In_ const QUIC_CQE* Cqe
+    );
+
+//
 // This is called to allow MsQuic to process any completions that have occurred.
 //
 typedef
@@ -365,6 +378,7 @@ typedef struct QUIC_EXECUTION_TABLE {
     QUIC_EXECUTION_CREATE_FN ExecutionCreate;
     QUIC_EXECUTION_DELETE_FN ExecutionDelete;
     QUIC_EXECUTION_POLL_FN Poll;
+    QUIC_EXECUTION_CHECK_CQE_FN CheckCqe;
     QUIC_EXECUTION_PROCESS_CQE_FN ProcessCqe;
 
 } QUIC_EXECUTION_TABLE;

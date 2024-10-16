@@ -261,6 +261,9 @@ namespace Microsoft.Quic
         [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, uint> Poll;
 
+        [NativeTypeName("QUIC_EXECUTION_CHECK_CQE_FN")]
+        internal delegate* unmanaged[Cdecl]<_OVERLAPPED_ENTRY*, byte> CheckCqe;
+
         [NativeTypeName("QUIC_EXECUTION_PROCESS_CQE_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, _OVERLAPPED_ENTRY*, uint, uint> ProcessCqe;
     }
