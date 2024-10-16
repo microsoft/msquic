@@ -1823,7 +1823,7 @@ CxPlatSocketContextRecvComplete(
         BytesTransferred += RecvMsgHdr[CurrentMessage].msg_len;
 
         uint8_t TOS = 0;
-        uint8_t HopLimitTTL = 0;
+        int HopLimitTTL = 0;
         uint16_t SegmentLength = 0;
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE, FoundTTL = FALSE;
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
@@ -1851,7 +1851,7 @@ CxPlatSocketContextRecvComplete(
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
-                    HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
+                    HopLimitTTL = *CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                     FoundTTL = TRUE;
@@ -1864,7 +1864,7 @@ CxPlatSocketContextRecvComplete(
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else if (CMsg->cmsg_type == IP_TTL) {
-                    HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
+                    HopLimitTTL = *CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                     FoundTTL = TRUE;
@@ -1925,7 +1925,7 @@ CxPlatSocketContextRecvComplete(
             }
             RecvData->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
             RecvData->TypeOfService = TOS;
-            RecvData->HopLimitTTL = HopLimitTTL;
+            RecvData->HopLimitTTL = (uint8_t) HopLimitTTL;
             RecvData->Allocated = TRUE;
             RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             RecvData->QueuedOnConnection = FALSE;
