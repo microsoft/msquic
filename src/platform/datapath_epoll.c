@@ -854,12 +854,13 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
+        // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL instead.
         Option = TRUE;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IP,
-                IP_HOPLIMIT,
+                IP_RECVTTL,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -869,7 +870,7 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IP_HOPLIMIT) failed");
+                "setsockopt(IP_RECVTTL) failed");
             goto Exit;
         }
 
