@@ -234,6 +234,22 @@ namespace Microsoft.Quic
         internal fixed ushort ProcessorList[1];
     }
 
+    internal unsafe partial struct QUIC_EXECUTION_CONTEXT_CONFIG
+    {
+        [NativeTypeName("uint32_t")]
+        internal uint IdealProcessor;
+
+        [NativeTypeName("uint32_t")]
+        internal uint PollingIdleTimeoutUs;
+
+        [NativeTypeName("QUIC_EVENTQ *")]
+        internal void** EventQ;
+    }
+
+    internal partial struct QUIC_EXECUTION_CONTEXT
+    {
+    }
+
     internal unsafe partial struct QUIC_REGISTRATION_CONFIG
     {
         [NativeTypeName("const char *")]
@@ -3250,6 +3266,15 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
+
+        [NativeTypeName("QUIC_EXECUTION_CREATE_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONFIG_FLAGS, uint, QUIC_EXECUTION_CONTEXT_CONFIG*, QUIC_EXECUTION_CONTEXT**, int> ExecutionCreate;
+
+        [NativeTypeName("QUIC_EXECUTION_DELETE_FN")]
+        internal delegate* unmanaged[Cdecl]<uint, QUIC_EXECUTION_CONTEXT**, void> ExecutionDelete;
+
+        [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, uint> ExecutionPoll;
     }
 
     internal static unsafe partial class MsQuic
