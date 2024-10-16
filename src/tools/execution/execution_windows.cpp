@@ -9,14 +9,10 @@ Abstract:
 
 --*/
 
-#define _CRT_SECURE_NO_WARNINGS 1
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
 #include "msquic.hpp"
 #include <stdio.h>
-#include <stdlib.h>
-
-const MsQuicApi* MsQuic;
 
 void PrintUsage()
 {
@@ -42,67 +38,53 @@ main(
     MsQuic = &_MsQuic;
 
     QUIC_STATUS Status;
-    QUIC_EXECUTION_TABLE MsQuicExec;
-    uint32_t MsQuicExecLength = sizeof(MsQuicExec);
-    if (QUIC_FAILED(
-        Status = MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_EXECUTION_TABLE,
-            &MsQuicExecLength,
-            &MsQuicExec))) {
-        return 1;
-    }
-
     HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
     QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, 0, &IOCP };
     QUIC_EXECUTION_CONTEXT* ExecContext = nullptr;
-    if (QUIC_FAILED(
-        Status = MsQuicExec.ExecutionCreate(
-            QUIC_EXECUTION_CONFIG_FLAG_NONE,
-            1,
-            &ExecConfig,
-            &ExecContext))) {
+    if (QUIC_FAILED(Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 1, &ExecConfig, &ExecContext))) {
         return 1;
     }
 
     do {
+        bool AllDone = false;
         MsQuicRegistration Registration("quicexec");
         MsQuicSettings Settings;
         Settings.SetPeerUnidiStreamCount(3); // required for H3
         MsQuicConfiguration Configuration(Registration, "h3", Settings, MsQuicCredentialConfig());
         if (!Configuration.IsValid()) { break; }
 
-        MsQuicConnection Connection(Registration);
+        struct ConnectionCallback {
+            static QUIC_STATUS MsQuicConnectionCallback(_In_ struct MsQuicConnection* Connection, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+                if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                    Connection->Shutdown(0);
+                } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+                    *((bool*)Context) = true;
+                }
+            }
+        };
+
+        MsQuicConnection Connection(Registration, CleanUpManual, ConnectionCallback::MsQuicConnectionCallback, &AllDone);
         if (QUIC_FAILED(
             Status = Connection.Start(Configuration, argv[1], 443))) {
             break;
         }
 
-        while (true) {
-            uint32_t WaitTime = MsQuicExec.Poll(ExecContext);
+        while (!AllDone) {
+            uint32_t WaitTime = MsQuic->ExecutionPoll(ExecContext);
 
-            OVERLAPPED_ENTRY Cqes[8];
-            ULONG CqeCount = 0;
-            if (GetQueuedCompletionStatusEx(IOCP, Cqes, ARRAYSIZE(Cqes), &CqeCount, WaitTime, FALSE)) {
-                for (ULONG i = 0; i < CqeCount; ++i) {
-                    if (MsQuicExec.CheckCqe(Cqes+i)) {
-                        MsQuicExec.ProcessCqe(ExecContext, Cqes+i, 1);
-                    } else {
-                        // We should handle our own completions here.
-                    }
+            OVERLAPPED_ENTRY Overlapped[8];
+            ULONG OverlappedCount = 0;
+            if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
+                for (ULONG i = 0; i < OverlappedCount; ++i) {
+                    QUIC_CQE* Cqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_CQE, Overlapped);
+                    Cqe->Completion(Cqe);
                 }
             }
-
-            if (Connection.HandshakeComplete) {
-                Connection.Shutdown(0);
-            }
-
-            // TODO - Stop once the connection is shutdown complete
         }
 
     } while (false);
 
-    MsQuicExec.ExecutionDelete(1, &ExecContext);
+    MsQuic->ExecutionDelete(1, &ExecContext);
     CloseHandle(IOCP);
 
     return 0;

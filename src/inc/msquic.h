@@ -346,31 +346,6 @@ uint32_t
     );
 
 //
-// This is used to check if a completion event belongs to MsQuic or not.
-//
-// TODO: This makes certain assumptions for the layout of completion event
-// payload. How do we generalize this?
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-(QUIC_API * QUIC_EXECUTION_CHECK_CQE_FN)(
-    _In_ const QUIC_CQE* Cqe
-    );
-
-//
-// This is called to allow MsQuic to process any completions that have occurred.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-uint32_t
-(QUIC_API * QUIC_EXECUTION_PROCESS_CQE_FN)(
-    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext,
-    _In_reads_(CqeCount) QUIC_CQE* Cqes,
-    _In_ uint32_t CqeCount
-    );
-
-//
 // The table of execution functions.
 //
 typedef struct QUIC_EXECUTION_TABLE {
@@ -378,8 +353,6 @@ typedef struct QUIC_EXECUTION_TABLE {
     QUIC_EXECUTION_CREATE_FN ExecutionCreate;
     QUIC_EXECUTION_DELETE_FN ExecutionDelete;
     QUIC_EXECUTION_POLL_FN Poll;
-    QUIC_EXECUTION_CHECK_CQE_FN CheckCqe;
-    QUIC_EXECUTION_PROCESS_CQE_FN ProcessCqe;
 
 } QUIC_EXECUTION_TABLE;
 
@@ -951,9 +924,6 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_GLOBAL_EXECUTION_TABLE               0x0100000C  // QUIC_EXECUTION_TABLE
-#endif
 
 //
 // Parameters for Registration.
@@ -1723,6 +1693,10 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
+
+    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;
+    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;
+    QUIC_EXECUTION_POLL_FN              ExecutionPoll;
 
 } QUIC_API_TABLE;
 

@@ -378,6 +378,10 @@ QuicAddrToString(
 //
 
 typedef HANDLE QUIC_EVENTQ;
-typedef OVERLAPPED_ENTRY QUIC_CQE;
+
+typedef struct QUIC_CQE {
+    OVERLAPPED_ENTRY Overlapped;
+    void (*Completion)(struct QUIC_CQE *Cqe);
+} QUIC_CQE;
 
 #endif // _MSQUIC_WINUSER_
