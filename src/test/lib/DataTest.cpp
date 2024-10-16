@@ -3637,7 +3637,7 @@ void QuicTestConnectionPriority()
         }
 
         // s: stream op
-        // p: prioritied op
+        // p: prioritized op
         // s0/s2: stream start, stream send
         // n in sn0/sn2: stream id
         // processing                                         | queued
@@ -3656,7 +3656,7 @@ void QuicTestConnectionPriority()
             //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
             //            This happens when [3] is already in the worker queue.
             //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
+            CxPlatSleep(1000);
 
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
@@ -3714,7 +3714,7 @@ void QuicTestConnectionPriority()
             //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
             //            This happens when [3] is already in the worker queue.
             //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
+            CxPlatSleep(1000);
 
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
@@ -3787,7 +3787,7 @@ void QuicTestConnectionPriority()
             //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
             //            This happens when [3] is already in the worker queue.
             //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
+            CxPlatSleep(1000);
 
             Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
             // Wait until this StreamStart operation is drained
