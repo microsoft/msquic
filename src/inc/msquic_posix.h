@@ -515,6 +515,26 @@ QuicAddrToString(
     return TRUE;
 }
 
+//
+// Event Queue Abstraction
+//
+
+#if __linux__ // epoll
+
+typedef int QUIC_EVENTQ;
+typedef struct epoll_event QUIC_CQE;
+
+#elif __APPLE__ || __FreeBSD__ // kqueue
+
+typedef int QUIC_EVENTQ;
+typedef struct kevent QUIC_CQE;
+
+#else
+
+#error Unsupported Platform
+
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

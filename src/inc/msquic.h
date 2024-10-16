@@ -264,15 +264,15 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 #define QUIC_DATAGRAM_SEND_STATE_IS_FINAL(State) \
     ((State) >= QUIC_DATAGRAM_SEND_LOST_DISCARDED)
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
 typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
     QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
     QUIC_EXECUTION_CONFIG_FLAG_XDP              = 0x0004,
     QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC    = 0x0008,
     QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY    = 0x0010,
-#endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_EXECUTION_CONFIG_FLAGS)
@@ -292,6 +292,82 @@ typedef struct QUIC_EXECUTION_CONFIG {
 
 #define QUIC_EXECUTION_CONFIG_MIN_SIZE \
     (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)
+
+//
+// Execution Context abstraction, which allows the application layer to
+// completely control execution of all MsQuic work.
+//
+
+typedef struct QUIC_EXECUTION_CONTEXT_CONFIG {
+    uint32_t IdealProcessor;
+    uint32_t PollingIdleTimeoutUs;
+    QUIC_EVENTQ* EventQ;
+} QUIC_EXECUTION_CONTEXT_CONFIG;
+
+typedef struct QUIC_EXECUTION_CONTEXT QUIC_EXECUTION_CONTEXT;
+
+//
+// This is called create the execution contexts.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_EXECUTION_CREATE_FN)(
+    _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    );
+
+//
+// This is called to delete the execution contexts.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_EXECUTION_DELETE_FN)(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    );
+
+//
+// This is called to allow MsQuic to process any polling work. It returns the
+// number of milliseconds until the next scheduled timer expiration.
+//
+// TODO: Should it return an indication for if we should yield?
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+(QUIC_API * QUIC_EXECUTION_POLL_FN)(
+    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
+    );
+
+//
+// This is called to allow MsQuic to process any completions that have occurred.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+(QUIC_API * QUIC_EXECUTION_PROCESS_CQE_FN)(
+    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext,
+    _In_reads_(CqeCount) QUIC_CQE* Cqes,
+    _In_ uint32_t CqeCount
+    );
+
+//
+// The table of execution functions.
+//
+typedef struct QUIC_EXECUTION_TABLE {
+
+    QUIC_EXECUTION_CREATE_FN ExecutionCreate;
+    QUIC_EXECUTION_DELETE_FN ExecutionDelete;
+    QUIC_EXECUTION_POLL_FN Poll;
+    QUIC_EXECUTION_PROCESS_CQE_FN ProcessCqe;
+
+} QUIC_EXECUTION_TABLE;
+
+#endif
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
@@ -857,6 +933,10 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_GLOBAL_EXECUTION_TABLE               0x0100000C  // QUIC_EXECUTION_TABLE
+#endif
+
 //
 // Parameters for Registration.
 //
