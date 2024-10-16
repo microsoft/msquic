@@ -1851,7 +1851,6 @@ CxPlatSocketContextRecvComplete(
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
-                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
@@ -1865,10 +1864,10 @@ CxPlatSocketContextRecvComplete(
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
                 } else if (CMsg->cmsg_type == IP_TTL) {
-                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
+                    FoundTTL = TRUE;
                 } else {
                     CXPLAT_DBG_ASSERT(FALSE);
                 }
