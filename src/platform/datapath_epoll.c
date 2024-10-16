@@ -199,8 +199,9 @@ typedef struct CXPLAT_SEND_DATA {
 } CXPLAT_SEND_DATA;
 
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
-    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) +
-              2 * CMSG_SPACE(sizeof(int))];
+    char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) + // IP_PKTINFO
+              2 * CMSG_SPACE(sizeof(int)) // TOS
+              + CMSG_SPACE(sizeof(int))]; // IP_TTL
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 #ifdef DEBUG
@@ -850,6 +851,46 @@ CxPlatSocketContextInitialize(
                 Binding,
                 Status,
                 "setsockopt(IP_RECVTOS) failed");
+            goto Exit;
+        }
+
+        // On Linux, IP_TTL is used instead of IP_HOPLIMIT on Windows.
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IP,
+                IP_TTL,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IP_TTL) failed");
+            goto Exit;
+        }
+
+        // On Linux, IPV6_UNICAST_HOPS is used instead of IPV6_HOPLIMIT on Windows.
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IPV6_UNICAST_HOPS,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IPV6_UNICAST_HOPS) failed");
             goto Exit;
         }
 
@@ -1782,9 +1823,9 @@ CxPlatSocketContextRecvComplete(
         BytesTransferred += RecvMsgHdr[CurrentMessage].msg_len;
 
         uint8_t TOS = 0;
-        // uint8_t HopLimitTTL = 0;
+        uint8_t HopLimitTTL = 0;
         uint16_t SegmentLength = 0;
-        BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE;
+        BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE, FoundTTL = FALSE;
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
         QUIC_ADDR* RemoteAddr = &IoBlock->Route.RemoteAddress;
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
@@ -1809,6 +1850,12 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
+                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
+                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
+                    HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
+                    FoundTTL = TRUE;
                 } else {
                     CXPLAT_DBG_ASSERT(FALSE);
                 }
@@ -1817,6 +1864,11 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
+                } else if (CMsg->cmsg_type == IP_TTL) {
+                    CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
+                    HopLimitTTL = *(uint8_t*)CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 } else {
                     CXPLAT_DBG_ASSERT(FALSE);
                 }
@@ -1834,6 +1886,7 @@ CxPlatSocketContextRecvComplete(
 
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
+        CXPLAT_FRE_ASSERT(FoundTTL);
 
         QuicTraceEvent(
             DatapathRecv,
@@ -1873,7 +1926,7 @@ CxPlatSocketContextRecvComplete(
             }
             RecvData->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
             RecvData->TypeOfService = TOS;
-            RecvData->HopLimitTTL = 0; // TODO: Set the right Linux socket options and get the TTL.
+            RecvData->HopLimitTTL = HopLimitTTL;
             RecvData->Allocated = TRUE;
             RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
             RecvData->QueuedOnConnection = FALSE;
