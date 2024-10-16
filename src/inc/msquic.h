@@ -345,17 +345,6 @@ uint32_t
     _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
     );
 
-//
-// The table of execution functions.
-//
-typedef struct QUIC_EXECUTION_TABLE {
-
-    QUIC_EXECUTION_CREATE_FN ExecutionCreate;
-    QUIC_EXECUTION_DELETE_FN ExecutionDelete;
-    QUIC_EXECUTION_POLL_FN Poll;
-
-} QUIC_EXECUTION_TABLE;
-
 #endif // _KERNEL_MODE
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
