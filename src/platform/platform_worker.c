@@ -162,6 +162,9 @@ CxPlatWorkerPoolLazyStart(
         if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
             ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
         }
+        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+            ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
+        }
     }
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {

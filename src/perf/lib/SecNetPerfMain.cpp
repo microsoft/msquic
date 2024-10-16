@@ -28,6 +28,7 @@ QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
 uint8_t PerfDefaultHighPriority = false;
+uint8_t PerfDefaultAffinitizeThreads = false;
 
 #ifdef _KERNEL_MODE
 volatile int BufferCurrent;
@@ -179,6 +180,12 @@ QuicMainStart(
     TryGetValue(argc, argv, "highpri", &PerfDefaultHighPriority);
     if (PerfDefaultHighPriority) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY;
+        SetConfig = true;
+    }
+
+    TryGetValue(argc, argv, "affinitize", &PerfDefaultAffinitizeThreads);
+    if (PerfDefaultHighPriority) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE;
         SetConfig = true;
     }
 #endif // _KERNEL_MODE

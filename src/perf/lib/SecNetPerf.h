@@ -53,6 +53,7 @@ extern QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl;
 extern uint8_t PerfDefaultEcnEnabled;
 extern uint8_t PerfDefaultQeoAllowed;
 extern uint8_t PerfDefaultHighPriority;
+extern uint8_t PerfDefaultAffinitizeThreads;
 
 extern CXPLAT_DATAPATH* Datapath;
 

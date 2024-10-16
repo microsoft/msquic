@@ -118,8 +118,13 @@ QuicWorkerInitialize(
             break;
         }
 
-        if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
-            ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+        if (MsQuicLib.ExecutionConfig) {
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+                ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+            }
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+                ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
+            }
         }
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {

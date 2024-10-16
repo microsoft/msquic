@@ -146,7 +146,6 @@ PerfClient::Init(
     WorkerCount = CxPlatProcCount();
     TryGetVariableUnitValue(argc, argv, "threads", &WorkerCount);
     TryGetVariableUnitValue(argc, argv, "workers", &WorkerCount);
-    TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
 
 #ifdef QUIC_COMPARTMENT_ID
     TryGetValue(argc, argv, "comp", &CompartmentId);
@@ -326,7 +325,7 @@ PerfClient::Start(
     // Configure and start all the workers.
     //
     uint16_t ThreadFlags =
-        AffinitizeWorkers ?
+        PerfDefaultAffinitizeThreads ?
             (uint16_t)CXPLAT_THREAD_FLAG_SET_AFFINITIZE :
             (uint16_t)CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     if (PerfDefaultHighPriority) {
