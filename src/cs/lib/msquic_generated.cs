@@ -260,12 +260,6 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, uint> Poll;
-
-        [NativeTypeName("QUIC_EXECUTION_CHECK_CQE_FN")]
-        internal delegate* unmanaged[Cdecl]<_OVERLAPPED_ENTRY*, byte> CheckCqe;
-
-        [NativeTypeName("QUIC_EXECUTION_PROCESS_CQE_FN")]
-        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, _OVERLAPPED_ENTRY*, uint, uint> ProcessCqe;
     }
 
     internal unsafe partial struct QUIC_REGISTRATION_CONFIG
@@ -3284,6 +3278,15 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
+
+        [NativeTypeName("QUIC_EXECUTION_CREATE_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONFIG_FLAGS, uint, QUIC_EXECUTION_CONTEXT_CONFIG*, QUIC_EXECUTION_CONTEXT**, int> ExecutionCreate;
+
+        [NativeTypeName("QUIC_EXECUTION_DELETE_FN")]
+        internal delegate* unmanaged[Cdecl]<uint, QUIC_EXECUTION_CONTEXT**, void> ExecutionDelete;
+
+        [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONTEXT*, uint> ExecutionPoll;
     }
 
     internal static unsafe partial class MsQuic
@@ -3378,9 +3381,6 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY 0x0100000B")]
         internal const uint QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY = 0x0100000B;
-
-        [NativeTypeName("#define QUIC_PARAM_GLOBAL_EXECUTION_TABLE 0x0100000C")]
-        internal const uint QUIC_PARAM_GLOBAL_EXECUTION_TABLE = 0x0100000C;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
