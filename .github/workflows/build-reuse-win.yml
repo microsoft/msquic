@@ -85,15 +85,16 @@ jobs:
     - name: Build For Test
       if: inputs.build == '-Test'
       shell: pwsh
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
+    - name: Build External Platform Test
+      if: inputs.build == '-Test'
+      shell: pwsh
       run: |
-        scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
-        echo ================
-        ($pwd).path
-        dir artifacts\lib
-        echo ================
-        cmake src/platform/unittest/external -B build
-        cmake --build build
-        cmake --install build
+        cmake --install build\${{ inputs.plat }}\${{ inputs.arch }}_${{ inputs.tls }} --config ${{ inputs.config }}
+        copy build\${{ inputs.plat }}\${{ inputs.arch }}_${{ inputs.tls }}\lib\${{ inputs.config }}\* "C:\Program Files\msquic\lib\"
+        copy submodules\googletest\googletest\include\gtest "C:\Program Files\msquic\include\" -Recurse
+        cmake src/platform/unittest/external -G "Visual Studio 17 2022" -A ${{ inputs.arch }} -B build_external "-DCMAKE_INSTALL_PREFIX:PATH=C:/Program Files/msquic"
+        cmake --build build_external --config Releases
     - name: Build For Perf
       if: inputs.build == '-Perf'
       shell: pwsh
