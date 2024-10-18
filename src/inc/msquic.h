@@ -302,20 +302,20 @@ typedef struct QUIC_EXECUTION_CONFIG {
 
 typedef struct QUIC_EXECUTION_CONTEXT_CONFIG {
     uint32_t IdealProcessor;
-    uint32_t PollingIdleTimeoutUs;
     QUIC_EVENTQ* EventQ;
 } QUIC_EXECUTION_CONTEXT_CONFIG;
 
 typedef struct QUIC_EXECUTION_CONTEXT QUIC_EXECUTION_CONTEXT;
 
 //
-// This is called create the execution contexts.
+// This is called to create the execution contexts.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_EXECUTION_CREATE_FN)(
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
     _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
     _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
@@ -1683,10 +1683,12 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #ifndef _KERNEL_MODE
     QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
+#endif
 #endif
 
 } QUIC_API_TABLE;

@@ -521,6 +521,9 @@ QuicAddrToString(
 
 #if __linux__ // epoll
 
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
 typedef int QUIC_EVENTQ;
 
 typedef struct QUIC_CQE {
@@ -529,6 +532,9 @@ typedef struct QUIC_CQE {
 } QUIC_CQE;
 
 #elif __APPLE__ || __FreeBSD__ // kqueue
+
+#include <sys/event.h>
+#include <fcntl.h>
 
 typedef int QUIC_EVENTQ;
 

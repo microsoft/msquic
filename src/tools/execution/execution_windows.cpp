@@ -26,6 +26,8 @@ void PrintUsage()
         );
 }
 
+HANDLE IOCP;
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -38,10 +40,10 @@ main(
     MsQuic = &_MsQuic;
 
     QUIC_STATUS Status;
-    HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
-    QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, 0, &IOCP };
+    IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
+    QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
     QUIC_EXECUTION_CONTEXT* ExecContext = nullptr;
-    if (QUIC_FAILED(Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 1, &ExecConfig, &ExecContext))) {
+    if (QUIC_FAILED(Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext))) {
         return 1;
     }
 
@@ -56,6 +58,13 @@ main(
         struct ConnectionCallback {
             static QUIC_STATUS MsQuicConnectionCallback(_In_ struct MsQuicConnection* Connection, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
                 if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                    auto Cqe = new(std::nothrow) QUIC_CQE;
+                    ZeroMemory(&Cqe->Overlapped, sizeof(Cqe->Overlapped));
+                    Cqe->Completion = [](QUIC_CQE* _Cqe) {
+                        printf("Connected.\n");
+                        delete _Cqe;
+                    };
+                    PostQueuedCompletionStatus(IOCP, 0, 0, &Cqe->Overlapped);
                     Connection->Shutdown(0);
                 } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
                     *((bool*)Context) = true;
