@@ -123,13 +123,34 @@ struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
 
     DrillBuffer Payload;
 
-
-    DrillInitialPacketDescriptor();
+    DrillInitialPacketDescriptor(uint8_t SrcCidLength = 9);
 
     //
     // Write this descriptor to a byte array to send on the wire.
     //
-    virtual DrillBuffer write() const;
+    virtual DrillBuffer write(bool EncryptPayload = false) const;
+
+private:
+
+    void encrypt(DrillBuffer& PacketBuffer, uint16_t HeaderLength, uint8_t PacketNumberLength) const;
+};
+
+struct Drill1RttPacketDescriptor {
+
+    DrillBuffer DestCid;
+
+    uint8_t KeyPhase {0};
+
+    uint32_t PacketNumber {0};
+
+    DrillBuffer Payload;
+
+    Drill1RttPacketDescriptor() {}
+
+    //
+    // Write this descriptor to a byte array to send on the wire.
+    //
+    DrillBuffer write() const;
 };
 
 enum DrillVarIntSize {
