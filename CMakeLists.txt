@@ -449,11 +449,21 @@ if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
 
+    if(NOT DEFINED CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OR CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+        find_program(MC_EXE NAMES mc.exe)
+        if(MC_EXE MATCHES "NOTFOUND")
+            # If not found, then VS project generator will set %PATH% env var to WinSDK bin directory
+            set(MC_EXE "mc.exe" CACHE STRING "mc.exe from %PATH%" FORCE)
+        endif()
+    else()
+        find_program(MC_EXE NAMES mc.exe REQUIRED)
+    endif()
+
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
+        COMMAND "${MC_EXE}" -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw_HeaderBuild
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
