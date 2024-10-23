@@ -2756,6 +2756,7 @@ CxPlatDataPathSocketProcessIoCompletion(
             if (SocketContext->Binding->Type == CXPLAT_SOCKET_TCP_LISTENER) {
                 CxPlatSocketContextAcceptCompletion(SocketContext, Cqe);
             } else {
+                fprintf(stderr, "[EPOLL] Partition: %d, Thread: %d\n", SocketContext->DatapathPartition->PartitionIndex, gettid());
                 CxPlatSocketReceive(SocketContext);
             }
         }

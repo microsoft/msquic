@@ -107,6 +107,7 @@ typedef struct XDP_QUEUE {
     CXPLAT_LOCK FqLock;
     CXPLAT_LOCK CqLock;
 
+    uint8_t QID;
     struct XskSocketInfo* XskInfo;
 } XDP_QUEUE;
 
@@ -342,7 +343,8 @@ static uint64_t XskUmemFrameAlloc(struct XskSocketInfo *Xsk)
 
 static void XskUmemFrameFree(struct XskSocketInfo *Xsk, uint64_t Frame)
 {
-    assert(Xsk->UmemFrameFree < NUM_FRAMES);
+    CXPLAT_DBG_ASSERT(Xsk != NULL);
+    CXPLAT_DBG_ASSERT(Xsk->UmemFrameFree < NUM_FRAMES);
     Xsk->UmemFrameAddr[Xsk->UmemFrameFree++] = Frame;
 }
 
@@ -360,7 +362,7 @@ AttachXdpProgram(struct xdp_program *Prog, XDP_INTERFACE *Interface, struct xsk_
         unsigned int xdp_flag;
     } AttachTypePairs[]  = {
         // { XDP_MODE_HW, XDP_FLAGS_HW_MODE },
-        // { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
+        { XDP_MODE_NATIVE, XDP_FLAGS_DRV_MODE },
         { XDP_MODE_SKB, XDP_FLAGS_SKB_MODE },
     };
     for (uint32_t i = 0; i < ARRAYSIZE(AttachTypePairs); i++) {
@@ -527,6 +529,7 @@ CxPlatDpRawInterfaceInitialize(
 
     for (uint16_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
+        Queue->QID = i;
 
         Queue->Interface = Interface;
         CxPlatListInitializeHead(&Queue->TxPool);
@@ -720,9 +723,12 @@ CxPlatDpRawInitialize(
         }
 
         if ((ifa->ifa_flags & IFF_UP) &&
-            // !(ifa->ifa_flags & IFF_LOOPBACK) &&
+            !(ifa->ifa_flags & IFF_LOOPBACK) &&
             // TODO: if there are MASTER-SLAVE interfaces, slave need to be
             //         loaded first to load all interfaces
+            // use only eth* interfaces
+            (strncmp(ifa->ifa_name, "eth1", 4) == 0 ||
+             strncmp(ifa->ifa_name, "duo", 3) == 0) &&
             !(ifa->ifa_flags & IFF_SLAVE)) {
             // Create and initialize the interface data structure here
             family = ifa->ifa_addr->sa_family;
@@ -955,6 +961,15 @@ CxPlatDpRawPlumbRulesOnSocket(
                         XdpSetPortFails,
                         "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
                 }
+                char* FakeNatRebinding = getenv("MSQUIC_FAKE_NAT_REBINDING");
+                if (FakeNatRebinding && FakeNatRebinding[0] == '1') {
+                    port = htons(55555);
+                    if (bpf_map_update_elem(bpf_map__fd(port_map), &port, &exist, BPF_ANY)) {
+                        QuicTraceLogVerbose(
+                            XdpSetPortFails,
+                            "[ xdp] Failed to set port %d on %s", port, Interface->IfName);
+                    }
+                }
             } else {
                 if (bpf_map_delete_elem(bpf_map__fd(port_map), &port)) {
                     QuicTraceLogVerbose(
@@ -994,7 +1009,6 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
         }
 
-
         // Debug info
         // TODO: set flag to enable dump in xdp program
         struct bpf_map *ifname_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "ifname_map");
@@ -1008,7 +1022,104 @@ CxPlatDpRawPlumbRulesOnSocket(
                 }
             } // BPF_MAP_TYPE_ARRAY doesn't support delete
         }
+
+        // Interface->IfName == "duo1" is always server, "duo2" is always client
+        struct bpf_map *role_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "role_map");
+        if (role_map) {
+            int key = Socket->ServerOwned;
+            if (strcmp(Interface->IfName, "duo1") == 0) {
+                key = 1;
+            } else if (strcmp(Interface->IfName, "duo2") == 0) {
+                key = 0;
+            }
+            int val = 1;
+            if (IsCreated) {
+                if (bpf_map_update_elem(bpf_map__fd(role_map), &key, &val, BPF_ANY)) {
+                    fprintf(stderr, "Failed to set role %d on %s\n", key, Interface->IfName);
+                } else {
+                    fprintf(stderr, "Set role %d on %s\n", key, Interface->IfName);
+                }
+            }
+        }
+
+        struct bpf_map *feature_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "feature_map");
+        if (feature_map) {
+            uint8_t key = 0;
+            uint8_t val = 0b11100000; // TODO: set appropriate value
+            char* NormalDatapath = getenv("MSQUIC_XDP_NORMAL_DATAPATH");
+            if (NormalDatapath && NormalDatapath[0] == '1') {
+                fprintf(stderr, "Use normal datapath %c\n", NormalDatapath[0]);
+                val |= 0x04;
+            }
+            char* DropPathChallenge = getenv("MSQUIC_XDP_DROP_PATH_CHALLENGE");
+            if (DropPathChallenge && DropPathChallenge[0] == '1') {
+                fprintf(stderr, "Use drop path challenge %c\n", DropPathChallenge[0]);
+                val |= 0x02;
+            }
+            char* RssType = getenv("MSQUIC_XDP_RSS_TYPE");
+            if (RssType) {
+                fprintf(stderr, "RSS type %s\n", RssType);
+                val |= atoi(RssType); // 0x01: MAP, 0x08: HASH
+            }
+            if (bpf_map_update_elem(bpf_map__fd(feature_map), &key, &val, BPF_ANY)) {
+                fprintf(stderr, "Failed to set feature %d on %s\n", key, Interface->IfName);
+            } else {
+                fprintf(stderr, "Set feature %02x on %s\n", val, Interface->IfName);
+            }
+        }
+
+        struct bpf_map *cpu_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "cpu_map");
+        if (cpu_map && IsCreated) {
+            struct bpf_cpumap_val value = {
+                .qsize = 2048,
+                .bpf_prog.fd = 0,
+            };
+            for (__u32 cpu = 0; cpu < 8; cpu++) {
+                if (bpf_map_update_elem(bpf_map__fd(cpu_map), &cpu, &value, BPF_ANY)) {
+                    fprintf(stderr, "Failed to set CPUMAP %d on %s\n", cpu, Interface->IfName);
+                } else {
+                    fprintf(stderr, "Set CPUMAP %d on %s\n", cpu, Interface->IfName);
+                }
+            }
+        }
     }
+}
+
+QUIC_STATUS
+RawUpdateRSSRule(
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ uint8_t CIDLength,
+    _In_ uint8_t* CIDData
+    )
+{
+    CXPLAT_LIST_ENTRY* Entry = Socket->RawDatapath->Interfaces.Flink;
+    for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
+        XDP_INTERFACE* Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
+
+        // set from PlumbRulesOnSocket?
+        struct bpf_map *cid_len_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "cid_len_map");
+        if (cid_len_map) {
+            int key = 0;
+            if (bpf_map_update_elem(bpf_map__fd(cid_len_map), &key, &CIDLength, BPF_ANY)) {
+                fprintf(stderr, "Failed to set CID Len %d on %s\n", CIDLength, Interface->IfName);
+            } else {
+                fprintf(stderr, "Set CID Len %d on %s\n", CIDLength, Interface->IfName);
+            }
+        }
+
+        struct bpf_map *cid_queue_map = bpf_object__find_map_by_name(xdp_program__bpf_obj(Interface->XdpProg), "cid_queue_map");
+        if (cid_queue_map) {
+            uint8_t key[20] = {0};
+            uint8_t queue_id = 0xff; // undefined, will be set from xdp side
+            memcpy(key, CIDData, CIDLength);
+            if (bpf_map_update_elem(bpf_map__fd(cid_queue_map), &key, &queue_id, BPF_ANY)) {
+                fprintf(stderr, "Failed to set CID queue on %s\n", Interface->IfName);
+            } else {
+                fprintf(stderr, "Set CID queue on %s, len:%d\n", Interface->IfName, CIDLength);
+            }
+        }
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1022,6 +1133,9 @@ CxPlatDpRawRxFree(
     if (PacketChain) {
         const XDP_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
+        CXPLAT_DBG_ASSERT(Packet != NULL);
+        CXPLAT_DBG_ASSERT(Packet->Queue != NULL);
+        CXPLAT_DBG_ASSERT(Packet->Queue->XskInfo != NULL);
         XskInfo = Packet->Queue->XskInfo;
 
         CxPlatLockAcquire(&XskInfo->UmemLock);
@@ -1029,6 +1143,9 @@ CxPlatDpRawRxFree(
             Packet =
                 CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
             PacketChain = PacketChain->Next;
+            CXPLAT_DBG_ASSERT(Packet != NULL);
+            CXPLAT_DBG_ASSERT(Packet->Queue != NULL);
+            CXPLAT_DBG_ASSERT(Packet->Queue->XskInfo != NULL);
             XskUmemFrameFree(Packet->Queue->XskInfo, Packet->Addr);
             Count++;
         }
@@ -1072,6 +1189,8 @@ CxPlatDpRawTxAlloc(
         Packet->ECN = Config->ECN;
         Packet->UmemRelativeAddr = BaseAddr;
         Packet->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
+    } else {
+        CXPLAT_DBG_ASSERT(FALSE);
     }
 
 Error:
@@ -1361,6 +1480,9 @@ RawDataPathProcessCqe(
         if (EPOLLOUT & Cqe->events) {
             KickTx(Queue, TRUE);
         } else {
+            XDP_QUEUE_COMMON* QueueCommon = (XDP_QUEUE_COMMON*)Queue;
+            fprintf(stderr, "[XDP] Interface: %p RxQueue ID: %d, PartitionID: %d, ThreadID: %d\n",
+                QueueCommon->Interface, Queue->QID, QueueCommon->Partition->PartitionIndex, gettid());
             Queue->RxQueued = FALSE;
             Queue->Partition->Ec.Ready = TRUE;
         }

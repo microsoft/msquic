@@ -31,6 +31,7 @@ Abstract:
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
+static int ClientPort;
 
 uint32_t
 CxPlatGetRawSocketSize(void) {
@@ -179,7 +180,15 @@ CxPlatDpRawParseUdp(
     Packet->Reserved = L4_TYPE_UDP;
 
     Packet->Route->RemoteAddress.Ipv4.sin_port = Udp->SourcePort;
-    Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    if (htons(55555) == Udp->SourcePort) {
+        fprintf(stderr, "Source port 55555 arrived\n");
+    }
+    if (htons(55555) == Udp->DestinationPort) {
+        fprintf(stderr, "Destination port 55555 arrived, rewrite to %d\n", ntohs(ClientPort));
+        Packet->Route->LocalAddress.Ipv4.sin_port = ClientPort;
+    } else {
+        Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
+    }
 
     Packet->Buffer = (uint8_t*)Udp->Data;
     Packet->BufferLength = QuicNetByteSwapShort(Udp->Length) - sizeof(UDP_HEADER);
@@ -561,7 +570,7 @@ CxPlatDpRawSocketAckFin(
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-        TH_FIN | TH_ACK);
+        TH_FIN | TH_ACK, FALSE);
     CxPlatDpRawTxEnqueue(SendData);
 }
 
@@ -602,7 +611,7 @@ CxPlatDpRawSocketAckSyn(
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-        TcpFlags);
+        TcpFlags, FALSE);
     CxPlatDpRawTxEnqueue(SendData);
 
     SendData = InterlockedFetchAndClearPointer((void*)&Socket->PausedTcpSend);
@@ -622,7 +631,7 @@ CxPlatDpRawSocketAckSyn(
             Interface->OffloadStatus.Transmit.TransportLayerXsum,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-            TH_ACK);
+            TH_ACK, FALSE);
         CxPlatDpRawTxEnqueue(SendData);
 
         SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
@@ -645,7 +654,7 @@ CxPlatDpRawSocketAckSyn(
             Interface->OffloadStatus.Transmit.TransportLayerXsum,
             ReceivedTcpHeader->AckNumber,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
-            TH_RST | TH_ACK);
+            TH_RST | TH_ACK, FALSE);
         Socket->CachedRstSend = SendData;
     }
 }
@@ -679,7 +688,7 @@ CxPlatDpRawSocketSyn(
         Socket, Route, &SendData->Buffer, SendData->ECN,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
-        Route->TcpState.SequenceNumber, 0, TH_SYN);
+        Route->TcpState.SequenceNumber, 0, TH_SYN, FALSE);
     CxPlatDpRawTxEnqueue(SendData);
 }
 
@@ -694,7 +703,8 @@ CxPlatFramingWriteHeaders(
     _In_ BOOLEAN SkipTransportLayerXsum,
     _In_ uint32_t TcpSeqNum,
     _In_ uint32_t TcpAckNum,
-    _In_ uint8_t TcpFlags
+    _In_ uint8_t TcpFlags,
+    _In_ BOOLEAN FakeNatRebinding
     )
 {
     uint8_t* Transport;
@@ -735,7 +745,34 @@ CxPlatFramingWriteHeaders(
         //
         UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
         UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
-        UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
+
+        char* EnvPath = getenv("MSQUIC_FAKE_NAT_REBINDING");
+        if (EnvPath && EnvPath[0] == '1')
+        {
+            static BOOLEAN toggleRebinding = FALSE;
+            static uint64_t waitUntil = 1000;
+            static uint64_t count = 0;
+            if (FakeNatRebinding && !Socket->ServerOwned) {
+                if (toggleRebinding) {
+                    fprintf(stderr, "FakeNatRebinding. set to 55555 (%d)\n", htons(55555));
+                    ClientPort = Route->LocalAddress.Ipv4.sin_port;
+                    UDP->SourcePort = htons(55555);
+                } else {
+                    fprintf(stderr, "No FakeNatRebinding. set to %d (%d)\n", ntohs(Route->LocalAddress.Ipv4.sin_port), Route->LocalAddress.Ipv4.sin_port);
+                    UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
+                }
+                count++;
+                if (count > waitUntil && count % 2 == 0) {
+                    count = waitUntil;
+                    toggleRebinding = !toggleRebinding;
+                }
+            } else {
+                UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
+            }
+        } else {
+            UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
+        }
+
         UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
         UDP->Checksum = 0;
         Transport = (uint8_t*)UDP;

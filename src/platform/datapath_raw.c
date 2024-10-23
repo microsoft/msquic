@@ -342,6 +342,16 @@ RawSendDataIsFull(
 #define TH_ACK 0x10
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+RawSetHandshakeDone(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN HandshakeDone
+    )
+{
+    SendData->HandshakeDone = HandshakeDone;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 RawSocketSend(
     _In_ CXPLAT_SOCKET_RAW* Socket,
@@ -376,7 +386,8 @@ RawSocketSend(
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber,
         Route->TcpState.AckNumber,
-        TH_ACK);
+        TH_ACK,
+        SendData->HandshakeDone);
     CxPlatDpRawTxEnqueue(SendData);
     return QUIC_STATUS_SUCCESS;
 }
