@@ -1,0 +1,1008 @@
+{
+  "source_base_path": "/home/runner/work/msquic/msquic",
+  "xrefmap": "xrefmap.yml",
+  "files": [
+    {
+      "type": "Resource",
+      "output": {
+        "resource": {
+          "relative_path": "index.json"
+        }
+      }
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "README.md",
+      "output": {
+        ".html": {
+          "relative_path": "README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/API.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/API.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Architecture.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Architecture.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/BUILD.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/BUILD.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/CredScan.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/CredScan.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Deployment.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Deployment.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Development.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Development.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Diagnostics.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Diagnostics.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/FAQ.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/FAQ.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/FIPS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/FIPS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/InteropServerSetup.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/InteropServerSetup.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/PGO.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/PGO.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Platforms.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Platforms.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Release.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Release.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Sample.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Sample.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Settings.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Settings.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Streams.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Streams.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/TEST.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/TEST.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/TLS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/TLS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/TSG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/TSG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/ThreatModel.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ThreatModel.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/Versions.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/Versions.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConfigurationClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConfigurationClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConfigurationLoadCredential.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConfigurationLoadCredential.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConfigurationOpen.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConfigurationOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionCertificateValidationComplete.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionCertificateValidationComplete.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionOpen.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionResumptionTicketValidationComplete.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionResumptionTicketValidationComplete.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionSendResumptionTicket.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionSendResumptionTicket.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionSetConfiguration.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionSetConfiguration.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionShutdown.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionShutdown.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionStart.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionStart.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/DatagramSend.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/DatagramSend.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/GetContext.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/GetContext.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/GetParam.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/GetParam.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ListenerClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ListenerClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ListenerOpen.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ListenerOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ListenerStart.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ListenerStart.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/ListenerStop.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ListenerStop.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/MsQuicClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/MsQuicClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/MsQuicOpen2.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/MsQuicOpen2.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/MsQuicOpenVersion.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/MsQuicOpenVersion.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_API_TABLE.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_API_TABLE.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_CONNECTION_CALLBACK.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_CONNECTION_CALLBACK.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_CONNECTION_EVENT.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_CONNECTION_EVENT.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_CREDENTIAL_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_CREDENTIAL_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_LISTENER_CALLBACK.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_LISTENER_CALLBACK.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_LISTENER_EVENT.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_LISTENER_EVENT.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_NEW_CONNECTION_INFO.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_NEW_CONNECTION_INFO.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_REGISTRATION_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_REGISTRATION_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_SETTINGS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_SETTINGS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STATUS.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STATUS.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/RegistrationClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/RegistrationClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/RegistrationOpen.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/RegistrationOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/RegistrationShutdown.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/RegistrationShutdown.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/SetCallbackHandler.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/SetCallbackHandler.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/SetContext.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/SetContext.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/SetParam.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/SetParam.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamClose.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamClose.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamOpen.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamReceiveComplete.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamReceiveComplete.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamReceiveSetEnabled.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamReceiveSetEnabled.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamSend.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamSend.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamShutdown.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamShutdown.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamStart.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamStart.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/api/toc.yml",
+      "output": {
+        ".json": {
+          "relative_path": "docs/api/toc.json"
+        },
+        ".html": {
+          "relative_path": "docs/api/toc.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-1.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-1.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-2.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-2.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-3.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-3.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-4.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-4.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-5.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-5.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-6.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-6.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-7.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-7.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/cpu-debug-8.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/cpu-debug-8.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/icon.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/icon.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/nic-recv-buffers.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/nic-recv-buffers.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/perfmon.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/perfmon.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/ptp-timestamp-config.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/ptp-timestamp-config.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/readme_logo.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/readme_logo.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/rss-debug-1.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/rss-debug-1.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/rss-debug-2.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/rss-debug-2.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/rss-debug-3.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/rss-debug-3.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/tat.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/tat.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/tx-blocked-state.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/tx-blocked-state.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "docs/images/udp-perf-counters.png",
+      "output": {
+        "resource": {
+          "relative_path": "docs/images/udp-perf-counters.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "docs/toc.yml",
+      "output": {
+        ".json": {
+          "relative_path": "docs/toc.json"
+        },
+        ".html": {
+          "relative_path": "docs/toc.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "index.md",
+      "output": {
+        ".html": {
+          "relative_path": "index.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "src/fuzzing/README.md",
+      "output": {
+        ".html": {
+          "relative_path": "src/fuzzing/README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "src/perf/readme.md",
+      "output": {
+        ".html": {
+          "relative_path": "src/perf/readme.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "src/plugins/dbg/readme.md",
+      "output": {
+        ".html": {
+          "relative_path": "src/plugins/dbg/readme.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "src/plugins/trace/README.md",
+      "output": {
+        ".html": {
+          "relative_path": "src/plugins/trace/README.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "src/plugins/trace/images/flame.png",
+      "output": {
+        "resource": {
+          "relative_path": "src/plugins/trace/images/flame.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "src/plugins/trace/images/quic_network.png",
+      "output": {
+        "resource": {
+          "relative_path": "src/plugins/trace/images/quic_network.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "src/plugins/trace/images/wpa.png",
+      "output": {
+        "resource": {
+          "relative_path": "src/plugins/trace/images/wpa.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "src/plugins/trace/images/wpa_perf_flamegraph.png",
+      "output": {
+        "resource": {
+          "relative_path": "src/plugins/trace/images/wpa_perf_flamegraph.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Resource",
+      "source_relative_path": "src/plugins/trace/images/wpa_perf_line.png",
+      "output": {
+        "resource": {
+          "relative_path": "src/plugins/trace/images/wpa_perf_line.png"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Toc",
+      "source_relative_path": "toc.yml",
+      "output": {
+        ".json": {
+          "relative_path": "toc.json"
+        },
+        ".html": {
+          "relative_path": "toc.html"
+        }
+      },
+      "version": ""
+    }
+  ],
+  "groups": [
+    {
+      "xrefmap": "xrefmap.yml"
+    }
+  ]
+}
