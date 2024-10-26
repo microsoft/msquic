@@ -1134,7 +1134,9 @@ QuicBindingPreprocessPacket(
     _Out_ BOOLEAN* ReleaseDatagram
     )
 {
-    CxPlatZeroMemory(&Packet->PacketNumber, sizeof(QUIC_RX_PACKET) - sizeof(uint64_t));
+    CxPlatZeroMemory(   // Zero out everything from PacketNumber forward
+        &Packet->PacketNumber,
+        sizeof(QUIC_RX_PACKET) - offsetof(QUIC_RX_PACKET, PacketNumber));
     Packet->AvailBuffer = Packet->Buffer;
     Packet->AvailBufferLength = Packet->BufferLength;
 

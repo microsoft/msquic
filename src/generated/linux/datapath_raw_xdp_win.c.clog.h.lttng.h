@@ -29,6 +29,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpInterfaceQueues
+// [ixdp][%p] Initializing %u queues on interface
+// QuicTraceLogVerbose(
+        XdpInterfaceQueues,
+        "[ixdp][%p] Initializing %u queues on interface",
+        Interface,
+        Interface->QueueCount);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->QueueCount = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceQueues,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -40,6 +63,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, FoundVF,
 // arg3 = arg3 = Xdp->PartitionCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpInterfaceInitialize
+// [ixdp][%p] Initializing interface %u
+// QuicTraceLogVerbose(
+                    XdpInterfaceInitialize,
+                    "[ixdp][%p] Initializing interface %u",
+                    Interface,
+                    Interface->ActualIfIndex);
+// arg2 = arg2 = Interface = arg2
+// arg3 = arg3 = Interface->ActualIfIndex = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceInitialize,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3), 
@@ -272,12 +318,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            ret,
-            "ConvertInterfaceIndexToLuid");
-// arg2 = arg2 = ret = arg2
-// arg3 = arg3 = "ConvertInterfaceIndexToLuid" = arg3
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskBind (GetRssQueueProcessors)");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "XskBind (GetRssQueueProcessors)" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, LibraryErrorStatus,
     TP_ARGS(
