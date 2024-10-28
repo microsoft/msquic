@@ -318,10 +318,10 @@ typedef EX_SPIN_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #define CxPlatDispatchRwLockInitialize(Lock) *(Lock) = 0
 #define CxPlatDispatchRwLockUninitialize(Lock)
-#define CxPlatDispatchRwLockAcquireShared(Lock) KIRQL RwLockPrevIrql = ExAcquireSpinLockShared(Lock)
-#define CxPlatDispatchRwLockAcquireExclusive(Lock) KIRQL RwLockPrevIrql = ExAcquireSpinLockExclusive(Lock)
-#define CxPlatDispatchRwLockReleaseShared(Lock) ExReleaseSpinLockShared(Lock, RwLockPrevIrql)
-#define CxPlatDispatchRwLockReleaseExclusive(Lock) ExReleaseSpinLockExclusive(Lock, RwLockPrevIrql)
+#define CxPlatDispatchRwLockAcquireShared(Lock, PrevIrql) KIRQL PrevIrql = ExAcquireSpinLockShared(Lock)
+#define CxPlatDispatchRwLockAcquireExclusive(Lock, PrevIrql) KIRQL PrevIrql = ExAcquireSpinLockExclusive(Lock)
+#define CxPlatDispatchRwLockReleaseShared(Lock, PrevIrql) ExReleaseSpinLockShared(Lock, PrevIrql)
+#define CxPlatDispatchRwLockReleaseExclusive(Lock, PrevIrql) ExReleaseSpinLockExclusive(Lock, PrevIrql)
 
 //
 // Reference Count Interface
