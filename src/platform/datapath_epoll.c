@@ -855,25 +855,24 @@ CxPlatSocketContextInitialize(
         }
 
         // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL instead.
-        // TODO: Uncomment and figure out why this causes the socket not to initliaze.
-        // Option = TRUE;
-        // Result =
-        //     setsockopt(
-        //         SocketContext->SocketFd,
-        //         IPPROTO_IP,
-        //         IP_RECVTTL,
-        //         (const void*)&Option,
-        //         sizeof(Option));
-        // if (Result == SOCKET_ERROR) {
-        //     Status = errno;
-        //     QuicTraceEvent(
-        //         DatapathErrorStatus,
-        //         "[data][%p] ERROR, %u, %s.",
-        //         Binding,
-        //         Status,
-        //         "setsockopt(IP_RECVTTL) failed");
-        //     goto Exit;
-        // }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IP,
+                IP_RECVTTL,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IP_RECVTTL) failed");
+            goto Exit;
+        }
 
         // Option = TRUE;
         // Result =
