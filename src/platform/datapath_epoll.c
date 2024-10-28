@@ -854,7 +854,7 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
-        // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL instead.
+        // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL, IPV6_UNICAST_HOPS instead.
         Option = TRUE;
         Result =
             setsockopt(
@@ -874,24 +874,24 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
-        // Option = TRUE;
-        // Result =
-        //     setsockopt(
-        //         SocketContext->SocketFd,
-        //         IPPROTO_IPV6,
-        //         IPV6_HOPLIMIT,
-        //         (const void*)&Option,
-        //         sizeof(Option));
-        // if (Result == SOCKET_ERROR) {
-        //     Status = errno;
-        //     QuicTraceEvent(
-        //         DatapathErrorStatus,
-        //         "[data][%p] ERROR, %u, %s.",
-        //         Binding,
-        //         Status,
-        //         "setsockopt(IPV6_HOPLIMIT) failed");
-        //     goto Exit;
-        // }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IP_RECVTTL,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IP_RECVTTL (IPV6)) failed");
+            goto Exit;
+        }
 
     #ifdef UDP_GRO
         if (SocketContext->DatapathPartition->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
@@ -1849,7 +1849,7 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
-                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
+                } else if (CMsg->cmsg_type == IP_TTL) {
                     HopLimitTTL = *CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
