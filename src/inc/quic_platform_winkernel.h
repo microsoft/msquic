@@ -316,7 +316,7 @@ typedef EX_PUSH_LOCK CXPLAT_RW_LOCK;
 
 typedef EX_SPIN_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
-#define CxPlatDispatchRwLockInitialize(Lock) Lock = 0
+#define CxPlatDispatchRwLockInitialize(Lock) *(Lock) = 0
 #define CxPlatDispatchRwLockUninitialize(Lock)
 #define CxPlatDispatchRwLockAcquireShared(Lock) KIRQL RwLockPrevIrql = ExAcquireSpinLockShared(Lock)
 #define CxPlatDispatchRwLockAcquireExclusive(Lock) KIRQL RwLockPrevIrql = ExAcquireSpinLockExclusive(Lock)

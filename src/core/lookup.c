@@ -900,6 +900,7 @@ QuicLookupMoveLocalConnectionIDs(
 {
     CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
 
+    {
     CxPlatDispatchRwLockAcquireExclusive(&LookupSrc->RwLock);
     while (Entry != NULL) {
         QUIC_CID_HASH_ENTRY *CID =
@@ -914,7 +915,9 @@ QuicLookupMoveLocalConnectionIDs(
         Entry = Entry->Next;
     }
     CxPlatDispatchRwLockReleaseExclusive(&LookupSrc->RwLock);
+    }
 
+    {
     CxPlatDispatchRwLockAcquireExclusive(&LookupDest->RwLock);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
     Entry = Connection->SourceCids.Next;
@@ -937,4 +940,5 @@ QuicLookupMoveLocalConnectionIDs(
         Entry = Entry->Next;
     }
     CxPlatDispatchRwLockReleaseExclusive(&LookupDest->RwLock);
+    }
 }
