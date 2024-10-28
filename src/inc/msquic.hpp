@@ -88,6 +88,7 @@ struct CxPlatLockDispatch {
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
 
+#ifndef _KERNEL_MODE
 struct CxPlatRwLockDispatch {
     CXPLAT_DISPATCH_RW_LOCK Handle;
     CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
@@ -97,6 +98,7 @@ struct CxPlatRwLockDispatch {
     void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
     void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
 };
+#endif
 #pragma warning(pop)
 
 struct CxPlatPool {
