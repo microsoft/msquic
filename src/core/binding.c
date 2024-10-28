@@ -397,7 +397,7 @@ QuicBindingRegisterListener(
         }
     }
 
-    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock);
+    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock, PrevIrql);
 
     if (MaximizeLookup &&
         !QuicLookupMaximizePartitioning(&Binding->Lookup)) {
