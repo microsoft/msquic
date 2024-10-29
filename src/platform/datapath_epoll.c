@@ -879,7 +879,7 @@ CxPlatSocketContextInitialize(
             setsockopt(
                 SocketContext->SocketFd,
                 IPPROTO_IPV6,
-                IP_RECVTTL,
+                IPV6_HOPLIMIT,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -889,7 +889,7 @@ CxPlatSocketContextInitialize(
                 "[data][%p] ERROR, %u, %s.",
                 Binding,
                 Status,
-                "setsockopt(IP_RECVTTL (IPV6)) failed");
+                "setsockopt(IPV6_HOPLIMIT) failed");
             goto Exit;
         }
 
@@ -1849,7 +1849,7 @@ CxPlatSocketContextRecvComplete(
                     CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
                     TOS = *(uint8_t*)CMSG_DATA(CMsg);
                     FoundTOS = TRUE;
-                } else if (CMsg->cmsg_type == IP_TTL) {
+                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
                     HopLimitTTL = *CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
                     CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
