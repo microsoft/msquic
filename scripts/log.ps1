@@ -243,10 +243,12 @@ function Log-Start {
             lttng enable-event --userspace CLOG_* | Write-Debug
             lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
             lttng start | Write-Debug
-            Write-Host "------"
+            Write-Host "------------->"
+            whoami | Write-Host
             ls -Rlh $TempLTTngDir | Write-Host
-            Write-Host "------"
-            ls -Rlh ./artifacts/logs | Write-Host
+            chmod -R 777 $TempLTTngDir | Write-Debug
+            ls -Rlh $TempLTTngDir | Write-Host
+            Write-Host "<-------------"
 
             if ($Stream) {
                 lttng list | Write-Debug
