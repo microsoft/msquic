@@ -1,0 +1,28 @@
+name: Generate Build
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+        type: string
+
+permissions: write-all
+
+jobs:
+  build-unix:
+    name: Build Unix
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: 'ubuntu-20.04'
+            tls: 'openssl'
+    uses: microsoft/msquic/.github/workflows/build-reuse-unix.yml@main
+    with:
+      os: ${{ matrix.os }}
+      tls: ${{ matrix.tls }}
+      xdp: ${{ matrix.xdp }}
+      build: -Perf
+      ref: ${{ inputs.ref }}
