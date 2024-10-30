@@ -310,15 +310,32 @@ function Log-Stop {
             Write-Error "LTTng session ($InstanceName) not currently running!"
         }
 
+        Write-Host "end1 ------------->"
+        Write-Host "    end2 [lttng list msquic] ======================================================"
+        lttng list msquic | Write-Host
+        Write-Host "    end2 [lttng status] ======================================================"
+        lttng status | Write-Host
+        Write-Host "    end2 [pgrep] ======================================================"
+        pgrep lttng | xargs ps -fH | Write-Host
+        Write-Host "    end2 [ls -Rlh] ======================================================"
+        ls -Rlh $TempLTTngDir | Write-Host
+        Write-Host "<------------- end1"
+
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
-        Write-Host "end ------------->"
+        Write-Host "end2 ------------->"
+        Write-Host "    end2 [lttng list msquic] ======================================================"
+        lttng list msquic | Write-Host
+        Write-Host "    end2 [lttng status] ======================================================"
+        lttng status | Write-Host
+        Write-Host "    end2 [pgrep] ======================================================"
         pgrep lttng | xargs ps -fH | Write-Host
+        Write-Host "    end2 [ls -Rlh] ======================================================"
         ls -Rlh $TempLTTngDir | Write-Host
-        Write-Host "<------------- end"
+        Write-Host "<------------- end2"
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
