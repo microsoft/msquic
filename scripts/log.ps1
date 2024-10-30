@@ -238,16 +238,15 @@ function Log-Start {
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
-                Invoke-Expression $Command | Write-Host
+                Invoke-Expression $Command | Write-Debug
             }
-            Write-Host "------"
-            lttng enable-event --userspace CLOG_* | Write-Host
-            Write-Host "------"
-            lttng add-context --userspace --type=vpid --type=vtid | Write-Host
-            Write-Host "------"
-            lttng start | Write-Host
+            lttng enable-event --userspace CLOG_* | Write-Debug
+            lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
+            lttng start | Write-Debug
             Write-Host "------"
             ls -Rlh $TempLTTngDir | Write-Host
+            Write-Host "------"
+            ls -Rlh ./artifacts/logs | Write-Host
 
             if ($Stream) {
                 lttng list | Write-Debug
