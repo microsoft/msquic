@@ -243,12 +243,12 @@ function Log-Start {
             lttng enable-event --userspace CLOG_* | Write-Debug
             lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
             lttng start | Write-Debug
-            Write-Host "------------->"
+            Write-Host "start ------------->"
             whoami | Write-Host
+            # chmod -R 777 $TempLTTngDir | Write-Debug
             ls -Rlh $TempLTTngDir | Write-Host
-            chmod -R 777 $TempLTTngDir | Write-Debug
-            ls -Rlh $TempLTTngDir | Write-Host
-            Write-Host "<-------------"
+            pgrep lttng | xargs ps -fH | Write-Host
+            Write-Host "<------------- start"
 
             if ($Stream) {
                 lttng list | Write-Debug
@@ -315,7 +315,10 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
+        Write-Host "end ------------->"
+        pgrep lttng | xargs ps -fH | Write-Host
         ls -Rlh $TempLTTngDir | Write-Host
+        Write-Host "<------------- end"
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
