@@ -238,11 +238,16 @@ function Log-Start {
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
-                Invoke-Expression $Command | Write-Debug
+                Invoke-Expression $Command | Write-Host
             }
-            lttng enable-event --userspace CLOG_* | Write-Debug
-            lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
-            lttng start | Write-Debug
+            Write-Host "------"
+            lttng enable-event --userspace CLOG_* | Write-Host
+            Write-Host "------"
+            lttng add-context --userspace --type=vpid --type=vtid | Write-Host
+            Write-Host "------"
+            lttng start | Write-Host
+            Write-Host "------"
+            ls -Rlh $TempLTTngDir | Write-Host
 
             if ($Stream) {
                 lttng list | Write-Debug
@@ -309,13 +314,7 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
-        ls -Rlh $TempLTTngDir | awk '
-  /:$/ {
-    dir = substr($0, 1, length($0)-1);
-  }
-  /^[^ ]/ && !/:$/ {
-    print dir "/" $0;
-  }' | Write-Host
+        ls -Rlh $TempLTTngDir | Write-Host
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
