@@ -709,6 +709,9 @@ TEST_F(DataPathTest, UdpBind)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
+    int* tmp = nullptr;
+    *tmp = 0;
+
     CxPlatSocket Socket(Datapath);
     VERIFY_QUIC_SUCCESS(Socket.GetInitStatus());
     ASSERT_NE(nullptr, Socket.Socket);

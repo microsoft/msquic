@@ -309,6 +309,13 @@ function Log-Stop {
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
+        ls -Rlh $TempLTTngDir | awk '
+  /:$/ {
+    dir = substr($0, 1, length($0)-1);
+  }
+  /^[^ ]/ && !/:$/ {
+    print dir "/" $0;
+  }' | Write-Host
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
