@@ -131,6 +131,7 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
+    printf("XXX platform creating socket!!!\n");
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     Status =
