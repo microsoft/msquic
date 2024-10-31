@@ -874,25 +874,24 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
-        printf("SETTING SOCKET OPTION FOR EPOLL!!!\n");
-        // Option = TRUE;
-        // Result =
-        //     setsockopt(
-        //         SocketContext->SocketFd,
-        //         IPPROTO_IPV6,
-        //         IPV6_HOPLIMIT,
-        //         (const void*)&Option,
-        //         sizeof(Option));
-        // if (Result == SOCKET_ERROR) {
-        //     Status = errno;
-        //     QuicTraceEvent(
-        //         DatapathErrorStatus,
-        //         "[data][%p] ERROR, %u, %s.",
-        //         Binding,
-        //         Status,
-        //         "setsockopt(IPV6_HOPLIMIT) failed");
-        //     goto Exit;
-        // }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketContext->SocketFd,
+                IPPROTO_IPV6,
+                IPV6_RECVHOPLIMIT,
+                (const void*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(IPV6_RECVHOPLIMIT) failed");
+            goto Exit;
+        }
 
     #ifdef UDP_GRO
         if (SocketContext->DatapathPartition->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
