@@ -79,3 +79,34 @@ This ensures that each connection and its streams are effectively single-threade
 MsQuic will **never** make upcalls for a single connection or any of its streams in parallel.
 
 For listeners, the application callback will be called in parallel for new connections, allowing server applications to scale efficiently with the number of processors.
+
+```mermaid
+graph TD
+    subgraph NIC
+        RSS1
+        RSS2
+        RSS3
+    end
+    RSS1 -->|Receive| Processor1
+    RSS2 -->|Receive| Processor2
+    RSS3 -->|Receive| Processor3
+    subgraph Processor1
+        Thread1
+        Thread1 -->|Manages| Connection1
+        Thread1 -->|Manages| Connection2
+        Connection1 -->|Delivers Event| ApplicationCallback1
+        Connection2 -->|Delivers Event| ApplicationCallback2
+    end
+    subgraph Processor2
+        Thread2
+        Thread2 -->|Manages| Connection3
+        Connection3 -->|Delivers Event| ApplicationCallback3
+    end
+    subgraph Processor3
+        Thread3
+        Thread3 -->|Manages| Connection4
+        Thread3 -->|Manages| Connection5
+        Connection4 -->|Delivers Event| ApplicationCallback4
+        Connection5 -->|Delivers Event| ApplicationCallback5
+    end
+```
