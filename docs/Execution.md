@@ -1,13 +1,13 @@
 Execution
 ======
 
-The MsQuic API takes a very different stance when it comes to its execution model compared to BSD-style sockets (and most other networking libraries built on top of them).
-The sections below detail the designs MsQuic uses, with some of the details as to why these design choices were made.
+The MsQuic API uses a different execution model compared to BSD-style sockets and most other networking libraries built on them.
+The sections below detail the designs MsQuic uses and the reasons behind these choices.
 
 ## Event Model
 
-In the MsQuic API, all state changes and other notifications are indicated directly to the application via a callback.
-This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing.
+In the MsQuic API, all state changes and notifications are indicated directly to the application via a callback.
+This includes connection state changes, new streams being created, stream data being received, and stream sends completing.
 
 ```c
 typedef struct QUIC_LISTENER_EVENT {
