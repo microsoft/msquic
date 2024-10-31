@@ -1,12 +1,13 @@
 Execution
 ======
 
-The MsQuic API takes a very difference stance when it comes to its execution model compared to BSD sockets (and most other networking libraries built on top of them).
+The MsQuic API takes a very difference stance when it comes to its execution model compared to BSD-style sockets (and most other networking libraries built on top of them).
 The sections below detail the designs MsQuic uses, with some of the details as to why these design choices were made.
 
 ## Event Model
 
 In the MsQuic API, all state changes and other notifications are indicated directly to the application via a callback.
+This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing.
 
 ```c
 typedef struct QUIC_LISTENER_EVENT {
@@ -44,7 +45,7 @@ This difference was made for several reasons:
 
 ### Writing Event Handlers
 
-Event handlers are **required** for all objects (that support them), because much of the MsQuic API happens through these callbacks.
+Event handlers are **required** for all objects (that have them), because much of the MsQuic API happens through these callbacks.
 Additionally, important events, such as "shutdown complete" events provide crucial information to the application to function properly.
 Without these events, the application cannot not know when it is safe to clean up objects.
 
@@ -61,4 +62,22 @@ One important aspect of this design is that all blocking API (down) calls invoke
 
 ## Threading
 
+By default, MsQuic creates its own threads to manage execution its logic.
+The nature of the number and configuration of these threads depends on the configuration the apps passes to [RegistrationOpen](api/RegistrationOpen.md) or `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`.
 
+The default behavior is to create dedicated, per-processor threads that are hard affinitized to a given NUMA-node, and soft-affinitized (set 'ideal processor') to a given processor.
+These threads are then used to drive both the datapath (i.e. UDP) and QUIC layers.
+Great care it taken to (try to) align the MsQuic processing logic with the rest of the networking stack (including hardware RSS) so that all processing stays at least on the same NUMA node, but ideally the same processor.
+
+The complexity required to achieve alignment in processing across various threads and processors is why MsQuic takes the stance of managing all its own threading by default.
+The goal is to abstract all this complexity from the many applications that build on top, so every app doesn't have to build the necessary logic to do this itself.
+Things should 'just work' out of the box.
+
+Each of these threads manage the execution of one or more connections.
+All connections are spread across the various threads based on their RSS alignment, which generally should evenly spread the traffic based on the different UDP tuples used.
+Each connection and all derived state (i.e., streams) are managed and executed by a single thread at a time; but may move across threads to align with any RSS changes.
+This means that each connection and its streams is effectively single-threaded, including all upcalls to the application layer.
+MsQuic will **never** make upcalls for a single connection or any of its streams in parallel.
+
+For listeners, the application callback will be called in parallel for new connections.
+This allows server applications to scale efficiently with the number of processors.
