@@ -1,7 +1,7 @@
 Execution
 ======
 
-The MsQuic API takes a very difference stance when it comes to its execution model compared to BSD-style sockets (and most other networking libraries built on top of them).
+The MsQuic API takes a very different stance when it comes to its execution model compared to BSD-style sockets (and most other networking libraries built on top of them).
 The sections below detail the designs MsQuic uses, with some of the details as to why these design choices were made.
 
 ## Event Model
@@ -30,14 +30,14 @@ QUIC_STATUS
 ```
 
 Above is an example of the type of callback delivered to the listener interface.
-The application is requires to register a callback handler that should handle all the events MsQuic may indicate, returning a status for if it was successfully handled or not.
+The application is required to register a callback handler that should handle all the events MsQuic may indicate, returning a status for if it was successfully handled or not.
 
 This is very different from BSD sockets which required the application to make a call (e.g., `send` or `recv`) in order to determine something happened.
 This difference was made for several reasons:
 
 - The MsQuic API **runs in-proc**, and therefore doesn't require a kernel to user mode boundary switch to indicate something to the application layer. This allows for the callback-based design which is not as practical for BSD sockets.
 
-- MsQuic, by virtue of the QUIC protocol itself, has a lot of different types of events. Just considering streams, the app maybe have hundreds of objects at once which may have some state change. By leveraging the callback model, the application doesn't have to manage having pending calls on each object.
+- MsQuic, by virtue of the QUIC protocol itself, has a lot of different types of events. Just considering streams, the app may have hundreds of objects at once which may have some state change. By leveraging the callback model, the application doesn't have to manage having pending calls on each object.
 
 - Experience has shown it to be very difficult to write correct, performant code on top of the BSD-style interface. By leveraging callbacks (that happen at the correct time, on the correct thread/processor), it allows MsQuic to abstract a lot of complexity away from applications and make things "just work" out of the box.
 
@@ -49,7 +49,7 @@ Event handlers are **required** for all objects (that have them), because much o
 Additionally, important events, such as "shutdown complete" events provide crucial information to the application to function properly.
 Without these events, the application cannot not know when it is safe to clean up objects.
 
-Applicationss are expected to keep any execution time in the callbacks **to a minimum**.
+Applications are expected to keep any execution time in the callbacks **to a minimum**.
 MsQuic does not use separate threads for the protocol execution and upcalls to the application.
 Therefore, any significant delays on the callback **will delay the protocol**.
 Any significant time or work needed to be completed by the application must happen on its own thread.
@@ -58,16 +58,16 @@ This doesn't mean the application isn't allowed to do any work in the callback h
 In fact, many things are expressly designed to be most efficient when the application does them on the callback.
 For instance, closing a handle to a connection or stream is ideally implemented in the "shutdown complete" indications.
 
-One important aspect of this design is that all blocking API (down) calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.
+One important aspect of this design is that all blocking API (down) calls invoked on a callback always happen inline (to prevent deadlocks), and will supersede any calls in progress or queued from a separate thread.
 
 ## Threading
 
-By default, MsQuic creates its own threads to manage execution its logic.
+By default, MsQuic creates its own threads to manage the execution of its logic.
 The nature of the number and configuration of these threads depends on the configuration the apps passes to [RegistrationOpen](api/RegistrationOpen.md) or `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`.
 
 The default behavior is to create dedicated, per-processor threads that are hard affinitized to a given NUMA-node, and soft-affinitized (set 'ideal processor') to a given processor.
 These threads are then used to drive both the datapath (i.e. UDP) and QUIC layers.
-Great care it taken to (try to) align the MsQuic processing logic with the rest of the networking stack (including hardware RSS) so that all processing stays at least on the same NUMA node, but ideally the same processor.
+Great care is taken to (try to) align the MsQuic processing logic with the rest of the networking stack (including hardware RSS) so that all processing stays at least on the same NUMA node, but ideally the same processor.
 
 The complexity required to achieve alignment in processing across various threads and processors is why MsQuic takes the stance of managing all its own threading by default.
 The goal is to abstract all this complexity from the many applications that build on top, so every app doesn't have to build the necessary logic to do this itself.
