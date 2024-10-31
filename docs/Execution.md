@@ -82,31 +82,26 @@ For listeners, the application callback will be called in parallel for new conne
 
 ```mermaid
 graph TD
-    subgraph NIC
-        RSS1
-        RSS2
-        RSS3
+    subgraph Kernel
+        NIC-Queue1[NIC Queue]
+        NIC-Queue2[NIC Queue]
+        NIC-Queue1 -->|RSS Receive| UDP1[IP/UDP]
+        NIC-Queue2 -->|RSS Receive| UDP2[IP/UDP]
     end
-    RSS1 -->|Receive| Processor1
-    RSS2 -->|Receive| Processor2
-    RSS3 -->|Receive| Processor3
-    subgraph Processor1
-        Thread1
-        Thread1 -->|Manages| Connection1
-        Thread1 -->|Manages| Connection2
-        Connection1 -->|Delivers Event| ApplicationCallback1
-        Connection2 -->|Delivers Event| ApplicationCallback2
-    end
-    subgraph Processor2
-        Thread2
-        Thread2 -->|Manages| Connection3
-        Connection3 -->|Delivers Event| ApplicationCallback3
-    end
-    subgraph Processor3
-        Thread3
-        Thread3 -->|Manages| Connection4
-        Thread3 -->|Manages| Connection5
-        Connection4 -->|Delivers Event| ApplicationCallback4
-        Connection5 -->|Delivers Event| ApplicationCallback5
+    subgraph MsQuic Process
+        UDP1 -.-> Processor1
+        UDP2 -.-> Processor2
+        subgraph Processor1[Processor 0]
+            Thread1[Thread]
+            Thread1 -->|Manages| Connection1[Connection 1]
+            Thread1 -->|Manages| Connection2[Connection 2]
+            Connection1 -->|Delivers Event| ApplicationCallback1[App Callback]
+            Connection2 -->|Delivers Event| ApplicationCallback2[App Callback]
+        end
+        subgraph Processor2[Processor 1]
+            Thread2[Thread]
+            Thread2 -->|Manages| Connection3[Connection 3]
+            Connection3 -->|Delivers Event| ApplicationCallback3[App Callback]
+        end
     end
 ```
