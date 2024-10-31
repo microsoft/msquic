@@ -136,7 +136,7 @@ $TempLTTngDir = $null
 $TempPerfDir = $null
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
-    $TempDir = Join-Path $HOME "work" "msquic" "msquic" "artifacts" "QUICLogs"
+    $TempDir = Join-Path $HOME "QUICLogs"
     $TempLTTngDir = Join-Path $TempDir $InstanceName
     $TempPerfDir = Join-Path $TempDir "Perf"
     try { lttng version | Out-Null }
