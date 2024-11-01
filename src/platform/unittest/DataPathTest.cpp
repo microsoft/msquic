@@ -300,7 +300,6 @@ protected:
                 printf("!!!!!!!!!!!!!!!!!!!Datapathtest: TTL feature NOT supported!!!!!!!!!!!!!!!!!!!\n");
                 ASSERT_EQ(0, RecvData->HopLimitTTL);
             }
-            fflush(stdout);
 
             if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 

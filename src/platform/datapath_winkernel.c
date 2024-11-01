@@ -773,6 +773,9 @@ CxPlatDataPathQuerySockoptSupport(
         NTSTATUS status = RtlGetVersion(&osInfo);
         if (NT_SUCCESS(status)) {
             DWORD BuildNumber = osInfo.dwBuildNumber;
+            //
+            // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+            //
             if (BuildNumber == 20348) {
                 break;
             }

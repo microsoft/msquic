@@ -150,6 +150,9 @@ RawDataPathGetSupportedFeatures(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
+    //
+    // TTL should always be available / enabled for XDP.
+    //
     return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL;
 }
 

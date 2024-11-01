@@ -325,7 +325,6 @@ QuicTestConnect(
                     printf("!!!!!!!!!!!!!!!!!!!HandshakeTest: TTL feature NOT supported!!!!!!!!!!!!!!!!!!!\n");
                     TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
                 }
-                fflush(stdout);
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 Server->SetSslKeyLogFilePath();

@@ -577,6 +577,10 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    //
+    // TTL should always be available / enabled on MacOS.
+    //
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     return Datapath->Features;
 }
 

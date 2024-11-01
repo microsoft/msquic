@@ -559,6 +559,12 @@ Error:
     }
 }
 
+//
+// To determine the OS version, we are going to use RtlGetVersion API
+// since GetVersion call can be shimmed on Win8.1+.
+//
+typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
+
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -735,22 +741,28 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
-
-    do {
-        // RTL_OSVERSIONINFOW osInfo;
-        // RtlZeroMemory(&osInfo, sizeof(osInfo));
-        // osInfo.dwOSVersionInfoSize = sizeof(osInfo);
-        // NTSTATUS status = RtlGetVersion(&osInfo);
-        // if (NT_SUCCESS(status)) {
-        //     DWORD BuildNumber = osInfo.dwBuildNumber;
-        //     if (BuildNumber == 20348) {
-        //         break;
-        //     }
-        // } else {
-        //     break;
-        // }
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-    } while (FALSE);
+    //
+    // TODO: This "TTL_FEATURE check" code works, and mirrors the approach for Kernel mode.
+    //       However, it is considered a "hack" and we should determine whether or not
+    //       the current release story fits this current workaround.
+    //
+    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
+    if (NtDllHandle) {
+        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
+        if (VersionFunc) {
+            RTL_OSVERSIONINFOW VersionInfo = {0};
+            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+            if ((*VersionFunc)(&VersionInfo) == 0) {
+                //
+                // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+                //
+                if (VersionInfo.dwBuildNumber != 20348) {
+                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+                }
+            }
+        }
+        FreeLibrary(NtDllHandle);
+    }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
 
@@ -762,12 +774,6 @@ Error:
 
     return Status;
 }
-
-//
-// To determine the OS version, we are going to use RtlGetVersion API
-// since GetVersion call can be shimmed on Win8.1+.
-//
-typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
