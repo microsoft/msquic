@@ -1692,42 +1692,44 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IP_HOPLIMIT,
-            IPPROTO_IP,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IP_HOPLIMIT");
-        goto Error;
-    }
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_HOPLIMIT,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_HOPLIMIT");
+            goto Error;
+        }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IPV6_HOPLIMIT,
-            IPPROTO_IPV6,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IPV6_HOPLIMIT");
-        goto Error;
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_HOPLIMIT,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_HOPLIMIT");
+            goto Error;
+        }
     }
 
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {

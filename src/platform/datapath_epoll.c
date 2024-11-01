@@ -348,7 +348,7 @@ Error:
     //
     // TTL should always be available / enabled on Linux.
     //
-    Datapath->Features != CXPLAT_DATAPATH_FEATURE_TTL;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
 }
 
 void
