@@ -1062,12 +1062,14 @@ QuicPacketBuilderSendBatch(
         "Sending batch. %hu datagrams",
         (uint16_t)Builder->TotalCountDatagrams);
 
+    QUIC_CONNECTION *Connection = Builder->Connection;
     QuicBindingSend(
         Builder->Path->Binding,
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,
-        Builder->TotalCountDatagrams);
+        Builder->TotalCountDatagrams,
+        Connection->State.Connected);
 
     Builder->PacketBatchSent = TRUE;
     Builder->SendData = NULL;

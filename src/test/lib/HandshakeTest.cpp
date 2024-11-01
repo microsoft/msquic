@@ -503,6 +503,8 @@ QuicTestNatPortRebind(
     Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
 
     TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1000))
+    CxPlatSleep(50);
+
     TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &Context.PeerAddr.SockAddr));
 
     Connection.Shutdown(1);
