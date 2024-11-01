@@ -319,10 +319,8 @@ QuicTestConnect(
 
                 // After handshake, check and see if we have cached the TTL of the handshake packet.
                 if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_TTL)) {
-                    printf("!!!!!!!!!!!!!!!!!!!HandshakeTest: TTL feature supported!!!!!!!!!!!!!!!!!!!\n");
                     TEST_TRUE(Client.GetStatistics().HandshakeHopLimitTTL > 0);
                 } else {
-                    printf("!!!!!!!!!!!!!!!!!!!HandshakeTest: TTL feature NOT supported!!!!!!!!!!!!!!!!!!!\n");
                     TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
                 }
 

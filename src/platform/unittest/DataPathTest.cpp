@@ -294,10 +294,8 @@ protected:
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
 
             if (RecvContext->TtlSupported) {
-                printf("!!!!!!!!!!!!!!!!!!!Datapathtest: TTL feature supported!!!!!!!!!!!!!!!!!!!\n");
                 ASSERT_TRUE(RecvData->HopLimitTTL > 0);
             } else {
-                printf("!!!!!!!!!!!!!!!!!!!Datapathtest: TTL feature NOT supported!!!!!!!!!!!!!!!!!!!\n");
                 ASSERT_EQ(0, RecvData->HopLimitTTL);
             }
 
