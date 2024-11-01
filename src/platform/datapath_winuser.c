@@ -1304,7 +1304,6 @@ SocketCreateUdp(
             goto Error;
         }
 
-        printf("SETTING SOCKET OPTION FOR IOCP!!!\n");
         Option = TRUE;
         Result =
             setsockopt(

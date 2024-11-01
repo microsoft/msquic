@@ -443,6 +443,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
+#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
 
 //
 // Queries the currently supported features of the datapath.
