@@ -736,6 +736,22 @@ CxPlatDataPathQuerySockoptSupport(
     }
 }
 
+    do {
+        // RTL_OSVERSIONINFOW osInfo;
+        // RtlZeroMemory(&osInfo, sizeof(osInfo));
+        // osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+        // NTSTATUS status = RtlGetVersion(&osInfo);
+        // if (NT_SUCCESS(status)) {
+        //     DWORD BuildNumber = osInfo.dwBuildNumber;
+        //     if (BuildNumber == 20348) {
+        //         break;
+        //     }
+        // } else {
+        //     break;
+        // }
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+    } while (FALSE);
+
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
 
 Error:
@@ -1404,44 +1420,46 @@ SocketCreateUdp(
             goto Error;
         }
 
-        Option = TRUE;
-        Result =
-            setsockopt(
-                SocketProc->Socket,
-                IPPROTO_IP,
-                IP_HOPLIMIT,
-                (char*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "Set IP_HOPLIMIT");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            goto Error;
-        }
+        if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
+            Option = TRUE;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IP,
+                    IP_HOPLIMIT,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IP_HOPLIMIT");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
 
-        Option = TRUE;
-        Result =
-            setsockopt(
-                SocketProc->Socket,
-                IPPROTO_IPV6,
-                IPV6_HOPLIMIT,
-                (char*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "Set IPV6_HOPLIMIT");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            goto Error;
+            Option = TRUE;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IPV6,
+                    IPV6_HOPLIMIT,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IPV6_HOPLIMIT");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
         }
 
         //

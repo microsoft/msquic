@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+
 #ifdef QUIC_CLOG
 #include "datapath_winkernel.c.clog.h"
 #endif
@@ -763,6 +764,22 @@ CxPlatDataPathQuerySockoptSupport(
 
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
 
+    } while (FALSE);
+
+    do {
+        RTL_OSVERSIONINFOW osInfo;
+        RtlZeroMemory(&osInfo, sizeof(osInfo));
+        osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+        NTSTATUS status = RtlGetVersion(&osInfo);
+        if (NT_SUCCESS(status)) {
+            DWORD BuildNumber = osInfo.dwBuildNumber;
+            if (BuildNumber == 20348) {
+                break;
+            }
+        } else {
+            break;
+        }
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     } while (FALSE);
 
 Error:

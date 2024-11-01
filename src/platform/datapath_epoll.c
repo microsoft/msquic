@@ -345,6 +345,10 @@ Error:
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+    //
+    // TTL should always be available / enabled on Linux.
+    //
+    Datapath->Features != CXPLAT_DATAPATH_FEATURE_TTL;
 }
 
 void
@@ -854,7 +858,13 @@ CxPlatSocketContextInitialize(
             goto Exit;
         }
 
-        // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL, IPV6_UNICAST_HOPS instead.
+        //
+        // TTL should always be available / enabled on Linux.
+        //
+
+        //
+        // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL, IPV6_RECVHOPLIMIT instead.
+        //
         Option = TRUE;
         Result =
             setsockopt(
@@ -892,6 +902,7 @@ CxPlatSocketContextInitialize(
                 "setsockopt(IPV6_RECVHOPLIMIT) failed");
             goto Exit;
         }
+
 
     #ifdef UDP_GRO
         if (SocketContext->DatapathPartition->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
@@ -1884,6 +1895,9 @@ CxPlatSocketContextRecvComplete(
 
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
+        //
+        // TTL should always be available/enabled on Linux.
+        //
         CXPLAT_FRE_ASSERT(FoundTTL);
 
         QuicTraceEvent(
