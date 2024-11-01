@@ -765,6 +765,22 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
+    do {
+        RTL_OSVERSIONINFOW osInfo;
+        RtlZeroMemory(&osInfo, sizeof(osInfo));
+        osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+        NTSTATUS status = RtlGetVersion(&osInfo);
+        if (NT_SUCCESS(status)) {
+            DWORD BuildNumber = osInfo.dwBuildNumber;
+            if (BuildNumber == 20348) {
+                break;
+            }
+        } else {
+            break;
+        }
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+    } while (FALSE);
+
 Error:
 
     if (UdpSocket != NULL) {
