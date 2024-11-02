@@ -237,6 +237,8 @@ function Log-Start {
                 lttng -q create msquiclive --live
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
+                lttng-sessiond -v > ${TempLTTngDir}/lttng.log 2>&1 &
+                sleep 2
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
                 Invoke-Expression $Command | Write-Debug
             }
@@ -325,6 +327,9 @@ function Log-Stop {
 
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
+
+        Write-Host "Copying LTTng log files to $OutputPath"
+        mv ${TempLTTngDir}/lttng.log ${OutputPath}/lttng.log
 
         Write-Host "end2 ------------->"
         Write-Host "    end2 [lttng list msquic] ======================================================"
