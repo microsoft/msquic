@@ -327,7 +327,7 @@ QuicConnSetOOB(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
-        void* Buffer
+        const void* Buffer
     )
 {
     UNREFERENCED_PARAMETER(Connection);
