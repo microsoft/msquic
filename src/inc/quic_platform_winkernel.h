@@ -489,7 +489,6 @@ typedef struct CXPLAT_CQE {
 typedef struct CXPLAT_SQE {
     LIST_ENTRY Link;
     void* UserData;
-    BOOLEAN IsQueued; // Prevent double queueing.
 } CXPLAT_SQE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -528,12 +527,11 @@ CxPlatEventQEnqueue(
 {
     CxPlatLockAcquire(&queue->Lock);
 
-    if (sqe->IsQueued) {
+    if (sqe->Link.Flink != NULL) { // Already in a queue
         CxPlatLockRelease(&queue->Lock);
         return TRUE;
     }
 
-    sqe->IsQueued = TRUE;
     sqe->UserData = user_data;
     BOOLEAN SignalEvent = IsListEmpty(&queue->Events);
     InsertTailList(&queue->Events, &sqe->Link);
@@ -579,9 +577,7 @@ CxPlatEventQDequeue(
             CXPLAT_CONTAINING_RECORD(
                 RemoveHeadList(&queue->Events), CXPLAT_SQE, Link);
         events[EventsDequeued++].UserData = Sqe->UserData;
-
-        CXPLAT_DBG_ASSERT(Sqe->IsQueued);
-        Sqe->IsQueued = FALSE;
+        Sqe->Link.Flink = NULL; // Indicates it's not in a queue
     }
 
     CxPlatLockRelease(&queue->Lock);
