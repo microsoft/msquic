@@ -4056,7 +4056,7 @@ QuicTestOOBHandshake(
 
     MsQuicConnection Connection(Registration);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection.SetParam(QUIC_PARAM_CONN_OOB_INFO, OOBLength, OOBData));
+    TEST_QUIC_SUCCEEDED(Connection.SetParam(QUIC_PARAM_CONN_OOB_INFO, OOBLength, OOBData.get()));
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
     TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_TRUE(Connection.HandshakeComplete);

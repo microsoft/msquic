@@ -315,6 +315,9 @@ QuicConnCreateOOB(
         void* Buffer
     )
 {
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -327,6 +330,9 @@ QuicConnSetOOB(
         void* Buffer
     )
 {
+    UNREFERENCED_PARAMETER(Connection);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
