@@ -258,6 +258,7 @@ $allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
 $allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
 $allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
 $allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
+$allTests["max-rps-up-512-down-4000"] = "-exec:lowlat -conns:16cpu -streams:10 -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
 
 $hasFailures = $false
 $json["run_args"] = $allTests
