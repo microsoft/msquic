@@ -30,7 +30,7 @@ QUIC_STATUS
 ```
 
 Above is an example of a callback delivered to the listener interface.
-The application must register a callback handler to manage all events MsQuic may indicate, returning a status to show if it was successfully handled or not.
+The application must register a per-object callback handler to manage all events MsQuic may indicate for that object, returning a status to show if it was successfully handled or not.
 
 This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
