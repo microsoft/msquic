@@ -32,16 +32,16 @@ QUIC_STATUS
 Above is an example of a callback delivered to the listener interface.
 The application must register a callback handler to manage all events MsQuic may indicate, returning a status to show if it was successfully handled or not.
 
-This approach differs significantly from BSD sockets, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
+This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
 
-- The MsQuic API **runs in-process**, eliminating the need for a kernel to user mode boundary switch to notify the application layer. This makes the callback-based design more practical compared to BSD sockets.
+- The MsQuic API **runs in-process**, eliminating the need for a kernel to user mode boundary switch to notify the application layer. This makes the callback-based design more practical compared to sockets.
 
 - MsQuic, due to the QUIC protocol, has numerous event types. Applications may have hundreds of objects with potential state changes. The callback model allows the application to avoid managing pending calls on each object.
 
-- Writing correct, performant code on top of the BSD-style interface has proven challenging. Callbacks, executed at the correct time and on the correct thread/processor, enable MsQuic to abstract much complexity from applications, making things "just work" out of the box.
+- Writing correct, scalable  code on top of the socket interfaces has proven challenging. Callbacks, executed at the correct time and on the correct thread/processor, enable MsQuic to abstract much complexity from applications, making things "just work" out of the box.
 
-- It simplifies MsQuic's logic by eliminating the need for a queue or cached state to indicate to the application. In the BSD model, the networking stack must wait for a top-down call from the application before indicating completion, increasing code size, complexity, and memory usage.
+- It simplifies MsQuic's logic by eliminating the need for a queue or cached state to indicate to the application. In the socket model, the networking stack must wait for a top-down call from the application before indicating completion, increasing code size, complexity, and memory usage.
 
 ### Writing Event Handlers
 
