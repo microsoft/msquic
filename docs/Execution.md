@@ -69,6 +69,8 @@ The number and configuration of these threads depend on the settings passed to [
 
 Typically, MsQuic creates dedicated threads for each processor, which are hard-affinitized to a specific NUMA node and soft-affinitized (set as 'ideal processor') to a specific processor.
 These threads handle both the datapath (i.e., UDP) and QUIC layers.
+By default both layers are handled by a single thread (per-processor), but QUIC may be configured to run these layers on separate threads.
+By using the same thread MsQuic can achieve lower latency, but by using separate threads it can achieve higher throughput.
 MsQuic aligns its processing logic with the rest of the networking stack (including hardware RSS) to ensure that all processing stays on the same NUMA node, and ideally, the same processor.
 
 The complexity of aligning processing across various threads and processors is why MsQuic manages its own threading by default.
