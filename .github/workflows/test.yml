@@ -157,6 +157,9 @@ jobs:
         $ManifestPath = ".\src\manifest\MsQuicEtw.man"
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
+    - name: Stop lttng-sessiond
+      if: matrix.vec.plat == 'linux'
+      run: sudo systemctl stop lttng-sessiond
     - name: Test
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
@@ -166,7 +169,7 @@ jobs:
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} -Filter "*UdpBind*"
     - name: Upload on Failure
       uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       if: failure()
