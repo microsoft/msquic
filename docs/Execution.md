@@ -39,7 +39,7 @@ This design choice was made for several reasons:
 
 - MsQuic, due to the QUIC protocol, has numerous event types. Applications may have hundreds of objects with potential state changes. The callback model allows the application to avoid managing pending calls on each object.
 
-- Writing correct, scalable  code on top of the socket interfaces has proven challenging. Callbacks, executed at the correct time and on the correct thread/processor, enable MsQuic to abstract much complexity from applications, making things "just work" out of the box.
+- Writing correct, scalable code on top of the socket interfaces has proven challenging. By offloading the threading to MsQuic it enables MsQuic to abstract much complexity from applications, making things "just work" out of the box.
 
 - It simplifies MsQuic's logic by eliminating the need for a queue or cached state to indicate to the application. In the socket model, the networking stack must wait for a top-down call from the application before indicating completion, increasing code size, complexity, and memory usage.
 
