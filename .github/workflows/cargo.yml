@@ -16,7 +16,7 @@ jobs:
   cargo:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-large]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
