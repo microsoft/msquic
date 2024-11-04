@@ -6,7 +6,7 @@ The sections below detail the designs MsQuic uses and the reasons behind these c
 
 ## Event Model
 
-In the MsQuic API, all state changes and notifications are indicated directly to the application via a callback.
+In the MsQuic API, all asynchronous state changes and notifications are indicated directly to the application via a callback.
 This includes connection state changes, new streams being created, stream data being received, and stream sends completing.
 
 ```c
