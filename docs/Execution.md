@@ -72,7 +72,7 @@ These threads handle both the datapath (i.e., UDP) and QUIC layers.
 MsQuic aligns its processing logic with the rest of the networking stack (including hardware RSS) to ensure that all processing stays on the same NUMA node, and ideally, the same processor.
 
 The complexity of aligning processing across various threads and processors is why MsQuic manages its own threading by default.
-This abstraction simplifies the development process for applications built on top of MsQuic, ensuring that things "just work" out of the box.
+This abstraction simplifies the development process for applications built on top of MsQuic, ensuring that things "just work" for QUIC out of the box.
 
 Each thread manages the execution of one or more connections.
 Connections are distributed across threads based on their RSS alignment, which should evenly distribute traffic based on different UDP tuples.
