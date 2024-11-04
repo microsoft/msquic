@@ -16,7 +16,7 @@ jobs:
   cargo:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
@@ -41,7 +41,7 @@ jobs:
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
     - name: Cargo build
-      run: cargo build --all -vv
+      run: cargo build --all
     - name: Cargo test
       run: cargo test --all
     - name: Cargo Publish (dry run)
