@@ -23,11 +23,11 @@ fn main() {
 
     match target.as_str() {
         "x86_64-apple-darwin" => config
-            .define("CMAKE_OSX_ARCHITECTURES", "x86_64")
-            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14"),
+            .define("CMAKE_OSX_ARCHITECTURES", "x86_64"),
+            // .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14"),
         "aarch64-apple-darwin" => config
-            .define("CMAKE_OSX_ARCHITECTURES", "arm64")
-            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14"),
+            .define("CMAKE_OSX_ARCHITECTURES", "arm64"),
+            // .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14"),
         _ => &mut config
     };
 
