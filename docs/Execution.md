@@ -59,6 +59,8 @@ In fact, many operations are designed to be most efficient when executed within 
 For example, closing a handle to a connection or stream is ideally done during the "shutdown complete" indication.
 
 A crucial aspect of this design is that all blocking API (down) calls invoked within a callback always occur inline (to prevent deadlocks) and will take precedence over any calls in progress or queued from a separate thread.
+It's also worth noting that MsQuic will not invoke a recursive callback to the application by default in these cases.
+The one exception to this rule is if the application opts in via the `QUIC_STREAM_SHUTDOWN_FLAG_INLINE` flag when calling `StreamShudown` on a callback.
 
 ## Threading
 
