@@ -237,7 +237,7 @@ function Log-Start {
                 lttng -q create msquiclive --live
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
-                lttng-sessiond -v > ${TempLTTngDir}/lttng.log 2>&1 &
+                lttng-sessiond --verbose --verbose-consumer > ${TempLTTngDir}/lttng.log 2>&1 &
                 sleep 2
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
                 Invoke-Expression $Command | Write-Debug
