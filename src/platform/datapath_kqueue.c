@@ -578,9 +578,8 @@ CxPlatDataPathGetSupportedFeatures(
     )
 {
     //
-    // TTL should always be available / enabled on MacOS.
+    // Intentionally not enabling Feature_TTL on MacOS for now.
     //
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     return Datapath->Features;
 }
 
@@ -1131,7 +1130,7 @@ CxPlatSocketContextRecvComplete(
 
     RecvPacket->Route->Queue = SocketContext;
     RecvPacket->TypeOfService = 0;
-    RecvPacket->HopLimitTTL = 0; // TODO: Check to see if it's even possible to get this information on macOS and FreeBSD. If so, implement it. Otherwise, document that it's not supported.
+    RecvPacket->HopLimitTTL = 0; // TODO: We are not supporting this on MacOS (yet) unless there's a business need.
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
