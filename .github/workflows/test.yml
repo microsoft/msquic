@@ -168,7 +168,7 @@ jobs:
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       timeout-minutes: 120
-      run: sudo pwsh ./scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} -Filter "*UdpBind*"
+      run: pwsh ./scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} -Filter "*UdpBind*"
     - name: Upload on Failure
       uses: actions/upload-artifact@50769540e7f4bd5e21e526ee35c689e35e0d6874
       if: failure()
