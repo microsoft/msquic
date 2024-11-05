@@ -325,6 +325,8 @@ function Log-Stop {
 
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
+        sleep 10
+
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
