@@ -469,7 +469,7 @@ function Check-TestFilter {
 # Parses the console output of secnetperf to extract the metric value.
 function Get-TestOutput {
     param ($Output, $Metric)
-    if ($Metric -eq "latency") {
+    if ($Metric -eq "latency" -or $Metric -eq "rps") {
         $latency_percentiles = "(?<=\d{1,3}(?:\.\d{1,2})?th: )\d+"
         $RPS_regex = "(?<=Result: )\d+"
         $percentiles = [regex]::Matches($Output, $latency_percentiles) | ForEach-Object {$_.Value}
@@ -536,7 +536,9 @@ function Invoke-Secnetperf {
         $tcpSupported = 0
     }
     $metric = "throughput"
-    if ($exeArgs.Contains("plat:1")) {
+    if ($exeArgs.Contains("conns:16cpu")) { # TODO: figure out a better way to detect max RPS tests
+        $metric = "rps"
+    } elseif ($exeArgs.Contains("plat:1")) {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"

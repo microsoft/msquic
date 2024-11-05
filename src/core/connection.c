@@ -664,6 +664,7 @@ QuicConnIndicateEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    CXPLAT_PASSIVE_CODE();
     QUIC_STATUS Status;
     if (Connection->ClientCallbackHandler != NULL) {
         //

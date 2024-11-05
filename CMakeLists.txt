@@ -90,6 +90,7 @@ option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_STATIC_LINK_PARTIAL_CRT "Statically links the compiler-specific portion of the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
+option(QUIC_EXTERNAL_TOOLCHAIN "Enable if system libs and include paths are configured by CMake toolchain" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_LINUX_XDP_ENABLED "Enables XDP support" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
@@ -449,11 +450,21 @@ if(WIN32)
     # Generate the MsQuicEtw header file.
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/inc)
 
+    if(NOT DEFINED CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH OR CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH)
+        find_program(MC_EXE NAMES mc.exe)
+        if(MC_EXE MATCHES "NOTFOUND")
+            # If not found, then VS project generator will set %PATH% env var to WinSDK bin directory
+            set(MC_EXE "mc.exe" CACHE STRING "mc.exe from %PATH%" FORCE)
+        endif()
+    else()
+        find_program(MC_EXE NAMES mc.exe REQUIRED)
+    endif()
+
     add_custom_command(
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h
         OUTPUT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc
         DEPENDS ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man
-        COMMAND mc.exe -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
+        COMMAND "${MC_EXE}" -um -h ${QUIC_BUILD_DIR}/inc -r ${QUIC_BUILD_DIR}/inc ${CMAKE_CURRENT_SOURCE_DIR}/src/manifest/MsQuicEtw.man)
     add_custom_target(MsQuicEtw_HeaderBuild
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
@@ -478,7 +489,11 @@ if(WIN32)
     endif()
 
     if (QUIC_GAMECORE_BUILD)
-        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES QUIC_GAMECORE_BUILD QUIC_RESTRICTED_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_GAMECORE_BUILD QUIC_RESTRICTED_BUILD)
+    endif()
+
+    if (QUIC_GAMECORE_BUILD AND NOT QUIC_EXTERNAL_TOOLCHAIN)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES)
         set(CMAKE_CXX_STANDARD_LIBRARIES "")
         set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "")
         set(CMAKE_C_STANDARD_LIBRARIES "")
