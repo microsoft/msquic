@@ -170,11 +170,7 @@
 </ul>
 <p>The <strong>PATCH</strong> version <strong>only changes</strong> when a servicing fix is made to an existing release.</p>
 <h2 id="execution-mode">Execution Mode</h2>
-<p>In general, MsQuic uses a callback model for all asynchronous events up to the app. This includes things like connection state changes, new streams being created, stream data being received, and stream sends completing. All these events are indicated to the app via the callback handler, on a thread owned by MsQuic.</p>
-<p>Generally, MsQuic creates multiple threads to parallelize work, and therefore will make parallel/overlapping upcalls to the application, but not for the same connection. All upcalls to the app for a single connection and all child streams are always delivered serially. This is not to say, though, it will always be on the same thread. MsQuic does support the ability to shuffle connections around to better balance the load.</p>
-<p>Apps are expected to keep any execution time in the callback <strong>to a minimum</strong>. MsQuic does not use separate threads for the protocol execution and upcalls to the app. Therefore, any significant delays on the callback <strong>will delay the protocol</strong>. Any significant time or work needed to be completed by the app must happen on its own thread.</p>
-<p>This doesn't mean the app isn't allowed to do any work in the callback. In fact, many things are expressly designed to be most efficient when the app does them on the callback. For instance, closing a handle to a connection or stream is ideally implemented in the &quot;shutdown complete&quot; indications.</p>
-<p>One important aspect of this design is that all blocking calls invoked on a callback always happen inline (to prevent deadlocks), and will supercede any calls in progress or queued from a separate thread.</p>
+<p>MsQuic has a very different execution model than classic BSD-style sockets. Please see <a href="Execution.html">Execution</a> for more details on how threads and upcalls are handled inside of MsQuic.</p>
 <h2 id="settings-and-configuration">Settings and Configuration</h2>
 <p>MsQuic supports a variety of configuration options available to both application developers and administrators deploying MsQuic. See <a href="Settings.html">Settings</a> for a detailed explanation of these settings and configuration options.</p>
 <h1 id="api-objects">API Objects</h1>
