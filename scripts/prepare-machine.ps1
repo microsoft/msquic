@@ -481,7 +481,7 @@ function Install-Dotnet {
     }
 
     sudo apt-get update -y
-    sudo apt-get install dotnet-sdk-6.0 aspnetcore-runtime-6.0 dotnet-runtime-6.0
+    sudo apt-get install -y dotnet-sdk-6.0 aspnetcore-runtime-6.0 dotnet-runtime-6.0
 }
 
 function Install-Clog2Text {
