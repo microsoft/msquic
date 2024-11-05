@@ -186,7 +186,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [macos, ios]
-        os: ['macos-12']
+        os: ['macos-13']
         arch: [x64, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
