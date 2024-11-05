@@ -233,6 +233,7 @@ function Log-Start {
         }
 
         try {
+            $Env:LTTNG_UST_REGISTER_TIMEOUT=-1 # wait forever
             if ($Stream) {
                 lttng -q create msquiclive --live
             } else {
