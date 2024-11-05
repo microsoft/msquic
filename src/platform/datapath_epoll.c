@@ -2257,6 +2257,7 @@ CxPlatSendDataFinalizeSendBuffer(
         IoVec->iov_base = SendData->ClientBuffer.Buffer;
         IoVec->iov_len = SendData->ClientBuffer.Length;
         if (SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
+            SendData->TotalSize + SendData->ClientBuffer.Length > sizeof(SendData->Buffer) ||
             SendData->BufferCount == SendData->SocketContext->DatapathPartition->Datapath->SendIoVecCount) {
             SendData->ClientBuffer.Buffer = NULL;
         } else {
@@ -2447,7 +2448,7 @@ CxPlatSendDataPopulateAncillaryData(
     }
 
 #ifdef UDP_SEGMENT
-    if (SendData->SegmentationSupported && SendData->SegmentSize > 0) {
+    if (SendData->SegmentationSupported && SendData->SegmentSize > 0 && Mhdr->msg_iov->iov_len > SendData->SegmentSize) {
         Mhdr->msg_controllen += CMSG_SPACE(sizeof(uint16_t));
         CMsg = CXPLAT_CMSG_NXTHDR(CMsg);
         CMsg->cmsg_level = SOL_UDP;
