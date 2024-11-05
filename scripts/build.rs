@@ -21,13 +21,17 @@ fn main() {
         .define("QUIC_TLS", "openssl")
         .define("QUIC_OUTPUT_DIR", "../lib");
 
+    // macos-latest's cargo automatically specify --target=${ARCH}-apple-macosx14.5
+    // which conflicts with -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}.
+    // Different value than 14.5 will cause the build to fail.
+    // This hardcoded 14.5 is workaround for this issue.
     match target.as_str() {
         "x86_64-apple-darwin" => config
             .define("CMAKE_OSX_ARCHITECTURES", "x86_64")
-            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "10.15"),
+            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14.5"),
         "aarch64-apple-darwin" => config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
-            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "11.0"),
+            .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14.5"),
         _ => &mut config
     };
 
