@@ -95,11 +95,11 @@ MsQuic->SetParam(
 ### Configuring Versions via Windows Registry
 MsQuic supports setting the Acceptable Versions, Offered Versions, and Fully-Deployed Versions lists via the Windows registry. These settings are global for all servers and clients on the machine.
 The registry settings are overridden by settings specified in the code.
-The registry values must be created under the HKLM\System\CurrentControlSet\Services\MsQuic\Parameters key.
+The registry values must be created under the `HKLM\System\CurrentControlSet\Services\MsQuic\Parameters` key.
 Each list is stored in the registry as a `REG_BINARY` type, with the version numbers in little-endian (host) order.
-The registry value for Acceptable Versions must be named "AcceptableVersions".
-The registry value for Offered Versions must be named "OfferedVersions".
-The registry value for Fully-Deployed Versions must be named "FullyDeployedVersions".
+The registry value for Acceptable Versions must be named `AcceptableVersions`.
+The registry value for Offered Versions must be named `OfferedVersions`.
+The registry value for Fully-Deployed Versions must be named `FullyDeployedVersions`.
 
 Here's a sample .reg file that creates all three lists with QUIC version 2 first and QUIC version 1 after, in little endian order, and enables version negotiation:
 ```reg
