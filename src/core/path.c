@@ -298,6 +298,11 @@ QuicPathSetActive(
     //
     if (Path->SendObservedAddress) {
         Connection->ObservedAddressSequenceNumber++;
+        if (Connection->State.ObservedAddressNegotiated) {
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS);
+        }
     }
 
     QuicTraceLogConnInfo(

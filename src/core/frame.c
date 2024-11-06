@@ -1334,7 +1334,7 @@ QuicTimestampFrameEncode(
 
 _Success_(return != FALSE)
 BOOLEAN
-(
+QuicTimestampFrameDecode(
     _In_ uint16_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * const Buffer,
@@ -2107,7 +2107,7 @@ QuicFrameLog(
 
     case QUIC_FRAME_TIMESTAMP: {
         QUIC_TIMESTAMP_EX Frame;
-        if (!(PacketLength, Packet, Offset, &Frame)) {
+        if (!QuicTimestampFrameDecode(PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
                 FrameLogTimestampInvalid,
                 "[%c][%cX][%llu]   TIMESTAMP [Invalid]",

@@ -2894,6 +2894,9 @@ QuicConnProcessPeerTransportParameters(
 
     if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
         Connection->State.ObservedAddressNegotiated = TRUE;
+        QuicSendSetSendFlag(
+            &Connection->Send,
+            QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS);
     }
 
     if (!FromResumptionTicket) {
@@ -7366,6 +7369,9 @@ QuicConnApplyNewSettings(
 
         if (QuicConnIsServer(Connection) && Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
             Connection->State.ObservedAddressNegotiated = TRUE;
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS);
         }
 
         if (Connection->Settings.EcnEnabled) {
