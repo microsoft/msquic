@@ -218,6 +218,7 @@ namespace Microsoft.Quic
         XDP = 0x0004,
         NO_IDEAL_PROC = 0x0008,
         HIGH_PRIORITY = 0x0010,
+        AFFINITIZE = 0x0020,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG

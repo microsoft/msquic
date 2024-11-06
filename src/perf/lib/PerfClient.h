@@ -179,7 +179,6 @@ struct PerfClient {
     uint8_t IncrementTarget {TRUE};
     // Local execution parameters
     uint32_t WorkerCount;
-    uint8_t AffinitizeWorkers {FALSE};
     uint8_t SpecificLocalAddresses {FALSE};
 #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId {UINT16_MAX};
