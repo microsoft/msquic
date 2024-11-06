@@ -28,6 +28,7 @@ QuicPathInitialize(
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->InUse = TRUE;
+    Path->SendObservedAddress = TRUE;
     Path->MinRtt = UINT32_MAX;
     Path->Mtu = Connection->Settings.MinimumMtu;
     Path->SmoothedRtt = MS_TO_US(Connection->Settings.InitialRttMs);
@@ -289,6 +290,14 @@ QuicPathSetActive(
 
         Connection->Paths[0] = *Path;
         *Path = PrevActivePath;
+    }
+
+    //
+    // When changing path, we need to increment the sequence number for observed
+    // address.
+    //
+    if (Path->SendObservedAddress) {
+        Connection->ObservedAddressSequenceNumber++;
     }
 
     QuicTraceLogConnInfo(

@@ -2263,7 +2263,8 @@ QuicConnGenerateLocalTransportParameters(
         QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE |
         QUIC_TP_FLAG_MAX_ACK_DELAY |
         QUIC_TP_FLAG_MIN_ACK_DELAY |
-        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_OBSERVED_ADDRESS;
 
     if (Connection->Settings.IdleTimeoutMs != 0) {
         LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
@@ -2889,6 +2890,10 @@ QuicConnProcessPeerTransportParameters(
         }
     } else {
         Connection->SourceCidLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_DEFAULT;
+    }
+
+    if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
+        Connection->State.ObservedAddressNegotiated = TRUE;
     }
 
     if (!FromResumptionTicket) {
@@ -5284,6 +5289,23 @@ QuicConnRecvFrames(
             break;
         }
 
+        case QUIC_FRAME_OBSERVED_ADDRESS_V4:
+        case QUIC_FRAME_OBSERVED_ADDRESS_V6: { // Always accept the frame, because we always enable support.
+            QUIC_OBSERVED_ADDRESS_EX Frame;
+            if (!QuicObservedAddressFrameDecode(FrameType, PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding OBSERVED_ADDRESS frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            // TODO - Do something with this.
+            break;
+        }
+
         default:
             //
             // No default case necessary, as we have already validated the frame
@@ -7340,6 +7362,10 @@ QuicConnApplyNewSettings(
                 Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
                 Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
             QuicConnIndicateEvent(Connection, &Event);
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
+            Connection->State.ObservedAddressNegotiated = TRUE;
         }
 
         if (Connection->Settings.EcnEnabled) {

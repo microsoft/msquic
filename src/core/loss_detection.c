@@ -877,6 +877,16 @@ QuicLossDetectionRetransmitFrames(
                         QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
             }
             break;
+
+        case QUIC_FRAME_OBSERVED_ADDRESS_V4:
+        case QUIC_FRAME_OBSERVED_ADDRESS_V6:
+            if (Packet->Frames[i].OBSERVED_ADDRESS.Sequence == Connection->ObservedAddressSequenceNumber) {
+                NewDataQueued |=
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_CONN_SEND_FLAG_ACK_FREQUENCY);
+            }
+            break;
         }
     }
 
