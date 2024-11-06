@@ -451,6 +451,13 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Unset</td>
 <td>Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter.</td>
 </tr>
+<tr>
+<td>Version Negotiation Ext. Enabled</td>
+<td>uint32_t</td>
+<td>VersionNegotiationExtEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enables the Version Negotiation Extension.</td>
+</tr>
 </tbody>
 </table>
 <p>The <code>uint32_t[]</code> type is a <code>REG_BINARY</code> blob of the versions list, with each version in little-endian format.</p>
@@ -545,6 +552,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Set-Only</td>
 <td>Globally change the stateless reset key for all subsequent connections.</td>
 </tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED</code><br> (preview)</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Globally enable the version negotiation extension for all client and server connections.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="registration-parameters">Registration Parameters</h2>
@@ -594,6 +607,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W</td>
 <td>Set-only</td>
 <td>Calls <code>SetCredentialsAttributesW</code> with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED</code><br> (preview)</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Enables the version negotiation extension for all client connections on the configuration.</td>
 </tr>
 </tbody>
 </table>

@@ -201,6 +201,9 @@ Any time the <code>LoadBalancingMode</code> is updated, the server must be resta
 <h2 id="overloaded-worker-threads">Overloaded Worker Threads</h2>
 <p>MsQuic uses worker threads internally to execute the QUIC protocol logic. For each worker thread, MsQuic tracks the average queue delay for any work done on one of these threads. This queue delay is simply the time from when the work is added to the queue to when the work is removed from the queue. If this delay hits a certain threshold, then existing connections can start to suffer (i.e. spurious packet loss, decreased throughput, or even connection failures). In order to prevent this, new connections are rejected with the SERVER_BUSY error, when this threshold is reached.</p>
 <p>The queue delay threshold can be configured via the <code>MaxWorkerQueueDelayMs</code> setting.</p>
+<h2 id="version-negotiation">Version Negotiation</h2>
+<p>MsQuic supports QUIC protocol versions 1 and 2, and the version negotiation extension. By default, version negotiation is off, but can be enabled at runtime.
+Instructions for configuring and deploying QUIC versions are at <a href="Versions.html">Versions</a>.</p>
 <h1 id="diagnostics">Diagnostics</h1>
 <p>For details on how to diagnose any issues with your deployment at the MsQuic layer see <a href="Diagnostics.html">Diagnostics</a>.</p>
 
