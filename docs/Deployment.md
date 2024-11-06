@@ -137,6 +137,11 @@ MsQuic uses worker threads internally to execute the QUIC protocol logic. For ea
 
 The queue delay threshold can be configured via the `MaxWorkerQueueDelayMs` setting.
 
+## Version Negotiation
+
+MsQuic supports QUIC protocol versions 1 and 2, and the version negotiation extension. By default, version negotiation is off, but can be enabled at runtime.
+Instructions for configuring and deploying QUIC versions are at [Versions](Versions.md).
+
 # Diagnostics
 
 For details on how to diagnose any issues with your deployment at the MsQuic layer see [Diagnostics](Diagnostics.md).
