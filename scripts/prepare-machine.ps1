@@ -486,11 +486,13 @@ function Install-Dotnet {
 }
 
 function Install-Clog2Text {
-    Install-Dotnet
+    # Install-Dotnet
 
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
     git submodule update
+
+    dotnet --version
 
     dotnet build (Join-Path $RootDir submodules clog)
     $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
@@ -584,6 +586,9 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+
+        lttng --version
+        lttng-sessiond --version
         if ($UseXdp) {
             if (!$IsUbuntu2404) {
                 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
