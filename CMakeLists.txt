@@ -459,7 +459,9 @@ if(WIN32)
     set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
-    target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
+    target_include_directories(MsQuicEtw_Header INTERFACE
+        $<BUILD_INTERFACE:${QUIC_BUILD_DIR}/inc>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
 
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
