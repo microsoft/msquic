@@ -492,6 +492,9 @@ function Install-Clog2Text {
     git submodule init $RootDir/submodules/clog
     git submodule update
 
+    apt list --installed | grep dotnet
+    which dotnet | xargs ls -lh
+    grep -R dotnet /etc/apt
     dotnet --version
 
     dotnet build (Join-Path $RootDir submodules clog)
@@ -589,6 +592,7 @@ if ($IsLinux) {
 
         lttng --version
         lttng-sessiond --version
+        grep -R lttng /etc/apt
         if ($UseXdp) {
             if (!$IsUbuntu2404) {
                 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
