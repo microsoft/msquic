@@ -23,9 +23,15 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(logging PRIVATE inc)
 
     elseif(QUIC_LOGGING_TYPE STREQUAL "lttng")
-        target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/common)
-        target_include_directories(logging_inc INTERFACE ${CMAKE_CURRENT_SOURCE_DIR}/linux)
-        target_include_directories(logging_inc INTERFACE ${LTTNGUST_INCLUDE_DIRS})
+        target_include_directories(logging_inc INTERFACE 
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/common>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        target_include_directories(logging_inc INTERFACE 
+            $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/linux>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
+        target_include_directories(logging_inc INTERFACE 
+            $<BUILD_INTERFACE:${LTTNGUST_INCLUDE_DIRS}>
+            $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
         FILE(GLOB LOGGING_FILES ${CMAKE_CURRENT_SOURCE_DIR}/linux/*.c)
         add_library(logging STATIC ${LOGGING_FILES})
