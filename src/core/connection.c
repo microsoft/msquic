@@ -5638,6 +5638,9 @@ QuicConnRecvDatagrams(
 
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
+            if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
+                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HopLimitTTL;
+            }
             QuicConnLogInFlowStats(Connection);
 
             if (!CurrentPath->IsPeerValidated) {
@@ -6821,6 +6824,10 @@ QuicConnGetV2Statistics(
     }
     if (STATISTICS_HAS_FIELD(*StatsLength, SendEcnCongestionCount)) {
         Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
+    }
+
+    if (STATISTICS_HAS_FIELD(*StatsLength, HandshakeHopLimitTTL)) {
+        Stats->HandshakeHopLimitTTL = Connection->Stats.Handshake.HandshakeHopLimitTTL;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
