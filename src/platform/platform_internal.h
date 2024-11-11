@@ -171,8 +171,6 @@ typedef struct _WSK_DATAGRAM_SOCKET {
 // Per-port state.
 //
 typedef struct CXPLAT_SOCKET {
-    // CXPLAT_SOCKET_COMMON;
-
     //
     // Flag indicates the binding has a default remote destination.
     //
