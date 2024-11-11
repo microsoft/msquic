@@ -198,6 +198,7 @@ typedef struct CXPLAT_DATAPATH_SEND_BUFFER {
 // Send context.
 //
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
 
     CXPLAT_SOCKET* Binding;
 
@@ -228,11 +229,6 @@ typedef struct CXPLAT_SEND_DATA {
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
 
     //
     // The number of WSK buffers allocated.
@@ -2218,6 +2214,7 @@ CxPlatDataPathSocketReceive(
 
             Datagram->Data.BufferLength = MessageLength;
             Datagram->Data.Route = &IoBlock->Route;
+            Datagram->Data.Route->DatapathType = Datagram->Data.DatapathType = CXPLAT_DATAPATH_TYPE_USER;
 
             //
             // Add the datagram to the end of the current chain.
@@ -2403,6 +2400,7 @@ SendDataAlloc(
                 ? Config->MaxPacketSize : 0;
         SendData->ClientBuffer.Length = 0;
         SendData->ClientBuffer.Buffer = NULL;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
     }
 
     return SendData;
