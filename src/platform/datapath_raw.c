@@ -189,7 +189,7 @@ RawSocketDelete(
 {
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
-    CxPlatRundownReleaseAndWait(&Socket->Rundown);
+    CxPlatRundownReleaseAndWait(&Socket->RawRundown);
     if (Socket->PausedTcpSend) {
         CxPlatDpRawTxFree(Socket->PausedTcpSend);
     }
@@ -269,7 +269,7 @@ CxPlatDpRawRxEthernet(
                 CxPlatDpRawRxFree(PacketChain);
             }
 
-            CxPlatRundownRelease(&Socket->Rundown);
+            CxPlatRundownRelease(&Socket->RawRundown);
         } else {
             CxPlatDpRawRxFree(PacketChain);
         }
