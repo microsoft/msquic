@@ -43,7 +43,6 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop partitions.
-    // XDP_QEO_SET_FN *XdpQeoSet;
 
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
@@ -175,6 +174,7 @@ CxPlatGetRssQueueProcessors(
         if (QUIC_FAILED(Status)) { return Status; }
 
         XSK_UMEM_REG TxUmem = {0};
+        UINT32 EnableAffinity = 1;
         TxUmem.Address = &TxPacket;
         TxUmem.ChunkSize = sizeof(XDP_TX_PACKET);
         TxUmem.Headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
@@ -187,6 +187,9 @@ CxPlatGetRssQueueProcessors(
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
+        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &EnableAffinity, sizeof(EnableAffinity));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
@@ -943,7 +946,6 @@ CxPlatDpRawInitialize(
     }
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    // Xdp->XdpQeoSet = (XDP_QEO_SET_FN *)XdpGetRoutine(XDP_QEO_SET_FN_NAME);
 
     CxPlatXdpReadConfig(Xdp);
     Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
@@ -1268,16 +1270,11 @@ RawSocketUpdateQeo(
 
     BOOLEAN AtLeastOneSucceeded = FALSE;
     for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        // if (Xdp->XdpQeoSet != NULL) {
-        //     Status =
-        //         Xdp->XdpQeoSet(
-        //             CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
-        //             Connections,
-        //             sizeof(Connections));
-        if (FALSE) {
-        } else {
-            Status = E_NOINTERFACE;
-        }
+        Status =
+            XdpQeoSet(
+                CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
+                Connections,
+                sizeof(Connections));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
