@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+
 #ifdef QUIC_CLOG
 #include "datapath_winkernel.c.clog.h"
 #endif
@@ -607,6 +608,25 @@ CxPlatDataPathQuerySockoptSupport(
 
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
 
+    } while (FALSE);
+
+    do {
+        RTL_OSVERSIONINFOW osInfo;
+        RtlZeroMemory(&osInfo, sizeof(osInfo));
+        osInfo.dwOSVersionInfoSize = sizeof(osInfo);
+        NTSTATUS status = RtlGetVersion(&osInfo);
+        if (NT_SUCCESS(status)) {
+            DWORD BuildNumber = osInfo.dwBuildNumber;
+            //
+            // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+            //
+            if (BuildNumber == 20348) {
+                break;
+            }
+        } else {
+            break;
+        }
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     } while (FALSE);
 
 Error:
@@ -1514,6 +1534,46 @@ SocketCreateUdp(
         goto Error;
     }
 
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_HOPLIMIT,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_HOPLIMIT");
+            goto Error;
+        }
+
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_HOPLIMIT,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_HOPLIMIT");
+            goto Error;
+        }
+    }
+
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Option = MAX_URO_PAYLOAD_LENGTH;
         Status =
@@ -1985,6 +2045,7 @@ CxPlatDataPathSocketReceive(
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
         INT ECN = 0;
+        INT HopLimitTTL = 0;
 
         //
         // Parse the ancillary data for all the per datagram information that we
@@ -2016,6 +2077,10 @@ CxPlatDataPathSocketReceive(
                 } else if (CMsg->cmsg_type == IPV6_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_IP) {
                 if (CMsg->cmsg_type == IP_PKTINFO) {
@@ -2035,6 +2100,10 @@ CxPlatDataPathSocketReceive(
                 } else if (CMsg->cmsg_type == IP_ECN) {
                     ECN = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IP_TTL) {
+                    HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
+                    CXPLAT_DBG_ASSERT(HopLimitTTL > 0);
                 }
             } else if (CMsg->cmsg_level == IPPROTO_UDP) {
                 if (CMsg->cmsg_type == UDP_COALESCED_INFO) {
@@ -2201,6 +2270,7 @@ CxPlatDataPathSocketReceive(
             Datagram->Data.Next = NULL;
             Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
             Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.HopLimitTTL = (uint8_t)HopLimitTTL;
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
 

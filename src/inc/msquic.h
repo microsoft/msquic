@@ -556,6 +556,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t SendEcnCongestionCount;        // Number of congestion events caused by ECN.
 
+    uint8_t  HandshakeHopLimitTTL;          // The TTL value in the initial packet of the handshake.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
