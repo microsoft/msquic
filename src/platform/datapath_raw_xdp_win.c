@@ -11,6 +11,7 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
 
+#include <xdp/wincommon.h>
 #include "datapath_raw_win.h"
 #include "datapath_raw_xdp.h"
 #include <wbemidl.h>
@@ -42,7 +43,7 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop partitions.
-    XDP_QEO_SET_FN *XdpQeoSet;
+    // XDP_QEO_SET_FN *XdpQeoSet;
 
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
@@ -163,6 +164,7 @@ CxPlatGetRssQueueProcessors(
     _Out_writes_to_(*Count, *Count) uint32_t* Queues
     )
 {
+    UNREFERENCED_PARAMETER(Xdp);
     uint32_t TxRingSize = 1;
     XDP_TX_PACKET TxPacket = { 0 };
     CreateNoOpEthernetPacket(&TxPacket);
@@ -763,7 +765,7 @@ CxPlatDpRawInterfaceUpdateRules(
 
         HANDLE NewRxProgram;
         QUIC_STATUS Status =
-            Interface->XdpCreateProgram(
+            XdpCreateProgram(
                 Interface->ActualIfIndex,
                 &RxHook,
                 i,
@@ -941,7 +943,7 @@ CxPlatDpRawInitialize(
     }
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    Xdp->XdpQeoSet = (XDP_QEO_SET_FN *)XdpGetRoutine(XDP_QEO_SET_FN_NAME);
+    // Xdp->XdpQeoSet = (XDP_QEO_SET_FN *)XdpGetRoutine(XDP_QEO_SET_FN_NAME);
 
     CxPlatXdpReadConfig(Xdp);
     Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
@@ -1266,12 +1268,13 @@ RawSocketUpdateQeo(
 
     BOOLEAN AtLeastOneSucceeded = FALSE;
     for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        if (Xdp->XdpQeoSet != NULL) {
-            Status =
-                Xdp->XdpQeoSet(
-                    CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
-                    Connections,
-                    sizeof(Connections));
+        // if (Xdp->XdpQeoSet != NULL) {
+        //     Status =
+        //         Xdp->XdpQeoSet(
+        //             CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
+        //             Connections,
+        //             sizeof(Connections));
+        if (FALSE) {
         } else {
             Status = E_NOINTERFACE;
         }
