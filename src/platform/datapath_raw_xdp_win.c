@@ -936,6 +936,7 @@ CxPlatDpRawInitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    PMIB_IF_TABLE2 pIfTable = NULL;
     QUIC_STATUS Status;
 
     if (WorkerPool == NULL) {
@@ -971,7 +972,6 @@ CxPlatDpRawInitialize(
         Xdp,
         Xdp->PartitionCount);
 
-    PMIB_IF_TABLE2 pIfTable;
     if (GetIfTable2(&pIfTable) != NO_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
