@@ -9,7 +9,7 @@ function(add_quic_tool)
     target_link_libraries(${targetname} inc warnings msquic)
 
     if (BUILD_SHARED_LIBS)
-        target_link_libraries(${targetname} platform)
+        target_link_libraries(${targetname} msquic_platform)
     endif()
 
     target_link_libraries(${targetname} logging base_link)

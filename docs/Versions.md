@@ -57,7 +57,7 @@ Configuring the QUIC versions on a MsQuic server is similar to configuring them 
 
 If a server is not in a fleet, or the operator/application does not ever need to change QUIC versions, then all three lists in `QUIC_VERSION_SETTINGS` **MUST** be the same.
 
-If a server is deployed in a fleet, and the server operator wishes to change the supported QUIC versions, the Version Negotiation specification details how that should be done, quoted here:
+If a server is deployed in a fleet, and the server operator wishes to change the supported QUIC versions, the [Version Negotiation specification](https://www.rfc-editor.org/rfc/rfc9368.html#section-5) details how that should be done, quoted here:
 > When adding support for a new version:
 > * The first step is to progressively add support for the new version to all server instances. This step updates the Acceptable Versions but not the Offered Versions nor the Fully-Deployed Versions. Once all server instances have been updated, operators wait for at least one MSL to allow any in-flight Version Negotiation packets to arrive.
 > * Then, the second step is to progressively add the new version to Offered Versions on all server instances. Once complete, operators wait for at least another MSL.
@@ -70,7 +70,7 @@ If a server is deployed in a fleet, and the server operator wishes to change the
 
 **Note that this opens connections to version downgrades (but only for partially-deployed versions) during the update window, since those could be due to clients communicating with both updated and non-updated server instances.**
 
-
+### Configuring Versions via code
 This snippet should execute before the server's `QUIC_CONFIGURATION` is created:
 ```c
 QUIC_VERSION_SETTINGS Settings = { 0 };
@@ -92,9 +92,30 @@ MsQuic->SetParam(
     &Settings);
 ```
 
+### Configuring Versions via Windows Registry
+MsQuic supports setting the Acceptable Versions, Offered Versions, and Fully-Deployed Versions lists via the Windows registry. These settings are global for all servers and clients on the machine.
+The registry settings are overridden by settings specified in the code.
+The registry values must be created under the `HKLM\System\CurrentControlSet\Services\MsQuic\Parameters` key.
+Each list is stored in the registry as a `REG_BINARY` type, with the version numbers in little-endian (host) order.
+The registry value for Acceptable Versions must be named `AcceptableVersions`.
+The registry value for Offered Versions must be named `OfferedVersions`.
+The registry value for Fully-Deployed Versions must be named `FullyDeployedVersions`.
+
+Here's a sample .reg file that creates all three lists with QUIC version 2 first and QUIC version 1 after, in little endian order, and enables version negotiation:
+```reg
+Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters]
+"AcceptableVersions"=hex:cf,43,33,6b,01,00,00,00
+"OfferedVersions"=hex:cf,43,33,6b,01,00,00,00
+"FullyDeployedVersions"=hex:cf,43,33,6b,01,00,00,00
+"VersionNegotiationExtEnabled"=dword:00000001
+```
+
 # QUIC Version Negotiation Extension
 
-The Version Negotiation Extension is on by default in our officially-released binaries. Since the standard is not yet complete, incompatible changes may be made preventing different drafts from working with each other. An application using MsQuic should be cautious about enabling the Version Negotiation Extension in production scenarios until the standard is complete.
+The Version Negotiation Extension is off by default in our officially-released binaries, but can be enabled via registry or [Settings](./Settings.md).
+The Version Negotiated Extension has been standardized and is present in MsQuic since version 2.3.
 
 ## Enabling Version Negotiation Extension on MsQuic Client
 
@@ -103,4 +124,4 @@ This setting **MUST** be set before [`ConnectionStart`](api/ConnectionStart.md) 
 
 ## Enabling Version Negotiation Extension on MsQuic Server
 
-Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it **MUST** be set globally, using [`SetParam`](api/SetParam.md) before the `QUIC_CONFIGURATION` is opened for the server. It is set automatically when `QUIC_VERSION_SETTINGS` are set.
+Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it **MUST** be set globally, using [`SetParam`](api/SetParam.md) before the `QUIC_CONFIGURATION` is opened for the server. It is set automatically when `QUIC_VERSION_SETTINGS` are set, except via registry.

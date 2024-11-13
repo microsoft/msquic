@@ -272,6 +272,7 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_XDP              = 0x0004,
     QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC    = 0x0008,
     QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY    = 0x0010,
+    QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE       = 0x0020,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
@@ -554,6 +555,8 @@ typedef struct QUIC_STATISTICS_V2 {
     uint32_t DestCidUpdateCount;            // Number of times the destionation CID changed.
 
     uint32_t SendEcnCongestionCount;        // Number of congestion events caused by ECN.
+
+    uint8_t  HandshakeHopLimitTTL;          // The TTL value in the initial packet of the handshake.
 
     // N.B. New fields must be appended to end
 
