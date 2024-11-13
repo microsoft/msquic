@@ -238,7 +238,7 @@ typedef struct CXPLAT_SOCKET {
     uint8_t UseTcp : 1; // always false?
     uint8_t RawSocketAvailable : 1;
 
-    CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
+    CXPLAT_RUNDOWN_REF Rundown[0];
 
 } CXPLAT_SOCKET;
 
@@ -318,8 +318,20 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+#ifndef htons
+#define htons _byteswap_ushort
+#endif
+
+#ifndef ntohs
+#define ntohs _byteswap_ushort
+#endif
+
 #ifndef htonl
 #define htonl _byteswap_ulong
+#endif
+
+#ifndef ntohl
+#define ntohl _byteswap_ulong
 #endif
 
 #elif _WIN32
@@ -1075,7 +1087,7 @@ typedef struct CXPLAT_DATAPATH {
 
 #endif // CX_PLATFORM_LINUX
 
-#if defined(CX_PLATFORM_LINUX) || _WIN32
+#if defined(CX_PLATFORM_LINUX) || _WIN32 || defined(_KERNEL_MODE)
 
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 

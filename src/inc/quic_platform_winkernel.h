@@ -130,6 +130,16 @@ InterlockedFetchAndSetBoolean(
     return (BOOLEAN)InterlockedOr8((char*)Target, 1);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCloseHandle(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    ZwClose(Handle);
+}
+
 //
 // Static Analysis Interfaces
 //

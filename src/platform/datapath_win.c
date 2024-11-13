@@ -31,6 +31,9 @@ CxPlatSocketUpdateQeo(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+// separate file?
+#ifndef _KERNEL_MODE
+
 void
 CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
@@ -54,6 +57,8 @@ CxPlatDataPathProcessCqe(
     default: CXPLAT_DBG_ASSERT(FALSE); break;
     }
 }
+
+#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

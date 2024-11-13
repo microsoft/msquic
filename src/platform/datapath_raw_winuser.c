@@ -11,7 +11,7 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_win.c.clog.h"
+#include "datapath_raw_winuser.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
@@ -197,7 +197,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
             NETIO_STATUS Status =
             Status = GetIpNetEntry2(&Operation->IpnetRow);
-            if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
+            if (QUIC_SUCCEEDED(Status) || Operation->IpnetRow.State <= NlnsIncomplete) {
                 Status =
                     ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
                 if (Status != 0) {
