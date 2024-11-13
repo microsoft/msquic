@@ -1086,7 +1086,6 @@ CxPlatDpRawInitialize(
             "CxPlatThreadCreate");
         goto Error;
     }
-    FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
         QuicTraceEvent(
@@ -1152,6 +1151,9 @@ CxPlatDpRawInitialize(
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
+    if (pIfTable != NULL) {
+        FreeMibTable(pIfTable);
+    }
 
     if (QUIC_FAILED(Status)) {
         while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
