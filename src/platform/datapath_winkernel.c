@@ -241,11 +241,6 @@ typedef struct CXPLAT_SEND_DATA {
     UINT8 WskBufferCount;
 
     //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    UINT16 SegmentSize;
-
-    //
     // The QUIC_BUFFER returned to the client for segmented sends.
     //
     QUIC_BUFFER ClientBuffer;

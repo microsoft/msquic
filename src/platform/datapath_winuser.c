@@ -228,16 +228,6 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_POOL* BufferPool;
 
     //
-    // The total buffer size for WsaBuffers.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    uint16_t SegmentSize;
-
-    //
     // Set of flags set to configure the send behavior.
     //
     uint8_t SendFlags; // CXPLAT_SEND_FLAGS
