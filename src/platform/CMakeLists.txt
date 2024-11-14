@@ -62,10 +62,6 @@ endif()
 add_library(msquic_platform STATIC ${SOURCES})
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    target_compile_definitions(msquic_platform PRIVATE
-        XDP_API_VERSION=3
-        XDP_INCLUDE_WINCOMMON
-    )
     target_link_libraries(
         msquic_platform
         PUBLIC

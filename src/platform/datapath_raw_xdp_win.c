@@ -10,6 +10,8 @@ Abstract:
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
+#define XDP_API_VERSION 3
+#define XDP_INCLUDE_WINCOMMON
 
 #include <xdp/wincommon.h>
 #include "datapath_raw_win.h"
