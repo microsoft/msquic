@@ -199,6 +199,7 @@ typedef struct CXPLAT_DATAPATH_SEND_BUFFER {
 // Send context.
 //
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
 
     CXPLAT_SOCKET* Binding;
 
@@ -226,24 +227,9 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_DATAPATH_SEND_BUFFER* TailBuf;
 
     //
-    // The total buffer size for WsaBuffers.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
-    //
     // The number of WSK buffers allocated.
     //
     UINT8 WskBufferCount;
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    UINT16 SegmentSize;
 
     //
     // The QUIC_BUFFER returned to the client for segmented sends.

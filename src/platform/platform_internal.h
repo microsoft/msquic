@@ -61,6 +61,13 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     // The Worker WorkerPool
     //
     CXPLAT_WORKER_POOL* WorkerPool;
+
+    //
+    // Set of supported features.
+    //
+    uint32_t Features;
+
+    CXPLAT_DATAPATH_RAW* RawDataPath;
 } CXPLAT_DATAPATH_COMMON;
 
 typedef struct CXPLAT_SOCKET_COMMON {
@@ -73,6 +80,21 @@ typedef struct CXPLAT_SOCKET_COMMON {
     // The remote address and port.
     //
     QUIC_ADDR RemoteAddress;
+
+    //
+    // Parent datapath.
+    //
+    CXPLAT_DATAPATH* Datapath;
+
+    //
+    // The client context for this binding.
+    //
+    void *ClientContext;
+
+    //
+    // The local interface's MTU.
+    //
+    uint16_t Mtu;
 } CXPLAT_SOCKET_COMMON;
 
 typedef struct CXPLAT_SEND_DATA_COMMON {
@@ -82,6 +104,16 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     // The type of ECN markings needed for send.
     //
     uint8_t ECN; // CXPLAT_ECN_TYPE
+
+    //
+    // The total buffer size for WsaBuffers.
+    //
+    uint32_t TotalSize;
+
+    //
+    // The send segmentation size; zero if segmentation is not performed.
+    //
+    uint16_t SegmentSize;
 } CXPLAT_SEND_DATA_COMMON;
 
 typedef enum CXPLAT_DATAPATH_TYPE {
@@ -397,11 +429,6 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
     // The size of each receive datagram array element, including client context,
     // internal context, and padding.
     //
@@ -436,8 +463,6 @@ typedef struct CXPLAT_DATAPATH {
 
     uint8_t UseTcp : 1;
 
-    CXPLAT_DATAPATH_RAW* RawDataPath;
-
     //
     // Per-processor completion contexts.
     //
@@ -452,17 +477,6 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_SOCKET_COMMON;
 
     //
-    // Parent datapath.
-    //
-    // CXPLAT_DATAPATH_BASE* Datapath;
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // Client context pointer.
-    //
-    void *ClientContext;
-
-    //
     // Synchronization mechanism for cleanup.
     //
     CXPLAT_REF_COUNT RefCount;
@@ -471,11 +485,6 @@ typedef struct CXPLAT_SOCKET {
     // The size of a receive buffer's payload.
     //
     uint32_t RecvBufLen;
-
-    //
-    // The local interface's MTU.
-    //
-    uint16_t Mtu;
 
     //
     // Indicates the binding connected to a remote IP address.
@@ -772,24 +781,9 @@ typedef struct CXPLAT_SOCKET {
     CXPLAT_SOCKET_COMMON;
 
     //
-    // A pointer to datapath object.
-    //
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // The client context for this binding.
-    //
-    void *ClientContext;
-
-    //
     // Synchronization mechanism for cleanup.
     //
     CXPLAT_REF_COUNT RefCount;
-
-    //
-    // The MTU for this binding.
-    //
-    uint16_t Mtu;
 
     //
     // The size of a receive buffer's payload.
@@ -899,11 +893,6 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_REF_COUNT RefCount;
 
     //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
     // The proc count to create per proc datapath state.
     //
     uint32_t PartitionCount;
@@ -945,8 +934,6 @@ typedef struct CXPLAT_DATAPATH {
 #endif
 
     uint8_t UseTcp : 1;
-
-    CXPLAT_DATAPATH_RAW* RawDataPath;
 
     //
     // The per proc datapath contexts.
