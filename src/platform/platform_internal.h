@@ -94,7 +94,7 @@ typedef struct CXPLAT_SOCKET_COMMON {
     //
     // The local interface's MTU.
     //
-    UINT16 Mtu;
+    uint16_t Mtu;
 } CXPLAT_SOCKET_COMMON;
 
 typedef struct CXPLAT_SEND_DATA_COMMON {
