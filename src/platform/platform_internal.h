@@ -203,6 +203,8 @@ typedef struct _WSK_DATAGRAM_SOCKET {
 // Per-port state.
 //
 typedef struct CXPLAT_SOCKET {
+    CXPLAT_SOCKET_COMMON;
+
     //
     // Flag indicates the binding has a default remote destination.
     //
@@ -212,11 +214,6 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the binding is being used for PCP.
     //
     BOOLEAN PcpBinding : 1;
-
-    //
-    // Parent datapath.
-    //
-    CXPLAT_DATAPATH* Datapath;
 
     //
     // UDP socket used for sending/receiving datagrams.
@@ -230,27 +227,6 @@ typedef struct CXPLAT_SOCKET {
     // Event used to wait for completion of socket functions.
     //
     CXPLAT_EVENT WskCompletionEvent;
-
-    // TODO: set. use QUICADDR by using CXPLAT_SOCKET_COMMON ---
-    //
-    // The local address and UDP port.
-    //
-    SOCKADDR_INET LocalAddress;
-
-    //
-    // The remote address and UDP port.
-    //
-    SOCKADDR_INET RemoteAddress;
-
-    //
-    // The local interface's MTU.
-    //
-    UINT16 Mtu;
-
-    //
-    // Client context pointer.
-    //
-    void *ClientContext;
 
     //
     // IRP used for socket functions.
@@ -312,21 +288,11 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_COMMON;
 
     //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
     // The registration with WinSock Kernel.
     //
     WSK_REGISTRATION WskRegistration;
     WSK_PROVIDER_NPI WskProviderNpi;
     WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
-
-    //
-    // The UDP callback function pointers.
-    //
-    // CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
     // The size of the buffer to allocate for client's receive context structure.
@@ -344,9 +310,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t UseTcp : 1; // TODO: set. always false?
-
-    CXPLAT_DATAPATH_RAW* RawDataPath; // TODO: set.
+    uint8_t UseTcp : 1; // Not supported. always false
 
     //
     // Per-processor completion contexts.
