@@ -123,16 +123,6 @@ typedef struct CXPLAT_SEND_DATA {
     QUIC_BUFFER ClientBuffer;
 
     //
-    // The total buffer size for iovecs.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The send segmentation size the app asked for.
-    //
-    uint16_t SegmentSize;
-
-    //
     // Total number of packet buffers allocated (and iovecs used if !GSO).
     //
     uint16_t BufferCount;
