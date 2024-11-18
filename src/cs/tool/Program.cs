@@ -18,12 +18,32 @@ namespace MsQuicTool
         {
             // This code lets us pass in an argument of where to search for the library at.
             // Very helpful for testing
-            if (args.Length > 0)
+            if (args.Length == 0)
+            {
+                Console.WriteLine("Usage: MsQuicTool <DomainName> [PathToMsQuic]");
+                return;
+            }
+
+            string DomainName = args[0];
+
+            if (string.IsNullOrWhiteSpace(DomainName))
+            {
+                Console.WriteLine("DomainName cannot be empty.");
+                return;
+            }
+
+            if (DomainName.Length > 253)
+            {
+                Console.WriteLine("DomainName is too long.");
+                return;
+            }
+
+            if (args.Length > 1)
             {
                 NativeLibrary.SetDllImportResolver(typeof(MsQuic).Assembly, (libraryName, assembly, searchPath) =>
                 {
                     if (libraryName != "msquic") return IntPtr.Zero;
-                    if (NativeLibrary.TryLoad(args[0], out var ptr))
+                    if (NativeLibrary.TryLoad(args[1], out var ptr))
                     {
                         return ptr;
                     }
@@ -32,7 +52,6 @@ namespace MsQuicTool
             }
 
             var ApiTable = MsQuic.Open();
-            const string DomainName = "google.com";
             QUIC_HANDLE* registration = null;
             QUIC_HANDLE* configuration = null;
             QUIC_HANDLE* connection = null;
