@@ -460,10 +460,42 @@ function Install-DotnetTool {
     }
 }
 
+function Install-Dotnet {
+    if (!$IsLinux) {
+        Write-Host "Linux only"
+        return
+    }
+
+    Write-Host "Installing dotnet"
+
+    # Check /etc/apt/preperences whether it has the known issue workaround
+    if (Test-Path /etc/apt/preferences) {
+        $hasKnownIssueWorkaround = (Get-Content /etc/apt/preferences | Select-String -Pattern "Package: dotnet* aspnet* netstandard*") -ne $null
+        if (!$hasKnownIssueWorkaround) {
+            # known issue https://learn.microsoft.com/en-us/dotnet/core/install/linux-package-mixup?pivots=os-linux-ubuntu
+            sudo bash -c "echo 'Package: dotnet* aspnet* netstandard*' >> /etc/apt/preferences"
+            sudo bash -c "echo 'Pin: origin packages.microsoft.com' >> /etc/apt/preferences"
+            sudo bash -c "echo 'Pin-Priority: -10' >> /etc/apt/preferences"
+        } else {
+            Write-Host "Known issue workaround already applied"
+        }
+    }
+
+    sudo apt-get update -y
+    sudo apt-get install -y dotnet-sdk-6.0 aspnetcore-runtime-6.0 dotnet-runtime-6.0
+}
+
 function Install-Clog2Text {
+    # Install-Dotnet
+
     Write-Host "Initializing clog submodule"
     git submodule init $RootDir/submodules/clog
     git submodule update
+
+    apt list --installed | grep dotnet
+    which dotnet | xargs ls -lh
+    grep -R dotnet /etc/apt
+    dotnet --version
 
     dotnet build (Join-Path $RootDir submodules clog)
     $NuGetPath = Join-Path $RootDir "submodules" "clog" "src" "nupkg"
@@ -557,6 +589,10 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+
+        lttng --version
+        lttng-sessiond --version
+        grep -R lttng /etc/apt
         if ($UseXdp) {
             if (!$IsUbuntu2404) {
                 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y

@@ -233,16 +233,25 @@ function Log-Start {
         }
 
         try {
+            $Env:LTTNG_UST_REGISTER_TIMEOUT=-1 # wait forever
             if ($Stream) {
                 lttng -q create msquiclive --live
             } else {
                 New-Item -Path $TempLTTngDir -ItemType Directory -Force | Out-Null
+                lttng-sessiond --verbose --verbose-consumer > ${TempLTTngDir}/lttng.log 2>&1 &
+                sleep 2
                 $Command = "lttng create $InstanceName -o=$TempLTTngDir"
                 Invoke-Expression $Command | Write-Debug
             }
             lttng enable-event --userspace CLOG_* | Write-Debug
             lttng add-context --userspace --type=vpid --type=vtid | Write-Debug
             lttng start | Write-Debug
+            Write-Host "start ------------->"
+            whoami | Write-Host
+            # chmod -R 777 $TempLTTngDir | Write-Debug
+            ls -Rlh $TempLTTngDir | Write-Host
+            pgrep lttng | xargs ps -fH | Write-Host
+            Write-Host "<------------- start"
 
             if ($Stream) {
                 lttng list | Write-Debug
@@ -304,11 +313,37 @@ function Log-Stop {
             Write-Error "LTTng session ($InstanceName) not currently running!"
         }
 
+        Write-Host "end1 ------------->"
+        Write-Host "    end2 [lttng list msquic] ======================================================"
+        lttng list msquic | Write-Host
+        Write-Host "    end2 [lttng status] ======================================================"
+        lttng status | Write-Host
+        Write-Host "    end2 [pgrep] ======================================================"
+        pgrep lttng | xargs ps -fH | Write-Host
+        Write-Host "    end2 [ls -Rlh] ======================================================"
+        ls -Rlh $TempLTTngDir | Write-Host
+        Write-Host "<------------- end1"
+
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
+
+        sleep 10
 
         $LTTNGTarFile = $OutputPath + ".tgz"
         $BableTraceFile = $OutputPath + ".babel.txt"
 
+        Write-Host "Copying LTTng log files to $OutputPath"
+        mv ${TempLTTngDir}/lttng.log ${OutputPath}/lttng.log
+
+        Write-Host "end2 ------------->"
+        Write-Host "    end2 [lttng list msquic] ======================================================"
+        lttng list msquic | Write-Host
+        Write-Host "    end2 [lttng status] ======================================================"
+        lttng status | Write-Host
+        Write-Host "    end2 [pgrep] ======================================================"
+        pgrep lttng | xargs ps -fH | Write-Host
+        Write-Host "    end2 [ls -Rlh] ======================================================"
+        ls -Rlh $TempLTTngDir | Write-Host
+        Write-Host "<------------- end2"
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
