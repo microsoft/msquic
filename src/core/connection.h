@@ -993,6 +993,20 @@ QuicConnAlloc(
     );
 
 //
+// Creates a new (server side) out-of-band connection and writes the info to the
+// output buffer for the peer (client) may use it to create an outgoing
+// connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnCreateOOB(
+    _In_ QUIC_REGISTRATION* Registration,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    );
+
+//
 // Called to free the memory for a connection.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)

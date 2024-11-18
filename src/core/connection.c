@@ -306,6 +306,36 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnCreateOOB(
+    _In_ QUIC_REGISTRATION* Registration,
+    _Inout_ uint32_t* BufferLength,
+    _Out_writes_bytes_opt_(*BufferLength)
+        void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnSetOOB(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const void* Buffer
+    )
+{
+    UNREFERENCED_PARAMETER(Connection);
+    UNREFERENCED_PARAMETER(BufferLength);
+    UNREFERENCED_PARAMETER(Buffer);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnFree(
@@ -6616,6 +6646,10 @@ QuicConnParamSet(
 
         return QUIC_STATUS_SUCCESS;
     }
+
+case QUIC_PARAM_CONN_OOB_INFO:
+    Status = QuicConnSetOOB(Connection, BufferLength, Buffer);
+    break;
 
     //
     // Private
