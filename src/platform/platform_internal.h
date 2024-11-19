@@ -169,7 +169,6 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
-// TODO: remove guard?
 #define SOCKET PWSK_SOCKET
 #define INVALID_SOCKET NULL
 
@@ -323,7 +322,6 @@ typedef struct CXPLAT_DATAPATH {
 #define htonl _byteswap_ulong
 #endif
 
-// TODO: unify accross all platforms?
 #define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
                                Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
