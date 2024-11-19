@@ -95,4 +95,4 @@ jobs:
         dotnet-version: 6.0.x
     - name: Run Lang Interop
       shell: pwsh
-      run: scripts/DotNetTest.ps1 -Config Debug -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }}
+      run: scripts/DotNetTest.ps1 -Config Debug -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -DomainName "google.com"
