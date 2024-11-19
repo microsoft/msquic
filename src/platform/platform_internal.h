@@ -172,7 +172,7 @@ typedef enum CXPLAT_SOCKET_TYPE {
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
-#else
+#endif
 
 #ifdef _KERNEL_MODE
 
