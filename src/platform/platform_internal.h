@@ -165,6 +165,15 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
 
+#ifdef _WIN32
+
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
+#else
+
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -321,11 +330,6 @@ typedef struct CXPLAT_DATAPATH {
 #ifndef htonl
 #define htonl _byteswap_ulong
 #endif
-
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #elif _WIN32
 
@@ -675,11 +679,6 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
-
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 
 typedef struct CX_PLATFORM {
@@ -701,9 +700,9 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+#define IS_LOOPBACK(Address) ((Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET &&        \
+                               Address.Ipv4.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) || \
+                              (Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 &&       \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #else
