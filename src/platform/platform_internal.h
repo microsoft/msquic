@@ -118,7 +118,7 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
 
 typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
-    CXPLAT_DATAPATH_TYPE_USER,
+    CXPLAT_DATAPATH_TYPE_NORMAL,
     CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
 } CXPLAT_DATAPATH_TYPE;
 
@@ -323,7 +323,7 @@ typedef struct CXPLAT_DATAPATH {
 #endif
 
 #define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
@@ -676,7 +676,7 @@ typedef struct CXPLAT_SOCKET {
 } CXPLAT_SOCKET;
 
 #define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
@@ -701,9 +701,9 @@ typedef struct CX_PLATFORM {
 
 } CX_PLATFORM;
 
-#define IS_LOOPBACK(Address) ((Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET &&        \
-                               Address.Ipv4.sin_addr.s_addr == htonl(INADDR_LOOPBACK)) || \
-                              (Address.Ip.sa_family == QUIC_ADDRESS_FAMILY_INET6 &&       \
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
 
 #else
