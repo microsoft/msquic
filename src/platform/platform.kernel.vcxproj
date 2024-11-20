@@ -27,8 +27,10 @@
     <ClCompile Include="datapath_raw.c" />
     <ClCompile Include="datapath_raw_winkernel.c" />
     <ClCompile Include="datapath_raw_socket.c" />
+    <ClCompile Include="datapath_raw_socket_common.c" />
+    <ClCompile Include="datapath_raw_socket_win.c" />
     <ClCompile Include="datapath_raw_xdp_winkernel.c" />
-    <ClCompile Include="datapath_raw_socket_winkernel.c" />
+    <ClCompile Include="platform_worker.c" />
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="pcp.c" />
     <ClCompile Include="platform_winkernel.c" />
@@ -37,7 +39,6 @@
     <ClCompile Include="toeplitz.c" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="datapath_raw_xdp.h" />
     <ClInclude Include="platform_internal.h" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

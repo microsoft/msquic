@@ -11,8 +11,9 @@ Abstract:
 
 #include "datapath_raw.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_socket_user.c.clog.h"
+#include "datapath_raw_socket_common.c.clog.h"
 #endif
+
 
 #if defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 #define CxPlatSocketError() errno
@@ -30,6 +31,56 @@ Abstract:
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
+
+#ifdef _KERNEL_MODE
+
+void
+CxPlatRemoveSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET_RAW* Socket
+    )
+{
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+    CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
+}
+
+QUIC_STATUS
+CxPlatTryAddSocket(
+    _In_ CXPLAT_SOCKET_POOL* Pool,
+    _In_ CXPLAT_SOCKET_RAW* Socket
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+
+    //
+    // Get (and reserve) a transport layer port from the OS networking stack by
+    // binding an auxiliary (dual stack) socket.
+    //
+
+    CxPlatRwLockAcquireExclusive(&Pool->Lock);
+
+    Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
+    while (Entry != NULL) {
+        CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
+        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+            break;
+        }
+        Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
+    }
+    if (QUIC_SUCCEEDED(Status)) {
+        CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
+    }
+
+    CxPlatRwLockReleaseExclusive(&Pool->Lock);
+
+    return Status;
+}
+
+#else
 
 void
 CxPlatRemoveSocket(
@@ -350,3 +401,5 @@ Error:
 
     return Status;
 }
+
+#endif // _KERNEL_MODE

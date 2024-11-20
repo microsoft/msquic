@@ -31,9 +31,6 @@ CxPlatSocketUpdateQeo(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-// separate file?
-#ifndef _KERNEL_MODE
-
 void
 CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
@@ -45,9 +42,12 @@ CxPlatDataPathProcessCqe(
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
         if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
             RawDataPathProcessCqe(Cqe);
-        } else {
+        }
+#ifndef _KERNEL_MODE
+        else {
             DataPathProcessCqe(Cqe);
         }
+#endif
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
@@ -57,8 +57,6 @@ CxPlatDataPathProcessCqe(
     default: CXPLAT_DBG_ASSERT(FALSE); break;
     }
 }
-
-#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void

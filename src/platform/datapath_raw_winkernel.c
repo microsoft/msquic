@@ -44,8 +44,68 @@ RawSocketCreateUdp(
     _Inout_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    UNREFERENCED_PARAMETER(Raw);
-    UNREFERENCED_PARAMETER(Config);
-    UNREFERENCED_PARAMETER(Socket);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    CXPLAT_DBG_ASSERT(Socket != NULL);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CxPlatRundownInitialize(&Socket->RawRundown);
+    Socket->RawDatapath = Raw;
+    Socket->CibirIdLength = Config->CibirIdLength;
+    Socket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
+    Socket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
+    Socket->AuxSocket = INVALID_SOCKET;
+    if (Config->CibirIdLength) {
+        memcpy(Socket->CibirId, Config->CibirId, Config->CibirIdLength);
+    }
+
+    if (Config->RemoteAddress) {
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
+        if (Socket->UseTcp) {
+            Socket->RemoteAddress = *Config->RemoteAddress;
+        }
+        Socket->Connected = TRUE;
+    }
+
+    if (Config->LocalAddress) {
+        if (Socket->UseTcp) {
+            Socket->LocalAddress = *Config->LocalAddress;
+        }
+        if (QuicAddrIsWildCard(Config->LocalAddress)) {
+            if (!Socket->Connected) {
+                Socket->Wildcard = TRUE;
+            }
+        } else if (!Socket->Connected) {
+            // Assumes only connected sockets fully specify local address
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+    } else {
+        if (Socket->UseTcp) {
+            QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
+        }
+        if (!Socket->Connected) {
+            Socket->Wildcard = TRUE;
+        }
+    }
+
+    CXPLAT_FRE_ASSERT(Socket->Wildcard ^ Socket->Connected); // Assumes either a pure wildcard listener or a
+                                                                         // connected socket; not both.
+
+    Status = CxPlatTryAddSocket(&Raw->SocketPool, Socket);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    CxPlatDpRawPlumbRulesOnSocket(Socket, TRUE);
+
+Error:
+
+    if (QUIC_FAILED(Status)) {
+        if (Socket != NULL) {
+            CxPlatRundownUninitialize(&Socket->RawRundown);
+            CxPlatZeroMemory(Socket, sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
+            Socket = NULL;
+        }
+    }
+
+    return Status;
 }

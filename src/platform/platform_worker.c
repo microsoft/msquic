@@ -321,6 +321,8 @@ CxPlatWorkerPoolUninit(
     CxPlatLockUninitialize(&WorkerPool->WorkerLock);
 }
 
+#ifndef _KERNEL_MODE
+
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
 #define DYNAMIC_POOL_PRUNE_COUNT        8
 
@@ -382,6 +384,8 @@ CxPlatProcessDynamicPoolAllocators(
     }
     CxPlatLockRelease(&Worker->ECLock);
 }
+
+#endif
 
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
@@ -593,10 +597,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             State.NoWorkCount = 0;
         }
 
+#ifndef _KERNEL_MODE
         if (State.TimeNow - State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
             CxPlatProcessDynamicPoolAllocators(Worker);
             State.LastPoolProcessTime = State.TimeNow;
         }
+#endif
     }
 
 Shutdown:

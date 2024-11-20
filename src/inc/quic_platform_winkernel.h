@@ -42,6 +42,7 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
+#include <xdp/overlapped.h>
 #include "msquic_winkernel.h"
 #pragma warning(pop)
 
@@ -138,6 +139,17 @@ CxPlatCloseHandle(
     )
 {
     ZwClose(Handle);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCancelIo(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    // TODO: Implement
+    UNREFERENCED_PARAMETER(Handle);
 }
 
 //
@@ -462,6 +474,7 @@ typedef KEVENT CXPLAT_EVENT;
 #define CxPlatEventUninitialize(Event) UNREFERENCED_PARAMETER(Event)
 #define CxPlatEventSet(Event) KeSetEvent(&(Event), IO_NO_INCREMENT, FALSE)
 #define CxPlatEventReset(Event) KeResetEvent(&(Event))
+#define CxPlatEventClear(Event) KeClearEvent(&(Event))
 #define CxPlatEventWaitForever(Event) \
     KeWaitForSingleObject(&(Event), Executive, KernelMode, FALSE, NULL)
 inline
@@ -483,8 +496,23 @@ _CxPlatEventWaitWithTimeout(
 // Event Queue Interfaces
 //
 
-typedef KEVENT CXPLAT_EVENTQ; // Event queue
-typedef void* CXPLAT_CQE;
+typedef struct CXPLAT_EVENTQ {
+    CXPLAT_LOCK Lock;
+    LIST_ENTRY Events;
+    CXPLAT_EVENT EventsAvailable;
+} CXPLAT_EVENTQ;
+
+typedef struct CXPLAT_CQE {
+    void* UserData;
+} CXPLAT_CQE;
+
+#define CXPLAT_SQE CXPLAT_SQE
+#define CXPLAT_SQE_DEFAULT {0}
+typedef struct CXPLAT_SQE {
+    LIST_ENTRY Link;
+    void* UserData;
+    XDP_OVERLAPPED Overlapped;
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -492,7 +520,9 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
+    CxPlatLockInitialize(&queue->Lock);
+    InitializeListHead(&queue->Events);
+    CxPlatEventInitialize(&queue->EventsAvailable, TRUE, FALSE);
     return TRUE;
 }
 
@@ -502,35 +532,89 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    UNREFERENCED_PARAMETER(queue);
+    CxPlatEventUninitialize(queue->EventsAvailable);
+    CXPLAT_DBG_ASSERT(IsListEmpty(&queue->Events));
+    CxPlatLockUninitialize(&queue->Lock);
 }
 
 inline
 BOOLEAN
-_CxPlatEventQEnqueue(
+CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_opt_ void* user_data
+    _In_ HANDLE fileHandle
     )
 {
-    UNREFERENCED_PARAMETER(user_data);
-    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
+    // TODO: implement
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(fileHandle);
     return TRUE;
 }
 
-#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
+inline
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_opt_ void* user_data
+    )
+{
+    CxPlatLockAcquire(&queue->Lock);
+
+    if (sqe->Link.Flink != NULL) { // Already in a queue
+        CxPlatLockRelease(&queue->Lock);
+        return TRUE;
+    }
+
+    sqe->UserData = user_data;
+    BOOLEAN SignalEvent = IsListEmpty(&queue->Events);
+    InsertTailList(&queue->Events, &sqe->Link);
+
+    CxPlatLockRelease(&queue->Lock);
+
+    if (SignalEvent) {
+        CxPlatEventSet(queue->EventsAvailable);
+    }
+
+    return TRUE;
+}
 
 inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
+    _Out_writes_to_(count, return) CXPLAT_CQE* events,
     _In_ uint32_t count,
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    UNREFERENCED_PARAMETER(count);
-    *events = NULL;
-    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+    CxPlatLockAcquire(&queue->Lock);
+
+    if (IsListEmpty(&queue->Events)) {
+        CxPlatEventClear(queue->EventsAvailable);
+        CxPlatLockRelease(&queue->Lock);
+        if (wait_time == 0) {
+            return 0;
+        }
+        if (wait_time == UINT32_MAX) {
+            CxPlatEventWaitForever(queue->EventsAvailable);
+        } else {
+            CxPlatEventWaitWithTimeout(queue->EventsAvailable, wait_time);
+        }
+        CxPlatLockAcquire(&queue->Lock);
+    }
+
+    uint32_t EventsDequeued = 0;
+    while (EventsDequeued < count && !IsListEmpty(&queue->Events)) {
+        CXPLAT_SQE* Sqe =
+            CXPLAT_CONTAINING_RECORD(
+                RemoveHeadList(&queue->Events), CXPLAT_SQE, Link);
+        events[EventsDequeued++].UserData = Sqe->UserData;
+        Sqe->Link.Flink = NULL; // Indicates it's not in a queue
+    }
+
+    CxPlatLockRelease(&queue->Lock);
+
+    return EventsDequeued;
 }
 
 inline
@@ -550,8 +634,16 @@ CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return *cqe;
+    return cqe->UserData;
 }
+
+typedef struct DATAPATH_SQE DATAPATH_SQE;
+
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    );
 
 //
 // Time Measurement Interfaces
@@ -892,6 +984,23 @@ typedef ULONG_PTR CXPLAT_THREAD_ID;
 //
 // Processor Count and Index
 //
+
+typedef struct CXPLAT_PROCESSOR_INFO {
+    uint16_t Group;  // The group number this processor is a part of
+    uint8_t Index;   // Index in the current group
+    uint8_t PADDING; // Here to align with PROCESSOR_NUMBER struct
+} CXPLAT_PROCESSOR_INFO;
+
+CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_PROCESSOR_INFO) == sizeof(PROCESSOR_NUMBER), "Size check");
+
+typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
+    KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Count;  // Count of active processors in the group
+    uint32_t Offset; // Base process index offset this group starts at
+} CXPLAT_PROCESSOR_GROUP_INFO;
+
+extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
 extern uint32_t CxPlatProcessorCount;
 #define CxPlatProcCount() CxPlatProcessorCount

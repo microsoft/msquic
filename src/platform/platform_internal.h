@@ -214,6 +214,9 @@ typedef struct CXPLAT_SOCKET {
     //
     BOOLEAN PcpBinding : 1;
 
+    BOOLEAN UseTcp : 1; // Not supported. always FALSE
+    BOOLEAN RawSocketAvailable : 1;
+
     //
     // UDP socket used for sending/receiving datagrams.
     //
@@ -235,10 +238,7 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t UseTcp : 1; // always false?
-    uint8_t RawSocketAvailable : 1;
-
-    CXPLAT_RUNDOWN_REF Rundown[0];
+    CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
 
 } CXPLAT_SOCKET;
 

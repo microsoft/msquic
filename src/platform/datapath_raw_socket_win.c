@@ -11,10 +11,12 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_socket_winuser.c.clog.h"
+#include "datapath_raw_socket_win.c.clog.h"
 #endif
 
-#define SocketError() WSAGetLastError()
+#ifdef _KERNEL_MODE
+#define HRESULT_FROM_WIN32(x) x
+#endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
@@ -22,6 +24,31 @@ Abstract:
 //
 // Socket Pool Logic
 //
+
+#ifdef _KERNEL_MODE
+
+BOOLEAN
+CxPlatSockPoolInitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    if (!CxPlatHashtableInitializeEx(&Pool->Sockets, CXPLAT_HASH_MIN_SIZE)) {
+        return FALSE;
+    }
+    // WskRegister etc. is called in DataPathInitialize
+    return TRUE;
+}
+
+void
+CxPlatSockPoolUninitialize(
+    _Inout_ CXPLAT_SOCKET_POOL* Pool
+    )
+{
+    UNREFERENCED_PARAMETER(Pool);
+    // WskDeregister etc. is called in DataPathUninitialize
+}
+
+#else
 
 BOOLEAN
 CxPlatSockPoolInitialize(
@@ -53,6 +80,8 @@ CxPlatSockPoolUninitialize(
     (void)WSACleanup();
 }
 
+#endif // _KERNEL_MODE
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawResolveRoute(
@@ -63,7 +92,7 @@ RawResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    NETIO_STATUS Status;
+    NETIO_STATUS Status = QUIC_STATUS_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;
     QUIC_ADDR LocalAddress = {0};
@@ -92,7 +121,7 @@ RawResolveRoute(
             &IpforwardRow,
             &LocalAddress); // BestSourceAddress
 
-    if (QUIC_FAILED(Status)) {
+    if (Status != QUIC_STATUS_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",

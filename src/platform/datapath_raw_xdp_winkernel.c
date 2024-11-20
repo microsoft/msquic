@@ -17,42 +17,14 @@ Abstract:
 #include "datapath_raw_xdp_winkernel.c.clog.h"
 #endif
 
-QUIC_STATUS
-CxPlatGetRssQueueProcessors(
-    _In_ XDP_DATAPATH* Xdp,
-    _In_ uint32_t InterfaceIndex,
-    _Inout_ uint16_t* Count,
-    _Out_writes_to_(*Count, *Count) uint32_t* Queues
-    )
-{
-    UNREFERENCED_PARAMETER(Xdp);
-    UNREFERENCED_PARAMETER(InterfaceIndex);
-    UNREFERENCED_PARAMETER(Count);
-    UNREFERENCED_PARAMETER(Queues);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatXdpReadConfig(
     _Inout_ XDP_DATAPATH* Xdp
     )
 {
+    // TODO: implement
     UNREFERENCED_PARAMETER(Xdp);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatDpRawInterfaceInitialize(
-    _In_ XDP_DATAPATH* Xdp,
-    _Inout_ XDP_INTERFACE* Interface,
-    _In_ uint32_t ClientRecvContextLength
-    )
-{
-    UNREFERENCED_PARAMETER(Xdp);
-    UNREFERENCED_PARAMETER(Interface);
-    UNREFERENCED_PARAMETER(ClientRecvContextLength);
-    return QUIC_STATUS_NOT_SUPPORTED;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -64,29 +36,136 @@ CxPlatDpRawInitialize(
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(ClientRecvContextLength);
-    UNREFERENCED_PARAMETER(WorkerPool);
-    UNREFERENCED_PARAMETER(Config);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
+    XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
+    PMIB_IF_TABLE2 pIfTable = NULL;
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-CxPlatXdpExecute(
-    _Inout_ void* Context,
-    _Inout_ CXPLAT_EXECUTION_STATE* State
-    )
-{
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(State);
-    return FALSE;
-}
+    CxPlatListInitializeHead(&Xdp->Interfaces);
 
-void
-RawDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    UNREFERENCED_PARAMETER(Cqe);
+    CxPlatXdpReadConfig(Xdp);
+    Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
+
+    if (Config && Config->ProcessorCount) {
+        Xdp->PartitionCount = Config->ProcessorCount;
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = Config->ProcessorList[i];
+        }
+    } else {
+        Xdp->PartitionCount = CxPlatProcCount();
+        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+            Xdp->Partitions[i].Processor = (uint16_t)i;
+        }
+    }
+
+    if (QUIC_FAILED(GetIfTable2(&pIfTable))) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Exit;
+    }
+
+    for (ULONG i = 0; i < pIfTable->NumEntries; i++) {
+        MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
+
+        if (pIfRow->PhysicalAddressLength == IF_MAX_PHYS_ADDRESS_LENGTH &&
+            pIfRow->OperStatus == IfOperStatusUp &&
+            (pIfRow->Type == IF_TYPE_ETHERNET_CSMACD || pIfRow->Type == IF_TYPE_IEEE80211))
+        {
+            XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
+            if (Interface == NULL) {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                goto Exit;
+            }
+
+            RtlZeroMemory(Interface, sizeof(XDP_INTERFACE));
+
+            Interface->ActualIfIndex = Interface->IfIndex = pIfRow->InterfaceIndex;
+            RtlCopyMemory(
+                Interface->PhysicalAddress,
+                pIfRow->PhysicalAddress,
+                min(pIfRow->PhysicalAddressLength, sizeof(Interface->PhysicalAddress))
+            );
+
+            Status =
+                CxPlatDpRawInterfaceInitialize(
+                    Xdp, Interface, ClientRecvContextLength);
+            if (QUIC_FAILED(Status)) {
+                CXPLAT_FREE(Interface, IF_TAG);
+                continue;
+            }
+
+            CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
+        }
+    }
+    FreeMibTable(pIfTable);
+
+    if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
+        Status = QUIC_STATUS_NOT_FOUND;
+    }
+
+    CxPlatRefInitialize(&Xdp->RefCount);
+    for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+
+        XDP_PARTITION* Partition = &Xdp->Partitions[i];
+        if (Partition->Queues == NULL) { continue; } // No RSS queues for this partition.
+
+        Partition->Xdp = Xdp;
+        Partition->PartitionIndex = (uint16_t)i;
+        Partition->Ec.Ready = TRUE;
+        Partition->Ec.NextTimeUs = UINT64_MAX;
+        Partition->Ec.Callback = CxPlatXdpExecute;
+        Partition->Ec.Context = &Xdp->Partitions[i];
+        Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+        CxPlatRefIncrement(&Xdp->RefCount);
+        Partition->EventQ = CxPlatWorkerPoolGetEventQ(WorkerPool, (uint16_t)i);
+
+        uint32_t QueueCount = 0;
+        XDP_QUEUE* Queue = Partition->Queues;
+        while (Queue) {
+            // TODO: implement
+            // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->RxXsk)) {
+            //     QuicTraceEvent(
+            //         LibraryErrorStatus,
+            //         "[ lib] ERROR, %u, %s.",
+            //         GetLastError(),
+            //         "CreateIoCompletionPort(RX)");
+            // }
+            // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->TxXsk)) {
+            //     QuicTraceEvent(
+            //         LibraryErrorStatus,
+            //         "[ lib] ERROR, %u, %s.",
+            //         GetLastError(),
+            //         "CreateIoCompletionPort(TX)");
+            // }
+            QuicTraceLogVerbose(
+                XdpQueueStart,
+                "[ xdp][%p] XDP queue start on partition %p",
+                Queue,
+                Partition);
+            ++QueueCount;
+            Queue = Queue->Next;
+        }
+
+        QuicTraceLogVerbose(
+            XdpWorkerStart,
+            "[ xdp][%p] XDP partition start, %u queues",
+            Partition,
+            QueueCount);
+        UNREFERENCED_PARAMETER(QueueCount);
+
+        CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
+    }
+
+Exit:
+    if (pIfTable != NULL) {
+        FreeMibTable(pIfTable);
+    }
+
+    if (!NT_SUCCESS(Status)) {
+        while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
+            XDP_INTERFACE* Interface = CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
+            CxPlatDpRawInterfaceUninitialize(Interface);
+            CXPLAT_FREE(Interface, IF_TAG);
+        }
+    }
+
+    return Status;
 }
