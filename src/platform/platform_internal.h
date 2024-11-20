@@ -165,15 +165,6 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
 
-#ifdef _WIN32
-
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
-
-#endif
-
 #ifdef _KERNEL_MODE
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
@@ -774,7 +765,12 @@ CxPlatConvertFromMappedV6(
 }
 #pragma warning(pop)
 
-#endif
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
+#endif // _WIN32
 
 //
 // Crypt Initialization
