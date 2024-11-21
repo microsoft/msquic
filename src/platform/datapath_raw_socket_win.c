@@ -222,7 +222,7 @@ RawResolveRoute(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH",
                 sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
-            Status = QUIC_STATUS_PENDING;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Done;
         }
         Operation->IpnetRow = IpnetRow;
