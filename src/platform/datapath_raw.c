@@ -150,7 +150,10 @@ RawDataPathGetSupportedFeatures(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return CXPLAT_DATAPATH_FEATURE_RAW;
+    //
+    // TTL should always be available / enabled for XDP.
+    //
+    return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -189,7 +192,7 @@ RawSocketDelete(
 {
     CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
-    CxPlatRundownReleaseAndWait(&Socket->Rundown);
+    CxPlatRundownReleaseAndWait(&Socket->RawRundown);
     if (Socket->PausedTcpSend) {
         CxPlatDpRawTxFree(Socket->PausedTcpSend);
     }
@@ -269,7 +272,7 @@ CxPlatDpRawRxEthernet(
                 CxPlatDpRawRxFree(PacketChain);
             }
 
-            CxPlatRundownRelease(&Socket->Rundown);
+            CxPlatRundownRelease(&Socket->RawRundown);
         } else {
             CxPlatDpRawRxFree(PacketChain);
         }

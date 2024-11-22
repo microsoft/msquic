@@ -889,6 +889,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint SendEcnCongestionCount;
+
+        [NativeTypeName("uint8_t")]
+        internal byte HandshakeHopLimitTTL;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS

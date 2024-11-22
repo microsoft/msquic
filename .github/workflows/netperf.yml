@@ -53,7 +53,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Run NetPerf Workflow
-      timeout-minutes: 90
+      timeout-minutes: 120
       shell: pwsh
       run: |
         $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
