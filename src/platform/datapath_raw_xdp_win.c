@@ -159,13 +159,11 @@ CreateNoOpEthernetPacket(
 
 QUIC_STATUS
 CxPlatGetRssQueueProcessors(
-    _In_ XDP_DATAPATH* Xdp,
     _In_ uint32_t InterfaceIndex,
     _Inout_ uint16_t* Count,
     _Out_writes_to_(*Count, *Count) uint32_t* Queues
     )
 {
-    UNREFERENCED_PARAMETER(Xdp);
     uint32_t TxRingSize = 1;
     XDP_TX_PACKET TxPacket = { 0 };
     CreateNoOpEthernetPacket(&TxPacket);
@@ -176,7 +174,7 @@ CxPlatGetRssQueueProcessors(
         if (QUIC_FAILED(Status)) { return Status; }
 
         XSK_UMEM_REG TxUmem = {0};
-        UINT32 EnableAffinity = 1;
+        UINT32 EnableAffinity = TRUE;
         TxUmem.Address = &TxPacket;
         TxUmem.ChunkSize = sizeof(XDP_TX_PACKET);
         TxUmem.Headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
@@ -191,8 +189,8 @@ CxPlatGetRssQueueProcessors(
         Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
+        // ignore error as newer API requires this, but older API does not.
         Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &EnableAffinity, sizeof(EnableAffinity));
-        if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
         Status = XskBind(TxXsk, InterfaceIndex, i, Flags);
@@ -415,7 +413,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &Interface->QueueCount, Processors);
+    Status = CxPlatGetRssQueueProcessors(Interface->ActualIfIndex, &Interface->QueueCount, Processors);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
