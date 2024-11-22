@@ -189,7 +189,9 @@ CxPlatGetRssQueueProcessors(
         Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-        // ignore error as newer API requires this, but older API does not.
+        //
+        // This is best effort, as the option isn't available on all versions of XDP.
+        //
         Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &EnableAffinity, sizeof(EnableAffinity));
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
