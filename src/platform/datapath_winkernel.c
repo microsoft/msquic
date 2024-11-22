@@ -260,158 +260,6 @@ CxPlatDataPathSocketReceive(
     _In_opt_ PWSK_DATAGRAM_INDICATION DataIndication
     );
 
-typedef struct _WSK_DATAGRAM_SOCKET {
-    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
-} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
-
-//
-// Per-port state.
-//
-typedef struct CXPLAT_SOCKET {
-
-    //
-    // Flag indicates the binding has a default remote destination.
-    //
-    BOOLEAN Connected : 1;
-
-    //
-    // Flag indicates the binding is being used for PCP.
-    //
-    BOOLEAN PcpBinding : 1;
-
-    //
-    // Parent datapath.
-    //
-    CXPLAT_DATAPATH* Datapath;
-
-    //
-    // UDP socket used for sending/receiving datagrams.
-    //
-    union {
-        PWSK_SOCKET Socket;
-        PWSK_DATAGRAM_SOCKET DgrmSocket;
-    };
-
-    //
-    // Event used to wait for completion of socket functions.
-    //
-    CXPLAT_EVENT WskCompletionEvent;
-
-    //
-    // The local address and UDP port.
-    //
-    SOCKADDR_INET LocalAddress;
-
-    //
-    // The remote address and UDP port.
-    //
-    SOCKADDR_INET RemoteAddress;
-
-    //
-    // The local interface's MTU.
-    //
-    UINT16 Mtu;
-
-    //
-    // Client context pointer.
-    //
-    void *ClientContext;
-
-    //
-    // IRP used for socket functions.
-    //
-    union {
-        IRP Irp;
-        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
-    };
-
-    CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
-
-} CXPLAT_SOCKET;
-
-//
-// Represents the per-processor state of the datapath context.
-//
-typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
-
-    //
-    // Pool of send contexts to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendDataPool;
-
-    //
-    // Pool of send buffers to be shared by all sockets on this core.
-    //
-    CXPLAT_POOL SendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all sockets on this
-    // core.
-    //
-    CXPLAT_POOL LargeSendBufferPool;
-
-    //
-    // Pool of receive datagram contexts and buffers to be shared by all sockets
-    // on this core. Index 0 is regular, Index 1 is URO.
-    //
-    //
-    CXPLAT_POOL RecvDatagramPools[2];
-
-    //
-    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
-    //
-    CXPLAT_POOL RecvBufferPools[2];
-
-    int64_t OutstandingPendingBytes;
-
-} CXPLAT_DATAPATH_PROC_CONTEXT;
-
-//
-// Structure that maintains all the internal state for the
-// CxPlatDataPath interface.
-//
-typedef struct CXPLAT_DATAPATH {
-
-    //
-    // Set of supported features.
-    //
-    uint32_t Features;
-
-    //
-    // The registration with WinSock Kernel.
-    //
-    WSK_REGISTRATION WskRegistration;
-    WSK_PROVIDER_NPI WskProviderNpi;
-    WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
-
-    //
-    // The UDP callback function pointers.
-    //
-    CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
-
-    //
-    // The size of the buffer to allocate for client's receive context structure.
-    //
-    uint32_t ClientRecvDataLength;
-
-    //
-    // The size of each receive datagram array element, including client context,
-    // internal context, and padding.
-    //
-    uint32_t DatagramStride;
-
-    //
-    // The number of processors.
-    //
-    uint32_t ProcCount;
-
-    //
-    // Per-processor completion contexts.
-    //
-    CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[0];
-
-} CXPLAT_DATAPATH;
-
 _IRQL_requires_same_
 _Function_class_(ALLOCATE_FUNCTION_EX)
 PVOID
@@ -795,7 +643,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathInitialize(
+DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
@@ -1014,7 +862,7 @@ Exit:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUninitialize(
+DataPathUninitialize(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1038,7 +886,7 @@ CxPlatDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+DataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ QUIC_EXECUTION_CONFIG* Config
     )
@@ -1049,7 +897,7 @@ CxPlatDataPathUpdateConfig(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
-CxPlatDataPathGetSupportedFeatures(
+DataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
@@ -1058,12 +906,10 @@ CxPlatDataPathGetSupportedFeatures(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatDataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ CXPLAT_SEND_DATA* SendData
+DataPathIsPaddingPreferred(
+    _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    UNREFERENCED_PARAMETER(SendData);
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
@@ -1390,7 +1236,7 @@ CxPlatDataPathSetControlSocket(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateUdp(
+SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewBinding
@@ -1914,7 +1760,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcp(
+SocketCreateTcp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_ const QUIC_ADDR* RemoteAddress,
@@ -1932,7 +1778,7 @@ CxPlatSocketCreateTcp(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatSocketCreateTcpListener(
+SocketCreateTcpListener(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* CallbackContext,
@@ -2000,7 +1846,7 @@ CxPlatDataPathCloseSocketIoCompletion(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatSocketDelete(
+SocketDelete(
     _In_ CXPLAT_SOCKET* Binding
     )
 {
@@ -2048,21 +1894,6 @@ CxPlatSocketDelete(
     CxPlatSocketDeleteComplete(Binding);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatSocketUpdateQeo(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_reads_(OffloadCount)
-        const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(Offloads);
-    UNREFERENCED_PARAMETER(OffloadCount);
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSocketSetContext(
@@ -2089,48 +1920,6 @@ CxPlatSocketGetContext(
 {
     CXPLAT_DBG_ASSERT(Binding != NULL);
     return Binding->ClientContext;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-UINT16
-CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Binding
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    return Binding->Mtu;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatSocketGetLocalAddress(
-    _In_ CXPLAT_SOCKET* Binding,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->LocalAddress;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-CxPlatSocketGetRemoteAddress(
-    _In_ CXPLAT_SOCKET* Binding,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    CXPLAT_DBG_ASSERT(Binding != NULL);
-    *Address = Binding->RemoteAddress;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-CxPlatSocketRawSocketAvailable(
-    _In_ CXPLAT_SOCKET* Socket
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2485,6 +2274,7 @@ CxPlatDataPathSocketReceive(
 
             Datagram->Data.BufferLength = MessageLength;
             Datagram->Data.Route = &IoBlock->Route;
+            Datagram->Data.Route->DatapathType = Datagram->Data.DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
 
             //
             // Add the datagram to the end of the current chain.
@@ -2569,8 +2359,8 @@ CxPlatDataPathSocketReceive(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRecvDataReturn(
-    _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
+RecvDataReturn(
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
     CXPLAT_SOCKET* Binding = NULL;
@@ -2645,7 +2435,7 @@ CxPlatRecvDataReturn(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
-CxPlatSendDataAlloc(
+SendDataAlloc(
     _In_ CXPLAT_SOCKET* Binding,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
@@ -2670,6 +2460,7 @@ CxPlatSendDataAlloc(
                 ? Config->MaxPacketSize : 0;
         SendData->ClientBuffer.Length = 0;
         SendData->ClientBuffer.Buffer = NULL;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
     }
 
     return SendData;
@@ -2677,7 +2468,7 @@ CxPlatSendDataAlloc(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFree(
+SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -2914,7 +2705,7 @@ CxPlatSendDataAllocSegmentBuffer(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 QUIC_BUFFER*
-CxPlatSendDataAllocBuffer(
+SendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ UINT16 MaxBufferLength
     )
@@ -2968,7 +2759,7 @@ CxPlatSendDataFreeSendBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSendDataFreeBuffer(
+SendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     )
@@ -2999,7 +2790,7 @@ CxPlatSendDataFreeBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatSendDataIsFull(
+SendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -3032,7 +2823,7 @@ CxPlatDataPathSendComplete(
     }
 
     IoCleanupIrp(&SendData->Irp);
-    CxPlatSendDataFree(SendData);
+    SendDataFree(SendData);
 
     return STATUS_MORE_PROCESSING_REQUIRED;
 }
@@ -3061,7 +2852,7 @@ CxPlatSocketPrepareSendData(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatSocketSend(
+SocketSend(
     _In_ CXPLAT_SOCKET* Binding,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
@@ -3192,55 +2983,11 @@ CxPlatSocketGetTcpStatistics(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicCopyRouteInfo(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
+DataPathProcessCqe(
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    *DstRoute = *SrcRoute;
-}
-
-void
-CxPlatResolveRouteComplete(
-    _In_ void* Context,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_reads_bytes_(6) const uint8_t* PhysicalAddress,
-    _In_ uint8_t PathId
-    )
-{
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Route);
-    UNREFERENCED_PARAMETER(PhysicalAddress);
-    UNREFERENCED_PARAMETER(PathId);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatResolveRoute(
-    _In_ CXPLAT_SOCKET* Socket,
-    _Inout_ CXPLAT_ROUTE* Route,
-    _In_ uint8_t PathId,
-    _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    )
-{
-    UNREFERENCED_PARAMETER(Socket);
-    UNREFERENCED_PARAMETER(PathId);
-    UNREFERENCED_PARAMETER(Context);
-    UNREFERENCED_PARAMETER(Callback);
-    Route->State = RouteResolved;
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatUpdateRoute(
-    _Inout_ CXPLAT_ROUTE* DstRoute,
-    _In_ CXPLAT_ROUTE* SrcRoute
-    )
-{
-    UNREFERENCED_PARAMETER(DstRoute);
-    UNREFERENCED_PARAMETER(SrcRoute);
+    UNREFERENCED_PARAMETER(Cqe);
+    CXPLAT_DBG_ASSERT(FALSE);
 }

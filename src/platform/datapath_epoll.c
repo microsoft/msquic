@@ -1930,7 +1930,7 @@ CxPlatSocketContextRecvComplete(
             RecvData->TypeOfService = TOS;
             RecvData->HopLimitTTL = (uint8_t)HopLimitTTL;
             RecvData->Allocated = TRUE;
-            RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+            RecvData->Route->DatapathType = RecvData->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
             RecvData->QueuedOnConnection = FALSE;
             RecvData->Reserved = FALSE;
 
@@ -2178,7 +2178,7 @@ CxPlatSocketReceiveTcpData(
             Data->PartitionIndex = SocketContext->DatapathPartition->PartitionIndex;
             Data->TypeOfService = 0;
             Data->Allocated = TRUE;
-            Data->Route->DatapathType = Data->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+            Data->Route->DatapathType = Data->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
             Data->QueuedOnConnection = FALSE;
             IoBlock->RefCount++;
             IoBlock = NULL;
@@ -2270,7 +2270,7 @@ SendDataAlloc(
             !!(Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
         SendData->Iovs[0].iov_len = 0;
         SendData->Iovs[0].iov_base = SendData->Buffer;
-        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_USER;
+        SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
     }
 
     return SendData;

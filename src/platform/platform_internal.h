@@ -118,7 +118,7 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
 
 typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
-    CXPLAT_DATAPATH_TYPE_USER,
+    CXPLAT_DATAPATH_TYPE_NORMAL,
     CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
 } CXPLAT_DATAPATH_TYPE;
 
@@ -169,6 +169,9 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
+#define SOCKET PWSK_SOCKET
+#define INVALID_SOCKET NULL
+
 typedef struct CX_PLATFORM {
 
     //
@@ -190,6 +193,134 @@ typedef struct CX_PLATFORM {
 #endif
 
 } CX_PLATFORM;
+
+typedef struct _WSK_DATAGRAM_SOCKET {
+    const WSK_PROVIDER_DATAGRAM_DISPATCH* Dispatch;
+} WSK_DATAGRAM_SOCKET, * PWSK_DATAGRAM_SOCKET;
+
+//
+// Per-port state.
+//
+typedef struct CXPLAT_SOCKET {
+    CXPLAT_SOCKET_COMMON;
+
+    //
+    // Flag indicates the binding has a default remote destination.
+    //
+    BOOLEAN Connected : 1;
+
+    //
+    // Flag indicates the binding is being used for PCP.
+    //
+    BOOLEAN PcpBinding : 1;
+
+    //
+    // UDP socket used for sending/receiving datagrams.
+    //
+    union {
+        PWSK_SOCKET Socket;
+        PWSK_DATAGRAM_SOCKET DgrmSocket;
+    };
+
+    //
+    // Event used to wait for completion of socket functions.
+    //
+    CXPLAT_EVENT WskCompletionEvent;
+
+    //
+    // IRP used for socket functions.
+    //
+    union {
+        IRP Irp;
+        UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
+    };
+
+    uint8_t UseTcp : 1; // always false?
+    uint8_t RawSocketAvailable : 1;
+
+    CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
+
+} CXPLAT_SOCKET;
+
+//
+// Represents the per-processor state of the datapath context.
+//
+typedef struct CXPLAT_DATAPATH_PROC_CONTEXT {
+
+    //
+    // Pool of send contexts to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendDataPool;
+
+    //
+    // Pool of send buffers to be shared by all sockets on this core.
+    //
+    CXPLAT_POOL SendBufferPool;
+
+    //
+    // Pool of large segmented send buffers to be shared by all sockets on this
+    // core.
+    //
+    CXPLAT_POOL LargeSendBufferPool;
+
+    //
+    // Pool of receive datagram contexts and buffers to be shared by all sockets
+    // on this core. Index 0 is regular, Index 1 is URO.
+    //
+    //
+    CXPLAT_POOL RecvDatagramPools[2];
+
+    //
+    // Pool of receive data buffers. Index 0 is 4096, Index 1 is 65536.
+    //
+    CXPLAT_POOL RecvBufferPools[2];
+
+    int64_t OutstandingPendingBytes;
+
+} CXPLAT_DATAPATH_PROC_CONTEXT;
+
+//
+// Structure that maintains all the internal state for the
+// CxPlatDataPath interface.
+//
+typedef struct CXPLAT_DATAPATH {
+    CXPLAT_DATAPATH_COMMON;
+
+    //
+    // The registration with WinSock Kernel.
+    //
+    WSK_REGISTRATION WskRegistration;
+    WSK_PROVIDER_NPI WskProviderNpi;
+    WSK_CLIENT_DATAGRAM_DISPATCH WskDispatch;
+
+    //
+    // The size of the buffer to allocate for client's receive context structure.
+    //
+    uint32_t ClientRecvDataLength;
+
+    //
+    // The size of each receive datagram array element, including client context,
+    // internal context, and padding.
+    //
+    uint32_t DatagramStride;
+
+    //
+    // The number of processors.
+    //
+    uint32_t ProcCount;
+
+    uint8_t UseTcp : 1; // Not supported. always false
+
+    //
+    // Per-processor completion contexts.
+    //
+    CXPLAT_DATAPATH_PROC_CONTEXT ProcContexts[0];
+
+} CXPLAT_DATAPATH;
+
+#ifndef htonl
+#define htonl _byteswap_ulong
+#endif
 
 #elif _WIN32
 
@@ -539,11 +670,6 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
-#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
-                               Address.Ipv4.sin_addr.S_un.S_addr == htonl(INADDR_LOOPBACK)) || \
-                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
-                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
-
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
 
 typedef struct CX_PLATFORM {
@@ -639,7 +765,12 @@ CxPlatConvertFromMappedV6(
 }
 #pragma warning(pop)
 
-#endif
+#define IS_LOOPBACK(Address) ((Address.si_family == QUIC_ADDRESS_FAMILY_INET &&                \
+                               IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
+                              (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
+                               IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
+#endif // _WIN32
 
 //
 // Crypt Initialization
