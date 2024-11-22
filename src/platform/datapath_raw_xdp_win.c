@@ -942,7 +942,7 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     PMIB_IF_TABLE2 pIfTable = NULL;
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (WorkerPool == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
