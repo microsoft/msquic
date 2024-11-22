@@ -1059,7 +1059,9 @@ CxPlatDpRawInitialize(
                     CxPlatDpRawInterfaceInitialize(
                         Xdp, Interface, ClientRecvContextLength);
                 if (Status == QUIC_STATUS_NOT_FOUND && CxPlatListIsEmpty(&Xdp->Interfaces)) {
-                    // NOT_FOUND from first interface means that XDP is not available on this system
+                    //
+                    // FILE_NOT_FOUND for the first interface means that XDP is not available on this system.
+                    //
                     Status = QUIC_STATUS_NOT_SUPPORTED;
                     break;
                 } else if (QUIC_FAILED(Status)) {
