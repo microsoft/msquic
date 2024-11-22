@@ -962,12 +962,6 @@ CxPlatDpRawInitialize(
         }
     }
 
-    QuicTraceLogVerbose(
-        XdpInitialize,
-        "[ xdp][%p] XDP initialized, %u procs",
-        Xdp,
-        Xdp->PartitionCount);
-
     PMIB_IF_TABLE2 pIfTable;
     if (GetIfTable2(&pIfTable) != NO_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1062,7 +1056,11 @@ CxPlatDpRawInitialize(
                 Status =
                     CxPlatDpRawInterfaceInitialize(
                         Xdp, Interface, ClientRecvContextLength);
-                if (QUIC_FAILED(Status)) {
+                if (Status == QUIC_STATUS_NOT_FOUND && CxPlatListIsEmpty(&Xdp->Interfaces)) {
+                    // NOT_FOUND from first interface means that XDP is not available on this system
+                    Status = QUIC_STATUS_NOT_SUPPORTED;
+                    break;
+                } else if (QUIC_FAILED(Status)) {
                     QuicTraceEvent(
                         LibraryErrorStatus,
                         "[ lib] ERROR, %u, %s.",
@@ -1086,11 +1084,18 @@ CxPlatDpRawInitialize(
     FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "no XDP capable interface");
-        Status = QUIC_STATUS_NOT_FOUND;
+        if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "XDP is not supported on this system");
+        } else {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "no XDP capable interface");
+            Status = QUIC_STATUS_NOT_FOUND;
+        }
         goto Error;
     }
 
@@ -1147,6 +1152,12 @@ CxPlatDpRawInitialize(
         CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
 
 Error:
 
