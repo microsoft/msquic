@@ -99,9 +99,6 @@
         %(AdditionalIncludeDirectories)
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>
-        XDP_API_VERSION=3;
-        XDPAPI_ASSERT_INTERNAL;
-        XDP_INCLUDE_WINCOMMON;
         %(PreprocessorDefinitions)
       </PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>

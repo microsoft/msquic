@@ -14,10 +14,6 @@ Abstract:
 #include "datapath_raw_socket_win.c.clog.h"
 #endif
 
-#ifdef _KERNEL_MODE
-#define HRESULT_FROM_WIN32(x) x
-#endif
-
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
@@ -92,7 +88,7 @@ RawResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    NETIO_STATUS Status = QUIC_STATUS_SUCCESS;
+    NETIO_STATUS Status = ERROR_SUCCESS;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;
     QUIC_ADDR LocalAddress = {0};
@@ -121,7 +117,7 @@ RawResolveRoute(
             &IpforwardRow,
             &LocalAddress); // BestSourceAddress
 
-    if (Status != QUIC_STATUS_SUCCESS) {
+    if (Status != ERROR_SUCCESS) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -141,7 +137,7 @@ RawResolveRoute(
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
-        Status = QUIC_STATUS_INVALID_STATE;
+        Status = ERROR_INVALID_STATE;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -169,7 +165,7 @@ RawResolveRoute(
     }
 
     if (Route->Queue == NULL) {
-        Status = QUIC_STATUS_NOT_FOUND;
+        Status = ERROR_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
@@ -208,7 +204,7 @@ RawResolveRoute(
     // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
-    if ((QUIC_FAILED(Status) || IpnetRow.State <= NlnsIncomplete) ||
+    if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
         (State == RouteSuspected &&
          memcmp(
              Route->NextHopLinkLayerAddress,
@@ -222,7 +218,7 @@ RawResolveRoute(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH",
                 sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            Status = ERROR_NOT_ENOUGH_MEMORY;
             goto Done;
         }
         Operation->IpnetRow = IpnetRow;
@@ -233,17 +229,17 @@ RawResolveRoute(
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
         CxPlatEventSet(Worker->Ready);
-        Status = QUIC_STATUS_PENDING;
+        Status = ERROR_IO_PENDING;
     } else {
         CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
 
 Done:
-    if (Status != QUIC_STATUS_PENDING && QUIC_FAILED(Status)) {
+    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status == QUIC_STATUS_PENDING) {
+    if (Status == ERROR_IO_PENDING) {
         return QUIC_STATUS_PENDING;
     } else {
         return HRESULT_FROM_WIN32(Status);

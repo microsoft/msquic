@@ -167,6 +167,8 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #ifdef _KERNEL_MODE
 
+#include <winerror.h>
+
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
 #define SOCKET PWSK_SOCKET

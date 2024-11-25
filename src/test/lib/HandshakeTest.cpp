@@ -452,7 +452,6 @@ struct RebindContext {
     QuicAddr PeerAddr;
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         auto This = static_cast<RebindContext*>(Context);
-        fprintf(stderr, "ConnCallback: %d\n", Event->Type);
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
             This->PeerAddrChangedEvent.Set();
             This->HandshakeCompleteEvent.Set();

@@ -10,6 +10,8 @@ Abstract:
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
+#define XDP_API_VERSION 3
+#define XDP_INCLUDE_WINCOMMON
 
 #include <xdp/wincommon.h>
 #include "datapath_raw_win.h"
@@ -195,7 +197,7 @@ CxPlatGetRssQueueProcessors(
         Status = XskBind(TxXsk, InterfaceIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             CxPlatCloseHandle(TxXsk);
-            if (Status == QUIC_STATUS_INVALID_PARAMETER) { // No more queues. Break out.
+            if (Status == E_INVALIDARG) { // No more queues. Break out.
                 *Count = i;
                 break; // Expected failure if there is no more queue.
             }
@@ -243,7 +245,7 @@ CxPlatGetRssQueueProcessors(
         uint32_t CompIndex;
         if (XskRingConsumerReserve(&TxCompletionRing, MAXUINT32, &CompIndex) == 0) {
             CxPlatCloseHandle(TxXsk);
-            return QUIC_STATUS_ABORTED;
+            return E_ABORT;
         }
         XskRingConsumerRelease(&TxCompletionRing, 1);
 
@@ -1494,9 +1496,9 @@ CxPlatXdpExecute(
                     XskNotifyAsync(
                         Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
                         &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped);
-                if (hr == XDP_STATUS_PENDING) {
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->RxQueued = TRUE;
-                } else if (hr == XDP_STATUS_SUCCESS) {
+                } else if (hr == S_OK) {
                     Partition->Ec.Ready = TRUE;
                 } else {
                     QuicTraceEvent(
@@ -1518,9 +1520,9 @@ CxPlatXdpExecute(
                     XskNotifyAsync(
                         Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
                         &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped);
-                if (hr == XDP_STATUS_PENDING) {
+                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->TxQueued = TRUE;
-                } else if (hr == XDP_STATUS_SUCCESS) {
+                } else if (hr == S_OK) {
                     Partition->Ec.Ready = TRUE;
                 } else {
                     QuicTraceEvent(
