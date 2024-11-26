@@ -122,18 +122,8 @@ CxPlatDpRawInitialize(
         while (Queue) {
             // TODO: implement
             // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->RxXsk)) {
-            //     QuicTraceEvent(
-            //         LibraryErrorStatus,
-            //         "[ lib] ERROR, %u, %s.",
-            //         GetLastError(),
-            //         "CreateIoCompletionPort(RX)");
             // }
             // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->TxXsk)) {
-            //     QuicTraceEvent(
-            //         LibraryErrorStatus,
-            //         "[ lib] ERROR, %u, %s.",
-            //         GetLastError(),
-            //         "CreateIoCompletionPort(TX)");
             // }
             QuicTraceLogVerbose(
                 XdpQueueStart,

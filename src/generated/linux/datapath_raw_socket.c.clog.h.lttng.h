@@ -2,29 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathTcpAuxBinding
-// [data][%p] Binding TCP socket to %s
-// QuicTraceLogVerbose(
-            DatapathTcpAuxBinding,
-            "[data][%p] Binding TCP socket to %s",
-            Socket,
-            LocalAddressString.Address);
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = LocalAddressString.Address = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathTcpAuxBinding,
-    TP_ARGS(
-        const void *, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for RouteResolutionEnd
 // [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
 // QuicTraceLogConnInfo(
@@ -77,12 +54,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Error,
-            "closesocket");
-// arg2 = arg2 = Socket = arg2
-// arg3 = arg3 = Error = arg3
-// arg4 = arg4 = "closesocket" = arg4
+            Datapath,
+            Length,
+            "packet is too small for a UDP header");
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = Length = arg3
+// arg4 = arg4 = "packet is too small for a UDP header" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
     TP_ARGS(

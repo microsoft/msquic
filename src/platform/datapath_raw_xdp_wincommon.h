@@ -21,10 +21,6 @@ Abstract:
 #include <xdpapi_experimental.h>
 #include <stdio.h>
 
-#ifdef QUIC_CLOG
-#include "datapath_raw_xdp_win.c.clog.h"
-#endif
-
 #define XDP_MAX_SYNC_WAIT_TIMEOUT_MS 1000 // Used for querying XDP RSS capabilities.
 
 typedef struct XDP_DATAPATH {

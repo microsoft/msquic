@@ -12,7 +12,7 @@
 // arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
 // arg3 = arg3 = sizeof(CXPLAT_ROUTE_RESOLUTION_WORKER) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WINUSER_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
         unsigned long long, arg3), 
@@ -35,7 +35,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, AllocFailure,
 // arg2 = arg2 = Status = arg2
 // arg3 = arg3 = "CxPlatThreadCreate" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WINUSER_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 
@@ -60,7 +60,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, LibraryErrorStatus,
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "ResolveIpNetEntry2" = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WIN_C, DatapathErrorStatus,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_WINUSER_C, DatapathErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

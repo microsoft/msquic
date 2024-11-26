@@ -2,16 +2,16 @@
 #include <clog.h>
 #endif
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_WIN_C
+#define TRACEPOINT_PROVIDER CLOG_DATAPATH_RAW_WINUSER_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "datapath_raw_win.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_DATAPATH_RAW_WIN_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_DATAPATH_RAW_WIN_C
+#define TRACEPOINT_INCLUDE "datapath_raw_winuser.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_DATAPATH_RAW_WINUSER_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_DATAPATH_RAW_WINUSER_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "datapath_raw_win.c.clog.h.lttng.h"
+#include "datapath_raw_winuser.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceEvent
@@ -34,7 +34,7 @@ extern "C" {
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_WIN_C, AllocFailure , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_WINUSER_C, AllocFailure , arg2, arg3);\
 
 #endif
 
@@ -54,7 +54,7 @@ tracepoint(CLOG_DATAPATH_RAW_WIN_C, AllocFailure , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_WIN_C, LibraryErrorStatus , arg2, arg3);\
+tracepoint(CLOG_DATAPATH_RAW_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -76,7 +76,7 @@ tracepoint(CLOG_DATAPATH_RAW_WIN_C, LibraryErrorStatus , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_RAW_WIN_C, DatapathErrorStatus , arg2, arg3, arg4);\
+tracepoint(CLOG_DATAPATH_RAW_WINUSER_C, DatapathErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
@@ -87,5 +87,5 @@ tracepoint(CLOG_DATAPATH_RAW_WIN_C, DatapathErrorStatus , arg2, arg3, arg4);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_datapath_raw_win.c.clog.h.c"
+#include "quic.clog_datapath_raw_winuser.c.clog.h.c"
 #endif
