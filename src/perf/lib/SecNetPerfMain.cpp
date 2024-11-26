@@ -78,8 +78,6 @@ PrintHelp(
         "  -platency<0/1>           Print latency statistics. (def:0)\n"
         "\n"
         "  Scenario options:\n"
-        "  -scenario:<profile>      Scenario profile to use.\n"
-        "                            - {upload, download, hps, rps, rps-multi, latency}.\n"
         "  -conns:<####>            The number of connections to use. (def:1)\n"
         "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
         "  -upload:<####>[unit]     The length of bytes to send on each stream, with an optional (time or length) unit. (def:0)\n"
@@ -208,25 +206,6 @@ QuicMainStart(
         return Status;
     }
 
-    const char* ScenarioStr = GetValue(argc, argv, "scenario");
-    if (ScenarioStr != nullptr) {
-        if (IsValue(ScenarioStr, "upload") ||
-            IsValue(ScenarioStr, "download") ||
-            IsValue(ScenarioStr, "hps")) {
-            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
-            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
-        } else if (
-            IsValue(ScenarioStr, "rps") ||
-            IsValue(ScenarioStr, "rps-multi") ||
-            IsValue(ScenarioStr, "latency")) {
-            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
-            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
-        } else {
-            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-    }
-
     const char* ExecStr = GetValue(argc, argv, "exec");
     if (ExecStr != nullptr) {
         if (IsValue(ExecStr, "lowlat")) {
@@ -240,8 +219,7 @@ QuicMainStart(
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s]!\n", ExecStr);
-            return QUIC_STATUS_INVALID_PARAMETER;
+            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, lowlat as default for TCP.\n", ExecStr);
         }
     }
 
