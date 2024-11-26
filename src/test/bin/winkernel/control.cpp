@@ -690,6 +690,19 @@ QuicTestCtlEvtIoDeviceControl(
                 nullptr,
                 nullptr,
                 STRSAFE_NULL_ON_FAILURE);
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        if (UseDuoNic) {
+            QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
+            Status =
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    sizeof(Config),
+                    &Config);
+        }
+#endif
+
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
