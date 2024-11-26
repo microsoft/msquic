@@ -251,17 +251,11 @@ if ($isWindows) {
     $kernelVersion = bash -c "uname -r"
     $json["os_version"] = "$osName $kernelVersion"
 }
-$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
-# > All tests:
-$allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
-$allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
-$allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
-$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
-$allTests["max-rps-up-512-down-4000"] = "-exec:lowlat -conns:16cpu -streams:10 -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
+# Test all supported scenarios.
+$allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 
 $hasFailures = $false
-$json["run_args"] = $allTests
 
 try {
 
@@ -336,9 +330,8 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-foreach ($testId in $allTests.Keys) {
-    $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter $environment $RunId $SyncerSecret
+foreach ($scenario in $allScenarios) {
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
@@ -349,15 +342,15 @@ foreach ($testId in $allTests.Keys) {
         } else {
             $transport = "quic"
         }
-        $json["$testId-$transport"] = $Test.Values[$tcp]
+        $json["$scenario-$transport"] = $Test.Values[$tcp]
 
         if ($Test.Metric -eq "latency") {
-            $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $testId $transport "$os-$arch-$environment-$io-$tls"
-            $json["$testId-$transport-regression"] = $LatencyRegression
+            $json["$scenario-$transport-lat"] = $Test.Latency[$tcp]
+            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $scenario $transport "$os-$arch-$environment-$io-$tls"
+            $json["$scenario-$transport-regression"] = $LatencyRegression
         } else {
-            $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $testId $transport $regressionJson "$os-$arch-$environment-$io-$tls"
-            $json["$testId-$transport-regression"] = $ResultRegression
+            $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $scenario $transport $regressionJson "$os-$arch-$environment-$io-$tls"
+            $json["$scenario-$transport-regression"] = $ResultRegression
         }
     }
 }
