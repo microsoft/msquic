@@ -17,6 +17,7 @@ on:
     - src/core/**
     - src/platform/**
     - src/perf/**
+    - src/inc/**
     - submodules/openssl/**
     - submodules/openssl3/**
     - submodules/xdp-for-windows/**
@@ -35,6 +36,7 @@ on:
     - src/core/**
     - src/platform/**
     - src/perf/**
+    - src/inc/**
     - submodules/openssl/**
     - submodules/openssl3/**
     - submodules/xdp-for-windows/**
