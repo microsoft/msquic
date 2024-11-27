@@ -25,7 +25,7 @@
     <ClCompile Include="datapath_xplat.c" />
     <ClCompile Include="datapath_win.c" />
     <ClCompile Include="datapath_raw.c" />
-    <ClCompile Include="datapath_raw_winkernel.c" />
+    <ClCompile Include="datapath_raw_win.c" />
     <ClCompile Include="datapath_raw_socket.c" />
     <ClCompile Include="datapath_raw_socket_common.c" />
     <ClCompile Include="datapath_raw_socket_win.c" />

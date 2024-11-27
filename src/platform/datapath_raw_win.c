@@ -11,7 +11,7 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_winuser.c.clog.h"
+#include "datapath_raw_win.c.clog.h"
 #endif
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
@@ -241,5 +241,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
     }
 
+#ifndef _KERNEL_MODE
     return 0;
+#endif
 }
