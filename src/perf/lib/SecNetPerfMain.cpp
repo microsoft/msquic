@@ -33,6 +33,36 @@ uint8_t PerfDefaultAffinitizeThreads = false;
 #ifdef _KERNEL_MODE
 volatile int BufferCurrent;
 char Buffer[BufferLength];
+static inline LONG _strtol(const CHAR* nptr, CHAR** endptr, int base) {
+    UNREFERENCED_PARAMETER(base);
+    ULONG temp;
+    RtlCharToInteger(nptr, base, &temp);
+    if (endptr != NULL) {
+        const CHAR* ptr = nptr;
+        while (*ptr >= '0' && *ptr <= '9') {
+            ptr++;
+        }
+        *endptr = (CHAR*)ptr;
+    }
+    return (LONG)temp;
+}
+
+static inline ULONG _strtoul(const CHAR* nptr, CHAR** endptr, int base) {
+    UNREFERENCED_PARAMETER(base);
+    ULONG temp;
+    RtlCharToInteger(nptr, base, &temp);
+    if (endptr != NULL) {
+        const CHAR* ptr = nptr;
+        while (*ptr >= '0' && *ptr <= '9') {
+            ptr++;
+        }
+        *endptr = (CHAR*)ptr;
+    }
+    return temp;
+}
+#else
+#define _strtol strtol
+#define _strtoul strtoul
 #endif
 
 static
@@ -96,13 +126,16 @@ PrintHelp(
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
-#ifndef _KERNEL_MODE
+#ifdef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
         "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
+#else
+        "  -io:<mode>               Configures a requested network IO model to be used.\n"
+        "                            - {xdp}\n"
+#endif // _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
         "  -highpri:<0/1>           Configures MsQuic to run threads at high priority. (def:0)\n"
-#endif // _KERNEL_MODE
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_PORT
@@ -165,7 +198,7 @@ QuicMainStart(
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
-        if (strtol(CpuStr, nullptr, 10) == -1) {
+        if (_strtol(CpuStr, nullptr, 10) == -1) {
             for (uint32_t i = 0; i < CxPlatProcCount() && Config->ProcessorCount < 256; ++i) {
                 Config->ProcessorList[Config->ProcessorCount++] = (uint16_t)i;
             }
@@ -173,7 +206,7 @@ QuicMainStart(
             do {
                 if (*CpuStr == ',') CpuStr++;
                 Config->ProcessorList[Config->ProcessorCount++] =
-                    (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
+                    (uint16_t)_strtoul(CpuStr, (char**)&CpuStr, 10);
             } while (*CpuStr && Config->ProcessorCount < 256);
         }
     }
