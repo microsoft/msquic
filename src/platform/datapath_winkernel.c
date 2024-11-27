@@ -652,7 +652,6 @@ DataPathInitialize(
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
-    UNREFERENCED_PARAMETER(WorkerPool);
     QUIC_STATUS Status;
     WSK_CLIENT_NPI WskClientNpi = { NULL, &WskAppDispatch };
     uint32_t DatapathLength;
@@ -680,6 +679,14 @@ DataPathInitialize(
             goto Exit;
         }
     }
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
@@ -700,6 +707,7 @@ DataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
+    Datapath->WorkerPool = WorkerPool;
     Datapath->ClientRecvDataLength = ClientRecvDataLength;
     Datapath->ProcCount = (uint32_t)CxPlatProcCount();
     Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;

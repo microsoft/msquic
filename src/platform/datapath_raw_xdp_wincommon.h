@@ -245,6 +245,10 @@ CxPlatGetRssQueueProcessors(
         }
         XskRingConsumerRelease(&TxCompletionRing, 1);
 
+#ifdef _KERNEL_MODE
+        // TODO: correct?
+        Queues[i] = CxPlatProcCurrentNumber();
+#else
         PROCESSOR_NUMBER ProcNumber;
         uint32_t ProcNumberSize = sizeof(PROCESSOR_NUMBER);
         Status = XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
@@ -252,6 +256,7 @@ CxPlatGetRssQueueProcessors(
 
         const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
         Queues[i] = Group->Offset + (ProcNumber.Number % Group->Count);
+#endif
 
         CxPlatCloseHandle(TxXsk);
     }

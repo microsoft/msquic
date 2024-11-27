@@ -23,8 +23,17 @@ CxPlatXdpReadConfig(
     _Inout_ XDP_DATAPATH* Xdp
     )
 {
-    // TODO: implement
-    UNREFERENCED_PARAMETER(Xdp);
+    //
+    // Default config.
+    //
+    Xdp->RxBufferCount = 8192;
+    Xdp->RxRingSize = 256;
+    Xdp->TxBufferCount = 8192;
+    Xdp->TxRingSize = 256;
+    Xdp->TxAlwaysPoke = FALSE;
+
+    // TODO: implement config reader
+
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -65,18 +74,15 @@ CxPlatDpRawInitialize(
     for (ULONG i = 0; i < pIfTable->NumEntries; i++) {
         MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
 
-        if (pIfRow->PhysicalAddressLength == IF_MAX_PHYS_ADDRESS_LENGTH &&
+        if (pIfRow->Type == IF_TYPE_ETHERNET_CSMACD &&
             pIfRow->OperStatus == IfOperStatusUp &&
-            (pIfRow->Type == IF_TYPE_ETHERNET_CSMACD || pIfRow->Type == IF_TYPE_IEEE80211))
-        {
+            pIfRow->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
             XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
             if (Interface == NULL) {
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
-
             RtlZeroMemory(Interface, sizeof(XDP_INTERFACE));
-
             Interface->ActualIfIndex = Interface->IfIndex = pIfRow->InterfaceIndex;
             RtlCopyMemory(
                 Interface->PhysicalAddress,
@@ -95,12 +101,13 @@ CxPlatDpRawInitialize(
             CxPlatListInsertTail(&Xdp->Interfaces, &Interface->Link);
         }
     }
-    FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
         Status = QUIC_STATUS_NOT_FOUND;
+        goto Exit;
     }
 
+    Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
 
@@ -143,6 +150,7 @@ CxPlatDpRawInitialize(
 
         CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
+    Status = QUIC_STATUS_SUCCESS;
 
 Exit:
     if (pIfTable != NULL) {
