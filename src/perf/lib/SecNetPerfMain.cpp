@@ -142,10 +142,9 @@ QuicMainStart(
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
-
-#ifndef _KERNEL_MODE
     const char* IoMode = GetValue(argc, argv, "io");
 
+#ifndef _KERNEL_MODE
     if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
         SetConfig = true;
@@ -153,11 +152,6 @@ QuicMainStart(
 
     if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
-        SetConfig = true;
-    }
-
-    if (IoMode && IsValue(IoMode, "xdp")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
         SetConfig = true;
     }
 
@@ -189,6 +183,11 @@ QuicMainStart(
         SetConfig = true;
     }
 #endif // _KERNEL_MODE
+
+    if (IoMode && IsValue(IoMode, "xdp")) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        SetConfig = true;
+    }
 
     if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
         SetConfig = true;
