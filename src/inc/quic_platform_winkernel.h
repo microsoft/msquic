@@ -514,6 +514,7 @@ typedef struct CXPLAT_SQE {
     XDP_OVERLAPPED Overlapped;
 } CXPLAT_SQE;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
 CxPlatEventQInitialize(
@@ -526,6 +527,7 @@ CxPlatEventQInitialize(
     return TRUE;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQCleanup(
@@ -537,6 +539,7 @@ CxPlatEventQCleanup(
     CxPlatLockUninitialize(&queue->Lock);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
 CxPlatEventQAssociateHandle(
@@ -578,6 +581,7 @@ CxPlatEventQEnqueue(
     return TRUE;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 uint32_t
 CxPlatEventQDequeue(
@@ -617,6 +621,7 @@ CxPlatEventQDequeue(
     return EventsDequeued;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQReturn(

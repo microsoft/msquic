@@ -688,6 +688,11 @@ DataPathInitialize(
         goto Exit;
     }
 
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
         CxPlatProcCount() * sizeof(CXPLAT_DATAPATH_PROC_CONTEXT);

@@ -436,11 +436,13 @@ typedef struct CXPLAT_WORKER_POOL {
 
 } CXPLAT_WORKER_POOL;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
@@ -519,6 +521,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -526,6 +529,7 @@ CxPlatAddExecutionContext(
     _In_ uint16_t Index // Into the execution config processor array
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
