@@ -692,8 +692,8 @@ QuicTestCtlEvtIoDeviceControl(
                 STRSAFE_NULL_ON_FAILURE);
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        if (UseDuoNic) {
-            QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
+        QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
+        if (Config->Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
             Status =
                 MsQuic->SetParam(
                     nullptr,
