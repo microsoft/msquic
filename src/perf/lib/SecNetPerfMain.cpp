@@ -155,6 +155,13 @@ QuicMainStart(
         SetConfig = true;
     }
 
+#endif // _KERNEL_MODE
+
+    if (IoMode && IsValue(IoMode, "xdp")) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        SetConfig = true;
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
@@ -180,12 +187,6 @@ QuicMainStart(
     TryGetValue(argc, argv, "affinitize", &PerfDefaultAffinitizeThreads);
     if (PerfDefaultHighPriority) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE;
-        SetConfig = true;
-    }
-#endif // _KERNEL_MODE
-
-    if (IoMode && IsValue(IoMode, "xdp")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
         SetConfig = true;
     }
 
