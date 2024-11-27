@@ -712,6 +712,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 typedef struct {
     BOOLEAN UseDuoNic;
+    QUIC_EXECUTION_CONFIG Config;
     char CurrentDirectory[MAX_PATH];
 } QUIC_TEST_CONFIGURATION_PARAMS;
 
