@@ -464,6 +464,21 @@ typedef struct QUIC_CONNECTION {
     uint64_t NextRecvAckFreqSeqNum;
 
     //
+    // The maximum number of packets that can be out of order before an immediate
+    // acknowledgment (ACK) is triggered. If no specific instructions (ACK_FREQUENCY
+    // frames) are received from the peer, the receiver will immediately acknowledge
+    // any out-of-order packets, which means the default value is 1. A value of 0
+    // means out-of-order packets do not trigger an immediate ACK.
+    //
+    uint8_t ReorderingThreshold;
+
+    //
+    // The maximum number of packets that the peer can be out of order before an immediate
+    // acknowledgment (ACK) is triggered.
+    //
+    uint8_t PeerReorderingThreshold;
+
+    //
     // The sequence number to use for the next source CID.
     //
     QUIC_VAR_INT NextSourceCidSequenceNumber;

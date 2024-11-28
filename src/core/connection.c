@@ -118,6 +118,8 @@ QuicConnAlloc(
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
+    Connection->ReorderingThreshold = QUIC_MIN_REORDERING_THRESHOLD;
+    Connection->PeerReorderingThreshold = QUIC_MIN_REORDERING_THRESHOLD;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     QuicSettingsCopy(&Connection->Settings, &MsQuicLib.Settings);
@@ -5244,6 +5246,11 @@ QuicConnRecvFrames(
                 Connection->PacketTolerance = (uint8_t)Frame.PacketTolerance;
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
+            }
+            if(Frame.ReorderingThreshold < UINT8_MAX) {
+                Connection->ReorderingThreshold = (uint8_t)Frame.ReorderingThreshold;
+            } else {
+                Connection->ReorderingThreshold = UINT8_MAX; // Cap to 0xFF for space savings.
             }
             QuicTraceLogConnInfo(
                 UpdatePacketTolerance,

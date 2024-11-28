@@ -1261,6 +1261,7 @@ QuicAckFrequencyFrameEncode(
         QuicVarIntSize(Frame->SequenceNumber) +
         QuicVarIntSize(Frame->PacketTolerance) +
         QuicVarIntSize(Frame->UpdateMaxAckDelay) +
+        QuicVarIntSize(Frame->ReorderingThreshold) +
         sizeof(QUIC_ACK_FREQUENCY_EXTRAS);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -1279,6 +1280,7 @@ QuicAckFrequencyFrameEncode(
     Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
     Buffer = QuicVarIntEncode(Frame->PacketTolerance, Buffer);
     Buffer = QuicVarIntEncode(Frame->UpdateMaxAckDelay, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ReorderingThreshold, Buffer);
     QuicUint8Encode(Extras.Value, Buffer);
     *Offset += RequiredLength;
 
@@ -1299,6 +1301,7 @@ QuicAckFrequencyFrameDecode(
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PacketTolerance) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->UpdateMaxAckDelay) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReorderingThreshold) ||
         !QuicUint8tDecode(BufferLength, Buffer, Offset, &Extras.Value)) {
         return FALSE;
     }
@@ -1963,13 +1966,14 @@ QuicFrameLog(
 
         QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold: %llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
+            Frame.ReorderingThreshold,
             Frame.IgnoreOrder,
             Frame.IgnoreCE);
         break;
@@ -2006,7 +2010,7 @@ QuicFrameLog(
             Frame.Timestamp);
         break;
     }
-    
+
     case QUIC_FRAME_RELIABLE_RESET_STREAM: {
         QUIC_RELIABLE_RESET_STREAM_EX Frame;
         if (!QuicReliableResetFrameDecode(PacketLength, Packet, Offset, &Frame)) {
