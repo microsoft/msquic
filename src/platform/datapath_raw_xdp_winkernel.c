@@ -46,8 +46,12 @@ CxPlatDpRawInitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     PMIB_IF_TABLE2 pIfTable = NULL;
+
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
 
@@ -79,6 +83,11 @@ CxPlatDpRawInitialize(
             pIfRow->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
             XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
             if (Interface == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "XDP interface",
+                    sizeof(*Interface));
                 Status = QUIC_STATUS_OUT_OF_MEMORY;
                 goto Exit;
             }
@@ -90,10 +99,21 @@ CxPlatDpRawInitialize(
                 min(pIfRow->PhysicalAddressLength, sizeof(Interface->PhysicalAddress))
             );
 
+            QuicTraceLogVerbose(
+                XdpInterfaceInitialize,
+                "[ixdp][%p] Initializing interface %u",
+                Interface,
+                Interface->ActualIfIndex);
+
             Status =
                 CxPlatDpRawInterfaceInitialize(
                     Xdp, Interface, ClientRecvContextLength);
             if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "CxPlatDpRawInterfaceInitialize");
                 CXPLAT_FREE(Interface, IF_TAG);
                 continue;
             }
@@ -103,6 +123,10 @@ CxPlatDpRawInitialize(
     }
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "no XDP capable interface");
         Status = QUIC_STATUS_NOT_FOUND;
         goto Exit;
     }
@@ -151,6 +175,12 @@ CxPlatDpRawInitialize(
         CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
 
 Exit:
     if (pIfTable != NULL) {

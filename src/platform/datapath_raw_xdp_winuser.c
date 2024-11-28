@@ -89,7 +89,8 @@ CxPlatDpRawInitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    PMIB_IF_TABLE2 pIfTable = NULL;
 
     if (WorkerPool == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -112,13 +113,6 @@ CxPlatDpRawInitialize(
         }
     }
 
-    QuicTraceLogVerbose(
-        XdpInitialize,
-        "[ xdp][%p] XDP initialized, %u procs",
-        Xdp,
-        Xdp->PartitionCount);
-
-    PMIB_IF_TABLE2 pIfTable;
     if (GetIfTable2(&pIfTable) != NO_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
@@ -233,7 +227,6 @@ CxPlatDpRawInitialize(
             "CxPlatThreadCreate");
         goto Error;
     }
-    FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
         QuicTraceEvent(
@@ -298,7 +291,16 @@ CxPlatDpRawInitialize(
     }
     Status = QUIC_STATUS_SUCCESS;
 
+    QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
+
 Error:
+    if (pIfTable != NULL) {
+        FreeMibTable(pIfTable);
+    }
 
     if (QUIC_FAILED(Status)) {
         while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {
