@@ -813,6 +813,12 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
     /* 0x32 to 0xad are unused currently */
     QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
+    QUIC_FRAME_IMMEDIATE_ACK        = 0xacULL,
+    /* 0xaf to 0x2f4 are unused currently */
+    QUIC_FRAME_TIMESTAMP            = 0x2f5ULL,
+    /* 0x2f6 to 0x9f81a5 are unused currently */
+    QUIC_FRAME_OBSERVED_ADDRESS_V4  = 0x9f81a6ULL,
+    QUIC_FRAME_OBSERVED_ADDRESS_V6  = 0x9f81a7ULL,
 
     QUIC_FRAME_MAX_SUPPORTED
 
@@ -888,6 +894,13 @@ struct SentFrameMetadata : Struct {
             return "DATAGRAM";
         case QUIC_FRAME_ACK_FREQUENCY:
             return "ACK_FREQUENCY";
+        case QUIC_FRAME_IMMEDIATE_ACK:
+            return "IMMEDIATE_ACK";
+        case QUIC_FRAME_TIMESTAMP:
+            return "TIMESTAMP";
+        case QUIC_FRAME_OBSERVED_ADDRESS_V4:
+        case QUIC_FRAME_OBSERVED_ADDRESS_V6:
+            return "OBSERVED_ADDRESS";
         default:
             return "INVALID FRAME";
         }

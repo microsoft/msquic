@@ -1349,6 +1349,101 @@ QuicTimestampFrameDecode(
     return TRUE;
 }
 
+_Success_(return != FALSE)
+BOOLEAN
+QuicObservedAddressFrameEncode(
+    _In_ const QUIC_OBSERVED_ADDRESS_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    )
+{
+    if (QuicAddrGetFamily(&Frame->Address) == QUIC_ADDRESS_FAMILY_INET) {
+        const uint16_t RequiredLength =
+            QuicVarIntSize(QUIC_FRAME_OBSERVED_ADDRESS_V4) +
+            QuicVarIntSize(Frame->SequenceNumber) +
+            sizeof(Frame->Address.Ipv4.sin_addr) +
+            sizeof(Frame->Address.Ipv4.sin_port);
+
+        if (BufferLength < *Offset + RequiredLength) {
+            return FALSE;
+        }
+
+        Buffer = Buffer + *Offset;
+        Buffer = QuicVarIntEncode(QUIC_FRAME_OBSERVED_ADDRESS_V4, Buffer);
+        Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
+        CxPlatCopyMemory(Buffer, &Frame->Address.Ipv4.sin_addr, sizeof(Frame->Address.Ipv4.sin_addr));
+        Buffer += sizeof(Frame->Address.Ipv4.sin_addr);
+        CxPlatCopyMemory(Buffer, &Frame->Address.Ipv4.sin_port, sizeof(Frame->Address.Ipv4.sin_port));
+        Buffer += sizeof(Frame->Address.Ipv4.sin_port);
+        *Offset += RequiredLength;
+
+    } else {
+        const uint16_t RequiredLength =
+            QuicVarIntSize(QUIC_FRAME_OBSERVED_ADDRESS_V4) +
+            QuicVarIntSize(Frame->SequenceNumber) +
+            sizeof(Frame->Address.Ipv6.sin6_addr) +
+            sizeof(Frame->Address.Ipv6.sin6_port);
+
+        if (BufferLength < *Offset + RequiredLength) {
+            return FALSE;
+        }
+
+        Buffer = Buffer + *Offset;
+        Buffer = QuicVarIntEncode(QUIC_FRAME_OBSERVED_ADDRESS_V6, Buffer);
+        Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
+        CxPlatCopyMemory(Buffer, &Frame->Address.Ipv6.sin6_addr, sizeof(Frame->Address.Ipv6.sin6_addr));
+        Buffer += sizeof(Frame->Address.Ipv6.sin6_addr);
+        CxPlatCopyMemory(Buffer, &Frame->Address.Ipv6.sin6_port, sizeof(Frame->Address.Ipv6.sin6_port));
+        Buffer += sizeof(Frame->Address.Ipv6.sin6_port);
+        *Offset += RequiredLength;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicObservedAddressFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_OBSERVED_ADDRESS_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber)) {
+        return FALSE;
+    }
+
+    if (FrameType == QUIC_FRAME_OBSERVED_ADDRESS_V4) {
+        if (BufferLength < *Offset + sizeof(Frame->Address.Ipv4)) {
+            return FALSE;
+        }
+        CxPlatZeroMemory(&Frame->Address.Ipv4, sizeof(Frame->Address.Ipv4));
+        Frame->Address.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET6;
+        CxPlatCopyMemory(&Frame->Address.Ipv4.sin_addr, Buffer + *Offset, sizeof(Frame->Address.Ipv4.sin_addr));
+        *Offset += sizeof(Frame->Address.Ipv4.sin_addr);
+        CxPlatCopyMemory(&Frame->Address.Ipv4.sin_port, Buffer + *Offset, sizeof(Frame->Address.Ipv4.sin_port));
+        *Offset += sizeof(Frame->Address.Ipv4.sin_port);
+
+    } else {
+        if (BufferLength < *Offset + sizeof(Frame->Address.Ipv6)) {
+            return FALSE;
+        }
+        CxPlatZeroMemory(&Frame->Address.Ipv6, sizeof(Frame->Address.Ipv6));
+        Frame->Address.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+        CxPlatCopyMemory(&Frame->Address.Ipv6.sin6_addr, Buffer + *Offset, sizeof(Frame->Address.Ipv6.sin6_addr));
+        *Offset += sizeof(Frame->Address.Ipv6.sin6_addr);
+        CxPlatCopyMemory(&Frame->Address.Ipv6.sin6_port, Buffer + *Offset, sizeof(Frame->Address.Ipv6.sin6_port));
+        *Offset += sizeof(Frame->Address.Ipv6.sin6_port);
+    }
+
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -1927,6 +2022,31 @@ QuicFrameLog(
         break;
     }
 
+    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        QUIC_RELIABLE_RESET_STREAM_EX Frame;
+        if (!QuicReliableResetFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogReliableResetStreamInvalid,
+                "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogReliableResetStream,
+            "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.StreamID,
+            Frame.ErrorCode,
+            Frame.FinalSize,
+            Frame.ReliableSize);
+        break;
+    }
+
     case QUIC_FRAME_DATAGRAM:
     case QUIC_FRAME_DATAGRAM_1: {
         QUIC_DATAGRAM_EX Frame;
@@ -2006,13 +2126,14 @@ QuicFrameLog(
             Frame.Timestamp);
         break;
     }
-    
-    case QUIC_FRAME_RELIABLE_RESET_STREAM: {
-        QUIC_RELIABLE_RESET_STREAM_EX Frame;
-        if (!QuicReliableResetFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+
+    case QUIC_FRAME_OBSERVED_ADDRESS_V4:
+    case QUIC_FRAME_OBSERVED_ADDRESS_V6: {
+        QUIC_OBSERVED_ADDRESS_EX Frame;
+        if (!QuicObservedAddressFrameDecode(FrameType, PacketLength, Packet, Offset, &Frame)) {
             QuicTraceLogVerbose(
-                FrameLogReliableResetStreamInvalid,
-                "[%c][%cX][%llu]   RELIABLE_RESET_STREAM [Invalid]",
+                FrameLogObservedAddressInvalid,
+                "[%c][%cX][%llu]   OBSERVED_ADDRESS [Invalid]",
                 PtkConnPre(Connection),
                 PktRxPre(Rx),
                 PacketNumber);
@@ -2020,15 +2141,12 @@ QuicFrameLog(
         }
 
         QuicTraceLogVerbose(
-            FrameLogReliableResetStream,
-            "[%c][%cX][%llu]   RELIABLE_RESET_STREAM ID:%llu ErrorCode:0x%llX FinalSize:%llu ReliableSize:%llu",
+            FrameLogObservedAddress,
+            "[%c][%cX][%llu]   OBSERVED_ADDRESS %llu", // TODO - Address
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
-            Frame.StreamID,
-            Frame.ErrorCode,
-            Frame.FinalSize,
-            Frame.ReliableSize);
+            Frame.SequenceNumber);
         break;
     }
 
