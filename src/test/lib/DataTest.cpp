@@ -3815,6 +3815,7 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
             TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
             TEST_TRUE(Connections[i]->HandshakeComplete);
         }
+        CxPlatSleep(300); // Flush operations
 
         ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer);
 
