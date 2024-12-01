@@ -29,6 +29,7 @@ Abstract:
 
 
 #define NUM_FRAMES         8192 * 2
+// #define NUM_FRAMES         4096
 #define CONS_NUM_DESCS     NUM_FRAMES / 2
 #define PROD_NUM_DESCS     NUM_FRAMES / 2
 #define FRAME_SIZE         XSK_UMEM__DEFAULT_FRAME_SIZE // TODO: 2K mode
@@ -1134,6 +1135,7 @@ CxPlatDpRawRxFree(
 
         CxPlatLockAcquire(&XskInfo->UmemLock);
         while (PacketChain) {
+            CXPLAT_DBG_ASSERT(PacketChain->DatapathType == CXPLAT_DATAPATH_TYPE_RAW);
             Packet =
                 CXPLAT_CONTAINING_RECORD(PacketChain, XDP_RX_PACKET, RecvData);
             PacketChain = PacketChain->Next;
@@ -1412,7 +1414,9 @@ CxPlatXdpRx(
     CxPlatLockAcquire(&XskInfo->UmemLock);
     CxPlatLockAcquire(&Queue->FqLock);
     // Stuff the ring with as much frames as possible
-    Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, XskUmemFreeFrames(XskInfo));
+    // Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, XskUmemFreeFrames(XskInfo));
+    UNREFERENCED_PARAMETER(XskUmemFreeFrames);
+    Available = xsk_prod_nb_free(&XskInfo->UmemInfo->Fq, PROD_NUM_DESCS); 
     if (Available > 0) {
         ret = xsk_ring_prod__reserve(&XskInfo->UmemInfo->Fq, Available, &FqIdx);
 
@@ -1479,6 +1483,8 @@ RawDataPathProcessCqe(
                 QueueCommon->Interface, Queue->QID, QueueCommon->Partition->PartitionIndex, gettid());
             Queue->RxQueued = FALSE;
             Queue->Partition->Ec.Ready = TRUE;
+
+            // CxPlatXdpRx(Queue->Partition->Xdp, Queue, Queue->Partition->PartitionIndex);
         }
         break;
     }

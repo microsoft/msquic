@@ -373,6 +373,7 @@ static __always_inline enum xdp_action to_af_xdp(struct xdp_md *ctx, void *data,
         // check if the destination IP address matches
         __u32 *ipv4_addr = bpf_map_lookup_elem(&ip_map, &ipv4_key);
         if (ipv4_addr && *ipv4_addr != iph->daddr) {
+            bpf_printk("\t\t\t\t\t IPv4 address not matched");
             return XDP_PASS;
         }
         if (iph->protocol != IPPROTO_UDP) {
@@ -391,6 +392,7 @@ static __always_inline enum xdp_action to_af_xdp(struct xdp_md *ctx, void *data,
         if (ipv6_addr) {
             for (int i = 0; i < 4; i++) {
                 if (ipv6_addr[i] != ip6h->daddr.s6_addr32[i]) {
+                    bpf_printk("\t\t\t\t\t IPv6 address not matched");
                     return XDP_PASS;
                 }
             }
@@ -408,48 +410,13 @@ static __always_inline enum xdp_action to_af_xdp(struct xdp_md *ctx, void *data,
         return XDP_DROP;
     }
 
-    // hack. catch packet to client
-    if (udph->dest == bpf_htons(55555)) {
-        if (FEATURE_SUPPORT(XDP_FEATURE_DROP_PATH_CHALLENGE)) {
-            int roleKey = 0;
-            __u8* client = bpf_map_lookup_elem(&role_map, &roleKey);
-            if (client && *client == 1) {
-                bpf_printk("Drop PATH_CHALLENGE frame from server to client");
-                return XDP_DROP;
-            }
-        } else {
-            // TODO: NAT conversion?, change back to original port
-        }
-    }
-
+    // check if the destination port matches
     bool *exist = bpf_map_lookup_elem(&port_map, (__u16*)&udph->dest); // slow?
     if (exist && *exist) {
         // bpf_printk("\t\t\t\t\t [XDP] port found %d", bpf_htons(udph->dest));
-        unsigned char* payload = (unsigned char*)(udph + 1);
-        if ((void*)(payload + 1 + MAX_CONNECTION_ID_LENGTH) <= data_end && IS_SHORT_HEADER(payload[0])) {
-            if (FEATURE_SUPPORT(XDP_FEATURE_CID_MAP_RSS)) {
-                __u8* cid_len = bpf_map_lookup_elem(&cid_len_map, &KEYZERO);
-                if (cid_len && *cid_len <= MAX_CONNECTION_ID_LENGTH && (void*)(payload + 1 + *cid_len) <= data_end) {
-                    // TODO: This can be global variable and fill 0 once if Dest CID len is fixed in associated process
-                    __u8 key[MAX_CONNECTION_ID_LENGTH] = {0};
-                    __builtin_memcpy(key, payload + 1, MSQUIC_FIXED_CONNECTION_ID_LENGTH);
-                    __u8 *queue = bpf_map_lookup_elem(&cid_queue_map, key);
-                    if (queue) {
-                        if (*queue == RX_QUEUE_UNDEFINED) {
-                            bpf_map_update_elem(&cid_queue_map, key, RxIndex, BPF_ANY);
-                            bpf_printk("\t\t\t\t\t [XDP] Connection ID found, Set QueueID:%d", *RxIndex);
-                        } else {
-                            *RxIndex = *queue;
-                            bpf_printk("\t\t\t\t\t [XDP] Connection ID found, Redirect from QueueID:%d to QueueID:%d", ctx->rx_queue_index, *queue);
-                        }
-                    }
-                }
-            } else if (FEATURE_SUPPORT(XDP_FEATURE_CID_HASH_RSS)) {
-                // TODO: hash based RSS
-            }
-        }
         return XDP_REDIRECT;
     }
+    bpf_printk("\t\t\t\t\t Port not found: %d", bpf_htons(udph->dest));
     return XDP_PASS;
 }
 
