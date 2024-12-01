@@ -1343,11 +1343,9 @@ SocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    if (IsServerSocket) {
-        for (uint32_t i = 0; i < SocketCount; i++) {
-            CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
-            Binding->SocketContexts[i].IoStarted = TRUE;
-        }
+    for (uint32_t i = 0; i < SocketCount; i++) {
+        CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
+        Binding->SocketContexts[i].IoStarted = TRUE;
     }
 
     Binding = NULL;
