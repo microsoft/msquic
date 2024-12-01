@@ -1343,9 +1343,11 @@ SocketCreateUdp(
     //
     *NewBinding = Binding;
 
-    for (uint32_t i = 0; i < SocketCount; i++) {
-        CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
-        Binding->SocketContexts[i].IoStarted = TRUE;
+    if (IsServerSocket) {
+        for (uint32_t i = 0; i < SocketCount; i++) {
+            CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
+            Binding->SocketContexts[i].IoStarted = TRUE;
+        }
     }
 
     Binding = NULL;
@@ -2203,8 +2205,10 @@ CxPlatSocketReceive(
 {
     if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
         if (SocketContext->DatapathPartition->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
+            fprintf(stderr, "[EPOLL coalesced] Partition: %d, Thread: %d\n", SocketContext->DatapathPartition->PartitionIndex, gettid());
             CxPlatSocketReceiveCoalesced(SocketContext);
         } else {
+            fprintf(stderr, "[EPOLL] Partition: %d, Thread: %d\n", SocketContext->DatapathPartition->PartitionIndex, gettid());
             CxPlatSocketReceiveMessages(SocketContext);
         }
     } else {
@@ -2219,6 +2223,7 @@ RecvDataReturn(
 {
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
+        CXPLAT_DBG_ASSERT(RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER);
         RecvDataChain = RecvDataChain->Next;
         DATAPATH_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);

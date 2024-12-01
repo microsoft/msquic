@@ -3192,9 +3192,15 @@ QuicConnQueueRecvPackets(
     }
     CxPlatDispatchLockRelease(&Connection->ReceiveQueueLock);
 
+    uint16_t DatapathType = 0;
     if (Packets != NULL) {
         QUIC_RX_PACKET* Packet = Packets;
         do {
+            if (DatapathType == 0) {
+                DatapathType = Packet->Route->DatapathType;
+            } else {
+                CXPLAT_DBG_ASSERT(DatapathType == Packet->Route->DatapathType);
+            }
             Packet->QueuedOnConnection = FALSE;
             QuicPacketLogDrop(Connection, Packet, "Max queue limit reached");
         } while ((Packet = (QUIC_RX_PACKET*)Packet->Next) != NULL);
@@ -5595,6 +5601,7 @@ QuicConnRecvDatagrams(
     QUIC_RX_PACKET* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
+    uint16_t DatapathType = 0; // UNKNOWN
 
     QUIC_RX_PACKET* Packet;
     while ((Packet = Packets) != NULL) {
@@ -5602,6 +5609,11 @@ QuicConnRecvDatagrams(
         CXPLAT_DBG_ASSERT(Packet->QueuedOnConnection);
         Packets = (QUIC_RX_PACKET*)Packet->Next;
         Packet->Next = NULL;
+        if (DatapathType == 0) { // UNKNOWN
+            DatapathType = Packet->Route->DatapathType;
+        } else {
+            CXPLAT_DBG_ASSERT(DatapathType == Packet->Route->DatapathType);
+        }
 
         CXPLAT_DBG_ASSERT(Packet != NULL);
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);

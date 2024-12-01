@@ -34,11 +34,16 @@ CxPlatDataPathProcessCqe(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    if (CXPLAT_CQE_TYPE_XDP_SHUTDOWN <= CxPlatCqeType(Cqe)) {
+    fprintf(stderr, "CxPlatDataPathProcessCqe %d\n", CxPlatCqeType(Cqe));
+    if (CXPLAT_CQE_TYPE_WORKER_WAKE <= CxPlatCqeType(Cqe)
+        && CxPlatCqeType(Cqe) < CXPLAT_CQE_TYPE_XDP_SHUTDOWN) {
+        DataPathProcessCqe(Cqe);
+    } else if (CXPLAT_CQE_TYPE_XDP_SHUTDOWN <= CxPlatCqeType(Cqe)
+        && CxPlatCqeType(Cqe) <= CXPLAT_CQE_TYPE_XDP_FLUSH_TX) {
         RawDataPathProcessCqe(Cqe);
     } else {
-        DataPathProcessCqe(Cqe);
-    }
+        CXPLAT_FRE_ASSERT(FALSE);
+    } 
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
