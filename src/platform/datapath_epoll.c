@@ -2223,7 +2223,7 @@ RecvDataReturn(
 {
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
-        CXPLAT_DBG_ASSERT(RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER);
+        CXPLAT_DBG_ASSERT(RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL);
         RecvDataChain = RecvDataChain->Next;
         DATAPATH_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
