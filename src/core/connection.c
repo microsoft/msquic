@@ -5566,6 +5566,10 @@ QuicConnRecvDatagrams(
     _In_ BOOLEAN IsDeferred
     )
 {
+    if (Packets != NULL) {
+        CXPLAT_DBG_ASSERT(Packets->Allocated);
+        CXPLAT_DBG_ASSERT(Packets->QueuedOnConnection);
+    }
     QUIC_RX_PACKET* ReleaseChain = NULL;
     QUIC_RX_PACKET** ReleaseChainTail = &ReleaseChain;
     uint32_t ReleaseChainCount = 0;
