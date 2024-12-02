@@ -5608,7 +5608,9 @@ QuicConnRecvDatagrams(
     uint16_t DatapathType = 0; // UNKNOWN
 
     QUIC_RX_PACKET* Packet;
+    uint32_t count = 0;
     while ((Packet = Packets) != NULL) {
+        fprintf(stderr, "Packet processing (%d/%d)\n", ++count, PacketChainCount);
         CXPLAT_DBG_ASSERT(Packet->Allocated);
         CXPLAT_DBG_ASSERT(Packet->QueuedOnConnection);
         Packets = (QUIC_RX_PACKET*)Packet->Next;
