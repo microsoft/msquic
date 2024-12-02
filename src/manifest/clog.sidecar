@@ -4306,7 +4306,7 @@
     },
     "FrameLogAckFrequency": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]    ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu,
+      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
       "UniqueId": "FrameLogAckFrequency",
       "splitArgs": [
         {
