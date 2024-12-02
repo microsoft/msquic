@@ -52,29 +52,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceQueues,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpInitialize
-// [ xdp][%p] XDP initialized, %u procs
-// QuicTraceLogVerbose(
-        XdpInitialize,
-        "[ xdp][%p] XDP initialized, %u procs",
-        Xdp,
-        Xdp->PartitionCount);
-// arg2 = arg2 = Xdp = arg2
-// arg3 = arg3 = Xdp->PartitionCount = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpInterfaceInitialize
 // [ixdp][%p] Initializing interface %u
 // QuicTraceLogVerbose(
@@ -132,6 +109,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart,
 // arg3 = arg3 = QueueCount = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerStart,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpInitialize
+// [ xdp][%p] XDP initialized, %u procs
+// QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
+// arg2 = arg2 = Xdp = arg2
+// arg3 = arg3 = Xdp->PartitionCount = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3), 
