@@ -452,17 +452,7 @@ typedef struct QUIC_CONNECTION {
     // be able to send to the peer.
     //
     uint8_t PeerPacketTolerance;
-
-    //
-    // The ACK frequency sequence number we are currently using to send.
-    //
-    uint64_t SendAckFreqSeqNum;
-
-    //
-    // The next ACK frequency sequence number we expect to receive.
-    //
-    uint64_t NextRecvAckFreqSeqNum;
-
+    
     //
     // The maximum number of packets that can be out of order before an immediate
     // acknowledgment (ACK) is triggered. If no specific instructions (ACK_FREQUENCY
@@ -477,6 +467,16 @@ typedef struct QUIC_CONNECTION {
     // acknowledgment (ACK) is triggered.
     //
     uint8_t PeerReorderingThreshold;
+
+    //
+    // The ACK frequency sequence number we are currently using to send.
+    //
+    uint64_t SendAckFreqSeqNum;
+
+    //
+    // The next ACK frequency sequence number we expect to receive.
+    //
+    uint64_t NextRecvAckFreqSeqNum;
 
     //
     // The sequence number to use for the next source CID.

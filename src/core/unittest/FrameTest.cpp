@@ -257,7 +257,7 @@ struct ResetStreamFrameParams {
                 uint8_t TestValue = (j & 1) ? 64 : 255;
 
                 if (i & 1) {
-                    Temp.Buffer[1] = TestValue;
+                    Temp.Buffer[1] = TestValue;       
                 } else {
                     Temp.Buffer[1] = 0;
                 }

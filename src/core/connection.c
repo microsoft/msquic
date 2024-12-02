@@ -5247,7 +5247,7 @@ QuicConnRecvFrames(
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
             }
-            if(Frame.ReorderingThreshold < UINT8_MAX) {
+            if (Frame.ReorderingThreshold < UINT8_MAX) {
                 Connection->ReorderingThreshold = (uint8_t)Frame.ReorderingThreshold;
             } else {
                 Connection->ReorderingThreshold = UINT8_MAX; // Cap to 0xFF for space savings.
