@@ -1173,16 +1173,17 @@ tracepoint(CLOG_FRAME_C, FrameLogAckFrequencyInvalid , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogAckFrequency
-// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
+// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
 // QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
+            Frame.ReorderingThreshold,
             Frame.IgnoreOrder,
             Frame.IgnoreCE);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
@@ -1191,12 +1192,13 @@ tracepoint(CLOG_FRAME_C, FrameLogAckFrequencyInvalid , arg2, arg3, arg4);\
 // arg5 = arg5 = Frame.SequenceNumber = arg5
 // arg6 = arg6 = Frame.PacketTolerance = arg6
 // arg7 = arg7 = Frame.UpdateMaxAckDelay = arg7
-// arg8 = arg8 = Frame.IgnoreOrder = arg8
-// arg9 = arg9 = Frame.IgnoreCE = arg9
+// arg8 = arg8 = Frame.ReorderingThreshold = arg8
+// arg9 = arg9 = Frame.IgnoreOrder = arg9
+// arg10 = arg10 = Frame.IgnoreCE = arg10
 ----------------------------------------------------------*/
-#ifndef _clog_10_ARGS_TRACE_FrameLogAckFrequency
-#define _clog_10_ARGS_TRACE_FrameLogAckFrequency(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\
-tracepoint(CLOG_FRAME_C, FrameLogAckFrequency , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);\
+#ifndef _clog_11_ARGS_TRACE_FrameLogAckFrequency
+#define _clog_11_ARGS_TRACE_FrameLogAckFrequency(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
+tracepoint(CLOG_FRAME_C, FrameLogAckFrequency , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
 
 #endif
 
