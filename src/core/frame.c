@@ -1966,7 +1966,7 @@ QuicFrameLog(
 
         QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold: %llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
