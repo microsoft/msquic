@@ -847,8 +847,6 @@ typedef struct QUIC_ACK_FREQUENCY_EX {
     QUIC_VAR_INT PacketTolerance;
     QUIC_VAR_INT UpdateMaxAckDelay; // In microseconds (us)
     QUIC_VAR_INT ReorderingThreshold;
-    BOOLEAN IgnoreCE;
-
 } QUIC_ACK_FREQUENCY_EX;
 
 _Success_(return != FALSE)

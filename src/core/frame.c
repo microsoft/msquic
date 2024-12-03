@@ -1234,18 +1234,6 @@ QuicDatagramFrameDecode(
     return TRUE;
 }
 
-typedef struct QUIC_ACK_FREQUENCY_EXTRAS {
-
-    union {
-        struct {
-            uint8_t IgnoreCE    : 1;
-            uint8_t Reserved    : 6;
-        };
-        uint8_t Value;
-    };
-
-} QUIC_ACK_FREQUENCY_EXTRAS;
-
 _Success_(return != FALSE)
 BOOLEAN
 QuicAckFrequencyFrameEncode(
@@ -1260,17 +1248,11 @@ QuicAckFrequencyFrameEncode(
         QuicVarIntSize(Frame->SequenceNumber) +
         QuicVarIntSize(Frame->PacketTolerance) +
         QuicVarIntSize(Frame->UpdateMaxAckDelay) +
-        QuicVarIntSize(Frame->ReorderingThreshold) +
-        sizeof(QUIC_ACK_FREQUENCY_EXTRAS);
+        QuicVarIntSize(Frame->ReorderingThreshold);
 
     if (BufferLength < *Offset + RequiredLength) {
         return FALSE;
     }
-
-    CXPLAT_DBG_ASSERT(Frame->IgnoreCE <= 1);    // IgnoreCE should only be 0 or 1.
-
-    QUIC_ACK_FREQUENCY_EXTRAS Extras = { .Value = 0 };
-    Extras.IgnoreCE = Frame->IgnoreCE;
 
     Buffer = Buffer + *Offset;
     Buffer = QuicVarIntEncode(QUIC_FRAME_ACK_FREQUENCY, Buffer);
@@ -1278,7 +1260,6 @@ QuicAckFrequencyFrameEncode(
     Buffer = QuicVarIntEncode(Frame->PacketTolerance, Buffer);
     Buffer = QuicVarIntEncode(Frame->UpdateMaxAckDelay, Buffer);
     Buffer = QuicVarIntEncode(Frame->ReorderingThreshold, Buffer);
-    QuicUint8Encode(Extras.Value, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
@@ -1294,15 +1275,12 @@ QuicAckFrequencyFrameDecode(
     _Out_ QUIC_ACK_FREQUENCY_EX* Frame
     )
 {
-    QUIC_ACK_FREQUENCY_EXTRAS Extras;
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PacketTolerance) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->UpdateMaxAckDelay) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReorderingThreshold) ||
-        !QuicUint8tDecode(BufferLength, Buffer, Offset, &Extras.Value)) {
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReorderingThreshold)) {
         return FALSE;
     }
-    Frame->IgnoreCE = Extras.IgnoreCE;
     return TRUE;
 }
 
@@ -1962,15 +1940,14 @@ QuicFrameLog(
 
         QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
-            Frame.ReorderingThreshold,
-            Frame.IgnoreCE);
+            Frame.ReorderingThreshold);
         break;
     }
 
