@@ -156,7 +156,7 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
     /* 0x32 to 0xad are unused currently */
     QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
-    QUIC_FRAME_IMMEDIATE_ACK        = 0xacULL,
+    QUIC_FRAME_IMMEDIATE_ACK        = 0x1fULL,
     /* 0xaf to 0x2f4 are unused currently */
     QUIC_FRAME_TIMESTAMP            = 0x2f5ULL,
 
