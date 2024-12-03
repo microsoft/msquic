@@ -844,8 +844,8 @@ QuicDatagramFrameDecode(
 typedef struct QUIC_ACK_FREQUENCY_EX {
 
     QUIC_VAR_INT SequenceNumber;
-    QUIC_VAR_INT PacketTolerance;
-    QUIC_VAR_INT UpdateMaxAckDelay; // In microseconds (us)
+    QUIC_VAR_INT AckElicitingThreshold;
+    QUIC_VAR_INT RequestedMaxAckDelay; // In microseconds (us)
     QUIC_VAR_INT ReorderingThreshold;
 } QUIC_ACK_FREQUENCY_EX;
 

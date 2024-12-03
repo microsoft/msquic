@@ -5213,12 +5213,12 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            if (Frame.UpdateMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
+            if (Frame.RequestedMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "UpdateMaxAckDelay is less than TimerResolution");
+                    "RequestedMaxAckDelay is less than TimerResolution");
                 QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
@@ -5234,16 +5234,16 @@ QuicConnRecvFrames(
 
             Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
             Connection->State.IgnoreReordering = Frame.ReorderingThreshold == 0;
-            if (Frame.UpdateMaxAckDelay == 0) {
+            if (Frame.RequestedMaxAckDelay == 0) {
                 Connection->Settings.MaxAckDelayMs = 0;
-            } else if (Frame.UpdateMaxAckDelay < 1000) {
+            } else if (Frame.RequestedMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
             } else {
-                CXPLAT_DBG_ASSERT(US_TO_MS(Frame.UpdateMaxAckDelay) <= UINT32_MAX);
-                Connection->Settings.MaxAckDelayMs = (uint32_t)US_TO_MS(Frame.UpdateMaxAckDelay);
+                CXPLAT_DBG_ASSERT(US_TO_MS(Frame.RequestedMaxAckDelay) <= UINT32_MAX);
+                Connection->Settings.MaxAckDelayMs = (uint32_t)US_TO_MS(Frame.RequestedMaxAckDelay);
             }
-            if (Frame.PacketTolerance < UINT8_MAX) {
-                Connection->PacketTolerance = (uint8_t)Frame.PacketTolerance;
+            if (Frame.AckElicitingThreshold < UINT8_MAX) {
+                Connection->PacketTolerance = (uint8_t)Frame.AckElicitingThreshold;
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
             }

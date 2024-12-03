@@ -1246,8 +1246,8 @@ QuicAckFrequencyFrameEncode(
     uint16_t RequiredLength =
         QuicVarIntSize(QUIC_FRAME_ACK_FREQUENCY) +
         QuicVarIntSize(Frame->SequenceNumber) +
-        QuicVarIntSize(Frame->PacketTolerance) +
-        QuicVarIntSize(Frame->UpdateMaxAckDelay) +
+        QuicVarIntSize(Frame->AckElicitingThreshold) +
+        QuicVarIntSize(Frame->RequestedMaxAckDelay) +
         QuicVarIntSize(Frame->ReorderingThreshold);
 
     if (BufferLength < *Offset + RequiredLength) {
@@ -1257,8 +1257,8 @@ QuicAckFrequencyFrameEncode(
     Buffer = Buffer + *Offset;
     Buffer = QuicVarIntEncode(QUIC_FRAME_ACK_FREQUENCY, Buffer);
     Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
-    Buffer = QuicVarIntEncode(Frame->PacketTolerance, Buffer);
-    Buffer = QuicVarIntEncode(Frame->UpdateMaxAckDelay, Buffer);
+    Buffer = QuicVarIntEncode(Frame->AckElicitingThreshold, Buffer);
+    Buffer = QuicVarIntEncode(Frame->RequestedMaxAckDelay, Buffer);
     Buffer = QuicVarIntEncode(Frame->ReorderingThreshold, Buffer);
     *Offset += RequiredLength;
 
@@ -1276,8 +1276,8 @@ QuicAckFrequencyFrameDecode(
     )
 {
     if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->SequenceNumber) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PacketTolerance) ||
-        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->UpdateMaxAckDelay) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->AckElicitingThreshold) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->RequestedMaxAckDelay) ||
         !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ReorderingThreshold)) {
         return FALSE;
     }
@@ -1940,13 +1940,13 @@ QuicFrameLog(
 
         QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu AckElicitThreshold:%llu MaxAckDelay:%llu ReorderThreshold:%llu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
-            Frame.PacketTolerance,
-            Frame.UpdateMaxAckDelay,
+            Frame.AckElicitingThreshold,
+            Frame.RequestedMaxAckDelay,
             Frame.ReorderingThreshold);
         break;
     }
