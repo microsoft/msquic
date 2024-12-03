@@ -1238,7 +1238,6 @@ typedef struct QUIC_ACK_FREQUENCY_EXTRAS {
 
     union {
         struct {
-            uint8_t IgnoreOrder : 1;
             uint8_t IgnoreCE    : 1;
             uint8_t Reserved    : 6;
         };
@@ -1268,11 +1267,9 @@ QuicAckFrequencyFrameEncode(
         return FALSE;
     }
 
-    CXPLAT_DBG_ASSERT(Frame->IgnoreOrder <= 1); // IgnoreOrder should only be 0 or 1.
     CXPLAT_DBG_ASSERT(Frame->IgnoreCE <= 1);    // IgnoreCE should only be 0 or 1.
 
     QUIC_ACK_FREQUENCY_EXTRAS Extras = { .Value = 0 };
-    Extras.IgnoreOrder = Frame->IgnoreOrder;
     Extras.IgnoreCE = Frame->IgnoreCE;
 
     Buffer = Buffer + *Offset;
@@ -1305,7 +1302,6 @@ QuicAckFrequencyFrameDecode(
         !QuicUint8tDecode(BufferLength, Buffer, Offset, &Extras.Value)) {
         return FALSE;
     }
-    Frame->IgnoreOrder = Extras.IgnoreOrder;
     Frame->IgnoreCE = Extras.IgnoreCE;
     return TRUE;
 }
@@ -1966,7 +1962,7 @@ QuicFrameLog(
 
         QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu ReorderThreshold:%llu IgnoreCE:%hhu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
@@ -1974,7 +1970,6 @@ QuicFrameLog(
             Frame.PacketTolerance,
             Frame.UpdateMaxAckDelay,
             Frame.ReorderingThreshold,
-            Frame.IgnoreOrder,
             Frame.IgnoreCE);
         break;
     }

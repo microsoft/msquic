@@ -5233,7 +5233,7 @@ QuicConnRecvFrames(
             }
 
             Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
-            Connection->State.IgnoreReordering = Frame.IgnoreOrder;
+            Connection->State.IgnoreReordering = Frame.ReorderingThreshold == 0;
             if (Frame.UpdateMaxAckDelay == 0) {
                 Connection->Settings.MaxAckDelayMs = 0;
             } else if (Frame.UpdateMaxAckDelay < 1000) {
