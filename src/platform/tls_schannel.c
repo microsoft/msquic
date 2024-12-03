@@ -1113,9 +1113,6 @@ CxPlatTlsSecConfigCreate(
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
     }
-    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA) {
-        Credentials->dwFlags |= CERT_CHAIN_DISABLE_AIA;
-    }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_CLIENT;
