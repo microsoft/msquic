@@ -754,6 +754,9 @@ CxPlatTlsSetClientCertPolicy(
     if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         ClientCertPolicy.dwCertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
     }
+    if (SecConfig->Flags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA) {
+        ClientCertPolicy.dwCertFlags |= CERT_CHAIN_DISABLE_AIA;
+    }
 
     SecStatus =
         SetCredentialsAttributesW(
@@ -1109,6 +1112,9 @@ CxPlatTlsSecConfigCreate(
     }
     if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         Credentials->dwFlags |= SCH_CRED_REVOCATION_CHECK_CACHE_ONLY;
+    }
+    if (CredConfig->Flags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA) {
+        Credentials->dwFlags |= CERT_CHAIN_DISABLE_AIA;
     }
     if (IsClient) {
         Credentials->dwFlags |= SCH_CRED_NO_DEFAULT_CREDS;
