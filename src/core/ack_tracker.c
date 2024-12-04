@@ -99,11 +99,15 @@ QuicAckTrackerAddPacketNumber(
 BOOLEAN
 QuicAckTrackerDidHitReorderingThreshold(
     _In_ QUIC_ACK_TRACKER* Tracker,
-    _In_ uint8_t ReorderingThreshold
+    _In_ uint8_t ReorderingThreshold,
+    _In_ uint64_t PacketNumber
     )
 {
-    CXPLAT_DBG_ASSERT(ReorderingThreshold > 0);
-    CXPLAT_DBG_ASSERT(QuicRangeSize(&Tracker->PacketNumbersToAck) > 1);
+    if (ReorderingThreshold == 0 || 
+        QuicRangeSize(&Tracker->PacketNumbersToAck) <= 1 ||
+        PacketNumber != QuicRangeGetMax(&Tracker->PacketNumbersToAck)) { // There are more than two ranges, i.e. a gap somewhere.
+        return FALSE;
+    }
 
     uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     uint64_t SmallestUnreportedMissingPacketNumber = 
@@ -212,10 +216,7 @@ QuicAckTrackerAckPacket(
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
         Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
-        (Connection->ReorderingThreshold > 0 &&
-         (NewLargestPacketNumber &&
-            QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
-            QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold)))) {
+        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold, PacketNumber)) {
         //
         // Send the ACK immediately.
         //
