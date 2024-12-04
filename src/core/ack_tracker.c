@@ -199,7 +199,7 @@ QuicAckTrackerAckPacket(
     //   4. We had received an ACK eliciting packet that is out of order and the
     //      gap between the smallest Unreported Missing packet and the Largest
     //      Unacked is greater than or equal to the Reordering Threshold value. This logic is
-    //      disabled if 'IgnoreReordering' is TRUE or the Reordering Threshold is 0.
+    //      disabled if the Reordering Threshold is 0.
     //   5. The delayed ACK timer fires after the configured time.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
@@ -209,8 +209,7 @@ QuicAckTrackerAckPacket(
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
         Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
-        (!Connection->State.IgnoreReordering &&
-         Connection->ReorderingThreshold > 0 &&
+        (Connection->ReorderingThreshold > 0 &&
          (NewLargestPacketNumber &&
             QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
             QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold)))) {

@@ -147,12 +147,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ResumptionEnabled : 1;
 
         //
-        // When true,acknowledgment that reordering shouldn't elict an
-        // immediate acknowledgement.
-        //
-        BOOLEAN IgnoreReordering : 1;
-
-        //
         // When true, this indicates that the connection is currently executing
         // an API call inline (from a reentrant call on a callback).
         //
@@ -452,7 +446,7 @@ typedef struct QUIC_CONNECTION {
     // be able to send to the peer.
     //
     uint8_t PeerPacketTolerance;
-    
+
     //
     // The maximum number of packets that can be out of order before an immediate
     // acknowledgment (ACK) is triggered. If no specific instructions (ACK_FREQUENCY
