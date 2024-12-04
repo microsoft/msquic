@@ -99,6 +99,7 @@ namespace Microsoft.Quic
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
+        DISABLE_AIA = 0x00200000,
     }
 
     [System.Flags]
