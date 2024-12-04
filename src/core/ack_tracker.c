@@ -96,6 +96,20 @@ QuicAckTrackerAddPacketNumber(
         !RangeUpdated;
 }
 
+BOOLEAN
+QuicAckTrackerDidHitReorderingThreshold(
+    _In_ QUIC_ACK_TRACKER* Tracker,
+    _In_ uint8_t ReorderingThreshold
+    )
+{
+    uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
+    uint64_t SmallestUnreportedMissingPacketNumber = 
+        QuicRangeGetHigh(
+            QuicRangeGet(&Tracker->PacketNumbersReceived, 0)) + 1;
+    
+    return LargestUnackedPacketNumber - SmallestUnreportedMissingPacketNumber >= ReorderingThreshold;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerAckPacket(
@@ -198,10 +212,8 @@ QuicAckTrackerAckPacket(
         (!Connection->State.IgnoreReordering &&
          Connection->ReorderingThreshold > 0 &&
          (NewLargestPacketNumber &&
-          QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
-            QuicRangeGet(
-            &Tracker->PacketNumbersToAck,
-          QuicRangeSize(&Tracker->PacketNumbersToAck) - 1)->Count == Connection->ReorderingThreshold))) {
+            QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
+            QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold)))) {
         //
         // Send the ACK immediately.
         //
