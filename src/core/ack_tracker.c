@@ -112,7 +112,7 @@ QuicAckTrackerDidHitReorderingThreshold(
     uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     uint64_t SmallestUnreportedMissingPacketNumber = 
         QuicRangeGetHigh(
-            QuicRangeGet(&Tracker->PacketNumbersReceived, 0)) + 1;
+            QuicRangeGet(&Tracker->PacketNumbersToAck, 0)) + 1;
     
     return LargestUnackedPacketNumber - SmallestUnreportedMissingPacketNumber >= ReorderingThreshold;
 }
