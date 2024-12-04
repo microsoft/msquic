@@ -102,6 +102,9 @@ QuicAckTrackerDidHitReorderingThreshold(
     _In_ uint8_t ReorderingThreshold
     )
 {
+    CXPLAT_DBG_ASSERT(ReorderingThreshold > 0);
+    CXPLAT_DBG_ASSERT(QuicRangeSize(&Tracker->PacketNumbersToAck) > 1);
+
     uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     uint64_t SmallestUnreportedMissingPacketNumber = 
         QuicRangeGetHigh(
