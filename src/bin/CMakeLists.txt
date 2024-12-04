@@ -250,8 +250,6 @@ elseif (CX_PLATFORM STREQUAL "darwin")
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
-include(GNUInstallDirs)
-
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
 if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
