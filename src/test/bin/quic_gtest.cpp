@@ -89,7 +89,11 @@ public:
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
 
-            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseDuoNic) {
+                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            }
+#endif
             QUIC_TEST_CONFIGURATION_PARAMS Params {
                 UseDuoNic,
                 Config,
