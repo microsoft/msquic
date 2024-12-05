@@ -96,6 +96,27 @@ QuicAckTrackerAddPacketNumber(
         !RangeUpdated;
 }
 
+BOOLEAN
+QuicAckTrackerDidHitReorderingThreshold(
+    _In_ QUIC_ACK_TRACKER* Tracker,
+    _In_ uint8_t ReorderingThreshold,
+    _In_ uint64_t PacketNumber
+    )
+{
+    if (ReorderingThreshold == 0 || 
+        QuicRangeSize(&Tracker->PacketNumbersToAck) <= 1 ||
+        PacketNumber != QuicRangeGetMax(&Tracker->PacketNumbersToAck)) { // There are more than two ranges, i.e. a gap somewhere.
+        return FALSE;
+    }
+
+    uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
+    uint64_t SmallestUnreportedMissingPacketNumber = 
+        QuicRangeGetHigh(
+            QuicRangeGet(&Tracker->PacketNumbersToAck, 0)) + 1;
+    
+    return LargestUnackedPacketNumber - SmallestUnreportedMissingPacketNumber >= ReorderingThreshold;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicAckTrackerAckPacket(
@@ -182,10 +203,10 @@ QuicAckTrackerAckPacket(
     //   1. The packet included an IMMEDIATE_ACK frame.
     //   2. ACK delay is disabled (MaxAckDelayMs == 0).
     //   3. We have received 'PacketTolerance' ACK eliciting packets.
-    //   4. We received an ACK eliciting packet that doesn't directly follow the
-    //      previously received packet number. So we assume there might have
-    //      been loss and should indicate this info to the peer. This logic is
-    //      disabled if 'IgnoreReordering' is TRUE.
+    //   4. We had received an ACK eliciting packet that is out of order and the
+    //      gap between the smallest Unreported Missing packet and the Largest
+    //      Unacked is greater than or equal to the Reordering Threshold value. This logic is
+    //      disabled if the Reordering Threshold is 0.
     //   5. The delayed ACK timer fires after the configured time.
     //
     // If we don't queue an immediate ACK and this is the first ACK eliciting
@@ -195,12 +216,7 @@ QuicAckTrackerAckPacket(
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
         Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
-        (!Connection->State.IgnoreReordering &&
-         (NewLargestPacketNumber &&
-          QuicRangeSize(&Tracker->PacketNumbersToAck) > 1 && // There are more than two ranges, i.e. a gap somewhere.
-            QuicRangeGet(
-            &Tracker->PacketNumbersToAck,
-          QuicRangeSize(&Tracker->PacketNumbersToAck) - 1)->Count == 1))) { // The gap is right before the last packet number.
+        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold, PacketNumber)) {
         //
         // Send the ACK immediately.
         //
