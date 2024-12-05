@@ -89,6 +89,7 @@ option(QUIC_STATIC_LINK_CRT "Statically links the C runtime" ON)
 option(QUIC_STATIC_LINK_PARTIAL_CRT "Statically links the compiler-specific portion of the C runtime" ON)
 option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
+option(QUIC_EXTERNAL_TOOLCHAIN "Enable if system libs and include paths are configured by CMake toolchain" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
 option(QUIC_LINUX_XDP_ENABLED "Enables XDP support" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
@@ -459,7 +460,9 @@ if(WIN32)
     set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
-    target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
+    target_include_directories(MsQuicEtw_Header INTERFACE
+        $<BUILD_INTERFACE:${QUIC_BUILD_DIR}/inc>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
 
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)
@@ -477,7 +480,11 @@ if(WIN32)
     endif()
 
     if (QUIC_GAMECORE_BUILD)
-        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES QUIC_GAMECORE_BUILD QUIC_RESTRICTED_BUILD)
+        list(APPEND QUIC_COMMON_DEFINES QUIC_GAMECORE_BUILD QUIC_RESTRICTED_BUILD)
+    endif()
+
+    if (QUIC_GAMECORE_BUILD AND NOT QUIC_EXTERNAL_TOOLCHAIN)
+        list(APPEND QUIC_COMMON_DEFINES WINAPI_FAMILY=WINAPI_FAMILY_GAMES)
         set(CMAKE_CXX_STANDARD_LIBRARIES "")
         set(CMAKE_CXX_STANDARD_LIBRARIES_INIT "")
         set(CMAKE_C_STANDARD_LIBRARIES "")
