@@ -4,7 +4,9 @@
     Licensed under the MIT License.
 
 --*/
-
+#if defined(__cplusplus)
+extern "C" {
+#endif
 typedef struct QUIC_ACK_TRACKER {
 
     //
@@ -153,3 +155,7 @@ QuicAckTrackerHasPacketsToAck(
         !Tracker->AlreadyWrittenAckFrame &&
         QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;
 }
+
+#if defined(__cplusplus)
+}
+#endif

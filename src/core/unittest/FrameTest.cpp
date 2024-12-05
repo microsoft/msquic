@@ -243,6 +243,43 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
 }
 
+TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
+{
+    QUIC_ACK_TRACKER Tracker;
+    uint8_t ReorderingThreshold;
+
+    // Initialize the Tracker and other variables
+
+    QuicAckTrackerInitialize(&Tracker);
+
+    // Test case 1: ReorderingThreshold is 0
+    ReorderingThreshold = 0;
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 100);
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 100));
+
+    // Test case 2: The number of ranges is less than 2.
+    ReorderingThreshold = 3;
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 101);
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 101));
+
+    // Test case 3: PacketNumber is not the largest unacked packet number
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 104);
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 105);
+
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 103));
+
+    // Test case 4: Gap between smallest unreported missing packet and largest unacked packet is less than ReorderingThreshold
+    ReorderingThreshold = 5;
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 105));
+
+    // Test case 5: Gap between smallest unreported missing packet and largest unacked packet is greater than or equal to ReorderingThreshold
+    ReorderingThreshold = 3;
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 105));
+    
+    // Clean up
+    QuicAckTrackerUninitialize(&Tracker);
+}
+
 struct ResetStreamFrameParams {
     uint8_t Buffer[4];
     uint16_t BufferLength = 4;
