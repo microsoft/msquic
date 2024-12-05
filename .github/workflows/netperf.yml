@@ -10,6 +10,7 @@ on:
     - .gitmodules
     - scripts/secnetperf.ps1
     - scripts/secnetperf-helpers.psm1
+    - scripts/quic_callback.ps1
     - scripts/prepare-machine.ps1
     - scripts/xdp.json
     - src/bin/**
@@ -27,6 +28,7 @@ on:
     - .gitmodules
     - scripts/secnetperf.ps1
     - scripts/secnetperf-helpers.psm1
+    - scripts/quic_callback.ps1
     - scripts/prepare-machine.ps1
     - scripts/xdp.json
     - src/bin/**
@@ -51,7 +53,7 @@ jobs:
     runs-on: windows-latest
     steps:
     - name: Run NetPerf Workflow
-      timeout-minutes: 90
+      timeout-minutes: 120
       shell: pwsh
       run: |
         $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"

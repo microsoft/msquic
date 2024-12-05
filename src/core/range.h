@@ -21,7 +21,7 @@ typedef struct QUIC_SUBRANGE {
 
 } QUIC_SUBRANGE;
 
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(sizeof(QUIC_SUBRANGE)), "Must be power of two");
 
 typedef struct QUIC_RANGE_SEARCH_KEY {
 

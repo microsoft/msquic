@@ -109,6 +109,52 @@ PerfClient::Init(
     CountMult[0] = CxPlatProcCount();
 
     //
+    // Scenario profile sets new defauls for values below, that may then be
+    // further overridden by command line arguments.
+    //
+    const char* ScenarioStr = GetValue(argc, argv, "scenario");
+    if (ScenarioStr != nullptr) {
+        if (IsValue(ScenarioStr, "upload")) {
+            Upload = S_TO_US(12); // 12 seconds
+            Timed = TRUE;
+            PrintThroughput = TRUE;
+        } else if (IsValue(ScenarioStr, "download")) {
+            Download = S_TO_US(12); // 12 seconds
+            Timed = TRUE;
+            PrintThroughput = TRUE;
+        } else if (IsValue(ScenarioStr, "hps")) {
+            ConnectionCount = 16 * CxPlatProcCount();
+            RunTime = S_TO_US(12); // 12 seconds
+            RepeatConnections = TRUE;
+            PrintIoRate = TRUE;
+        } else if (IsValue(ScenarioStr, "rps-multi")) {
+            Upload = 512;
+            Download = 4000;
+            ConnectionCount = 16 * CxPlatProcCount();
+            StreamCount = 100;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else if (IsValue(ScenarioStr, "rps")) {
+            Upload = 512;
+            Download = 4000;
+            StreamCount = 100;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else if (IsValue(ScenarioStr, "latency")) {
+            Upload = 512;
+            Download = 4000;
+            RunTime = S_TO_US(20); // 20 seconds
+            RepeatStreams = TRUE;
+            PrintLatency = TRUE;
+        } else {
+            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
+    //
     // Remote target/server options
     //
 
@@ -146,7 +192,6 @@ PerfClient::Init(
     WorkerCount = CxPlatProcCount();
     TryGetVariableUnitValue(argc, argv, "threads", &WorkerCount);
     TryGetVariableUnitValue(argc, argv, "workers", &WorkerCount);
-    TryGetValue(argc, argv, "affinitize", &AffinitizeWorkers);
 
 #ifdef QUIC_COMPARTMENT_ID
     TryGetValue(argc, argv, "comp", &CompartmentId);
@@ -326,7 +371,7 @@ PerfClient::Start(
     // Configure and start all the workers.
     //
     uint16_t ThreadFlags =
-        AffinitizeWorkers ?
+        PerfDefaultAffinitizeThreads ?
             (uint16_t)CXPLAT_THREAD_FLAG_SET_AFFINITIZE :
             (uint16_t)CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     if (PerfDefaultHighPriority) {

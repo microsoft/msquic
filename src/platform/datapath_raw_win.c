@@ -113,7 +113,7 @@ RawSocketCreateUdp(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    CxPlatRundownInitialize(&Socket->Rundown);
+    CxPlatRundownInitialize(&Socket->RawRundown);
     Socket->RawDatapath = Raw;
     Socket->CibirIdLength = Config->CibirIdLength;
     Socket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
@@ -167,7 +167,7 @@ Error:
 
     if (QUIC_FAILED(Status)) {
         if (Socket != NULL) {
-            CxPlatRundownUninitialize(&Socket->Rundown);
+            CxPlatRundownUninitialize(&Socket->RawRundown);
             CxPlatZeroMemory(Socket, sizeof(CXPLAT_SOCKET_RAW) - sizeof(CXPLAT_SOCKET));
             Socket = NULL;
         }

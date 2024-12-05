@@ -116,10 +116,10 @@ CxPlatDataPathIsPaddingPreferred(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
             DataPathIsPaddingPreferred(Datapath) : RawDataPathIsPaddingPreferred(Datapath);
 }
 
@@ -270,9 +270,9 @@ CxPlatRecvDataReturn(
         return;
     }
     CXPLAT_DBG_ASSERT(
-        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ||
+        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ||
         RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_RAW);
-    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ?
+    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ?
         RecvDataReturn(RecvDataChain) : RawRecvDataReturn(RecvDataChain);
 }
 
@@ -303,9 +303,9 @@ CxPlatSendDataFree(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
     SendDataFree(SendData) : RawSendDataFree(SendData);
 }
 
@@ -318,10 +318,10 @@ CxPlatSendDataAllocBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
         SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);
 }
 
@@ -333,9 +333,9 @@ CxPlatSendDataFreeBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
     SendDataFreeBuffer(SendData, Buffer) : RawSendDataFreeBuffer(SendData, Buffer);
 }
 
@@ -346,9 +346,9 @@ CxPlatSendDataIsFull(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
         SendDataIsFull(SendData) : RawSendDataIsFull(SendData);
 }
 
@@ -360,7 +360,7 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER) {
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL) {
         SocketSend(Socket, Route, SendData);
      } else {
         CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
@@ -378,7 +378,7 @@ QuicCopyRouteInfo(
     if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_RAW) {
         CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
         CxPlatUpdateRoute(DstRoute, SrcRoute);
-    } else if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
+    } else if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL) {
         *DstRoute = *SrcRoute;
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
@@ -393,7 +393,7 @@ CxPlatResolveRouteComplete(
     _In_ uint8_t PathId
     )
 {
-    CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_USER);
+    CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_NORMAL);
     if (Route->State != RouteResolved) {
         RawResolveRouteComplete(Context, Route, PhysicalAddress, PathId);
     }

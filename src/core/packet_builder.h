@@ -158,7 +158,7 @@ typedef struct QUIC_PACKET_BUILDER {
 
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_PACKET_BUILDER) < 1024,
-    L"Packet builder should be small enough to fit on the stack.");
+    "Packet builder should be small enough to fit on the stack.");
 
 //
 // Initializes the packet builder for general use.
