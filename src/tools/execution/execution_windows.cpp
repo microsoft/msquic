@@ -39,10 +39,14 @@ main(
     if (!_MsQuic.IsValid()) { return 1; }
     MsQuic = &_MsQuic;
 
-    QUIC_STATUS Status;
     IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
-    QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
+    if (IOCP == nullptr) {
+        return 1;
+    }
+    
+    QUIC_STATUS Status;
     QUIC_EXECUTION_CONTEXT* ExecContext = nullptr;
+    QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
     if (QUIC_FAILED(Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext))) {
         return 1;
     }
@@ -81,8 +85,8 @@ main(
         while (!AllDone) {
             uint32_t WaitTime = MsQuic->ExecutionPoll(ExecContext);
 
-            OVERLAPPED_ENTRY Overlapped[8];
             ULONG OverlappedCount = 0;
+            OVERLAPPED_ENTRY Overlapped[8];
             if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
                 for (ULONG i = 0; i < OverlappedCount; ++i) {
                     QUIC_CQE* Cqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_CQE, Overlapped);
