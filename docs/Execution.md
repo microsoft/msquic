@@ -124,7 +124,7 @@ To create an execution context, the app much first create an event queue object,
 
 On Windows, the following types are defined:
 
-```c
+```c++
 typedef HANDLE QUIC_EVENTQ;
 
 typedef struct QUIC_CQE {
@@ -137,7 +137,7 @@ You will also notice the definiton for `QUIC_CQE` (CQE stands for completion que
 
 Once the app has the event queue, it may create the execution context with the `ExecutionCreate` function:
 
-```c
+```c++
 HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
 QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
 
@@ -150,7 +150,7 @@ An application may expand this code to create multiple execution contexts, depen
 
 To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
 
-```c
+```c++
 bool AllDone = false;
 while (!AllDone) {
     uint32_t WaitTime = MsQuic->ExecutionPoll(ExecContext);
