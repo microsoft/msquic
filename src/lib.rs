@@ -22,7 +22,11 @@ extern crate bitfield;
 //
 
 /// Opaque handle to a MsQuic object.
-pub type Handle = *const libc::c_void;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct Handle(*const libc::c_void);
+unsafe impl Sync for Handle {}
+unsafe impl Send for Handle {}
 
 /// Unsigned 62-bit integer.
 #[allow(non_camel_case_types)]
@@ -1147,7 +1151,7 @@ struct ApiTable {
         settings: *const Settings,
         settings_size: u32,
         context: *const c_void,
-        configuration: &*const c_void,
+        configuration: &Handle,
     ) -> u32,
     configuration_close: extern "C" fn(configuration: Handle),
     configuration_load_credential:
@@ -1425,7 +1429,7 @@ impl Api {
         let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
         unsafe {
             ((*self.table).get_param)(
-                std::ptr::null(),
+                Handle(std::ptr::null()),
                 PARAM_GLOBAL_PERF_COUNTERS,
                 (&perf_length) as *const u32 as *mut u32,
                 perf.counters.as_mut_ptr() as *const c_void,
@@ -1452,7 +1456,7 @@ impl Drop for Api {
 
 impl Registration {
     pub fn new(api: &Api, config: *const RegistrationConfig) -> Result<Registration, u32> {
-        let new_registration: Handle = ptr::null();
+        let new_registration = Handle(std::ptr::null());
         let status = unsafe { ((*api.table).registration_open)(config, &new_registration) };
         if Status::failed(status) {
             return Err(status);
@@ -1481,7 +1485,7 @@ impl Configuration {
         settings: *const Settings,
     ) -> Result<Configuration, u32> {
         let context: *const c_void = ptr::null();
-        let new_configuration: Handle = ptr::null();
+        let new_configuration = Handle(std::ptr::null());
         let mut settings_size: u32 = 0;
         if settings != ptr::null() {
             settings_size = ::std::mem::size_of::<Settings>() as u32;
@@ -1526,7 +1530,7 @@ impl Connection {
     pub fn new(registration: &Registration) -> Connection {
         Connection {
             table: registration.table,
-            handle: ptr::null(),
+            handle: Handle(std::ptr::null()),
         }
     }
 
@@ -1719,7 +1723,7 @@ impl Listener {
         handler: ListenerEventHandler,
         context: *const c_void,
     ) -> Result<Listener, u32> {
-        let new_listener: Handle = ptr::null();
+        let new_listener = Handle(std::ptr::null());
         let status = unsafe {
             ((*registration.table).listener_open)(
                 registration.handle,
@@ -1771,7 +1775,7 @@ impl Stream {
         let api = unsafe { &*(context as *const Api) };
         Stream {
             table: api.table,
-            handle: ptr::null(),
+            handle: Handle(std::ptr::null()),
         }
     }
 
