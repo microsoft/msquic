@@ -13,13 +13,19 @@ fn main() {
     }
 
     let target = env::var("TARGET").unwrap();
+    let out_dir = env::var("OUT_DIR").unwrap();
+    // The output directory for the native MsQuic library.
+    let quic_output_dir = Path::new(&out_dir).join("lib");
 
     // Builds the native MsQuic and installs it into $OUT_DIR.
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_TLS", "openssl")
-        .define("QUIC_OUTPUT_DIR", "../lib");
+        .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
+    if cfg!(feature = "static") {
+        config.define("QUIC_BUILD_SHARED", "off");
+    }
 
     // macos-latest's cargo automatically specify --target=${ARCH}-apple-macosx14.5
     // which conflicts with -mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}.
@@ -38,4 +44,7 @@ fn main() {
     let dst = config.build();
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
+    if cfg!(feature = "static") {
+        println!("cargo:rustc-link-lib=static=msquic");
+    }
 }
