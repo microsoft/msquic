@@ -44,5 +44,9 @@ jobs:
       run: cargo build --all
     - name: Cargo test
       run: cargo test --all
+    - name: Cargo build with static feature
+      run: cargo build --all --features static
+    - name: Cargo test with static feature
+      run: cargo test --all --features static
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty
