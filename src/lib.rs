@@ -177,7 +177,7 @@ mod status {
     pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0xBEBC374;
     pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0xBEBC401;
     pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0xBEBC402;
-    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;    
+    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;
 }
 
 #[cfg(target_os = "macos")]
@@ -207,7 +207,7 @@ mod status {
     pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 42;
     pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 86;
     pub const QUIC_STATUS_ALPN_IN_USE: u32 = 41;
-    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 47;    
+    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 47;
     pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0xBEBC300;
     pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0xBEBC32A;
     pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0xBEBC32B;
@@ -251,7 +251,7 @@ impl Status {
 /// The different possible TLS providers used by MsQuic.
 pub type TlsProvider = u32;
 pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
-pub const TLS_PROVIDER_OPENSSL : TlsProvider = 1;
+pub const TLS_PROVIDER_OPENSSL: TlsProvider = 1;
 
 /// Configures how to process a registration's workload.
 pub type ExecutionProfile = u32;
@@ -1078,7 +1078,6 @@ pub struct StreamEventSendShutdownComplete {
     pub graceful: bool,
 }
 
-
 bitfield! {
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -1092,7 +1091,7 @@ bitfield! {
 #[derive(Copy, Clone)]
 pub struct StreamEventShutdownComplete {
     connection_shutdown: bool,
-    flags: StreamEventShutdownCompleteBitfields
+    flags: StreamEventShutdownCompleteBitfields,
 }
 
 #[repr(C)]
@@ -1915,27 +1914,39 @@ extern "C" fn test_stream_callback(
 
 #[test]
 fn test_module() {
-    let api = Api::new().unwrap();
-    let registration = Registration::new(&api, ptr::null()).unwrap();
+    let res = Api::new();
+    assert!(res.is_ok(), "Failed to open API: 0x{:x}", res.err().unwrap());
+    let api = res.unwrap();
+
+    let res = Registration::new(&api, ptr::null());
+    assert!(res.is_ok(), "Failed to open registration: 0x{:x}", res.err().unwrap());
+    let registration = res.unwrap();
 
     let alpn = [Buffer::from("h3")];
-    let configuration = Configuration::new(
+    let res = Configuration::new(
         &registration,
         &alpn,
         Settings::new()
             .set_peer_bidi_stream_count(100)
             .set_peer_unidi_stream_count(3),
-    ).unwrap();
+    );
+    assert!(res.is_ok(), "Failed to open configuration: 0x{:x}", res.err().unwrap());
+    let configuration = res.unwrap();
+
     let cred_config = CredentialConfig::new_client();
-    configuration.load_credential(&cred_config);
+    let res = configuration.load_credential(&cred_config);
+    assert!(res.is_ok(), "Failed to load credential: 0x{:x}", res.err().unwrap());
 
     let connection = Connection::new(&registration);
-    connection.open(
+    let res = connection.open(
         &registration,
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    connection.start(&configuration, "www.cloudflare.com", 443);
+    assert!(res.is_ok(), "Failed to open connection: 0x{:x}", res.err().unwrap());
+
+    let res = connection.start(&configuration, "www.cloudflare.com", 443);
+    assert!(res.is_ok(), "Failed to start connection: 0x{:x}", res.err().unwrap());
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);
