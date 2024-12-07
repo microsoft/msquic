@@ -468,6 +468,8 @@ if(WIN32)
     add_custom_target(MsQuicEtw_HeaderBuild
         DEPENDS ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h)
 
+    install(FILES ${QUIC_BUILD_DIR}/inc/MsQuicEtw.h DESTINATION include)
+
     set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
