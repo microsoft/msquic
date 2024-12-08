@@ -1,0 +1,15 @@
+[
+  {
+  "Namespace": "Microsoft.MsQuic",
+  "Name": "QUIC_HANDLE",
+  "ValueType": "typedef struct QUIC_HANDLE",
+  "NativeTypedef": true
+  },
+  {
+    "Namespace": "Microsoft.MsQuic",
+    "Name": "HQUIC",
+    "ValueType": "typedef struct QUIC_HANDLE *",
+    "InvalidHandleValues": [ 0 ],
+    "NativeTypedef": true
+  }
+]

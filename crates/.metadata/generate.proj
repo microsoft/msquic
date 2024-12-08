@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project Sdk="Microsoft.Windows.WinmdGenerator/0.56.13-preview">
+    <PropertyGroup Label="Globals">
+        <OutputWinmd>../.windows/winmd/Microsoft.MsQuic.winmd</OutputWinmd>
+        <WinmdVersion>255.255.255.255</WinmdVersion>
+        <ExcludeFromCrossarch>true</ExcludeFromCrossarch>
+        <ScanArch>x64</ScanArch>
+    </PropertyGroup>
+    <ItemGroup>
+        <ScraperRsp Include="scraper.settings.rsp"/>
+        <ConstantsScraperRsp Include="ConstantsScraper.settings.rsp"/>
+    </ItemGroup>
+    <ItemGroup>
+        <ImportLibs Include="..\..\artifacts\bin\windows\x64_Debug_schannel\msquic.lib" />
+        <Partition Include="MsQuic.c">
+            <TraverseFiles>..\..\src\inc\msquic.h;</TraverseFiles>
+            <Namespace>Microsoft.MsQuic</Namespace>
+        </Partition>
+        <Partition Include="MsQuic.Win32.c">
+            <TraverseFiles>MsQuic.Win32.h</TraverseFiles>
+            <Namespace>Microsoft.MsQuic.Win32</Namespace>
+        </Partition>
+        <Partition Include="./linux/MsQuic.Linux.c">
+            <TraverseFiles>./linux/MsQuic.Linux.h</TraverseFiles>
+            <Namespace>Microsoft.MsQuic.Linux</Namespace>
+        </Partition>
+        <Partition Include="./macos/MsQuic.MacOs.c">
+            <TraverseFiles>./macos/MsQuic.MacOs.h</TraverseFiles>
+            <Namespace>Microsoft.MsQuic.MacOs</Namespace>
+        </Partition>
+    </ItemGroup>
+    <Target Name="CopyWin32Metadata" AfterTargets="Build">
+        <Copy
+            SourceFiles="$(PkgMicrosoft_Windows_SDK_Win32Metadata)\Windows.Win32.winmd"
+            DestinationFiles="..\.windows\winmd\Windows.Win32.winmd" />
+    </Target>
+</Project>

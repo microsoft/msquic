@@ -44,6 +44,13 @@ include = [
     "/THIRD-PARTY-NOTICES",
 ]
 
+[workspace]
+members = [
+    ".",
+    "crates/tools/api",
+    "crates/libs/msquic-rs"
+]
+
 [build-dependencies]
 cmake = "0.1"
 

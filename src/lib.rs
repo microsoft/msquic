@@ -143,8 +143,10 @@ mod status {
 #[cfg(target_os = "linux")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE;
+    /// -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF;
+    /// -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
@@ -183,8 +185,10 @@ mod status {
 #[cfg(target_os = "macos")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE;
+    /// -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF;
+    /// -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
@@ -1216,15 +1220,10 @@ struct ApiTable {
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> u32,
-    resumption_ticket_validation_complete: extern "C" fn(
-        connection: Handle,
-        result: BOOLEAN,
-    ) -> u32,
-    certificate_validation_complete: extern "C" fn(
-        connection: Handle,
-        result: BOOLEAN,
-        tls_alert: TlsAlertCode
-    ) -> u32,
+    resumption_ticket_validation_complete:
+        extern "C" fn(connection: Handle, result: BOOLEAN) -> u32,
+    certificate_validation_complete:
+        extern "C" fn(connection: Handle, result: BOOLEAN, tls_alert: TlsAlertCode) -> u32,
 }
 
 #[link(name = "msquic")]
@@ -1552,7 +1551,12 @@ impl Connection {
         Ok(())
     }
 
-    pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) -> Result<(), u32> {
+    pub fn start(
+        &self,
+        configuration: &Configuration,
+        server_name: &str,
+        server_port: u16,
+    ) -> Result<(), u32> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
             ((*self.table).connection_start)(
@@ -1672,16 +1676,9 @@ impl Connection {
         Ok(())
     }
 
-    pub fn resumption_ticket_validation_complete(
-        &self,
-        result: BOOLEAN,
-    ) -> Result<(), u32> {
-        let status = unsafe {
-            ((*self.table).resumption_ticket_validation_complete)(
-                self.handle,
-                result,
-            )
-        };
+    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), u32> {
+        let status =
+            unsafe { ((*self.table).resumption_ticket_validation_complete)(self.handle, result) };
         if Status::failed(status) {
             return Err(status);
         }
@@ -1694,11 +1691,7 @@ impl Connection {
         tls_alert: TlsAlertCode,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).certificate_validation_complete)(
-                self.handle,
-                result,
-                tls_alert,
-            )
+            ((*self.table).certificate_validation_complete)(self.handle, result, tls_alert)
         };
         if Status::failed(status) {
             return Err(status);
@@ -1915,11 +1908,19 @@ extern "C" fn test_stream_callback(
 #[test]
 fn test_module() {
     let res = Api::new();
-    assert!(res.is_ok(), "Failed to open API: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open API: 0x{:x}",
+        res.err().unwrap()
+    );
     let api = res.unwrap();
 
     let res = Registration::new(&api, ptr::null());
-    assert!(res.is_ok(), "Failed to open registration: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open registration: 0x{:x}",
+        res.err().unwrap()
+    );
     let registration = res.unwrap();
 
     let alpn = [Buffer::from("h3")];
@@ -1930,12 +1931,20 @@ fn test_module() {
             .set_peer_bidi_stream_count(100)
             .set_peer_unidi_stream_count(3),
     );
-    assert!(res.is_ok(), "Failed to open configuration: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open configuration: 0x{:x}",
+        res.err().unwrap()
+    );
     let configuration = res.unwrap();
 
     let cred_config = CredentialConfig::new_client();
     let res = configuration.load_credential(&cred_config);
-    assert!(res.is_ok(), "Failed to load credential: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to load credential: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let connection = Connection::new(&registration);
     let res = connection.open(
@@ -1943,10 +1952,18 @@ fn test_module() {
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    assert!(res.is_ok(), "Failed to open connection: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open connection: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let res = connection.start(&configuration, "www.cloudflare.com", 443);
-    assert!(res.is_ok(), "Failed to start connection: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to start connection: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);
