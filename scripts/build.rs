@@ -45,6 +45,10 @@ fn main() {
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     if cfg!(feature = "static") {
+        if cfg!(target_os = "macos") {
+            println!("cargo:rustc-link-lib=framework=CoreFoundation");
+            println!("cargo:rustc-link-lib=framework=Security");
+        }
         println!("cargo:rustc-link-lib=static=msquic");
     }
 }
