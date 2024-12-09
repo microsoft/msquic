@@ -274,7 +274,7 @@ configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION share/msquic)
+    install(EXPORT msquic NAMESPACE msquic:: DESTINATION share/msquic)
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)
