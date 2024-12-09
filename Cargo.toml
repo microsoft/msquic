@@ -44,6 +44,10 @@ include = [
     "/THIRD-PARTY-NOTICES",
 ]
 
+[features]
+default = []
+static = []
+
 [build-dependencies]
 cmake = "0.1"
 
