@@ -373,4 +373,15 @@ QuicAddrToString(
 
 #endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
+//
+// Event Queue Abstraction
+//
+
+typedef HANDLE QUIC_EVENTQ;
+
+typedef struct QUIC_CQE {
+    OVERLAPPED_ENTRY Overlapped;
+    void (*Completion)(struct QUIC_CQE *Cqe);
+} QUIC_CQE;
+
 #endif // _MSQUIC_WINUSER_
