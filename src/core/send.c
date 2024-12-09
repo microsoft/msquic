@@ -644,6 +644,37 @@ QuicSendWriteFrames(
             }
         }
 
+        if (Send->SendFlags & QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS) {
+            // TODO - Support sending on more than just active path
+            CXPLAT_DBG_ASSERT(Connection->Paths[0].SendObservedAddress);
+
+            QUIC_OBSERVED_ADDRESS_EX Frame;
+            Frame.SequenceNumber = Connection->ObservedAddressSequenceNumber;
+            Frame.Address = Connection->Paths[0].Route.RemoteAddress;
+
+            if (QuicObservedAddressFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                Connection->Paths[0].SendObservedAddress = FALSE;
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_OBSERVED_ADDRESS;
+                Builder->Metadata->Frames[
+                    Builder->Metadata->FrameCount].OBSERVED_ADDRESS.Sequence =
+                        Connection->ObservedAddressSequenceNumber++;
+                if (QuicPacketBuilderAddFrame(
+                        Builder,
+                        QuicAddressGetFamily(&Connection->Paths[0].Route.RemoteAddress) == QUIC_ADDRESS_FAMILY_INET ?
+                            QUIC_FRAME_OBSERVED_ADDRESS_V4 : QUIC_FRAME_OBSERVED_ADDRESS_V6,
+                        TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_DATA_BLOCKED) {
 
             QUIC_DATA_BLOCKED_EX Frame = { Send->OrderedStreamBytesSent };
