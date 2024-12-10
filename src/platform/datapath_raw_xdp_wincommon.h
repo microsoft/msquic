@@ -400,8 +400,10 @@ CxPlatDpRawInterfaceInitialize(
 
     CxPlatZeroMemory(Interface->Queues, Interface->QueueCount * sizeof(*Interface->Queues));
 
+#ifdef _KERNEL_MODE
     FILE_IO_COMPLETION_NOTIFICATION_INFORMATION IoCompletion = {0};
     IoCompletion.Flags = FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE;
+#endif
     for (uint8_t i = 0; i < Interface->QueueCount; i++) {
         XDP_QUEUE* Queue = &Interface->Queues[i];
 #ifdef _KERNEL_MODE
@@ -550,19 +552,6 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatZeroMemory(
             &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
             sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
-        if (STATUS_SUCCESS !=
-                (Status = ZwSetInformationFile(
-                    (HANDLE)Queue->RxXsk,
-                    (IO_STATUS_BLOCK*)&Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
-                    &IoCompletion,
-                    sizeof(IoCompletion),
-                    FileIoCompletionNotificationInformation))) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "ZwSetInformationFile");
-        }
 #endif
 
         //
@@ -692,19 +681,6 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatZeroMemory(
             &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
             sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
-        if (STATUS_SUCCESS !=
-                (Status = ZwSetInformationFile(
-                    (HANDLE)Queue->TxXsk,
-                    (IO_STATUS_BLOCK*)&Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
-                    &IoCompletion,
-                    sizeof(IoCompletion),
-                    FileIoCompletionNotificationInformation))) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "ZwSetInformationFile");
-        }
 #endif
     }
 
@@ -1515,8 +1491,11 @@ CxPlatXdpExecute(
         Queue = Queue->Next;
     }
 
+#ifdef _KERNEL_MODE
+    HRESULT hr;
     FILE_IO_COMPLETION_NOTIFICATION_INFORMATION IoCompletion = {0};
     IoCompletion.Flags = FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE;
+#endif
     if (DidWork) {
         Partition->Ec.Ready = TRUE;
         State->NoWorkCount = 0;
@@ -1531,7 +1510,6 @@ CxPlatXdpExecute(
                     "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
 #ifdef _KERNEL_MODE
-                HRESULT hr;
                 if (S_OK !=
                         (hr = ZwSetInformationFile(
                             (HANDLE)Queue->RxXsk,
@@ -1572,8 +1550,7 @@ CxPlatXdpExecute(
                     "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
 #ifdef _KERNEL_MODE
-                HRESULT hr;
-                if (STATUS_SUCCESS !=
+                if (S_OK !=
                         (hr = ZwSetInformationFile(
                             (HANDLE)Queue->TxXsk,
                             (IO_STATUS_BLOCK*)&Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
