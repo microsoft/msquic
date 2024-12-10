@@ -104,6 +104,12 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
+// The value for Reordering threshold when no ACK_FREQUENCY frame is received.
+// This means that the receiver will immediately acknowledge any out-of-order packets.
+//
+#define QUIC_MIN_REORDERING_THRESHOLD           1
+
+//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
