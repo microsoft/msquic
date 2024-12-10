@@ -42,12 +42,9 @@ CxPlatDataPathProcessCqe(
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
         if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
             RawDataPathProcessCqe(Cqe);
-        }
-#ifndef _KERNEL_MODE
-        else {
+        } else {
             DataPathProcessCqe(Cqe);
         }
-#endif
         break;
     }
     case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
