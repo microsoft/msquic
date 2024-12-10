@@ -13,6 +13,7 @@ use std::convert::TryInto;
 use std::fmt;
 use std::option::Option;
 use std::ptr;
+use std::result::Result;
 #[macro_use]
 extern crate bitfield;
 
@@ -100,6 +101,127 @@ impl Addr {
     }
 }
 
+#[cfg(target_os = "windows")]
+mod status {
+    pub const QUIC_STATUS_SUCCESS: u32 = 0x0;
+    pub const QUIC_STATUS_PENDING: u32 = 0x703e5;
+    pub const QUIC_STATUS_CONTINUE: u32 = 0x704de;
+    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 0x8007000e;
+    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 0x80070057;
+    pub const QUIC_STATUS_INVALID_STATE: u32 = 0x8007139f;
+    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 0x80004002;
+    pub const QUIC_STATUS_NOT_FOUND: u32 = 0x80070490;
+    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 0x8007007a;
+    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 0x80410000;
+    pub const QUIC_STATUS_ABORTED: u32 = 0x80004004;
+    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 0x80072740;
+    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 0x80072741;
+    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 0x80410006;
+    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 0x80410005;
+    pub const QUIC_STATUS_UNREACHABLE: u32 = 0x800704d0;
+    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 0x80410003;
+    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 0x800704c9;
+    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 0x80410004;
+    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 0x80410001;
+    pub const QUIC_STATUS_TLS_ERROR: u32 = 0x80072b18;
+    pub const QUIC_STATUS_USER_CANCELED: u32 = 0x80410002;
+    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 0x80410007;
+    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 0x80410008;
+    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 0x80410009;
+    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0x80410100 | 0;
+    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0x80410100 | 42;
+    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0x80410100 | 43;
+    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0x80410100 | 44;
+    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0x80410100 | 45;
+    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0x80410100 | 46;
+    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0x80410100 | 116;
+    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0x800B0101;
+    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0x800B0109;
+    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0x8009030E;
+}
+
+#[cfg(target_os = "linux")]
+mod status {
+    pub const QUIC_STATUS_SUCCESS: u32 = 0;
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
+    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
+    pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
+    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 95;
+    pub const QUIC_STATUS_NOT_FOUND: u32 = 2;
+    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 75;
+    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 103;
+    pub const QUIC_STATUS_ABORTED: u32 = 125;
+    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 98;
+    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 97;
+    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 110;
+    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 62;
+    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 5;
+    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 111;
+    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 71;
+    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 93;
+    pub const QUIC_STATUS_UNREACHABLE: u32 = 113;
+    pub const QUIC_STATUS_TLS_ERROR: u32 = 126;
+    pub const QUIC_STATUS_USER_CANCELED: u32 = 130;
+    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 92;
+    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 86;
+    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 91;
+    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 99;
+    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0xBEBC300;
+    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0xBEBC32A;
+    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0xBEBC32B;
+    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0xBEBC32C;
+    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0xBEBC32D;
+    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0xBEBC32E;
+    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0xBEBC374;
+    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0xBEBC401;
+    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0xBEBC402;
+    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;
+}
+
+#[cfg(target_os = "macos")]
+mod status {
+    pub const QUIC_STATUS_SUCCESS: u32 = 0;
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
+    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
+    pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
+    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 102;
+    pub const QUIC_STATUS_NOT_FOUND: u32 = 2;
+    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 84;
+    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 53;
+    pub const QUIC_STATUS_ABORTED: u32 = 89;
+    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 48;
+    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 47;
+    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 60;
+    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 101;
+    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 5;
+    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 61;
+    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 100;
+    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 43;
+    pub const QUIC_STATUS_UNREACHABLE: u32 = 65;
+    pub const QUIC_STATUS_TLS_ERROR: u32 = 126;
+    pub const QUIC_STATUS_USER_CANCELED: u32 = 105;
+    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 42;
+    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 86;
+    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 41;
+    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 47;
+    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0xBEBC300;
+    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0xBEBC32A;
+    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0xBEBC32B;
+    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0xBEBC32C;
+    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0xBEBC32D;
+    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0xBEBC32E;
+    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0xBEBC374;
+    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0xBEBC401;
+    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0xBEBC402;
+    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;
+}
+
+pub use status::*;
+
 /// Helper for processing MsQuic return statuses.
 pub struct Status {}
 
@@ -129,7 +251,7 @@ impl Status {
 /// The different possible TLS providers used by MsQuic.
 pub type TlsProvider = u32;
 pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
-pub const TLS_PROVIDER_OPENSSL : TlsProvider = 1;
+pub const TLS_PROVIDER_OPENSSL: TlsProvider = 1;
 
 /// Configures how to process a registration's workload.
 pub type ExecutionProfile = u32;
@@ -956,7 +1078,6 @@ pub struct StreamEventSendShutdownComplete {
     pub graceful: bool,
 }
 
-
 bitfield! {
     #[repr(C)]
     #[derive(Clone, Copy)]
@@ -970,7 +1091,7 @@ bitfield! {
 #[derive(Copy, Clone)]
 pub struct StreamEventShutdownComplete {
     connection_shutdown: bool,
-    flags: StreamEventShutdownCompleteBitfields
+    flags: StreamEventShutdownCompleteBitfields,
 }
 
 #[repr(C)]
@@ -1272,13 +1393,13 @@ impl CredentialConfig {
 }
 
 impl Api {
-    pub fn new() -> Api {
+    pub fn new() -> Result<Api, u32> {
         let new_table: *const ApiTable = ptr::null();
         let status = unsafe { MsQuicOpenVersion(2, &new_table) };
         if Status::failed(status) {
-            panic!("MsQuicOpenVersion failure 0x{:x}", status);
+            return Err(status);
         }
-        Api { table: new_table }
+        Ok(Api { table: new_table })
     }
 
     pub fn close_listener(&self, listener: Handle) {
@@ -1330,16 +1451,16 @@ impl Drop for Api {
 }
 
 impl Registration {
-    pub fn new(api: &Api, config: *const RegistrationConfig) -> Registration {
+    pub fn new(api: &Api, config: *const RegistrationConfig) -> Result<Registration, u32> {
         let new_registration: Handle = ptr::null();
         let status = unsafe { ((*api.table).registration_open)(config, &new_registration) };
         if Status::failed(status) {
-            panic!("RegistrationOpen failure 0x{:x}", status);
+            return Err(status);
         }
-        Registration {
+        Ok(Registration {
             table: api.table,
             handle: new_registration,
-        }
+        })
     }
 
     pub fn shutdown(&self) {
@@ -1358,7 +1479,7 @@ impl Configuration {
         registration: &Registration,
         alpn: &[Buffer],
         settings: *const Settings,
-    ) -> Configuration {
+    ) -> Result<Configuration, u32> {
         let context: *const c_void = ptr::null();
         let new_configuration: Handle = ptr::null();
         let mut settings_size: u32 = 0;
@@ -1377,20 +1498,21 @@ impl Configuration {
             )
         };
         if Status::failed(status) {
-            panic!("ConfigurationOpen failure 0x{:x}", status);
+            return Err(status);
         }
-        Configuration {
+        Ok(Configuration {
             table: registration.table,
             handle: new_configuration,
-        }
+        })
     }
 
-    pub fn load_credential(&self, cred_config: &CredentialConfig) {
+    pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), u32> {
         let status =
             unsafe { ((*self.table).configuration_load_credential)(self.handle, *&cred_config) };
         if Status::failed(status) {
-            panic!("ConfigurationLoadCredential failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 }
 
@@ -1420,16 +1542,17 @@ impl Connection {
         registration: &Registration,
         handler: ConnectionEventHandler,
         context: *const c_void,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).connection_open)(registration.handle, handler, context, &self.handle)
         };
         if Status::failed(status) {
-            panic!("ConnectionOpen failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
-    pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) {
+    pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) -> Result<(), u32> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
             ((*self.table).connection_start)(
@@ -1441,8 +1564,9 @@ impl Connection {
             )
         };
         if Status::failed(status) {
-            panic!("ConnectionStart failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn close(&self) {
@@ -1499,13 +1623,14 @@ impl Connection {
         unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) }
     }
 
-    pub fn set_configuration(&self, configuration: &Configuration) {
+    pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).connection_set_configuration)(self.handle, configuration.handle)
         };
         if Status::failed(status) {
-            panic!("ConnectionSetConfiguration failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn set_callback_handler(&self, handler: ConnectionEventHandler, context: *const c_void) {
@@ -1531,7 +1656,7 @@ impl Connection {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).datagram_send)(
                 self.handle,
@@ -1542,14 +1667,15 @@ impl Connection {
             )
         };
         if Status::failed(status) {
-            panic!("DatagramSend failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn resumption_ticket_validation_complete(
         &self,
         result: BOOLEAN,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).resumption_ticket_validation_complete)(
                 self.handle,
@@ -1557,15 +1683,16 @@ impl Connection {
             )
         };
         if Status::failed(status) {
-            panic!("ticket validation completion failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn certificate_validation_complete(
         &self,
         result: BOOLEAN,
         tls_alert: TlsAlertCode,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).certificate_validation_complete)(
                 self.handle,
@@ -1574,8 +1701,9 @@ impl Connection {
             )
         };
         if Status::failed(status) {
-            panic!("ticket validation completion failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 }
 
@@ -1590,7 +1718,7 @@ impl Listener {
         registration: &Registration,
         handler: ListenerEventHandler,
         context: *const c_void,
-    ) -> Listener {
+    ) -> Result<Listener, u32> {
         let new_listener: Handle = ptr::null();
         let status = unsafe {
             ((*registration.table).listener_open)(
@@ -1601,16 +1729,16 @@ impl Listener {
             )
         };
         if Status::failed(status) {
-            panic!("ListenerOpen failed, {:x}!\n", status);
+            return Err(status);
         }
 
-        Listener {
+        Ok(Listener {
             table: registration.table,
             handle: new_listener,
-        }
+        })
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: &Addr) {
+    pub fn start(&self, alpn: &[Buffer], local_address: &Addr) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).listener_start)(
                 self.handle,
@@ -1620,8 +1748,9 @@ impl Listener {
             )
         };
         if Status::failed(status) {
-            panic!("ListenerStart failed, {:x}!\n", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn close(&self) {
@@ -1659,20 +1788,22 @@ impl Stream {
         flags: StreamOpenFlags,
         handler: StreamEventHandler,
         context: *const c_void,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).stream_open)(connection.handle, flags, handler, context, &self.handle)
         };
         if Status::failed(status) {
-            panic!("StreamOpen failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
-    pub fn start(&self, flags: StreamStartFlags) {
+    pub fn start(&self, flags: StreamStartFlags) -> Result<(), u32> {
         let status = unsafe { ((*self.table).stream_start)(self.handle, flags) };
         if Status::failed(status) {
-            panic!("StreamStart failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn close(&self) {
@@ -1687,7 +1818,7 @@ impl Stream {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) {
+    ) -> Result<(), u32> {
         let status = unsafe {
             ((*self.table).stream_send)(
                 self.handle,
@@ -1698,8 +1829,9 @@ impl Stream {
             )
         };
         if Status::failed(status) {
-            panic!("StreamSend failure 0x{:x}", status);
+            return Err(status);
         }
+        Ok(())
     }
 
     pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
@@ -1782,27 +1914,39 @@ extern "C" fn test_stream_callback(
 
 #[test]
 fn test_module() {
-    let api = Api::new();
-    let registration = Registration::new(&api, ptr::null());
+    let res = Api::new();
+    assert!(res.is_ok(), "Failed to open API: 0x{:x}", res.err().unwrap());
+    let api = res.unwrap();
+
+    let res = Registration::new(&api, ptr::null());
+    assert!(res.is_ok(), "Failed to open registration: 0x{:x}", res.err().unwrap());
+    let registration = res.unwrap();
 
     let alpn = [Buffer::from("h3")];
-    let configuration = Configuration::new(
+    let res = Configuration::new(
         &registration,
         &alpn,
         Settings::new()
             .set_peer_bidi_stream_count(100)
             .set_peer_unidi_stream_count(3),
     );
+    assert!(res.is_ok(), "Failed to open configuration: 0x{:x}", res.err().unwrap());
+    let configuration = res.unwrap();
+
     let cred_config = CredentialConfig::new_client();
-    configuration.load_credential(&cred_config);
+    let res = configuration.load_credential(&cred_config);
+    assert!(res.is_ok(), "Failed to load credential: 0x{:x}", res.err().unwrap());
 
     let connection = Connection::new(&registration);
-    connection.open(
+    let res = connection.open(
         &registration,
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    connection.start(&configuration, "www.cloudflare.com", 443);
+    assert!(res.is_ok(), "Failed to open connection: 0x{:x}", res.err().unwrap());
+
+    let res = connection.start(&configuration, "www.cloudflare.com", 443);
+    assert!(res.is_ok(), "Failed to start connection: 0x{:x}", res.err().unwrap());
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);
