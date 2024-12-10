@@ -578,10 +578,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->RxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
@@ -700,10 +701,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->TxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
