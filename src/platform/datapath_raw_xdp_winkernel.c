@@ -131,6 +131,8 @@ CxPlatDpRawInitialize(
         goto Exit;
     }
 
+    FILE_IO_COMPLETION_NOTIFICATION_INFORMATION IoCompletion = {0};
+    IoCompletion.Flags = FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE;
     Xdp->Running = TRUE;
     CxPlatRefInitialize(&Xdp->RefCount);
     for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
@@ -151,11 +153,6 @@ CxPlatDpRawInitialize(
         uint32_t QueueCount = 0;
         XDP_QUEUE* Queue = Partition->Queues;
         while (Queue) {
-            // TODO: implement
-            // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->RxXsk)) {
-            // }
-            // if (!CxPlatEventQAssociateHandle(Partition->EventQ, Queue->TxXsk)) {
-            // }
             QuicTraceLogVerbose(
                 XdpQueueStart,
                 "[ xdp][%p] XDP queue start on partition %p",
