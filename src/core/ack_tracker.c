@@ -123,11 +123,9 @@ QuicAckTrackerDidHitReorderingThreshold(
     if (result >= 0 && result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
         SmallestUnreportedMissingPacketNumber = 
             QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, result)) + 1;
-    }
-    else if (result < 0) {
+    } else if (result < 0) {
         SmallestUnreportedMissingPacketNumber = LargestReported;
-    }
-    else {
+    } else {
         return FALSE;
     }
 
