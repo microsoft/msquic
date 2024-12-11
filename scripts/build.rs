@@ -45,7 +45,15 @@ fn main() {
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     if cfg!(feature = "static") {
-        if cfg!(target_os = "macos") {
+        if cfg!(target_os = "linux") {
+            let numa_lib_path = match target.as_str() {
+                "x86_64-unknown-linux-gnu" => "/usr/lib/x86_64-linux-gnu",
+                "aarch64-unknown-linux-gnu" => "/usr/lib/aarch64-linux-gnu",
+                _ => panic!("Unsupported target: {}", target),
+            };
+            println!("cargo:rustc-link-search=native={}", numa_lib_path);
+            println!("cargo:rustc-link-lib=static=numa");
+        } else if cfg!(target_os = "macos") {
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
             println!("cargo:rustc-link-lib=framework=Security");
         }
