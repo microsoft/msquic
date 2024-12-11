@@ -96,8 +96,7 @@ QuicAckTrackerAddPacketNumber(
 BOOLEAN
 QuicAckTrackerDidHitReorderingThreshold(
     _In_ QUIC_ACK_TRACKER* Tracker,
-    _In_ uint8_t ReorderingThreshold,
-    _In_ uint64_t PacketNumber
+    _In_ uint8_t ReorderingThreshold
     );
 
 typedef enum QUIC_ACK_TYPE {

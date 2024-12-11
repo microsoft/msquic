@@ -255,73 +255,66 @@ TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
     // ReorderingThreshold is 0
     ReorderingThreshold = 0;
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 100);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 100));
-
-    // The number of ranges is less than 2.
-    ReorderingThreshold = 3;
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 101);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 101));
-
-    // PacketNumber is not the largest unacked packet number
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 104);
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 105);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 103));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     // Case 1 
+    ReorderingThreshold = 3;
     QuicAckTrackerReset(&Tracker); 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 0);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 0));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 1);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 1));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 3);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 3));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 4);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 4));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 5);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 5));
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 2); // 2 is reported missing
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    Tracker.LargestPacketNumberAcknowledged = 5;
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 8));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 9);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 9));
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 6); // 6 is reported missing
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    Tracker.LargestPacketNumberAcknowledged = 9;
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 10);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 10));
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    Tracker.LargestPacketNumberAcknowledged = 10;
 
     // Case 2
     ReorderingThreshold = 5;
     QuicAckTrackerReset(&Tracker); 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 0);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 0));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 1);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 1));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 3);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 3));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 5);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 5));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 6);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 6));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 7);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 7));
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 2); // 2 is reported missing
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    Tracker.LargestPacketNumberAcknowledged = 7;
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 8));
+    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     QuicRangeAddValue(&Tracker.PacketNumbersToAck, 9);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold, 9));
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    Tracker.LargestPacketNumberAcknowledged = 9;
 
 
     // Clean up

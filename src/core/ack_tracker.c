@@ -99,21 +99,38 @@ QuicAckTrackerAddPacketNumber(
 BOOLEAN
 QuicAckTrackerDidHitReorderingThreshold(
     _In_ QUIC_ACK_TRACKER* Tracker,
-    _In_ uint8_t ReorderingThreshold,
-    _In_ uint64_t PacketNumber
+    _In_ uint8_t ReorderingThreshold
     )
 {
-    if (ReorderingThreshold == 0 || 
-        QuicRangeSize(&Tracker->PacketNumbersToAck) <= 1 ||
-        PacketNumber != QuicRangeGetMax(&Tracker->PacketNumbersToAck)) { // There are more than two ranges, i.e. a gap somewhere.
+    if (ReorderingThreshold == 0) {
         return FALSE;
     }
 
     uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
-    uint64_t SmallestUnreportedMissingPacketNumber = 
-        QuicRangeGetHigh(
-            QuicRangeGet(&Tracker->PacketNumbersToAck, 0)) + 1;
-    
+    uint64_t LargestReported = 0; // The largest packet number that could be declared lost 
+    uint64_t SmallestUnreportedMissingPacketNumber; 
+
+    if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold) {
+        LargestReported = Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1;
+    }
+
+    if (LargestReported > LargestUnackedPacketNumber) {
+        return FALSE;
+    }
+
+    QUIC_RANGE_SEARCH_KEY Key = { LargestReported, LargestReported };
+    int result = QuicRangeSearch(&Tracker->PacketNumbersToAck, &Key);
+    if (result >= 0 && result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
+        SmallestUnreportedMissingPacketNumber = 
+            QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, result)) + 1;
+    }
+    else if (result < 0) {
+        SmallestUnreportedMissingPacketNumber = LargestReported;
+    }
+    else {
+        return FALSE;
+    }
+
     return LargestUnackedPacketNumber - SmallestUnreportedMissingPacketNumber >= ReorderingThreshold;
 }
 
@@ -193,7 +210,7 @@ QuicAckTrackerAckPacket(
 
     Tracker->AckElicitingPacketsToAcknowledge++;
 
-    if (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) {
+    if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) || !NewLargestPacketNumber) {
         goto Exit; // Already queued to send an ACK, no more work to do.
     }
 
@@ -216,7 +233,7 @@ QuicAckTrackerAckPacket(
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
         Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
-        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold, PacketNumber)) {
+        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold)) {
         //
         // Send the ACK immediately.
         //
