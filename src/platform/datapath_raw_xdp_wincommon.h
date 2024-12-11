@@ -549,9 +549,27 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 #else
+        {
+        IO_STATUS_BLOCK IoStatusBlock;
+
         CxPlatZeroMemory(
             &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
             sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
+        if (S_OK !=
+                (Status = ZwSetInformationFile(
+                    (HANDLE)Queue->RxXsk,
+                    // (IO_STATUS_BLOCK*)&Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
+                    &IoStatusBlock,
+                    &IoCompletion,
+                    sizeof(IoCompletion),
+                    FileIoCompletionNotificationInformation))) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwSetInformationFile");
+        }
+        }
 #endif
 
         //
@@ -678,9 +696,27 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 #else
+        {
+        IO_STATUS_BLOCK IoStatusBlock;
+
         CxPlatZeroMemory(
             &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
             sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
+        if (S_OK !=
+                (Status = ZwSetInformationFile(
+                    (HANDLE)Queue->TxXsk,
+                    &IoStatusBlock,
+                    // (IO_STATUS_BLOCK*)&Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
+                    &IoCompletion,
+                    sizeof(IoCompletion),
+                    FileIoCompletionNotificationInformation))) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwSetInformationFile");
+        }
+        }
 #endif
     }
 
@@ -1491,11 +1527,6 @@ CxPlatXdpExecute(
         Queue = Queue->Next;
     }
 
-#ifdef _KERNEL_MODE
-    HRESULT hr;
-    FILE_IO_COMPLETION_NOTIFICATION_INFORMATION IoCompletion = {0};
-    IoCompletion.Flags = FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE;
-#endif
     if (DidWork) {
         Partition->Ec.Ready = TRUE;
         State->NoWorkCount = 0;
@@ -1509,21 +1540,6 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoRx,
                     "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
-#ifdef _KERNEL_MODE
-                if (S_OK !=
-                        (hr = ZwSetInformationFile(
-                            (HANDLE)Queue->RxXsk,
-                            (IO_STATUS_BLOCK*)&Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
-                            &IoCompletion,
-                            sizeof(IoCompletion),
-                            FileIoCompletionNotificationInformation))) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        hr,
-                        "ZwSetInformationFile");
-                }
-#else
                 CxPlatZeroMemory(
                     &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
                     sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
@@ -1531,7 +1547,6 @@ CxPlatXdpExecute(
                     XskNotifyAsync(
                         Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
                         &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped);
-#endif
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->RxQueued = TRUE;
                 } else if (hr == S_OK) {
@@ -1549,21 +1564,6 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoTx,
                     "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
-#ifdef _KERNEL_MODE
-                if (S_OK !=
-                        (hr = ZwSetInformationFile(
-                            (HANDLE)Queue->TxXsk,
-                            (IO_STATUS_BLOCK*)&Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
-                            &IoCompletion,
-                            sizeof(IoCompletion),
-                            FileIoCompletionNotificationInformation))) {
-                    QuicTraceEvent(
-                        LibraryErrorStatus,
-                        "[ lib] ERROR, %u, %s.",
-                        hr,
-                        "ZwSetInformationFile");
-                }
-#else
                 CxPlatZeroMemory(
                     &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
                     sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
@@ -1571,7 +1571,6 @@ CxPlatXdpExecute(
                     XskNotifyAsync(
                         Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
                         &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped);
-#endif
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->TxQueued = TRUE;
                 } else if (hr == S_OK) {
