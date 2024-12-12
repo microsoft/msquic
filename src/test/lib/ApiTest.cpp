@@ -2090,6 +2090,32 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
                 sizeof(QUIC_SETTINGS),
                 &Settings));
     }
+
+    //
+    // MaxOperationsPerDrain
+    //
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.MaxOperationsPerDrain = TRUE;
+
+        Settings.MaxOperationsPerDrain = 0; // Not allowed
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+
+        Settings.MaxOperationsPerDrain = 255; // Max allowed
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
 }
 
 void QuicTestStatefulGlobalSetParam()
