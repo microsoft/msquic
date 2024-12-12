@@ -110,21 +110,18 @@ QuicAckTrackerDidHitReorderingThreshold(
     uint64_t LargestReported = 0; // The largest packet number that could be declared lost 
     uint64_t SmallestUnreportedMissingPacketNumber; 
 
-    if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold) {
+    if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold &&
+        Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1 <= LargestUnackedPacketNumber) {
         LargestReported = Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1;
-    }
-
-    if (LargestReported > LargestUnackedPacketNumber) {
-        return FALSE;
     }
 
     QUIC_RANGE_SEARCH_KEY Key = { LargestReported, LargestReported };
     int result = QuicRangeSearch(&Tracker->PacketNumbersToAck, &Key);
-    if (result >= 0 && result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
+    if (result < 0) {
+        SmallestUnreportedMissingPacketNumber = LargestReported;
+    } else if (result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
         SmallestUnreportedMissingPacketNumber = 
             QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, result)) + 1;
-    } else if (result < 0) {
-        SmallestUnreportedMissingPacketNumber = LargestReported;
     } else {
         return FALSE;
     }
@@ -218,7 +215,7 @@ QuicAckTrackerAckPacket(
     //   1. The packet included an IMMEDIATE_ACK frame.
     //   2. ACK delay is disabled (MaxAckDelayMs == 0).
     //   3. We have received 'PacketTolerance' ACK eliciting packets.
-    //   4. We had received an ACK eliciting packet that is out of order and the
+    //   4. We have received an ACK eliciting packet that is out of order and the
     //      gap between the smallest Unreported Missing packet and the Largest
     //      Unacked is greater than or equal to the Reordering Threshold value. This logic is
     //      disabled if the Reordering Threshold is 0.
