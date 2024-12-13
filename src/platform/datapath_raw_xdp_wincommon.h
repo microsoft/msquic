@@ -1543,13 +1543,13 @@ CxPlatXdpExecute(
                 CxPlatZeroMemory(
                     &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
                     sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
-                HRESULT hr =
+                QUIC_STATUS hr =
                     XskNotifyAsync(
                         Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
                         &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped);
-                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                if (hr == QUIC_STATUS_PENDING) {
                     Queue->RxQueued = TRUE;
-                } else if (hr == S_OK) {
+                } else if (hr == QUIC_STATUS_SUCCESS) {
                     Partition->Ec.Ready = TRUE;
                 } else {
                     QuicTraceEvent(
@@ -1567,13 +1567,13 @@ CxPlatXdpExecute(
                 CxPlatZeroMemory(
                     &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
                     sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
-                HRESULT hr =
+                QUIC_STATUS hr =
                     XskNotifyAsync(
                         Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
                         &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped);
-                if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
+                if (hr == QUIC_STATUS_PENDING) {
                     Queue->TxQueued = TRUE;
-                } else if (hr == S_OK) {
+                } else if (hr == QUIC_STATUS_SUCCESS) {
                     Partition->Ec.Ready = TRUE;
                 } else {
                     QuicTraceEvent(
