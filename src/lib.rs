@@ -1248,31 +1248,26 @@ pub struct Api {
 
 /// The execution context for processing connections on the application's behalf.
 pub struct Registration {
-    table: *const ApiTable,
     handle: Handle,
 }
 
 /// Specifies how to configure a connection.
 pub struct Configuration {
-    table: *const ApiTable,
     handle: Handle,
 }
 
 /// A single QUIC connection.
 pub struct Connection {
-    table: *const ApiTable,
     handle: Handle,
 }
 
 /// A single server listener
 pub struct Listener {
-    table: *const ApiTable,
     handle: Handle,
 }
 
 /// A single QUIC stream on a parent connection.
 pub struct Stream {
-    table: *const ApiTable,
     handle: Handle,
 }
 
@@ -1393,7 +1388,7 @@ impl CredentialConfig {
 }
 
 impl Api {
-    pub fn new() -> Result<Api, u32> {
+    fn new() -> Result<Api, u32> {
         let new_table: *const ApiTable = ptr::null();
         let status = unsafe { MsQuicOpenVersion(2, &new_table) };
         if Status::failed(status) {
@@ -1450,27 +1445,45 @@ impl Drop for Api {
     }
 }
 
+pub static mut API: Api = Api { table: ptr::null() };
+
+#[ctor::ctor]
+fn open_msquic() {
+    unsafe {
+        API = match Api::new() {
+            Ok(api) => api,
+            Err(status) => panic!("Failed to open MsQujsonic: {}", status),
+        };
+    }
+}
+
+#[ctor::dtor]
+fn close_msquic() {
+    unsafe {
+        API = Api { table: ptr::null() };
+    }
+}
+
 impl Registration {
-    pub fn new(api: &Api, config: *const RegistrationConfig) -> Result<Registration, u32> {
+    pub fn new(config: *const RegistrationConfig) -> Result<Registration, u32> {
         let new_registration: Handle = ptr::null();
-        let status = unsafe { ((*api.table).registration_open)(config, &new_registration) };
+        let status = unsafe { ((*API.table).registration_open)(config, &new_registration) };
         if Status::failed(status) {
             return Err(status);
         }
         Ok(Registration {
-            table: api.table,
             handle: new_registration,
         })
     }
 
     pub fn shutdown(&self) {
-        unsafe { ((*self.table).registration_shutdown)(self.handle) }
+        unsafe { ((*API.table).registration_shutdown)(self.handle) }
     }
 }
 
 impl Drop for Registration {
     fn drop(&mut self) {
-        unsafe { ((*self.table).registration_close)(self.handle) };
+        unsafe { ((*API.table).registration_close)(self.handle) };
     }
 }
 
@@ -1487,7 +1500,7 @@ impl Configuration {
             settings_size = ::std::mem::size_of::<Settings>() as u32;
         }
         let status = unsafe {
-            ((*registration.table).configuration_open)(
+            ((*API.table).configuration_open)(
                 registration.handle,
                 alpn.as_ptr(),
                 alpn.len() as u32,
@@ -1501,14 +1514,13 @@ impl Configuration {
             return Err(status);
         }
         Ok(Configuration {
-            table: registration.table,
             handle: new_configuration,
         })
     }
 
     pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), u32> {
         let status =
-            unsafe { ((*self.table).configuration_load_credential)(self.handle, *&cred_config) };
+            unsafe { ((*API.table).configuration_load_credential)(self.handle, *&cred_config) };
         if Status::failed(status) {
             return Err(status);
         }
@@ -1518,21 +1530,19 @@ impl Configuration {
 
 impl Drop for Configuration {
     fn drop(&mut self) {
-        unsafe { ((*self.table).configuration_close)(self.handle) };
+        unsafe { ((*API.table).configuration_close)(self.handle) };
     }
 }
 
 impl Connection {
-    pub fn new(registration: &Registration) -> Connection {
+    pub fn new() -> Connection {
         Connection {
-            table: registration.table,
             handle: ptr::null(),
         }
     }
 
-    pub fn from_parts(handle: Handle, api: &Api) -> Connection {
+    pub fn from_parts(handle: Handle) -> Connection {
         Connection {
-            table: api.table,
             handle,
         }
     }
@@ -1544,7 +1554,7 @@ impl Connection {
         context: *const c_void,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).connection_open)(registration.handle, handler, context, &self.handle)
+            ((*API.table).connection_open)(registration.handle, handler, context, &self.handle)
         };
         if Status::failed(status) {
             return Err(status);
@@ -1555,7 +1565,7 @@ impl Connection {
     pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) -> Result<(), u32> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
-            ((*self.table).connection_start)(
+            ((*API.table).connection_start)(
                 self.handle,
                 configuration.handle,
                 0,
@@ -1571,23 +1581,23 @@ impl Connection {
 
     pub fn close(&self) {
         unsafe {
-            ((*self.table).connection_close)(self.handle);
+            ((*API.table).connection_close)(self.handle);
         }
     }
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
         unsafe {
-            ((*self.table).connection_shutdown)(self.handle, flags, error_code);
+            ((*API.table).connection_shutdown)(self.handle, flags, error_code);
         }
     }
 
     pub fn set_param(&self, param: u32, buffer_length: u32, buffer: *const c_void) -> u32 {
-        unsafe { ((*self.table).set_param)(self.handle, param, buffer_length, buffer) }
+        unsafe { ((*API.table).set_param)(self.handle, param, buffer_length, buffer) }
     }
 
     pub fn stream_close(&self, stream: Handle) {
         unsafe {
-            ((*self.table).stream_close)(stream);
+            ((*API.table).stream_close)(stream);
         }
     }
 
@@ -1596,7 +1606,7 @@ impl Connection {
             [0; std::mem::size_of::<QuicStatistics>()];
         let stat_size_mut = std::mem::size_of::<QuicStatistics>();
         unsafe {
-            ((*self.table).get_param)(
+            ((*API.table).get_param)(
                 self.handle,
                 PARAM_CONN_STATISTICS,
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
@@ -1612,7 +1622,7 @@ impl Connection {
             [0; std::mem::size_of::<QuicStatisticsV2>()];
         let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
         unsafe {
-            ((*self.table).get_param)(
+            ((*API.table).get_param)(
                 self.handle,
                 PARAM_CONN_STATISTICS_V2,
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
@@ -1625,7 +1635,7 @@ impl Connection {
 
     pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).connection_set_configuration)(self.handle, configuration.handle)
+            ((*API.table).connection_set_configuration)(self.handle, configuration.handle)
         };
         if Status::failed(status) {
             return Err(status);
@@ -1635,7 +1645,7 @@ impl Connection {
 
     pub fn set_callback_handler(&self, handler: ConnectionEventHandler, context: *const c_void) {
         unsafe {
-            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+            ((*API.table).set_callback_handler)(self.handle, handler as *const c_void, context)
         };
     }
 
@@ -1646,7 +1656,7 @@ impl Connection {
         context: *const c_void,
     ) {
         unsafe {
-            ((*self.table).set_callback_handler)(stream_handle, handler as *const c_void, context)
+            ((*API.table).set_callback_handler)(stream_handle, handler as *const c_void, context)
         };
     }
 
@@ -1658,7 +1668,7 @@ impl Connection {
         client_send_context: *const c_void,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).datagram_send)(
+            ((*API.table).datagram_send)(
                 self.handle,
                 *&buffer,
                 buffer_count,
@@ -1677,7 +1687,7 @@ impl Connection {
         result: BOOLEAN,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).resumption_ticket_validation_complete)(
+            ((*API.table).resumption_ticket_validation_complete)(
                 self.handle,
                 result,
             )
@@ -1694,7 +1704,7 @@ impl Connection {
         tls_alert: TlsAlertCode,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).certificate_validation_complete)(
+            ((*API.table).certificate_validation_complete)(
                 self.handle,
                 result,
                 tls_alert,
@@ -1709,7 +1719,7 @@ impl Connection {
 
 impl Drop for Connection {
     fn drop(&mut self) {
-        unsafe { ((*self.table).connection_close)(self.handle) };
+        unsafe { ((*API.table).connection_close)(self.handle) };
     }
 }
 
@@ -1721,7 +1731,7 @@ impl Listener {
     ) -> Result<Listener, u32> {
         let new_listener: Handle = ptr::null();
         let status = unsafe {
-            ((*registration.table).listener_open)(
+            ((*API.table).listener_open)(
                 registration.handle,
                 handler,
                 context,
@@ -1733,14 +1743,13 @@ impl Listener {
         }
 
         Ok(Listener {
-            table: registration.table,
             handle: new_listener,
         })
     }
 
     pub fn start(&self, alpn: &[Buffer], local_address: &Addr) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).listener_start)(
+            ((*API.table).listener_start)(
                 self.handle,
                 alpn.as_ptr(),
                 alpn.len() as u32,
@@ -1755,29 +1764,26 @@ impl Listener {
 
     pub fn close(&self) {
         unsafe {
-            ((*self.table).listener_close)(self.handle);
+            ((*API.table).listener_close)(self.handle);
         }
     }
 }
 
 impl Drop for Listener {
     fn drop(&mut self) {
-        unsafe { ((*self.table).listener_close)(self.handle) };
+        unsafe { ((*API.table).listener_close)(self.handle) };
     }
 }
 
 impl Stream {
-    pub fn new(context: *const c_void) -> Stream {
-        let api = unsafe { &*(context as *const Api) };
+    pub fn new() -> Stream {
         Stream {
-            table: api.table,
             handle: ptr::null(),
         }
     }
 
-    pub fn from_parts(handle: Handle, api: &Api) -> Stream {
+    pub fn from_parts(handle: Handle) -> Stream {
         Stream {
-            table: api.table,
             handle,
         }
     }
@@ -1790,7 +1796,7 @@ impl Stream {
         context: *const c_void,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).stream_open)(connection.handle, flags, handler, context, &self.handle)
+            ((*API.table).stream_open)(connection.handle, flags, handler, context, &self.handle)
         };
         if Status::failed(status) {
             return Err(status);
@@ -1799,7 +1805,7 @@ impl Stream {
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), u32> {
-        let status = unsafe { ((*self.table).stream_start)(self.handle, flags) };
+        let status = unsafe { ((*API.table).stream_start)(self.handle, flags) };
         if Status::failed(status) {
             return Err(status);
         }
@@ -1808,7 +1814,7 @@ impl Stream {
 
     pub fn close(&self) {
         unsafe {
-            ((*self.table).stream_close)(self.handle);
+            ((*API.table).stream_close)(self.handle);
         }
     }
 
@@ -1820,7 +1826,7 @@ impl Stream {
         client_send_context: *const c_void,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).stream_send)(
+            ((*API.table).stream_send)(
                 self.handle,
                 *&buffer,
                 buffer_count,
@@ -1836,14 +1842,14 @@ impl Stream {
 
     pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
         unsafe {
-            ((*self.table).set_callback_handler)(self.handle, handler as *const c_void, context)
+            ((*API.table).set_callback_handler)(self.handle, handler as *const c_void, context)
         };
     }
 }
 
 impl Drop for Stream {
     fn drop(&mut self) {
-        unsafe { ((*self.table).stream_close)(self.handle) };
+        unsafe { ((*API.table).stream_close)(self.handle) };
     }
 }
 
@@ -1914,11 +1920,7 @@ extern "C" fn test_stream_callback(
 
 #[test]
 fn test_module() {
-    let res = Api::new();
-    assert!(res.is_ok(), "Failed to open API: 0x{:x}", res.err().unwrap());
-    let api = res.unwrap();
-
-    let res = Registration::new(&api, ptr::null());
+    let res = Registration::new(ptr::null());
     assert!(res.is_ok(), "Failed to open registration: 0x{:x}", res.err().unwrap());
     let registration = res.unwrap();
 
@@ -1937,7 +1939,7 @@ fn test_module() {
     let res = configuration.load_credential(&cred_config);
     assert!(res.is_ok(), "Failed to load credential: 0x{:x}", res.err().unwrap());
 
-    let connection = Connection::new(&registration);
+    let connection = Connection::new();
     let res = connection.open(
         &registration,
         test_conn_callback,
