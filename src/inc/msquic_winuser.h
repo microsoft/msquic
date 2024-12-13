@@ -99,6 +99,7 @@ Environment:
 #define QUIC_STATUS_INVALID_STATE           E_NOT_VALID_STATE                               // 0x8007139f
 #define QUIC_STATUS_NOT_SUPPORTED           E_NOINTERFACE                                   // 0x80004002
 #define QUIC_STATUS_NOT_FOUND               HRESULT_FROM_WIN32(ERROR_NOT_FOUND)             // 0x80070490
+#define QUIC_STATUS_FILE_NOT_FOUND          HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)        // 0x80070002
 #define QUIC_STATUS_BUFFER_TOO_SMALL        E_NOT_SUFFICIENT_BUFFER                         // 0x8007007a
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ERROR_QUIC_HANDSHAKE_FAILURE                    // 0x80410000
 #define QUIC_STATUS_ABORTED                 E_ABORT                                         // 0x80004004
