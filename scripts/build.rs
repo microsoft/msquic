@@ -52,7 +52,7 @@ fn main() {
                 _ => panic!("Unsupported target: {}", target),
             };
             println!("cargo:rustc-link-search=native={}", numa_lib_path);
-            println!("cargo:rustc-link-lib=static=numa");
+            println!("cargo:rustc-link-lib=static:+whole-archive=numa");
         } else if cfg!(target_os = "macos") {
             println!("cargo:rustc-link-lib=framework=CoreFoundation");
             println!("cargo:rustc-link-lib=framework=Security");
