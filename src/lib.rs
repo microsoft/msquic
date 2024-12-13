@@ -1452,7 +1452,7 @@ fn open_msquic() {
     unsafe {
         API = match Api::new() {
             Ok(api) => api,
-            Err(status) => panic!("Failed to open MsQujsonic: {}", status),
+            Err(status) => panic!("Failed to open MsQuic: {}", status),
         };
     }
 }
