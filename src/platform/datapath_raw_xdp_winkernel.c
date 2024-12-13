@@ -80,7 +80,8 @@ CxPlatDpRawInitialize(
 
         if (pIfRow->Type == IF_TYPE_ETHERNET_CSMACD &&
             pIfRow->OperStatus == IfOperStatusUp &&
-            pIfRow->PhysicalAddressLength == ETH_MAC_ADDR_LEN) {
+            pIfRow->PhysicalAddressLength == ETH_MAC_ADDR_LEN &&
+            pIfRow->InterfaceAndOperStatusFlags.ConnectorPresent) {
             XDP_INTERFACE* Interface = CXPLAT_ALLOC_NONPAGED(sizeof(XDP_INTERFACE), IF_TAG);
             if (Interface == NULL) {
                 QuicTraceEvent(

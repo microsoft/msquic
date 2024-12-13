@@ -193,7 +193,7 @@ CxPlatGetRssQueueProcessors(
         Status = XskBind(TxXsk, InterfaceIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             CxPlatCloseHandle(TxXsk);
-            if (Status == E_INVALIDARG) { // No more queues. Break out.
+            if (Status == QUIC_STATUS_INVALID_PARAMETER) { // No more queues. Break out.
                 *Count = i;
                 break; // Expected failure if there is no more queue.
             }
