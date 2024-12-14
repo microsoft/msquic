@@ -14,6 +14,7 @@ use std::fmt;
 use std::option::Option;
 use std::ptr;
 use std::result::Result;
+use std::sync::LazyLock;
 #[macro_use]
 extern crate bitfield;
 
@@ -1441,26 +1442,23 @@ impl Api {
 
 impl Drop for Api {
     fn drop(&mut self) {
-        unsafe { MsQuicClose(self.table) };
+        if self.table != ptr::null() {
+            unsafe { MsQuicClose(self.table) };
+        }
     }
 }
 
-pub static mut API: Api = Api { table: ptr::null() };
-
-#[ctor::ctor]
-fn open_msquic() {
-    unsafe {
-        API = match Api::new() {
-            Ok(api) => api,
-            Err(status) => panic!("Failed to open MsQuic: {}", status),
-        };
+pub static mut API: LazyLock<Api> = LazyLock::new(|| {
+    match Api::new() {
+        Ok(api) => api,
+        Err(status) => panic!("Failed to open MsQuic: {}", status),
     }
-}
+});
 
 #[ctor::dtor]
 fn close_msquic() {
     unsafe {
-        API = Api { table: ptr::null() };
+        API = LazyLock::new(|| { Api { table: ptr::null() } });
     }
 }
 
