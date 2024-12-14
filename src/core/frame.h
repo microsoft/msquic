@@ -159,21 +159,21 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_IMMEDIATE_ACK        = 0xacULL,
     /* 0xaf to 0x2f4 are unused currently */
     QUIC_FRAME_TIMESTAMP            = 0x2f5ULL,
+    /* 0x2f6 to 0x9f80 are unused currently */
+    QUIC_FRAME_OBSERVED_ADDRESS_V4  = 0x9f81ULL, // 0x9f81a6ULL,
+    QUIC_FRAME_OBSERVED_ADDRESS_V6  = 0x9f82ULL, // 0x9f81a7ULL,
 
     QUIC_FRAME_MAX_SUPPORTED
 
 } QUIC_FRAME_TYPE;
-
-CXPLAT_STATIC_ASSERT(
-    QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT32_MAX,
-    "Logging assumes frames types fit in 32-bits");
 
 #define QUIC_FRAME_IS_KNOWN(X) \
     (X <= QUIC_FRAME_HANDSHAKE_DONE || \
      (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
       X == QUIC_FRAME_ACK_FREQUENCY || X == QUIC_FRAME_IMMEDIATE_ACK || \
       X == QUIC_FRAME_RELIABLE_RESET_STREAM || \
-      X == QUIC_FRAME_TIMESTAMP \
+      X == QUIC_FRAME_TIMESTAMP || \
+      X == QUIC_FRAME_OBSERVED_ADDRESS_V4 || X == QUIC_FRAME_OBSERVED_ADDRESS_V6 \
     )
 
 //
@@ -899,6 +899,38 @@ QuicTimestampFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_TIMESTAMP_EX* Frame
+    );
+
+//
+// QUIC_OBSERVED_ADDRESS Encoding/Decoding
+//
+
+typedef struct QUIC_OBSERVED_ADDRESS_EX {
+
+    QUIC_VAR_INT SequenceNumber;
+    QUIC_ADDR Address;
+
+} QUIC_OBSERVED_ADDRESS_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicObservedAddressFrameEncode(
+    _In_ const QUIC_OBSERVED_ADDRESS_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicObservedAddressFrameDecode(
+    _In_ QUIC_FRAME_TYPE FrameType,
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_OBSERVED_ADDRESS_EX* Frame
     );
 
 //

@@ -68,6 +68,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 #define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
 #define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
+#define QUIC_TP_ID_OBSERVED_ADDRESS                         0x9f81a176      // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -904,6 +905,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ENABLE_TIMESTAMP,
                 QuicVarIntSize(value));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_OBSERVED_ADDRESS,
+                QuicVarIntSize(2)); // Hardcode for now
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1245,6 +1252,18 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Timestamp (%u)",
             value);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_OBSERVED_ADDRESS) {
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QUIC_TP_ID_OBSERVED_ADDRESS,
+                2,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPObservedAddress,
+            Connection,
+            "TP: Observed Address (%u)",
+            2);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1950,6 +1969,34 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                 (uint32_t)value);
             value <<= QUIC_TP_FLAG_TIMESTAMP_SHIFT; // Convert to QUIC_TP_FLAG_TIMESTAMP_*
             TransportParams->Flags |= (uint32_t)value;
+            break;
+        }
+
+        case QUIC_TP_ID_OBSERVED_ADDRESS: {
+            QUIC_VAR_INT value = 0;
+            if (!TRY_READ_VAR_INT(value)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_OBSERVED_ADDRESS");
+                goto Exit;
+            }
+            if (value > 2) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Invalid value of QUIC_TP_ID_OBSERVED_ADDRESS");
+                goto Exit;
+            }
+            QuicTraceLogConnVerbose(
+                DecodeTPObservedAddress,
+                Connection,
+                "TP: Observed Address (%u)",
+                (uint32_t)value);
+            TransportParams->Flags |= QUIC_TP_FLAG_OBSERVED_ADDRESS; // TODO - Pass value?
             break;
         }
 

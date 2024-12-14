@@ -195,6 +195,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN TimestampRecvNegotiated : 1;
 
         //
+        // Indicates that the peer supports the Observed Address feature.
+        //
+        BOOLEAN ObservedAddressNegotiated : 1;
+
+        //
         // Indicates we received APPLICATION_ERROR transport error and are checking also
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
@@ -467,6 +472,11 @@ typedef struct QUIC_CONNECTION {
     // The sequence number to use for the next source CID.
     //
     QUIC_VAR_INT NextSourceCidSequenceNumber;
+
+    //
+    // The sequence number to use for sending a new observed address.
+    //
+    QUIC_VAR_INT ObservedAddressSequenceNumber;
 
     //
     // The most recent Retire Prior To field received in a NEW_CONNECTION_ID

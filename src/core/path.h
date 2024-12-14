@@ -117,6 +117,11 @@ typedef struct QUIC_PATH {
     BOOLEAN EncryptionOffloading : 1;
 
     //
+    // Indicates whether this path needs to send an observed address.
+    //
+    BOOLEAN SendObservedAddress : 1;
+
+    //
     // The ending time of ECN validation testing state in microseconds.
     //
     uint64_t EcnTestingEndingTime;
