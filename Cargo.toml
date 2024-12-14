@@ -47,6 +47,11 @@ include = [
 [features]
 default = []
 static = []
+[workspace]
+members = [
+    ".",
+    "crates/tools/api"
+, "crates/libs/msquic-rs2"]
 
 [build-dependencies]
 cmake = "0.1"
