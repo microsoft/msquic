@@ -96,6 +96,10 @@ QuicAckTrackerAddPacketNumber(
         !RangeUpdated;
 }
 
+//
+// This function implements the logic defined in Section 6.2 [draft-ietf-quic-frequence-10]
+// to determine if the reordering threshold has been hit.
+//
 BOOLEAN
 QuicAckTrackerDidHitReorderingThreshold(
     _In_ QUIC_ACK_TRACKER* Tracker,
@@ -106,27 +110,27 @@ QuicAckTrackerDidHitReorderingThreshold(
         return FALSE;
     }
 
-    uint64_t LargestUnackedPacketNumber = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
+    uint64_t LargestUnacked = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     uint64_t LargestReported = 0; // The largest packet number that could be declared lost 
-    uint64_t SmallestUnreportedMissingPacketNumber; 
+    uint64_t SmallestUnreportedMissing; 
 
     if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold &&
-        Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1 <= LargestUnackedPacketNumber) {
+        Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1 <= LargestUnacked) {
         LargestReported = Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1;
     }
 
     QUIC_RANGE_SEARCH_KEY Key = { LargestReported, LargestReported };
     int result = QuicRangeSearch(&Tracker->PacketNumbersToAck, &Key);
     if (result < 0) {
-        SmallestUnreportedMissingPacketNumber = LargestReported;
+        SmallestUnreportedMissing = LargestReported;
     } else if (result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
-        SmallestUnreportedMissingPacketNumber = 
+        SmallestUnreportedMissing = 
             QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, result)) + 1;
     } else {
         return FALSE;
     }
 
-    return LargestUnackedPacketNumber - SmallestUnreportedMissingPacketNumber >= ReorderingThreshold;
+    return LargestUnacked - SmallestUnreportedMissing >= ReorderingThreshold;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
