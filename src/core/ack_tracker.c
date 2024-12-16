@@ -110,27 +110,42 @@ QuicAckTrackerDidHitReorderingThreshold(
         return FALSE;
     }
 
-    uint64_t LargestUnacked = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
+    const uint64_t LargestUnacked = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
     uint64_t LargestReported = 0; // The largest packet number that could be declared lost 
-    uint64_t SmallestUnreportedMissing; 
 
     if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold &&
         Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1 <= LargestUnacked) {
         LargestReported = Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1;
     }
 
-    QUIC_RANGE_SEARCH_KEY Key = { LargestReported, LargestReported };
-    int result = QuicRangeSearch(&Tracker->PacketNumbersToAck, &Key);
-    if (result < 0) {
-        SmallestUnreportedMissing = LargestReported;
-    } else if (result < (int)QuicRangeSize(&Tracker->PacketNumbersToAck) - 1) {
-        SmallestUnreportedMissing = 
-            QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, result)) + 1;
-    } else {
-        return FALSE;
-    }
+    //
+    // Loop through all previous ACK ranges (before last) to find the smallest missing
+    // packet number that is after the largest reported packet number. If the difference
+    // between that missing number and the largest unack'ed number is more than the
+    // reordering threshold, then the condition has been met to send an immediate
+    // acknowledgement.
+    //
 
-    return LargestUnacked - SmallestUnreportedMissing >= ReorderingThreshold;
+    for (uint32_t Index = QuicRangeSize(&Tracker->PacketNumbersToAck) - 1; Index > 0; --Index) {
+        uint64_t SmallestMissing = 0; // Smallest missing after this range
+        uint64_t HighestMissing = QuicRangeGet(&Tracker->PacketNumbersToAck, Index)->Low; // Highest missing in this range
+        if(Index != 0) {
+            SmallestMissing = QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)) + 1;
+        }
+          
+        if (LargestReported > SmallestMissing) {
+            if (HighestMissing > LargestReported) {
+                SmallestMissing = LargestReported;
+            }
+            else {
+                return FALSE;
+            }
+        }
+        if (LargestUnacked - SmallestMissing >= ReorderingThreshold) {
+            return TRUE;
+        }
+    }
+    return FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
