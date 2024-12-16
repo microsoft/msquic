@@ -524,6 +524,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(BOOLEAN),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1494,6 +1495,11 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
+        break;
+
+    case IOCTL_QUIC_RUN_OOB_HANDSHAKE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestOOBHandshake(Params->Family));
         break;
 
     default:

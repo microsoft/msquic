@@ -855,6 +855,11 @@ QuicListenerParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_LISTENER_OOB_CONNECTION:
+        Status =
+            QuicConnCreateOOB(Listener->Registration, BufferLength, Buffer);
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

@@ -1502,6 +1502,17 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_DISABLE_RESUMPTION
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST_P(WithFamilyArgs, OOBHandshake) {
+    TestLoggerT<ParamType> Logger("QuicTestOOBHandshake", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OOB_HANDSHAKE, GetParam().Family));
+    } else {
+        QuicTestOOBHandshake(GetParam().Family);
+    }
+}
+#endif
+
 TEST_P(WithFamilyArgs, Unreachable) {
     if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());

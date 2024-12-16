@@ -284,6 +284,13 @@ QuicTestShutdownDuringHandshake(
     _In_ bool ClientShutdown
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestOOBHandshake(
+    _In_ int Family
+    );
+#endif
+
 //
 // Negative Handshake Tests
 //
@@ -1331,4 +1338,8 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 125
+#define IOCTL_QUIC_RUN_OOB_HANDSHAKE \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 126
