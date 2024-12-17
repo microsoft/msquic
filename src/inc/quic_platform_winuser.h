@@ -259,8 +259,21 @@ InterlockedFetchAndSetBoolean(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
-CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
+CxPlatCloseHandle(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
     CloseHandle(Handle);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCancelIo(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    CancelIoEx(Handle, NULL);
 }
 
 //
