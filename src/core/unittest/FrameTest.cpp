@@ -316,6 +316,13 @@ TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
     ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
     Tracker.LargestPacketNumberAcknowledged = 9;
 
+    // Case 3
+    ReorderingThreshold = 3;
+    QuicAckTrackerReset(&Tracker); 
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 7);
+    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
+    Tracker.LargestPacketNumberAcknowledged = 5;
+    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
     // Clean up
     QuicAckTrackerUninitialize(&Tracker);
