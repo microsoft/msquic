@@ -32,7 +32,7 @@ pub type u62 = u64;
 pub type BOOLEAN = ::std::os::raw::c_uchar;
 
 /// Family of an IP address.
-pub type AddressFamily = u16;
+pub type AddressFamily = c_types::ADDRESS_FAMILY;
 pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = c_types::AF_UNSPEC;
 pub const ADDRESS_FAMILY_INET: AddressFamily = c_types::AF_INET;
 pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6;

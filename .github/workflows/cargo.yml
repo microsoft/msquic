@@ -40,13 +40,10 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
-    
     - name: Cargo fmt
       run: cargo fmt --all -- --check
-
     - name: Cargo clippy
       run: cargo clippy --all-targets -- -D warnings
-
     - name: Cargo build
       run: cargo build --all
     - name: Cargo test
