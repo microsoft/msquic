@@ -146,10 +146,8 @@ mod status {
 #[cfg(target_os = "linux")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE;
-    /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF;
-    /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
@@ -188,10 +186,8 @@ mod status {
 #[cfg(target_os = "macos")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE;
-    /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF;
-    /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
