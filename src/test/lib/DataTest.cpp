@@ -3818,14 +3818,17 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
 
         // GetParam to flush operations in Connection.
         // Sometimes processing state Connection messes up test results.
-        for (uint8_t i = 0; i < NumConnections; ++i) {
-            QUIC_ADDR Addr;
-            uint32_t AddrSize = sizeof(QUIC_ADDR);
-            TEST_QUIC_SUCCEEDED(
-                Connections[i]->GetParam(
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                &AddrSize,
-                &Addr));
+
+        for (int i = 0; i < 50; i++) {
+            for (uint8_t j = 0; j < NumConnections; ++j) {
+                QUIC_ADDR Addr;
+                uint32_t AddrSize = sizeof(QUIC_ADDR);
+                TEST_QUIC_SUCCEEDED(
+                    Connections[j]->GetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    &AddrSize,
+                    &Addr));
+            }
         }
 
         ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer);
