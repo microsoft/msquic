@@ -585,7 +585,7 @@ QuicLossDetectionOnPacketAcknowledged(
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
             BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
+            QUIC_CID_SLIST_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
@@ -790,7 +790,7 @@ QuicLossDetectionRetransmitFrames(
 
         case QUIC_FRAME_NEW_CONNECTION_ID: {
             BOOLEAN IsLastCid;
-            QUIC_CID_HASH_ENTRY* SourceCid =
+            QUIC_CID_SLIST_ENTRY* SourceCid =
                 QuicConnGetSourceCidFromSeq(
                     Connection,
                     Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
@@ -841,6 +841,9 @@ QuicLossDetectionRetransmitFrames(
                         "Path[%hhu] validation timed out",
                         Path->ID);
                     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
+                    CXPLAT_DBG_ASSERT(Connection->Paths[PathIndex].Binding != NULL);
+                    QuicLibraryReleaseBinding(Connection->Paths[PathIndex].Binding);
+                    Connection->Paths[PathIndex].Binding = NULL;
                     QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
