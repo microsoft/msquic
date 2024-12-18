@@ -1605,6 +1605,25 @@ QuicConnUpdatePeerPacketTolerance(
     );
 
 //
+// Open a new path for the connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnOpenNewPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+//
+// Open new paths for the connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnOpenNewPaths(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
 // Sets a connection parameter.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)

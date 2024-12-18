@@ -498,6 +498,10 @@ QuicCryptoHandshakeConfirmed(
         QuicBindingOnConnectionHandshakeConfirmed(Path->Binding, Connection);
     }
 
+    if (QuicConnOpenNewPaths(Connection)) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+    }
+
     QuicCryptoDiscardKeys(Crypto, QUIC_PACKET_KEY_HANDSHAKE);
 }
 
@@ -1662,7 +1666,7 @@ QuicCryptoProcessTlsCompletion(
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
-        CXPLAT_DBG_ASSERT(Connection->PathsCount == 1);
+        CXPLAT_DBG_ASSERT(Connection->PathsCount >= 1);
         QUIC_PATH* Path = &Connection->Paths[0];
         CXPLAT_DBG_ASSERT(Path->IsActive);
 
