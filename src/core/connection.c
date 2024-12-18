@@ -1161,6 +1161,9 @@ QuicConnReplaceRetiredCids(
                 Connection,
                 "Non-active path has no replacement for retired CID.");
             CXPLAT_DBG_ASSERT(i != 0);
+            CXPLAT_DBG_ASSERT(Connection->Paths[i].Binding != NULL);
+            QuicLibraryReleaseBinding(Connection->Paths[i].Binding);
+            Connection->Paths[i].Binding = NULL;
             QuicPathRemove(Connection, i--);
             continue;
         }
@@ -5927,6 +5930,9 @@ QuicConnRecvDatagrams(
                     Connection,
                     "Removing invalid path[%hhu]",
                     Connection->Paths[i].ID);
+                CXPLAT_DBG_ASSERT(Connection->Paths[i].Binding != NULL);
+                QuicLibraryReleaseBinding(Connection->Paths[i].Binding);
+                Connection->Paths[i].Binding = NULL;
                 QuicPathRemove(Connection, i);
             }
         }
@@ -6120,11 +6126,17 @@ QuicConnProcessRouteCompletion(
                     "Route resolution failed on Path[%hhu]. Switching paths...",
                     PathId);
                 QuicPathSetActive(Connection, &Connection->Paths[1]);
+                CXPLAT_DBG_ASSERT(Connection->Paths[1].Binding != NULL);
+                QuicLibraryReleaseBinding(Connection->Paths[1].Binding);
+                Connection->Paths[1].Binding = NULL;
                 QuicPathRemove(Connection, 1);
                 if (!QuicSendFlush(&Connection->Send)) {
                     QuicSendQueueFlush(&Connection->Send, REASON_ROUTE_COMPLETION);
                 }
             } else {
+                CXPLAT_DBG_ASSERT(Connection->Paths[PathIndex].Binding != NULL);
+                QuicLibraryReleaseBinding(Connection->Paths[PathIndex].Binding);
+                Connection->Paths[PathIndex].Binding = NULL;
                 QuicPathRemove(Connection, PathIndex);
             }
         }
@@ -6443,8 +6455,10 @@ QuicConnRemoveLocalAddress(
 
     QuicConnRetireCid(Connection, Path->DestCid);
 
+    CXPLAT_DBG_ASSERT(Path->Binding != NULL);
     QuicBindingRemoveAllSourceConnectionIDs(Path->Binding, Connection);
     QuicLibraryReleaseBinding(Path->Binding);
+    Path->Binding = NULL;
 
     QuicPathRemove(Connection, PathIndex);
 

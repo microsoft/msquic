@@ -841,6 +841,9 @@ QuicLossDetectionRetransmitFrames(
                         "Path[%hhu] validation timed out",
                         Path->ID);
                     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
+                    CXPLAT_DBG_ASSERT(Connection->Paths[PathIndex].Binding != NULL);
+                    QuicLibraryReleaseBinding(Connection->Paths[PathIndex].Binding);
+                    Connection->Paths[PathIndex].Binding = NULL;
                     QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
