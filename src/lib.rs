@@ -11,6 +11,7 @@ use libc::c_void;
 use serde::{Deserialize, Serialize};
 use std::convert::TryInto;
 use std::fmt;
+use std::marker::PhantomData;
 use std::option::Option;
 use std::ptr;
 use std::result::Result;
@@ -1245,7 +1246,9 @@ static mut APITABLE: *const ApiTable = ptr::null();
 static START_MSQUIC: Once = Once::new();
 
 /// Entry point for some global MsQuic APIs.
-pub struct Api;
+pub struct Api {
+    marker: PhantomData<()>,
+}
 
 /// The execution context for processing connections on the application's behalf.
 pub struct Registration {
@@ -1401,7 +1404,7 @@ impl Api {
                 APITABLE = table;
             });
         }
-        Self
+        Self { marker: PhantomData }
     }
 
     pub fn close_listener(&self, listener: Handle) {
