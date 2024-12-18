@@ -2,8 +2,8 @@
 // Licensed under the MIT License.
 
 use cmake::Config;
-use std::path::Path;
 use std::env;
+use std::path::Path;
 
 fn main() {
     let path_extra = "lib";
@@ -38,7 +38,7 @@ fn main() {
         "aarch64-apple-darwin" => config
             .define("CMAKE_OSX_ARCHITECTURES", "arm64")
             .define("CMAKE_OSX_DEPLOYMENT_TARGET", "14.5"),
-        _ => &mut config
+        _ => &mut config,
     };
 
     let dst = config.build();
