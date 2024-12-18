@@ -1622,7 +1622,13 @@ QuicCryptoProcessTlsCompletion(
         Connection->State.Connected = TRUE;
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
 
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+        if (!Connection->State.DisableConnIDGen) {
+            QuicConnGenerateNewSourceCids(Connection, FALSE);
+        }
+#else
         QuicConnGenerateNewSourceCids(Connection, FALSE);
+#endif
 
         CXPLAT_DBG_ASSERT(Crypto->TlsState.NegotiatedAlpn != NULL);
         if (QuicConnIsClient(Connection)) {

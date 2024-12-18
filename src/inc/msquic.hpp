@@ -741,6 +741,24 @@ struct MsQuicConfiguration {
     MsQuicConfiguration(const MsQuicConfiguration& Other) = delete;
     MsQuicConfiguration& operator=(const MsQuicConfiguration& Other) = delete;
     QUIC_STATUS
+    SetParam(
+        _In_ uint32_t Param,
+        _In_ uint32_t BufferLength,
+        _In_reads_bytes_(BufferLength)
+            const void* Buffer
+        ) noexcept {
+        return MsQuic->SetParam(Handle, Param, BufferLength, Buffer);
+    }
+    QUIC_STATUS
+    GetParam(
+        _In_ uint32_t Param,
+        _Inout_ _Pre_defensive_ uint32_t* BufferLength,
+        _Out_writes_bytes_opt_(*BufferLength)
+            void* Buffer
+        ) noexcept {
+        return MsQuic->GetParam(Handle, Param, BufferLength, Buffer);
+    }
+    QUIC_STATUS
     LoadCredential(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept {
         return MsQuic->ConfigurationLoadCredential(Handle, CredConfig);
     }

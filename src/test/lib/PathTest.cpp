@@ -124,6 +124,7 @@ void
 QuicTestProbePath(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN DeferConnIDGen,
     _In_ uint32_t DropPacketCount
     )
 {
@@ -134,6 +135,15 @@ QuicTestProbePath(
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
+
+    if (DeferConnIDGen) {
+        BOOLEAN DisableConnIdGeneration = TRUE;
+        TEST_QUIC_SUCCEEDED(
+            ServerConfiguration.SetParam(
+                QUIC_PARAM_CONFIGURATION_CONN_ID_GENERATION_DISABLED,
+                sizeof(DisableConnIdGeneration),
+                &DisableConnIdGeneration));
+    }
 
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
@@ -158,25 +168,6 @@ QuicTestProbePath(
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_NOT_EQUAL(nullptr, Context.Connection);
 
-    uint16_t Count = 0;
-    uint32_t Try = 0;
-
-    do {
-        if (Try != 0) {
-            CxPlatSleep(100);
-        }
-        uint32_t Size = sizeof(Count);
-        QUIC_STATUS Status =
-            Connection.GetParam(
-                QUIC_PARAM_CONN_LOCAL_UNUSED_DEST_CID_COUNT,
-                &Size,
-                &Count);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-    } while (Count == 0 && ++Try <= 3);
-    TEST_NOT_EQUAL(Count, 0);
-
     QuicAddr SecondLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
@@ -189,6 +180,14 @@ QuicTestProbePath(
             sizeof(SecondLocalAddr.SockAddr),
             &SecondLocalAddr.SockAddr));
 
+    if (DeferConnIDGen) {
+        TEST_QUIC_SUCCEEDED(
+            Context.Connection->SetParam(
+                QUIC_PARAM_CONN_GENERATE_CONN_ID,
+                0,
+                NULL));
+    }
+    
     TEST_TRUE(ProbeHelper.ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     TEST_TRUE(ProbeHelper.ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     QUIC_STATISTICS_V2 Stats;
@@ -241,25 +240,6 @@ QuicTestMigration(
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_NOT_EQUAL(nullptr, Context.Connection);
 
-    uint16_t Count = 0;
-    uint32_t Try = 0;
-
-    do {
-        if (Try != 0) {
-            CxPlatSleep(100);
-        }
-        uint32_t Size = sizeof(Count);
-        QUIC_STATUS Status =
-            Connection.GetParam(
-                QUIC_PARAM_CONN_LOCAL_UNUSED_DEST_CID_COUNT,
-                &Size,
-                &Count);
-        if (QUIC_FAILED(Status)) {
-            break;
-        }
-    } while (Count == 0 && ++Try <= 3);
-    TEST_NOT_EQUAL(Count, 0);
-
     QuicAddr SecondLocalAddr;
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
@@ -282,6 +262,11 @@ QuicTestMigration(
                 &Size,
                 &Stats));
         TEST_EQUAL(Stats.RecvDroppedPackets, 0);
+    } else {
+        //
+        // Wait for handshake confirmation.
+        //
+        CxPlatSleep(100);  
     }
 
     TEST_QUIC_SUCCEEDED(

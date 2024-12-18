@@ -214,6 +214,14 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
+
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+        //
+        // Whether to disable automatic generation of Connection ID.
+        // Only used for testing, and thus only enabled for debug builds.
+        //
+        BOOLEAN DisableConnIDGen : 1;
+#endif
     };
 } QUIC_CONNECTION_STATE;
 

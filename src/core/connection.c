@@ -987,13 +987,14 @@ QuicConnGenerateNewSourceCids(
     //
     uint8_t NewCidCount;
     if (ReplaceExistingCids) {
-        NewCidCount = Connection->SourceCidLimit;
+        NewCidCount = 0;
         CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
         while (Entry != NULL) {
             QUIC_CID_SLIST_ENTRY* SourceCid =
                 CXPLAT_CONTAINING_RECORD(Entry, QUIC_CID_SLIST_ENTRY, Link);
             SourceCid->CID.Retired = TRUE;
             Entry = Entry->Next;
+            NewCidCount++;
         }
     } else {
         uint8_t CurrentCidCount = QuicConnSourceCidsCount(Connection);
@@ -1010,28 +1011,6 @@ QuicConnGenerateNewSourceCids(
             break;
         }
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-uint16_t
-QuicConnUnusedDestCidsCount(
-    _In_ const QUIC_CONNECTION* Connection
-    )
-{
-    uint16_t Count = 0;
-    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-            Entry != &Connection->DestCids;
-            Entry = Entry->Flink) {
-        QUIC_CID_LIST_ENTRY* DestCid =
-            CXPLAT_CONTAINING_RECORD(
-                Entry,
-                QUIC_CID_LIST_ENTRY,
-                Link);
-        if (!DestCid->CID.UsedLocally && !DestCid->CID.Retired) {
-            ++Count;
-        }
-    }
-    return Count;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1210,6 +1189,42 @@ QuicConnReplaceRetiredCids(
 #endif
 
     return TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnAssignCids(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    BOOLEAN Assigned = FALSE;
+
+    CXPLAT_DBG_ASSERT(Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        QUIC_PATH* Path = &Connection->Paths[i];
+        if (Path->DestCid != NULL || !Path->InUse) {
+            continue;
+        }
+
+        QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+        if (NewDestCid == NULL) {
+            return Assigned;
+        }
+
+        Path->DestCid = NewDestCid;
+        QUIC_CID_SET_PATH(Connection, NewDestCid, Path);
+        Path->DestCid->CID.UsedLocally = TRUE;
+        QuicPathValidate(Path);
+
+        Path->SendChallenge = TRUE;
+        Path->PathValidationStartTime = CxPlatTimeUs64();
+
+        CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
+
+        Assigned = TRUE;
+    }
+
+    return Assigned;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -5058,6 +5073,10 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
+            if (QuicConnAssignCids(Connection)) {
+                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+            }
+
             AckEliciting = TRUE;
             break;
         }
@@ -6254,11 +6273,6 @@ QuicConnAddLocalAddress(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
-    if (NewDestCid == NULL) {
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
     if (!QuicAddrIsValid(LocalAddress)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -6359,24 +6373,30 @@ QuicConnAddLocalAddress(
 
     Path->Allowance = UINT32_MAX;
 
-    Path->DestCid = NewDestCid;
-    QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
-    Path->DestCid->CID.UsedLocally = TRUE;
-
-    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
-    QuicPathValidate(Path);
-    Path->SendChallenge = TRUE;
-    Path->PathValidationStartTime = CxPlatTimeUs64();
-
-    CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
-
     QuicTraceEvent(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!ADDR!",
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-    QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+    QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
+    //
+    // If we can't get a unused CID, we defer sending a path challange until we receieve a new CID.
+    //
+    if (NewDestCid != NULL) {
+        Path->DestCid = NewDestCid;
+        QUIC_CID_SET_PATH(Connection, Path->DestCid, Path);
+        Path->DestCid->CID.UsedLocally = TRUE;
+
+        CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+        QuicPathValidate(Path);
+        Path->SendChallenge = TRUE;
+        Path->PathValidationStartTime = CxPlatTimeUs64();
+
+        CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
+
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_CHALLENGE);
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -7045,6 +7065,31 @@ QuicConnParamSet(
         break;
 #endif
 
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    case QUIC_PARAM_CONN_DISABLE_CONN_ID_GENERATION:
+
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->State.DisableConnIDGen = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_GENERATE_CONN_ID:
+
+        if (!Connection->State.Connected ||
+            !Connection->State.HandshakeConfirmed) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QuicConnGenerateNewSourceCids(Connection, FALSE);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -7550,25 +7595,6 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_LOCAL_UNUSED_DEST_CID_COUNT:
-        if (*BufferLength < sizeof(uint16_t)) {
-            *BufferLength = sizeof(uint16_t);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        *BufferLength = sizeof(uint16_t);
-        *(uint16_t*)Buffer =
-            QuicConnUnusedDestCidsCount(Connection);
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -7729,6 +7755,12 @@ QuicConnApplyNewSettings(
             QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_KEEP_ALIVE);
         }
     }
+
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (NewSettings->IsSet.ConnIDGenDisabled) {
+        Connection->State.DisableConnIDGen = NewSettings->ConnIDGenDisabled;
+    }
+#endif
 
     if (OverWrite) {
         QuicSettingsDumpNew(NewSettings);

@@ -933,13 +933,15 @@ class WithValidateTlsConfigArgs : public testing::Test,
 struct ProbePathArgs {
     int Family;
     BOOLEAN ShareBinding;
+    BOOLEAN DeferConnIDGen;
     uint32_t DropPacketCount;
     static ::std::vector<ProbePathArgs> Generate() {
         ::std::vector<ProbePathArgs> list;
         for (int Family : { 4, 6 })
         for (BOOLEAN ShareBinding : { TRUE, FALSE })
+        for (BOOLEAN DeferConnIDGen : { TRUE, FALSE })
         for (uint32_t DropPacketCount : { 0, 1 })
-            list.push_back({ Family, ShareBinding, DropPacketCount });
+            list.push_back({ Family, ShareBinding, DeferConnIDGen, DropPacketCount });
         return list;
     }
 };
@@ -947,6 +949,7 @@ struct ProbePathArgs {
 std::ostream& operator << (std::ostream& o, const ProbePathArgs& args) {
     return o << (args.Family == 4 ? "v4" : "v6") << "/"
         << (args.ShareBinding ? "ShareBinding" : "not ShareBinding") << "/"
+        << (args.DeferConnIDGen ? "DeferConnIDGen" : "not DeferConnIDGen") << "/"
         << "DropPacketCount: " << args.DropPacketCount;
 }
 
