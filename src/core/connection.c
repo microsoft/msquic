@@ -5702,6 +5702,7 @@ QuicConnRecvDatagrams(
     QUIC_RX_PACKET* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
+    uint8_t CurrentPathID = 0;
 
     QUIC_RX_PACKET* Packet;
     while ((Packet = Packets) != NULL) {
@@ -5724,6 +5725,13 @@ QuicConnRecvDatagrams(
 
         CxPlatUpdateRoute(&DatagramPath->Route, Packet->Route);
 
+        if (CurrentPath != NULL) {
+            //
+            // The current path may be moved.
+            //
+            uint8_t PathIndex;
+            CurrentPath = QuicConnGetPathByID(Connection, CurrentPathID, &PathIndex);
+        }
         if (DatagramPath != CurrentPath) {
             if (BatchCount != 0) {
                 //
@@ -5741,6 +5749,7 @@ QuicConnRecvDatagrams(
                 BatchCount = 0;
             }
             CurrentPath = DatagramPath;
+            CurrentPathID = CurrentPath->ID;
         }
 
         if (!IsDeferred) {

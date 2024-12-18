@@ -1698,6 +1698,24 @@ TEST_P(WithMigrationArgs, Migration) {
         QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Smooth);
     }
 }
+
+TEST_P(WithProbePathArgs, MultipleLocalAddresses) {
+    TestLoggerT<ParamType> Logger("QuicTestMultipleLocalAddresses", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_PROBE_PATH_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH, Params));
+    } else {
+        QuicTestMultipleLocalAddresses(GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount);
+    }
+}
 #endif
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
