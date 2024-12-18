@@ -2090,6 +2090,32 @@ void SettingApplyTests(HQUIC Handle, uint32_t Param, bool AllowMtuEcnChanges = t
                 sizeof(QUIC_SETTINGS),
                 &Settings));
     }
+
+    //
+    // MaxOperationsPerDrain
+    //
+    {
+        QUIC_SETTINGS Settings{0};
+        Settings.IsSet.MaxOperationsPerDrain = TRUE;
+
+        Settings.MaxOperationsPerDrain = 0; // Not allowed
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+
+        Settings.MaxOperationsPerDrain = 255; // Max allowed
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(QUIC_SETTINGS),
+                &Settings));
+    }
 }
 
 void QuicTestStatefulGlobalSetParam()
@@ -2582,7 +2608,7 @@ void QuicTestGlobalParam()
         }
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        if (!UseQTIP)
+        if (!UseQTIP && !UseDuoNic)
 #endif
         {
             //
@@ -2680,6 +2706,52 @@ void QuicTestGlobalParam()
             }
         }
     }
+
+#if DEBUG
+    //
+    // QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL");
+        {
+            TestScopeLogger LogScope1("SetParam");
+            //
+            // Invalid features
+            //
+            {
+                TestScopeLogger LogScope2("SetParam is not allowed");
+                TEST_QUIC_STATUS(
+                    QUIC_STATUS_INVALID_PARAMETER,
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                        0,
+                        nullptr));
+            }
+        }
+
+        {
+            TestScopeLogger LogScope2("GetParam. Failed by missing MsQuicLib.WorkerPool");
+            uint32_t Length = 0;
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_BUFFER_TOO_SMALL,
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                    &Length,
+                    nullptr));
+            TEST_EQUAL(Length, sizeof(CXPLAT_WORKER_POOL*));
+
+            CXPLAT_WORKER_POOL* WorkerPool = 0;
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL,
+                    &Length,
+                    &WorkerPool));
+        }
+    }
+#endif
 
     //
     // Invalid parameter
@@ -4533,6 +4605,13 @@ void QuicTestTlsParam()
         //
         {
             TestScopeLogger LogScope1("GetParam");
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                Connection.GetParam(
+                    QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                    nullptr,
+                    nullptr));
+
             uint32_t Length = 0;
             TEST_QUIC_STATUS(
                 QUIC_STATUS_BUFFER_TOO_SMALL,
@@ -4715,6 +4794,141 @@ void QuicTestTlsParam()
         }
     }
 #endif
+}
+
+struct TestTlsHandshakeInfoServerContext {
+    MsQuicConnection** Server;
+    MsQuicConfiguration* ServerConfiguration;
+    QUIC_STATUS GetParamStatus;
+};
+
+QUIC_STATUS
+TestTlsHandshakeInfoListenerCallback(
+    _In_ MsQuicListener* /*Listener*/,
+    _In_opt_ void* ListenerContext,
+    _Inout_ QUIC_LISTENER_EVENT* Event)
+{
+    TestTlsHandshakeInfoServerContext* Context = (TestTlsHandshakeInfoServerContext*)ListenerContext;
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        *Context->Server = new(std::nothrow) MsQuicConnection(
+            Event->NEW_CONNECTION.Connection,
+            CleanUpManual,
+            [](MsQuicConnection* Connection, void* Context, QUIC_CONNECTION_EVENT* Event) {
+                if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+                    QUIC_HANDSHAKE_INFO Info = {};
+                    uint32_t Length = sizeof(Info);
+                    ((TestTlsHandshakeInfoServerContext*)Context)->GetParamStatus =
+                        MsQuic->GetParam(
+                            *Connection,
+                            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                            &Length,
+                            &Info);
+                }
+                return QUIC_STATUS_SUCCESS;
+            },
+            Context);
+        (*Context->Server)->SetConfiguration(*Context->ServerConfiguration);
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestTlsHandshakeInfo(
+    _In_ bool EnableResumption
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCertCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    MsQuicSettings Settings;
+    if (EnableResumption) {
+        Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_ONLY);
+    }
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    TestTlsHandshakeInfoServerContext ServerContext = { nullptr, &ServerConfiguration, QUIC_STATUS_SUCCESS };
+
+    MsQuicListener Listener(
+        Registration,
+        CleanUpManual,
+        TestTlsHandshakeInfoListenerCallback,
+        &ServerContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+    UniquePtr<MsQuicConnection> Server;
+    ServerContext.Server = (MsQuicConnection**)&Server;
+    Listener.Context = &ServerContext;
+
+    QuicAddr ServerLocalAddr(QUIC_ADDRESS_FAMILY_INET);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerLocalAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Client(Registration);
+    TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+
+    if (UseDuoNic) {
+        QuicAddr RemoteAddr{QuicAddrGetFamily(ServerLocalAddr), ServerLocalAddr.GetPort()};
+        QuicAddrSetToDuoNic(&RemoteAddr.SockAddr);
+        TEST_QUIC_SUCCEEDED(Client.SetRemoteAddr(RemoteAddr));
+    }
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            QUIC_LOCALHOST_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            ServerLocalAddr.GetPort()));
+
+    Client.HandshakeCompleteEvent.WaitForever();
+    TEST_TRUE(Client.HandshakeComplete);
+    TEST_TRUE(Server);
+    Server->HandshakeCompleteEvent.WaitForever();
+    TEST_TRUE(Server->HandshakeComplete);
+
+    //
+    // Validate the GetParam succeeded in the CONNECTED callback.
+    //
+    TEST_QUIC_SUCCEEDED(ServerContext.GetParamStatus);
+
+    QUIC_HANDSHAKE_INFO Info = {};
+    uint32_t Length = sizeof(Info);
+    TEST_QUIC_SUCCEEDED(
+        Client.GetParam(
+            QUIC_PARAM_TLS_HANDSHAKE_INFO,
+            &Length,
+            &Info
+    ));
+
+    if (EnableResumption) {
+        //
+        // The server should NOT have freed the TLS state, so this
+        // should succeed.
+        //
+        TEST_QUIC_SUCCEEDED(
+            Server->GetParam(
+                QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                &Length,
+                &Info));
+    } else {
+        //
+        // The server should have freed the TLS state by now, so this
+        // should fail.
+        //
+        TEST_EQUAL(
+            Server->GetParam(
+                QUIC_PARAM_TLS_HANDSHAKE_INFO,
+                &Length,
+                &Info),
+            QUIC_STATUS_INVALID_STATE);
+    }
 }
 
 void QuicTestStreamParam()

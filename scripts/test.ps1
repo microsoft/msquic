@@ -217,16 +217,16 @@ if ($CodeCoverage) {
     }
 }
 
-if ($UseXdp) {
-    # Helper for XDP usage
-    $DuoNic = $true
-}
-
 $BuildConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls -Arch $Arch -ExtraArtifactDir $ExtraArtifactDir -Config $Config
 
 $Tls = $BuildConfig.Tls
 $Arch = $BuildConfig.Arch
 $RootArtifactDir = $BuildConfig.ArtifactsDir
+
+if ($UseXdp) {
+    # Helper for XDP usage
+    $DuoNic = $true
+}
 
 # Root directory of the project.
 $RootDir = Split-Path $PSScriptRoot -Parent
@@ -352,16 +352,26 @@ if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
     $TestArguments += " -ExtraArtifactDir $ExtraArtifactDir"
 }
 
+$TestPaths = @()
+if (!$Kernel -and !$SkipUnitTests) {
+    $TestPaths += $MsQuicPlatTest
+    $TestPaths += $MsQuicCoreTest
+}
+$TestPaths += $MsQuicTest
+
 for ($iteration = 1; $iteration -le $NumIterations; $iteration++) {
     if ($NumIterations -gt 1) {
         Write-Host "------- Iteration $iteration -------"
     }
     # Run the script.
-    if (!$Kernel -and !$SkipUnitTests) {
-        Invoke-Expression ($RunTest + " -Path $MsQuicPlatTest " + $TestArguments)
-        Invoke-Expression ($RunTest + " -Path $MsQuicCoreTest " + $TestArguments)
+    foreach ($TestPath in $TestPaths) {
+        if ($IsLinux -and $UseXdp) {
+            $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
+            Invoke-Expression ('/usr/bin/sudo bash -c "ulimit -n $NOFILE && pwsh $RunTest -Path $TestPath $TestArguments"')
+        } else {
+            Invoke-Expression ($RunTest + " -Path $TestPath " + $TestArguments)
+        }
     }
-    Invoke-Expression ($RunTest + " -Path $MsQuicTest " + $TestArguments)
 }
 
 if ($CodeCoverage) {

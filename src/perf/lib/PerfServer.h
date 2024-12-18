@@ -18,7 +18,7 @@ Abstract:
 class PerfServer {
 public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
-        Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback),
+        Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback, TcpDefaultExecutionProfile),
         Server(&Engine, CredConfig, this) {
         CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
         QuicAddrSetFamily(&LocalAddr, QUIC_ADDRESS_FAMILY_UNSPEC);
@@ -42,7 +42,7 @@ public:
         _In_reads_(argc) _Null_terminated_ char* argv[]
         );
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
-    void Wait(int Timeout);
+    QUIC_STATUS Wait(int Timeout);
 
     static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
     static void DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }

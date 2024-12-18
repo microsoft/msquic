@@ -144,7 +144,6 @@ QuicDatagramUninitialize(
     _In_ QUIC_DATAGRAM* Datagram
     )
 {
-    QuicDatagramSendShutdown(Datagram);
     CXPLAT_DBG_ASSERT(Datagram->SendQueue == NULL);
     CXPLAT_DBG_ASSERT(Datagram->ApiQueue == NULL);
     CxPlatDispatchLockUninitialize(&Datagram->ApiQueueLock);
@@ -328,6 +327,7 @@ QuicDatagramQueueSend(
 {
     QUIC_STATUS Status;
     BOOLEAN QueueOper = TRUE;
+    const BOOLEAN IsPriority = !!(SendRequest->Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
     QUIC_CONNECTION* Connection = QuicDatagramGetConnection(Datagram);
 
     CxPlatDispatchLockAcquire(&Datagram->ApiQueueLock);
@@ -363,11 +363,16 @@ QuicDatagramQueueSend(
         goto Exit;
     }
 
+    //
+    // From here on, we cannot fail the call because the stream has been queued
+    // and possibly already started to be processed.
+    //
+    Status = QUIC_STATUS_PENDING;
+
     if (QueueOper) {
         QUIC_OPERATION* Oper =
             QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
@@ -375,15 +380,20 @@ QuicDatagramQueueSend(
                 0);
             goto Exit;
         }
+
+        // TODO - Kill the connection?
+
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_DATAGRAM_SEND;
 
         //
         // Queue the operation but don't wait for the completion.
         //
-        QuicConnQueueOper(Connection, Oper);
+        if (IsPriority) {
+            QuicConnQueuePriorityOper(Connection, Oper);
+        } else {
+            QuicConnQueueOper(Connection, Oper);
+        }
     }
-
-    Status = QUIC_STATUS_PENDING;
 
 Exit:
 

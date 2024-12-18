@@ -14,7 +14,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationVerifierEnabled,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -37,7 +37,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, ApiEnter,
         const void *, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer_hex(uint64_t, arg3, arg3)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
     )
 )
 
@@ -85,7 +85,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCreatedV2,
         const char *, arg3,
         unsigned int, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )
@@ -125,7 +125,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationCleanup,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -166,7 +166,7 @@ TRACEPOINT_EVENT(CLOG_REGISTRATION_C, RegistrationRundownV2,
         const char *, arg3,
         unsigned int, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
     )

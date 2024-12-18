@@ -7,12 +7,14 @@ on:
     - .github/workflows/docker-publish-xcomp.yml
     - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
+    - .docker/ubuntu-24.04/*
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
     - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
+    - .docker/ubuntu-24.04/*
 
 permissions: read-all
 
@@ -27,7 +29,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['20.04', '22.04']
+        version: ['20.04', '22.04', '24.04']
+        target: ['cross']
 
     name: Build
     runs-on: ubuntu-latest
@@ -37,18 +40,18 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@63c24ba6bd7ba022e95695ff85de572c04a18142
+        uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f
         with:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
       - name: Log into registry ${{ env.REGISTRY }}
         if: github.event_name != 'pull_request'
-        uses: docker/login-action@343f7c4344506bcbf9b4de18042ae17996df046d
+        uses: docker/login-action@9780b0c442fbb1117ed29e0efdff1e18412f7567
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
@@ -58,17 +61,18 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@4a13e500e55cf31b7a5d59a38ab2040ab0f42f56
+        uses: docker/build-push-action@48aba3b46d1b1fec4febb7c5d0c644b249a11355
         with:
           context: .docker/ubuntu-${{ matrix.version }}
           file: .docker/ubuntu-${{ matrix.version }}/Dockerfile
           push: ${{ github.event_name != 'pull_request' }}
-          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ubuntu-${{ matrix.version }}
+          tags: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:ubuntu-${{ matrix.version }}-${{ matrix.target }}
           labels: ${{ steps.meta.outputs.labels }}
+          target: ${{ matrix.target }}-build

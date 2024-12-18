@@ -453,24 +453,6 @@ tracepoint(CLOG_CONNECTION_C, UnreachableInvalid , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for CloseUserCanceled
-// [conn][%p] Connection close using user canceled error
-// QuicTraceLogConnInfo(
-                CloseUserCanceled,
-                Connection,
-                "Connection close using user canceled error");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_CloseUserCanceled
-#define _clog_3_ARGS_TRACE_CloseUserCanceled(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, CloseUserCanceled , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for CloseComplete
 // [conn][%p] Connection close complete
 // QuicTraceLogConnInfo(
@@ -2117,6 +2099,24 @@ tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
 #ifndef _clog_6_ARGS_TRACE_ConnPacketRecv
 #define _clog_6_ARGS_TRACE_ConnPacketRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_CONNECTION_C, ConnPacketRecv , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnDelayCloseApplicationError
+// [conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.
+// QuicTraceEvent(
+                    ConnDelayCloseApplicationError,
+                    "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+                    Connection);
+// arg2 = arg2 = Connection = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnDelayCloseApplicationError
+#define _clog_3_ARGS_TRACE_ConnDelayCloseApplicationError(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_C, ConnDelayCloseApplicationError , arg2);\
 
 #endif
 

@@ -142,6 +142,22 @@ tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketSelective );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for TestHookDropPacketNth
+// [test][hook] Nth packet drop
+// QuicTraceLogVerbose(
+                TestHookDropPacketNth,
+                "[test][hook] Nth packet drop");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_TestHookDropPacketNth
+#define _clog_2_ARGS_TRACE_TestHookDropPacketNth(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_TESTHELPERS_H, TestHookDropPacketNth );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for TestHookDropPacketBitmap
 // [test][hook] Bitmap packet drop
 // QuicTraceLogVerbose(

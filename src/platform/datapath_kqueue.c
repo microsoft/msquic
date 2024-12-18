@@ -83,6 +83,8 @@ typedef struct DATAPATH_RX_IO_BLOCK {
 //
 
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
+
     //
     // The proc context owning this send context.
     //
@@ -109,16 +111,6 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
-    // The total buffer size for Buffers.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
-    //
     // Total number of Buffers currently in use.
     //
     uint32_t BufferCount;
@@ -142,11 +134,6 @@ typedef struct CXPLAT_SEND_DATA {
     // IO vectors used for sends on the socket.
     //
     struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    uint16_t SegmentSize;
 
 } CXPLAT_SEND_DATA;
 
@@ -359,6 +346,11 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_UDP_DATAPATH_CALLBACKS UdpHandlers;
 
     //
+    // The Worker pool
+    //
+    CXPLAT_WORKER_POOL* WorkerPool;
+
+    //
     // Synchronization mechanism for cleanup.
     //
     CXPLAT_REF_COUNT RefCount;
@@ -408,7 +400,7 @@ CxPlatProcessorContextInitialize(
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathPartition->Datapath = Datapath;
     DatapathPartition->PartitionIndex = PartitionIndex;
-    DatapathPartition->EventQ = CxPlatWorkerGetEventQ(PartitionIndex);
+    DatapathPartition->EventQ = CxPlatWorkerPoolGetEventQ(Datapath->WorkerPool, PartitionIndex);
     CxPlatRefInitialize(&DatapathPartition->RefCount);
 
     CxPlatPoolInitialize(
@@ -438,6 +430,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -451,8 +444,11 @@ CxPlatDataPathInitialize(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
 
-    if (!CxPlatWorkersLazyStart(Config)) {
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -480,6 +476,7 @@ CxPlatDataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
+    Datapath->WorkerPool = WorkerPool;
     Datapath->PartitionCount = 1; //PartitionCount; // Darwin only supports a single receiver
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
 
@@ -491,7 +488,7 @@ CxPlatDataPathInitialize(
             &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&CxPlatWorkerRundown));
+    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
     *NewDataPath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -509,8 +506,8 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
+        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
-        CxPlatRundownRelease(&CxPlatWorkerRundown);
     }
 }
 
@@ -567,6 +564,9 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    //
+    // Intentionally not enabling Feature_TTL on MacOS for now.
+    //
     return Datapath->Features;
 }
 
@@ -601,148 +601,6 @@ CxPlatDataPathAllocRxIoBlock(
         IoBlock->RecvPacket.Allocated = TRUE;
     }
     return IoBlock;
-}
-
-void
-CxPlatDataPathPopulateTargetAddress(
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ ADDRINFO* AddrInfo,
-    _Out_ QUIC_ADDR* Address
-    )
-{
-    struct sockaddr_in6* SockAddrIn6 = NULL;
-    struct sockaddr_in* SockAddrIn = NULL;
-
-    CxPlatZeroMemory(Address, sizeof(QUIC_ADDR));
-
-    if (AddrInfo->ai_addr->sa_family == AF_INET6) {
-        CXPLAT_DBG_ASSERT(sizeof(struct sockaddr_in6) == AddrInfo->ai_addrlen);
-
-        //
-        // Is this a mapped ipv4 one?
-        //
-
-        SockAddrIn6 = (struct sockaddr_in6*)AddrInfo->ai_addr;
-
-        if (Family == QUIC_ADDRESS_FAMILY_UNSPEC && IN6_IS_ADDR_V4MAPPED(&SockAddrIn6->sin6_addr)) {
-            SockAddrIn = &Address->Ipv4;
-
-            //
-            // Get the ipv4 address from the mapped address.
-            //
-
-            SockAddrIn->sin_family = QUIC_ADDRESS_FAMILY_INET;
-            memcpy(&SockAddrIn->sin_addr.s_addr, &SockAddrIn6->sin6_addr.s6_addr[12], 4);
-            SockAddrIn->sin_port = SockAddrIn6->sin6_port;
-
-            return;
-        }
-        Address->Ipv6 = *SockAddrIn6;
-        Address->Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-        return;
-    }
-
-    if (AddrInfo->ai_addr->sa_family == AF_INET) {
-        CXPLAT_DBG_ASSERT(sizeof(struct sockaddr_in) == AddrInfo->ai_addrlen);
-        SockAddrIn = (struct sockaddr_in*)AddrInfo->ai_addr;
-        Address->Ipv4 = *SockAddrIn;
-        Address->Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-        return;
-    }
-
-    CXPLAT_FRE_ASSERT(FALSE);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Success_(QUIC_SUCCEEDED(return))
-QUIC_STATUS
-CxPlatDataPathGetLocalAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*Addresses, __drv_allocatesMem(Mem))
-        CXPLAT_ADAPTER_ADDRESS** Addresses,
-    _Out_ uint32_t* AddressesCount
-    )
-{
-    UNREFERENCED_PARAMETER(Datapath);
-    *Addresses = NULL;
-    *AddressesCount = 0;
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-QUIC_STATUS
-CxPlatDataPathGetGatewayAddresses(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _Outptr_ _At_(*GatewayAddresses, __drv_allocatesMem(Mem))
-        QUIC_ADDR** GatewayAddresses,
-    _Out_ uint32_t* GatewayAddressesCount
-    )
-{
-    UNREFERENCED_PARAMETER(Datapath);
-    *GatewayAddresses = NULL;
-    *GatewayAddressesCount = 0;
-    return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-QUIC_STATUS
-CxPlatDataPathResolveAddress(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_z_ const char* HostName,
-    _Inout_ QUIC_ADDR* Address
-    )
-{
-    UNREFERENCED_PARAMETER(Datapath);
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    ADDRINFO Hints = {0};
-    ADDRINFO* AddrInfo = NULL;
-    int Result = 0;
-
-    //
-    // Prepopulate hint with input family. It might be unspecified.
-    //
-    Hints.ai_family = Address->Ip.sa_family;
-    if (Hints.ai_family == QUIC_ADDRESS_FAMILY_INET6) {
-        Hints.ai_family = AF_INET6;
-    }
-
-    //
-    // Try numeric name first.
-    //
-    Hints.ai_flags = AI_NUMERICHOST;
-    Result = getaddrinfo(HostName, NULL, &Hints, &AddrInfo);
-    if (Result == 0) {
-        CxPlatDataPathPopulateTargetAddress(Hints.ai_family, AddrInfo, Address);
-        freeaddrinfo(AddrInfo);
-        AddrInfo = NULL;
-        goto Exit;
-    }
-
-    //
-    // Try canonical host name.
-    //
-    Hints.ai_flags = AI_CANONNAME;
-    Result = getaddrinfo(HostName, NULL, &Hints, &AddrInfo);
-    if (Result == 0) {
-        CxPlatDataPathPopulateTargetAddress(Hints.ai_family, AddrInfo, Address);
-        freeaddrinfo(AddrInfo);
-        AddrInfo = NULL;
-        goto Exit;
-    }
-
-    QuicTraceEvent(
-        LibraryErrorStatus,
-        "[ lib] ERROR, %u, %s.",
-        (uint32_t)Result,
-        "Resolving hostname to IP");
-    QuicTraceLogError(
-        DatapathResolveHostNameFailed,
-        "[%p] Couldn't resolve hostname '%s' to an IP address",
-        Datapath,
-        HostName);
-    Status = (QUIC_STATUS)Result;
-
-Exit:
-
-    return Status;
 }
 
 //
@@ -1259,6 +1117,7 @@ CxPlatSocketContextRecvComplete(
 
     RecvPacket->Route->Queue = SocketContext;
     RecvPacket->TypeOfService = 0;
+    RecvPacket->HopLimitTTL = 0; // TODO: We are not supporting this on MacOS (yet) unless there's a business need.
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);
@@ -1722,6 +1581,16 @@ CxPlatSocketGetRemoteAddress(
     *Address = Socket->RemoteAddress;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    UNREFERENCED_PARAMETER(Socket);
+    return FALSE;
+}
+
 void
 CxPlatRecvDataReturn(
     _In_opt_ CXPLAT_RECV_DATA* RecvDataChain
@@ -2134,6 +2003,7 @@ CxPlatSocketSendInternal(
             PktInfo = (struct in_pktinfo*) CMSG_DATA(CMsg);
             // TODO: Use Ipv4 instead of Ipv6.
             PktInfo->ipi_ifindex = LocalAddress->Ipv6.sin6_scope_id;
+            PktInfo->ipi_spec_dst = LocalAddress->Ipv4.sin_addr;
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         } else {
             CMsg->cmsg_level = IPPROTO_IPV6;
@@ -2221,7 +2091,7 @@ Exit:
     return Status;
 }
 
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
@@ -2230,18 +2100,12 @@ CxPlatSocketSend(
 {
     UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
-    CXPLAT_SOCKET_CONTEXT* SocketContext = Route->Queue;
-    QUIC_STATUS Status =
-        CxPlatSocketSendInternal(
-            SocketContext,
-            &Route->LocalAddress,
-            &Route->RemoteAddress,
-            SendData,
-            FALSE);
-    if (Status == QUIC_STATUS_PENDING) {
-        Status = QUIC_STATUS_SUCCESS;
-    }
-    return Status;
+    CxPlatSocketSendInternal(
+        Route->Queue,
+        &Route->LocalAddress,
+        &Route->RemoteAddress,
+        SendData,
+        FALSE);
 }
 
 uint16_t

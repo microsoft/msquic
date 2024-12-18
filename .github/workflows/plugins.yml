@@ -25,12 +25,12 @@ jobs:
         platform: [x86, x64]
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Setup MSBuild.exe
       uses: microsoft/setup-msbuild@6fb02220983dee41ce7ae257b6f4d8f9bf5ed4ce
     - name: Build
       run: msbuild src\plugins\msquic.windbg.sln /p:configuration=${{ matrix.configuration }} /p:platform=${{ matrix.platform }}
-    - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+    - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
       with:
         name: bin_windbg_${{ matrix.configuration }}_${{ matrix.platform }}
         path: |
@@ -49,14 +49,31 @@ jobs:
         configuration: [Release, Debug]
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Setup .NET
-      uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3
+      uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
       with:
         dotnet-version: 6.0.x
+    - name: Install Dependencies
+      run: dotnet tool install --global Microsoft.Performance.Toolkit.Plugins.Cli --version 0.1.25-preview
     - name: Build
       run: dotnet build src\plugins\QuicTrace.sln -c ${{ matrix.configuration }}
-    - uses: actions/upload-artifact@5d5d22a31266ced268874388b861e4b58bb5c2f3
+    - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
       with:
         name: bin_quictrace_${{ matrix.configuration }}
-        path: artifacts/bin
+        path: artifacts/bin/quictrace/${{ matrix.configuration }}
+    - name: Package
+      shell: pwsh
+      run: |
+        $sourceDir = "src\plugins\trace\dll\bin\${{ matrix.configuration }}\netstandard2.1"
+        $manifestPath = "$sourceDir/pluginManifest.json"
+        $manifest = Get-Content -Path $manifestPath | ConvertFrom-Json
+        $pluginId = $manifest.identity.id
+        $pluginVersion = $manifest.identity.version
+        $packageName = "$pluginId-$pluginVersion.ptix"
+        Write-Host "Creating $packageName"
+        & plugintool pack -s $sourceDir -o "artifacts/bin/quictrace/$packageName"
+    - uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      with:
+        name: ptix_quictrace_${{ matrix.configuration }}
+        path: artifacts/bin/quictrace/*.ptix

@@ -194,6 +194,12 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN TimestampRecvNegotiated : 1;
 
+        //
+        // Indicates we received APPLICATION_ERROR transport error and are checking also
+        // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
+        //
+        BOOLEAN DelayedApplicationError : 1;
+
 #ifdef CxPlatVerifierEnabledByAddr
         //
         // The calling app is being verified (app or driver verifier).
@@ -269,6 +275,7 @@ typedef struct QUIC_CONN_STATS {
         uint32_t ClientFlight1Bytes;    // Sum of TLS payloads
         uint32_t ServerFlight1Bytes;    // Sum of TLS payloads
         uint32_t ClientFlight2Bytes;    // Sum of TLS payloads
+        uint8_t HandshakeHopLimitTTL;   // TTL value in the initial packet of the handshake.
     } Handshake;
 
     struct {
@@ -420,6 +427,7 @@ typedef struct QUIC_CONNECTION {
     //
     BOOLEAN WorkerProcessing : 1;
     BOOLEAN HasQueuedWork : 1;
+    BOOLEAN HasPriorityWork : 1;
 
     //
     // Set of current reasons sending more packets is currently blocked.
@@ -1137,7 +1145,8 @@ QuicConnIndicateEvent(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     );
 
 //
@@ -1147,6 +1156,13 @@ QuicConnDrainOperations(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnQueueOper(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicConnQueuePriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
     );

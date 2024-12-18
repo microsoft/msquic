@@ -33,6 +33,9 @@ jobs:
           { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "openssl3", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "openssl3", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp", time64: "-Time64Distro" },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -40,45 +43,118 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
+      xdp: ${{ matrix.vec.xdp }}
+      time64: ${{ matrix.vec.time64 }}
 
   test-packages:
     name: Test Linux Packages
     needs: [build-packages]
-    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
         vec: [
           { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
         ]
+    runs-on: ${{ matrix.vec.os }}
     steps:
-    - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
-      with:
-        fetch-depth: 0
-    - name: Prepare Machine
-      shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest
     - name: Download Package
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Install Package
       run: |
         sudo apt-add-repository ppa:lttng/stable-2.13
         sudo apt-get update
         sudo apt-get install -y lttng-tools
-        sudo find -name "*.deb" -exec dpkg -i {} \;
+        sudo find -name "*.deb" -exec sudo apt install -y ./{} \;
         rm artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/libmsquic.so*
         ls artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}
     - name: Test
       run: |
         chmod +x artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquictest
         artifacts/bin/linux/${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}/msquictest --gtest_filter=ParameterValidation.ValidateApi
+  test-packages-on-docker:
+    name: Test Linux Packages
+    needs: [build-packages]
+    strategy:
+      fail-fast: false
+      matrix:
+        vec: [
+          # Ubuntu 24.04
+          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-amd64", xdp: "-UseXdp", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm32v7", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm64v8", dotnetVersion: "9.0" },
+          # Ubuntu 22.04
+          { friendlyName: "Ubuntu 22.04 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-amd64", dotnetVersion: "8.0" },
+          { friendlyName: "Ubuntu 22.04 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-arm32v7", dotnetVersion: "8.0" },
+          { friendlyName: "Ubuntu 22.04 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-arm64v8", dotnetVersion: "8.0" },
+          # Ubuntu 20.04
+          { friendlyName: "Ubuntu 20.04 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "openssl", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:ubuntu-20.04-helix-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 20.04 ARM64", config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:ubuntu-20.04-helix-arm64v8", dotnetVersion: "9.0" },
+          # Debian 12
+          { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm32v7", dotnetVersion: "9.0" },
+          { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm64v8", dotnetVersion: "9.0" },
+          # CBL-Mariner 2.0
+          { friendlyName: "CBL-Mariner 2.0 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "openssl", image: "mcr.microsoft.com/dotnet/runtime:8.0-cbl-mariner2.0-amd64", dotnetVersion: "8.0" },
+          { friendlyName: "CBL-Mariner 2.0 ARM64", config: "Release", os: "ubuntu-20.04", arch: "arm64",   tls: "openssl", image: "mcr.microsoft.com/dotnet/runtime:8.0-cbl-mariner2.0-arm64v8", dotnetVersion: "8.0" },
+          # Azure Linux 3.0
+          { friendlyName: "AzureLinux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-amd64", dotnetVersion: "9.0", xdp: "-UseXdp" },
+          { friendlyName: "AzureLinux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-arm64v8", dotnetVersion: "9.0" },
+          # Centos Stream 9
+          { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:centos-stream9-helix", dotnetVersion: "9.0" },
+          # Fedora 39 - 40
+          { friendlyName: "Fedora 39 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-39", dotnetVersion: "9.0" },
+          { friendlyName: "Fedora 40 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-40", dotnetVersion: "9.0" },
+          # OpenSuse 15.4
+          { friendlyName: "OpenSuse 15.4 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "openssl", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:opensuse-15.4-helix-amd64", dotnetVersion: "9.0" },
+          # RHEL 8 - 9
+          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", image: "redhat/ubi8-minimal:latest" },
+          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", image: "redhat/ubi9-minimal:latest" },
+        ]
+    runs-on: ${{ matrix.vec.os }}
+    steps:
+    - name: Checkout Repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Download Package
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: Package-${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        path: artifacts
+    - name: Download Build Artifacts
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      with:
+        name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
+        path: artifacts
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+    - name: Set up .NET 9.0
+      uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
+      with:
+        dotnet-version: ${{ matrix.vec.dotnetVersion }}
+    - name: Build .NET QUIC Test Project
+      run: |
+        pushd src/cs/QuicSimpleTest && dotnet build QuicHello.net${{ matrix.vec.dotnetVersion }}.csproj -a ${{ matrix.vec.arch }} -c ${{ matrix.vec.config }} -o artifacts/net${{ matrix.vec.dotnetVersion }} -f net${{ matrix.vec.dotnetVersion }} && popd
+    - name: Docker Run
+      run: |
+        docker run -v $(pwd):/main ${{ matrix.vec.image }} /main/scripts/docker-script.sh ${{ matrix.vec.arch }} ${{ matrix.vec.config }} ${{ matrix.vec.tls }} ${{ matrix.vec.dotnetVersion }}
+
+  Complete:
+    name: Package Linux Complete
+    if: always()
+    needs: [build-packages, test-packages, test-packages-on-docker]
+    runs-on: ubuntu-latest
+    permissions: {} # No need for any permissions.
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      with:
+        jobs: ${{ toJSON(needs) }}

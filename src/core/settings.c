@@ -165,6 +165,9 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.NetStatsEventEnabled) {
         Settings->NetStatsEventEnabled = QUIC_DEFAULT_NET_STATS_EVENT_ENABLED;
     }
+    if (!Settings->IsSet.StreamMultiReceiveEnabled) {
+        Settings->StreamMultiReceiveEnabled = QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -330,6 +333,9 @@ QuicSettingsCopy(
     if (!Destination->IsSet.NetStatsEventEnabled) {
         Destination->NetStatsEventEnabled = Source->NetStatsEventEnabled;
     }
+    if (!Destination->IsSet.StreamMultiReceiveEnabled) {
+        Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -425,6 +431,9 @@ QuicSettingApply(
         Destination->IsSet.DatagramReceiveEnabled = TRUE;
     }
     if (Source->IsSet.MaxOperationsPerDrain && (!Destination->IsSet.MaxOperationsPerDrain || OverWrite)) {
+        if (Source->MaxOperationsPerDrain == 0) {
+            return FALSE;
+        }
         Destination->MaxOperationsPerDrain = Source->MaxOperationsPerDrain;
         Destination->IsSet.MaxOperationsPerDrain = TRUE;
     }
@@ -700,6 +709,11 @@ QuicSettingApply(
         Destination->NetStatsEventEnabled = Source->NetStatsEventEnabled;
         Destination->IsSet.NetStatsEventEnabled = TRUE;
     }
+
+    if (Source->IsSet.StreamMultiReceiveEnabled && (!Destination->IsSet.StreamMultiReceiveEnabled || OverWrite)) {
+        Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
+        Destination->IsSet.StreamMultiReceiveEnabled = TRUE;
+    }
     return TRUE;
 }
 
@@ -784,7 +798,7 @@ QuicSettingsLoad(
             QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value <= UINT8_MAX) {
+        if (Value > 0 && Value <= UINT8_MAX) {
             Settings->MaxOperationsPerDrain = (uint8_t)Value;
         }
     }
@@ -1358,6 +1372,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->NetStatsEventEnabled = !!Value;
     }
+    if (!Settings->IsSet.StreamMultiReceiveEnabled) {
+        Value = QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->StreamMultiReceiveEnabled = !!Value;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1426,6 +1450,7 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
     QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
     QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
+    QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1586,6 +1611,9 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.NetStatsEventEnabled) {
         QuicTraceLogVerbose(SettingNetStatsEventEnabled,            "[sett] NetStatsEventEnabled       = %hhu", Settings->NetStatsEventEnabled);
+    }
+    if (Settings->IsSet.StreamMultiReceiveEnabled) {
+        QuicTraceLogVerbose(SettingStreamMultiReceiveEnabled,       "[sett] StreamMultiReceiveEnabled  = %hhu", Settings->StreamMultiReceiveEnabled);
     }
 }
 
@@ -1843,6 +1871,14 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        StreamMultiReceiveEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -1999,6 +2035,14 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         NetStatsEventEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        StreamMultiReceiveEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

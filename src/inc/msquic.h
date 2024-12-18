@@ -146,6 +146,7 @@ typedef enum QUIC_CREDENTIAL_FLAGS {
     QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY            = 0x00040000, // Windows only currently
     QUIC_CREDENTIAL_FLAG_INPROC_PEER_CERTIFICATE                = 0x00080000, // Schannel only
     QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE                = 0x00100000, // OpenSSL only currently
+    QUIC_CREDENTIAL_FLAG_DISABLE_AIA                            = 0x00200000, // Schannel only currently
 } QUIC_CREDENTIAL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CREDENTIAL_FLAGS)
@@ -208,6 +209,7 @@ typedef enum QUIC_STREAM_START_FLAGS {
     QUIC_STREAM_START_FLAG_FAIL_BLOCKED         = 0x0002,   // Only opens the stream if flow control allows.
     QUIC_STREAM_START_FLAG_SHUTDOWN_ON_FAIL     = 0x0004,   // Shutdown the stream immediately after start failure.
     QUIC_STREAM_START_FLAG_INDICATE_PEER_ACCEPT = 0x0008,   // Indicate PEER_ACCEPTED event if not accepted at start.
+    QUIC_STREAM_START_FLAG_PRIORITY_WORK        = 0x0010,   // Higher priority than other connection work.
 } QUIC_STREAM_START_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_START_FLAGS)
@@ -241,6 +243,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_DGRAM_PRIORITY           = 0x0008,   // Indicates the datagram is higher priority than others.
     QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
     QUIC_SEND_FLAG_CANCEL_ON_LOSS           = 0x0020,   // Indicates that a stream is to be cancelled when packet loss is detected.
+    QUIC_SEND_FLAG_PRIORITY_WORK            = 0x0040,   // Higher priority than other connection work.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
@@ -267,6 +270,10 @@ typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
     QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
+    QUIC_EXECUTION_CONFIG_FLAG_XDP              = 0x0004,
+    QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC    = 0x0008,
+    QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY    = 0x0010,
+    QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE       = 0x0020,
 #endif
 } QUIC_EXECUTION_CONFIG_FLAGS;
 
@@ -550,6 +557,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint32_t SendEcnCongestionCount;        // Number of congestion events caused by ECN.
 
+    uint8_t  HandshakeHopLimitTTL;          // The TTL value in the initial packet of the handshake.
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -682,7 +691,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled                   : 1;
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
-            uint64_t RESERVED                               : 22;
+            uint64_t StreamMultiReceiveEnabled              : 1;
+            uint64_t RESERVED                               : 21;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -732,7 +742,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t ReliableResetEnabled      : 1;
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
-            uint64_t ReservedFlags             : 59;
+            uint64_t StreamMultiReceiveEnabled : 1;
+            uint64_t ReservedFlags             : 58;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -827,7 +838,9 @@ void
 #define QUIC_PARAM_PREFIX_TLS_SCHANNEL                  0x07000000
 #define QUIC_PARAM_PREFIX_STREAM                        0x08000000
 
-#define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x7F000000) == QUIC_PARAM_PREFIX_GLOBAL)
+#define QUIC_PARAM_HIGH_PRIORITY                        0x40000000 // Combine with any param to make it high priority.
+
+#define QUIC_PARAM_IS_GLOBAL(Param) ((Param & 0x3F000000) == QUIC_PARAM_PREFIX_GLOBAL)
 
 //
 // Parameters for Global.

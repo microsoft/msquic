@@ -151,6 +151,7 @@ namespace QuicTrace.DataModel
                         Timings.SendPacket = state.SendPacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamWriteFramesEvent)!.ID, evt.ProcessId));
                         if (Timings.SendPacket == null)
                         {
+                            //Console.WriteLine("No SendPacket Error!");
                             Timings.EncounteredError = true;
                             break;
                         }
@@ -188,6 +189,7 @@ namespace QuicTrace.DataModel
                         Timings.RecvPacket = state.ReceivePacketSet.FindActive(new QuicObjectKey(evt.PointerSize, (evt as QuicStreamReceiveFrameEvent)!.ID, evt.ProcessId));
                         if (Timings.RecvPacket == null)
                         {
+                            //Console.WriteLine("No RecvPacket Error!");
                             Timings.EncounteredError = true;
                             break;
                         }
@@ -218,7 +220,7 @@ namespace QuicTrace.DataModel
                             }
                         }
 
-                        if (InitialTimeStamp > Timings.RecvPacket.PacketReceive)
+                        if (InitialTimeStamp > Timings.RecvPacket.PacketReceive && !Timings.IsAllocated)
                         {
                             // Stream was created after packet recieved
                             Timings.UpdateToState(QuicStreamState.Alloc, InitialTimeStamp);

@@ -187,6 +187,7 @@ QuicPacketTypeToEncryptLevelV2(
     QUIC_CONN_SEND_FLAG_ACK | \
     QUIC_CONN_SEND_FLAG_CRYPTO | \
     QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | \
+    QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE | /* not allowed directly, but will be converted to CONNECTION_CLOSE */ \
     QUIC_CONN_SEND_FLAG_PING \
 )
 

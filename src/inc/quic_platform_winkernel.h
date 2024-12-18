@@ -314,17 +314,14 @@ typedef EX_PUSH_LOCK CXPLAT_RW_LOCK;
 #define CxPlatRwLockReleaseShared(Lock) ExReleasePushLockShared(Lock); KeLeaveCriticalRegion()
 #define CxPlatRwLockReleaseExclusive(Lock) ExReleasePushLockExclusive(Lock); KeLeaveCriticalRegion()
 
-typedef struct CXPLAT_DISPATCH_RW_LOCK {
-    EX_SPIN_LOCK SpinLock;
-    KIRQL PrevIrql;
-} CXPLAT_DISPATCH_RW_LOCK;
+typedef EX_SPIN_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
-#define CxPlatDispatchRwLockInitialize(Lock) (Lock)->SpinLock = 0
+#define CxPlatDispatchRwLockInitialize(Lock) *(Lock) = 0
 #define CxPlatDispatchRwLockUninitialize(Lock)
-#define CxPlatDispatchRwLockAcquireShared(Lock) (Lock)->PrevIrql = ExAcquireSpinLockShared(&(Lock)->SpinLock)
-#define CxPlatDispatchRwLockAcquireExclusive(Lock) (Lock)->PrevIrql = ExAcquireSpinLockExclusive(&(Lock)->SpinLock)
-#define CxPlatDispatchRwLockReleaseShared(Lock) ExReleaseSpinLockShared(&(Lock)->SpinLock, (Lock)->PrevIrql)
-#define CxPlatDispatchRwLockReleaseExclusive(Lock) ExReleaseSpinLockExclusive(&(Lock)->SpinLock, (Lock)->PrevIrql)
+#define CxPlatDispatchRwLockAcquireShared(Lock, PrevIrql) KIRQL PrevIrql = ExAcquireSpinLockShared(Lock)
+#define CxPlatDispatchRwLockAcquireExclusive(Lock, PrevIrql) KIRQL PrevIrql = ExAcquireSpinLockExclusive(Lock)
+#define CxPlatDispatchRwLockReleaseShared(Lock, PrevIrql) ExReleaseSpinLockShared(Lock, PrevIrql)
+#define CxPlatDispatchRwLockReleaseExclusive(Lock, PrevIrql) ExReleaseSpinLockExclusive(Lock, PrevIrql)
 
 //
 // Reference Count Interface

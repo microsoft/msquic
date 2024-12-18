@@ -499,7 +499,7 @@ QuicTestValidateConnectionEvents3(
 
     QUIC_BUFFER* ResumptionTicket = nullptr;
     QuicTestPrimeResumption(
-        QuicAddrGetFamily(&ServerLocalAddr.SockAddr),
+        QuicAddrGetFamily(&ServerLocalAddr.SockAddr) == QUIC_ADDRESS_FAMILY_INET ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6,
         Registration,
         ServerConfiguration,
         ClientConfiguration,

@@ -45,9 +45,10 @@ EXT_COMMAND(
         }
 
         Registration Registration = Registration::FromLink(LinkAddr);
-        Dml("\t<link cmd=\"!quicregistration 0x%I64X\">0x%I64X</link>\t\"%s\"\n",
+        Dml("\t<link cmd=\"!quicregistration 0x%I64X\">0x%I64X</link>\t%s\t\t\"%s\"\n",
             Registration.Addr,
             Registration.Addr,
+            Registration.GetWorkersState(),
             Registration.GetAppName().Data);
         HasAtLeastOne = true;
     }

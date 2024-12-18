@@ -296,6 +296,7 @@ typedef struct QUIC_OPERATION_QUEUE {
     //
     CXPLAT_DISPATCH_LOCK Lock;
     CXPLAT_LIST_ENTRY List;
+    CXPLAT_LIST_ENTRY** PriorityTail; // Tail of the priority queue.
 
 } QUIC_OPERATION_QUEUE;
 
@@ -338,12 +339,40 @@ QuicOperationFree(
     );
 
 //
+// Returns TRUE if the operation queue has priority operations queued.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+QuicOperationHasPriority(
+    _In_ QUIC_OPERATION_QUEUE* OperQ
+    )
+{
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
+    BOOLEAN HasPriorityWork = (&OperQ->List.Flink != OperQ->PriorityTail);
+    CxPlatDispatchLockRelease(&OperQ->Lock);
+    return HasPriorityWork;
+}
+
+//
 // Enqueues an operation. Returns TRUE if the queue was previously empty and not
 // already being processed.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
+    );
+
+//
+// Enqueues an operation into the priority part of the queue. Returns TRUE if
+// the priority queue was previously empty and not already being processed. Note
+// that the regular queue might not have been empty.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicOperationEnqueuePriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
     _In_ QUIC_OPERATION* Oper
     );

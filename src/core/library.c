@@ -360,6 +360,7 @@ MsQuicLibraryInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error; // Cannot log anything if platform failed to initialize.
     }
+    CxPlatWorkerPoolInit(&MsQuicLib.WorkerPool);
     PlatformInitialized = TRUE;
 
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
@@ -459,6 +460,7 @@ Error:
             MsQuicLib.DefaultCompatibilityList = NULL;
         }
         if (PlatformInitialized) {
+            CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
             CxPlatUninitialize();
         }
     }
@@ -576,6 +578,7 @@ MsQuicLibraryUninitialize(
         LibraryUninitialized,
         "[ lib] Uninitialized");
 
+    CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
     CxPlatUninitialize();
 }
 
@@ -680,6 +683,7 @@ QuicLibraryLazyInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
+            &MsQuicLib.WorkerPool,
             MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
@@ -1418,6 +1422,24 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL:
+
+        if (*BufferLength != sizeof(CXPLAT_WORKER_POOL*)) {
+            *BufferLength = sizeof(CXPLAT_WORKER_POOL*);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *(CXPLAT_WORKER_POOL**)Buffer = &MsQuicLib.WorkerPool;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -1667,8 +1689,10 @@ QuicLibraryGetParam(
 
     case QUIC_PARAM_PREFIX_TLS:
     case QUIC_PARAM_PREFIX_TLS_SCHANNEL:
-        if (Connection == NULL || Connection->Crypto.TLS == NULL) {
+        if (Connection == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
+        } else if (Connection->Crypto.TLS == NULL) {
+            Status = QUIC_STATUS_INVALID_STATE;
         } else {
             Status = CxPlatTlsParamGet(Connection->Crypto.TLS, Param, BufferLength, Buffer);
         }

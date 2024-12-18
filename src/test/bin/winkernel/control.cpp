@@ -518,6 +518,12 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(QUIC_RUN_CANCEL_ON_LOSS_PARAMS),
     sizeof(uint32_t),
+    sizeof(BOOLEAN),
+    0,
+    0,
+    0,
+    0,
+    sizeof(BOOLEAN),
     sizeof(QUIC_RUN_PROBE_PATH_PARAMS),
     sizeof(QUIC_RUN_MIGRATION_PARAMS),
 };
@@ -561,6 +567,8 @@ typedef union {
     BOOLEAN Bidirectional;
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
+    BOOLEAN ClientShutdown;
+    BOOLEAN EnableResumption;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -677,6 +685,28 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_TEST_CONFIGURATION:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         UseDuoNic = Params->TestConfigurationParams.UseDuoNic;
+        RtlCopyMemory(CurrentWorkingDirectory, "\\DosDevices\\", sizeof("\\DosDevices\\"));
+        Status =
+            RtlStringCbCatExA(
+                CurrentWorkingDirectory,
+                sizeof(CurrentWorkingDirectory),
+                Params->TestConfigurationParams.CurrentDirectory,
+                nullptr,
+                nullptr,
+                STRSAFE_NULL_ON_FAILURE);
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
+        if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
+            Status =
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    sizeof(Config),
+                    &Config);
+        }
+#endif
+
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
@@ -1454,13 +1484,39 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
         break;
-        
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     case IOCTL_QUIC_RUN_VALIDATE_NET_STATS_CONN_EVENT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestValidateNetStatsConnEvent(Params->Test));
         break;
 #endif
+
+    case IOCTL_QUIC_RUN_HANDSHAKE_SHUTDOWN:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestShutdownDuringHandshake(Params->ClientShutdown));
+        break;
+
+    case IOCTL_QUIC_RUN_NTH_PACKET_DROP:
+        QuicTestCtlRun(QuicTestNthPacketDrop());
+        break;
+
+    case IOCTL_QUIC_RUN_OPERATION_PRIORITY:
+        QuicTestCtlRun(QuicTestOperationPriority());
+
+    case IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE:
+        QuicTestCtlRun(QuicTestStreamMultiReceive());
+
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
+        QuicTestCtlRun(QuicTestConnectionPriority());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

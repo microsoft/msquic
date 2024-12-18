@@ -17,7 +17,7 @@ TRACEPOINT_EVENT(CLOG_CONGESTION_CONTROL_C, InvalidCongestionControlAlgorithm,
         const void *, arg1,
         unsigned short, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )

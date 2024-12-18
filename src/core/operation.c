@@ -36,6 +36,7 @@ QuicOperationQueueInitialize(
     OperQ->ActivelyProcessing = FALSE;
     CxPlatDispatchLockInitialize(&OperQ->Lock);
     CxPlatListInitializeHead(&OperQ->List);
+    OperQ->PriorityTail = &OperQ->List.Flink;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -46,6 +47,7 @@ QuicOperationQueueUninitialize(
 {
     UNREFERENCED_PARAMETER(OperQ);
     CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&OperQ->List));
+    CXPLAT_DBG_ASSERT(OperQ->PriorityTail == &OperQ->List.Flink);
     CxPlatDispatchLockUninitialize(&OperQ->Lock);
 }
 
@@ -151,6 +153,27 @@ QuicOperationEnqueue(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
+QuicOperationEnqueuePriority(
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_OPERATION* Oper
+    )
+{
+    BOOLEAN StartProcessing;
+    CxPlatDispatchLockAcquire(&OperQ->Lock);
+#if DEBUG
+    CXPLAT_DBG_ASSERT(Oper->Link.Flink == NULL);
+#endif
+    StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
+    CxPlatListInsertTail(*OperQ->PriorityTail, &Oper->Link);
+    OperQ->PriorityTail = &Oper->Link.Flink;
+    CxPlatDispatchLockRelease(&OperQ->Lock);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
+    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    return StartProcessing;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
 QuicOperationEnqueueFront(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
     _In_ QUIC_OPERATION* Oper
@@ -163,6 +186,9 @@ QuicOperationEnqueueFront(
 #endif
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     CxPlatListInsertHead(&OperQ->List, &Oper->Link);
+    if (OperQ->PriorityTail == &OperQ->List.Flink) {
+        OperQ->PriorityTail = &Oper->Link.Flink;
+    }
     CxPlatDispatchLockRelease(&OperQ->Lock);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
@@ -188,6 +214,9 @@ QuicOperationDequeue(
 #if DEBUG
         Oper->Link.Flink = NULL;
 #endif
+        if (OperQ->PriorityTail == &Oper->Link.Flink) {
+            OperQ->PriorityTail = &OperQ->List.Flink;
+        }
     }
     CxPlatDispatchLockRelease(&OperQ->Lock);
 
@@ -210,6 +239,7 @@ QuicOperationQueueClear(
     CxPlatDispatchLockAcquire(&OperQ->Lock);
     OperQ->ActivelyProcessing = FALSE;
     CxPlatListMoveItems(&OperQ->List, &OldList);
+    OperQ->PriorityTail = &OperQ->List.Flink;
     CxPlatDispatchLockRelease(&OperQ->Lock);
 
     int64_t OperationsDequeued = 0;

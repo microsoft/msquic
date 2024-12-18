@@ -241,7 +241,7 @@ $FinalResultsPath = "$($LogDir)-results.xml"
 # Base XML results data.
 $XmlResults = [xml]@"
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="0" failures="0" disabled="0" errors="0" time="0" timestamp="date" name="AllTests">
+<testsuites tests="0" failures="0" retried="0" disabled="0" errors="0" time="0" timestamp="date" name="AllTests">
 </testsuites>
 "@
 $XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
@@ -249,7 +249,7 @@ $XmlResults.testsuites.timestamp = Get-Date -UFormat "%Y-%m-%dT%T"
 # XML for creating new (failure) result data.
 $FailXmlText = @"
 <?xml version="1.0" encoding="UTF-8"?>
-<testsuites tests="1" failures="1" disabled="0" errors="0" time="0" name="AllTests">
+<testsuites tests="1" failures="1" retried="0" disabled="0" errors="0" time="0" name="AllTests">
   <testsuite name="TestSuiteName" tests="1" failures="1" disabled="0" errors="0" timestamp="date" time="0" >
     <testcase name="TestCaseName" status="run" result="completed" time="0" timestamp="date" classname="TestSuiteName">
       <failure message="Application Crashed" type=""><![CDATA[Application Crashed]]></failure>
@@ -287,6 +287,7 @@ function Add-XmlResults($TestCase) {
     }
 
     $IsFailure = $NewXmlResults.testsuites.failures -eq 1
+    $IsRetry = $false
     $Time = $NewXmlResults.testsuites.testsuite.testcase.time -as [Decimal]
 
     $Node = $null
@@ -295,6 +296,7 @@ function Add-XmlResults($TestCase) {
         $Node = $XmlResults.testsuites.testsuite | Where-Object { $_.Name -eq $TestSuiteName }
     }
     if ($null -ne $Node) {
+        $IsRetry = $Node.testcase | Where-Object { $_.Name -eq $TestCaseName }
         # Already has a matching test suite. Add the test case to it.
         $Node.tests = ($Node.tests -as [Int]) + 1
         if ($IsFailure) {
@@ -311,6 +313,9 @@ function Add-XmlResults($TestCase) {
 
     # Update the top level test and failure counts.
     $XmlResults.testsuites.tests = ($XmlResults.testsuites.tests -as [Int]) + 1
+    if ($IsRetry) {
+        $XmlResults.testsuites.retried = ($XmlResults.testsuites.retried -as [Int]) + 1
+    }
     if ($IsFailure) {
         $XmlResults.testsuites.failures = ($XmlResults.testsuites.failures -as [Int]) + 1
     }
@@ -340,6 +345,7 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
         } else {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
+            $pinfo.WorkingDirectory = $OutputDir
             if (Test-Administrator) {
                 # Enable WER dump collection.
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
@@ -372,10 +378,18 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
 }
 
 # Asynchronously starts a single msquictest test case running.
-function Start-TestCase([String]$Name) {
+function Start-TestCase([String]$Name, [int]$Trial = 1) {
 
-    $InstanceName = $Name.Replace("/", "_")
-    $LocalLogDir = Join-Path $LogDir $InstanceName
+    # Get a string of invalid chars for filenames
+    $InvalidChars = [System.IO.Path]::GetInvalidFileNameChars() -join ''
+    if (!$IsWindows) {
+        # Add characters that Azure disallows in filenames, but aren't invalid on POSIX
+        $InvalidChars = $InvalidChars,'"', ":", "<", ">", "|", "*", "?", "`r", "`n" -join ''
+    }
+    # Escape those chars for use in a regex and put them inside a regex set (the square brackets)
+    $InvalidCharsToReplace = "[{0}]" -f [RegEx]::Escape($InvalidChars)
+    $InstanceName = $Name -replace $InvalidCharsToReplace, "_"
+    $LocalLogDir = Join-Path $LogDir ($InstanceName + "_$Trial")
     mkdir $LocalLogDir | Out-Null
 
     if ($LogProfile -ne "None") {
@@ -678,6 +692,8 @@ function Wait-TestCase($TestCase) {
             Remove-Item $TestCase.LogDir -Recurse -Force | Out-Null
         }
     }
+
+    return $AnyTestFailed
 }
 
 # Runs the test executable to query all available test cases, parses the console
@@ -836,7 +852,10 @@ try {
     } else {
         # Run the test cases individually.
         for ($i = 0; $i -lt $TestCount; $i++) {
-            Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i])
+            $AnyTestFailed = Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i] 1)
+            if ($AnyTestFailed) {
+                Wait-TestCase (Start-TestCase ($TestCases -as [String[]])[$i] 2)
+            }
             if (!$NoProgress) {
                 Write-Progress -Activity "Running tests" -Status "Progress:" -PercentComplete ($i/$TestCount*100)
             }
@@ -890,6 +909,7 @@ try {
 
     $TestCount = $XmlResults.testsuites.tests -as [Int]
     $TestsFailed = $XmlResults.testsuites.failures -as [Int]
+    $TestsRetried = $XmlResults.testsuites.retried -as [Int]
 
     # Uninstall the kernel mode test driver and revert the msquic driver.
     if ($Kernel -ne "") {
@@ -913,11 +933,17 @@ try {
     Log "$($TestCount) test(s) run."
     if ($KeepOutputOnSuccess -or ($TestsFailed -ne 0) -or ($global:CrashedProcessCount -ne 0)) {
         Log "Output can be found in $($LogDir)"
-        if ($ErrorsAsWarnings) {
-            Write-Warning "$($TestsFailed) test(s) failed."
-            Write-Warning "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+        $ConsistentFailure = $TestsFailed - $TestsRetried
+        $PassedWithRetry = $TestsRetried - $ConsistentFailure
+        if ($ErrorsAsWarnings -or
+            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
+            if ($TestsFailed -eq $TestsRetried) {
+                Write-Warning "$($TestsRetried) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+            } else { # for $ErrorsAsWarning
+                Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+            }
         } else {
-            Write-Error "$($TestsFailed) test(s) failed, $($global:CrashedProcessCount) test(s) crashed."
+            Write-Error "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1
         }
     } elseif ($AZP -and $TestCount -eq 0) {

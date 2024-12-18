@@ -31,6 +31,7 @@
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
+static CXPLAT_WORKER_POOL WorkerPool;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -455,14 +456,19 @@ main(
             UdpRecvCallback,
             UdpUnreachCallback,
         };
+        // flag
+        QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
         QUIC_EXECUTION_CONFIG DatapathFlags = {
-            ((AttackType == 0) ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE),
+            Flags,
         };
         CxPlatSystemLoad();
         CxPlatInitialize();
+        CxPlatWorkerPoolInit(&WorkerPool);
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
+            NULL,
             NULL,
             &DatapathFlags,
             &Datapath);
@@ -507,6 +513,7 @@ main(
 
         Error:
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolUninit(&WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

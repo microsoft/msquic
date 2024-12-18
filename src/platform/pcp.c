@@ -424,14 +424,7 @@ CxPlatPcpSendMapRequestInternal(
         Request->MAP.SuggestedExternalIpAddress,
         sizeof(Request->MAP.SuggestedExternalIpAddress));
 
-    QUIC_STATUS Status =
-        CxPlatSocketSend(
-            Socket,
-            &Route,
-            SendData);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
+    CxPlatSocketSend(Socket, &Route, SendData);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -528,14 +521,7 @@ CxPlatPcpSendPeerRequestInternal(
         sizeof(Request->PEER.RemotePeerIpAddress));
     Request->PEER.RemotePeerPort = RemotePeerMappedAddress.Ipv6.sin6_port;
 
-    QUIC_STATUS Status =
-        CxPlatSocketSend(
-            Socket,
-            &Route,
-            SendData);
-    if (QUIC_FAILED(Status)) {
-        return Status;
-    }
+    CxPlatSocketSend(Socket, &Route, SendData);
 
     return QUIC_STATUS_SUCCESS;
 }

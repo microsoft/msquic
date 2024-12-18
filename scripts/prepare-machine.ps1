@@ -68,7 +68,13 @@ param (
     [switch]$InstallJom,
 
     [Parameter(Mandatory = $false)]
+    [switch]$InstallPerl,
+
+    [Parameter(Mandatory = $false)]
     [switch]$UseXdp,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ForceXdpInstall,
 
     [Parameter(Mandatory = $false)]
     [switch]$InstallArm64Toolchain,
@@ -96,6 +102,21 @@ param (
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 $ProgressPreference = 'SilentlyContinue'
+
+$IsUbuntu2404 = $false
+if ($IsLinux) {
+    $IsUbuntu2404 = (Get-Content -Path /etc/os-release | Select-String -Pattern "24.04") -ne $null
+    if ($UseXdp -and !$IsUbuntu2404 -and !$ForceXdpInstall) {
+        Write-Host "!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!"
+        Write-Host "Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment"
+        Write-Host "You need to understand the impact of this on your environment before proceeding"
+        $userInput = Read-Host "Type 'YES' to proceed"
+        if ($userInput -ne 'YES') {
+            Write-Output "User did not type YES. Exiting script."
+            exit
+        }
+    }
+}
 
 $PrepConfig = & (Join-Path $PSScriptRoot get-buildconfig.ps1) -Tls $Tls
 $Tls = $PrepConfig.Tls
@@ -228,13 +249,18 @@ function Uninstall-Xdp {
 
 # Installs DuoNic from the CoreNet-CI repo.
 function Install-DuoNic {
-    if (!$IsWindows) { return } # Windows only
     # Install the DuoNic driver.
-    Write-Host "Installing DuoNic driver"
-    $DuoNicPath = Join-Path $SetupPath duonic
-    $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
-    if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
-    Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    if ($IsWindows) {
+        Write-Host "Installing DuoNic driver"
+        $DuoNicPath = Join-Path $SetupPath duonic
+        $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
+        if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
+        Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+    } elseif ($IsLinux) {
+        Write-Host "Creating DuoNic endpoints"
+        $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
+        Invoke-Expression "sudo bash $DuoNicScript install"
+    }
 }
 
 function Update-Path($NewPath) {
@@ -259,15 +285,15 @@ function Install-NASM {
         $NasmArch = "win64"
         if (![System.Environment]::Is64BitOperatingSystem) { $NasmArch = "win32" }
         try {
-            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://www.nasm.us/pub/nasm/releasebuilds/$NasmVersion/win64/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "artifacts\nasm.zip"
+            Invoke-WebRequest -Uri "https://fossies.org/windows/misc/nasm-$NasmVersion-$NasmArch.zip" -OutFile "$ArtifactsPath\nasm.zip"
         }
 
         Write-Host "Extracting/installing NASM"
-        Expand-Archive -Path "artifacts\nasm.zip" -DestinationPath $env:Programfiles -Force
-        Remove-Item -Path "artifacts\nasm.zip"
+        Expand-Archive -Path "$ArtifactsPath\nasm.zip" -DestinationPath $env:Programfiles -Force
+        Remove-Item -Path "$ArtifactsPath\nasm.zip"
         Update-Path $NasmPath
     }
 }
@@ -278,19 +304,20 @@ function Install-JOM {
     $JomVersion = "1_1_3"
     $JomPath = Join-Path $env:Programfiles "jom_$JomVersion"
     $JomExe = Join-Path $JomPath "jom.exe"
+
     if (!(Test-Path $JomExe) -and $env:GITHUB_PATH -eq $null) {
         Write-Host "Downloading JOM"
         try {
-            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://qt.mirror.constant.com/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         } catch {
             # Mirror fallback
-            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "artifacts\jom.zip"
+            Invoke-WebRequest -Uri "https://mirrors.ocf.berkeley.edu/qt/official_releases/jom/jom_$JomVersion.zip" -OutFile "$ArtifactsPath\jom.zip"
         }
 
         Write-Host "Extracting/installing JOM"
         New-Item -Path $JomPath -ItemType Directory -Force
-        Expand-Archive -Path "artifacts\jom.zip" -DestinationPath $JomPath -Force
-        Remove-Item -Path "artifacts\jom.zip"
+        Expand-Archive -Path "$ArtifactsPath\jom.zip" -DestinationPath $JomPath -Force
+        Remove-Item -Path "$ArtifactsPath\jom.zip"
         Update-Path $JomPath
     }
 }
@@ -315,6 +342,13 @@ function Install-OpenCppCoverage {
         Start-Process $ExeFile -Wait -ArgumentList {"/silent"} -NoNewWindow
         Remove-Item -Path $ExeFile
     }
+}
+
+# Installs StrawberryPerl on Windows via Winget.
+function Install-Perl {
+    if (!$IsWindows) { return } # Windows only
+    Write-Host "Installing StrawberryPerl via winget..."
+    winget install StrawberryPerl.StrawberryPerl
 }
 
 # Checks the OS version number to see if it's recent enough (> 2019) to support
@@ -428,7 +462,7 @@ function Install-DotnetTool {
 
 function Install-Clog2Text {
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
     git submodule update
 
     dotnet build (Join-Path $RootDir submodules clog)
@@ -438,33 +472,32 @@ function Install-Clog2Text {
 
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
-    git rm submodules/openssl
-    git rm submodules/openssl3
+    git rm $RootDir/submodules/openssl
+    git rm $RootDir/submodules/openssl3
 }
 
 if ($ForBuild -or $ForContainerBuild) {
-
     Write-Host "Initializing clog submodule"
-    git submodule init submodules/clog
+    git submodule init $RootDir/submodules/clog
 
     if (!$IsLinux) {
         Write-Host "Initializing XDP-for-Windows submodule"
-        git submodule init submodules/xdp-for-windows
+        git submodule init $RootDir/submodules/xdp-for-windows
     }
 
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
-        git submodule init submodules/openssl
+        git submodule init $RootDir/submodules/openssl
     }
 
     if ($Tls -eq "openssl3") {
         Write-Host "Initializing openssl3 submodule"
-        git submodule init submodules/openssl3
+        git submodule init $RootDir/submodules/openssl3
     }
 
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
-        git submodule init submodules/googletest
+        git submodule init $RootDir/submodules/googletest
     }
 
     git submodule update --jobs=8
@@ -477,6 +510,7 @@ if ($InstallXdpDriver) { Install-Xdp-Driver }
 if ($UninstallXdp) { Uninstall-Xdp }
 if ($InstallNasm) { Install-NASM }
 if ($InstallJOM) { Install-JOM }
+if ($InstallPerl) { Install-Perl }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
 
@@ -504,6 +538,17 @@ if ($IsLinux) {
         sudo apt-get install -y ruby ruby-dev rpm
         sudo gem install public_suffix -v 4.0.7
         sudo gem install fpm
+
+        # XDP dependencies
+        if ($UseXdp) {
+            sudo apt-get -y install --no-install-recommends libc6-dev-i386 # for building xdp programs
+            if (!$IsUbuntu2404) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+            }
+            sudo apt-get -y install libxdp-dev libbpf-dev
+            sudo apt-get -y install libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev
+        }
     }
 
     if ($ForTest) {
@@ -512,6 +557,16 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        if ($UseXdp) {
+            if (!$IsUbuntu2404) {
+                sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+                sudo apt-get update -y
+            }
+            sudo apt-get install -y libxdp1 libbpf1
+            sudo apt-get install -y libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+            sudo apt-get install -y iproute2 iptables
+            Install-DuoNic
+        }
 
         # Enable core dumps for the system.
         Write-Host "Setting core dump size limit"
@@ -519,6 +574,11 @@ if ($IsLinux) {
         sudo sh -c "echo 'root hard core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* soft core unlimited' >> /etc/security/limits.conf"
         sudo sh -c "echo '* hard core unlimited' >> /etc/security/limits.conf"
+        # Increase the number of file descriptors.
+        sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
         #sudo cat /etc/security/limits.conf
 
         # Set the core dump pattern.

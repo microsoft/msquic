@@ -35,6 +35,7 @@ jobs:
         vec: [
           { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -43,6 +44,7 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
+      xdp: ${{ matrix.vec.xdp }}
 
   build-windows:
     name: Windows
@@ -73,23 +75,24 @@ jobs:
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3" },
           { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { plat: "macos", os: "macos-12", arch: "universal", tls: "openssl" },
+          { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", xdp: "-UseXdp" },
+          { plat: "macos", os: "macos-13", arch: "universal", tls: "openssl" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest
+      run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@c850b930e6ba138125429b7e5c93fc707a7f8427
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
-        name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
+        name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
-    - uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3
+    - uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
       with:
         dotnet-version: 6.0.x
     - name: Run Lang Interop
       shell: pwsh
-      run: scripts/DotNetTest.ps1 -Config Debug -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }}
+      run: scripts/DotNetTest.ps1 -Config Debug -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -DomainName "google.com"

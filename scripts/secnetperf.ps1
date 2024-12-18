@@ -68,17 +68,38 @@ param (
     [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
-    [string]$RemoteName = "netperf-peer"
+    [string]$RemoteName = "netperf-peer",
+
+    [Parameter(Mandatory = $false)]
+    [string]$UserName = "secnetperf"
 )
 
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+
+$RemotePowershellSupported = $env:netperf_remote_powershell_supported
+$RunId = $env:netperf_run_id
+$SyncerSecret = $env:netperf_syncer_secret
+
+$psVersion = $PSVersionTable.PSVersion
+if ($psVersion.Major -lt 7) {
+    $IsWindows = $true
+}
+
+Write-Host "Running tests with the following parameters:"
+Write-Host "$RemotePowershellSupported, $RunId"
+
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
-    $RemoteDir = "/home/secnetperf/_work/quic"
+    if ($UserName -eq "root") {
+        $RemoteDir = "/$UserName/_work/quic"
+    } else {
+        $RemoteDir = "/home/$UserName/_work/quic"
+    }
 }
+
 $SecNetPerfDir = "artifacts/bin/$plat/$($arch)_Release_$tls"
 $SecNetPerfPath = "$SecNetPerfDir/secnetperf"
 if ($io -eq "") {
@@ -93,25 +114,59 @@ if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
+
 $useXDP = ($io -eq "xdp" -or $io -eq "qtip")
+if ($RemotePowershellSupported -eq $true) {
 
-# Set up the connection to the peer over remote powershell.
-Write-Host "Connecting to $RemoteName"
-if ($isWindows) {
-    $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
-    $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
-    $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
-    $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+    # Set up the connection to the peer over remote powershell.
+    Write-Host "Connecting to $RemoteName"
+    $Attempts = 0
+    while ($Attempts -lt 5) {
+        if ($environment -eq "azure") {
+            if ($isWindows) {
+                Write-Host "Attempting to connect..."
+                $Session = New-PSSession -ComputerName $RemoteName -ConfigurationName PowerShell.7
+                break
+            } else {
+                # On Azure in 1ES Linux environments, remote powershell is not supported (yet).
+                $Session = "NOT_SUPPORTED"
+                Write-Host "Remote PowerShell is not supported in Azure 1ES Linux environments"
+                break
+            }
+        }
+        try {
+            if ($isWindows) {
+                $username = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultUserName
+                $password = (Get-ItemProperty 'HKLM:\Software\Microsoft\Windows NT\CurrentVersion\Winlogon').DefaultPassword | ConvertTo-SecureString -AsPlainText -Force
+                $cred = New-Object System.Management.Automation.PSCredential ($username, $password)
+                $Session = New-PSSession -ComputerName $RemoteName -Credential $cred -ConfigurationName PowerShell.7
+            } else {
+                $Session = New-PSSession -HostName $RemoteName -UserName $UserName -SSHTransport
+            }
+            break
+        } catch {
+            Write-Host "Error $_"
+            $Attempts += 1
+            Start-Sleep -Seconds 10
+        }
+    }
+
+    if ($null -eq $Session) {
+        Write-GHError "Failed to create remote session"
+        exit 1
+    }
+
 } else {
-    $Session = New-PSSession -HostName $RemoteName -UserName secnetperf -SSHTransport
-}
-if ($null -eq $Session) {
-    Write-GHError "Failed to create remote session"
-    exit 1
+    $Session = "NOT_SUPPORTED"
+    Write-Host "Remote PowerShell is not supported in this environment"
 }
 
-# Make sure nothing is running from a previous run.
-Cleanup-State $Session $RemoteDir
+if ($Session -ne "NOT_SUPPORTED") {
+    # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
+    Write-Host "NOT RUNNING ON AZURE AND POWERSHELL SUPPORTED"
+    Write-Host "Session: $Session, $(!($Session -eq "NOT_SUPPORTED"))"
+    Cleanup-State $Session $RemoteDir
+}
 
 # Create intermediary files.
 New-Item -ItemType File -Name "latency.txt"
@@ -128,26 +183,29 @@ if ($io -eq "wsk") {
     Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
 
-# Copy the artifacts to the peer.
-Write-Host "Copying files to peer"
-Invoke-Command -Session $Session -ScriptBlock {
-    if (Test-Path $Using:RemoteDir) {
-        Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
-    }
-    New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
-}
-Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
-Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
-Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
 
-# Create the logs directories on both machines.
-New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
-Invoke-Command -Session $Session -ScriptBlock {
-    New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
+if (!($Session -eq "NOT_SUPPORTED")) {
+    # Copy the artifacts to the peer.
+    Write-Host "Copying files to peer"
+    Invoke-Command -Session $Session -ScriptBlock {
+        if (Test-Path $Using:RemoteDir) {
+            Remove-Item -Force -Recurse $Using:RemoteDir | Out-Null
+        }
+        New-Item -ItemType Directory -Path $Using:RemoteDir -Force | Out-Null
+    }
+    Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
+    Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
+    Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+
+    # Create the logs directories on both machines.
+    New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+    Invoke-Command -Session $Session -ScriptBlock {
+        New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
+    }
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and $isWindows) {
+if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -193,21 +251,16 @@ if ($isWindows) {
     $kernelVersion = bash -c "uname -r"
     $json["os_version"] = "$osName $kernelVersion"
 }
-$allTests = [System.Collections.Specialized.OrderedDictionary]::new()
 
-# > All tests:
-$allTests["tput-up"] = "-exec:maxtput -up:12s -ptput:1"
-$allTests["tput-down"] = "-exec:maxtput -down:12s -ptput:1"
-$allTests["hps-conns-100"] = "-exec:maxtput -rconn:1 -share:1 -conns:100 -run:12s -prate:1"
-$allTests["rps-up-512-down-4000"] = "-exec:lowlat -rstream:1 -up:512 -down:4000 -run:20s -plat:1"
+# Test all supported scenarios.
+$allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 
 $hasFailures = $false
-$json["run_args"] = $allTests
 
 try {
 
 # Prepare the machines for the testing.
-if ($isWindows) {
+if ($isWindows -and !($environment -eq "azure")) {
     Write-Host "Preparing local machine for testing"
     ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
@@ -221,23 +274,37 @@ if ($isWindows) {
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
-# Configure the dump collection.
-Configure-DumpCollection $Session
+if (!($Session -eq "NOT_SUPPORTED")) {
+    # Configure the dump collection.
+    Configure-DumpCollection $Session
+}
 
 # Install any dependent drivers.
-if ($useXDP) { Install-XDP $Session $RemoteDir }
+if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
     # Make sure the secnetperf binary is executable.
     Write-Host "Updating secnetperf permissions"
-    Invoke-Command -Session $Session -ScriptBlock {
-        $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
-        chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+    $GRO = "on"
+    if ($io -eq "xdp") {
+        $GRO = "off"
+    }
+    if (!($Session -eq "NOT_SUPPORTED")) {
+        Invoke-Command -Session $Session -ScriptBlock {
+            $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$Using:RemoteDir/$Using:SecNetPerfDir"
+            chmod +x "$Using:RemoteDir/$Using:SecNetPerfPath"
+            if ($Using:os -eq "ubuntu-22.04") {
+                sudo sh -c "ethtool -K eth0 generic-receive-offload $Using:GRO"
+            }
+        }
     }
     $fullPath = Repo-Path $SecNetPerfDir
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "./$SecNetPerfPath"
+    if ($os -eq "ubuntu-22.04") {
+        sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
+    }
 
     if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
         # Enable core dumps for the system.
@@ -246,6 +313,11 @@ if (!$isWindows) {
         sudo sh -c "echo "root hard core unlimited" >> /etc/security/limits.conf"
         sudo sh -c "echo "* soft core unlimited" >> /etc/security/limits.conf"
         sudo sh -c "echo "* hard core unlimited" >> /etc/security/limits.conf"
+        # Increase the number of file descriptors.
+        sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
+        sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
     }
 
     # Set the core dump pattern.
@@ -258,24 +330,27 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
-foreach ($testId in $allTests.Keys) {
-    $ExeArgs = $allTests[$testId] + " -io:$io"
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $SecNetPerfPath $LogProfile $testId $ExeArgs $io $filter
+foreach ($scenario in $allScenarios) {
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 
     for ($tcp = 0; $tcp -lt $Test.Values.Length; $tcp++) {
         if ($Test.Values[$tcp].Length -eq 0) { continue }
-        $transport = $tcp -eq 1 ? "tcp" : "quic"
-        $json["$testId-$transport"] = $Test.Values[$tcp]
+        if ($tcp -eq 1) {
+            $transport = "tcp"
+        } else {
+            $transport = "quic"
+        }
+        $json["$scenario-$transport"] = $Test.Values[$tcp]
 
         if ($Test.Metric -eq "latency") {
-            $json["$testId-$transport-lat"] = $Test.Latency[$tcp]
-            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $testId $transport "$os-$arch-$environment-$io-$tls"
-            $json["$testId-$transport-regression"] = $LatencyRegression
+            $json["$scenario-$transport-lat"] = $Test.Latency[$tcp]
+            $LatencyRegression = CheckRegressionLat $Test.Values[$tcp] $regressionJson $scenario $transport "$os-$arch-$environment-$io-$tls"
+            $json["$scenario-$transport-regression"] = $LatencyRegression
         } else {
-            $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $testId $transport $regressionJson "$os-$arch-$environment-$io-$tls"
-            $json["$testId-$transport-regression"] = $ResultRegression
+            $ResultRegression = CheckRegressionResult $Test.Values[$tcp] $scenario $transport $regressionJson "$os-$arch-$environment-$io-$tls"
+            $json["$scenario-$transport-regression"] = $ResultRegression
         }
     }
 }
@@ -291,7 +366,12 @@ Write-Host "Tests complete!"
 } finally {
 
     # Perform any necessary cleanup.
-    try { Cleanup-State $Session $RemoteDir } catch { }
+    try {
+        if ($Session -eq "NOT_SUPPORTED") {
+            throw "Cleanup not needed"
+        }
+        Cleanup-State $Session $RemoteDir
+     } catch { }
 
     try {
         if (Get-ChildItem -Path ./artifacts/logs -File -Recurse) {

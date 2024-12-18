@@ -6,6 +6,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using Microsoft.Diagnostics.Tracing.Session;
@@ -233,6 +234,13 @@ namespace QuicTrace
 
                 foreach (var stream in quicState.Streams)
                 {
+                    /*Console.WriteLine("\nConn {0}, Stream {1}, {2}, {3}", stream.Connection.Id, stream.Id, stream.Timings.IsServer ? "Server" : "Client", stream.Timings.EncounteredError ? "Errors" : "Success");
+                    var t0 = stream.Timings.StateChanges[0].Item2;
+                    foreach (var state in stream.Timings.StateChanges)
+                    {
+                        Console.WriteLine("  {0,-16}{1,6:F1}", state.Item1, (state.Item2 - t0).ToNanoseconds / 1000.0);
+                    }*/
+
                     if (stream.Connection != null &&
                         !stream.Timings.EncounteredError &&
                         stream.Timings.IsFinalized)
@@ -323,13 +331,26 @@ namespace QuicTrace
             //
             // Full state changes for each percentile request above.
             //
-            Console.WriteLine("Percentile,States");
             foreach (var percentile in Percentiles)
             {
                 var s = sortedRequests.ElementAt((int)((clientRequestCount * percentile) / 100));
                 var t = s.Timings;
-                Console.WriteLine("{0}th (Client),{1}", percentile, string.Join(",", t.StateChangeDeltas));
-                Console.WriteLine("{0}th (Server),{1}", percentile, string.Join(",", t.Peer!.StateChangeDeltas));
+                Console.WriteLine("\n{0}th Percentile, Conn {1}, Stream {2}\nClient", percentile, s.Connection!.Id, s.Id);
+                var t0 = s.Timings.InitialStateTime;
+                var prev = t0;
+                foreach (var state in s.Timings.StateChanges)
+                {
+                    Console.WriteLine("  {0,-16}{1,6:F1}", state.Item1, (prev - t0).ToNanoseconds / 1000.0);
+                    prev = state.Item2;
+                }
+                Console.WriteLine("Server");
+                t0 = t.Peer!.InitialStateTime;
+                prev = t0;
+                foreach (var state in t.Peer!.StateChanges)
+                {
+                    Console.WriteLine("  {0,-16}{1,6:F1}", state.Item1, (prev - t0).ToNanoseconds / 1000.0);
+                    prev = state.Item2;
+                }
             }
             Console.WriteLine();
 

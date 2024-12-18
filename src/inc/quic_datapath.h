@@ -223,6 +223,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint8_t TypeOfService;
 
     //
+    // TTL Hoplimit field of the IP header of the received packet on handshake.
+    //
+    uint8_t HopLimitTTL;
+
+    //
     // Flags.
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
@@ -282,11 +287,14 @@ typedef struct CXPLAT_QEO_CONNECTION {
 
 //
 // Function pointer type for datapath TCP accept callbacks.
+// Any QUIC_FAILED status will reject the connection.
+// Do not call CxPlatSocketDelete from this callback, it will
+// crash.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
+QUIC_STATUS
 (CXPLAT_DATAPATH_ACCEPT_CALLBACK)(
     _In_ CXPLAT_SOCKET* ListenerSocket,
     _In_ void* ListenerContext,
@@ -404,6 +412,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
@@ -434,6 +443,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
+#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
 
 //
 // Queries the currently supported features of the datapath.
@@ -637,6 +647,15 @@ CxPlatSocketGetRemoteAddress(
     );
 
 //
+// Queries a raw socket availability.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatSocketRawSocketAvailable(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
+//
 // Called to return a chain of datagrams received from the registered receive
 // callback.
 //
@@ -713,7 +732,7 @@ CxPlatSendDataIsFull(
 // Sends the data over the socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,

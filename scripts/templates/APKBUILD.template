@@ -1,0 +1,54 @@
+# Contributor: Ahmet Ibrahim AKSOY <aaksoy@microsoft.com>
+# Maintainer: Microsoft QUIC Team <quicdev@microsoft.com>
+pkgname=libmsquic
+pkgver=VERSION_PLACEHOLDER
+pkgrel=0
+_clog=CLOG_COMMIT_HASH
+_gtest=GOOGLETEST_COMMIT_HASH
+_openssl3=OPENSSL3_COMMIT_HASH
+pkgdesc="Cross-platform, C implementation of the IETF QUIC protocol, exposed to C, C++, C# and Rust."
+url="https://github.com/microsoft/msquic"
+arch="x86_64 armv7 aarch64"
+license="MIT"
+makedepends="cmake numactl-dev linux-headers lttng-ust-dev openssl-dev perl xz"
+checkdepends="perf"
+subpackages="$pkgname-dev $pkgname-doc"
+source="msquic-$pkgver.tar.gz::ARCHIVE_URI_PLACEHOLDER
+	clog-$_clog.tar.gz::https://github.com/microsoft/CLOG/archive/$_clog.tar.gz
+	gtest-$_gtest.tar.gz::https://github.com/google/googletest/archive/$_gtest.tar.gz
+	openssl3-$_openssl3.tar.gz::https://github.com/quictls/openssl/archive/$_openssl3.tar.gz
+	"
+builddir="$srcdir/msquic-SHA_PLACEHOLDER"
+
+prepare() {
+	default_prepare
+
+	cd "$builddir/submodules"
+	rm -rf clog googletest openssl openssl3 xdp-for-windows
+	mv ../../CLOG-*/ clog/
+	mv ../../googletest-*/ googletest/
+	mv ../../openssl-*/ openssl3/
+}
+
+build() {
+	cmake -B build \
+		-DCMAKE_INSTALL_PREFIX=/usr \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DQUIC_TLS=openssl3 \
+		-DQUIC_ENABLE_LOGGING=true \
+		-DQUIC_USE_SYSTEM_LIBCRYPTO=true \
+		-DQUIC_BUILD_TOOLS=off \
+		-DQUIC_BUILD_TEST=on \
+		-DQUIC_BUILD_PERF=off
+	cmake --build build
+}
+
+check() {
+	build/bin/Release/msquictest --gtest_filter=ParameterValidation.ValidateApi
+}
+
+package() {
+	DESTDIR="$pkgdir" cmake --install build
+	rm -rf "$pkgdir"/usr/share/msquic/
+	install -Dm644 LICENSE "$pkgdir"/usr/share/licenses/$pkgname/LICENSE
+}

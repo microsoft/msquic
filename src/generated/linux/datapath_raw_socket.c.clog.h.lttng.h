@@ -2,6 +2,29 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathTcpAuxBinding
+// [data][%p] Binding TCP socket to %s
+// QuicTraceLogVerbose(
+            DatapathTcpAuxBinding,
+            "[data][%p] Binding TCP socket to %s",
+            Socket,
+            LocalAddressString.Address);
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = LocalAddressString.Address = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathTcpAuxBinding,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for RouteResolutionEnd
 // [conn][%p] Route resolution completed on Path[%hhu] with L2 address %hhx:%hhx:%hhx:%hhx:%hhx:%hhx
 // QuicTraceLogConnInfo(
@@ -35,7 +58,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
         unsigned char, arg8,
         unsigned char, arg9), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned char, arg5, arg5)
@@ -54,12 +77,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, RouteResolutionEnd,
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Datapath,
-            Length,
-            "packet is too small for a UDP header");
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = Length = arg3
-// arg4 = arg4 = "packet is too small for a UDP header" = arg4
+            Socket,
+            Error,
+            "closesocket");
+// arg2 = arg2 = Socket = arg2
+// arg3 = arg3 = Error = arg3
+// arg4 = arg4 = "closesocket" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
     TP_ARGS(
@@ -67,7 +90,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathErrorStatus,
         unsigned int, arg3,
         const char *, arg4), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
     )
@@ -102,7 +125,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathSendTcpControl,
         unsigned int, arg6_len,
         const void *, arg6), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned int, arg5_len, arg5_len)
@@ -144,7 +167,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_C, DatapathSend,
         unsigned int, arg7_len,
         const void *, arg7), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned char, arg4, arg4)
         ctf_integer(unsigned short, arg5, arg5)

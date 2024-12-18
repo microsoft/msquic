@@ -5,7 +5,7 @@
 
 Abstract:
 
-    This module provides the implementation for most of the MsQuic* APIs.
+    This module provides the implementation for most of the public APIs exposed in QUIC_API_TABLE.
 
 --*/
 
@@ -853,7 +853,11 @@ MsQuicStreamStart(
     //
     // Queue the operation but don't wait for the completion.
     //
-    QuicConnQueueOper(Connection, Oper);
+    if (Flags & QUIC_STREAM_START_FLAG_PRIORITY_WORK) {
+        QuicConnQueuePriorityOper(Connection, Oper);
+    } else {
+        QuicConnQueueOper(Connection, Oper);
+    }
     Status = QUIC_STATUS_PENDING;
 
 Exit:
@@ -1004,6 +1008,7 @@ MsQuicStreamSend(
     uint64_t TotalLength;
     QUIC_SEND_REQUEST* SendRequest;
     BOOLEAN QueueOper = TRUE;
+    const BOOLEAN IsPriority = !!(Flags & QUIC_SEND_FLAG_PRIORITY_WORK);
     BOOLEAN SendInline;
     QUIC_OPERATION* Oper;
 
@@ -1118,6 +1123,12 @@ MsQuicStreamSend(
         goto Exit;
     }
 
+    //
+    // From here on, we cannot fail the call because the stream has been queued
+    // and possibly already started to be processed.
+    //
+    Status = QUIC_STATUS_PENDING;
+
     if (SendInline) {
 
         CXPLAT_PASSIVE_CODE();
@@ -1139,8 +1150,6 @@ MsQuicStreamSend(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "STRM_SEND operation",
                 0);
-
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
 
             //
             // We failed to alloc the operation we needed to queue, so make sure
@@ -1166,7 +1175,7 @@ MsQuicStreamSend(
             Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = (QUIC_VAR_INT)QUIC_STATUS_OUT_OF_MEMORY;
             Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
             Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
-            QuicConnQueueOper(Connection, Oper);
+            QuicConnQueueHighestPriorityOper(Connection, Oper);
             goto Exit;
         }
 
@@ -1176,10 +1185,12 @@ MsQuicStreamSend(
         //
         // Queue the operation but don't wait for the completion.
         //
-        QuicConnQueueOper(Connection, Oper);
+        if (IsPriority) {
+            QuicConnQueuePriorityOper(Connection, Oper);
+        } else {
+            QuicConnQueueOper(Connection, Oper);
+        }
     }
-
-    Status = QUIC_STATUS_PENDING;
 
 Exit:
 
@@ -1355,6 +1366,9 @@ MsQuicSetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
+
     if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param)) {
         //
         // Ensure global parameters don't have a handle passed in, and vice
@@ -1440,7 +1454,11 @@ MsQuicSetParam(
     //
     // Queue the operation and wait for it to be processed.
     //
-    QuicConnQueueOper(Connection, &Oper);
+    if (IsPriority) {
+        QuicConnQueuePriorityOper(Connection, &Oper);
+    } else {
+        QuicConnQueueOper(Connection, &Oper);
+    }
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");
@@ -1472,6 +1490,9 @@ MsQuicGetParam(
 {
     CXPLAT_PASSIVE_CODE();
 
+    const BOOLEAN IsPriority = !!(Param & QUIC_PARAM_HIGH_PRIORITY);
+    Param &= ~QUIC_PARAM_HIGH_PRIORITY;
+
     if ((Handle == NULL) ^ QUIC_PARAM_IS_GLOBAL(Param) ||
         BufferLength == NULL) {
         //
@@ -1481,13 +1502,13 @@ MsQuicGetParam(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    QUIC_STATUS Status;
-
     QuicTraceEvent(
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_GET_PARAM,
         Handle);
+
+    QUIC_STATUS Status;
 
     if (QUIC_PARAM_IS_GLOBAL(Param)) {
         //
@@ -1558,7 +1579,11 @@ MsQuicGetParam(
     //
     // Queue the operation and wait for it to be processed.
     //
-    QuicConnQueueOper(Connection, &Oper);
+    if (IsPriority) {
+        QuicConnQueuePriorityOper(Connection, &Oper);
+    } else {
+        QuicConnQueueOper(Connection, &Oper);
+    }
     QuicTraceEvent(
         ApiWaitOperation,
         "[ api] Waiting on operation");

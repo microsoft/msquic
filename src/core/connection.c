@@ -370,6 +370,7 @@ QuicConnFree(
     QuicOperationQueueUninitialize(&Connection->OperQ);
     QuicStreamSetUninitialize(&Connection->Streams);
     QuicSendBufferUninitialize(&Connection->SendBuffer);
+    QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
         QuicConfigurationRelease(Connection->Configuration);
@@ -664,6 +665,7 @@ QuicConnIndicateEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    CXPLAT_PASSIVE_CODE();
     QUIC_STATUS Status;
     if (Connection->ClientCallbackHandler != NULL) {
         //
@@ -719,6 +721,28 @@ QuicConnQueueOper(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicConnQueuePriorityOper(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_OPERATION* Oper
+    )
+{
+#if DEBUG
+    if (!Connection->State.Initialized) {
+        CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
+        CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+#endif
+    if (QuicOperationEnqueuePriority(&Connection->OperQ, Oper)) {
+        //
+        // The connection needs to be queued on the worker because this was the
+        // first operation in our OperQ.
+        //
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicConnQueueHighestPriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
@@ -729,7 +753,7 @@ QuicConnQueueHighestPriorityOper(
         // The connection needs to be queued on the worker because this was the
         // first operation in our OperQ.
         //
-        QuicWorkerQueueConnection(Connection->Worker, Connection);
+        QuicWorkerQueuePriorityConnection(Connection->Worker, Connection);
     }
 }
 
@@ -1387,26 +1411,6 @@ QuicConnOnShutdownComplete(
         Connection,
         Connection->State.ShutdownCompleteTimedOut);
 
-    if (Connection->State.ExternalOwner) {
-
-        QUIC_CONNECTION_EVENT Event;
-        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
-        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
-            Connection->State.Connected;
-        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
-            !Connection->State.ShutdownCompleteTimedOut;
-        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
-            Connection->State.HandleClosed;
-
-        QuicTraceLogConnVerbose(
-            IndicateConnectionShutdownComplete,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
-        (void)QuicConnIndicateEvent(Connection, &Event);
-
-        Connection->ClientCallbackHandler = NULL;
-    }
-
     //
     // Clean up any pending state that is irrelevant now.
     //
@@ -1453,8 +1457,29 @@ QuicConnOnShutdownComplete(
     QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
+    QuicDatagramSendShutdown(&Connection->Datagram);
 
-    if (!Connection->State.ExternalOwner) {
+    if (Connection->State.ExternalOwner) {
+
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
+        Event.SHUTDOWN_COMPLETE.HandshakeCompleted =
+            Connection->State.Connected;
+        Event.SHUTDOWN_COMPLETE.PeerAcknowledgedShutdown =
+            !Connection->State.ShutdownCompleteTimedOut;
+        Event.SHUTDOWN_COMPLETE.AppCloseInProgress =
+            Connection->State.HandleClosed;
+
+        QuicTraceLogConnVerbose(
+            IndicateConnectionShutdownComplete,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE");
+        (void)QuicConnIndicateEvent(Connection, &Event);
+
+        // This need to be later than QuicLossDetectionUninitialize to indicate
+        // status change of Datagram frame for an app to free its buffer
+        Connection->ClientCallbackHandler = NULL;
+    } else {
         //
         // If the connection was never indicated to the application, then the
         // "owner" ref still resides with the stack and needs to be released.
@@ -1473,6 +1498,7 @@ QuicErrorCodeToStatus(
     case QUIC_ERROR_NO_ERROR:                       return QUIC_STATUS_SUCCESS;
     case QUIC_ERROR_CONNECTION_REFUSED:             return QUIC_STATUS_CONNECTION_REFUSED;
     case QUIC_ERROR_PROTOCOL_VIOLATION:             return QUIC_STATUS_PROTOCOL_ERROR;
+    case QUIC_ERROR_APPLICATION_ERROR:
     case QUIC_ERROR_CRYPTO_USER_CANCELED:           return QUIC_STATUS_USER_CANCELED;
     case QUIC_ERROR_CRYPTO_HANDSHAKE_FAILURE:       return QUIC_STATUS_HANDSHAKE_FAILURE;
     case QUIC_ERROR_CRYPTO_NO_APPLICATION_PROTOCOL: return QUIC_STATUS_ALPN_NEG_FAILURE;
@@ -1530,27 +1556,6 @@ QuicConnTryClose(
                 Connection,
                 "Abandoning internal, closed connection");
             Connection->State.ProcessShutdownComplete = TRUE;
-        }
-    }
-
-    if (!ClosedRemotely) {
-
-        if ((Flags & QUIC_CLOSE_APPLICATION) &&
-            Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
-            //
-            // Application close can only happen if we are using 1-RTT keys.
-            // Otherwise we have to send "user_canceled" TLS error code as a
-            // connection close. Overwrite all application provided parameters.
-            //
-            Flags &= ~QUIC_CLOSE_APPLICATION;
-            ErrorCode = QUIC_ERROR_CRYPTO_USER_CANCELED;
-            RemoteReasonPhrase = NULL;
-            RemoteReasonPhraseLength = 0;
-
-            QuicTraceLogConnInfo(
-                CloseUserCanceled,
-                Connection,
-                "Connection close using user canceled error");
         }
     }
 
@@ -3777,6 +3782,15 @@ QuicConnGetKeyOrDeferDatagram(
         return FALSE;
     }
 
+    if (QuicConnIsServer(Connection) && !Connection->State.HandshakeConfirmed &&
+        Packet->KeyType == QUIC_PACKET_KEY_1_RTT) {
+        //
+        // A server MUST NOT process incoming 1-RTT protected packets before the TLS
+        // handshake is complete.
+        //
+        return FALSE;
+    }
+
     _Analysis_assume_(Packet->KeyType >= 0 && Packet->KeyType < QUIC_PACKET_KEY_COUNT);
     if (Connection->Crypto.TlsState.ReadKeys[Packet->KeyType] == NULL) {
         //
@@ -5173,12 +5187,33 @@ QuicConnRecvFrames(
             if (Frame.ApplicationClosed) {
                 Flags |= QUIC_CLOSE_APPLICATION;
             }
-            QuicConnTryClose(
-                Connection,
-                Flags,
-                Frame.ErrorCode,
-                Frame.ReasonPhrase,
-                (uint16_t)Frame.ReasonPhraseLength);
+
+            if (!Frame.ApplicationClosed && Frame.ErrorCode == QUIC_ERROR_APPLICATION_ERROR) {
+                //
+                // The APPLICATION_ERROR transport error should be sent only
+                // when closing the connection before the handshake is
+                // confirmed. In such case, we can also expect peer to send the
+                // application CONNECTION_CLOSE frame in a 1-RTT packet
+                // (presumably also in the same UDP datagram).
+                //
+                // We want to prioritize reporting the application-layer error
+                // code to the application, so we postpone the call to
+                // QuicConnTryClose and check again after processing incoming
+                // datagrams in case it does not arrive.
+                //
+                QuicTraceEvent(
+                    ConnDelayCloseApplicationError,
+                    "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame.",
+                    Connection);
+                Connection->State.DelayedApplicationError = TRUE;
+            } else {
+                QuicConnTryClose(
+                    Connection,
+                    Flags,
+                    Frame.ErrorCode,
+                    Frame.ReasonPhrase,
+                    (uint16_t)Frame.ReasonPhraseLength);
+            }
 
             AckEliciting = TRUE;
             Packet->HasNonProbingFrame = TRUE;
@@ -5209,7 +5244,7 @@ QuicConnRecvFrames(
                     HandshakeConfirmedFrame,
                     Connection,
                     "Handshake confirmed (frame)");
-                QuicCryptoHandshakeConfirmed(&Connection->Crypto);
+                QuicCryptoHandshakeConfirmed(&Connection->Crypto, TRUE);
             }
 
             AckEliciting = TRUE;
@@ -5688,6 +5723,9 @@ QuicConnRecvDatagrams(
 
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
+            if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
+                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HopLimitTTL;
+            }
             QuicConnLogInFlowStats(Connection);
 
             if (!CurrentPath->IsPeerValidated) {
@@ -5713,9 +5751,7 @@ QuicConnRecvDatagrams(
                     Packet->BufferLength - (uint16_t)(Packet->AvailBuffer - Packet->Buffer);
             }
 
-            if (Connection->Crypto.CertValidationPending ||
-                Connection->Crypto.TicketValidationPending ||
-                !QuicConnRecvHeader(
+            if (!QuicConnRecvHeader(
                     Connection,
                     Packet,
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH)) {
@@ -5820,6 +5856,20 @@ QuicConnRecvDatagrams(
             Cipher,
             &RecvState);
         BatchCount = 0; // cppcheck-suppress unreadVariable; NOLINT
+    }
+
+    if (Connection->State.DelayedApplicationError && Connection->CloseStatus == 0) {
+        //
+        // We received transport APPLICATION_ERROR, but didn't receive the expected
+        // CONNECTION_ERROR frame, so close the connection with originally postponed
+        // APPLICATION_ERROR.
+        //
+        QuicConnTryClose(
+            Connection,
+            QUIC_CLOSE_REMOTE | QUIC_CLOSE_SEND_NOTIFICATION,
+            QUIC_ERROR_APPLICATION_ERROR,
+            NULL,
+            (uint16_t)0);
     }
 
     if (RecvState.ResetIdleTimeout) {
@@ -7089,6 +7139,10 @@ QuicConnGetV2Statistics(
         Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
     }
 
+    if (STATISTICS_HAS_FIELD(*StatsLength, HandshakeHopLimitTTL)) {
+        Stats->HandshakeHopLimitTTL = Connection->Stats.Handshake.HandshakeHopLimitTTL;
+    }
+
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
 
     return QUIC_STATUS_SUCCESS;
@@ -7848,7 +7902,8 @@ QuicConnProcessExpiredTimer(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 QuicConnDrainOperations(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_CONNECTION* Connection,
+    _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
     QUIC_OPERATION* Oper;
@@ -8008,5 +8063,10 @@ QuicConnDrainOperations(
 
     QuicConnValidate(Connection);
 
-    return HasMoreWorkToDo;
+    if (HasMoreWorkToDo) {
+        *StillHasPriorityWork = QuicOperationHasPriority(&Connection->OperQ);
+        return TRUE;
+    }
+
+    return FALSE;
 }

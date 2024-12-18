@@ -3408,6 +3408,15 @@
               template="tid_CONN_STATISTICS_V3"
               value="5194"
               />
+          <event
+              keywords="ut:Connection ut:LowVolume"
+              level="win:Informational"
+              message="$(string.Etw.ConnDelayCloseApplicationError)"
+              opcode="Connection"
+              symbol="QuicConnDelayCloseApplicationError"
+              template="tid_CONN"
+              value="5195"
+              />
           <!-- 6144 - 7167 | Stream Events -->
           <event
               keywords="ut:Stream ut:LowVolume ut:RPS"
@@ -4984,11 +4993,15 @@
             />
         <string
             id="Etw.ConnStatsV2"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%8"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%9"
             />
         <string
             id="Etw.DatapathSendTcpControl"
             value="[data][%1] Send %2 bytes TCP control packet Flags=%3 Dst=%5 Src=%7"
+            />
+        <string
+            id="Etw.ConnDelayCloseApplicationError"
+            value="[conn][%1] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame."
             />
       </stringTable>
     </resources>

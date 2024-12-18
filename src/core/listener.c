@@ -406,6 +406,7 @@ QuicListenerIndicateEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
+    CXPLAT_PASSIVE_CODE();
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(

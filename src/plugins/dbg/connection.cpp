@@ -110,23 +110,41 @@ EXT_COMMAND(
     //
 
     Dml("\n<u>OPERATIONS</u>\n"
-        "\n");
+        "\n"
+        "\tWorker Processing    %s\n"
+        "\tHas Queued Work      %s\n"
+        "\tHas Priority Work    %s\n",
+        Conn.WorkerProcessing() ? "TRUE" : "FALSE",
+        Conn.HasQueuedWork() ? "TRUE" : "FALSE",
+        Conn.HasPriorityWork() ? "TRUE" : "FALSE");
 
-    bool HasAtLeastOneOperation = false;
     auto Operations = Conn.GetOperQueue().GetOperations();
-    while (!CheckControlC()) {
-        auto OperLinkAddr = Operations.Next();
-        if (OperLinkAddr == 0) {
-            break;
+    if (Operations.IsEmpty()) {
+        Dml("\t\tNo Operations Queued\n");
+    } else {
+        bool IsHighPriority = true;
+        bool IsFirstOperation = true;
+        UINT64 PriorityTail;
+        ReadPointerAtAddr(Conn.GetOperQueue().GetPriorityTail(), &PriorityTail);
+        while (!CheckControlC()) {
+            auto OperLinkAddr = Operations.Next();
+            if (OperLinkAddr == 0) {
+                break;
+            }
+
+            if (PriorityTail == OperLinkAddr) {
+                IsHighPriority = false;
+                Dml("\n\tNORMAL PRIORITY:\n\n");
+            }
+
+            if (IsFirstOperation && IsHighPriority) {
+                Dml("\n\tHIGH PRIORITY:\n\n");
+            }
+
+            auto Operation = Operation::FromLink(OperLinkAddr);
+            Dml("\t\t%s\n", Operation.TypeStr());
+            IsFirstOperation = false;
         }
-
-        auto Operation = Operation::FromLink(OperLinkAddr);
-        Dml("\t%s\n", Operation.TypeStr());
-        HasAtLeastOneOperation = true;
-    }
-
-    if (!HasAtLeastOneOperation) {
-        Dml("\tNo Operations Queued\n");
     }
 
     //

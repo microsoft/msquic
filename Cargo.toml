@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "2.4.0-beta"
+version = "2.5.0-beta"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -44,11 +44,15 @@ include = [
     "/THIRD-PARTY-NOTICES",
 ]
 
+[features]
+default = []
+static = []
+
 [build-dependencies]
 cmake = "0.1"
 
 [dependencies]
-bitfield = "0.14.0"
+bitfield = "0.17.0"
 libc = "0.2.0"
-c-types = "3.0.0"
+c-types = "4.0.0"
 serde = { version = "1.0.117", features = ["derive"] }

@@ -32,7 +32,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
         unsigned int, arg7,
         unsigned long long, arg8), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, arg1)
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)
@@ -81,7 +81,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
         unsigned int, arg9,
         unsigned int, arg10), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -132,7 +132,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnOutFlowStatsV2,
         unsigned long long, arg9,
         unsigned long long, arg10), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
@@ -159,7 +159,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnRecoveryExit,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )
 
@@ -181,7 +181,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnCongestionV2,
         const void *, arg2,
         unsigned short, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
     )
 )
@@ -201,6 +201,6 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnPersistentCongestion,
     TP_ARGS(
         const void *, arg2), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
 )

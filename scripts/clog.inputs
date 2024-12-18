@@ -14,6 +14,8 @@
 ../src/platform/hashtable.c
 ../src/platform/datapath_winuser.c
 ../src/platform/datapath_linux.c
+../src/platform/datapath_unix.c
+../src/platform/datapath_xplat.c
 ../src/platform/datapath_raw_dpdk.c
 ../src/platform/datapath_raw_socket.c
 ../src/platform/datapath_raw_socket_win.c
@@ -22,6 +24,7 @@
 ../src/platform/datapath_raw_xdp_linux.c
 ../src/platform/datapath_raw_win.c
 ../src/platform/datapath_raw_linux.c
+../src/platform/datapath_raw.c
 ../src/platform/crypt_bcrypt.c
 ../src/platform/platform_winuser.c
 ../src/platform/toeplitz.c

@@ -20,6 +20,7 @@ Abstract:
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
+CXPLAT_WORKER_POOL WorkerPool;
 struct LbInterface* PublicInterface;
 std::vector<QUIC_ADDR> PrivateAddrs;
 
@@ -212,9 +213,10 @@ main(int argc, char **argv)
 
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CxPlatWorkerPoolInit(&WorkerPool);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, nullptr, &Datapath);
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, &WorkerPool, nullptr, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
@@ -222,6 +224,7 @@ main(int argc, char **argv)
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolUninit(&WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

@@ -216,8 +216,14 @@ struct SpinQuicGlobals {
     std::vector<HQUIC> ClientConfigurations;
     QUIC_BUFFER* Alpns {nullptr};
     uint32_t AlpnCount {0};
-    QUIC_BUFFER Buffers[BufferCount];
-    SpinQuicGlobals() { CxPlatZeroMemory(Buffers, sizeof(Buffers)); }
+    const size_t SendBufferSize { MaxBufferSizes[BufferCount - 1] + UINT8_MAX };
+    uint8_t* SendBuffer;
+    SpinQuicGlobals() {
+        SendBuffer = new uint8_t[SendBufferSize];
+        for (size_t i = 0; i < SendBufferSize; i++) {
+            SendBuffer[i] = (uint8_t)i;
+        }
+    }
     ~SpinQuicGlobals() {
         while (ClientConfigurations.size() > 0) {
             auto Configuration = ClientConfigurations.back();
@@ -239,9 +245,7 @@ struct SpinQuicGlobals {
 #endif
             MsQuicClose(MsQuic);
         }
-        for (size_t j = 0; j < BufferCount; ++j) {
-            free(Buffers[j].Buffer);
-        }
+        delete [] SendBuffer;
     }
 };
 
@@ -272,10 +276,12 @@ typedef enum {
 struct SpinQuicStream {
     struct SpinQuicConnection& Connection;
     HQUIC Handle;
-    uint64_t PendingRecvLength {0};
+    uint8_t SendOffset {0};
+    bool Deleting {false};
+    uint64_t PendingRecvLength {UINT64_MAX}; // UINT64_MAX means no pending receive
     SpinQuicStream(SpinQuicConnection& Connection, HQUIC Handle = nullptr) :
         Connection(Connection), Handle(Handle) {}
-    ~SpinQuicStream() { MsQuic.StreamClose(Handle); }
+    ~SpinQuicStream() { Deleting = true; MsQuic.StreamClose(Handle); }
     static SpinQuicStream* Get(HQUIC Stream) {
         return (SpinQuicStream*)MsQuic.GetContext(Stream);
     }
@@ -365,22 +371,54 @@ static struct {
     uint32_t RepeatCount;
 } SpinSettings;
 
+void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID);
+void SpinQuicSetRandomStreamParam(HQUIC Stream, uint16_t ThreadID);
+
 QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM_EVENT *Event)
 {
     auto ctx = SpinQuicStream::Get(Stream);
     auto ThreadID = ctx->Connection.ThreadID;
 
+    if (GetRandom(5) == 0) {
+        SpinQuicGetRandomParam(Stream, ThreadID);
+    }
+
+    if (GetRandom(10) == 0) {
+        SpinQuicSetRandomStreamParam(Stream, ThreadID);
+    }
+
+    if (!ctx->Deleting && GetRandom(20) == 0) {
+        MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
+        goto Exit;
+    }
+
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
         MsQuic.StreamShutdown(Stream, (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16), 0);
         break;
-    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
-        ctx->PendingRecvLength = 0;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED: {
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+        ctx->PendingRecvLength = UINT64_MAX;
         break;
+    }
     case QUIC_STREAM_EVENT_RECEIVE: {
+        if (Event->RECEIVE.TotalBufferLength == 0) {
+            ctx->PendingRecvLength = UINT64_MAX; // TODO - Add more complex handling
+            break;
+        }
+        auto Offset = Event->RECEIVE.AbsoluteOffset;
+        for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; ++i) {
+            for (uint32_t j = 0; j < Event->RECEIVE.Buffers[i].Length; ++j) {
+                if (Event->RECEIVE.Buffers[i].Buffer[j] != (uint8_t)(Offset + j)) {
+                    CXPLAT_FRE_ASSERT(FALSE); // Value is corrupt!
+                }
+            }
+            Offset += Event->RECEIVE.Buffers[i].Length;
+        }
         int Random = GetRandom(5);
+        std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
+        CXPLAT_DBG_ASSERT(ctx->PendingRecvLength == UINT64_MAX);
         if (Random == 0) {
-            std::lock_guard<std::mutex> Lock(ctx->Connection.Lock);
             ctx->PendingRecvLength = Event->RECEIVE.TotalBufferLength;
             return QUIC_STATUS_PENDING; // Pend the receive, to be completed later.
         } else if (Random == 1 && Event->RECEIVE.TotalBufferLength > 0) {
@@ -393,6 +431,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleStreamEvent(HQUIC Stream, void* , QUIC_STREAM
     }
     default:
         break;
+    }
+
+Exit:
+    if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+        delete (QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -453,6 +496,11 @@ QUIC_STATUS QUIC_API SpinQuicHandleConnectionEvent(HQUIC Connection, void* , QUI
         ctx->AddStream(Event->PEER_STREAM_STARTED.Stream);
         break;
     }
+    case QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED:
+        if (QUIC_DATAGRAM_SEND_STATE_IS_FINAL(Event->DATAGRAM_SEND_STATE_CHANGED.State)) {
+            delete (QUIC_BUFFER*)Event->DATAGRAM_SEND_STATE_CHANGED.ClientContext;
+        }
+        break;
     default:
         break;
     }
@@ -745,9 +793,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
         break;
     case QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED:                     // uint8_t (BOOLEAN)
         break; // Get Only
-    case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
-        Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, (uint8_t)GetRandom(2));
-        break;
+    //case QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION:                   // uint8_t (BOOLEAN)
+    //    Helper.SetUint8(QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, (uint8_t)GetRandom(2));
+    //    break;
     case QUIC_PARAM_CONN_RESUMPTION_TICKET:                         // uint8_t[]
         // TODO
         break;
@@ -831,6 +879,7 @@ void SpinQuicGetRandomParam(HQUIC Handle, uint16_t ThreadID)
         uint32_t Level = (uint32_t)GetRandom(ARRAYSIZE(ParamCounts));
         uint32_t Param = (uint32_t)GetRandom(((ParamCounts[Level] & 0xFFFFFFF)) + 1);
         uint32_t Combined = ((Level+1) << 28) + Param;
+        Combined &= ~QUIC_PARAM_HIGH_PRIORITY; // TODO: enable high priority GetParam
 
         uint8_t OutBuffer[200];
         uint32_t OutBufferLength = (uint32_t)GetRandom(sizeof(OutBuffer) + 1);
@@ -954,8 +1003,19 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 std::lock_guard<std::mutex> Lock(ctx->Lock);
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
-                auto Buffer = &Gb.Buffers[GetRandom(BufferCount)];
-                MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), nullptr);
+                auto StreamCtx = SpinQuicStream::Get(Stream);
+                auto Buffer = new(std::nothrow) QUIC_BUFFER;
+                if (Buffer) {
+                    const uint32_t Length = MaxBufferSizes[GetRandom(BufferCount)];
+                    Buffer->Buffer = Gb.SendBuffer + StreamCtx->SendOffset;
+                    Buffer->Length = Length;
+                    if (QUIC_SUCCEEDED(
+                        MsQuic.StreamSend(Stream, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(16), Buffer))) {
+                        StreamCtx->SendOffset = (uint8_t)(StreamCtx->SendOffset + Length);
+                    } else {
+                        delete Buffer;
+                    }
+                }
             }
             break;
         }
@@ -980,14 +1040,14 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto Stream = ctx->TryGetStream();
                 if (Stream == nullptr) continue;
                 auto StreamCtx = SpinQuicStream::Get(Stream);
+                if (StreamCtx->PendingRecvLength == UINT64_MAX) continue; // Nothing to complete (yet
                 auto BytesRemaining = StreamCtx->PendingRecvLength;
+                StreamCtx->PendingRecvLength = UINT64_MAX;
                 if (BytesRemaining != 0 && GetRandom(10) == 0) {
-                    auto BytesConsumed = GetRandom(StreamCtx->PendingRecvLength);
-                    StreamCtx->PendingRecvLength = BytesRemaining - BytesConsumed;
+                    auto BytesConsumed = GetRandom(BytesRemaining);
                     MsQuic.StreamReceiveComplete(Stream, BytesConsumed);
                 } else {
-                    StreamCtx->PendingRecvLength = 0;
-                    MsQuic.StreamReceiveComplete(Stream, StreamCtx->PendingRecvLength);
+                    MsQuic.StreamReceiveComplete(Stream, BytesRemaining);
                 }
             }
             break;
@@ -1003,7 +1063,7 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
                 auto Flags = (QUIC_STREAM_SHUTDOWN_FLAGS)GetRandom(16);
                 if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE) {
                     auto StreamCtx = SpinQuicStream::Get(Stream);
-                    StreamCtx->PendingRecvLength = 0;
+                    StreamCtx->PendingRecvLength = UINT64_MAX;
                 }
                 MsQuic.StreamShutdown(Stream, Flags, 0);
             }
@@ -1081,8 +1141,14 @@ void Spin(Gbs& Gb, LockableVector<HQUIC>& Connections, std::vector<HQUIC>* Liste
         case SpinQuicAPICallDatagramSend: {
             auto Connection = Connections.TryGetRandom();
             BAIL_ON_NULL_CONNECTION(Connection);
-            auto Buffer = &Gb.Buffers[GetRandom(BufferCount)];
-            MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), nullptr);
+            auto Buffer = new(std::nothrow) QUIC_BUFFER;
+            if (Buffer) {
+                Buffer->Buffer = Gb.SendBuffer;
+                Buffer->Length = MaxBufferSizes[GetRandom(BufferCount)];
+                if (QUIC_FAILED(MsQuic.DatagramSend(Connection, Buffer, 1, (QUIC_SEND_FLAGS)GetRandom(8), Buffer))) {
+                    delete Buffer;
+                }
+            }
             break;
         }
         case SpinQuicAPICallCompleteTicketValidation: {
@@ -1298,12 +1364,6 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
     do {
         Gbs Gb;
 
-        for (size_t j = 0; j < BufferCount; ++j) {
-            Gb.Buffers[j].Length = MaxBufferSizes[j]; // TODO - Randomize?
-            Gb.Buffers[j].Buffer = (uint8_t*)malloc(Gb.Buffers[j].Length);
-            ASSERT_ON_NOT(Gb.Buffers[j].Buffer);
-        }
-
 #ifdef QUIC_BUILD_STATIC
         CxPlatLockAcquire(&RunThreadLock);
         QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
@@ -1499,7 +1559,11 @@ void start() {
             printf("Using %u partitions...\n", ProcCount);
             ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
             ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
-            ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            } else {
+                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
+            }
             ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
             ExecConfig->ProcessorCount = ProcCount;
             for (uint32_t i = 0; i < ProcCount; ++i) {

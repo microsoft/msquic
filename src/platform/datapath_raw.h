@@ -47,6 +47,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_ROUTE_RESOLUTION_WORKER {
 typedef struct CXPLAT_DATAPATH_RAW {
     const CXPLAT_DATAPATH *ParentDataPath;
 
+    //
+    // The Worker pool
+    //
+    CXPLAT_WORKER_POOL* WorkerPool;
+
     CXPLAT_SOCKET_POOL SocketPool;
 
     CXPLAT_ROUTE_RESOLUTION_WORKER* RouteResolutionWorker;
@@ -87,6 +92,18 @@ typedef struct CXPLAT_SEND_DATA {
 
 } CXPLAT_SEND_DATA;
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRouteWorkerUninitialize(
+    _In_ CXPLAT_ROUTE_RESOLUTION_WORKER* Worker
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRouteWorkerInitialize(
+    _Inout_ CXPLAT_DATAPATH_RAW* DataPath
+    );
+
 //
 // Initializes the raw datapath stack.
 //
@@ -95,6 +112,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     );
 
@@ -242,7 +260,7 @@ CxPlatDpRawTxEnqueue(
 typedef struct CXPLAT_SOCKET_RAW {
 
     CXPLAT_HASHTABLE_ENTRY Entry;
-    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_RUNDOWN_REF RawRundown;
     CXPLAT_DATAPATH_RAW* RawDatapath;
     SOCKET AuxSocket;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
@@ -273,7 +291,7 @@ CxPlatSockPoolUninitialize(
 // conjunction with the hash table lookup, which already compares local UDP port
 // so it assumes that matches already.
 //
-inline
+static inline
 BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,
@@ -374,43 +392,6 @@ CxPlatFramingWriteHeaders(
 #pragma pack(push)
 #pragma pack(1)
 
-typedef struct ETHERNET_HEADER {
-    uint8_t Destination[6];
-    uint8_t Source[6];
-    uint16_t Type;
-    uint8_t Data[0];
-} ETHERNET_HEADER;
-
-typedef struct IPV4_HEADER {
-    uint8_t VersionAndHeaderLength;
-    union {
-        uint8_t TypeOfServiceAndEcnField;
-        struct {
-            uint8_t EcnField : 2;
-            uint8_t TypeOfService : 6;
-        };
-    };
-    uint16_t TotalLength;
-    uint16_t Identification;
-    uint16_t FlagsAndFragmentOffset;
-    uint8_t TimeToLive;
-    uint8_t Protocol;
-    uint16_t HeaderChecksum;
-    uint8_t Source[4];
-    uint8_t Destination[4];
-    uint8_t Data[0];
-} IPV4_HEADER;
-
-typedef struct IPV6_HEADER {
-    uint32_t VersionClassEcnFlow;
-    uint16_t PayloadLength;
-    uint8_t NextHeader;
-    uint8_t HopLimit;
-    uint8_t Source[16];
-    uint8_t Destination[16];
-    uint8_t Data[0];
-} IPV6_HEADER;
-
 typedef struct IPV6_EXTENSION {
     uint8_t NextHeader;
     uint8_t Length;
@@ -456,11 +437,52 @@ typedef struct TCP_HEADER {
 #define TH_CWR 0x80
 
 #define IPV4_VERSION 4
-#define IPV6_VERSION 6
 #define IPV4_VERSION_BYTE (IPV4_VERSION << 4)
-#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(IPV4_HEADER) / sizeof(uint32_t)))
 
 #define IP_DEFAULT_HOP_LIMIT 128
 
+#ifndef _KERNEL_MODE
+typedef struct ETHERNET_HEADER {
+    uint8_t Destination[6];
+    uint8_t Source[6];
+    uint16_t Type;
+    uint8_t Data[0];
+} ETHERNET_HEADER;
+
+typedef struct IPV4_HEADER {
+    uint8_t VersionAndHeaderLength;
+    union {
+        uint8_t TypeOfServiceAndEcnField;
+        struct {
+            uint8_t EcnField : 2;
+            uint8_t TypeOfService : 6;
+        };
+    };
+    uint16_t TotalLength;
+    uint16_t Identification;
+    uint16_t FlagsAndFragmentOffset;
+    uint8_t TimeToLive;
+    uint8_t Protocol;
+    uint16_t HeaderChecksum;
+    uint8_t Source[4];
+    uint8_t Destination[4];
+    uint8_t Data[0];
+} IPV4_HEADER;
+
+typedef struct IPV6_HEADER {
+    uint32_t VersionClassEcnFlow;
+    uint16_t PayloadLength;
+    uint8_t NextHeader;
+    uint8_t HopLimit;
+    uint8_t Source[16];
+    uint8_t Destination[16];
+    uint8_t Data[0];
+} IPV6_HEADER;
+
+#define IPV6_VERSION 6
+#define IPV4_DEFAULT_VERHLEN ((IPV4_VERSION_BYTE) | (sizeof(IPV4_HEADER) / sizeof(uint32_t)))
+
 #define ETHERNET_TYPE_IPV4 0x0008
 #define ETHERNET_TYPE_IPV6 0xdd86
+
+#endif

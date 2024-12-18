@@ -181,6 +181,67 @@ sudo dnf install openssl-devel
 sudo dnf install libatomic
 ```
 
+#### Linux XDP
+Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
+Commands below install dependencies and setup runtime environment.  
+**<span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by `-ForceXdpInstall` </span>**
+```sh
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! WARN !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+Linux XDP installs dependencies from Ubuntu 24.04 packages, which should affect your environment
+You need to understand the impact of this on your environment before proceeding
+Type 'YES' to proceed: YES
+
+or
+
+$ pwsh ./scripts/prepare-machine.ps1 -UseXdp -ForceXdpInstall
+$ pwsh ./scripts/build.ps1 -UseXdp
+```
+
+`./scripts/prepare-machine.ps1` internally does the below commands. This might break your environment.
+```sh
+# for libxdp v1.4.2 on Ubuntu 22.04. Ubuntu 24.04 doesn't need this step
+sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
+
+# install runtime dependencies
+sudo apt-get install -y libxdp1 libbpf1 libnl-3-200 libnl-route-3-200 libnl-genl-3-200
+
+# install build dependencies
+sudo apt-get --no-install-recommends -y install libxdp-dev libbpf-dev libnl-3-dev libnl-genl-3-dev libnl-route-3-dev zlib1g-dev zlib1g pkg-config m4 clang libpcap-dev libelf-dev libc6-dev-i386
+
+# Optional. This is required when you run test with duonic (XDP capable virtual nic pair)
+sudo apt-get -y install iproute2 iptables
+sudo ./scripts/duonic.sh install
+```
+
+Test
+```sh
+# "sudo" and --duoNic required
+# You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
+# By default, libmsquic.so searchs for same directory as its executable
+# If something failed, fallback to normal socket
+sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+```
+
+**Q&A**
+- Q: Is this workload really running on XDP?  
+A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
+```
+$ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
+Interface        Prio  Program name      Mode     ID   Tag               Chain actions
+--------------------------------------------------------------------------------------
+lo                     <No XDP program loaded!>
+eth0                   <No XDP program loaded!>
+docker0                <No XDP program loaded!>
+duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711 
+ =>              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
+duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711 
+ =>              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
+```
+
+- Q: Is Ubuntu 20.04LTS supported?  
+A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the **upgrade**.
+
 ### macOS
 The build needs CMake and compiler.
 

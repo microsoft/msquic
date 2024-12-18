@@ -33,6 +33,10 @@ Start the client providing the IP address for the server. Here 127.0.0.1 is used
 quicsample.exe -client -unsecure -target:{127.0.0.1}
 ```
 
+## Troubleshooting with Wireshark 
+
+When running the client you can set the environment variable `SSLKEYLOGFILE` to the absolute path of the file that will receive the TLS secrets. Learn how to load such file inside Wireshark and see what is being transmitted on the wire: [Using the (Pre)-Master-Secret](https://wiki.wireshark.org/TLS#using-the-pre-master-secret)
+
 ## Console Output
 
 Here is what the console output looks like on the server and client sides after connection is established and data flows:

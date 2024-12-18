@@ -175,7 +175,8 @@ QuicCryptoReset(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicCryptoHandshakeConfirmed(
-    _In_ QUIC_CRYPTO* Crypto
+    _In_ QUIC_CRYPTO* Crypto,
+    _In_ BOOLEAN SignalBinding
     );
 
 //

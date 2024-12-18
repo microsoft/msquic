@@ -55,6 +55,11 @@ CxPlatPoolFree(
     _In_ void* Entry
     );
 
+BOOLEAN
+CxPlatPoolPrune(
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
 void
 CxPlatListInitializeHead(
     _Out_ CXPLAT_LIST_ENTRY* ListHead

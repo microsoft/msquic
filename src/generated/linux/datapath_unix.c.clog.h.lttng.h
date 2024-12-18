@@ -12,12 +12,12 @@
 // arg2 = arg2 = Datapath = arg2
 // arg3 = arg3 = HostName = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, DatapathResolveHostNameFailed,
+TRACEPOINT_EVENT(CLOG_DATAPATH_UNIX_C, DatapathResolveHostNameFailed,
     TP_ARGS(
         const void *, arg2,
         const char *, arg3), 
     TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
     )
 )
@@ -35,7 +35,7 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, DatapathResolveHostNameFailed,
 // arg2 = arg2 = (uint32_t)Result = arg2
 // arg3 = arg3 = "Resolving hostname to IP" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_LINUX_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_DATAPATH_UNIX_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 

@@ -34,8 +34,8 @@ Abstract:
 #include "mtu_discovery.c.clog.h"
 #endif
 
-CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMTUD_DEFAULT_MAX_MTU, L"Default max must not be more than max");
-CXPLAT_STATIC_ASSERT(QUIC_DPLPMTUD_MIN_MTU <= QUIC_DPLPMTUD_DEFAULT_MIN_MTU, L"Default min must not be less than min");
+CXPLAT_STATIC_ASSERT(CXPLAT_MAX_MTU >= QUIC_DPLPMTUD_DEFAULT_MAX_MTU, "Default max must not be more than max");
+CXPLAT_STATIC_ASSERT(QUIC_DPLPMTUD_MIN_MTU <= QUIC_DPLPMTUD_DEFAULT_MIN_MTU, "Default min must not be less than min");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 static

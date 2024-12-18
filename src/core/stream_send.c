@@ -720,7 +720,7 @@ QuicStreamCopyFromSendRequests(
     //
     uint32_t CurIndex = 0; // Index of the current buffer.
     uint64_t CurOffset = Offset - Req->StreamOffset; // Offset in the current buffer.
-    while (CurOffset >= Req->Buffers[CurIndex].Length) {
+    while (CurOffset >= (uint64_t)Req->Buffers[CurIndex].Length) {
         CurOffset -= Req->Buffers[CurIndex++].Length;
     }
 
