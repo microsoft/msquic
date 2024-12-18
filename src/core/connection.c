@@ -6517,6 +6517,13 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+
+            if (!QuicConnRetireCurrentDestCid(Connection, &Connection->Paths[0])) {
+                QuicLibraryReleaseBinding(Connection->Paths[0].Binding);
+                Connection->Paths[0].Binding = OldBinding;
+                Status = QUIC_STATUS_INVALID_STATE;
+            }
+
             Connection->Paths[0].Route.Queue = NULL;
 
             //
@@ -6542,6 +6549,8 @@ QuicConnParamSet(
                 "[conn][%p] New Local IP: %!ADDR!",
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
+
+            QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
         }
