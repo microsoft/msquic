@@ -583,7 +583,6 @@ QuicBindingAddAllSourceConnectionIDs(
                 QUIC_CID_SLIST_ENTRY,
                 Link);
         if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
-            QuicBindingRemoveAllSourceConnectionIDs(Binding, Connection);
             return FALSE;
         }
     }
