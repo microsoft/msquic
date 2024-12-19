@@ -127,8 +127,8 @@ QuicAckTrackerDidHitReorderingThreshold(
 
     for (uint32_t Index = QuicRangeSize(&Tracker->PacketNumbersToAck); Index > 0; --Index) {
         uint64_t SmallestMissing = 0; // Smallest missing in the previous gap
-        uint64_t HighestMissing = QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)->Low; // Highest missing in the prevous gap
-        if (HighestMissing == 0) {
+        uint64_t RangeStart = QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)->Low; // Lowest Packet number in the subrange
+        if (RangeStart == 0) {
             return FALSE;
         }
         if (Index != 1) {
@@ -136,7 +136,7 @@ QuicAckTrackerDidHitReorderingThreshold(
         }
           
         if (LargestReported > SmallestMissing) {
-            if (HighestMissing > LargestReported) {
+            if (RangeStart > LargestReported) {
                 SmallestMissing = LargestReported;
             } else {
                 return FALSE;
