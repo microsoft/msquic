@@ -5,6 +5,10 @@
 
 --*/
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef struct QUIC_ACK_TRACKER {
 
     //
@@ -91,6 +95,12 @@ QuicAckTrackerAddPacketNumber(
     _In_ uint64_t PacketNumber
     );
 
+BOOLEAN
+QuicAckTrackerDidHitReorderingThreshold(
+    _In_ QUIC_ACK_TRACKER* Tracker,
+    _In_ uint8_t ReorderingThreshold
+    );
+
 typedef enum QUIC_ACK_TYPE {
     QUIC_ACK_TYPE_NON_ACK_ELICITING,
     QUIC_ACK_TYPE_ACK_ELICITING,
@@ -146,3 +156,7 @@ QuicAckTrackerHasPacketsToAck(
         !Tracker->AlreadyWrittenAckFrame &&
         QuicRangeSize(&Tracker->PacketNumbersToAck) != 0;
 }
+
+#if defined(__cplusplus)
+}
+#endif
