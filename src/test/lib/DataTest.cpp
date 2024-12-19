@@ -3628,7 +3628,6 @@ void QuicTestConnectionPriority()
 
     {
         UniquePtr<MsQuicConnection> Connections[NumConnections];
-
         for (uint8_t i = 0; i < NumConnections; ++i) {
             Connections[i].reset(new(std::nothrow) MsQuicConnection(Registration));
             TEST_QUIC_SUCCEEDED(Connections[i]->GetInitStatus());
