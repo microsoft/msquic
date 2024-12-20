@@ -1,23 +1,26 @@
 name: WAN Perf
 
+#on:
+#  push:
+#    branches:
+#    - main
+#    paths:
+#    - .github/workflows/wan-perf.yml
+#    - src/core/*
+#    - src/platform/*
+#    - src/perf/*
+#  pull_request:
+#    branches:
+#    - main
+#    paths:
+#    - .github/workflows/wan-perf.yml
+#    - src/core/*
+#    - src/platform/*
+#    - src/perf/*
+#    - submodules/openssl/*
+
 on:
-  push:
-    branches:
-    - main
-    paths:
-    - .github/workflows/wan-perf.yml
-    - src/core/*
-    - src/platform/*
-    - src/perf/*
-  pull_request:
-    branches:
-    - main
-    paths:
-    - .github/workflows/wan-perf.yml
-    - src/core/*
-    - src/platform/*
-    - src/perf/*
-    - submodules/openssl/*
+  workflow_dispatch:
 
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
@@ -92,11 +95,13 @@ jobs:
         name: bin
         path: artifacts/bin
     - name: Run WAN Perf (QUIC only)
-      if: ${{ github.event_name == 'pull_request' }}
+      #if: ${{ github.event_name == 'pull_request' }}
+      if: ${{ github.event_name == 'workflow_dispatch' }}
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol QUIC -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Run WAN Perf (QUIC + TCP)
-      if: ${{ github.event_name != 'pull_request' }}
+      #if: ${{ github.event_name != 'pull_request' }}
+      if: ${{ github.event_name != 'workflow_dispatch' }}
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Upload Results
