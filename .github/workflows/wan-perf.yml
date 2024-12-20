@@ -96,12 +96,12 @@ jobs:
         path: artifacts/bin
     - name: Run WAN Perf (QUIC only)
       #if: ${{ github.event_name == 'pull_request' }}
-      if: ${{ github.event_name == 'workflow_dispatch' }}
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol QUIC -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Run WAN Perf (QUIC + TCP)
       #if: ${{ github.event_name != 'pull_request' }}
-      if: ${{ github.event_name != 'workflow_dispatch' }}
+      if: ${{ github.event_name == 'pull_request' || github.event_name == 'workflow_dispatch' }}
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Upload Results
