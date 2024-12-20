@@ -17,7 +17,6 @@ use std::io;
 use std::marker::PhantomData;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
-use std::marker::PhantomData;
 use std::option::Option;
 use std::ptr;
 use std::result::Result;
@@ -1369,6 +1368,12 @@ impl CredentialConfig {
     }
 }
 
+impl Default for Api {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Api {
     pub fn new() -> Self {
         // We initialize APITABLE at only once.
@@ -1382,7 +1387,9 @@ impl Api {
                 APITABLE = table;
             });
         }
-        Self { marker: PhantomData }
+        Self {
+            marker: PhantomData,
+        }
     }
 
     pub fn close_listener(&self, listener: Handle) {
@@ -1518,6 +1525,12 @@ impl Drop for Configuration {
     }
 }
 
+impl Default for Connection {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Connection {
     pub fn new() -> Connection {
         Connection {
@@ -1526,9 +1539,7 @@ impl Connection {
     }
 
     pub fn from_parts(handle: Handle) -> Connection {
-        Connection {
-            handle,
-        }
+        Connection { handle }
     }
 
     pub fn open(
@@ -1698,7 +1709,7 @@ impl Connection {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         let status = unsafe {
-            ((*self.table).get_param)(
+            ((*APITABLE).get_param)(
                 self.handle,
                 PARAM_CONN_LOCAL_ADDRESS,
                 (&addr_size_mut) as *const usize as *const u32 as *mut u32,
@@ -1715,7 +1726,7 @@ impl Connection {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         let status = unsafe {
-            ((*self.table).get_param)(
+            ((*APITABLE).get_param)(
                 self.handle,
                 PARAM_CONN_REMOTE_ADDRESS,
                 (&addr_size_mut) as *const usize as *const u32 as *mut u32,
@@ -1743,12 +1754,7 @@ impl Listener {
     ) -> Result<Listener, u32> {
         let new_listener: Handle = ptr::null();
         let status = unsafe {
-            ((*APITABLE).listener_open)(
-                registration.handle,
-                handler,
-                context,
-                &new_listener,
-            )
+            ((*APITABLE).listener_open)(registration.handle, handler, context, &new_listener)
         };
         if Status::failed(status) {
             return Err(status);
@@ -1787,6 +1793,12 @@ impl Drop for Listener {
     }
 }
 
+impl Default for Stream {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Stream {
     pub fn new() -> Stream {
         Stream {
@@ -1795,9 +1807,7 @@ impl Stream {
     }
 
     pub fn from_parts(handle: Handle) -> Stream {
-        Stream {
-            handle,
-        }
+        Stream { handle }
     }
 
     pub fn open(
