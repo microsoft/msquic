@@ -411,20 +411,11 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     );
 
-#ifdef CXPLAT_SQE
-BOOLEAN
-CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_opt_ void* user_data
-    );
-#else
 BOOLEAN
 _CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     );
-#endif
 
 uint32_t
 CxPlatEventQDequeue(
@@ -440,7 +431,6 @@ CxPlatEventQReturn(
     _In_ uint32_t count
     );
 
-#ifdef CXPLAT_SQE_INIT
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -453,7 +443,6 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
     _In_ CXPLAT_SQE* sqe
     );
-#endif // CXPLAT_SQE_INIT
 
 void*
 CxPlatCqeUserData(

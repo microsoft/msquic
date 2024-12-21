@@ -1201,7 +1201,10 @@ CxPlatXdpExecute(
             XdpPartitionShutdown,
             "[ xdp][%p] XDP partition shutdown",
             Partition);
-        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe.Sqe, &Partition->ShutdownSqe);
+        CxPlatEventQEnqueue(
+            Partition->EventQ,
+            &Partition->ShutdownSqe.Sqe,
+            &Partition->ShutdownSqe);
         return FALSE;
     }
 
@@ -1350,7 +1353,7 @@ RawDataPathProcessCqe(
         break;
     }
     case CXPLAT_CQE_TYPE_XDP_IO: {
-        // TODO: use DATAPATH_IO_SQE to distinguish Tx/RX
+        // TODO: use CXPLAT_SQE to distinguish Tx/RX
         DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
         XDP_QUEUE* Queue;
         Queue = CXPLAT_CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);

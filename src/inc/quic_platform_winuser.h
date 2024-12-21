@@ -701,16 +701,20 @@ CxPlatEventWaitWithTimeout(
 //
 
 typedef HANDLE CXPLAT_EVENTQ;
-typedef OVERLAPPED_ENTRY CXPLAT_CQE;
-#define CXPLAT_SQE CXPLAT_SQE
-#define CXPLAT_SQE_DEFAULT {0}
 typedef struct CXPLAT_SQE {
-    void* UserData;
     OVERLAPPED Overlapped;
+    void (*Completion)(_In_ struct CXPLAT_SQE *Sqe);
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
 } CXPLAT_SQE;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(*CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_SQE *Sqe
+    );
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 
 inline
 BOOLEAN
@@ -744,8 +748,7 @@ inline
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     )
 {
 #if DEBUG
@@ -753,7 +756,6 @@ CxPlatEventQEnqueue(
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
@@ -762,8 +764,7 @@ BOOLEAN
 CxPlatEventQEnqueueEx( // Windows specific extension
     _In_ CXPLAT_EVENTQ* queue,
     _In_ CXPLAT_SQE* sqe,
-    _In_ uint32_t num_bytes,
-    _In_opt_ void* user_data
+    _In_ uint32_t num_bytes
     )
 {
 #if DEBUG
@@ -771,7 +772,6 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    sqe->UserData = user_data;
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
@@ -810,21 +810,37 @@ CxPlatEventQReturn(
 }
 
 inline
-void*
-CxPlatCqeUserData(
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Completion = completion;
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+}
+
+inline
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped)->UserData;
+    return CONTAINING_RECORD(cqe->lpOverlapped, CXPLAT_SQE, Overlapped);
 }
-
-typedef struct DATAPATH_SQE DATAPATH_SQE;
-
-void
-CxPlatDatapathSqeInitialize(
-    _Out_ DATAPATH_SQE* DatapathSqe,
-    _In_ uint32_t CqeType
-    );
 
 //
 // Time Measurement Interfaces
