@@ -388,6 +388,11 @@ QuicTestMultipleLocalAddresses(
     );
 
 void
+QuicTestMultipath(
+    _In_ int Family
+    );
+
+void
 QuicTestNatPortRebind(
     _In_ int Family,
     _In_ uint16_t KeepAlivePaddingSize
@@ -1375,4 +1380,11 @@ typedef struct {
     QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 127
+typedef struct {
+    int Family;
+} QUIC_RUN_MULTIPATH_PARAMS;
+
+#define IOCTL_QUIC_RUN_MULTIPATH \
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_MULTIPATH
+#define QUIC_MAX_IOCTL_FUNC_CODE 128

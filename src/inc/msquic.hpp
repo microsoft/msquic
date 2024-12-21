@@ -596,6 +596,7 @@ public:
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
     MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }
+    MsQuicSettings& SetMultipathEnabled(bool value) { MultipathEnabled = value; IsSet.MultipathEnabled = TRUE; return *this; }
 #endif
 
     QUIC_STATUS

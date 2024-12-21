@@ -46,6 +46,7 @@ typedef struct QUIC_RX_PACKET {
     //
     uint64_t PacketNumber;
 
+    uint32_t PathId;
     //
     // Represents the sender side's timestamp (in us) from the start of their
     // epoch.

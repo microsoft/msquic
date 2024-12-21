@@ -173,32 +173,3 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowBlocked,
         ctf_integer(unsigned char, arg3, arg3)
     )
 )
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
-// QuicTraceEvent(
-                    ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                    Connection,
-                    SourceCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnSourceCidRemoved,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)

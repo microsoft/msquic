@@ -136,7 +136,7 @@ QuicLossDetectionUninitialize(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     while (LossDetection->SentPackets != NULL) {
         QUIC_SENT_PACKET_METADATA* Packet = LossDetection->SentPackets;
@@ -173,7 +173,7 @@ QuicLossDetectionReset(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_LOSS_DETECTION);
 
@@ -229,7 +229,7 @@ QuicLossDetectionComputeProbeTimeout(
     _In_ uint32_t Count
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     CXPLAT_DBG_ASSERT(Path->SmoothedRtt != 0);
 
@@ -257,7 +257,7 @@ QuicLossDetectionUpdateTimer(
     _In_ BOOLEAN ExecuteImmediatelyIfNecessary
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     if (Connection->State.ClosedLocally || Connection->State.ClosedRemotely) {
         //
@@ -388,7 +388,7 @@ QuicLossDetectionOnPacketSent(
     _In_ QUIC_SENT_PACKET_METADATA* TempSentPacket
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
     CXPLAT_DBG_ASSERT(TempSentPacket->FrameCount != 0);
 
     //
@@ -449,7 +449,7 @@ QuicLossDetectionOnPacketSent(
         }
 
         QuicCongestionControlOnDataSent(
-            &Connection->CongestionControl, SentPacket->PacketLength);
+            &Path->PathID->CongestionControl, SentPacket->PacketLength);
     }
 
     uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
@@ -461,13 +461,13 @@ QuicLossDetectionOnPacketSent(
           NULL;
 
     if (SendPostedBytes < Path->Mtu &&
-        QuicCongestionControlCanSend(&Connection->CongestionControl) &&
+        QuicCongestionControlCanSend(&Path->PathID->CongestionControl) &&
         !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto) &&
         (Stream && QuicStreamAllowedByPeer(Stream)) && !QuicStreamCanSendNow(Stream, FALSE)) {
-        QuicCongestionControlSetAppLimited(&Connection->CongestionControl);
+        QuicCongestionControlSetAppLimited(&Path->PathID->CongestionControl);
     }
 
-    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Connection->CongestionControl);
+    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Path->PathID->CongestionControl);
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 
@@ -498,9 +498,10 @@ QuicLossDetectionOnPacketAcknowledged(
     _In_ uint64_t AckDelay
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
     uint8_t PathIndex;
     QUIC_PATH* Path = QuicConnGetPathByID(Connection, Packet->PathId, &PathIndex);
+    CXPLAT_DBG_ASSERT(Path != NULL);
     UNREFERENCED_PARAMETER(PathIndex);
 
     _Analysis_assume_(
@@ -517,7 +518,7 @@ QuicLossDetectionOnPacketAcknowledged(
         QuicCryptoHandshakeConfirmed(&Connection->Crypto, TRUE);
     }
 
-    QUIC_PACKET_SPACE* PacketSpace = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
+    QUIC_PACKET_SPACE* PacketSpace = Path->PathID->Packets[QUIC_ENCRYPT_LEVEL_1_RTT];
     if (EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT &&
         PacketSpace->AwaitingKeyPhaseConfirmation &&
         Packet->Flags.KeyPhase == PacketSpace->CurrentKeyPhase &&
@@ -535,7 +536,7 @@ QuicLossDetectionOnPacketAcknowledged(
         case QUIC_FRAME_ACK:
         case QUIC_FRAME_ACK_1:
             QuicAckTrackerOnAckFrameAcked(
-                &Connection->Packets[EncryptLevel]->AckTracker,
+                &Path->PathID->Packets[EncryptLevel]->AckTracker,
                 Packet->Frames[i].ACK.LargestAckedPacketNumber);
             break;
 
@@ -583,34 +584,72 @@ QuicLossDetectionOnPacketAcknowledged(
             }
             break;
 
-        case QUIC_FRAME_NEW_CONNECTION_ID: {
-            BOOLEAN IsLastCid;
-            QUIC_CID_SLIST_ENTRY* SourceCid =
-                QuicConnGetSourceCidFromSeq(
-                    Connection,
-                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
-                    FALSE,
-                    &IsLastCid);
-            if (SourceCid != NULL) {
-                SourceCid->CID.Acknowledged = TRUE;
+        case QUIC_FRAME_NEW_CONNECTION_ID:
+        case QUIC_FRAME_PATH_NEW_CONNECTION_ID: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].NEW_CONNECTION_ID.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                BOOLEAN IsLastCid;
+                QUIC_CID_SLIST_ENTRY* SourceCid =
+                    QuicPathIDGetSourceCidFromSeq(
+                        PathID,
+                        Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
+                        FALSE,
+                        &IsLastCid);
+                if (SourceCid != NULL) {
+                    SourceCid->CID.Acknowledged = TRUE;
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
             }
             break;
         }
 
-        case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_LIST_ENTRY* DestCid =
-                QuicConnGetDestCidFromSeq(
-                    Connection,
-                    Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
-                    TRUE);
-            if (DestCid != NULL) {
-#pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
-                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
-                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
-                CXPLAT_DBG_ASSERT(Connection->RetiredDestCidCount > 0);
-                Connection->RetiredDestCidCount--;
-                CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
+        case QUIC_FRAME_RETIRE_CONNECTION_ID:
+        case QUIC_FRAME_PATH_RETIRE_CONNECTION_ID: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].RETIRE_CONNECTION_ID.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                QUIC_CID_LIST_ENTRY* DestCid =
+                    QuicPathIDGetDestCidFromSeq(
+                        PathID,
+                        Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
+                        TRUE);
+                if (DestCid != NULL) {
+    #pragma prefast(suppress:6001, "TODO - Why does compiler think: Using uninitialized memory '*DestCid'")
+                    CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                    CXPLAT_DBG_ASSERT(Path == NULL || Path->DestCid != DestCid);
+                    QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                    CXPLAT_DBG_ASSERT(PathID->RetiredDestCidCount > 0);
+                    PathID->RetiredDestCidCount--;
+                    CXPLAT_FREE(DestCid, QUIC_POOL_CIDLIST);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            }
+            break;
+        }
+
+        case QUIC_FRAME_PATH_ABANDON: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].PATH_ABANDON.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                PathID->Path->LocalCloseAcked = TRUE;
+                if (PathID->Path->RemoteClose) {
+                    PathID->Flags.Abandoned = TRUE;
+                    QuicPathIDSetTryFreePathID(&Connection->PathIDs, PathID);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
             }
             break;
         }
@@ -684,7 +723,7 @@ QuicLossDetectionRetransmitFrames(
     _In_ BOOLEAN ReleasePacket
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
     BOOLEAN NewDataQueued = FALSE;
 
     for (uint8_t i = 0; i < Packet->FrameCount; i++) {
@@ -788,39 +827,59 @@ QuicLossDetectionRetransmitFrames(
                     FALSE);
             break;
 
-        case QUIC_FRAME_NEW_CONNECTION_ID: {
-            BOOLEAN IsLastCid;
-            QUIC_CID_SLIST_ENTRY* SourceCid =
-                QuicConnGetSourceCidFromSeq(
-                    Connection,
-                    Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
-                    FALSE,
-                    &IsLastCid);
-            if (SourceCid != NULL &&
-                !SourceCid->CID.Acknowledged) {
-                SourceCid->CID.NeedsToSend = TRUE;
-                NewDataQueued |=
-                    QuicSendSetSendFlag(
-                        &Connection->Send,
-                        QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID);
+        case QUIC_FRAME_NEW_CONNECTION_ID:
+        case QUIC_FRAME_PATH_NEW_CONNECTION_ID: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].NEW_CONNECTION_ID.PathID,
+                &FatalError);            
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                BOOLEAN IsLastCid;
+                QUIC_CID_SLIST_ENTRY* SourceCid =
+                    QuicPathIDGetSourceCidFromSeq(
+                        PathID,
+                        Packet->Frames[i].NEW_CONNECTION_ID.Sequence,
+                        FALSE,
+                        &IsLastCid);
+                if (SourceCid != NULL &&
+                    !SourceCid->CID.Acknowledged) {
+                    SourceCid->CID.NeedsToSend = TRUE;
+                    NewDataQueued |=
+                        QuicSendSetSendFlag(
+                            &Connection->Send,
+                            QUIC_CONN_SEND_FLAG_NEW_CONNECTION_ID);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
             }
             break;
         }
 
-        case QUIC_FRAME_RETIRE_CONNECTION_ID: {
-            QUIC_CID_LIST_ENTRY* DestCid =
-                QuicConnGetDestCidFromSeq(
-                    Connection,
-                    Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
-                    FALSE);
-            if (DestCid != NULL) {
-                CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
-                QUIC_CID_VALIDATE_NULL(Connection, DestCid);
-                DestCid->CID.NeedsToSend = TRUE;
-                NewDataQueued |=
-                    QuicSendSetSendFlag(
-                        &Connection->Send,
-                        QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID);
+        case QUIC_FRAME_RETIRE_CONNECTION_ID: 
+        case QUIC_FRAME_PATH_RETIRE_CONNECTION_ID:{
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].RETIRE_CONNECTION_ID.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                QUIC_CID_LIST_ENTRY* DestCid =
+                    QuicPathIDGetDestCidFromSeq(
+                        PathID,
+                        Packet->Frames[i].RETIRE_CONNECTION_ID.Sequence,
+                        FALSE);
+                if (DestCid != NULL) {
+                    CXPLAT_DBG_ASSERT(DestCid->CID.Retired);
+                    QUIC_CID_VALIDATE_NULL(Connection, DestCid);
+                    DestCid->CID.NeedsToSend = TRUE;
+                    NewDataQueued |=
+                        QuicSendSetSendFlag(
+                            &Connection->Send,
+                            QUIC_CONN_SEND_FLAG_RETIRE_CONNECTION_ID);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
             }
             break;
         }
@@ -854,6 +913,32 @@ QuicLossDetectionRetransmitFrames(
             }
             break;
         }
+
+        case QUIC_FRAME_PATH_ABANDON: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].PATH_ABANDON.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                if (!PathID->Path->LocalCloseAcked) {
+                    PathID->Path->SendAbandon = TRUE;
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_CONN_SEND_FLAG_PATH_ABANDON);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            }
+            break;
+        }
+
+        case QUIC_FRAME_MAX_PATH_ID:
+            NewDataQueued |=
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_MAX_PATH_ID);
+            break;
 
         case QUIC_FRAME_HANDSHAKE_DONE:
             NewDataQueued |=
@@ -900,7 +985,7 @@ QuicLossDetectionOnPacketDiscarded(
     _In_ BOOLEAN DiscardedForLoss
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     if (Packet->Flags.IsMtuProbe && DiscardedForLoss) {
         uint8_t PathIndex;
@@ -928,7 +1013,9 @@ QuicLossDetectionDetectAndHandleLostPackets(
     _In_ uint64_t TimeNow
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATHID* PathID = QuicLossDetectionGetPathID(LossDetection);
+    QUIC_CONNECTION* Connection = PathID->Connection;
+    CXPLAT_DBG_ASSERT(Connection != NULL);
     uint32_t LostRetransmittableBytes = 0;
     QUIC_SENT_PACKET_METADATA* Packet;
 
@@ -969,7 +1056,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
-        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
+        const QUIC_PATH* Path = PathID->Path; // TODO - Correct?
         uint64_t Rtt = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         uint64_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
@@ -1072,7 +1159,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
 
-            QuicCongestionControlOnDataLost(&Connection->CongestionControl, &LossEvent);
+            QuicCongestionControlOnDataLost(&PathID->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
             //
@@ -1092,7 +1179,9 @@ QuicLossDetectionDiscardPackets(
     _In_ QUIC_PACKET_KEY_TYPE KeyType
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATHID* PathID = QuicLossDetectionGetPathID(LossDetection);
+    QUIC_CONNECTION* Connection = PathID->Connection;
+    CXPLAT_DBG_ASSERT(Connection != NULL);
     QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(KeyType);
     QUIC_SENT_PACKET_METADATA* PrevPacket;
     QUIC_SENT_PACKET_METADATA* Packet;
@@ -1218,7 +1307,7 @@ QuicLossDetectionDiscardPackets(
             .MinRttValid = FALSE
         };
 
-        if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
+        if (QuicCongestionControlOnDataAcknowledged(&PathID->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1233,7 +1322,9 @@ QuicLossDetectionOnZeroRttRejected(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATHID* PathID = QuicLossDetectionGetPathID(LossDetection);
+    QUIC_CONNECTION* Connection = PathID->Connection;
+    CXPLAT_DBG_ASSERT(Connection != NULL);
     QUIC_SENT_PACKET_METADATA* PrevPacket;
     QUIC_SENT_PACKET_METADATA* Packet;
     uint32_t CountRetransmittableBytes = 0;
@@ -1285,7 +1376,7 @@ QuicLossDetectionOnZeroRttRejected(
 
     if (CountRetransmittableBytes > 0) {
         if (QuicCongestionControlOnDataInvalidated(
-                &Connection->CongestionControl,
+                &PathID->CongestionControl,
                 CountRetransmittableBytes)) {
             //
             // We were previously blocked and are now unblocked.
@@ -1312,7 +1403,8 @@ QuicLossDetectionProcessAckBlocks(
     QUIC_SENT_PACKET_METADATA** AckedPacketsTail = &AckedPackets;
 
     uint32_t AckedRetransmittableBytes = 0;
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATHID* PathID = QuicLossDetectionGetPathID(LossDetection);
+    QUIC_CONNECTION* Connection = PathID->Connection;
     uint64_t TimeNow = CxPlatTimeUs64();
     uint64_t MinRtt = UINT64_MAX;
     BOOLEAN NewLargestAck = FALSE;
@@ -1374,7 +1466,7 @@ QuicLossDetectionProcessAckBlocks(
                 // spuriously lost. Inform congestion control.
                 //
                 if (QuicCongestionControlOnSpuriousCongestionEvent(
-                        &Connection->CongestionControl)) {
+                        &PathID->CongestionControl)) {
                     //
                     // We were previously blocked and are now unblocked.
                     //
@@ -1517,7 +1609,7 @@ QuicLossDetectionProcessAckBlocks(
             // Per RFC 9000, we validate ECN counts from received ACK frames
             // when the largest acked packet number increases.
             //
-            QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
+            QUIC_PACKET_SPACE* Packets = Path->PathID->Packets[EncryptLevel];
             BOOLEAN EcnValidated = TRUE;
             int64_t EctCeDeltaSum = 0;
             if (Ecn != NULL) {
@@ -1552,7 +1644,7 @@ QuicLossDetectionProcessAckBlocks(
                             .LargestPacketNumberAcked = LargestAckedPacketNum,
                             .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
                         };
-                        QuicCongestionControlOnEcn(&Connection->CongestionControl, &EcnEvent);
+                        QuicCongestionControlOnEcn(&PathID->CongestionControl, &EcnEvent);
                     }
                 }
             } else {
@@ -1606,7 +1698,7 @@ QuicLossDetectionProcessAckBlocks(
             .MinRttValid = TRUE,
         };
 
-        if (QuicCongestionControlOnDataAcknowledged(&Connection->CongestionControl, &AckEvent)) {
+        if (QuicCongestionControlOnDataAcknowledged(&PathID->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1630,76 +1722,6 @@ QuicLossDetectionProcessAckBlocks(
     QuicLossDetectionUpdateTimer(LossDetection, FALSE);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicLossDetectionProcessAckFrame(
-    _In_ QUIC_LOSS_DETECTION* LossDetection,
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_RX_PACKET* Packet,
-    _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
-    _In_ QUIC_FRAME_TYPE FrameType,
-    _In_ uint16_t BufferLength,
-    _In_reads_bytes_(BufferLength)
-        const uint8_t* const Buffer,
-    _Inout_ uint16_t* Offset,
-    _Out_ BOOLEAN* InvalidFrame
-    )
-{
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
-
-    //
-    // Called for each received ACK frame. An ACK frame consists of one or more
-    // ACK blocks, each of which acknowledges a contiguous range of packets.
-    //
-
-    uint64_t AckDelay; // microsec
-    QUIC_ACK_ECN_EX Ecn;
-
-    BOOLEAN Result =
-        QuicAckFrameDecode(
-            FrameType,
-            BufferLength,
-            Buffer,
-            Offset,
-            InvalidFrame,
-            &Connection->DecodedAckRanges,
-            &Ecn,
-            &AckDelay);
-
-    if (Result) {
-
-        uint64_t Largest;
-        if (!QuicRangeGetMaxSafe(&Connection->DecodedAckRanges, &Largest) ||
-            LossDetection->LargestSentPacketNumber < Largest) {
-
-            //
-            // The ACK frame should never acknowledge a packet number we haven't
-            // sent.
-            //
-            *InvalidFrame = TRUE;
-            Result = FALSE;
-
-        } else {
-
-            AckDelay <<= Connection->PeerTransportParams.AckDelayExponent;
-
-            QuicLossDetectionProcessAckBlocks(
-                LossDetection,
-                Path,
-                Packet,
-                EncryptLevel,
-                AckDelay,
-                &Connection->DecodedAckRanges,
-                InvalidFrame,
-                FrameType == QUIC_FRAME_ACK_1 ? &Ecn : NULL);
-        }
-    }
-
-    QuicRangeReset(&Connection->DecodedAckRanges);
-
-    return Result;
-}
-
 //
 // Schedules a fixed number of (ACK-eliciting) probe packets to be sent.
 //
@@ -1709,7 +1731,8 @@ QuicLossDetectionScheduleProbe(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_PATHID* PathID = QuicLossDetectionGetPathID(LossDetection);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     LossDetection->ProbeCount++;
     QuicTraceLogConnInfo(
@@ -1733,7 +1756,7 @@ QuicLossDetectionScheduleProbe(
     // GQUIC's previous experience, we go with 2.
     //
     uint8_t NumPackets = 2;
-    QuicCongestionControlSetExemption(&Connection->CongestionControl, NumPackets);
+    QuicCongestionControlSetExemption(&PathID->CongestionControl, NumPackets);
     QuicSendQueueFlush(&Connection->Send, REASON_PROBE);
     Connection->Send.TailLossProbeNeeded = TRUE;
 
@@ -1796,7 +1819,7 @@ QuicLossDetectionProcessTimerOperation(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    QUIC_CONNECTION* Connection = QuicLossDetectionGetConnection(LossDetection);
+    QUIC_CONNECTION* Connection = QuicLossDetectionGetPathID(LossDetection)->Connection;
 
     const QUIC_SENT_PACKET_METADATA* OldestPacket = // Oldest retransmittable packet.
         QuicLossDetectionOldestOutstandingPacket(LossDetection);

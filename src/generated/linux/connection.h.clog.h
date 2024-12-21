@@ -151,28 +151,6 @@ tracepoint(CLOG_CONNECTION_H, ConnOutFlowBlocked , arg2, arg3);\
 
 
 
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
-// QuicTraceEvent(
-                    ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                    Connection,
-                    SourceCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidRemoved
-#define _clog_6_ARGS_TRACE_ConnSourceCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-tracepoint(CLOG_CONNECTION_H, ConnSourceCidRemoved , arg2, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
 #ifdef __cplusplus
 }
 #endif

@@ -2,25 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketRxStatelessReset
-// [S][RX][-] SR %s
-// QuicTraceLogVerbose(
-                            PacketRxStatelessReset,
-                            "[S][RX][-] SR %s",
-                            QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for PacketRxNotAcked
 // [%c][RX][%llu] not acked (connection is closed)
 // QuicTraceLogVerbose(
@@ -324,44 +305,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApiEventNoHandler,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for NoReplacementCidForRetire
-// [conn][%p] Can't retire current CID because we don't have a replacement
-// QuicTraceLogConnWarning(
-            NoReplacementCidForRetire,
-            Connection,
-            "Can't retire current CID because we don't have a replacement");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, NoReplacementCidForRetire,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for NonActivePathCidRetired
-// [conn][%p] Non-active path has no replacement for retired CID.
-// QuicTraceLogConnWarning(
-                NonActivePathCidRetired,
-                Connection,
-                "Non-active path has no replacement for retired CID.");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, NonActivePathCidRetired,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for IgnoreUnreachable
 // [conn][%p] Ignoring received unreachable event (inline)
 // QuicTraceLogConnWarning(
@@ -635,9 +578,9 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
 // Decoder Ring for RecvStatelessReset
 // [conn][%p] Received stateless reset
 // QuicTraceLogConnInfo(
-                            RecvStatelessReset,
-                            Connection,
-                            "Received stateless reset");
+                        RecvStatelessReset,
+                        Connection,
+                        "Received stateless reset");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
@@ -976,44 +919,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
         ctf_integer(unsigned int, arg6, arg6)
         ctf_integer(unsigned int, arg7, arg7)
         ctf_integer(unsigned int, arg8, arg8)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for NewSrcCidNameCollision
-// [conn][%p] CID collision, trying again
-// QuicTraceLogConnVerbose(
-                NewSrcCidNameCollision,
-                Connection,
-                "CID collision, trying again");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, NewSrcCidNameCollision,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ZeroLengthCidRetire
-// [conn][%p] Can't retire current CID because it's zero length
-// QuicTraceLogConnVerbose(
-            ZeroLengthCidRetire,
-            Connection,
-            "Can't retire current CID because it's zero length");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ZeroLengthCidRetire,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
@@ -1780,64 +1685,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrAdded,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-            ConnDestCidAdded,
-            "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-            Connection,
-            Path->DestCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Path->DestCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidAdded,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidAdded
-// [conn][%p] (SeqNum=%llu) New Source CID: %!CID!
-// QuicTraceEvent(
-            ConnSourceCidAdded,
-            "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-            Connection,
-            SourceCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidAdded,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnInitializeComplete
 // [conn][%p] Initialize complete
 // QuicTraceEvent(
@@ -2056,58 +1903,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeComplete,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Too many CID collisions");
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = "Too many CID collisions" = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnError,
-    TP_ARGS(
-        const void *, arg2,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_string(arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!
-// QuicTraceEvent(
-        ConnDestCidRemoved,
-        "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
-        Connection,
-        DestCid->CID.SequenceNumber,
-        CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = DestCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidRemoved,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnSetTimer
 // [conn][%p] Setting %hhu, delay=%llu us
 // QuicTraceEvent(
@@ -2282,6 +2077,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_string(arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnError
+// [conn][%p] ERROR, %s.
+// QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid wildcard remote address in connection start");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Invalid wildcard remote address in connection start" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnError,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
     )
 )
 

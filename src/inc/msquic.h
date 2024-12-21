@@ -692,7 +692,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t MultipathEnabled                       : 1;
+            uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -743,7 +744,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
             uint64_t StreamMultiReceiveEnabled : 1;
-            uint64_t ReservedFlags             : 58;
+            uint64_t MultipathEnabled          : 1;
+            uint64_t ReservedFlags             : 57;
 #else
             uint64_t ReservedFlags             : 63;
 #endif

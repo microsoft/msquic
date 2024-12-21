@@ -175,32 +175,38 @@ QuicLookupRebalance(
             //
 
             if (PreviousLookup != NULL) {
-                CXPLAT_SLIST_ENTRY* Entry =
-                    ((QUIC_CONNECTION*)PreviousLookup)->SourceCids.Next;
+                QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+                uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+                QuicPathIDSetGetPathIDs(&((QUIC_CONNECTION*)PreviousLookup)->PathIDs, PathIDs, &PathIDCount);
 
-                while (Entry != NULL) {
-                    QUIC_CID_SLIST_ENTRY *CID =
-                        CXPLAT_CONTAINING_RECORD(
-                            Entry,
-                            QUIC_CID_SLIST_ENTRY,
-                            Link);
-                    CXPLAT_SLIST_ENTRY* Entry1 = CID->HashEntries.Next;
-                    while (Entry1 != NULL) {
-                        QUIC_CID_HASH_ENTRY *CID1 =
+                for (uint8_t i = 0; i < PathIDCount; i++) {
+                    CXPLAT_SLIST_ENTRY* Entry = PathIDs[i]->SourceCids.Next;
+
+                    while (Entry != NULL) {
+                        QUIC_CID_SLIST_ENTRY *CID =
                             CXPLAT_CONTAINING_RECORD(
-                                Entry1,
-                                QUIC_CID_HASH_ENTRY,
+                                Entry,
+                                QUIC_CID_SLIST_ENTRY,
                                 Link);
-                        if (CID1->Binding == QuicLookupGetBinding(Lookup)) {
-                            (void)QuicLookupInsertLocalCid(
-                                Lookup,
-                                CxPlatHashSimple(CID->CID.Length, CID->CID.Data),
-                                CID1,
-                                FALSE);
+                        CXPLAT_SLIST_ENTRY* Entry1 = CID->HashEntries.Next;
+                        while (Entry1 != NULL) {
+                            QUIC_CID_HASH_ENTRY *CID1 =
+                                CXPLAT_CONTAINING_RECORD(
+                                    Entry1,
+                                    QUIC_CID_HASH_ENTRY,
+                                    Link);
+                            if (CID1->Binding == QuicLookupGetBinding(Lookup)) {
+                                (void)QuicLookupInsertLocalCid(
+                                    Lookup,
+                                    CxPlatHashSimple(CID->CID.Length, CID->CID.Data),
+                                    CID1,
+                                    FALSE);
+                            }
+                            Entry1 = Entry1->Next;
                         }
-                        Entry1 = Entry1->Next;
+                        Entry = Entry->Next;
                     }
-                    Entry = Entry->Next;
+                    QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
                 }
             }
 
@@ -288,38 +294,55 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicCidMatchConnection(
     _In_ QUIC_LOOKUP* Lookup,
-    _In_ const QUIC_CONNECTION* const Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _In_reads_(Length)
         const uint8_t* const DestCid,
-    _In_ uint8_t Length
+    _In_ uint8_t Length,
+    _Out_ uint32_t* PathId
     )
 {
-    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
-        Link != NULL;
-        Link = Link->Next) {
+    BOOLEAN Match = FALSE;
+    *PathId = 0;
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
 
-        const QUIC_CID_SLIST_ENTRY* const Entry =
-            CXPLAT_CONTAINING_RECORD(Link, const QUIC_CID_SLIST_ENTRY, Link);
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        if (!Match) {
+            for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+                Link != NULL;
+                Link = Link->Next) {
 
-        for (CXPLAT_SLIST_ENTRY* Link1 = Entry->HashEntries.Next;
-            Link1 != NULL;
-            Link1 = Link1->Next) {
+                const QUIC_CID_SLIST_ENTRY* const Entry =
+                    CXPLAT_CONTAINING_RECORD(Link, const QUIC_CID_SLIST_ENTRY, Link);
 
-            const QUIC_CID_HASH_ENTRY* const Entry1 =
-                    CXPLAT_CONTAINING_RECORD(Link1, const QUIC_CID_HASH_ENTRY, Link);
+                for (CXPLAT_SLIST_ENTRY* Link1 = Entry->HashEntries.Next;
+                    Link1 != NULL;
+                    Link1 = Link1->Next) {
 
-            if (Entry1->Binding != QuicLookupGetBinding(Lookup)) {
-                continue;
+                    const QUIC_CID_HASH_ENTRY* const Entry1 =
+                            CXPLAT_CONTAINING_RECORD(Link1, const QUIC_CID_HASH_ENTRY, Link);
+
+                    if (Entry1->Binding != QuicLookupGetBinding(Lookup)) {
+                        continue;
+                    }
+
+                    if (Length == Entry1->CID->CID.Length &&
+                        (Length == 0 || memcmp(DestCid, Entry1->CID->CID.Data, Length) == 0)) {
+                        Match = TRUE;
+                        goto Match;
+                    }
+                }
             }
-
-            if (Length == Entry1->CID->CID.Length &&
-                (Length == 0 || memcmp(DestCid, Entry1->CID->CID.Data, Length) == 0)) {
-                return TRUE;
+Match:
+            if (Match) {
+                *PathId = PathIDs[i]->ID;
             }
         }
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
 
-    return FALSE;
+    return Match;
 }
 
 //
@@ -333,9 +356,11 @@ QuicHashLookupConnection(
     _In_reads_(Length)
         const uint8_t* const DestCid,
     _In_ uint8_t Length,
-    _In_ uint32_t Hash
+    _In_ uint32_t Hash,
+    _Out_ uint32_t* PathId
     )
 {
+    *PathId = 0;
     CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
     CXPLAT_HASHTABLE_ENTRY* TableEntry =
         CxPlatHashtableLookup(Table, Hash, &Context);
@@ -346,7 +371,8 @@ QuicHashLookupConnection(
 
         if (CIDEntry->CID->CID.Length == Length &&
             memcmp(DestCid, CIDEntry->CID->CID.Data, Length) == 0) {
-            return CIDEntry->Connection;
+            *PathId = CIDEntry->PathID->ID;
+            return CIDEntry->PathID->Connection;
         }
 
         TableEntry = CxPlatHashtableLookupNext(Table, &Context);
@@ -362,9 +388,11 @@ QuicLookupFindConnectionByLocalCidInternal(
     _In_reads_(CIDLen)
         const uint8_t* const CID,
     _In_ uint8_t CIDLen,
-    _In_ uint32_t Hash
+    _In_ uint32_t Hash,
+    _Out_ uint32_t* PathId
     )
 {
+    *PathId = 0;
     QUIC_CONNECTION* Connection = NULL;
 
     if (Lookup->PartitionCount == 0) {
@@ -373,7 +401,7 @@ QuicLookupFindConnectionByLocalCidInternal(
         // destination connection ID matches that connection.
         //
         if (Lookup->SINGLE.Connection != NULL &&
-            QuicCidMatchConnection(Lookup, Lookup->SINGLE.Connection, CID, CIDLen)) {
+            QuicCidMatchConnection(Lookup, Lookup->SINGLE.Connection, CID, CIDLen, PathId)) {
             Connection = Lookup->SINGLE.Connection;
         }
 
@@ -399,7 +427,8 @@ QuicLookupFindConnectionByLocalCidInternal(
                 &Table->Table,
                 CID,
                 CIDLen,
-                Hash);
+                Hash,
+                PathId);
         CxPlatDispatchRwLockReleaseShared(&Table->RwLock, PrevIrql);
     }
 
@@ -486,7 +515,7 @@ QuicLookupInsertLocalCid(
     _In_ BOOLEAN UpdateRefCount
     )
 {
-    if (!QuicLookupRebalance(Lookup, SourceCid->Connection)) {
+    if (!QuicLookupRebalance(Lookup, SourceCid->PathID->Connection)) {
         return FALSE;
     }
 
@@ -495,7 +524,7 @@ QuicLookupInsertLocalCid(
         // Make sure the connection pointer is set.
         //
         if (Lookup->SINGLE.Connection == NULL) {
-            Lookup->SINGLE.Connection = SourceCid->Connection;
+            Lookup->SINGLE.Connection = SourceCid->PathID->Connection;
         }
 
     } else {
@@ -522,7 +551,7 @@ QuicLookupInsertLocalCid(
 
     if (UpdateRefCount) {
         Lookup->CidCount++;
-        QuicConnAddRef(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+        QuicConnAddRef(SourceCid->PathID->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
     }
 
 #if QUIC_DEBUG_HASHTABLE_LOOKUP
@@ -619,7 +648,7 @@ QuicLookupRemoveLocalCidInt(
 #endif
 
     if (Lookup->PartitionCount == 0) {
-        CXPLAT_DBG_ASSERT(Lookup->SINGLE.Connection == SourceCid->Connection);
+        CXPLAT_DBG_ASSERT(Lookup->SINGLE.Connection == SourceCid->PathID->Connection);
         if (Lookup->CidCount == 0) {
             //
             // This was the last CID reference, so we can clear the connection
@@ -651,7 +680,8 @@ QuicLookupFindConnectionByLocalCid(
     _In_ QUIC_LOOKUP* Lookup,
     _In_reads_(CIDLen)
         const uint8_t* const CID,
-    _In_ uint8_t CIDLen
+    _In_ uint8_t CIDLen,
+    _Out_ uint32_t* PathId
     )
 {
     uint32_t Hash = CxPlatHashSimple(CIDLen, CID);
@@ -663,7 +693,8 @@ QuicLookupFindConnectionByLocalCid(
             Lookup,
             CID,
             CIDLen,
-            Hash);
+            Hash,
+            PathId);
 
     if (ExistingConnection != NULL) {
         QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
@@ -681,9 +712,11 @@ QuicLookupFindConnectionByRemoteHash(
     _In_ const QUIC_ADDR* const RemoteAddress,
     _In_ uint8_t RemoteCidLength,
     _In_reads_(RemoteCidLength)
-        const uint8_t* const RemoteCid
+        const uint8_t* const RemoteCid,
+    _Out_ uint32_t* PathId
     )
 {
+    *PathId = 0;
     uint32_t Hash = QuicPacketHash(RemoteAddress, RemoteCidLength, RemoteCid);
 
     CxPlatDispatchRwLockAcquireShared(&Lookup->RwLock, PrevIrql);
@@ -699,6 +732,7 @@ QuicLookupFindConnectionByRemoteHash(
                 Hash);
 
         if (ExistingConnection != NULL) {
+            *PathId = 0;
             QuicConnAddRef(ExistingConnection, QUIC_CONN_REF_LOOKUP_RESULT);
         }
 
@@ -760,12 +794,14 @@ QuicLookupAddLocalCid(
 
     CXPLAT_DBG_ASSERT(!SourceCid->CID.IsInLookupTable);
 
+    uint32_t PathId = 0;
     ExistingConnection =
         QuicLookupFindConnectionByLocalCidInternal(
             Lookup,
             SourceCid->CID.Data,
             SourceCid->CID.Length,
-            Hash);
+            Hash,
+            &PathId);
 
     if (ExistingConnection == NULL) {
         QUIC_CID_HASH_ENTRY* CID =
@@ -775,7 +811,7 @@ QuicLookupAddLocalCid(
         if (CID != NULL) {
             CID->CID = SourceCid;
             CID->Binding = QuicLookupGetBinding(Lookup);
-            CID->Connection = SourceCid->Connection;
+            CID->PathID = SourceCid->PathID;
             Result =
                 QuicLookupInsertLocalCid(Lookup, Hash, CID, TRUE);
             if (Result) {
@@ -866,7 +902,7 @@ QuicLookupRemoveLocalCid(
     CxPlatDispatchRwLockAcquireExclusive(&Lookup->RwLock, PrevIrql);
     QuicLookupRemoveLocalCidInt(Lookup, SourceCid);
     CxPlatDispatchRwLockReleaseExclusive(&Lookup->RwLock, PrevIrql);
-    QuicConnRelease(SourceCid->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
+    QuicConnRelease(SourceCid->PathID->Connection, QUIC_CONN_REF_LOOKUP_TABLE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

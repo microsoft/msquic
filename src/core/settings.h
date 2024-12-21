@@ -63,7 +63,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
             uint64_t ConnIDGenDisabled                      : 1;
-            uint64_t RESERVED                               : 15;
+            uint64_t MultipathEnabled                       : 1;
+            uint64_t RESERVED                               : 14;
         } IsSet;
     };
 
@@ -115,6 +116,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t NetStatsEventEnabled            : 1;
     uint8_t StreamMultiReceiveEnabled       : 1;
     uint8_t ConnIDGenDisabled               : 1;
+    uint8_t MultipathEnabled                : 1;
     uint8_t MtuDiscoveryMissingProbeCount;
 
 } QUIC_SETTINGS_INTERNAL;

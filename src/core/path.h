@@ -101,6 +101,13 @@ typedef struct QUIC_PATH {
     //
     BOOLEAN SendResponse : 1;
 
+    BOOLEAN LocalClose : 1;
+    BOOLEAN LocalCloseAcked : 1;
+
+    BOOLEAN SendAbandon : 1;
+
+    BOOLEAN RemoteClose : 1;
+
     //
     // Indicates the partition has updated for this path.
     //
@@ -136,6 +143,8 @@ typedef struct QUIC_PATH {
     //
     QUIC_MTU_DISCOVERY MtuDiscovery;
 
+    QUIC_PATHID *PathID;
+    
     //
     // The binding used for sending/receiving UDP packets.
     //
@@ -311,6 +320,13 @@ QUIC_PATH*
 QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RX_PACKET* Packet
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_notnull_
+QUIC_PATH*
+QuicConnChoosePath(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

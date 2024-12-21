@@ -282,6 +282,39 @@ QuicCryptoCombineIvAndPacketNumber(
     IvOut[11] = IvIn[11] ^ PacketNumber[0];
 }
 
+inline
+void
+QuicCryptoCombineIvAndPathIDAndPacketNumber(
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const IvIn,
+    _In_reads_bytes_(sizeof(uint32_t))
+        const uint8_t* const PathID,
+    _In_reads_bytes_(sizeof(uint64_t))
+        const uint8_t* const PacketNumber,
+    _Out_writes_bytes_(CXPLAT_IV_LENGTH)
+        uint8_t* IvOut
+    )
+{
+    //
+    // XOR the packet number with the IV.
+    // Because PacketNumber is in host-order (little-endian), and the protocol
+    // expects it to be XORed in network-order, count down from the "end" of
+    // PacketNumber while counting up to the end of IV when doing the XOR.
+    //
+    IvOut[0]  = IvIn[0]  ^ PathID[3];
+    IvOut[1]  = IvIn[1]  ^ PathID[2];
+    IvOut[2]  = IvIn[2]  ^ PathID[1];
+    IvOut[3]  = IvIn[3]  ^ PathID[0];
+    IvOut[4]  = IvIn[4]  ^ PacketNumber[7];
+    IvOut[5]  = IvIn[5]  ^ PacketNumber[6];
+    IvOut[6]  = IvIn[6]  ^ PacketNumber[5];
+    IvOut[7]  = IvIn[7]  ^ PacketNumber[4];
+    IvOut[8]  = IvIn[8]  ^ PacketNumber[3];
+    IvOut[9]  = IvIn[9]  ^ PacketNumber[2];
+    IvOut[10] = IvIn[10] ^ PacketNumber[1];
+    IvOut[11] = IvIn[11] ^ PacketNumber[0];
+}
+
 //
 // Encrypts buffer with the given key. 'BufferLength' includes the extra space
 // that should be preallocated for the overhead, as indicated by

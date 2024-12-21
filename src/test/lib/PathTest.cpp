@@ -192,11 +192,12 @@ QuicTestProbePath(
     TEST_EQUAL(Status, QUIC_STATUS_SUCCESS);
 
     if (DeferConnIDGen) {
+        BOOLEAN ReplaceExistingCids = FALSE;
         TEST_QUIC_SUCCEEDED(
             Context.Connection->SetParam(
                 QUIC_PARAM_CONN_GENERATE_CONN_ID,
-                0,
-                NULL));
+                sizeof(ReplaceExistingCids),
+                &ReplaceExistingCids));
     }
     
     TEST_TRUE(ProbeHelper->ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
@@ -394,7 +395,12 @@ QuicTestMultipleLocalAddresses(
     TEST_NOT_EQUAL(nullptr, Context.Connection);
 
     if (DeferConnIDGen) {
-        TEST_QUIC_SUCCEEDED(Context.Connection->SetParam(QUIC_PARAM_CONN_GENERATE_CONN_ID, 0, NULL));
+        BOOLEAN ReplaceExistingCids = FALSE;
+        TEST_QUIC_SUCCEEDED(
+            Context.Connection->SetParam(
+                QUIC_PARAM_CONN_GENERATE_CONN_ID,
+                sizeof(ReplaceExistingCids),
+                &ReplaceExistingCids));
     }
 
     TEST_TRUE(ProbeHelpers[0].ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
@@ -403,5 +409,99 @@ QuicTestMultipleLocalAddresses(
     TEST_TRUE(ProbeHelpers[1].ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     TEST_TRUE(ProbeHelpers[2].ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     TEST_TRUE(ProbeHelpers[2].ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
+}
+
+void
+QuicTestMultipath(
+    _In_ int Family
+    )
+{
+    PathTestContext Context;
+    CxPlatEvent PeerStreamsChanged;
+    MsQuicRegistration Registration(true);
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration ServerConfiguration(Registration,
+        "MsQuicTest",
+        MsQuicSettings{}.SetMultipathEnabled(TRUE),
+        ServerSelfSignedCredConfig);
+
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration,
+        "MsQuicTest",
+        MsQuicSettings{}.SetMultipathEnabled(TRUE),
+        ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, PathTestContext::ConnCallback, &Context);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+    Connection.SetShareUdpBinding();
+    
+    Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(25));
+
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_NOT_EQUAL(nullptr, Context.Connection);
+
+    QuicAddr SecondLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
+    SecondLocalAddr.IncrementPort();
+
+    PathProbeHelper* ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    int Try = 0;
+    do {
+        Status = Connection.SetParam(
+            QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+            sizeof(SecondLocalAddr.SockAddr),
+            &SecondLocalAddr.SockAddr);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            delete ProbeHelper;
+            SecondLocalAddr.IncrementPort();
+            ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
+        }
+    } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
+    TEST_QUIC_SUCCEEDED(Status);
+
+    TEST_TRUE(ProbeHelper->ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(ProbeHelper->ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
+    delete ProbeHelper;
+
+    QUIC_STATISTICS_V2 Stats;
+    uint32_t Size = sizeof(Stats);
+    TEST_QUIC_SUCCEEDED(
+        Connection.GetParam(
+            QUIC_PARAM_CONN_STATISTICS_V2_PLAT,
+            &Size,
+            &Stats));
+    TEST_EQUAL(Stats.RecvDroppedPackets, 0);
+
+    // TEST_QUIC_SUCCEEDED(
+    //     Connection.SetParam(
+    //         QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+    //         sizeof(SecondLocalAddr.SockAddr),
+    //         &SecondLocalAddr.SockAddr));
+
+    // BOOLEAN ReplaceExistingCids = TRUE;
+    // TEST_QUIC_SUCCEEDED(
+    //     Context.Connection->SetParam(
+    //         QUIC_PARAM_CONN_GENERATE_CONN_ID,
+    //         sizeof(ReplaceExistingCids),
+    //         &ReplaceExistingCids));
+
+    CxPlatSleep(5000);
 }
 #endif

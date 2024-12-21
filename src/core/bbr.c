@@ -217,7 +217,7 @@ BbrCongestionControlGetCongestionWindow(
     )
 {
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_CONNECTION* Connection = QuicCongestionControlGetPathID(Cc)->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -279,16 +279,16 @@ BbrCongestionControlIsAppLimited(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicConnLogBbr(
-    _In_ QUIC_CONNECTION* const Connection
+    _In_ QUIC_PATHID* const PathID
     )
 {
-    QUIC_CONGESTION_CONTROL* Cc = &Connection->CongestionControl;
+    QUIC_CONGESTION_CONTROL* Cc = &PathID->CongestionControl;
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     QuicTraceEvent(
         ConnBbr,
         "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
-        Connection,
+        PathID->Connection,
         Bbr->BbrState,
         Bbr->RecoveryState,
         BbrCongestionControlGetCongestionWindow(Cc),
@@ -307,7 +307,8 @@ BbrCongestionControlIndicateConnectionEvent(
     )
 {
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    const QUIC_PATH* Path = PathID->Path;
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_NETWORK_STATISTICS;
     Event.NETWORK_STATISTICS.BytesInFlight = Bbr->BytesInFlight;
@@ -345,8 +346,9 @@ BbrCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    const QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    const QUIC_PATH* Path = &Connection->Paths[0];
+    const QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    const QUIC_CONNECTION* Connection = PathID->Connection;
+    const QUIC_PATH* Path = PathID->Path;
     const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     QuicTraceEvent(
@@ -373,8 +375,9 @@ BbrCongestionControlUpdateBlockedState(
     _In_ BOOLEAN PreviousCanSendState
     )
 {
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    QuicConnLogOutFlowStats(Connection);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
+    QuicConnLogOutFlowStats(PathID);
 
     if (PreviousCanSendState != BbrCongestionControlCanSend(Cc)) {
         if (PreviousCanSendState) {
@@ -436,7 +439,7 @@ BbrCongestionControlOnDataSent(
     Bbr->BytesInFlight += NumRetransmittableBytes;
     if (Bbr->BytesInFlightMax < Bbr->BytesInFlight) {
         Bbr->BytesInFlightMax = Bbr->BytesInFlight;
-        QuicSendBufferConnectionAdjust(QuicCongestionControlGetConnection(Cc));
+        QuicSendBufferConnectionAdjust(QuicCongestionControlGetPathID(Cc)->Connection);
     }
 
     if (Bbr->Exemptions > 0) {
@@ -471,10 +474,11 @@ BbrCongestionControlUpdateRecoveryWindow(
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(PathID->Path);
 
     CXPLAT_DBG_ASSERT(Bbr->RecoveryState != RECOVERY_STATE_NOT_RECOVERY);
 
@@ -500,13 +504,14 @@ BbrCongestionControlHandleAckInProbeRtt(
     )
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     Bbr->BandwidthFilter.AppLimited = TRUE;
     Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;
 
     const uint16_t DatagramPayloadLength =
-        QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+        QuicPathGetDatagramPayloadSize(PathID->Path);
 
     if (!Bbr->ProbeRttEndTimeValid &&
         Bbr->BytesInFlight < BbrCongestionControlGetCongestionWindow(Cc) + DatagramPayloadLength) {
@@ -608,7 +613,8 @@ BbrCongestionControlGetSendAllowance(
     _In_ BOOLEAN TimeSinceLastSendValid
     )
 {
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     uint64_t BandwidthEst = BbrCongestionControlGetBandwidth(Cc);
@@ -693,7 +699,8 @@ BbrCongestionControlSetSendQuantum(
 )
 {
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     uint64_t Bandwidth = BbrCongestionControlGetBandwidth(Cc);
 
@@ -720,7 +727,8 @@ BbrCongestionControlUpdateCongestionWindow(
     )
 {
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     if (Bbr->BbrState == BBR_STATE_PROBE_RTT) {
         return;
@@ -751,7 +759,7 @@ BbrCongestionControlUpdateCongestionWindow(
 
     Bbr->CongestionWindow = CXPLAT_MAX(CongestionWindow, MinCongestionWindow);
 
-    QuicConnLogBbr(QuicCongestionControlGetConnection(Cc));
+    QuicConnLogBbr(PathID);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -764,7 +772,8 @@ BbrCongestionControlOnDataAcknowledged(
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
     BOOLEAN PreviousCanSendState = BbrCongestionControlCanSend(Cc);
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     if (AckEvent->IsImplicit) {
         BbrCongestionControlUpdateCongestionWindow(
@@ -897,7 +906,8 @@ BbrCongestionControlOnDataLost(
     )
 {
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -948,7 +958,7 @@ BbrCongestionControlOnDataLost(
     }
 
     BbrCongestionControlUpdateBlockedState(Cc, PreviousCanSendState);
-    QuicConnLogBbr(QuicCongestionControlGetConnection(Cc));
+    QuicConnLogBbr(PathID);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -969,8 +979,9 @@ BbrCongestionControlSetAppLimited(
 {
     QUIC_CONGESTION_CONTROL_BBR *Bbr = &Cc->Bbr;
 
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
-    uint64_t LargestSentPacketNumber = Connection->LossDetection.LargestSentPacketNumber;
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
+    uint64_t LargestSentPacketNumber = Connection->Paths[0].PathID->LossDetection.LargestSentPacketNumber;
 
     if (Bbr->BytesInFlight > BbrCongestionControlGetCongestionWindow(Cc)) {
         return;
@@ -989,7 +1000,8 @@ BbrCongestionControlReset(
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -1046,7 +1058,7 @@ BbrCongestionControlReset(
     Bbr->BandwidthFilter.AppLimitedExitTarget = 0;
 
     BbrCongestionControlLogOutFlowStatus(Cc);
-    QuicConnLogBbr(Connection);
+    QuicConnLogBbr(PathID);
 }
 
 
@@ -1081,7 +1093,8 @@ BbrCongestionControlInitialize(
 
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
 
-    QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
+    QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
+    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
@@ -1141,6 +1154,6 @@ BbrCongestionControlInitialize(
         .AppLimitedExitTarget = 0,
     };
 
-    QuicConnLogOutFlowStats(Connection);
-    QuicConnLogBbr(Connection);
+    QuicConnLogOutFlowStats(PathID);
+    QuicConnLogBbr(PathID);
 }

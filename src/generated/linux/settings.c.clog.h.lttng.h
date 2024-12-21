@@ -827,6 +827,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingMultipathEnabled
+// [sett] MultipathEnabled       = %hhu
+// QuicTraceLogVerbose(SettingMultipathEnabled,            "[sett] MultipathEnabled       = %hhu", Settings->MultipathEnabled);
+// arg2 = arg2 = Settings->MultipathEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingMultipathEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

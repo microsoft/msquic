@@ -1717,6 +1717,18 @@ TEST_P(WithProbePathArgs, MultipleLocalAddresses) {
             GetParam().DropPacketCount);
     }
 }
+
+TEST_P(WithMultipathArgs, Multipath) {
+    TestLoggerT<ParamType> Logger("QuicTestMultipath", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MULTIPATH_PARAMS Params = {
+            GetParam().Family,
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MULTIPATH, Params));
+    } else {
+        QuicTestMultipath(GetParam().Family);
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
@@ -2492,6 +2504,11 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithMigrationArgs,
     ::testing::ValuesIn(MigrationArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithMultipathArgs,
+    ::testing::ValuesIn(MultipathArgs::Generate()));
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

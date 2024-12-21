@@ -798,6 +798,21 @@ tracepoint(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingMultipathEnabled
+// [sett] MultipathEnabled       = %hhu
+// QuicTraceLogVerbose(SettingMultipathEnabled,            "[sett] MultipathEnabled       = %hhu", Settings->MultipathEnabled);
+// arg2 = arg2 = Settings->MultipathEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingMultipathEnabled
+#define _clog_3_ARGS_TRACE_SettingMultipathEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingMultipathEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);

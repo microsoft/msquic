@@ -236,7 +236,7 @@ QuicPacketBuilderHasAllowance(
 {
     return
         Builder->SendAllowance > 0 ||
-        QuicCongestionControlGetExemptions(&Builder->Connection->CongestionControl) > 0;
+        QuicCongestionControlGetExemptions(&Builder->Path->PathID->CongestionControl) > 0;
 }
 
 //
@@ -247,7 +247,7 @@ inline
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t FrameType,
+    _In_ uint32_t FrameType,
     _In_ BOOLEAN IsAckEliciting
     )
 {

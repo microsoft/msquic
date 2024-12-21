@@ -453,7 +453,7 @@ inline
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_opt_ QUIC_PATHID* PathID,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
     _In_ uint16_t PartitionID,
@@ -474,7 +474,7 @@ QuicCidNewRandomSource(
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
+        Entry->PathID = PathID;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = MsQuicLib.CidTotalLength;

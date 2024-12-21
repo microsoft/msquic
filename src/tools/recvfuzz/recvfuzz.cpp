@@ -426,6 +426,8 @@ bool WriteAckFrame(
     QuicRangeAddRange(&AckRange, LargestAcknowledge, 1, &RangeUpdated);
     uint64_t AckDelay = 40;
     if (!QuicAckFrameEncode(
+            FALSE,
+            0,
             &AckRange,
             AckDelay,
             nullptr,

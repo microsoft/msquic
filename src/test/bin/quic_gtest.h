@@ -981,4 +981,22 @@ std::ostream& operator << (std::ostream& o, const MigrationArgs& args) {
 class WithMigrationArgs : public testing::Test,
     public testing::WithParamInterface<MigrationArgs> {
 };
+
+struct MultipathArgs {
+    int Family;
+    static ::std::vector<MultipathArgs> Generate() {
+        ::std::vector<MultipathArgs> list;
+        for (int Family : { 4, 6 })
+            list.push_back({ Family });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MultipathArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6");
+}
+
+class WithMultipathArgs : public testing::Test,
+    public testing::WithParamInterface<MultipathArgs> {
+};
 #endif

@@ -872,6 +872,60 @@ tracepoint(CLOG_FRAME_C, FrameLogNewConnectionID , arg2, arg3, arg4, arg5, arg6,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogPathNewConnectionIDInvalid
+// [%c][%cX][%llu]   PATH_NEW_CONN_ID [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathNewConnectionIDInvalid,
+                "[%c][%cX][%llu]   PATH_NEW_CONN_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathNewConnectionIDInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathNewConnectionIDInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathNewConnectionIDInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathNewConnectionID
+// [%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s
+// QuicTraceLogVerbose(
+            FrameLogPathNewConnectionID,
+            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.Sequence,
+            Frame.RetirePriorTo,
+            QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer,
+            QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.Sequence = arg6
+// arg7 = arg7 = Frame.RetirePriorTo = arg7
+// arg8 = arg8 = QuicCidBufToStr(Frame.Buffer, Frame.Length).Buffer = arg8
+// arg9 = arg9 = QuicCidBufToStr(Frame.Buffer + Frame.Length, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg9
+----------------------------------------------------------*/
+#ifndef _clog_10_ARGS_TRACE_FrameLogPathNewConnectionID
+#define _clog_10_ARGS_TRACE_FrameLogPathNewConnectionID(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9)\
+tracepoint(CLOG_FRAME_C, FrameLogPathNewConnectionID , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FrameLogRetireConnectionIDInvalid
 // [%c][%cX][%llu]   RETIRE_CONN_ID [Invalid]
 // QuicTraceLogVerbose(

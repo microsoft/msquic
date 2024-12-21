@@ -1149,7 +1149,7 @@
     },
     "ConnDestCidAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
+      "TraceString": "[conn][%p][pathid][%u] (SeqNum=%llu) New Destination CID: %!CID!",
       "UniqueId": "ConnDestCidAdded",
       "splitArgs": [
         {
@@ -1157,19 +1157,23 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "!CID!",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
     },
     "ConnDestCidRemoved": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
+      "TraceString": "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Destination CID: %!CID!",
       "UniqueId": "ConnDestCidRemoved",
       "splitArgs": [
         {
@@ -1177,12 +1181,16 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "!CID!",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -1839,6 +1847,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnPathIDCreated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] New PathID %u",
+      "UniqueId": "ConnPathIDCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnPersistentCongestion": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Persistent congestion event",
@@ -2033,7 +2057,7 @@
     },
     "ConnSourceCidAdded": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
+      "TraceString": "[conn][%p][pathid][%u] (SeqNum=%llu) New Source CID: %!CID!",
       "UniqueId": "ConnSourceCidAdded",
       "splitArgs": [
         {
@@ -2041,19 +2065,23 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "!CID!",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
     },
     "ConnSourceCidRemoved": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
+      "TraceString": "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!",
       "UniqueId": "ConnSourceCidRemoved",
       "splitArgs": [
         {
@@ -2061,12 +2089,16 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
-          "DefinationEncoding": "!CID!",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -3239,6 +3271,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPInitMaxPathId": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Max Path Id (%llu)",
+      "UniqueId": "DecodeTPInitMaxPathId",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPInitMaxStreamDataBidiLocal": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Max Local Bidirectional Stream Data (%llu bytes)",
@@ -3775,6 +3823,22 @@
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Max Data (%llu bytes)",
       "UniqueId": "EncodeTPInitMaxData",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPInitMaxPathId": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Max Path Id (%llu)",
+      "UniqueId": "EncodeTPInitMaxPathId",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -4996,6 +5060,66 @@
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_CHALLENGE [Invalid]",
       "UniqueId": "FrameLogPathChallengeInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathNewConnectionID": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s",
+      "UniqueId": "FrameLogPathNewConnectionID",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg9"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathNewConnectionIDInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID [Invalid]",
+      "UniqueId": "FrameLogPathNewConnectionIDInvalid",
       "splitArgs": [
         {
           "DefinationEncoding": "c",
@@ -8119,6 +8243,102 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathIDDestCidAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] [pathid][%u] (SeqNum=%llu) New Destination CID: %!CID!",
+      "UniqueId": "PathIDDestCidAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathIDDestCidRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] [pathid][%u] (SeqNum=%llu) Removed Destination CID: %!CID!",
+      "UniqueId": "PathIDDestCidRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathIDSourceCidAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] [pathid][%u] (SeqNum=%llu) New Source CID: %!CID!",
+      "UniqueId": "PathIDSourceCidAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathIDSourceCidRemoved": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] [pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!",
+      "UniqueId": "PathIDSourceCidRemoved",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathInitialized": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Initialized",
@@ -10922,6 +11142,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] HyStartEnabled         = %hhu",
       "UniqueId": "SettingHyStartEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingMultipathEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] MultipathEnabled       = %hhu",
+      "UniqueId": "SettingMultipathEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13776,14 +14008,14 @@
         "EncodingString": "[conn][%p] Received APPLICATION_ERROR error, delaying close in expectation of a 1-RTT CONNECTION_CLOSE frame."
       },
       {
-        "UniquenessHash": "e2133726-1e36-d515-e6b1-ab7ac6fdf53e",
+        "UniquenessHash": "d83cee8b-9ec7-90fc-9c4b-8eaced00af97",
         "TraceID": "ConnDestCidAdded",
-        "EncodingString": "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!"
+        "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) New Destination CID: %!CID!"
       },
       {
-        "UniquenessHash": "8f204a2e-9160-ae42-2cdd-4f8e8eab10c5",
+        "UniquenessHash": "4e8bf48f-c558-e231-7340-72d7673dc9cb",
         "TraceID": "ConnDestCidRemoved",
-        "EncodingString": "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!"
+        "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Destination CID: %!CID!"
       },
       {
         "UniquenessHash": "3903cc44-b387-b5f6-17fc-62d5aee48015",
@@ -13951,6 +14183,11 @@
         "EncodingString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
       },
       {
+        "UniquenessHash": "03ab7814-30a8-e2f0-69bc-24a671996e5b",
+        "TraceID": "ConnPathIDCreated",
+        "EncodingString": "[conn][%p] New PathID %u"
+      },
+      {
         "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
         "TraceID": "ConnPersistentCongestion",
         "EncodingString": "[conn][%p] Persistent congestion event"
@@ -14011,14 +14248,14 @@
         "EncodingString": "[conn][%p] Shutdown complete, PeerFailedToAcknowledged=%hhu."
       },
       {
-        "UniquenessHash": "b1ef59fd-834d-2786-8b05-c14f32023aea",
+        "UniquenessHash": "8f27db2a-e029-442b-fa7a-a1464d32ddac",
         "TraceID": "ConnSourceCidAdded",
-        "EncodingString": "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!"
+        "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) New Source CID: %!CID!"
       },
       {
-        "UniquenessHash": "65f1ff8d-810a-4f24-b2f6-817daf9275ef",
+        "UniquenessHash": "d84737e0-d705-7cfd-8e09-ae17924dcdaa",
         "TraceID": "ConnSourceCidRemoved",
-        "EncodingString": "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!"
+        "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!"
       },
       {
         "UniquenessHash": "262484c2-7385-f5dd-c3de-0bb48fe2ffea",
@@ -14381,6 +14618,11 @@
         "EncodingString": "[conn][%p] TP: Max Data (%llu bytes)"
       },
       {
+        "UniquenessHash": "f7cfe233-52f3-1303-9d6c-667658d07f9b",
+        "TraceID": "DecodeTPInitMaxPathId",
+        "EncodingString": "[conn][%p] TP: Max Path Id (%llu)"
+      },
+      {
         "UniquenessHash": "e4d0eb5f-0f76-f0ac-1c84-f306c642b9a6",
         "TraceID": "DecodeTPInitMaxStreamDataBidiLocal",
         "EncodingString": "[conn][%p] TP: Max Local Bidirectional Stream Data (%llu bytes)"
@@ -14554,6 +14796,11 @@
         "UniquenessHash": "c212483c-4211-8603-5f60-6773b67d2622",
         "TraceID": "EncodeTPInitMaxData",
         "EncodingString": "[conn][%p] TP: Max Data (%llu bytes)"
+      },
+      {
+        "UniquenessHash": "e23da5d6-ae36-a312-7cab-a54cbc96943b",
+        "TraceID": "EncodeTPInitMaxPathId",
+        "EncodingString": "[conn][%p] TP: Max Path Id (%llu)"
       },
       {
         "UniquenessHash": "1cf3e10e-79dd-5aed-6c1c-f0675514be81",
@@ -14869,6 +15116,16 @@
         "UniquenessHash": "a145bb21-3f9f-bae4-04ae-a6f82319b86e",
         "TraceID": "FrameLogPathChallengeInvalid",
         "EncodingString": "[%c][%cX][%llu]   PATH_CHALLENGE [Invalid]"
+      },
+      {
+        "UniquenessHash": "80accc44-ecef-a74e-cef2-f13e7a389abf",
+        "TraceID": "FrameLogPathNewConnectionID",
+        "EncodingString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s"
+      },
+      {
+        "UniquenessHash": "24e192ff-90cd-4918-4bec-529eb9a41789",
+        "TraceID": "FrameLogPathNewConnectionIDInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID [Invalid]"
       },
       {
         "UniquenessHash": "48bdfe8e-61dc-d2b1-c15b-cd1157a7f291",
@@ -15794,6 +16051,26 @@
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
         "TraceID": "PathDiscarded",
         "EncodingString": "[conn][%p] Removing invalid path[%hhu]"
+      },
+      {
+        "UniquenessHash": "266baddf-b44e-90a5-2343-1fba327c0c28",
+        "TraceID": "PathIDDestCidAdded",
+        "EncodingString": "[conn][%p] [pathid][%u] (SeqNum=%llu) New Destination CID: %!CID!"
+      },
+      {
+        "UniquenessHash": "37bfc3f5-ad53-bdc8-1e09-2b5c74d59de7",
+        "TraceID": "PathIDDestCidRemoved",
+        "EncodingString": "[conn][%p] [pathid][%u] (SeqNum=%llu) Removed Destination CID: %!CID!"
+      },
+      {
+        "UniquenessHash": "283ebf8f-59cb-eeb8-9eb6-c1f2373815ed",
+        "TraceID": "PathIDSourceCidAdded",
+        "EncodingString": "[conn][%p] [pathid][%u] (SeqNum=%llu) New Source CID: %!CID!"
+      },
+      {
+        "UniquenessHash": "fe26463b-ece6-ec42-38cc-3b59e48930fb",
+        "TraceID": "PathIDSourceCidRemoved",
+        "EncodingString": "[conn][%p] [pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!"
       },
       {
         "UniquenessHash": "607e449d-59a9-9d66-fcd1-b0a2e12f1dc1",
@@ -16749,6 +17026,11 @@
         "UniquenessHash": "3204077b-15dd-eacb-1594-51d66d8db668",
         "TraceID": "SettingHyStartEnabled",
         "EncodingString": "[sett] HyStartEnabled         = %hhu"
+      },
+      {
+        "UniquenessHash": "025f13c0-6d85-2f19-a68e-e80104f42f1f",
+        "TraceID": "SettingMultipathEnabled",
+        "EncodingString": "[sett] MultipathEnabled       = %hhu"
       },
       {
         "UniquenessHash": "b2b7c2a6-35c7-4b14-47f2-dca7aad8817a",

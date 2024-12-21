@@ -573,22 +573,35 @@ QuicBindingAddAllSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
-        Link != NULL;
-        Link = Link->Next) {
+    BOOLEAN Success = TRUE;
 
-        QUIC_CID_SLIST_ENTRY* Entry =
-            CXPLAT_CONTAINING_RECORD(
-                Link,
-                QUIC_CID_SLIST_ENTRY,
-                Link);
-        if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
-            return FALSE;
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
+
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        if (Success) {
+            for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+                Link != NULL;
+                Link = Link->Next) {
+
+                QUIC_CID_SLIST_ENTRY* Entry =
+                    CXPLAT_CONTAINING_RECORD(
+                        Link,
+                        QUIC_CID_SLIST_ENTRY,
+                        Link);
+                if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
+                    Success = FALSE;
+                    break;
+                }
+            }
         }
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
 
-    return TRUE;
+    return Success;
 }
+
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -607,42 +620,50 @@ QuicBindingRemoveAllSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    CXPLAT_SLIST_ENTRY EntriesToFree = {0};
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
 
-    for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
-        Link != NULL;
-        Link = Link->Next) {
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        CXPLAT_SLIST_ENTRY EntriesToFree = {0};
 
-        QUIC_CID_SLIST_ENTRY* Entry =
-            CXPLAT_CONTAINING_RECORD(
-                Link,
-                QUIC_CID_SLIST_ENTRY,
-                Link);
+        for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+            Link != NULL;
+            Link = Link->Next) {
 
-        CXPLAT_SLIST_ENTRY** Link1 = &Entry->HashEntries.Next;
-        while (*Link1 != NULL) {
-            QUIC_CID_HASH_ENTRY* Entry1 = 
+            QUIC_CID_SLIST_ENTRY* Entry =
                 CXPLAT_CONTAINING_RECORD(
-                    *Link1,
-                    QUIC_CID_HASH_ENTRY,
+                    Link,
+                    QUIC_CID_SLIST_ENTRY,
                     Link);
-            if (Entry1->Binding == Binding) {
-                QuicBindingRemoveSourceConnectionID(Binding, Entry1);
-                *Link1 = (*Link1)->Next;
-                CxPlatListPushEntry(&EntriesToFree, &Entry1->Link);
-            } else {
-                Link1 = &(*Link1)->Next;
+
+            CXPLAT_SLIST_ENTRY** Link1 = &Entry->HashEntries.Next;
+            while (*Link1 != NULL) {
+                QUIC_CID_HASH_ENTRY* Entry1 = 
+                    CXPLAT_CONTAINING_RECORD(
+                        *Link1,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+                if (Entry1->Binding == Binding) {
+                    QuicBindingRemoveSourceConnectionID(Binding, Entry1);
+                    *Link1 = (*Link1)->Next;
+                    CxPlatListPushEntry(&EntriesToFree, &Entry1->Link);
+                } else {
+                    Link1 = &(*Link1)->Next;
+                }
             }
         }
-    }
 
-    while (EntriesToFree.Next != NULL) {
-        QUIC_CID_HASH_ENTRY* Entry = 
-            CXPLAT_CONTAINING_RECORD(
-                CxPlatListPopEntry(&EntriesToFree),
-                QUIC_CID_HASH_ENTRY,
-                Link);
-        CXPLAT_FREE(Entry, QUIC_POOL_CIDHASH);
+        while (EntriesToFree.Next != NULL) {
+            QUIC_CID_HASH_ENTRY* Entry = 
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListPopEntry(&EntriesToFree),
+                    QUIC_CID_HASH_ENTRY,
+                    Link);
+            CXPLAT_FREE(Entry, QUIC_POOL_CIDHASH);
+        }
+
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
 }
 
@@ -1335,10 +1356,10 @@ QuicBindingCreateConnection(
     }
 
     BOOLEAN BindingRefAdded = FALSE;
-    CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
+    CXPLAT_DBG_ASSERT(NewConnection->Paths[0].PathID->SourceCids.Next != NULL);
     QUIC_CID_SLIST_ENTRY* SourceCid =
         CXPLAT_CONTAINING_RECORD(
-            NewConnection->SourceCids.Next,
+            NewConnection->Paths[0].PathID->SourceCids.Next,
             QUIC_CID_SLIST_ENTRY,
             Link);
 
@@ -1408,7 +1429,7 @@ Exit:
 #pragma warning(pop)
 
     } else {
-        NewConnection->SourceCids.Next = NULL;
+        NewConnection->Paths[0].PathID->SourceCids.Next = NULL;
         CXPLAT_FREE(SourceCid, QUIC_POOL_CIDSLIST);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
@@ -1510,14 +1531,16 @@ QuicBindingDeliverPackets(
             QuicLookupFindConnectionByLocalCid(
                 &Binding->Lookup,
                 Packets->DestCid,
-                Packets->DestCidLen);
+                Packets->DestCidLen,
+                &Packets->PathId);
     } else {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &Packets->Route->RemoteAddress,
                 Packets->SourceCidLen,
-                Packets->SourceCid);
+                Packets->SourceCid,
+                &Packets->PathId);
     }
 
     if (Connection == NULL) {
