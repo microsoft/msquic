@@ -1666,6 +1666,7 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 TEST_P(WithProbePathArgs, ProbePath) {
     TestLoggerT<ParamType> Logger("QuicTestProbePath", GetParam());
     if (TestingKernelMode) {
@@ -1716,7 +1717,8 @@ TEST_P(WithProbePathArgs, MultipleLocalAddresses) {
             GetParam().DropPacketCount);
     }
 }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());

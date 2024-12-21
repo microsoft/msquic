@@ -930,6 +930,7 @@ class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
 };
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 struct ProbePathArgs {
     int Family;
     BOOLEAN ShareBinding;
@@ -980,3 +981,4 @@ std::ostream& operator << (std::ostream& o, const MigrationArgs& args) {
 class WithMigrationArgs : public testing::Test,
     public testing::WithParamInterface<MigrationArgs> {
 };
+#endif

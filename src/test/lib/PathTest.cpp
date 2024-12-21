@@ -120,6 +120,7 @@ QuicTestLocalPathChanges(
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 void
 QuicTestProbePath(
     _In_ int Family,
@@ -357,3 +358,4 @@ QuicTestMultipleLocalAddresses(
     TEST_TRUE(ProbeHelpers[2].ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     TEST_TRUE(ProbeHelpers[2].ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
 }
+#endif

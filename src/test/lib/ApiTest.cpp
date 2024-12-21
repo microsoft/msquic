@@ -4521,6 +4521,7 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 void QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
 {
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS");
@@ -4702,6 +4703,7 @@ void QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(MsQuicRegistration& Registrat
         }
     }
 }
+#endif
 
 void QuicTestConnectionParam()
 {
@@ -4736,8 +4738,10 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(Registration, ClientConfiguration);
+#endif
 }
 
 //
