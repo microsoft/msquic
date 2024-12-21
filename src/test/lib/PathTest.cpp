@@ -173,13 +173,23 @@ QuicTestProbePath(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
 
-    PathProbeHelper ProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+    PathProbeHelper *ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
 
-    TEST_QUIC_SUCCEEDED(
-        Connection.SetParam(
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t Try = 0;
+    do {
+        Status = Connection.SetParam(
             QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
             sizeof(SecondLocalAddr.SockAddr),
-            &SecondLocalAddr.SockAddr));
+            &SecondLocalAddr.SockAddr);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            delete ProbeHelper;
+            SecondLocalAddr.IncrementPort();
+            ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+        }
+    } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
+    TEST_EQUAL(Status, QUIC_STATUS_SUCCESS);
 
     if (DeferConnIDGen) {
         TEST_QUIC_SUCCEEDED(
@@ -189,8 +199,8 @@ QuicTestProbePath(
                 NULL));
     }
     
-    TEST_TRUE(ProbeHelper.ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
-    TEST_TRUE(ProbeHelper.ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
+    TEST_TRUE(ProbeHelper->ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
+    TEST_TRUE(ProbeHelper->ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout * 10));
     QUIC_STATISTICS_V2 Stats;
     uint32_t Size = sizeof(Stats);
     TEST_QUIC_SUCCEEDED(
@@ -199,6 +209,7 @@ QuicTestProbePath(
             &Size,
             &Stats));
     TEST_EQUAL(Stats.RecvDroppedPackets, 0);
+    delete ProbeHelper;
 }
 
 void
@@ -245,16 +256,29 @@ QuicTestMigration(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
 
-    PathProbeHelper ProbeHelper(SecondLocalAddr.GetPort());
+    PathProbeHelper* ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
 
     if (Smooth) {
-        TEST_QUIC_SUCCEEDED(
-            Connection.SetParam(
+        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+        int Try = 0;
+        do {
+            Status = Connection.SetParam(
                 QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
                 sizeof(SecondLocalAddr.SockAddr),
-                &SecondLocalAddr.SockAddr));
-        TEST_TRUE(ProbeHelper.ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(ProbeHelper.ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
+                &SecondLocalAddr.SockAddr);
+
+            if (Status != QUIC_STATUS_SUCCESS) {
+                delete ProbeHelper;
+                SecondLocalAddr.IncrementPort();
+                ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
+            }
+        } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
+        TEST_QUIC_SUCCEEDED(Status);
+
+        TEST_TRUE(ProbeHelper->ServerReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(ProbeHelper->ClientReceiveProbeEvent.WaitTimeout(TestWaitTimeout));
+        delete ProbeHelper;
+
         QUIC_STATISTICS_V2 Stats;
         uint32_t Size = sizeof(Stats);
         TEST_QUIC_SUCCEEDED(
@@ -263,18 +287,32 @@ QuicTestMigration(
                 &Size,
                 &Stats));
         TEST_EQUAL(Stats.RecvDroppedPackets, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(SecondLocalAddr.SockAddr),
+                &SecondLocalAddr.SockAddr));
     } else {
         //
         // Wait for handshake confirmation.
         //
-        CxPlatSleep(100);  
+        CxPlatSleep(100);
+
+        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+        int Try = 0;
+        do {
+            Status = Connection.SetParam(
+                QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                sizeof(SecondLocalAddr.SockAddr),
+                &SecondLocalAddr.SockAddr);
+            if (Status != QUIC_STATUS_SUCCESS) {
+                SecondLocalAddr.IncrementPort();
+            }
+        } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
+        TEST_QUIC_SUCCEEDED(Status);
     }
 
-    TEST_QUIC_SUCCEEDED(
-        Connection.SetParam(
-            QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            sizeof(SecondLocalAddr.SockAddr),
-            &SecondLocalAddr.SockAddr));
 
     TEST_TRUE(Context.PeerAddrChangedEvent.WaitTimeout(1500));
     QuicAddr ServerRemoteAddr;
@@ -329,12 +367,20 @@ QuicTestMultipleLocalAddresses(
 
     QuicAddr ClientLocalAddrs[4] = {QuicAddrFamily, QuicAddrFamily, QuicAddrFamily, QuicAddrFamily};
     for (uint8_t i = 0; i < 4; i++) {
-        ClientLocalAddrs[i].SetPort(44433 + i);
-        TEST_QUIC_SUCCEEDED(
-            Connection.SetParam(
+        ClientLocalAddrs[i].SetPort(rand() % 65536);
+        QUIC_STATUS Status;
+        uint32_t Try = 0;
+        do {
+            Status = Connection.SetParam(
                 QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
                 sizeof(ClientLocalAddrs[i].SockAddr),
-                &ClientLocalAddrs[i].SockAddr));
+                &ClientLocalAddrs[i].SockAddr);
+            if (Status != QUIC_STATUS_ADDRESS_IN_USE) {
+                TEST_QUIC_SUCCEEDED(Status);
+                break;
+            }
+        } while (++Try < 3);
+        TEST_QUIC_SUCCEEDED(Status);
     }
 
     PathProbeHelper ProbeHelpers[3] = {
