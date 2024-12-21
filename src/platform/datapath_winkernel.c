@@ -652,7 +652,6 @@ DataPathInitialize(
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
-    UNREFERENCED_PARAMETER(WorkerPool);
     QUIC_STATUS Status;
     WSK_CLIENT_NPI WskClientNpi = { NULL, &WskAppDispatch };
     uint32_t DatapathLength;
@@ -679,6 +678,11 @@ DataPathInitialize(
             Datapath = NULL;
             goto Exit;
         }
+    }
+
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
     }
 
     DatapathLength =
