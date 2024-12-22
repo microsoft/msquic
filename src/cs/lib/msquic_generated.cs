@@ -197,6 +197,7 @@ namespace Microsoft.Quic
         DELAY_SEND = 0x0010,
         CANCEL_ON_LOSS = 0x0020,
         PRIORITY_WORK = 0x0040,
+        CANCEL_ON_BLOCKED = 0x0080,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE

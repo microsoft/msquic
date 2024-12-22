@@ -46,6 +46,7 @@ Value | Meaning
 **QUIC_SEND_FLAG_DGRAM_PRIORITY**<br>8 | **Unused and ignored** for `StreamSend`
 **QUIC_SEND_FLAG_DELAY_SEND**<br>16 | Provides a hint to MsQuic to indicate the data does not need to be sent immediately, likely because more is soon to follow.
 **QUIC_SEND_FLAG_CANCEL_ON_LOSS**<br>32 | Informs MsQuic to irreversibly mark the associated stream to be canceled when packet loss has been detected on it. I.e., all sends on a given stream are subject to this behavior from the moment the flag has been supplied for the first time. 
+**QUIC_SEND_FLAG_CANCEL_ON_BLOCKED**<br>64 | **Unused and ignored** for `StreamSend` for now
 
 `ClientSendContext`
 

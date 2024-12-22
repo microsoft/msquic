@@ -51,7 +51,9 @@ One of the built-in capabilities of WPA is the ability to analyze CPU trace info
 ### Linux
 Linux perf command is one of the way to collect such information.  
 ```sh
-# on Linux
+# on Linux (kernel > 5.10)
+sudo apt-get install -y linux-perf
+# on Linux (kernel <= 5.10)
 sudo apt-get install -y linux-tools-`uname -r`
 # use your own options
 perf record -a -g -F 10 -o out.perf.data
