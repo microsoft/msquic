@@ -243,89 +243,50 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
 }
 
-TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
+BOOLEAN DidHitReorderingThreshold(
+    uint8_t ReorderingThreshold,
+    uint64_t LargestPacketNumberAcknowledged, 
+    const std::vector<std::vector<int>>& AckTrackerLists) 
 {
     QUIC_ACK_TRACKER Tracker;
-    uint8_t ReorderingThreshold;
+    QuicAckTrackerInitialize(&Tracker);;
+    for (const auto& List : AckTrackerLists) {
+        for (int i : List) {
+            QuicRangeAddValue(&Tracker.PacketNumbersToAck, i);
+        }
+    }
+    Tracker.LargestPacketNumberAcknowledged = LargestPacketNumberAcknowledged;
+    BOOLEAN Result = QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold);
+    QuicAckTrackerUninitialize(&Tracker);
+    return Result;
+}
 
-    // Initialize the Tracker and other variables
+TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
+{
 
-    QuicAckTrackerInitialize(&Tracker);
-
-    // ReorderingThreshold is 0
-    ReorderingThreshold = 0;
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 100);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    ASSERT_FALSE(DidHitReorderingThreshold(0, 0, {{100}}));
 
     // Case 1 
-    ReorderingThreshold = 3;
-    QuicAckTrackerReset(&Tracker); 
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 0);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
 
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 1);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 3);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 4);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 5);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-    Tracker.LargestPacketNumberAcknowledged = 5;
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 9);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-    Tracker.LargestPacketNumberAcknowledged = 9;
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 10);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-    Tracker.LargestPacketNumberAcknowledged = 10;
+    ASSERT_FALSE(DidHitReorderingThreshold(3, 0, {{0}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(3, 0, {{0, 1}}));    
+    ASSERT_FALSE(DidHitReorderingThreshold(3, 0, {{0, 1}, {3}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(3, 0, {{0, 1}, {3, 4}}));
+    ASSERT_TRUE(DidHitReorderingThreshold(3, 0, {{0, 1}, {3, 4, 5}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(3, 5, {{0, 1}, {3, 4, 5}, {8}}));
+    ASSERT_TRUE(DidHitReorderingThreshold(3, 5, {{0, 1}, {3, 4, 5}, {8, 9}}));
+    ASSERT_TRUE(DidHitReorderingThreshold(3, 9, {{0, 1}, {3, 4, 5}, {8, 9, 10}}));
 
     // Case 2
-    ReorderingThreshold = 5;
-    QuicAckTrackerReset(&Tracker); 
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 0);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 0, {{0}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 0, {{0, 1}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 0, {{0, 1}, {3}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 0, {{0, 1}, {3}, {5}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 0, {{0, 1}, {3}, {5, 6}}));
+    ASSERT_TRUE(DidHitReorderingThreshold(5, 0, {{0, 1}, {3}, {5, 6, 7}}));
+    ASSERT_FALSE(DidHitReorderingThreshold(5, 7, {{0, 1}, {3}, {5, 6, 7, 8}}));
+    ASSERT_TRUE(DidHitReorderingThreshold(5, 7, {{0, 1}, {3}, {5, 6, 7, 8, 9}}));
 
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 1);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 3);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 5);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 6);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 7);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-    Tracker.LargestPacketNumberAcknowledged = 7;
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
-    ASSERT_FALSE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 9);
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-    Tracker.LargestPacketNumberAcknowledged = 9;
-
-    // Case 3
-    ReorderingThreshold = 3;
-    QuicAckTrackerReset(&Tracker); 
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 7);
-    QuicRangeAddValue(&Tracker.PacketNumbersToAck, 8);
-    Tracker.LargestPacketNumberAcknowledged = 5;
-    ASSERT_TRUE(QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold));
-
-    // Clean up
-    QuicAckTrackerUninitialize(&Tracker);
 }
 
 struct ResetStreamFrameParams {

@@ -111,10 +111,18 @@ QuicAckTrackerDidHitReorderingThreshold(
     }
 
     const uint64_t LargestUnacked = QuicRangeGetMax(&Tracker->PacketNumbersToAck);
-    uint64_t LargestReported = 0; // The largest packet number that could be declared lost 
+    uint64_t LargestReported;  // The largest packet number that could be declared lost 
 
-    if (Tracker->LargestPacketNumberAcknowledged >= ReorderingThreshold) {
+    //
+    // Largest Reported is equal to the largest packet number acknowledged minus the Reordering Threshold.
+    // If the difference between the largest packet number acknowledged and the Reordering Threshold is smaller than the
+    // smallest packet in the ack tracker, then the largest reported is the smallest packet in the ack tracker.
+    //
+
+    if (Tracker->LargestPacketNumberAcknowledged >= QuicRangeGet(&Tracker->PacketNumbersToAck, 0)->Low + ReorderingThreshold) {
         LargestReported = Tracker->LargestPacketNumberAcknowledged - ReorderingThreshold + 1;
+    } else {
+        LargestReported = QuicRangeGet(&Tracker->PacketNumbersToAck, 0)->Low;
     }
 
     //
@@ -125,16 +133,13 @@ QuicAckTrackerDidHitReorderingThreshold(
     // acknowledgement.
     //
 
-    for (uint32_t Index = QuicRangeSize(&Tracker->PacketNumbersToAck); Index > 0; --Index) {
-        uint64_t SmallestMissing = 0; // Smallest missing in the previous gap
-        uint64_t RangeStart = QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)->Low; // Lowest Packet number in the subrange
-        if (RangeStart == 0) {
-            return FALSE;
-        }
-        if (Index != 1) {
-            SmallestMissing = QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 2)) + 1;
-        }
+    for (uint32_t Index = QuicRangeSize(&Tracker->PacketNumbersToAck) - 1; Index > 0; --Index) {
+        uint64_t SmallestMissing = QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)) + 1; // Smallest missing in the previous gap
+        uint64_t RangeStart = QuicRangeGet(&Tracker->PacketNumbersToAck, Index)->Low; // Lowest Packet number in the subrange
           
+        // 
+        // Check if largest reported packet is missing. In that case, the smalles missing packet becomes the largest reported packet.
+        //
         if (LargestReported > SmallestMissing) {
             if (RangeStart > LargestReported) {
                 SmallestMissing = LargestReported;
@@ -331,11 +336,12 @@ QuicAckTrackerOnAckFrameAcked(
 
     //
     // Drop all packet numbers less than or equal to the largest acknowledged
-    // packet number.
+    // packet number - Reordering Threshold + 1. This is so that we dont lose 
+    // memory of packets that are missing and are yet to be reported. 
     //
     QuicRangeSetMin(
         &Tracker->PacketNumbersToAck,
-        LargestAckedPacketNumber + 1);
+        LargestAckedPacketNumber - Connection->ReorderingThreshold + 2);
 
     if (!QuicAckTrackerHasPacketsToAck(Tracker) &&
         Tracker->AckElicitingPacketsToAcknowledge) {
