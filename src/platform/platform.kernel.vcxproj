@@ -23,11 +23,17 @@
     <ClCompile Include="crypt_bcrypt.c" />
     <ClCompile Include="datapath_winkernel.c" />
     <ClCompile Include="datapath_xplat.c" />
-    <ClCompile Include="datapath_raw_dummy.c" />
     <ClCompile Include="datapath_win.c" />
+    <ClCompile Include="datapath_raw.c" />
+    <ClCompile Include="datapath_raw_win.c" />
+    <ClCompile Include="datapath_raw_socket.c" />
+    <ClCompile Include="datapath_raw_socket_common.c" />
+    <ClCompile Include="datapath_raw_socket_win.c" />
+    <ClCompile Include="datapath_raw_xdp_winkernel.c" />
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="pcp.c" />
     <ClCompile Include="platform_winkernel.c" />
+    <ClCompile Include="platform_worker.c" />
     <ClCompile Include="storage_winkernel.c" />
     <ClCompile Include="tls_schannel.c" />
     <ClCompile Include="toeplitz.c" />
@@ -85,7 +91,16 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        ..\inc;
+        $(SolutionDir)submodules\xdp-for-windows\published\external;
+        $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;
+        $(IntDir);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>
+        %(PreprocessorDefinitions)
+      </PreprocessorDefinitions>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
