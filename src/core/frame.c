@@ -1259,7 +1259,7 @@ QuicAckFrequencyFrameEncode(
     Buffer = QuicVarIntEncode(Frame->SequenceNumber, Buffer);
     Buffer = QuicVarIntEncode(Frame->AckElicitingThreshold, Buffer);
     Buffer = QuicVarIntEncode(Frame->RequestedMaxAckDelay, Buffer);
-    Buffer = QuicVarIntEncode(Frame->ReorderingThreshold, Buffer);
+    QuicVarIntEncode(Frame->ReorderingThreshold, Buffer);
     *Offset += RequiredLength;
 
     return TRUE;
