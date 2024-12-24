@@ -243,6 +243,64 @@ TEST(FrameTest, ReliableResetStreamFrameEncodeDecode)
     ASSERT_EQ(Frame.ReliableSize, DecodedFrame.ReliableSize);
 }
 
+// 
+// Tests if the reordering threshold has been hit. This function initializes a
+// QUIC_ACK_TRACKER and populates it with the provided packet numbers. It then 
+// calls QuicAckTrackerDidHitReorderingThreshold to determine if the reordering
+// threshold has been hit.
+// 
+bool TestReorderingThreshold(
+    uint8_t ReorderingThreshold,
+    uint64_t LargestPacketNumberAcknowledged, 
+    const std::vector<std::vector<int>>& AckTrackerRanges) 
+{
+    QUIC_ACK_TRACKER Tracker;
+    QuicAckTrackerInitialize(&Tracker);
+    for (const auto& Range : AckTrackerRanges) {
+        if (Range.size() == 1) {
+            QuicRangeAddValue(&Tracker.PacketNumbersToAck, Range[0]);
+        } else {
+            for (int packet = Range[0]; packet <= Range[1]; ++packet) {
+                QuicRangeAddValue(&Tracker.PacketNumbersToAck, packet);
+            }
+        }
+    }
+    Tracker.LargestPacketNumberAcknowledged = LargestPacketNumberAcknowledged;
+    BOOLEAN Result = QuicAckTrackerDidHitReorderingThreshold(&Tracker, ReorderingThreshold);
+    QuicAckTrackerUninitialize(&Tracker);
+    return Result;
+}
+
+TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
+{
+    ASSERT_FALSE(TestReorderingThreshold(0, 0, {{100}}));
+
+    // Case 1
+    ASSERT_FALSE(TestReorderingThreshold(3, 0, {{0}}));
+    ASSERT_FALSE(TestReorderingThreshold(3, 0, {{0, 1}}));    
+    ASSERT_FALSE(TestReorderingThreshold(3, 0, {{0, 1}, {3}}));
+    ASSERT_FALSE(TestReorderingThreshold(3, 0, {{0, 1}, {3, 4}}));
+    ASSERT_TRUE(TestReorderingThreshold(3, 0, {{0, 1}, {3, 5}}));
+    ASSERT_FALSE(TestReorderingThreshold(3, 5, {{0, 1}, {3, 5}, {8}}));
+    ASSERT_TRUE(TestReorderingThreshold(3, 5, {{0, 1}, {3, 5}, {8, 9}}));
+    ASSERT_TRUE(TestReorderingThreshold(3, 9, {{0, 1}, {3, 5}, {8, 10}}));
+
+    // Case 2
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{0}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{0, 1}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{0, 1}, {3}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{0, 1}, {3}, {5}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{0, 1}, {3}, {5, 6}}));
+    ASSERT_TRUE(TestReorderingThreshold(5, 0, {{0, 1}, {3}, {5, 7}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 7, {{0, 1}, {3}, {5, 8}}));
+    ASSERT_TRUE(TestReorderingThreshold(5, 7, {{0, 1}, {3}, {5, 9}}));
+
+    // Additional cases to test edge conditions
+    ASSERT_FALSE(TestReorderingThreshold(5, 0, {{1, 2}, {4}}));
+    ASSERT_FALSE(TestReorderingThreshold(5, 2, {{1, 2}, {4}}));
+    ASSERT_TRUE(TestReorderingThreshold(5, 4, {{1, 2}, {4}, {10}}));
+}
+
 struct ResetStreamFrameParams {
     uint8_t Buffer[4];
     uint16_t BufferLength = 4;
