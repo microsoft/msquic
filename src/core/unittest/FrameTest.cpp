@@ -296,9 +296,9 @@ TEST(FrameTest, TestQuicAckTrackerDidHitReorderingThreshold)
     ASSERT_TRUE(TestReorderingThreshold(5, 7, {{0, 1}, {3}, {5, 9}}));
 
     // Additional cases to test edge conditions
-    ASSERT_TRUE(TestReorderingThreshold(5, 4, {{1, 2}, {4}, {10}}));
     ASSERT_FALSE(TestReorderingThreshold(5, 0, {{1, 2}, {4}}));
     ASSERT_FALSE(TestReorderingThreshold(5, 2, {{1, 2}, {4}}));
+    ASSERT_TRUE(TestReorderingThreshold(5, 4, {{1, 2}, {4}, {10}}));
 }
 
 struct ResetStreamFrameParams {
