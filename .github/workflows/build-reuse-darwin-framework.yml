@@ -7,6 +7,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -55,7 +59,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -92,7 +96,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -116,7 +120,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
