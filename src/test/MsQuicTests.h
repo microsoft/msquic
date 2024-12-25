@@ -628,6 +628,11 @@ QuicDrillTestServerVNPacket(
     _In_ int Family
     );
 
+void
+QuicDrillTestKeyUpdateDuringHandshake(
+    _In_ int Family
+    );
+
 //
 // Datagram tests
 //
