@@ -43,6 +43,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       build: ${{ matrix.vec.build }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   build-windows:
     name: Build WinUser
@@ -66,6 +67,7 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   build-unix:
     name: Build Unix
@@ -94,6 +96,7 @@ jobs:
       build: ${{ matrix.vec.build }}
       xdp: ${{ matrix.vec.xdp }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   bvt:
     name: BVT
