@@ -40,6 +40,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
+      repo: ${{ github.repository }}
 
   build-unix:
     name: Build Unix
@@ -66,6 +67,7 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
       xdp: ${{ matrix.vec.xdp }}
+      repo: ${{ github.repository }}
 
   stress:
     name: Stress

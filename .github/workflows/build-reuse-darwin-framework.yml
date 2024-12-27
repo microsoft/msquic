@@ -50,6 +50,7 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ inputs.tls }}
       static: ${{ inputs.static }}
+      repo: ${{ inputs.repo }}
 
   build-darwin-universal:
     name: Build Universal Binaries 

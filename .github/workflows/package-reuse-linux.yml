@@ -75,6 +75,7 @@ jobs:
       clang: ${{ inputs.clang }}
       build: ${{ inputs.build }}
       xdp: ${{ inputs.xdp }}
+      repo: ${{ github.repository }}
 
   package:
     name: Package
