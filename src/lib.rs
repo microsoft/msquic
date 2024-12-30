@@ -22,6 +22,8 @@ use std::result::Result;
 #[macro_use]
 extern crate bitfield;
 
+pub mod ffi;
+
 //
 // The following starts the C interop layer of MsQuic API.
 //

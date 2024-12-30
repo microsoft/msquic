@@ -1,3 +1,5 @@
+// header wrapper to feed into bindgen
+
 #include "msquic.h"
 
 // bindgen or clang has problem with c marcro functions
