@@ -21,7 +21,6 @@ use std::ptr;
 use std::result::Result;
 #[macro_use]
 extern crate bitfield;
-
 pub mod ffi;
 
 //
