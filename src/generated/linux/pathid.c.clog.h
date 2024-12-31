@@ -14,10 +14,6 @@
 #include "pathid.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
-#ifndef _clog_MACRO_QuicTraceLogVerbose
-#define _clog_MACRO_QuicTraceLogVerbose  1
-#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceLogConnWarning
 #define _clog_MACRO_QuicTraceLogConnWarning  1
 #define QuicTraceLogConnWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -33,24 +29,6 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-/*----------------------------------------------------------
-// Decoder Ring for PacketRxStatelessReset
-// [S][RX][-] SR %s
-// QuicTraceLogVerbose(
-                PacketRxStatelessReset,
-                "[S][RX][-] SR %s",
-                QuicCidBufToStr(ResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = QuicCidBufToStr(ResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_PacketRxStatelessReset
-#define _clog_3_ARGS_TRACE_PacketRxStatelessReset(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_PATHID_C, PacketRxStatelessReset , arg2);\
-
-#endif
-
-
-
-
 /*----------------------------------------------------------
 // Decoder Ring for NoReplacementCidForRetire
 // [conn][%p] Can't retire current CID because we don't have a replacement
@@ -117,6 +95,26 @@ tracepoint(CLOG_PATHID_C, NewSrcCidNameCollision , arg1);\
 #ifndef _clog_3_ARGS_TRACE_ZeroLengthCidRetire
 #define _clog_3_ARGS_TRACE_ZeroLengthCidRetire(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_PATHID_C, ZeroLengthCidRetire , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathIDCloseTimerExpired
+// [conn][%p][pathid][%u] Close Timer expired
+// QuicTraceEvent(
+                ConnPathIDCloseTimerExpired,
+                "[conn][%p][pathid][%u] Close Timer expired",
+                PathID->Connection,
+                PathID->ID);
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPathIDCloseTimerExpired
+#define _clog_4_ARGS_TRACE_ConnPathIDCloseTimerExpired(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_PATHID_C, ConnPathIDCloseTimerExpired , arg2, arg3);\
 
 #endif
 
@@ -229,6 +227,30 @@ tracepoint(CLOG_PATHID_C, ConnError , arg2, arg3);\
 #ifndef _clog_7_ARGS_TRACE_ConnDestCidRemoved
 #define _clog_7_ARGS_TRACE_ConnDestCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len)\
 tracepoint(CLOG_PATHID_C, ConnDestCidRemoved , arg2, arg3, arg4, arg5_len, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnDestCidUpdated
+// [conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!
+// QuicTraceEvent(
+        ConnDestCidUpdated,
+        "[conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!",
+        PathID->Connection,
+        PathID->ID,
+        Path->DestCid->CID.SequenceNumber,
+        CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
+// arg4 = arg4 = Path->DestCid->CID.SequenceNumber = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg5
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_ConnDestCidUpdated
+#define _clog_7_ARGS_TRACE_ConnDestCidUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len)\
+tracepoint(CLOG_PATHID_C, ConnDestCidUpdated , arg2, arg3, arg4, arg5_len, arg5);\
 
 #endif
 

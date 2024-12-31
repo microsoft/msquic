@@ -27,10 +27,10 @@ extern "C" {
 // QuicTraceEvent(
         ConnOutFlowStreamStats,
         "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
-        Connection,
+        PathID->Connection,
         FcAvailable,
         SendWindow);
-// arg2 = arg2 = Connection = arg2
+// arg2 = arg2 = PathID->Connection = arg2
 // arg3 = arg3 = FcAvailable = arg3
 // arg4 = arg4 = SendWindow = arg4
 ----------------------------------------------------------*/
@@ -75,8 +75,8 @@ tracepoint(CLOG_CONNECTION_H, ConnInFlowStats , arg2, arg3);\
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
-        Connection->CongestionControl.Name,
+        QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl),
+        Path->PathID->CongestionControl.Name,
         Connection->Stats.Send.EcnCongestionCount);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Path->SmoothedRtt = arg3
@@ -84,8 +84,8 @@ tracepoint(CLOG_CONNECTION_H, ConnInFlowStats , arg2, arg3);\
 // arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount = arg5
 // arg6 = arg6 = Connection->Stats.Send.TotalBytes = arg6
 // arg7 = arg7 = Connection->Stats.Recv.TotalBytes = arg7
-// arg8 = arg8 = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl) = arg8
-// arg9 = arg9 = Connection->CongestionControl.Name = arg9
+// arg8 = arg8 = QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl) = arg8
+// arg9 = arg9 = Path->PathID->CongestionControl.Name = arg9
 // arg10 = arg10 = Connection->Stats.Send.EcnCongestionCount = arg10
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnStatsV3

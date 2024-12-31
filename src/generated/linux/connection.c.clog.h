@@ -42,6 +42,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for PacketRxStatelessReset
+// [S][RX][-] SR %s
+// QuicTraceLogVerbose(
+                                    PacketRxStatelessReset,
+                                    "[S][RX][-] SR %s",
+                                    QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_PacketRxStatelessReset
+#define _clog_3_ARGS_TRACE_PacketRxStatelessReset(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_C, PacketRxStatelessReset , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PacketRxNotAcked
 // [%c][RX][%llu] not acked (connection is closed)
 // QuicTraceLogVerbose(

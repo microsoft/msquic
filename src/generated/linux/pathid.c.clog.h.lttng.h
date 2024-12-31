@@ -2,25 +2,6 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for PacketRxStatelessReset
-// [S][RX][-] SR %s
-// QuicTraceLogVerbose(
-                PacketRxStatelessReset,
-                "[S][RX][-] SR %s",
-                QuicCidBufToStr(ResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
-// arg2 = arg2 = QuicCidBufToStr(ResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PATHID_C, PacketRxStatelessReset,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for NoReplacementCidForRetire
 // [conn][%p] Can't retire current CID because we don't have a replacement
 // QuicTraceLogConnWarning(
@@ -91,6 +72,29 @@ TRACEPOINT_EVENT(CLOG_PATHID_C, ZeroLengthCidRetire,
         const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPathIDCloseTimerExpired
+// [conn][%p][pathid][%u] Close Timer expired
+// QuicTraceEvent(
+                ConnPathIDCloseTimerExpired,
+                "[conn][%p][pathid][%u] Close Timer expired",
+                PathID->Connection,
+                PathID->ID);
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATHID_C, ConnPathIDCloseTimerExpired,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -224,6 +228,39 @@ TRACEPOINT_EVENT(CLOG_PATHID_C, ConnError,
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PATHID_C, ConnDestCidRemoved,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned long long, arg4,
+        unsigned int, arg5_len,
+        const void *, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnDestCidUpdated
+// [conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!
+// QuicTraceEvent(
+        ConnDestCidUpdated,
+        "[conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!",
+        PathID->Connection,
+        PathID->ID,
+        Path->DestCid->CID.SequenceNumber,
+        CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
+// arg4 = arg4 = Path->DestCid->CID.SequenceNumber = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATHID_C, ConnDestCidUpdated,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,

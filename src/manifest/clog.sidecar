@@ -1195,6 +1195,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnDestCidUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!",
+      "UniqueId": "ConnDestCidUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!CID!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnDestroyed": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Destroyed",
@@ -1847,10 +1871,58 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnPathIDAdd": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Added New PathID %u",
+      "UniqueId": "ConnPathIDAdd",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathIDCloseTimerExpired": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%u] Close Timer expired",
+      "UniqueId": "ConnPathIDCloseTimerExpired",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnPathIDCreated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] New PathID %u",
       "UniqueId": "ConnPathIDCreated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "ConnPathIDRemove": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Removed PathID %u",
+      "UniqueId": "ConnPathIDRemove",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -4812,6 +4884,50 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogMaxPathID": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   MAX_PATH_ID Max:%llu",
+      "UniqueId": "FrameLogMaxPathID",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogMaxPathIDInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   MAX_PATH_ID [Invalid]",
+      "UniqueId": "FrameLogMaxPathIDInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogMaxStreamData": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   MAX_STREAM_DATA ID:%llu Max:%llu",
@@ -5032,6 +5148,106 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogPathAbandon": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX",
+      "UniqueId": "FrameLogPathAbandon",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathAbandonInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_ABANDON [Invalid]",
+      "UniqueId": "FrameLogPathAbandonInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathAck": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu",
+      "UniqueId": "FrameLogPathAck",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathAckInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_ACK [Invalid]",
+      "UniqueId": "FrameLogPathAckInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogPathChallenge": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_CHALLENGE [%llu]",
@@ -5078,7 +5294,7 @@
     },
     "FrameLogPathNewConnectionID": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s",
+      "TraceString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s",
       "UniqueId": "FrameLogPathNewConnectionID",
       "splitArgs": [
         {
@@ -5094,7 +5310,7 @@
           "MacroVariableName": "arg4"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg5"
         },
         {
@@ -5164,6 +5380,54 @@
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_RESPONSE [Invalid]",
       "UniqueId": "FrameLogPathResponseInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathRetireConnectionID": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu",
+      "UniqueId": "FrameLogPathRetireConnectionID",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathRetireConnectionIDInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]",
+      "UniqueId": "FrameLogPathRetireConnectionIDInvalid",
       "splitArgs": [
         {
           "DefinationEncoding": "c",
@@ -8227,6 +8491,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathChosen": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Path[%hhu] Chosen",
+      "UniqueId": "PathChosen",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "PathDiscarded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing invalid path[%hhu]",
@@ -8486,6 +8766,22 @@
         },
         {
           "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "PeerMaxPathIDUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Peer updated max path id (%u).",
+      "UniqueId": "PeerMaxPathIDUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -14018,6 +14314,11 @@
         "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) Removed Destination CID: %!CID!"
       },
       {
+        "UniquenessHash": "27c1726a-786a-1e16-3567-f7d27ded1211",
+        "TraceID": "ConnDestCidUpdated",
+        "EncodingString": "[conn][%p][pathid][%u] (SeqNum=%llu) Updated Destination CID: %!CID!"
+      },
+      {
         "UniquenessHash": "3903cc44-b387-b5f6-17fc-62d5aee48015",
         "TraceID": "ConnDestroyed",
         "EncodingString": "[conn][%p] Destroyed"
@@ -14183,9 +14484,24 @@
         "EncodingString": "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
       },
       {
+        "UniquenessHash": "4ca3aeb8-2919-6c50-9c9b-db8d0d8d910a",
+        "TraceID": "ConnPathIDAdd",
+        "EncodingString": "[conn][%p] Added New PathID %u"
+      },
+      {
+        "UniquenessHash": "b79e53fd-ca11-f041-12c6-bc12d51453cb",
+        "TraceID": "ConnPathIDCloseTimerExpired",
+        "EncodingString": "[conn][%p][pathid][%u] Close Timer expired"
+      },
+      {
         "UniquenessHash": "03ab7814-30a8-e2f0-69bc-24a671996e5b",
         "TraceID": "ConnPathIDCreated",
         "EncodingString": "[conn][%p] New PathID %u"
+      },
+      {
+        "UniquenessHash": "9f64af53-b5e1-7f8e-0808-31005e9bf4ce",
+        "TraceID": "ConnPathIDRemove",
+        "EncodingString": "[conn][%p] Removed PathID %u"
       },
       {
         "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
@@ -15063,6 +15379,16 @@
         "EncodingString": "[%c][%cX][%llu]   MAX_DATA [Invalid]"
       },
       {
+        "UniquenessHash": "9377bb20-38fe-0def-a836-2f1fe0a240ab",
+        "TraceID": "FrameLogMaxPathID",
+        "EncodingString": "[%c][%cX][%llu]   MAX_PATH_ID Max:%llu"
+      },
+      {
+        "UniquenessHash": "85a2b018-7072-a1a2-33d3-3589b3072de0",
+        "TraceID": "FrameLogMaxPathIDInvalid",
+        "EncodingString": "[%c][%cX][%llu]   MAX_PATH_ID [Invalid]"
+      },
+      {
         "UniquenessHash": "3fa56e85-dbd2-f442-7f76-c4c011e23ecc",
         "TraceID": "FrameLogMaxStreamData",
         "EncodingString": "[%c][%cX][%llu]   MAX_STREAM_DATA ID:%llu Max:%llu"
@@ -15108,6 +15434,26 @@
         "EncodingString": "[%c][%cX][%llu]   PADDING Len:%hu"
       },
       {
+        "UniquenessHash": "03fbb7ee-7d96-5bd3-2423-230ab4612cea",
+        "TraceID": "FrameLogPathAbandon",
+        "EncodingString": "[%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX"
+      },
+      {
+        "UniquenessHash": "907c4419-057f-14b4-5a97-ec0b9ad0934d",
+        "TraceID": "FrameLogPathAbandonInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_ABANDON [Invalid]"
+      },
+      {
+        "UniquenessHash": "eb6523d9-6482-91c0-13aa-e3bef283e45e",
+        "TraceID": "FrameLogPathAck",
+        "EncodingString": "[%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu"
+      },
+      {
+        "UniquenessHash": "e062ff15-a298-baea-6e29-aa5580272d8c",
+        "TraceID": "FrameLogPathAckInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_ACK [Invalid]"
+      },
+      {
         "UniquenessHash": "230959d3-aa58-0944-8287-6120bebac2f0",
         "TraceID": "FrameLogPathChallenge",
         "EncodingString": "[%c][%cX][%llu]   PATH_CHALLENGE [%llu]"
@@ -15118,9 +15464,9 @@
         "EncodingString": "[%c][%cX][%llu]   PATH_CHALLENGE [Invalid]"
       },
       {
-        "UniquenessHash": "80accc44-ecef-a74e-cef2-f13e7a389abf",
+        "UniquenessHash": "551b1ae9-51b6-70f3-76c1-e428c25d5885",
         "TraceID": "FrameLogPathNewConnectionID",
-        "EncodingString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s"
+        "EncodingString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s"
       },
       {
         "UniquenessHash": "24e192ff-90cd-4918-4bec-529eb9a41789",
@@ -15136,6 +15482,16 @@
         "UniquenessHash": "98ece405-2862-63c3-ecf6-9f1cb067f3bb",
         "TraceID": "FrameLogPathResponseInvalid",
         "EncodingString": "[%c][%cX][%llu]   PATH_RESPONSE [Invalid]"
+      },
+      {
+        "UniquenessHash": "34b9e0da-8485-2487-b4c9-425af72055b3",
+        "TraceID": "FrameLogPathRetireConnectionID",
+        "EncodingString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu"
+      },
+      {
+        "UniquenessHash": "7ac366c2-d381-41e3-714c-fc85389b1e14",
+        "TraceID": "FrameLogPathRetireConnectionIDInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]"
       },
       {
         "UniquenessHash": "4e057b3b-1d37-81dc-0b9d-e449ba9a5bbf",
@@ -16048,6 +16404,11 @@
         "EncodingString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)"
       },
       {
+        "UniquenessHash": "5a90f0fc-2798-02bc-480f-c3072af80b0f",
+        "TraceID": "PathChosen",
+        "EncodingString": "[conn][%p] Path[%hhu] Chosen"
+      },
+      {
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
         "TraceID": "PathDiscarded",
         "EncodingString": "[conn][%p] Removing invalid path[%hhu]"
@@ -16116,6 +16477,11 @@
         "UniquenessHash": "1d828295-7cdc-fd81-10d0-7bc5ca9f0ce7",
         "TraceID": "PeerConnFCBlocked",
         "EncodingString": "[conn][%p] Peer Connection FC blocked (%llu)"
+      },
+      {
+        "UniquenessHash": "2e07df3e-5e1f-693b-6f1f-b22b7ca42ee8",
+        "TraceID": "PeerMaxPathIDUpdated",
+        "EncodingString": "[conn][%p] Peer updated max path id (%u)."
       },
       {
         "UniquenessHash": "74d787df-3260-879d-5e65-e28486df5e26",

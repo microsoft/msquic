@@ -154,7 +154,6 @@ CubicCongestionControlReset(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_PATHID* PathID  = QuicCongestionControlGetPathID(Cc);
-    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(PathID->Path);
@@ -908,7 +907,6 @@ CubicCongestionControlInitialize(
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
     QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
-    QUIC_CONNECTION* Connection = PathID->Connection;
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(PathID->Path);
     Cubic->SlowStartThreshold = UINT32_MAX;

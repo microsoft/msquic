@@ -99,11 +99,11 @@ tracepoint(CLOG_FRAME_C, FrameLogPing , arg2, arg3, arg4);\
 // Decoder Ring for FrameLogAckInvalid
 // [%c][%cX][%llu]   ACK [Invalid]
 // QuicTraceLogVerbose(
-                FrameLogAckInvalid,
-                "[%c][%cX][%llu]   ACK [Invalid]",
-                PtkConnPre(Connection),
-                PktRxPre(Rx),
-                PacketNumber);
+                    FrameLogAckInvalid,
+                    "[%c][%cX][%llu]   ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -121,13 +121,13 @@ tracepoint(CLOG_FRAME_C, FrameLogAckInvalid , arg2, arg3, arg4);\
 // Decoder Ring for FrameLogAck
 // [%c][%cX][%llu]   ACK Largest:%llu Delay:%llu
 // QuicTraceLogVerbose(
-            FrameLogAck,
-            "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
-            PtkConnPre(Connection),
-            PktRxPre(Rx),
-            PacketNumber,
-            Frame.LargestAcknowledged,
-            Frame.AckDelay);
+                FrameLogAck,
+                "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -137,6 +137,56 @@ tracepoint(CLOG_FRAME_C, FrameLogAckInvalid , arg2, arg3, arg4);\
 #ifndef _clog_7_ARGS_TRACE_FrameLogAck
 #define _clog_7_ARGS_TRACE_FrameLogAck(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
 tracepoint(CLOG_FRAME_C, FrameLogAck , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAckInvalid
+// [%c][%cX][%llu]   PATH_ACK [Invalid]
+// QuicTraceLogVerbose(
+                    FrameLogPathAckInvalid,
+                    "[%c][%cX][%llu]   PATH_ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathAckInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathAckInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathAckInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAck
+// [%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu
+// QuicTraceLogVerbose(
+                FrameLogPathAck,
+                "[%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber,
+                Frame.PathId,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathId = arg5
+// arg6 = arg6 = Frame.LargestAcknowledged = arg6
+// arg7 = arg7 = Frame.AckDelay = arg7
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_FrameLogPathAck
+#define _clog_8_ARGS_TRACE_FrameLogPathAck(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7)\
+tracepoint(CLOG_FRAME_C, FrameLogPathAck , arg2, arg3, arg4, arg5, arg6, arg7);\
 
 #endif
 
@@ -895,10 +945,10 @@ tracepoint(CLOG_FRAME_C, FrameLogPathNewConnectionIDInvalid , arg2, arg3, arg4);
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogPathNewConnectionID
-// [%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s
+// [%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s
 // QuicTraceLogVerbose(
             FrameLogPathNewConnectionID,
-            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s",
+            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
@@ -965,6 +1015,54 @@ tracepoint(CLOG_FRAME_C, FrameLogRetireConnectionIDInvalid , arg2, arg3, arg4);\
 #ifndef _clog_6_ARGS_TRACE_FrameLogRetireConnectionID
 #define _clog_6_ARGS_TRACE_FrameLogRetireConnectionID(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_FRAME_C, FrameLogRetireConnectionID , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathRetireConnectionIDInvalid
+// [%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathRetireConnectionIDInvalid,
+                "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathRetireConnectionIDInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathRetireConnectionIDInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathRetireConnectionIDInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathRetireConnectionID
+// [%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu
+// QuicTraceLogVerbose(
+            FrameLogPathRetireConnectionID,
+            "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.Sequence);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.Sequence = arg6
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_FrameLogPathRetireConnectionID
+#define _clog_7_ARGS_TRACE_FrameLogPathRetireConnectionID(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogPathRetireConnectionID , arg2, arg3, arg4, arg5, arg6);\
 
 #endif
 
@@ -1057,6 +1155,100 @@ tracepoint(CLOG_FRAME_C, FrameLogPathResponseInvalid , arg2, arg3, arg4);\
 #ifndef _clog_6_ARGS_TRACE_FrameLogPathResponse
 #define _clog_6_ARGS_TRACE_FrameLogPathResponse(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
 tracepoint(CLOG_FRAME_C, FrameLogPathResponse , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAbandonInvalid
+// [%c][%cX][%llu]   PATH_ABANDON [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathAbandonInvalid,
+                "[%c][%cX][%llu]   PATH_ABANDON [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathAbandonInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathAbandonInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathAbandonInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAbandon
+// [%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX
+// QuicTraceLogVerbose(
+            FrameLogPathAbandon,
+            "[%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.ErrorCode);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.ErrorCode = arg6
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_FrameLogPathAbandon
+#define _clog_7_ARGS_TRACE_FrameLogPathAbandon(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogPathAbandon , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogMaxPathIDInvalid
+// [%c][%cX][%llu]   MAX_PATH_ID [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogMaxPathIDInvalid,
+                "[%c][%cX][%llu]   MAX_PATH_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogMaxPathIDInvalid
+#define _clog_5_ARGS_TRACE_FrameLogMaxPathIDInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogMaxPathIDInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogMaxPathID
+// [%c][%cX][%llu]   MAX_PATH_ID Max:%llu
+// QuicTraceLogVerbose(
+            FrameLogMaxPathID,
+            "[%c][%cX][%llu]   MAX_PATH_ID Max:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.MaximumPathID);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.MaximumPathID = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_FrameLogMaxPathID
+#define _clog_6_ARGS_TRACE_FrameLogMaxPathID(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_FRAME_C, FrameLogMaxPathID , arg2, arg3, arg4, arg5);\
 
 #endif
 

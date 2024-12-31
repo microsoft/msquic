@@ -475,7 +475,6 @@ BbrCongestionControlUpdateRecoveryWindow(
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
-    QUIC_CONNECTION* Connection = PathID->Connection;
 
     const uint16_t DatagramPayloadLength =
         QuicPathGetDatagramPayloadSize(PathID->Path);
@@ -505,7 +504,6 @@ BbrCongestionControlHandleAckInProbeRtt(
 {
     QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
     QUIC_PATHID* PathID = QuicCongestionControlGetPathID(Cc);
-    QUIC_CONNECTION* Connection = PathID->Connection;
 
     Bbr->BandwidthFilter.AppLimited = TRUE;
     Bbr->BandwidthFilter.AppLimitedExitTarget = LargestSentPacketNumber;

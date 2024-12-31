@@ -94,11 +94,11 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPing,
 // Decoder Ring for FrameLogAckInvalid
 // [%c][%cX][%llu]   ACK [Invalid]
 // QuicTraceLogVerbose(
-                FrameLogAckInvalid,
-                "[%c][%cX][%llu]   ACK [Invalid]",
-                PtkConnPre(Connection),
-                PktRxPre(Rx),
-                PacketNumber);
+                    FrameLogAckInvalid,
+                    "[%c][%cX][%llu]   ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -121,13 +121,13 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckInvalid,
 // Decoder Ring for FrameLogAck
 // [%c][%cX][%llu]   ACK Largest:%llu Delay:%llu
 // QuicTraceLogVerbose(
-            FrameLogAck,
-            "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
-            PtkConnPre(Connection),
-            PktRxPre(Rx),
-            PacketNumber,
-            Frame.LargestAcknowledged,
-            Frame.AckDelay);
+                FrameLogAck,
+                "[%c][%cX][%llu]   ACK Largest:%llu Delay:%llu",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
@@ -147,6 +147,72 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAck,
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)
         ctf_integer(uint64_t, arg6, arg6)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAckInvalid
+// [%c][%cX][%llu]   PATH_ACK [Invalid]
+// QuicTraceLogVerbose(
+                    FrameLogPathAckInvalid,
+                    "[%c][%cX][%llu]   PATH_ACK [Invalid]",
+                    PtkConnPre(Connection),
+                    PktRxPre(Rx),
+                    PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathAckInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAck
+// [%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu
+// QuicTraceLogVerbose(
+                FrameLogPathAck,
+                "[%c][%cX][%llu]   PathId:%llu ACK Largest:%llu Delay:%llu",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber,
+                Frame.PathId,
+                Frame.LargestAcknowledged,
+                Frame.AckDelay);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathId = arg5
+// arg6 = arg6 = Frame.LargestAcknowledged = arg6
+// arg7 = arg7 = Frame.AckDelay = arg7
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathAck,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6,
+        unsigned long long, arg7), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
+        ctf_integer(uint64_t, arg7, arg7)
     )
 )
 
@@ -1127,10 +1193,10 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathNewConnectionIDInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogPathNewConnectionID
-// [%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s
+// [%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s
 // QuicTraceLogVerbose(
             FrameLogPathNewConnectionID,
-            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%u Seq:%llu RPT:%llu CID:%s Token:%s",
+            "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
@@ -1153,7 +1219,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathNewConnectionID,
         unsigned char, arg2,
         unsigned char, arg3,
         unsigned long long, arg4,
-        unsigned int, arg5,
+        unsigned long long, arg5,
         unsigned long long, arg6,
         unsigned long long, arg7,
         const char *, arg8,
@@ -1162,7 +1228,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathNewConnectionID,
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
-        ctf_integer(unsigned int, arg5, arg5)
+        ctf_integer(uint64_t, arg5, arg5)
         ctf_integer(uint64_t, arg6, arg6)
         ctf_integer(uint64_t, arg7, arg7)
         ctf_string(arg8, arg8)
@@ -1225,6 +1291,68 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogRetireConnectionID,
         ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(uint64_t, arg4, arg4)
         ctf_integer(uint64_t, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathRetireConnectionIDInvalid
+// [%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathRetireConnectionIDInvalid,
+                "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathRetireConnectionIDInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathRetireConnectionID
+// [%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu
+// QuicTraceLogVerbose(
+            FrameLogPathRetireConnectionID,
+            "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID PathID:%llu Seq:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.Sequence);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.Sequence = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathRetireConnectionID,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
     )
 )
 
@@ -1331,6 +1459,126 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponseInvalid,
 // arg5 = arg5 = CxPlatByteSwapUint64(*(uint64_t*)Frame.Data) = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathResponse,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAbandonInvalid
+// [%c][%cX][%llu]   PATH_ABANDON [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathAbandonInvalid,
+                "[%c][%cX][%llu]   PATH_ABANDON [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathAbandonInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathAbandon
+// [%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX
+// QuicTraceLogVerbose(
+            FrameLogPathAbandon,
+            "[%c][%cX][%llu]   PATH_ABANDON PathID:%llu ErrorCode:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.ErrorCode);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.ErrorCode = arg6
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogPathAbandon,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5,
+        unsigned long long, arg6), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+        ctf_integer(uint64_t, arg6, arg6)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogMaxPathIDInvalid
+// [%c][%cX][%llu]   MAX_PATH_ID [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogMaxPathIDInvalid,
+                "[%c][%cX][%llu]   MAX_PATH_ID [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxPathIDInvalid,
+    TP_ARGS(
+        unsigned char, arg2,
+        unsigned char, arg3,
+        unsigned long long, arg4), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogMaxPathID
+// [%c][%cX][%llu]   MAX_PATH_ID Max:%llu
+// QuicTraceLogVerbose(
+            FrameLogMaxPathID,
+            "[%c][%cX][%llu]   MAX_PATH_ID Max:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.MaximumPathID);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.MaximumPathID = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogMaxPathID,
     TP_ARGS(
         unsigned char, arg2,
         unsigned char, arg3,

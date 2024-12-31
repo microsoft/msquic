@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketRxStatelessReset
+// [S][RX][-] SR %s
+// QuicTraceLogVerbose(
+                                    PacketRxStatelessReset,
+                                    "[S][RX][-] SR %s",
+                                    QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+// arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PacketRxNotAcked
 // [%c][RX][%llu] not acked (connection is closed)
 // QuicTraceLogVerbose(

@@ -100,6 +100,11 @@ QuicConnIsClient(
     _In_ const QUIC_CONNECTION * const Connection
     );
 
+BOOLEAN
+QuicConnIsMultipathEnabled(
+    _In_ const QUIC_CONNECTION * const Connection
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicConnTransportError(
@@ -759,6 +764,18 @@ QuicAckTrackerHasPacketsToAck(
 BOOLEAN
 QuicPacketBuilderHasAllowance(
     _In_ const QUIC_PACKET_BUILDER* Builder
+    );
+
+void
+QuicPathIDAddRef(
+    _In_ QUIC_PATHID* PathID,
+    _In_ QUIC_PATHID_REF Ref
+    );
+
+BOOLEAN
+QuicPathIDRelease(
+    _In_ __drv_freesMem(Mem) QUIC_PATHID* PathID,
+    _In_ QUIC_PATHID_REF Ref
     );
 
 QUIC_CID_SLIST_ENTRY*
