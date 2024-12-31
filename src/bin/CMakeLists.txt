@@ -269,7 +269,7 @@ else()
 endif()
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
-configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake @ONLY)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
