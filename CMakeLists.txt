@@ -76,7 +76,7 @@ enable_testing()
 if (WIN32)
     set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
 else()
-    set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
+    set(QUIC_TLS "openssl" CACHE INTERNAL "TLS Library to use")
 endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" OFF)
