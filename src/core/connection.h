@@ -195,6 +195,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN TimestampRecvNegotiated : 1;
 
         //
+        // Multipath extension has been negotiated.
+        //
+        BOOLEAN MultipathNegotiated : 1;
+
+        //
         // Indicates we received APPLICATION_ERROR transport error and are checking also
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
@@ -688,18 +693,6 @@ QuicConnIsClosed(
     )
 {
     return Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
-}
-
-//
-// Helper to determine if a connection is multipath enabled
-//
-inline
-BOOLEAN
-QuicConnIsMultipathEnabled(
-    _In_ const QUIC_CONNECTION * const Connection
-    )
-{
-    return Connection->Settings.MultipathEnabled && Connection->PathIDs.Flags.InitialMaxPathRecvd;
 }
 
 //

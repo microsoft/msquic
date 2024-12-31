@@ -759,7 +759,7 @@ QuicPathIDWriteNewConnectionIDFrame(
     )
 {
     QUIC_FRAME_TYPE FrameType =
-        QuicConnIsMultipathEnabled(PathID->Connection) ?
+        PathID->Connection->State.MultipathNegotiated ?
             QUIC_FRAME_PATH_NEW_CONNECTION_ID : QUIC_FRAME_NEW_CONNECTION_ID;
     for (CXPLAT_SLIST_ENTRY* Entry = PathID->SourceCids.Next;
             Entry != NULL;
@@ -834,7 +834,7 @@ QuicPathIDWriteRetireConnectionIDFrame(
     )
 {
     QUIC_FRAME_TYPE FrameType =
-        QuicConnIsMultipathEnabled(PathID->Connection) ?
+        PathID->Connection->State.MultipathNegotiated ?
             QUIC_FRAME_PATH_RETIRE_CONNECTION_ID : QUIC_FRAME_RETIRE_CONNECTION_ID;
     for (CXPLAT_LIST_ENTRY* Entry = PathID->DestCids.Flink;
             Entry != &PathID->DestCids;

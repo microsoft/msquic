@@ -320,7 +320,7 @@ QuicPathIDSetGenerateNewSourceCids(
     _In_ BOOLEAN ReplaceExistingCids
     )
 {
-    if (QuicConnIsMultipathEnabled(QuicPathIDSetGetConnection(PathIDSet))) {
+    if (QuicPathIDSetGetConnection(PathIDSet)->State.MultipathNegotiated) {
         uint16_t NewPathIDCount = 0;
         if (PathIDSet->CurrentPathIDCount < PathIDSet->MaxCurrentPathIDCount) {
             NewPathIDCount = PathIDSet->MaxCurrentPathIDCount - PathIDSet->CurrentPathIDCount;
@@ -596,7 +596,7 @@ QuicPathIDSetNewLocalPathID(
 
     if (NewPathIDBlocked) {
         if (Connection->State.PeerTransportParameterValid) {
-            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATHS_BLOCKED);
+            // QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATHS_BLOCKED);
         }
         Status = QUIC_STATUS_PATHID_LIMIT_REACHED;
         goto Exit;

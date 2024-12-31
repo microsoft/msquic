@@ -248,7 +248,7 @@ QuicAckTrackerAckFrameEncode(
     }
 
     if (!QuicAckFrameEncode(
-            QuicConnIsMultipathEnabled(PacketSpace->Connection) &&
+            PacketSpace->Connection->State.MultipathNegotiated &&
                 Builder->EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT,
             PacketSpace->PathID->ID,
             &Tracker->PacketNumbersToAck,

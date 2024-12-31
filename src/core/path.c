@@ -311,7 +311,7 @@ QuicConnChoosePath(
 {
     QUIC_PATH* Path = &Connection->Paths[0];
     
-    if (QuicConnIsMultipathEnabled(Connection) && Connection->State.HandshakeConfirmed) {
+    if (Connection->State.MultipathNegotiated && Connection->State.HandshakeConfirmed) {
         QUIC_PATH* ActivePaths[QUIC_MAX_PATH_COUNT];
         uint8_t ActivePathCount = 0;
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
@@ -346,7 +346,7 @@ QuicPathSetActive(
 {
     BOOLEAN UdpPortChangeOnly = FALSE;
 
-    if (QuicConnIsMultipathEnabled(Connection)) {
+    if (Connection->State.MultipathNegotiated) {
         Path->IsActive = TRUE;
     } else if (Path == &Connection->Paths[0]) {
         CXPLAT_DBG_ASSERT(!Path->IsActive);

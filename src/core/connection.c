@@ -2629,6 +2629,11 @@ QuicConnProcessPeerTransportParameters(
             QuicConnIndicateEvent(Connection, &Event);
         }
 
+        if (Connection->Settings.MultipathEnabled) {
+            Connection->State.MultipathNegotiated =
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID);
+        }
+        
         //
         // Fully validate all exchanged connection IDs.
         //
@@ -4580,7 +4585,7 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            if (QuicConnIsMultipathEnabled(Connection)) {
+            if (Connection->State.MultipathNegotiated) {
                 QuicConnAssignPathIDs(Connection);
             }
 
@@ -4704,7 +4709,7 @@ QuicConnRecvFrames(
                     !memcmp(Frame.Data, TempPath->Challenge, sizeof(Frame.Data))) {
                     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_VALIDATED);
                     QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
-                    if (QuicConnIsMultipathEnabled(Connection)) {
+                    if (Connection->State.MultipathNegotiated) {
                         QuicPathSetActive(Connection, TempPath);
                     }
                     break;
@@ -4716,7 +4721,7 @@ QuicConnRecvFrames(
         }
 
         case QUIC_FRAME_PATH_ABANDON: {
-            if (!QuicConnIsMultipathEnabled(Connection)) {
+            if (!Connection->State.MultipathNegotiated) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
@@ -5171,7 +5176,7 @@ QuicConnRecvPostProcessing(
     }
 
     if (QuicConnIsServer(Connection) &&
-        !QuicConnIsMultipathEnabled(Connection) &&
+        !Connection->State.MultipathNegotiated &&
         Packet->HasNonProbingFrame &&
         Packet->NewLargestPacketNumber &&
         !(*Path)->IsActive) {
@@ -5974,7 +5979,7 @@ QuicConnOpenNewPath(
         CxPlatCopyMemory(&Path->Route.RemoteAddress,
             &Connection->Paths[0].Route.RemoteAddress,
             sizeof(QUIC_ADDR));
-        if (QuicConnIsMultipathEnabled(Connection)) {
+        if (Connection->State.MultipathNegotiated) {
             Path->PathID = QuicPathIDSetGetUnusedPathID(&Connection->PathIDs);
             if (Path->PathID != NULL) {
                 QuicPathIDAddRef(Path->PathID, QUIC_PATHID_REF_PATH);
@@ -6189,7 +6194,7 @@ QuicConnRemoveLocalAddress(
 
     QUIC_PATH* Path = &Connection->Paths[PathIndex];
 
-    if (!QuicConnIsMultipathEnabled(Connection)) {
+    if (!Connection->State.MultipathNegotiated) {
         if (Path->IsActive && Connection->State.Started) {
             return QUIC_STATUS_INVALID_STATE;
         }
@@ -7495,6 +7500,11 @@ QuicConnApplyNewSettings(
                 Event.ONE_WAY_DELAY_NEGOTIATED.SendNegotiated,
                 Event.ONE_WAY_DELAY_NEGOTIATED.ReceiveNegotiated);
             QuicConnIndicateEvent(Connection, &Event);
+        }
+
+        if (QuicConnIsServer(Connection) && Connection->Settings.MultipathEnabled) {
+            Connection->State.MultipathNegotiated =
+                !!(Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID);
         }
 
         if (Connection->Settings.EcnEnabled) {
