@@ -3627,9 +3627,9 @@ void QuicTestConnectionPriority()
     const uint8_t NumConnections = 8;
 
     {
-        MsQuicConnection *Connections[NumConnections] = {0};
+        UniquePtr<MsQuicConnection> Connections[NumConnections];
         for (uint8_t i = 0; i < NumConnections; ++i) {
-            Connections[i] = new(std::nothrow) MsQuicConnection(Registration);
+            Connections[i].reset(new(std::nothrow) MsQuicConnection(Registration));
             TEST_QUIC_SUCCEEDED(Connections[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connections[i]->Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
@@ -3823,10 +3823,6 @@ void QuicTestConnectionPriority()
 
             TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
             TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
-        }
-
-        for (uint8_t i = 0; i < NumConnections; ++i) {
-            delete Connections[i];
         }
     }
 }

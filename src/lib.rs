@@ -7,10 +7,15 @@ use c_types::AF_INET;
 use c_types::AF_INET6;
 #[allow(unused_imports)]
 use c_types::AF_UNSPEC;
+use c_types::{sa_family_t, sockaddr_in, sockaddr_in6, socklen_t};
 use libc::c_void;
 use serde::{Deserialize, Serialize};
+use socket2::SockAddr;
 use std::convert::TryInto;
 use std::fmt;
+use std::io;
+use std::mem;
+use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
 use std::option::Option;
 use std::ptr;
 use std::result::Result;
@@ -33,30 +38,12 @@ pub type BOOLEAN = ::std::os::raw::c_uchar;
 
 /// Family of an IP address.
 pub type AddressFamily = u16;
+#[allow(clippy::unnecessary_cast)]
 pub const ADDRESS_FAMILY_UNSPEC: AddressFamily = c_types::AF_UNSPEC as u16;
+#[allow(clippy::unnecessary_cast)]
 pub const ADDRESS_FAMILY_INET: AddressFamily = c_types::AF_INET as u16;
+#[allow(clippy::unnecessary_cast)]
 pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6 as u16;
-
-/// IPv4 address payload.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct sockaddr_in {
-    pub family: AddressFamily,
-    pub port: u16,
-    pub addr: u32,
-    pub zero: [u8; 8usize],
-}
-
-/// IPv6 address payload.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct sockaddr_in6 {
-    pub family: AddressFamily,
-    pub port: u16,
-    pub flow_info: u32,
-    pub addr: [u8; 16usize],
-    pub scope_id: u32,
-}
 
 /// Generic representation of IPv4 or IPv6 addresses.
 #[repr(C)]
@@ -67,37 +54,63 @@ pub union Addr {
 }
 
 impl Addr {
-    /// Create a representation of IPv4 address and perform Network byte order conversion
-    /// on the port number.
-    pub fn ipv4(family: u16, port: u16, addr: u32) -> Addr {
-        Addr {
-            ipv4: sockaddr_in {
-                family,
-                port: port,
-                addr,
-                zero: [0, 0, 0, 0, 0, 0, 0, 0],
-            },
+    /// Converts the `Addr` to a `SocketAddr`.
+    pub fn as_socket(&self) -> Option<SocketAddr> {
+        unsafe {
+            SockAddr::try_init(|addr, len| {
+                if self.ipv4.sin_family == AF_INET as sa_family_t {
+                    let addr = addr.cast::<sockaddr_in>();
+                    *addr = self.ipv4;
+                    *len = mem::size_of::<sockaddr_in>() as socklen_t;
+                    Ok(())
+                } else if self.ipv4.sin_family == AF_INET6 as sa_family_t {
+                    let addr = addr.cast::<sockaddr_in6>();
+                    *addr = self.ipv6;
+                    *len = mem::size_of::<sockaddr_in6>() as socklen_t;
+                    Ok(())
+                } else {
+                    Err(io::Error::from(io::ErrorKind::Other))
+                }
+            })
         }
+        .map(|((), addr)| addr.as_socket().unwrap())
+        .ok()
     }
 
-    /// Create a representation of IPv6 address and perform Network byte order conversion
-    /// on the port number.
-    pub fn ipv6(
-        family: u16,
-        port: u16,
-        flow_info: u32,
-        addr: [u8; 16usize],
-        scope_id: u32,
-    ) -> Addr {
-        Addr {
-            ipv6: sockaddr_in6 {
-                family,
-                port: port,
-                flow_info,
-                addr,
-                scope_id,
-            },
+    /// Get port number from the `Addr`.
+    pub fn port(&self) -> u16 {
+        unsafe { u16::from_be(self.ipv4.sin_port) }
+    }
+}
+
+impl From<SocketAddr> for Addr {
+    fn from(addr: SocketAddr) -> Addr {
+        match addr {
+            SocketAddr::V4(addr) => addr.into(),
+            SocketAddr::V6(addr) => addr.into(),
         }
+    }
+}
+
+impl From<SocketAddrV4> for Addr {
+    fn from(addr: SocketAddrV4) -> Addr {
+        // SAFETY: a `Addr` of all zeros is valid.
+        let mut storage = unsafe { mem::zeroed::<Addr>() };
+        let addr: SockAddr = addr.into();
+        let addr = addr.as_ptr().cast::<sockaddr_in>();
+        storage.ipv4 = unsafe { *addr };
+        storage
+    }
+}
+
+impl From<SocketAddrV6> for Addr {
+    fn from(addr: SocketAddrV6) -> Addr {
+        // SAFETY: a `Addr` of all zeros is valid.
+        let mut storage = unsafe { mem::zeroed::<Addr>() };
+        let addr: SockAddr = addr.into();
+        let addr = addr.as_ptr().cast::<sockaddr_in6>();
+        storage.ipv6 = unsafe { *addr };
+        storage
     }
 }
 
@@ -128,7 +141,7 @@ mod status {
     pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 0x80410007;
     pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 0x80410008;
     pub const QUIC_STATUS_ALPN_IN_USE: u32 = 0x80410009;
-    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0x80410100 | 0;
+    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0x80410100;
     pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0x80410100 | 42;
     pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0x80410100 | 43;
     pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0x80410100 | 44;
@@ -143,8 +156,8 @@ mod status {
 #[cfg(target_os = "linux")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
@@ -183,8 +196,8 @@ mod status {
 #[cfg(target_os = "macos")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; /// -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; /// -1
+    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
+    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
     pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
     pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
     pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
@@ -780,7 +793,7 @@ pub struct QuicTlsSecrets {
 }
 
 #[repr(C)]
-#[derive(Copy, Clone)]
+#[derive(Copy, Clone, Default)]
 pub struct Settings {
     pub is_set_flags: u64,
     pub max_bytes_per_key: u64,
@@ -1216,15 +1229,10 @@ struct ApiTable {
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> u32,
-    resumption_ticket_validation_complete: extern "C" fn(
-        connection: Handle,
-        result: BOOLEAN,
-    ) -> u32,
-    certificate_validation_complete: extern "C" fn(
-        connection: Handle,
-        result: BOOLEAN,
-        tls_alert: TlsAlertCode
-    ) -> u32,
+    resumption_ticket_validation_complete:
+        extern "C" fn(connection: Handle, result: BOOLEAN) -> u32,
+    certificate_validation_complete:
+        extern "C" fn(connection: Handle, result: BOOLEAN, tls_alert: TlsAlertCode) -> u32,
 }
 
 #[link(name = "msquic")]
@@ -1296,11 +1304,10 @@ impl From<&Vec<u8>> for Buffer {
 
 impl From<&[u8]> for Buffer {
     fn from(data: &[u8]) -> Buffer {
-        let buffer = Buffer {
+        Buffer {
             length: data.len() as u32,
             buffer: data.as_ptr() as *mut u8,
-        };
-        buffer
+        }
     }
 }
 
@@ -1321,38 +1328,8 @@ impl QuicPerformance {
 }
 
 impl Settings {
-    pub fn new() -> Settings {
-        Settings {
-            is_set_flags: 0,
-            max_bytes_per_key: 0,
-            handshake_idle_timeout_ms: 0,
-            idle_timeout_ms: 0,
-            mtu_discovery_search_complete_timeout_us: 0,
-            tls_client_max_send_buffer: 0,
-            tls_server_max_send_buffer: 0,
-            stream_recv_window_default: 0,
-            stream_recv_buffer_default: 0,
-            conn_flow_control_window: 0,
-            max_worker_queue_delay_us: 0,
-            max_stateless_operations: 0,
-            initial_window_packets: 0,
-            send_idle_timeout_ms: 0,
-            initiall_rtt_ms: 0,
-            max_ack_delay_ms: 0,
-            disconnect_timeout_ms: 0,
-            keep_alive_interval_ms: 0,
-            congestion_control_algorithm: 0,
-            peer_bidi_stream_count: 0,
-            peer_unidi_stream_count: 0,
-            max_binding_stateless_operations: 0,
-            stateless_operation_expiration_ms: 0,
-            minimum_mtu: 0,
-            maximum_mtu: 0,
-            other_flags: 0,
-            mtu_operations_per_drain: 0,
-            mtu_discovery_missing_probe_count: 0,
-            dest_cid_update_idle_timeout_ms: 0,
-        }
+    pub fn new() -> Self {
+        Self::default()
     }
     pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
         self.is_set_flags |= 0x40000;
@@ -1483,7 +1460,7 @@ impl Configuration {
         let context: *const c_void = ptr::null();
         let new_configuration: Handle = ptr::null();
         let mut settings_size: u32 = 0;
-        if settings != ptr::null() {
+        if !settings.is_null() {
             settings_size = ::std::mem::size_of::<Settings>() as u32;
         }
         let status = unsafe {
@@ -1508,7 +1485,7 @@ impl Configuration {
 
     pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), u32> {
         let status =
-            unsafe { ((*self.table).configuration_load_credential)(self.handle, *&cred_config) };
+            unsafe { ((*self.table).configuration_load_credential)(self.handle, cred_config) };
         if Status::failed(status) {
             return Err(status);
         }
@@ -1552,14 +1529,19 @@ impl Connection {
         Ok(())
     }
 
-    pub fn start(&self, configuration: &Configuration, server_name: &str, server_port: u16) -> Result<(), u32> {
+    pub fn start(
+        &self,
+        configuration: &Configuration,
+        server_name: &str,
+        server_port: u16,
+    ) -> Result<(), u32> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
             ((*self.table).connection_start)(
                 self.handle,
                 configuration.handle,
                 0,
-                server_name_safe.as_ptr() as *const i8,
+                server_name_safe.as_ptr(),
                 server_port,
             )
         };
@@ -1660,7 +1642,7 @@ impl Connection {
         let status = unsafe {
             ((*self.table).datagram_send)(
                 self.handle,
-                *&buffer,
+                buffer,
                 buffer_count,
                 flags,
                 client_send_context,
@@ -1672,16 +1654,9 @@ impl Connection {
         Ok(())
     }
 
-    pub fn resumption_ticket_validation_complete(
-        &self,
-        result: BOOLEAN,
-    ) -> Result<(), u32> {
-        let status = unsafe {
-            ((*self.table).resumption_ticket_validation_complete)(
-                self.handle,
-                result,
-            )
-        };
+    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), u32> {
+        let status =
+            unsafe { ((*self.table).resumption_ticket_validation_complete)(self.handle, result) };
         if Status::failed(status) {
             return Err(status);
         }
@@ -1694,16 +1669,46 @@ impl Connection {
         tls_alert: TlsAlertCode,
     ) -> Result<(), u32> {
         let status = unsafe {
-            ((*self.table).certificate_validation_complete)(
-                self.handle,
-                result,
-                tls_alert,
-            )
+            ((*self.table).certificate_validation_complete)(self.handle, result, tls_alert)
         };
         if Status::failed(status) {
             return Err(status);
         }
         Ok(())
+    }
+
+    pub fn get_local_addr(&self) -> Result<Addr, u32> {
+        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
+        let addr_size_mut = mem::size_of::<Addr>();
+        let status = unsafe {
+            ((*self.table).get_param)(
+                self.handle,
+                PARAM_CONN_LOCAL_ADDRESS,
+                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
+                addr_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+        if Status::failed(status) {
+            return Err(status);
+        }
+        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+    }
+
+    pub fn get_remote_addr(&self) -> Result<Addr, u32> {
+        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
+        let addr_size_mut = mem::size_of::<Addr>();
+        let status = unsafe {
+            ((*self.table).get_param)(
+                self.handle,
+                PARAM_CONN_REMOTE_ADDRESS,
+                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
+                addr_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+        if Status::failed(status) {
+            return Err(status);
+        }
+        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 }
 
@@ -1744,7 +1749,7 @@ impl Listener {
                 self.handle,
                 alpn.as_ptr(),
                 alpn.len() as u32,
-                *&local_address,
+                local_address,
             )
         };
         if Status::failed(status) {
@@ -1822,7 +1827,7 @@ impl Stream {
         let status = unsafe {
             ((*self.table).stream_send)(
                 self.handle,
-                *&buffer,
+                buffer,
                 buffer_count,
                 flags,
                 client_send_context, //(self as *const Stream) as *const c_void,
@@ -1859,7 +1864,11 @@ extern "C" fn test_conn_callback(
 ) -> u32 {
     let connection = unsafe { &*(context as *const Connection) };
     match event.event_type {
-        CONNECTION_EVENT_CONNECTED => println!("Connected"),
+        CONNECTION_EVENT_CONNECTED => {
+            let local_addr = connection.get_local_addr().unwrap().as_socket().unwrap();
+            let remote_addr = connection.get_remote_addr().unwrap().as_socket().unwrap();
+            println!("Connected({}, {})", local_addr, remote_addr);
+        }
         CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => {
             println!("Transport shutdown 0x{:x}", unsafe {
                 event.payload.shutdown_initiated_by_transport.status
@@ -1915,11 +1924,19 @@ extern "C" fn test_stream_callback(
 #[test]
 fn test_module() {
     let res = Api::new();
-    assert!(res.is_ok(), "Failed to open API: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open API: 0x{:x}",
+        res.err().unwrap()
+    );
     let api = res.unwrap();
 
     let res = Registration::new(&api, ptr::null());
-    assert!(res.is_ok(), "Failed to open registration: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open registration: 0x{:x}",
+        res.err().unwrap()
+    );
     let registration = res.unwrap();
 
     let alpn = [Buffer::from("h3")];
@@ -1930,12 +1947,20 @@ fn test_module() {
             .set_peer_bidi_stream_count(100)
             .set_peer_unidi_stream_count(3),
     );
-    assert!(res.is_ok(), "Failed to open configuration: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open configuration: 0x{:x}",
+        res.err().unwrap()
+    );
     let configuration = res.unwrap();
 
     let cred_config = CredentialConfig::new_client();
     let res = configuration.load_credential(&cred_config);
-    assert!(res.is_ok(), "Failed to load credential: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to load credential: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let connection = Connection::new(&registration);
     let res = connection.open(
@@ -1943,10 +1968,18 @@ fn test_module() {
         test_conn_callback,
         &connection as *const Connection as *const c_void,
     );
-    assert!(res.is_ok(), "Failed to open connection: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to open connection: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let res = connection.start(&configuration, "www.cloudflare.com", 443);
-    assert!(res.is_ok(), "Failed to start connection: 0x{:x}", res.err().unwrap());
+    assert!(
+        res.is_ok(),
+        "Failed to start connection: 0x{:x}",
+        res.err().unwrap()
+    );
 
     let duration = std::time::Duration::from_millis(1000);
     std::thread::sleep(duration);
