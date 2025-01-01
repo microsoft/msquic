@@ -4771,7 +4771,7 @@ CxPlatSocketGetTcpStatistics(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRecvEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4786,7 +4786,7 @@ CxPlatIoRecvEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRecvFailureEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4801,7 +4801,7 @@ CxPlatIoRecvFailureEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoSendEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4817,7 +4817,7 @@ CxPlatIoSendEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoQueueSendEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4831,7 +4831,7 @@ CxPlatIoQueueSendEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoAcceptExEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4845,7 +4845,7 @@ CxPlatIoAcceptExEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoConnectExEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -4859,7 +4859,7 @@ CxPlatIoConnectExEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRioNotifyEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);

@@ -428,8 +428,8 @@ CxPlatEventQReturn(
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_SQE* sqe,
-    _In_ void* user_data
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
     );
 
 void
@@ -438,8 +438,8 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     );
 
-void*
-CxPlatCqeUserData(
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     );
 

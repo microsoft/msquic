@@ -1834,7 +1834,7 @@ CxPlatXdpExecute(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoXdpWaitRxEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -1850,7 +1850,7 @@ CxPlatIoXdpWaitRxEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoXdpWaitTxEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
@@ -1866,7 +1866,7 @@ CxPlatIoXdpWaitTxEventComplete(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoXdpShutdownEventComplete(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);

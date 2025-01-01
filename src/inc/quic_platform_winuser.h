@@ -706,7 +706,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 (CXPLAT_EVENT_COMPLETION)(
-    _In_ CXPLAT_CQE *Cqe
+    _In_ CXPLAT_CQE* Cqe
     );
 typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
