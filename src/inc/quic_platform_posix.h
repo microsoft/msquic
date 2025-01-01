@@ -1112,7 +1112,7 @@ CxPlatEventQEnqueue(
     )
 {
     UNREFERENCED_PARAMETER(queue);
-    return eventfd_write(*sqe, 1) == 0;
+    return eventfd_write(sqe->fd, 1) == 0;
 }
 
 inline
@@ -1152,6 +1152,7 @@ CxPlatSqeInitialize(
     )
 {
     struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = sqe } };
+    sqe->Completion = completion;
     if ((sqe->fd = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
     if (epoll_ctl(*queue, EPOLL_CTL_ADD, sqe->fd, &event) != 0) { close(sqe->fd); return FALSE; }
     return TRUE;
@@ -1221,6 +1222,7 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     )
 {
+    // TODO - Should ident simply use the pointer value of sqe?
     struct kevent event = {.ident = sqe->Handle, .filter = EVFILT_USER, .flags = EV_ADD | EV_ONESHOT, .fflags = NOTE_TRIGGER, .data = 0, .udata = sqe};
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
