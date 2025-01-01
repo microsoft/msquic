@@ -1771,7 +1771,6 @@ impl Listener {
         if Status::failed(status) {
             return Err(status);
         }
-
         Ok(())
     }
 
@@ -1789,7 +1788,6 @@ impl Listener {
         if Status::failed(status) {
             return Err(status);
         }
-
         Ok(())
     }
 
@@ -1813,7 +1811,6 @@ impl Listener {
         if Status::failed(status) {
             return Err(status);
         }
-
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
@@ -1871,6 +1868,14 @@ impl Stream {
         Ok(())
     }
 
+    pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), u32> {
+        let status = unsafe { ((*APITABLE).stream_shutdown)(self.handle, flags, error_code) };
+        if Status::failed(status) {
+            return Err(status);
+        }
+        Ok(())
+    }
+
     pub fn close(&self) {
         unsafe {
             ((*APITABLE).stream_close)(self.handle);
@@ -1903,6 +1908,27 @@ impl Stream {
         unsafe {
             ((*APITABLE).set_callback_handler)(self.handle, handler as *const c_void, context)
         };
+    }
+
+    pub fn get_param(
+        &self,
+        param: u32,
+        buffer_length: *mut u32,
+        buffer: *const c_void,
+    ) -> Result<(), u32> {
+        let status = unsafe { ((*APITABLE).get_param)(self.handle, param, buffer_length, buffer) };
+        if Status::failed(status) {
+            return Err(status);
+        }
+        Ok(())
+    }
+
+    pub fn receive_complete(&self, buffer_length: u64) -> Result<(), u32> {
+        let status = unsafe { ((*APITABLE).stream_receive_complete)(self.handle, buffer_length) };
+        if Status::failed(status) {
+            return Err(status);
+        }
+        Ok(())
     }
 }
 
