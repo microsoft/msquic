@@ -1262,26 +1262,36 @@ pub struct Api {
 pub struct Registration {
     handle: Handle,
 }
+unsafe impl Sync for Registration {}
+unsafe impl Send for Registration {}
 
 /// Specifies how to configure a connection.
 pub struct Configuration {
     handle: Handle,
 }
+unsafe impl Sync for Configuration {}
+unsafe impl Send for Configuration {}
 
 /// A single QUIC connection.
 pub struct Connection {
     handle: Handle,
 }
+unsafe impl Sync for Connection {}
+unsafe impl Send for Connection {}
 
 /// A single server listener
 pub struct Listener {
     handle: Handle,
 }
+unsafe impl Sync for Listener {}
+unsafe impl Send for Listener {}
 
 /// A single QUIC stream on a parent connection.
 pub struct Stream {
     handle: Handle,
 }
+unsafe impl Sync for Stream {}
+unsafe impl Send for Stream {}
 
 impl From<&str> for Buffer {
     fn from(data: &str) -> Buffer {
