@@ -1201,10 +1201,7 @@ CxPlatXdpExecute(
             XdpPartitionShutdown,
             "[ xdp][%p] XDP partition shutdown",
             Partition);
-        CxPlatEventQEnqueue(
-            Partition->EventQ,
-            &Partition->ShutdownSqe.Sqe,
-            &Partition->ShutdownSqe);
+        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe);
         return FALSE;
     }
 

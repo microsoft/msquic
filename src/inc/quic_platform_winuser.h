@@ -819,6 +819,7 @@ CxPlatSqeInitialize(
     )
 {
     UNREFERENCED_PARAMETER(queue);
+    CxPlatZeroMemory(sqe, sizeof(*sqe));
     sqe->Completion = completion;
     return TRUE;
 }
@@ -832,6 +833,9 @@ CxPlatSqeInitializeEx(
 {
     sqe->Completion = completion;
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
+#if DEBUG
+    sqe->IsQueued = FALSE;
+#endif
 }
 
 inline

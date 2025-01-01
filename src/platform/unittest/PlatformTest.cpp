@@ -128,8 +128,10 @@ TEST(PlatformTest, EventQueue)
 
 TEST(PlatformTest, EventQueueWorker)
 {
+    typedef struct EventQueueContext EventQueueContext;
+
     struct my_sqe : public CXPLAT_SQE {
-        struct EventQueueContext* context;
+        EventQueueContext* context;
         uint32_t data;
     };
 
@@ -147,7 +149,6 @@ TEST(PlatformTest, EventQueueWorker)
                     sqe->Completion(&events[i]);
                 }
             }
-        Exit:
             CXPLAT_THREAD_RETURN(0);
         }
         static void shutdown_completion(CXPLAT_CQE* Cqe) {
@@ -169,12 +170,16 @@ TEST(PlatformTest, EventQueueWorker)
     ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatThreadCreate(&config, &thread)));
     
     my_sqe shutdown, sqe1, sqe2, sqe3;
+    shutdown.context = &context;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::shutdown_completion, &shutdown));
+    sqe1.context = &context;
     sqe1.data = 0;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::my_completion, &sqe1));
-    sqe1.data = 1;
+    sqe2.context = &context;
+    sqe2.data = 1;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::my_completion, &sqe2));
-    sqe1.data = 2;
+    sqe3.context = &context;
+    sqe3.data = 2;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::my_completion, &sqe3));
 
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1));

@@ -104,12 +104,22 @@ CXPLAT_STATIC_ASSERT(
     ErrorCode == WSAECONNRESET \
 )
 
+typedef enum RIO_IO_TYPE {
+    RIO_IO_RECV,
+    RIO_IO_SEND,
+    RIO_IO_RECV_FAILURE,
+} RIO_IO_TYPE;
 
 //
 // Contains all the info for a single RX IO operation. Multiple RX packets may
 // come from a single IO operation.
 //
 typedef struct DATAPATH_RX_IO_BLOCK {
+    //
+    // The IO type.
+    //
+    RIO_IO_TYPE IoType;
+
     //
     // The owning datagram pool.
     //
@@ -176,6 +186,11 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) DATAPATH_RX_PACKET {
 // Header prefixed to each RIO send buffer.
 //
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_RIO_SEND_BUFFER_HEADER {
+    //
+    // The IO type.
+    //
+    RIO_IO_TYPE IoType;
+
     //
     // The RIO buffer ID.
     //
@@ -368,20 +383,6 @@ CxPlatCancelDatapathIo(
     )
 {
     CxPlatSocketContextRelease(SocketProc);
-}
-
-VOID
-CxPlatStopInlineDatapathIo(
-    _Inout_ CXPLAT_SQE* Sqe
-    )
-{
-    //
-    // We want to assert the overlapped result is not pending below, but Winsock
-    // and the Windows kernel may leave the overlapped struct in the pending
-    // state if an IO completes inline. Ignore the overlapped result in this
-    // case.
-    //
-    Sqe->Overlapped.Internal = 0;
 }
 
 void
@@ -3327,8 +3328,14 @@ CxPlatSocketStartWinsockReceive(
         // The receive completed inline (success or failure), and the caller is
         // prepared to handle it synchronously.
         //
-        CxPlatStopInlineDatapathIo(&IoBlock->Sqe);
         CXPLAT_DBG_ASSERT(BytesRecv < UINT16_MAX);
+        //
+        // We want to assert the overlapped result is not pending below, but Winsock
+        // and the Windows kernel may leave the overlapped struct in the pending
+        // state if an IO completes inline. Ignore the overlapped result in this
+        // case.
+        //
+        IoBlock->Sqe.Overlapped.Internal = 0;
         *SyncBytesReceived = (uint16_t)BytesRecv;
         *SyncIoResult = WsaError;
         *SyncIoBlock = IoBlock;
@@ -3685,14 +3692,14 @@ CxPlatDataPathSocketProcessRioCompletion(
         CXPLAT_FRE_ASSERT(ResultCount != RIO_CORRUPT_CQ);
 
         for (ULONG i = 0; i < ResultCount; i++) {
-            DATAPATH_IO_TYPE* IoType =
-                (DATAPATH_IO_TYPE*)(ULONG_PTR)Results[i].RequestContext;
+            RIO_IO_TYPE* IoType =
+                (RIO_IO_TYPE*)(ULONG_PTR)Results[i].RequestContext;
 
             switch (*IoType) {
-            case DATAPATH_IO_RIO_RECV:
+            case RIO_IO_RECV:
                 CXPLAT_DBG_ASSERT(Results[i].BytesTransferred <= UINT16_MAX);
                 DATAPATH_RX_IO_BLOCK* IoBlock =
-                    CONTAINING_RECORD(IoType, DATAPATH_RX_IO_BLOCK, Sqe.IoType);
+                    CONTAINING_RECORD(IoType, DATAPATH_RX_IO_BLOCK, IoType);
 
                 if (UpcallAcquired) {
                     NeedReceive =
@@ -3708,7 +3715,7 @@ CxPlatDataPathSocketProcessRioCompletion(
                 SocketProc->RioRecvCount--;
                 break;
 
-            case DATAPATH_IO_RIO_SEND:
+            case RIO_IO_SEND:
                 CXPLAT_RIO_SEND_BUFFER_HEADER* SendHeader =
                     CONTAINING_RECORD(IoType, CXPLAT_RIO_SEND_BUFFER_HEADER, IoType);
                 CxPlatSendDataComplete(SendHeader->SendData, Results[i].Status);
@@ -4039,9 +4046,6 @@ SendDataAlloc(
         SendData->ClientBuffer.len = 0;
         SendData->ClientBuffer.buf = NULL;
         SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
-#if DEBUG
-        SendData->Sqe.IoType = 0;
-#endif
 
         if (Socket->UseRio) {
             SendData->BufferPool =
@@ -4433,7 +4437,7 @@ CxPlatSocketSendWithRio(
 
         Data.BufferId = SendHeader->RioBufferId;
         Data.Length = SendData->WsaBuffers[i].len;
-        SendHeader->IoType = DATAPATH_IO_RIO_SEND;
+        SendHeader->IoType = RIO_IO_SEND;
         SendHeader->SendData = SendData;
 
         if (!Datapath->RioDispatch.RIOSendEx(
@@ -4610,7 +4614,7 @@ CxPlatSocketSendEnqueue(
     CxPlatStartDatapathIo(
         SendData->SocketProc,
         &SendData->Sqe,
-        CxPlatIoSendEventComplete);
+        CxPlatIoQueueSendEventComplete);
     QUIC_STATUS Status =
         CxPlatSocketEnqueueSqe(
             SendData->SocketProc,

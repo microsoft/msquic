@@ -223,6 +223,7 @@ CxPlatWorkerPoolLazyStart(
             goto Error;
         }
         Worker->InitializedEventQ = TRUE;
+        Worker->ShutdownSqe.Worker = &WorkerPool->Workers[i];
         if (!CxPlatSqeInitialize(&Worker->EventQ, ShutdownCompletion, &Worker->ShutdownSqe.Base)) {
             QuicTraceEvent(
                 LibraryError,
