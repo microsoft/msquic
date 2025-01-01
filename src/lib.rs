@@ -1746,38 +1746,75 @@ impl Drop for Connection {
     }
 }
 
+impl Default for Listener {
+    fn default() -> Self {
+        Self::new()
+    }
+}
+
 impl Listener {
-    pub fn new(
+    pub fn new() -> Listener {
+        Listener {
+            handle: ptr::null(),
+        }
+    }
+
+    pub fn open(
+        &self,
         registration: &Registration,
         handler: ListenerEventHandler,
         context: *const c_void,
-    ) -> Result<Listener, u32> {
-        let new_listener: Handle = ptr::null();
+    ) -> Result<(), u32> {
         let status = unsafe {
-            ((*APITABLE).listener_open)(registration.handle, handler, context, &new_listener)
+            ((*APITABLE).listener_open)(registration.handle, handler, context, &self.handle)
         };
         if Status::failed(status) {
             return Err(status);
         }
 
-        Ok(Listener {
-            handle: new_listener,
-        })
+        Ok(())
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: &Addr) -> Result<(), u32> {
+    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), u32> {
         let status = unsafe {
             ((*APITABLE).listener_start)(
                 self.handle,
                 alpn.as_ptr(),
                 alpn.len() as u32,
-                local_address,
+                local_address
+                    .map(|addr| addr as *const _)
+                    .unwrap_or(ptr::null()),
             )
         };
         if Status::failed(status) {
             return Err(status);
         }
+
         Ok(())
+    }
+
+    pub fn stop(&self) {
+        unsafe {
+            ((*APITABLE).listener_stop)(self.handle);
+        }
+    }
+
+    pub fn get_local_addr(&self) -> Result<Addr, u32> {
+        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
+        let addr_size_mut = mem::size_of::<Addr>();
+        let status = unsafe {
+            ((*APITABLE).get_param)(
+                self.handle,
+                PARAM_LISTENER_LOCAL_ADDRESS,
+                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
+                addr_buffer.as_mut_ptr() as *const c_void,
+            )
+        };
+        if Status::failed(status) {
+            return Err(status);
+        }
+
+        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
     pub fn close(&self) {
