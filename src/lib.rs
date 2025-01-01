@@ -1973,7 +1973,7 @@ fn test_module() {
         #[cfg(not(feature = "preview-api"))]
         Settings::new()
             .set_peer_bidi_stream_count(100)
-            .set_peer_unidi_stream_count(3)
+            .set_peer_unidi_stream_count(3),
     );
     assert!(
         res.is_ok(),
