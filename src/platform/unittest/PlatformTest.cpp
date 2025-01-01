@@ -55,13 +55,16 @@ TEST(PlatformTest, EventQueue)
 {
     struct my_sqe : public CXPLAT_SQE {
         uint32_t data;
-        static void my_completion_1(CXPLAT_SQE* Sqe) {
+        static void my_completion_1(CXPLAT_CQE* Cqe) {
+            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
             ASSERT_TRUE(((my_sqe*)Sqe)->data == 0x1234);
         }
-        static void my_completion_2(CXPLAT_SQE* Sqe) {
+        static void my_completion_2(CXPLAT_CQE* Cqe) {
+            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
             ASSERT_TRUE(((my_sqe*)Sqe)->data == 0x5678);
         }
-        static void my_completion_3(CXPLAT_SQE* Sqe) {
+        static void my_completion_3(CXPLAT_CQE* Cqe) {
+            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
             ASSERT_TRUE(((my_sqe*)Sqe)->data == 0x90);
         }
     };
@@ -141,19 +144,19 @@ TEST(PlatformTest, EventQueueWorker)
                 uint32_t count = CxPlatEventQDequeue(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
                 for (uint32_t i = 0; i < count; i++) {
                     auto sqe = CxPlatCqeGetSqe(&events[i]);
-                    sqe->Completion(sqe);
+                    sqe->Completion(&events[i]);
                 }
             }
         Exit:
             CXPLAT_THREAD_RETURN(0);
         }
-        static void shutdown_completion(CXPLAT_SQE* Sqe) {
-            auto sqe = (my_sqe*)Sqe;
-            sqe->context->Running = false;
+        static void shutdown_completion(CXPLAT_CQE* Cqe) {
+            auto Sqe = (my_sqe*)CxPlatCqeGetSqe(Cqe);
+            Sqe->context->Running = false;
         }
-        static void my_completion(CXPLAT_SQE* Sqe) {
-            auto sqe = (my_sqe*)Sqe;
-            sqe->context->counts[sqe->data]++;
+        static void my_completion(CXPLAT_CQE* Cqe) {
+            auto Sqe = (my_sqe*)CxPlatCqeGetSqe(Cqe);
+            Sqe->context->counts[Sqe->data]++;
         }
     };
 

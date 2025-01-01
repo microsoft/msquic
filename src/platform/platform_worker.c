@@ -107,19 +107,19 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 static void
 ShutdownCompletion(
-    _In_ struct CXPLAT_SQE* Sqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    CXPLAT_WORKER* Worker = ((CXPLAT_WORKER_SQE*)Sqe)->Worker;
+    CXPLAT_WORKER* Worker = ((CXPLAT_WORKER_SQE*)CxPlatCqeGetSqe(Cqe))->Worker;
     Worker->StoppedThread = TRUE;
 }
 
 static void
 WakeCompletion(
-    _In_ struct CXPLAT_SQE* Sqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    UNREFERENCED_PARAMETER(Sqe); // no-op
+    UNREFERENCED_PARAMETER(Cqe); // no-op
 }
 
 void
@@ -129,10 +129,10 @@ CxPlatUpdateExecutionContexts(
 
 static void
 UpdatePollCompletion(
-    _In_ struct CXPLAT_SQE* Sqe
+    _In_ CXPLAT_CQE* Cqe
     )
 {
-    CXPLAT_WORKER* Worker = ((CXPLAT_WORKER_SQE*)Sqe)->Worker;
+    CXPLAT_WORKER* Worker = ((CXPLAT_WORKER_SQE*)CxPlatCqeGetSqe(Cqe))->Worker;
     CxPlatUpdateExecutionContexts(Worker);
 }
 
@@ -542,7 +542,7 @@ CxPlatProcessEvents(
         State->NoWorkCount = 0;
         for (uint32_t i = 0; i < CqeCount; ++i) {
             CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqes[i]);
-            Sqe->Completion(Sqe);
+            Sqe->Completion(&Cqes[i]);
         }
         CxPlatEventQReturn(&Worker->EventQ, CqeCount);
     }

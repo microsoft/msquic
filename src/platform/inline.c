@@ -411,12 +411,6 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     );
 
-BOOLEAN
-_CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
-    );
-
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,

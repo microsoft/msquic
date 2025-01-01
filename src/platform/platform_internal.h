@@ -1142,11 +1142,6 @@ SocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-void
-DataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    );
-
 CXPLAT_SOCKET*
 CxPlatRawToSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket
@@ -1289,11 +1284,6 @@ RawResolveRoute(
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    );
-
-void
-RawDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

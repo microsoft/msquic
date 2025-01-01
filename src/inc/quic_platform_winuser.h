@@ -701,20 +701,21 @@ CxPlatEventWaitWithTimeout(
 //
 
 typedef HANDLE CXPLAT_EVENTQ;
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE *Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
     OVERLAPPED Overlapped;
-    void (*Completion)(_In_ struct CXPLAT_SQE *Sqe);
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
 #endif
 } CXPLAT_SQE;
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(*CXPLAT_EVENT_COMPLETION)(
-    _In_ CXPLAT_SQE *Sqe
-    );
-typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 
 inline
 BOOLEAN
@@ -820,6 +821,17 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     sqe->Completion = completion;
     return TRUE;
+}
+
+inline
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    sqe->Completion = completion;
+    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
 }
 
 inline
