@@ -804,17 +804,17 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The submission queue event for shutdown.
     //
-    DATAPATH_SQE ShutdownSqe;
+    CXPLAT_SQE ShutdownSqe;
 
     //
     // The submission queue event for IO.
     //
-    DATAPATH_SQE IoSqe;
+    CXPLAT_SQE IoSqe;
 
     //
     // The submission queue event for flushing the send queue.
     //
-    DATAPATH_SQE FlushTxSqe;
+    CXPLAT_SQE FlushTxSqe;
 
     //
     // The head of list containg all pending sends on this socket.
