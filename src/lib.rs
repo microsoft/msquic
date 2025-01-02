@@ -826,6 +826,7 @@ pub struct Settings {
     pub mtu_operations_per_drain: u8,
     pub mtu_discovery_missing_probe_count: u8,
     pub dest_cid_update_idle_timeout_ms: u32,
+    pub other2_flags: u64,
 }
 
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
@@ -1454,6 +1455,12 @@ impl Settings {
         self.other_flags |= (value as u8) << 3;
         self
     }
+    #[cfg(feature = "preview-api")]
+    pub fn set_stream_multi_receive_enabled(&mut self, value: bool) -> &mut Settings {
+        self.is_set_flags |= 1 << 42;
+        self.other2_flags |= (value as u64) << 5;
+        self
+    }
 }
 
 impl CredentialConfig {
@@ -2062,6 +2069,12 @@ fn test_module() {
     let res = Configuration::new(
         &registration,
         &alpn,
+        #[cfg(feature = "preview-api")]
+        Settings::new()
+            .set_peer_bidi_stream_count(100)
+            .set_peer_unidi_stream_count(3)
+            .set_stream_multi_receive_enabled(true),
+        #[cfg(not(feature = "preview-api"))]
         Settings::new()
             .set_peer_bidi_stream_count(100)
             .set_peer_unidi_stream_count(3),

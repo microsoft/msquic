@@ -47,6 +47,7 @@ include = [
 [features]
 default = []
 static = []
+preview-api = []
 
 [build-dependencies]
 cmake = "0.1"
