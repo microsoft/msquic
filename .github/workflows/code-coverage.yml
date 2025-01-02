@@ -37,6 +37,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
+      repo: ${{ github.repository }}
 
   bvt-winlatest:
     name: BVT WinPrerelease
