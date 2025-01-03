@@ -149,7 +149,7 @@ QuicAckTrackerDidHitReorderingThreshold(
         // Check if largest reported packet is missing. In that case, the smallest missing 
         // packet becomes the largest reported packet.
         //
-        
+
         uint64_t PreviousSmallestMissing = QuicRangeGetHigh(QuicRangeGet(&Tracker->PacketNumbersToAck, Index - 1)) + 1;
         if (LargestReported > PreviousSmallestMissing) {
             PreviousSmallestMissing = LargestReported;
@@ -268,7 +268,7 @@ QuicAckTrackerAckPacket(
         //
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
 
-    } else if (Tracker->AckElicitingPacketsToAcknowledge == 1) {
+    } else if (Tracker->AckElicitingPacketsToAcknowledge > 0) {
         //
         // We now have ACK eliciting payload to acknowledge but haven't met the
         // criteria to send an ACK frame immediately, so just ensure the delayed
