@@ -106,7 +106,7 @@ ShutdownCompletion(
     )
 {
     CXPLAT_WORKER* Worker =
-        CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, ShutdownSqe);
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, ShutdownSqe);
     Worker->StoppedThread = TRUE;
 }
 
@@ -129,7 +129,7 @@ UpdatePollCompletion(
     )
 {
     CXPLAT_WORKER* Worker =
-        CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, UpdatePollSqe);
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_WORKER, UpdatePollSqe);
     CxPlatUpdateExecutionContexts(Worker);
 }
 
