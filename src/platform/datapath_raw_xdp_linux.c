@@ -27,7 +27,6 @@ Abstract:
 #include "datapath_raw_xdp_linux.c.clog.h"
 #endif
 
-
 #define NUM_FRAMES         8192 * 2
 #define CONS_NUM_DESCS     NUM_FRAMES / 2
 #define PROD_NUM_DESCS     NUM_FRAMES / 2
@@ -127,6 +126,10 @@ typedef struct __attribute__((aligned(64))) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
+CXPLAT_EVENT_COMPLETION CxPlatPartitionShutdownEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatQueueRxIoEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatQueueTxIoEventComplete;
 
 void
 XdpSocketContextSetEvents(
@@ -665,49 +668,6 @@ void ProcessInterfaceAddress(int family, struct ifaddrs *ifa, XDP_INTERFACE *Int
         struct sockaddr_ll *sall = (struct sockaddr_ll*)ifa->ifa_addr;
         memcpy(Interface->PhysicalAddress, sall->sll_addr, sizeof(Interface->PhysicalAddress));
     }
-}
-
-void
-CxPlatPartitionShutdownEventComplete(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    XDP_PARTITION* Partition =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), XDP_PARTITION, ShutdownSqe);
-    QuicTraceLogVerbose(
-        XdpPartitionShutdownComplete,
-        "[ xdp][%p] XDP partition shutdown complete",
-        Partition);
-    CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
-}
-
-void
-CxPlatQueueRxIoEventComplete(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    // TODO: use SQE to distinguish Tx/RX
-    DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
-    XDP_QUEUE* Queue;
-    Queue = CXPLAT_CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-    QuicTraceLogVerbose(
-        XdpQueueAsyncIoRxComplete,
-        "[ xdp][%p] XDP async IO complete (RX)",
-        Queue);
-    if (EPOLLOUT & Cqe->events) {
-        KickTx(Queue, TRUE);
-    } else {
-        Queue->RxQueued = FALSE;
-        Queue->Partition->Ec.Ready = TRUE;
-    }
-}
-
-void
-CxPlatQueueTxIoEventComplete(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    UNREFERENCED_PARAMETER(Cqe); // TODO - Use this?
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1371,4 +1331,47 @@ CxPlatXdpRx(
             (uint16_t)PacketCount);
     }
     return PacketCount > 0 || i > 0;
+}
+
+void
+CxPlatPartitionShutdownEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    XDP_PARTITION* Partition =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), XDP_PARTITION, ShutdownSqe);
+    QuicTraceLogVerbose(
+        XdpPartitionShutdownComplete,
+        "[ xdp][%p] XDP partition shutdown complete",
+        Partition);
+    CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
+}
+
+void
+CxPlatQueueRxIoEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    // TODO: use SQE to distinguish Tx/RX
+    DATAPATH_SQE* Sqe = (DATAPATH_SQE*)CxPlatCqeUserData(Cqe);
+    XDP_QUEUE* Queue;
+    Queue = CXPLAT_CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
+    QuicTraceLogVerbose(
+        XdpQueueAsyncIoRxComplete,
+        "[ xdp][%p] XDP async IO complete (RX)",
+        Queue);
+    if (EPOLLOUT & Cqe->events) {
+        KickTx(Queue, TRUE);
+    } else {
+        Queue->RxQueued = FALSE;
+        Queue->Partition->Ec.Ready = TRUE;
+    }
+}
+
+void
+CxPlatQueueTxIoEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    UNREFERENCED_PARAMETER(Cqe); // TODO - Use this?
 }
