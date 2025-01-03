@@ -165,9 +165,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_SQE ShutdownSqe;
 
     //
-    // The user data for the IO event.
+    // The event for the IO event.
     //
-    uint32_t IoCqeType;
+    CXPLAT_SQE IoSqe;
 
     //
     // The I/O vector for receive datagrams.
@@ -376,6 +376,9 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_PARTITION Partitions[];
 
 } CXPLAT_DATAPATH;
+    
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
 
 QUIC_STATUS
 CxPlatSocketSendInternal(
@@ -646,19 +649,15 @@ CxPlatSocketContextInitialize(
         goto Exit;
     }
 
-    if (!CxPlatSqeInitialize(
-            SocketContext->DatapathPartition->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
-            &SocketContext->ShutdownSqe)) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "CxPlatSqeInitialize failed");
-        goto Exit;
-    }
+    CxPlatSqeInitialize(
+        SocketContext->DatapathPartition->EventQ,
+        CxPlatSocketContextUninitializeEventComplete,
+        &SocketContext->ShutdownSqe);
+    CxPlatSqeInitializeEx(
+        SocketContext->DatapathPartition->EventQ,
+        SocketContext->SocketFd,
+        CxPlatSocketContextIoEventComplete,
+        &SocketContext->IoSqe);
 
     //
     // Set dual (IPv4 & IPv6) socket mode unless we operate in pure IPv4 mode
@@ -972,9 +971,11 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     if (SocketContext->SocketFd != INVALID_SOCKET) {
-        struct kevent DeleteEvent = {0};
-        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
-        (void)kevent(*SocketContext->DatapathPartition->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
+        CxPlatEventQEnqueueEx(
+            SocketContext->DatapathPartition->EventQ,
+            &SocketContext->IoSqe,
+            EVFILT_READ,
+            EV_DELETE);
         close(SocketContext->SocketFd);
     }
 
@@ -985,6 +986,16 @@ CxPlatSocketContextUninitializeComplete(
         CxPlatProcessorContextRelease(SocketContext->DatapathPartition);
     }
     CxPlatSocketRelease(SocketContext->Binding);
+}
+
+void
+CxPlatSocketContextUninitializeEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SOCKET_CONTEXT* SocketContext =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+    CxPlatSocketContextUninitializeComplete(SocketContext);
 }
 
 void
@@ -1005,10 +1016,11 @@ CxPlatSocketContextUninitialize(
         //
         // Cancel and clean up any pending IO.
         //
-        struct kevent DeleteEvent = {0};
-        EV_SET(&DeleteEvent, SocketContext->SocketFd, EVFILT_READ, EV_DELETE, 0, 0, &SocketContext->IoCqeType);
-        (void)kevent(*SocketContext->DatapathPartition->EventQ, &DeleteEvent, 1, NULL, 0, NULL);
-
+        CxPlatEventQEnqueueEx(
+            SocketContext->DatapathPartition->EventQ,
+            &SocketContext->IoSqe,
+            EVFILT_READ,
+            EV_DELETE);
         CxPlatEventQEnqueue(
             SocketContext->DatapathPartition->EventQ,
             &SocketContext->ShutdownSqe);
@@ -1062,25 +1074,18 @@ CxPlatSocketContextStartReceive(
         goto Error;
     }
 
-    struct kevent Event = {0};
-    EV_SET(&Event, SocketContext->SocketFd, EVFILT_READ, EV_ADD | EV_ENABLE, 0, 0, &SocketContext->IoCqeType);
-
-    int Ret =
-        kevent(
-            *SocketContext->DatapathPartition->EventQ,
-            &Event,
-            1,
-            NULL,
-            0,
-            NULL);
-    if (Ret < 0) {
+    if (!CxPlatEventQEnqueueEx(
+            SocketContext->DatapathPartition->EventQ,
+            &SocketContext->IoSqe,
+            EVFILT_READ,
+            EV_ADD | EV_ENABLE)) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketContext->Binding,
             Status,
-            "kevent failed");
+            "CxPlatEventQEnqueueEx failed");
         goto Error;
     }
 
@@ -2026,24 +2031,18 @@ CxPlatSocketSendInternal(
                 CxPlatLockRelease(&SocketContext->PendingSendDataLock);
             }
             SendPending = TRUE;
-            struct kevent Event = {0};
-            EV_SET(&Event, SocketContext->SocketFd, EVFILT_WRITE, EV_ADD | EV_ONESHOT | EV_CLEAR, 0, 0, &SocketContext->IoCqeType);
-            int Ret =
-                kevent(
-                    *SocketContext->DatapathPartition->EventQ,
-                    &Event,
-                    1,
-                    NULL,
-                    0,
-                    NULL);
-            if (Ret < 1) {
+            if (!CxPlatEventQEnqueueEx(
+                    SocketContext->DatapathPartition->EventQ,
+                    &SocketContext->IoSqe,
+                    EVFILT_WRITE,
+                    EV_ADD | EV_ONESHOT | EV_CLEAR)) {
                 Status = errno;
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",
                     SocketContext->Binding,
                     Status,
-                    "kevent failed");
+                    "CxPlatEventQEnqueueEx failed");
                 goto Exit;
             }
             Status = QUIC_STATUS_PENDING;

@@ -417,6 +417,14 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     );
 
+BOOLEAN
+CxPlatEventQEnqueueEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ short filter,
+    _In_ unsigned short flags,
+    );
+
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -434,6 +442,14 @@ CxPlatEventQReturn(
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
+    );
+
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uintptr_t handle,
     _In_ CXPLAT_EVENT_COMPLETION completion,
     _Out_ CXPLAT_SQE* sqe
     );

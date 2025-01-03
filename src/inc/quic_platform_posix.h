@@ -1229,6 +1229,19 @@ CxPlatEventQEnqueue(
 }
 
 inline
+BOOLEAN
+CxPlatEventQEnqueueEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ short filter,
+    _In_ unsigned short flags,
+    )
+{
+    struct kevent event = {.ident = sqe->Handle, .filter = filter, .flags = a, .fflags = 0, .data = 0, .udata = sqe};
+    return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
+}
+
+inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1274,6 +1287,20 @@ CxPlatSqeInitialize(
     sqe->Handle = __sync_add_and_fetch(&CxPlatCurrentSqe, 1);
     sqe->Completion = completion;
     return TRUE;
+}
+
+inline
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uintptr_t handle,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Handle = handle;
+    sqe->Completion = completion;
 }
 
 inline
