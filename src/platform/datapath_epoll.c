@@ -206,9 +206,9 @@ typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type)
 #endif
     
-CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeComplete;
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextFlushTxEventComplete;
-CXPLAT_EVENT_COMPLETION CxPlatSocketContextProcessIoCompletion;
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
 
 void
 CxPlatDataPathCalculateFeatureSupport(
@@ -579,7 +579,7 @@ CxPlatSocketContextSqeInitialize(
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
-            CxPlatSocketContextUninitializeComplete,
+            CxPlatSocketContextUninitializeEventComplete,
             &SocketContext->ShutdownSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -594,7 +594,7 @@ CxPlatSocketContextSqeInitialize(
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
-            CxPlatSocketContextProcessIoCompletion,
+            CxPlatSocketContextIoEventComplete,
             &SocketContext->IoSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -1128,11 +1128,9 @@ CxPlatSocketRelease(
 
 void
 CxPlatSocketContextUninitializeComplete(
-    _In_ CXPLAT_CQE* Cqe
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    CXPLAT_SOCKET_CONTEXT* SocketContext =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
 #if DEBUG
     CXPLAT_DBG_ASSERT(!SocketContext->Freed);
     SocketContext->Freed = TRUE;
@@ -1169,6 +1167,16 @@ CxPlatSocketContextUninitializeComplete(
         CxPlatProcessorContextRelease(SocketContext->DatapathPartition);
     }
     CxPlatSocketRelease(SocketContext->Binding);
+}
+
+void
+CxPlatSocketContextUninitializeEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SOCKET_CONTEXT* SocketContext =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+    CxPlatSocketContextUninitializeComplete(SocketContext);
 }
 
 void
@@ -2811,7 +2819,7 @@ CxPlatSocketGetTcpStatistics(
 }
 
 void
-CxPlatSocketContextProcessIoCompletion(
+CxPlatSocketContextIoEventComplete(
     _In_ CXPLAT_CQE* Cqe
     )
 {
