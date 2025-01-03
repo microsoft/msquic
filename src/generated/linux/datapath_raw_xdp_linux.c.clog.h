@@ -292,42 +292,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailRxAlloc );\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpPartitionShutdownComplete
-// [ xdp][%p] XDP partition shutdown complete
-// QuicTraceLogVerbose(
-        XdpPartitionShutdownComplete,
-        "[ xdp][%p] XDP partition shutdown complete",
-        Partition);
-// arg2 = arg2 = Partition = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
-#define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpQueueAsyncIoRxComplete
-// [ xdp][%p] XDP async IO complete (RX)
-// QuicTraceLogVerbose(
-        XdpQueueAsyncIoRxComplete,
-        "[ xdp][%p] XDP async IO complete (RX)",
-        Queue);
-// arg2 = arg2 = Queue = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
-#define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpInitialize
 // [ xdp][%p] XDP initialized, %u procs
 // QuicTraceLogVerbose(
@@ -572,6 +536,42 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, FailTxReserve );\
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdown
 #define _clog_3_ARGS_TRACE_XdpPartitionShutdown(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdown , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpPartitionShutdownComplete
+// [ xdp][%p] XDP partition shutdown complete
+// QuicTraceLogVerbose(
+        XdpPartitionShutdownComplete,
+        "[ xdp][%p] XDP partition shutdown complete",
+        Partition);
+// arg2 = arg2 = Partition = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
+#define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpPartitionShutdownComplete , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpQueueAsyncIoRxComplete
+// [ xdp][%p] XDP async IO complete (RX)
+// QuicTraceLogVerbose(
+        XdpQueueAsyncIoRxComplete,
+        "[ xdp][%p] XDP async IO complete (RX)",
+        Queue);
+// arg2 = arg2 = Queue = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
+#define _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_LINUX_C, XdpQueueAsyncIoRxComplete , arg2);\
 
 #endif
 
