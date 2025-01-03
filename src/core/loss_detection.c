@@ -933,6 +933,44 @@ QuicLossDetectionRetransmitFrames(
             break;
         }
 
+        case QUIC_FRAME_PATH_BACKUP: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].PATH_BACKUP.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                if (!PathID->Path->IsActive &&
+                    Packet->Frames[i].PATH_BACKUP.Sequence + 1 == PathID->StatusSendSeq) {
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_CONN_SEND_FLAG_PATH_BACKUP);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            }
+            break;
+        }
+
+        case QUIC_FRAME_PATH_AVAILABLE: {
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForLocal(
+                &Connection->PathIDs,
+                Packet->Frames[i].PATH_AVAILABLE.PathID,
+                &FatalError);
+            CXPLAT_DBG_ASSERT(!FatalError);
+            if (PathID != NULL) {
+                if (PathID->Path->IsActive &&
+                    Packet->Frames[i].PATH_AVAILABLE.Sequence + 1 == PathID->StatusSendSeq) {
+                    QuicSendSetSendFlag(
+                        &Connection->Send,
+                        QUIC_CONN_SEND_FLAG_PATH_AVAILABLE);
+                }
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            }
+            break;
+        }
+
         case QUIC_FRAME_MAX_PATH_ID:
             NewDataQueued |=
                 QuicSendSetSendFlag(

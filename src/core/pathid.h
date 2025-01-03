@@ -132,6 +132,11 @@ typedef struct QUIC_PATHID {
 #if DEBUG
     short RefTypeCount[QUIC_PATHID_REF_COUNT];
 #endif
+
+    uint64_t StatusSendSeq;
+
+    uint64_t StatusRecvSeq;
+
 } QUIC_PATHID;
 
 //

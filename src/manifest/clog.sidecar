@@ -5248,6 +5248,102 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogPathAvailable": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_AVAILABLE PathID:%llu SSN:0x%llX",
+      "UniqueId": "FrameLogPathAvailable",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathAvailableInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_AVAILABLE [Invalid]",
+      "UniqueId": "FrameLogPathAvailableInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathBackup": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_BACKUP PathID:%llu SSN:0x%llX",
+      "UniqueId": "FrameLogPathBackup",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathBackupInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_BACKUP [Invalid]",
+      "UniqueId": "FrameLogPathBackupInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogPathChallenge": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_CHALLENGE [%llu]",
@@ -6240,6 +6336,30 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicatePathAdded": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_ADDED",
+      "UniqueId": "IndicatePathAdded",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "IndicatePathStatusChanged": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED",
+      "UniqueId": "IndicatePathStatusChanged",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -15454,6 +15574,26 @@
         "EncodingString": "[%c][%cX][%llu]   PATH_ACK [Invalid]"
       },
       {
+        "UniquenessHash": "36f89342-6a41-e997-cb5d-8949b244bf83",
+        "TraceID": "FrameLogPathAvailable",
+        "EncodingString": "[%c][%cX][%llu]   PATH_AVAILABLE PathID:%llu SSN:0x%llX"
+      },
+      {
+        "UniquenessHash": "86763eb1-03df-f8c5-6fba-21b418914721",
+        "TraceID": "FrameLogPathAvailableInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_AVAILABLE [Invalid]"
+      },
+      {
+        "UniquenessHash": "be44b7ac-6457-8be3-7e64-2a58bf581a88",
+        "TraceID": "FrameLogPathBackup",
+        "EncodingString": "[%c][%cX][%llu]   PATH_BACKUP PathID:%llu SSN:0x%llX"
+      },
+      {
+        "UniquenessHash": "89498c5c-9a3b-214e-25bf-400c47d52895",
+        "TraceID": "FrameLogPathBackupInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_BACKUP [Invalid]"
+      },
+      {
         "UniquenessHash": "230959d3-aa58-0944-8287-6120bebac2f0",
         "TraceID": "FrameLogPathChallenge",
         "EncodingString": "[%c][%cX][%llu]   PATH_CHALLENGE [%llu]"
@@ -15687,6 +15827,16 @@
         "UniquenessHash": "f3e73807-c52c-8b02-e3e2-9db446cb267c",
         "TraceID": "IndicateOneWayDelayNegotiated",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED [Send=%hhu,Recv=%hhu]"
+      },
+      {
+        "UniquenessHash": "e59e9b10-d76e-af58-77ce-02c0a4aed7b8",
+        "TraceID": "IndicatePathAdded",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_ADDED"
+      },
+      {
+        "UniquenessHash": "ce9f8559-14a7-f7ea-79d0-d66df91fb31b",
+        "TraceID": "IndicatePathStatusChanged",
+        "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED"
       },
       {
         "UniquenessHash": "446a0073-26fb-eed7-4ed4-fa9838fbd654",

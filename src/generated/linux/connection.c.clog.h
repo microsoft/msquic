@@ -1289,6 +1289,42 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePathAdded
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_ADDED
+// QuicTraceLogConnVerbose(
+                            IndicatePathAdded,
+                            Connection,
+                            "Indicating QUIC_CONNECTION_EVENT_PATH_ADDED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathAdded
+#define _clog_3_ARGS_TRACE_IndicatePathAdded(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathAdded , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicatePathStatusChanged
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED
+// QuicTraceLogConnVerbose(
+                    IndicatePathStatusChanged,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathStatusChanged
+#define _clog_3_ARGS_TRACE_IndicatePathStatusChanged(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathStatusChanged , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerAddrChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
 // QuicTraceLogConnVerbose(

@@ -101,6 +101,8 @@ typedef struct QUIC_PATH {
     //
     BOOLEAN SendResponse : 1;
 
+    BOOLEAN SendStatus : 1;
+
     BOOLEAN LocalClose : 1;
     BOOLEAN LocalCloseAcked : 1;
 

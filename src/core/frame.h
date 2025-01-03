@@ -185,8 +185,7 @@ CXPLAT_STATIC_ASSERT(
       X == QUIC_FRAME_TIMESTAMP || \
      (X >= QUIC_FRAME_PATH_ACK && X <= QUIC_FRAME_PATH_ACK_1) || \
       X == QUIC_FRAME_PATH_ABANDON || \
-      X == QUIC_FRAME_PATH_NEW_CONNECTION_ID || \
-      X == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID || \
+     (X >= QUIC_FRAME_PATH_BACKUP && X <= QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) || \
       X == QUIC_FRAME_MAX_PATH_ID \
     )
 
@@ -805,6 +804,68 @@ QuicPathAbandonFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_PATH_ABANDON_EX* Frame
+    );
+
+//
+// QUIC_FRAME_PATH_BACKUP Encoding/Decoding
+//
+
+typedef struct QUIC_PATH_BACKUP_EX {
+
+    QUIC_VAR_INT PathID;
+    QUIC_VAR_INT StatusSequenceNumber;
+
+} QUIC_PATH_BACKUP_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathBackupFrameEncode(
+    _In_ const QUIC_PATH_BACKUP_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathBackupFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_BACKUP_EX* Frame
+    );
+
+//
+// QUIC_FRAME_PATH_AVAILABLE Encoding/Decoding
+//
+
+typedef struct QUIC_PATH_AVAILABLE_EX {
+
+    QUIC_VAR_INT PathID;
+    QUIC_VAR_INT StatusSequenceNumber;
+
+} QUIC_PATH_AVAILABLE_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameEncode(
+    _In_ const QUIC_PATH_AVAILABLE_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_AVAILABLE_EX* Frame
     );
 
 //

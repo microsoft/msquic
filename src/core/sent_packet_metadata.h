@@ -64,6 +64,14 @@ typedef struct QUIC_SENT_FRAME_METADATA {
             uint32_t PathID;
         } PATH_ABANDON;
         struct {
+            uint32_t PathID;
+            QUIC_VAR_INT Sequence;
+        } PATH_BACKUP;
+        struct {
+            uint32_t PathID;
+            QUIC_VAR_INT Sequence;
+        } PATH_AVAILABLE;
+        struct {
             void* ClientContext;
         } DATAGRAM;
         struct {

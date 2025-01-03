@@ -679,6 +679,92 @@ QuicSendWriteFrames(
         }
     }
 
+    if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_BACKUP) {
+
+        uint8_t i;
+        for (i = 0; i < Connection->PathsCount; ++i) {
+            QUIC_PATH* TempPath = &Connection->Paths[i];
+            if (!TempPath->SendStatus) {
+                continue;
+            }
+            if (TempPath->IsActive) {
+                continue;
+            }
+
+            QUIC_PATH_BACKUP_EX Frame = { TempPath->PathID->ID, TempPath->PathID->StatusSendSeq++ };
+
+            if (QuicPathBackupFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                TempPath->SendStatus = FALSE;
+                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_BACKUP.PathID =
+                    (uint32_t)Frame.PathID;
+                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_BACKUP.Sequence =
+                    (uint32_t)Frame.StatusSequenceNumber;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATH_BACKUP, TRUE)) {
+                    break;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+                break;
+            }
+        }
+
+        if (i == Connection->PathsCount) {
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_BACKUP;
+        }
+
+        if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+            return TRUE;
+        }
+    }
+
+    if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_AVAILABLE) {
+
+        uint8_t i;
+        for (i = 0; i < Connection->PathsCount; ++i) {
+            QUIC_PATH* TempPath = &Connection->Paths[i];
+            if (!TempPath->SendStatus) {
+                continue;
+            }
+            if (!TempPath->IsActive) {
+                continue;
+            }
+
+            QUIC_PATH_AVAILABLE_EX Frame = { TempPath->PathID->ID, TempPath->PathID->StatusSendSeq++ };
+
+            if (QuicPathAvailableFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                TempPath->SendStatus = FALSE;
+                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_AVAILABLE.PathID =
+                    (uint32_t)Frame.PathID;
+                Builder->Metadata->Frames[Builder->Metadata->FrameCount].PATH_AVAILABLE.Sequence =
+                    (uint32_t)Frame.StatusSequenceNumber;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATH_AVAILABLE, TRUE)) {
+                    break;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+                break;
+            }
+        }
+
+        if (i == Connection->PathsCount) {
+            Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_AVAILABLE;
+        }
+
+        if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
+            return TRUE;
+        }
+    }
+
     if (Is1RttEncryptionLevel) {
         if (Builder->Metadata->Flags.KeyType == QUIC_PACKET_KEY_1_RTT &&
             Send->SendFlags & QUIC_CONN_SEND_FLAG_HANDSHAKE_DONE) {

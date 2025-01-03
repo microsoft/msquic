@@ -626,6 +626,13 @@ typedef struct QUIC_VERSION_SETTINGS {
     uint32_t FullyDeployedVersionsLength;
 
 } QUIC_VERSION_SETTINGS;
+
+typedef struct QUIC_PATH_STATUS {
+    QUIC_ADDR PeerAddress;
+    QUIC_ADDR LocalAddress;
+    uint32_t PathId;
+    BOOLEAN Active;
+} QUIC_PATH_STATUS;
 #endif
 
 typedef struct QUIC_GLOBAL_SETTINGS {
@@ -927,6 +934,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS               0x05000019  // QUIC_ADDR
 #define QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS            0x0500001A  // QUIC_ADDR
+#define QUIC_PARAM_CONN_PATH_STATUS                     0x0500001B  // QUIC_PATH_STATUS 
 #endif
 
 //
@@ -1185,6 +1193,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
     QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_ADDED                        = 19,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_REMOVED                      = 20,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED               = 21,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1275,6 +1286,22 @@ typedef struct QUIC_CONNECTION_EVENT {
            uint32_t CongestionWindow;           // Congestion Window
            uint64_t Bandwidth;                  // Estimated bandwidth
         } NETWORK_STATISTICS;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_ADDED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_REMOVED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+            BOOLEAN IsActive;
+        } PATH_STATUS_CHANGED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

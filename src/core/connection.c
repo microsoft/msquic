@@ -4711,6 +4711,17 @@ QuicConnRecvFrames(
                     QuicPathSetValid(Connection, TempPath, QUIC_PATH_VALID_PATH_RESPONSE);
                     if (Connection->State.MultipathNegotiated) {
                         QuicPathSetActive(Connection, TempPath);
+
+                        QUIC_CONNECTION_EVENT Event;
+                        Event.Type = QUIC_CONNECTION_EVENT_PATH_ADDED;
+                        Event.PATH_ADDED.PeerAddress = &TempPath->Route.RemoteAddress;
+                        Event.PATH_ADDED.LocalAddress = &TempPath->Route.LocalAddress;
+                        Event.PATH_ADDED.PathId = TempPath->PathID->ID;
+                        QuicTraceLogConnVerbose(
+                            IndicatePathAdded,
+                            Connection,
+                            "Indicating QUIC_CONNECTION_EVENT_PATH_ADDED");
+                        (void)QuicConnIndicateEvent(Connection, &Event);
                     }
                     break;
                 }
@@ -4781,6 +4792,134 @@ QuicConnRecvFrames(
                     QUIC_CONN_TIMER_PATH_CLOSE,
                     ThreePto,
                     TimeNow);
+            }
+
+            AckEliciting = TRUE;
+            QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            break;
+        }
+
+        case QUIC_FRAME_PATH_BACKUP: {
+            if (!Connection->State.MultipathNegotiated) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received PATH_BACKUP frame when not negotiated");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+            QUIC_PATH_BACKUP_EX Frame;
+            if (!QuicPathBackupFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding PATH_BACKUP frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Closed) {
+                break; // Ignore frame if we are closed.
+            }
+
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForPeer(
+                &Connection->PathIDs,
+                (uint32_t)Frame.PathID,
+                FALSE,
+                &FatalError);
+            if (PathID == NULL) {
+                break;
+            }
+            CXPLAT_DBG_ASSERT(PathID->Path != NULL);
+
+            if (Frame.StatusSequenceNumber < PathID->StatusRecvSeq) {
+                // ignore the frame
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+                break;
+            }
+            PathID->StatusRecvSeq = Frame.StatusSequenceNumber + 1;
+
+            if (PathID->Path->IsActive) {
+                // Change status of the path to backup
+                PathID->Path->IsActive = FALSE;
+                QUIC_CONNECTION_EVENT Event;
+                Event.Type = QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED;
+                Event.PATH_STATUS_CHANGED.PeerAddress = &PathID->Path->Route.RemoteAddress;
+                Event.PATH_STATUS_CHANGED.LocalAddress = &PathID->Path->Route.LocalAddress;
+                Event.PATH_STATUS_CHANGED.PathId = PathID->ID;
+                Event.PATH_STATUS_CHANGED.IsActive = FALSE;
+                QuicTraceLogConnVerbose(
+                    IndicatePathStatusChanged,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED");
+                (void)QuicConnIndicateEvent(Connection, &Event);
+            }
+
+            AckEliciting = TRUE;
+            QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+            break;
+        }
+
+        case QUIC_FRAME_PATH_AVAILABLE: {
+            if (!Connection->State.MultipathNegotiated) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Received PATH_AVAILABLE frame when not negotiated");
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                return FALSE;
+            }
+            QUIC_PATH_AVAILABLE_EX Frame;
+            if (!QuicPathAvailableFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding PATH_AVAILABLE frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Closed) {
+                break; // Ignore frame if we are closed.
+            }
+
+            BOOLEAN FatalError = FALSE;
+            QUIC_PATHID *PathID = QuicPathIDSetGetPathIDForPeer(
+                &Connection->PathIDs,
+                (uint32_t)Frame.PathID,
+                FALSE,
+                &FatalError);
+            if (PathID == NULL) {
+                break;
+            }
+            CXPLAT_DBG_ASSERT(PathID->Path != NULL);
+
+            if (Frame.StatusSequenceNumber < PathID->StatusRecvSeq) {
+                // ignore the frame
+                QuicPathIDRelease(PathID, QUIC_PATHID_REF_LOOKUP);
+                break;
+            }
+            PathID->StatusRecvSeq = Frame.StatusSequenceNumber + 1;
+
+            if (!PathID->Path->IsActive) {
+                // Change status of the path to available (active)
+                PathID->Path->IsActive = TRUE;
+                QUIC_CONNECTION_EVENT Event;
+                Event.Type = QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED;
+                Event.PATH_STATUS_CHANGED.PeerAddress = &PathID->Path->Route.RemoteAddress;
+                Event.PATH_STATUS_CHANGED.LocalAddress = &PathID->Path->Route.LocalAddress;
+                Event.PATH_STATUS_CHANGED.PathId = PathID->ID;
+                Event.PATH_STATUS_CHANGED.IsActive = TRUE;
+                QuicTraceLogConnVerbose(
+                    IndicatePathStatusChanged,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED");
+                (void)QuicConnIndicateEvent(Connection, &Event);
             }
 
             AckEliciting = TRUE;
@@ -6737,6 +6876,49 @@ QuicConnParamSet(
         break;
     }
 
+    case QUIC_PARAM_CONN_PATH_STATUS:
+        if (BufferLength != sizeof(QUIC_PATH_STATUS)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (!Connection->State.MultipathNegotiated) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        QUIC_PATH_STATUS* PathStatus = (QUIC_PATH_STATUS*)Buffer;
+        QUIC_PATH* Path = NULL;
+        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+            if (QuicAddrCompare(
+                    &PathStatus->LocalAddress,
+                    &Connection->Paths[i].Route.LocalAddress) &&
+                QuicAddrCompare(
+                    &PathStatus->PeerAddress,
+                    &Connection->Paths[i].Route.RemoteAddress) &&
+                PathStatus->PathId == Connection->Paths[i].PathID->ID) {
+                Path = &Connection->Paths[i];
+                break;
+            }
+        }
+
+        if (Path == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        BOOLEAN PrevIsActive = Path->IsActive;
+        Path->IsActive = PathStatus->Active;
+        if (PrevIsActive != Path->IsActive) {
+            Path->SendStatus = TRUE;
+            if (Path->IsActive) {
+                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_AVAILABLE);
+            } else {
+                QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_BACKUP);
+            }
+        }
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     //
     // Private
     //
@@ -7378,6 +7560,37 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_CONN_PATH_STATUS:
+        if (*BufferLength < sizeof(QUIC_PATH_STATUS)) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = sizeof(QUIC_PATH_STATUS);
+            break;
+        }
+        QUIC_PATH_STATUS* PathStatus = (QUIC_PATH_STATUS*)Buffer;
+        QUIC_PATH* Path = NULL;
+        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+            if (QuicAddrCompare(
+                    &PathStatus->LocalAddress,
+                    &Connection->Paths[i].Route.LocalAddress) &&
+                QuicAddrCompare(
+                    &PathStatus->PeerAddress,
+                    &Connection->Paths[i].Route.RemoteAddress) &&
+                PathStatus->PathId == Connection->Paths[i].PathID->ID) {
+                Path = &Connection->Paths[i];
+                break;
+            }
+        }
+
+        if (Path == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        PathStatus->Active = Path->IsActive;
+
+        *BufferLength = sizeof(QUIC_PATH_STATUS);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

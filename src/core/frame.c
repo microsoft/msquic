@@ -1201,6 +1201,96 @@ QuicPathAbandonFrameDecode(
 
 _Success_(return != FALSE)
 BOOLEAN
+QuicPathBackupFrameEncode(
+    _In_ const QUIC_PATH_BACKUP_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_BACKUP) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->StatusSequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_BACKUP, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->StatusSequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathBackupFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_BACKUP_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StatusSequenceNumber)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameEncode(
+    _In_ const QUIC_PATH_AVAILABLE_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_PATH_AVAILABLE) +     // Type
+        QuicVarIntSize(Frame->PathID) +
+        QuicVarIntSize(Frame->StatusSequenceNumber);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_PATH_AVAILABLE, Buffer);
+    Buffer = QuicVarIntEncode(Frame->PathID, Buffer);
+    QuicVarIntEncode(Frame->StatusSequenceNumber, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathAvailableFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_AVAILABLE_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->PathID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StatusSequenceNumber)) {
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
 QuicMaxPathIDFrameEncode(
     _In_ const QUIC_MAX_PATH_ID_EX * const Frame,
     _Inout_ uint16_t* Offset,
@@ -2121,6 +2211,52 @@ QuicFrameLog(
             PacketNumber,
             Frame.PathID,
             Frame.ErrorCode);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_BACKUP: {
+        QUIC_PATH_BACKUP_EX Frame;
+        if (!QuicPathBackupFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathBackupInvalid,
+                "[%c][%cX][%llu]   PATH_BACKUP [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathBackup,
+            "[%c][%cX][%llu]   PATH_BACKUP PathID:%llu SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.StatusSequenceNumber);
+        break;
+    }
+
+    case QUIC_FRAME_PATH_AVAILABLE: {
+        QUIC_PATH_AVAILABLE_EX Frame;
+        if (!QuicPathAvailableFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogPathAvailableInvalid,
+                "[%c][%cX][%llu]   PATH_AVAILABLE [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogPathAvailable,
+            "[%c][%cX][%llu]   PATH_AVAILABLE PathID:%llu SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.StatusSequenceNumber);
         break;
     }
 
