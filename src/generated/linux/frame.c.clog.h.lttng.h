@@ -1479,26 +1479,24 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequencyInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for FrameLogAckFrequency
-// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu
+// [%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu AckElicitThreshold:%llu MaxAckDelay:%llu ReorderThreshold:%llu
 // QuicTraceLogVerbose(
             FrameLogAckFrequency,
-            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+            "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu AckElicitThreshold:%llu MaxAckDelay:%llu ReorderThreshold:%llu",
             PtkConnPre(Connection),
             PktRxPre(Rx),
             PacketNumber,
             Frame.SequenceNumber,
-            Frame.PacketTolerance,
-            Frame.UpdateMaxAckDelay,
-            Frame.IgnoreOrder,
-            Frame.IgnoreCE);
+            Frame.AckElicitingThreshold,
+            Frame.RequestedMaxAckDelay,
+            Frame.ReorderingThreshold);
 // arg2 = arg2 = PtkConnPre(Connection) = arg2
 // arg3 = arg3 = PktRxPre(Rx) = arg3
 // arg4 = arg4 = PacketNumber = arg4
 // arg5 = arg5 = Frame.SequenceNumber = arg5
-// arg6 = arg6 = Frame.PacketTolerance = arg6
-// arg7 = arg7 = Frame.UpdateMaxAckDelay = arg7
-// arg8 = arg8 = Frame.IgnoreOrder = arg8
-// arg9 = arg9 = Frame.IgnoreCE = arg9
+// arg6 = arg6 = Frame.AckElicitingThreshold = arg6
+// arg7 = arg7 = Frame.RequestedMaxAckDelay = arg7
+// arg8 = arg8 = Frame.ReorderingThreshold = arg8
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
     TP_ARGS(
@@ -1508,8 +1506,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         unsigned long long, arg5,
         unsigned long long, arg6,
         unsigned long long, arg7,
-        unsigned char, arg8,
-        unsigned char, arg9), 
+        unsigned long long, arg8), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1517,8 +1514,7 @@ TRACEPOINT_EVENT(CLOG_FRAME_C, FrameLogAckFrequency,
         ctf_integer(uint64_t, arg5, arg5)
         ctf_integer(uint64_t, arg6, arg6)
         ctf_integer(uint64_t, arg7, arg7)
-        ctf_integer(unsigned char, arg8, arg8)
-        ctf_integer(unsigned char, arg9, arg9)
+        ctf_integer(uint64_t, arg8, arg8)
     )
 )
 

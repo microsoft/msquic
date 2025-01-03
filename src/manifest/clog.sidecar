@@ -4306,7 +4306,7 @@
     },
     "FrameLogAckFrequency": {
       "ModuleProperites": {},
-      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu",
+      "TraceString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu AckElicitThreshold:%llu MaxAckDelay:%llu ReorderThreshold:%llu",
       "UniqueId": "FrameLogAckFrequency",
       "splitArgs": [
         {
@@ -4334,12 +4334,8 @@
           "MacroVariableName": "arg7"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "llu",
           "MacroVariableName": "arg8"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg9"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -14709,9 +14705,9 @@
         "EncodingString": "[%c][%cX][%llu]     ECN [Invalid]"
       },
       {
-        "UniquenessHash": "7470e68a-8ad6-563a-4957-76dc22e5deeb",
+        "UniquenessHash": "92b3c109-06f5-8316-5792-593a28f376c3",
         "TraceID": "FrameLogAckFrequency",
-        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu PktTolerance:%llu MaxAckDelay:%llu IgnoreOrder:%hhu IgnoreCE:%hhu"
+        "EncodingString": "[%c][%cX][%llu]   ACK_FREQUENCY SeqNum:%llu AckElicitThreshold:%llu MaxAckDelay:%llu ReorderThreshold:%llu"
       },
       {
         "UniquenessHash": "262b3f95-1062-851d-c2d8-c46867da793b",
