@@ -1237,7 +1237,7 @@ CxPlatEventQEnqueueEx(
     _In_ unsigned short flags,
     )
 {
-    struct kevent event = {.ident = sqe->Handle, .filter = filter, .flags = a, .fflags = 0, .data = 0, .udata = sqe};
+    struct kevent event = {.ident = sqe->Handle, .filter = filter, .flags = flags, .fflags = 0, .data = 0, .udata = sqe};
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
