@@ -560,46 +560,121 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid
+    _In_ QUIC_CID_SLIST_ENTRY* SourceCid
     )
 {
     return QuicLookupAddLocalCid(&Binding->Lookup, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicBindingAddAllSourceConnectionIDs(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    BOOLEAN Success = TRUE;
+
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
+
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        if (Success) {
+            for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+                Link != NULL;
+                Link = Link->Next) {
+
+                QUIC_CID_SLIST_ENTRY* Entry =
+                    CXPLAT_CONTAINING_RECORD(
+                        Link,
+                        QUIC_CID_SLIST_ENTRY,
+                        Link);
+                if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
+                    Success = FALSE;
+                    break;
+                }
+            }
+        }
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
+    }
+
+    return Success;
+}
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingRemoveSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
-    _In_ QUIC_CID_HASH_ENTRY* SourceCid,
-    _In_ CXPLAT_SLIST_ENTRY** Entry
+    _In_ QUIC_CID_HASH_ENTRY* SourceCid
     )
 {
-    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid, Entry);
+    QuicLookupRemoveLocalCid(&Binding->Lookup, SourceCid);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicBindingRemoveConnection(
+QuicBindingRemoveAllSourceConnectionIDs(
     _In_ QUIC_BINDING* Binding,
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    if (Connection->RemoteHashEntry != NULL) {
-        QuicLookupRemoveRemoteHash(&Binding->Lookup, Connection->RemoteHashEntry);
+    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
+    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
+    QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
+
+    for (uint8_t i = 0; i < PathIDCount; i++) {
+        CXPLAT_SLIST_ENTRY EntriesToFree = {0};
+
+        for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
+            Link != NULL;
+            Link = Link->Next) {
+
+            QUIC_CID_SLIST_ENTRY* Entry =
+                CXPLAT_CONTAINING_RECORD(
+                    Link,
+                    QUIC_CID_SLIST_ENTRY,
+                    Link);
+
+            CXPLAT_SLIST_ENTRY** Link1 = &Entry->HashEntries.Next;
+            while (*Link1 != NULL) {
+                QUIC_CID_HASH_ENTRY* Entry1 = 
+                    CXPLAT_CONTAINING_RECORD(
+                        *Link1,
+                        QUIC_CID_HASH_ENTRY,
+                        Link);
+                if (Entry1->Binding == Binding) {
+                    QuicBindingRemoveSourceConnectionID(Binding, Entry1);
+                    *Link1 = (*Link1)->Next;
+                    CxPlatListPushEntry(&EntriesToFree, &Entry1->Link);
+                } else {
+                    Link1 = &(*Link1)->Next;
+                }
+            }
+        }
+
+        while (EntriesToFree.Next != NULL) {
+            QUIC_CID_HASH_ENTRY* Entry = 
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListPopEntry(&EntriesToFree),
+                    QUIC_CID_HASH_ENTRY,
+                    Link);
+            CXPLAT_FREE(Entry, QUIC_POOL_CIDHASH);
+        }
+
+        QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
     }
-    QuicLookupRemoveLocalCids(&Binding->Lookup, Connection);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicBindingMoveSourceConnectionIDs(
-    _In_ QUIC_BINDING* BindingSrc,
-    _In_ QUIC_BINDING* BindingDest,
-    _In_ QUIC_CONNECTION* Connection
+QuicBindingRemoveRemoteHash(
+    _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_REMOTE_HASH_ENTRY* RemoteHashEntry
     )
 {
-    QuicLookupMoveLocalConnectionIDs(
-        &BindingSrc->Lookup, &BindingDest->Lookup, Connection);
+    QuicLookupRemoveRemoteHash(&Binding->Lookup, RemoteHashEntry);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1281,11 +1356,11 @@ QuicBindingCreateConnection(
     }
 
     BOOLEAN BindingRefAdded = FALSE;
-    CXPLAT_DBG_ASSERT(NewConnection->SourceCids.Next != NULL);
-    QUIC_CID_HASH_ENTRY* SourceCid =
+    CXPLAT_DBG_ASSERT(NewConnection->Paths[0].PathID->SourceCids.Next != NULL);
+    QUIC_CID_SLIST_ENTRY* SourceCid =
         CXPLAT_CONTAINING_RECORD(
-            NewConnection->SourceCids.Next,
-            QUIC_CID_HASH_ENTRY,
+            NewConnection->Paths[0].PathID->SourceCids.Next,
+            QUIC_CID_SLIST_ENTRY,
             Link);
 
     QuicConnAddRef(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
@@ -1320,6 +1395,8 @@ QuicBindingCreateConnection(
         }
         goto Exit;
     }
+    CXPLAT_DBG_ASSERT(NewConnection->RemoteHashEntry != NULL);
+    NewConnection->RemoteHashEntry->Binding = Binding;
 
     QuicWorkerQueueConnection(NewConnection->Worker, NewConnection);
 
@@ -1352,8 +1429,8 @@ Exit:
 #pragma warning(pop)
 
     } else {
-        NewConnection->SourceCids.Next = NULL;
-        CXPLAT_FREE(SourceCid, QUIC_POOL_CIDHASH);
+        NewConnection->Paths[0].PathID->SourceCids.Next = NULL;
+        CXPLAT_FREE(SourceCid, QUIC_POOL_CIDSLIST);
         QuicConnRelease(NewConnection, QUIC_CONN_REF_LOOKUP_RESULT);
 #pragma prefast(suppress:6001, "SAL doesn't understand ref counts")
         QuicConnRelease(NewConnection, QUIC_CONN_REF_HANDLE_OWNER);
@@ -1454,14 +1531,16 @@ QuicBindingDeliverPackets(
             QuicLookupFindConnectionByLocalCid(
                 &Binding->Lookup,
                 Packets->DestCid,
-                Packets->DestCidLen);
+                Packets->DestCidLen,
+                &Packets->PathId);
     } else {
         Connection =
             QuicLookupFindConnectionByRemoteHash(
                 &Binding->Lookup,
                 &Packets->Route->RemoteAddress,
                 Packets->SourceCidLen,
-                Packets->SourceCid);
+                Packets->SourceCid,
+                &Packets->PathId);
     }
 
     if (Connection == NULL) {

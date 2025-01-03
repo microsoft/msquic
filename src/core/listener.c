@@ -717,7 +717,7 @@ QuicListenerAcceptConnection(
             Connection->CibirId[1]);
     }
 
-    if (!QuicConnGenerateNewSourceCid(Connection, TRUE)) {
+    if (!QuicPathIDGenerateNewSourceCid(Connection->Paths[0].PathID, TRUE)) {
         return;
     }
 

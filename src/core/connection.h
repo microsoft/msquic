@@ -189,6 +189,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN TimestampRecvNegotiated : 1;
 
         //
+        // Multipath extension has been negotiated.
+        //
+        BOOLEAN MultipathNegotiated : 1;
+
+        //
         // Indicates we received APPLICATION_ERROR transport error and are checking also
         // later packets in case they contain CONNECTION_CLOSE frame with application-layer error.
         //
@@ -208,6 +213,14 @@ typedef union QUIC_CONNECTION_STATE {
         //
         BOOLEAN DisableVneTp : 1;
 #endif
+
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+        //
+        // Whether to disable automatic generation of Connection ID.
+        // Only used for testing, and thus only enabled for debug builds.
+        //
+        BOOLEAN DisableConnIDGen : 1;
+#endif
     };
 } QUIC_CONNECTION_STATE;
 
@@ -225,6 +238,7 @@ typedef enum QUIC_CONNECTION_REF {
     QUIC_CONN_REF_TIMER_WHEEL,          // The timer wheel is tracking the connection.
     QUIC_CONN_REF_ROUTE,                // Route resolution is undergoing.
     QUIC_CONN_REF_STREAM,               // A stream depends on the connection.
+    QUIC_CONN_REF_PATHID,               // A path id depends on the connection.
 
     QUIC_CONN_REF_COUNT
 
@@ -389,22 +403,6 @@ typedef struct QUIC_CONNECTION {
     uint16_t PartitionID;
 
     //
-    // Number of non-retired desintation CIDs we currently have cached.
-    //
-    uint8_t DestCidCount;
-
-    //
-    // Number of retired desintation CIDs we currently have cached.
-    //
-    uint8_t RetiredDestCidCount;
-
-    //
-    // The maximum number of source CIDs to give the peer. This is a minimum of
-    // what we're willing to support and what the peer is willing to accept.
-    //
-    uint8_t SourceCidLimit;
-
-    //
     // Number of paths the connection is currently tracking.
     //
     _Field_range_(0, QUIC_MAX_PATH_COUNT)
@@ -473,32 +471,11 @@ typedef struct QUIC_CONNECTION {
     uint64_t NextRecvAckFreqSeqNum;
 
     //
-    // The sequence number to use for the next source CID.
-    //
-    QUIC_VAR_INT NextSourceCidSequenceNumber;
-
-    //
-    // The most recent Retire Prior To field received in a NEW_CONNECTION_ID
-    // frame.
-    //
-    QUIC_VAR_INT RetirePriorTo;
-
-    //
     // Per-path state. The first entry in the list is the active path. All the
     // rest (if any) are other tracked paths, sorted from most to least recently
     // used.
     //
     QUIC_PATH Paths[QUIC_MAX_PATH_COUNT];
-
-    //
-    // The list of connection IDs used for receiving.
-    //
-    CXPLAT_SLIST_ENTRY SourceCids;
-
-    //
-    // The list of connection IDs used for sending. Given to us by the peer.
-    //
-    CXPLAT_LIST_ENTRY DestCids;
 
     //
     // The original CID used by the Client in its first Initial packet.
@@ -585,21 +562,6 @@ typedef struct QUIC_CONNECTION {
     QUIC_STREAM_SET Streams;
 
     //
-    // Congestion control state.
-    //
-    QUIC_CONGESTION_CONTROL CongestionControl;
-
-    //
-    // Manages all the information for outstanding sent packets.
-    //
-    QUIC_LOSS_DETECTION LossDetection;
-
-    //
-    // Per-encryption level packet space information.
-    //
-    QUIC_PACKET_SPACE* Packets[QUIC_ENCRYPT_LEVEL_COUNT];
-
-    //
     // Manages the stream of cryptographic TLS data sent and received.
     //
     QUIC_CRYPTO Crypto;
@@ -668,6 +630,8 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
+
+    QUIC_PATHID_SET PathIDs;
 
 } QUIC_CONNECTION;
 
@@ -784,12 +748,12 @@ QuicSendGetConnection(
 //
 inline
 _Ret_notnull_
-QUIC_CONNECTION*
-QuicCongestionControlGetConnection(
+QUIC_PATHID*
+QuicCongestionControlGetPathID(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    return CXPLAT_CONTAINING_RECORD(Cc, QUIC_CONNECTION, CongestionControl);
+    return CXPLAT_CONTAINING_RECORD(Cc, QUIC_PATHID, CongestionControl);
 }
 
 //
@@ -797,12 +761,12 @@ QuicCongestionControlGetConnection(
 //
 inline
 _Ret_notnull_
-QUIC_CONNECTION*
-QuicLossDetectionGetConnection(
+QUIC_PATHID*
+QuicLossDetectionGetPathID(
     _In_ QUIC_LOSS_DETECTION* LossDetection
     )
 {
-    return CXPLAT_CONTAINING_RECORD(LossDetection, QUIC_CONNECTION, LossDetection);
+    return CXPLAT_CONTAINING_RECORD(LossDetection, QUIC_PATHID, LossDetection);
 }
 
 //
@@ -818,28 +782,41 @@ QuicDatagramGetConnection(
     return CXPLAT_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
 }
 
+//
+// Helper to get the owning QUIC_CONNECTION for the stream set module.
+//
+inline
+_Ret_notnull_
+QUIC_CONNECTION*
+QuicPathIDSetGetConnection(
+    _In_ QUIC_PATHID_SET* PathIDSet
+    )
+{
+    return CXPLAT_CONTAINING_RECORD(PathIDSet, QUIC_CONNECTION, PathIDs);
+}
+
 inline
 void
 QuicConnLogOutFlowStats(
-    _In_ const QUIC_CONNECTION* const Connection
+    _In_ const QUIC_PATHID* const PathID
     )
 {
     if (!QuicTraceEventEnabled(ConnOutFlowStats)) {
         return;
     }
 
-    QuicCongestionControlLogOutFlowStatus(&Connection->CongestionControl);
+    QuicCongestionControlLogOutFlowStatus(&PathID->CongestionControl);
 
     uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
-        &Connection->Streams,
+        &PathID->Connection->Streams,
         &FcAvailable,
         &SendWindow);
 
     QuicTraceEvent(
         ConnOutFlowStreamStats,
         "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
-        Connection,
+        PathID->Connection,
         FcAvailable,
         SendWindow);
 }
@@ -876,8 +853,8 @@ QuicConnLogStatistics(
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
-        Connection->CongestionControl.Name,
+        QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl),
+        Path->PathID->CongestionControl.Name,
         Connection->Stats.Send.EcnCongestionCount);
 
     QuicTraceEvent(
@@ -1183,136 +1160,6 @@ QuicConnQueueHighestPriorityOper(
     _In_ QUIC_OPERATION* Oper
     );
 
-//
-// Generates a new source connection ID.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_CID_HASH_ENTRY*
-QuicConnGenerateNewSourceCid(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN IsInitial
-    );
-
-//
-// Generates any necessary source CIDs.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicConnGenerateNewSourceCids(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ BOOLEAN ReplaceExistingCids
-    );
-
-//
-// Retires the currently used destination connection ID.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicConnRetireCurrentDestCid(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_PATH* Path
-    );
-
-//
-// Look up a source CID by sequence number.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-inline
-QUIC_CID_HASH_ENTRY*
-QuicConnGetSourceCidFromSeq(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_VAR_INT SequenceNumber,
-    _In_ BOOLEAN RemoveFromList,
-    _Out_ BOOLEAN* IsLastCid
-    )
-{
-    for (CXPLAT_SLIST_ENTRY** Entry = &Connection->SourceCids.Next;
-            *Entry != NULL;
-            Entry = &(*Entry)->Next) {
-        QUIC_CID_HASH_ENTRY* SourceCid =
-            CXPLAT_CONTAINING_RECORD(
-                *Entry,
-                QUIC_CID_HASH_ENTRY,
-                Link);
-        if (SourceCid->CID.SequenceNumber == SequenceNumber) {
-            if (RemoveFromList) {
-                QuicBindingRemoveSourceConnectionID(
-                    Connection->Paths[0].Binding,
-                    SourceCid,
-                    Entry);
-                QuicTraceEvent(
-                    ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                    Connection,
-                    SourceCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-            }
-            *IsLastCid = Connection->SourceCids.Next == NULL;
-            return SourceCid;
-        }
-    }
-    return NULL;
-}
-
-//
-// Look up a source CID by data buffer.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-QUIC_CID_HASH_ENTRY*
-QuicConnGetSourceCidFromBuf(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ uint8_t CidLength,
-    _In_reads_(CidLength)
-        const uint8_t* CidBuffer
-    )
-{
-    for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
-            Entry != NULL;
-            Entry = Entry->Next) {
-        QUIC_CID_HASH_ENTRY* SourceCid =
-            CXPLAT_CONTAINING_RECORD(
-                Entry,
-                QUIC_CID_HASH_ENTRY,
-                Link);
-        if (CidLength == SourceCid->CID.Length &&
-            memcmp(CidBuffer, SourceCid->CID.Data, CidLength) == 0) {
-            return SourceCid;
-        }
-    }
-    return NULL;
-}
-
-//
-// Look up a source CID by sequence number.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-QUIC_CID_LIST_ENTRY*
-QuicConnGetDestCidFromSeq(
-    _In_ QUIC_CONNECTION* Connection,
-    _In_ QUIC_VAR_INT SequenceNumber,
-    _In_ BOOLEAN RemoveFromList
-    )
-{
-    for (CXPLAT_LIST_ENTRY* Entry = Connection->DestCids.Flink;
-            Entry != &Connection->DestCids;
-            Entry = Entry->Flink) {
-        QUIC_CID_LIST_ENTRY* DestCid =
-            CXPLAT_CONTAINING_RECORD(
-                Entry,
-                QUIC_CID_LIST_ENTRY,
-                Link);
-        if (DestCid->CID.SequenceNumber == SequenceNumber) {
-            if (RemoveFromList) {
-                CxPlatListEntryRemove(Entry);
-            }
-            return DestCid;
-        }
-    }
-    return NULL;
-}
 
 //
 // Adds a sample (in microsec) to the connection's RTT estimator.
@@ -1596,6 +1443,31 @@ void
 QuicConnUpdatePeerPacketTolerance(
     _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t NewPacketTolerance
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnAssignPathIDs(
+    _In_ QUIC_CONNECTION* Connection
+    );
+
+//
+// Open a new path for the connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnOpenNewPath(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATH* Path
+    );
+
+//
+// Open new paths for the connection.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicConnOpenNewPaths(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 //
