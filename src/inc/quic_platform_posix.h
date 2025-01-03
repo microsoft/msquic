@@ -1187,6 +1187,7 @@ CxPlatCqeGetSqe(
 
 typedef int CXPLAT_EVENTQ;
 typedef struct kevent CXPLAT_CQE;
+typedef
 void
 (CXPLAT_EVENT_COMPLETION)(
     _In_ CXPLAT_CQE* Cqe
