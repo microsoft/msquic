@@ -46,6 +46,7 @@ include = [
 
 [features]
 default = []
+schannel = []
 static = []
 preview-api = []
 
