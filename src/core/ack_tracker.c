@@ -239,7 +239,7 @@ QuicAckTrackerAckPacket(
 
     Tracker->AckElicitingPacketsToAcknowledge++;
 
-    if ((Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) || !NewLargestPacketNumber) {
+    if (Connection->Send.SendFlags & QUIC_CONN_SEND_FLAG_ACK) {
         goto Exit; // Already queued to send an ACK, no more work to do.
     }
 
@@ -262,7 +262,8 @@ QuicAckTrackerAckPacket(
     if (AckType == QUIC_ACK_TYPE_ACK_IMMEDIATE ||
         Connection->Settings.MaxAckDelayMs == 0 ||
         (Tracker->AckElicitingPacketsToAcknowledge >= (uint16_t)Connection->PacketTolerance) ||
-        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold)) {
+        (NewLargestPacketNumber && 
+        QuicAckTrackerDidHitReorderingThreshold(Tracker, Connection->ReorderingThreshold))) {
         //
         // Send the ACK immediately.
         //
