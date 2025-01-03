@@ -1354,7 +1354,7 @@ CxPlatQueueRxIoEventComplete(
 {
     // TODO: use CQE to distinguish Tx/RX
     XDP_QUEUE* Queue =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_QUEUE, RxIoSqe);
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), XDP_QUEUE, RxIoSqe);
     QuicTraceLogVerbose(
         XdpQueueAsyncIoRxComplete,
         "[ xdp][%p] XDP async IO complete (RX)",

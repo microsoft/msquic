@@ -1434,7 +1434,7 @@ CxPlatSocketEnqueueSqe(
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             LastError,
-            "CxPlatSocketEnqueueSqe");
+            "CxPlatEventQEnqueueEx");
         return HRESULT_FROM_WIN32(LastError);
     }
     return QUIC_STATUS_SUCCESS;
@@ -4619,7 +4619,7 @@ CxPlatSocketSendEnqueue(
         CxPlatSocketEnqueueSqe(
             SendData->SocketProc,
             &SendData->Sqe,
-            0); // TODO - Why zero?
+            0);
     if (QUIC_FAILED(Status)) {
         CxPlatCancelDatapathIo(SendData->SocketProc);
     }
