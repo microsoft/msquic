@@ -542,18 +542,6 @@ CxPlatWakeExecutionContext(
 #endif
 
 //
-// The "type" of the completion queue event is stored as the first uint32_t of
-// the user data. Everything after that in the user data is type-specific.
-//
-#define CxPlatCqeType(cqe) (*(uint32_t*)CxPlatCqeUserData(cqe))
-
-//
-// All QUIC (and lower layer) completion queue events have a type starting with
-// 0x8000.
-//
-#define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
-
-//
 // Test Interface for loading a self-signed certificate.
 //
 

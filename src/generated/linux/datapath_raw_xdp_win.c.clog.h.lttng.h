@@ -261,9 +261,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTx,
 // Decoder Ring for XdpQueueAsyncIoRxComplete
 // [ xdp][%p] XDP async IO complete (RX)
 // QuicTraceLogVerbose(
-                XdpQueueAsyncIoRxComplete,
-                "[ xdp][%p] XDP async IO complete (RX)",
-                Queue);
+        XdpQueueAsyncIoRxComplete,
+        "[ xdp][%p] XDP async IO complete (RX)",
+        Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRxComplete,
@@ -280,9 +280,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRxComplete,
 // Decoder Ring for XdpQueueAsyncIoTxComplete
 // [ xdp][%p] XDP async IO complete (TX)
 // QuicTraceLogVerbose(
-                XdpQueueAsyncIoTxComplete,
-                "[ xdp][%p] XDP async IO complete (TX)",
-                Queue);
+        XdpQueueAsyncIoTxComplete,
+        "[ xdp][%p] XDP async IO complete (TX)",
+        Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete,
@@ -299,9 +299,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete,
 // Decoder Ring for XdpPartitionShutdownComplete
 // [ xdp][%p] XDP partition shutdown complete
 // QuicTraceLogVerbose(
-            XdpPartitionShutdownComplete,
-            "[ xdp][%p] XDP partition shutdown complete",
-            Partition);
+        XdpPartitionShutdownComplete,
+        "[ xdp][%p] XDP partition shutdown complete",
+        Partition);
 // arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,

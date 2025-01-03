@@ -26,14 +26,6 @@ typedef struct XDP_PARTITION XDP_PARTITION;
 typedef struct XDP_DATAPATH XDP_DATAPATH;
 typedef struct XDP_QUEUE XDP_QUEUE;
 
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_XDP_IO_SQE {
-    DATAPATH_XDP_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_XDP_IO_SQE;
-
 typedef struct XDP_INTERFACE_COMMON {
     CXPLAT_INTERFACE;
     uint16_t QueueCount;
@@ -52,7 +44,7 @@ typedef struct XDP_QUEUE_COMMON {
 
 typedef struct QUIC_CACHEALIGN XDP_PARTITION {
     CXPLAT_EXECUTION_CONTEXT Ec;
-    DATAPATH_SQE ShutdownSqe;
+    CXPLAT_SQE ShutdownSqe;
     const struct XDP_DATAPATH* Xdp;
     CXPLAT_EVENTQ* EventQ;
     XDP_QUEUE* Queues; // A linked list of queues, accessed by Next.

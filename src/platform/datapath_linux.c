@@ -29,18 +29,6 @@ CxPlatSocketUpdateQeo(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-void
-CxPlatDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    if (CXPLAT_CQE_TYPE_XDP_SHUTDOWN <= CxPlatCqeType(Cqe)) {
-        RawDataPathProcessCqe(Cqe);
-    } else {
-        DataPathProcessCqe(Cqe);
-    }
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
