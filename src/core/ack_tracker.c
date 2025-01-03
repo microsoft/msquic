@@ -268,7 +268,7 @@ QuicAckTrackerAckPacket(
         //
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_ACK);
 
-    } else if (Tracker->AckElicitingPacketsToAcknowledge > 0) {
+    } else if (Tracker->AckElicitingPacketsToAcknowledge == 1) {
         //
         // We now have ACK eliciting payload to acknowledge but haven't met the
         // criteria to send an ACK frame immediately, so just ensure the delayed
