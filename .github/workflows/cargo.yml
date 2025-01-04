@@ -17,7 +17,7 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features schannel", "--features schannel,static"]
+        features: ["", "--features static", "--features schannel", "--features schannel,static", "--features openssl3", "--features openssl3,static"]
         exclude:
           - os: ubuntu-latest
             features: "--features schannel"
