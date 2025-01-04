@@ -526,10 +526,19 @@ QuicAddrToString(
 
 typedef int QUIC_EVENTQ;
 
-typedef struct QUIC_CQE {
-    struct epoll_event Event;
-    void (*Completion)(struct QUIC_CQE *Cqe);
-} QUIC_CQE;
+typedef struct epoll_event QUIC_CQE;
+
+typedef
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    int fd;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
 
 #elif __APPLE__ || __FreeBSD__ // kqueue
 
@@ -538,10 +547,19 @@ typedef struct QUIC_CQE {
 
 typedef int QUIC_EVENTQ;
 
-typedef struct QUIC_CQE {
-    struct kevent Event;
-    void (*Completion)(struct QUIC_CQE *Cqe);
-} QUIC_CQE;
+typedef struct kevent QUIC_CQE;
+
+typedef
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    uintptr_t Handle;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
 
 #else
 

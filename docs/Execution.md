@@ -127,13 +127,23 @@ On Windows, the following types are defined:
 ```c++
 typedef HANDLE QUIC_EVENTQ;
 
-typedef struct QUIC_CQE {
-    OVERLAPPED_ENTRY Overlapped;
-    void (*Completion)(struct QUIC_CQE *Cqe);
-} QUIC_CQE;
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+
+typedef struct CXPLAT_SQE {
+    OVERLAPPED Overlapped;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
 ```
 
-You will also notice the definiton for `QUIC_CQE` (CQE stands for completion queue event), which defines the format that all completion events must take so they may be generically processed from the event queue (more on this below).
+You will also notice the definiton for `QUIC_SQE` (SQE stands for submission queue entry), which defines the format that all completion events must take so they may be generically processed from the event queue (more on this below).
 
 Once the app has the event queue, it may create the execution context with the `ExecutionCreate` function:
 
@@ -150,7 +160,7 @@ An application may expand this code to create multiple execution contexts, depen
 
 To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
 
-```c++
+```c
 bool AllDone = false;
 while (!AllDone) {
     uint32_t WaitTime = MsQuic->ExecutionPoll(ExecContext);
@@ -159,15 +169,15 @@ while (!AllDone) {
     OVERLAPPED_ENTRY Overlapped[8];
     if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
         for (ULONG i = 0; i < OverlappedCount; ++i) {
-            QUIC_CQE* Cqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_CQE, Overlapped);
-            Cqe->Completion(Cqe);
+            QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
+            Sqe->Completion(&Overlapped[i]);
         }
     }
 }
 ```
 
 Above, you can see a simple loop that properly drives a single execution context on Windows.
-`OVERLAPPED_ENTRY` objects received from `GetQueuedCompletionStatusEx` are used to get the completion queue event and then call its completion handler.
+`OVERLAPPED_ENTRY` objects received from `GetQueuedCompletionStatusEx` are used to get the submission queue entry and then call its completion handler.
 
-In a real application, these completion events may come both from MsQuic and the application itself, therefore, this means **the application must use the same base format for its own completion events**.
+In a real application, these completion events may come both from MsQuic and the application itself, therefore, this means **the application must use the same base format for its own submission entries**.
 This is necessary to be able to share the same event queue object.

@@ -62,13 +62,13 @@ main(
         struct ConnectionCallback {
             static QUIC_STATUS MsQuicConnectionCallback(_In_ struct MsQuicConnection* Connection, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
                 if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
-                    auto Cqe = new(std::nothrow) QUIC_CQE;
-                    ZeroMemory(&Cqe->Overlapped, sizeof(Cqe->Overlapped));
-                    Cqe->Completion = [](QUIC_CQE* _Cqe) {
+                    auto Sqe = new(std::nothrow) QUIC_SQE;
+                    ZeroMemory(&Sqe->Overlapped, sizeof(Sqe->Overlapped));
+                    Sqe->Completion = [](QUIC_CQE* Cqe) {
                         printf("Connected.\n");
-                        delete _Cqe;
+                        delete CONTAINING_RECORD(Cqe->lpOverlapped, QUIC_SQE, Overlapped);
                     };
-                    PostQueuedCompletionStatus(IOCP, 0, 0, &Cqe->Overlapped);
+                    PostQueuedCompletionStatus(IOCP, 0, 0, &Sqe->Overlapped);
                     Connection->Shutdown(0);
                 } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
                     *((bool*)Context) = true;
@@ -89,8 +89,8 @@ main(
             OVERLAPPED_ENTRY Overlapped[8];
             if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
                 for (ULONG i = 0; i < OverlappedCount; ++i) {
-                    QUIC_CQE* Cqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_CQE, Overlapped);
-                    Cqe->Completion(Cqe);
+                    QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
+                    Sqe->Completion(&Overlapped[i]);
                 }
             }
         }
