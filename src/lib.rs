@@ -1590,6 +1590,12 @@ impl Settings {
         self.other2_flags |= (value as u64) << 5;
         self
     }
+    #[cfg(feature = "preview-api")]
+    pub fn set_multipath_enabled(&mut self, value: bool) -> &mut Settings {
+        self.is_set_flags |= 1 << 43;
+        self.other2_flags |= (value as u64) << 6;
+        self
+    }
 }
 
 impl CredentialConfig {
