@@ -11,6 +11,7 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
+    target_include_directories(msquic PUBLIC $<INSTALL_INTERFACE:include>)
     target_link_libraries(msquic PRIVATE core msquic_platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
     if (NOT WIN32)
@@ -269,12 +270,12 @@ else()
 endif()
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
-configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake @ONLY)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION share/msquic)
+    install(EXPORT msquic NAMESPACE msquic:: DESTINATION share/msquic)
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)

@@ -25,6 +25,7 @@ jobs:
     uses: ./.github/workflows/build-reuse-darwin-framework.yml
     with:
       config: 'Debug'
+      repo: ${{ github.repository }}
   
   build-linux:
     name: Ubuntu
@@ -45,6 +46,7 @@ jobs:
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
       xdp: ${{ matrix.vec.xdp }}
+      repo: ${{ github.repository }}
 
   build-windows:
     name: Windows
@@ -63,6 +65,7 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
+      repo: ${{ github.repository }}
     
   dotnet-test:
     name: DotNet Test
