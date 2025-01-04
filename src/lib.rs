@@ -116,6 +116,17 @@ impl From<SocketAddrV6> for Addr {
     }
 }
 
+impl std::fmt::Debug for Addr {
+    fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
+        if let Some(addr) = self.as_socket() {
+            writeln!(f, "{:?}", addr)?;
+        } else {
+            writeln!(f, "*:{}", self.port())?;
+        }
+        Ok(())
+    }
+}
+
 #[cfg(target_os = "windows")]
 mod status {
     pub const QUIC_STATUS_SUCCESS: u32 = 0x0;
@@ -969,6 +980,18 @@ pub const CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED: ConnectionEventType = 12
 pub const CONNECTION_EVENT_RESUMED: ConnectionEventType = 13;
 pub const CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED: ConnectionEventType = 14;
 pub const CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED: ConnectionEventType = 15;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED: ConnectionEventType = 16;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED: ConnectionEventType = 17;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_NETWORK_STATISTICS: ConnectionEventType = 18;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_PATH_ADDED: ConnectionEventType = 19;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_PATH_REMOVED: ConnectionEventType = 20;
+#[cfg(feature = "preview-api")]
+pub const CONNECTION_EVENT_PATH_STATUS_CHANGED: ConnectionEventType = 21;
 
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1091,6 +1114,61 @@ pub struct ConnectionEventPeerCertificateReceived {
     pub chain: *const CertificateChain,
 }
 
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventReliableResetNegotiated {
+    pub is_negotiated: BOOLEAN,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventOneWayDelayNegotiated {
+    pub send_negotiated: BOOLEAN,
+    pub receive_negotiated: BOOLEAN,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventNetworkStatistics {
+    pub bytes_in_flight: u32,
+    pub posted_bytes: u64,
+    pub ideal_bytes: u64,
+    pub smoothed_rtt: u64,
+    pub congestion_window: u64,
+    pub bandwidth: u64,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventPathAdded {
+    pub peer_address: Addr,
+    pub local_address: Addr,
+    pub path_id: u32,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventPathRemoved {
+    pub peer_address: Addr,
+    pub local_address: Addr,
+    pub path_id: u32,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct ConnectionEventPathStatusChanged {
+    pub peer_address: Addr,
+    pub local_address: Addr,
+    pub path_id: u32,
+    pub is_active: BOOLEAN,
+}
+
 #[repr(C)]
 #[derive(Copy, Clone)]
 pub union ConnectionEventPayload {
@@ -1110,6 +1188,18 @@ pub union ConnectionEventPayload {
     pub resumed: ConnectionEventResumed,
     pub resumption_ticket_received: ConnectionEventResumptionTicketReceived,
     pub peer_certificated_received: ConnectionEventPeerCertificateReceived,
+    #[cfg(feature = "preview-api")]
+    pub reliable_reset_negotiated: ConnectionEventReliableResetNegotiated,
+    #[cfg(feature = "preview-api")]
+    pub one_way_delay_negotiated: ConnectionEventOneWayDelayNegotiated,
+    #[cfg(feature = "preview-api")]
+    pub network_statistics: ConnectionEventNetworkStatistics,
+    #[cfg(feature = "preview-api")]
+    pub path_added: ConnectionEventPathAdded,
+    #[cfg(feature = "preview-api")]
+    pub path_removed: ConnectionEventPathRemoved,
+    #[cfg(feature = "preview-api")]
+    pub path_status_changed: ConnectionEventPathStatusChanged,
 }
 
 #[repr(C)]
