@@ -524,6 +524,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(BOOLEAN),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
