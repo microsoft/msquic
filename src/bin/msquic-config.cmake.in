@@ -1,4 +1,9 @@
 include(CMakeFindDependencyMacro)
-@FILENAME_DEP_REPLACE@
 
-include(${SELF_DIR}/msquic.cmake)
+include("${CMAKE_CURRENT_LIST_DIR}/msquic.cmake")
+
+foreach(_t IN ITEMS msquic msquic_platform)
+    if(TARGET msquic::${_t} AND NOT TARGET ${_t})
+        add_library(${_t} ALIAS msquic::${_t})
+    endif()
+endforeach()

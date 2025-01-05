@@ -31,26 +31,26 @@ jobs:
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl" },
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl3" },
           # v2.3
-          { release: "2.3.6",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
-          { release: "2.3.6",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { release: "2.3.6",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.3.6",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.3.6",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.3.8",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
+          { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "schannel" },
+          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl" },
+          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl3" },
           # v2.4
-          { release: "2.4.5",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
-          { release: "2.4.5",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { release: "2.4.5",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.4.5",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.4.5",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.4.7",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
+          { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "schannel" },
+          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl" },
+          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl3" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@9c1eca9952ccc07f9ca4a2097b63df93d9d138e9
+      uses: shogo82148/actions-setup-perl@98dfedee230bcf1ee68d5b021931fc8d63f2016e
       with:
         perl-version: '5.34'
     - name: Install NASM

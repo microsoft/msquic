@@ -67,9 +67,6 @@ elseif (UNIX)
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
-set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
-set(SELF_DIR "$\{SELF_DIR\}")
-
 enable_testing()
 
 # Set the default TLS method for each platform.
@@ -471,7 +468,9 @@ if(WIN32)
     set_property(TARGET MsQuicEtw_HeaderBuild PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}helpers")
 
     add_library(MsQuicEtw_Header INTERFACE)
-    target_include_directories(MsQuicEtw_Header INTERFACE ${QUIC_BUILD_DIR}/inc)
+    target_include_directories(MsQuicEtw_Header INTERFACE
+        $<BUILD_INTERFACE:${QUIC_BUILD_DIR}/inc>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
     add_dependencies(MsQuicEtw_Header MsQuicEtw_HeaderBuild)
 
     add_library(MsQuicEtw_Resource OBJECT ${QUIC_BUILD_DIR}/inc/MsQuicEtw.rc)

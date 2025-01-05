@@ -11,7 +11,8 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
-    target_link_libraries(msquic PRIVATE core platform inc warnings logging base_link main_binary_link_args)
+    target_include_directories(msquic PUBLIC $<INSTALL_INTERFACE:include>)
+    target_link_libraries(msquic PRIVATE core msquic_platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
     if (NOT WIN32)
         set_target_properties(msquic PROPERTIES SOVERSION ${QUIC_MAJOR_VERSION} VERSION ${QUIC_FULL_VERSION})
@@ -21,7 +22,7 @@ if(BUILD_SHARED_LIBS)
     endif()
 else()
     add_library(msquic_static STATIC static/empty.c)
-    target_link_libraries(msquic_static PRIVATE core platform inc logging main_binary_link_args)
+    target_link_libraries(msquic_static PRIVATE core msquic_platform inc logging main_binary_link_args)
     target_compile_definitions(msquic_static PUBLIC QUIC_BUILD_STATIC)
     set_property(TARGET msquic_static PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
@@ -150,7 +151,7 @@ else()
             COMMAND libtool -static -o \"${QUIC_STATIC_LIBRARY}\" @${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     elseif(WIN32)
@@ -181,7 +182,7 @@ else()
             COMMAND ${CMAKE_COMMAND} -E copy "${QUIC_STATIC_LIBRARY}" "${CMAKE_ARCHIVE_OUTPUT_DIRECTORY}"
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     else()
@@ -205,7 +206,7 @@ else()
             COMMAND ${CMAKE_AR} -M < ${QUIC_DEPS_FILE}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
-            DEPENDS platform
+            DEPENDS msquic_platform
             DEPENDS msquic_static
         )
     endif()
@@ -254,19 +255,27 @@ include(GNUInstallDirs)
 
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
+if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
+    list(APPEND OTHER_TARGETS OpenSSL OpenSSLQuic)
+endif()
+
+if(WIN32)
+    list(APPEND OTHER_TARGETS MsQuicEtw_Header)
+endif()
+
 if(BUILD_SHARED_LIBS)
-  install(TARGETS msquic EXPORT msquic DESTINATION lib)
+  install(TARGETS msquic msquic_platform inc logging_inc warnings main_binary_link_args ${OTHER_TARGETS} EXPORT msquic DESTINATION lib)
 else()
   install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
 endif()
 install(FILES ${PUBLIC_HEADERS} DESTINATION include)
 
-configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake)
+configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake @ONLY)
 
 install(FILES ${CMAKE_BINARY_DIR}/msquic-config.cmake DESTINATION share/msquic)
 
 if(BUILD_SHARED_LIBS)
-    install(EXPORT msquic DESTINATION share/msquic)
+    install(EXPORT msquic NAMESPACE msquic:: DESTINATION share/msquic)
 endif()
 
 if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)

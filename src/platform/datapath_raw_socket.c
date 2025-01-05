@@ -62,7 +62,7 @@ CxPlatGetSocket(
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
-            if (CxPlatRundownAcquire(&Temp->Rundown)) {
+            if (CxPlatRundownAcquire(&Temp->RawRundown)) {
                 Socket = Temp;
             }
             break;
@@ -298,6 +298,7 @@ CxPlatDpRawParseIPv4(
     }
 
     Packet->TypeOfService = IP->EcnField;
+    Packet->HopLimitTTL = IP->TimeToLive;
     Packet->Route->RemoteAddress.Ipv4.sin_family = AF_INET;
     CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv4.sin_addr, IP->Source, sizeof(IP->Source));
     Packet->Route->LocalAddress.Ipv4.sin_family = AF_INET;
@@ -366,6 +367,7 @@ CxPlatDpRawParseIPv6(
     VersionClassEcnFlow.Value = CxPlatByteSwapUint32(IP->VersionClassEcnFlow);
 
     Packet->TypeOfService = (uint8_t)VersionClassEcnFlow.EcnField;
+    Packet->HopLimitTTL = IP->HopLimit;
     Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
     CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
     Packet->Route->LocalAddress.Ipv6.sin6_family = AF_INET6;

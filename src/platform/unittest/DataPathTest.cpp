@@ -86,6 +86,7 @@ struct UdpRecvContext {
     QUIC_ADDR DestinationAddress;
     CXPLAT_EVENT ClientCompletion;
     CXPLAT_ECN_TYPE EcnType {CXPLAT_ECN_NON_ECT};
+    bool TtlSupported;
     UdpRecvContext() {
         CxPlatEventInitialize(&ClientCompletion, FALSE, FALSE);
     }
@@ -286,12 +287,17 @@ protected:
     {
         UdpRecvContext* RecvContext = (UdpRecvContext*)Context;
         ASSERT_NE(nullptr, RecvContext);
-
         CXPLAT_RECV_DATA* RecvData = RecvDataChain;
 
         while (RecvData != NULL) {
             ASSERT_EQ(RecvData->BufferLength, ExpectedDataSize);
             ASSERT_EQ(0, memcmp(RecvData->Buffer, ExpectedData, ExpectedDataSize));
+
+            if (RecvContext->TtlSupported) {
+                ASSERT_TRUE(RecvData->HopLimitTTL > 0);
+            } else {
+                ASSERT_EQ(0, RecvData->HopLimitTTL);
+            }
 
             if (RecvData->Route->LocalAddress.Ipv4.sin_port == RecvContext->DestinationAddress.Ipv4.sin_port) {
 
@@ -775,6 +781,7 @@ TEST_P(DataPathTest, UdpData)
 {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -812,6 +819,7 @@ TEST_P(DataPathTest, UdpDataPolling)
     QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -848,6 +856,7 @@ TEST_P(DataPathTest, UdpDataRebind)
 {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -904,6 +913,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     UdpRecvContext RecvContext;
     RecvContext.EcnType = CXPLAT_ECN_ECT_0;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -940,6 +950,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
 {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
     // TODO: Linux XDP (duonic) to support port sharing
@@ -1001,6 +1012,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
 TEST_P(DataPathTest, MultiBindListener) {
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     if (!(Datapath.GetSupportedFeatures() & CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS)) {
         std::cout << "SKIP: Port Reservations Feature Unsupported" << std::endl;
         return;
@@ -1022,6 +1034,7 @@ TEST_P(DataPathTest, MultiBindListenerSingleProcessor) {
     UdpRecvContext RecvContext;
     QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC, UINT32_MAX, 1, 0 };
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
+    RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
 
     auto ServerAddress = GetNewLocalAddr();
     CxPlatSocket Server1(Datapath, &ServerAddress.SockAddr, nullptr, &RecvContext);

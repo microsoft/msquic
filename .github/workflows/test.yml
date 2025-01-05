@@ -43,6 +43,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       build: ${{ matrix.vec.build }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   build-windows:
     name: Build WinUser
@@ -66,6 +67,7 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   build-unix:
     name: Build Unix
@@ -94,6 +96,7 @@ jobs:
       build: ${{ matrix.vec.build }}
       xdp: ${{ matrix.vec.xdp }}
       ref: ${{ inputs.ref || '' }}
+      repo: ${{ github.repository }}
 
   bvt:
     name: BVT
@@ -127,7 +130,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         ref: ${{ inputs.ref || '' }}
     - name: Download Build Artifacts
@@ -193,7 +196,7 @@ jobs:
     runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         ref: ${{ inputs.ref || '' }}
     - name: Download Build Artifacts
@@ -242,7 +245,7 @@ jobs:
     - "1ES.ImageOverride=WinServerPrerelease"
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
         ref: ${{ inputs.ref || '' }}

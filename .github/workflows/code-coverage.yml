@@ -37,6 +37,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
+      repo: ${{ github.repository }}
 
   bvt-winlatest:
     name: BVT WinPrerelease
@@ -52,7 +53,7 @@ jobs:
      - "1ES.Pool=1es-msquic-pool"
      - "1ES.ImageOverride=WinServerPrerelease"
     steps:
-    - uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - name: Download Build Artifacts
@@ -103,7 +104,7 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -149,7 +150,7 @@ jobs:
       pr-timeout: 600000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
@@ -183,7 +184,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - name: Prepare Machine
@@ -227,13 +228,13 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       name: Download Merged Coverage Report
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
       with:
         fail_ci_if_error: true
         files: msquiccoverage.xml

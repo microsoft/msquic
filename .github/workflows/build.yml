@@ -53,6 +53,7 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
+      repo: ${{ github.repository }}
 
   build-windows-kernel:
     name: WinKernel
@@ -72,6 +73,7 @@ jobs:
       os: ${{ matrix.os }}
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
+      repo: ${{ github.repository }}
 
   build-ubuntu-cross-compile:
     name: UbuntuArm
@@ -93,6 +95,7 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
+      repo: ${{ github.repository }}
 
   build-ubuntu:
     name: Ubuntu
@@ -177,6 +180,7 @@ jobs:
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
       xdp: ${{ matrix.xdp }}
+      repo: ${{ github.repository }}
 
   build-darwin:
     name: MacOs
@@ -186,7 +190,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [macos, ios]
-        os: ['macos-12']
+        os: ['macos-13']
         arch: [x64, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
@@ -198,6 +202,7 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
+      repo: ${{ github.repository }}
 
   build-nuget:
     name: Build Nuget Package
@@ -213,21 +218,21 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts

@@ -87,16 +87,6 @@ struct CxPlatLockDispatch {
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
-
-struct CxPlatRwLockDispatch {
-    CXPLAT_DISPATCH_RW_LOCK Handle;
-    CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
-    ~CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockUninitialize(&Handle); }
-    void AcquireShared() noexcept { CxPlatDispatchRwLockAcquireShared(&Handle); }
-    void AcquireExclusive() noexcept { CxPlatDispatchRwLockAcquireExclusive(&Handle); }
-    void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
-    void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
-};
 #pragma warning(pop)
 
 struct CxPlatPool {

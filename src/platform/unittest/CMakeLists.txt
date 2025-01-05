@@ -20,7 +20,7 @@ set_property(TARGET msquicplatformtest APPEND PROPERTY BUILD_RPATH "$ORIGIN")
 target_link_libraries(msquicplatformtest msquic)
 
 if (BUILD_SHARED_LIBS)
-    target_link_libraries(msquicplatformtest platform)
+    target_link_libraries(msquicplatformtest msquic_platform)
 endif()
 
 target_link_libraries(msquicplatformtest inc gtest warnings logging base_link)

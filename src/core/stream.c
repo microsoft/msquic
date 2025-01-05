@@ -448,6 +448,7 @@ QuicStreamIndicateEvent(
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
+    CXPLAT_PASSIVE_CODE();
     QUIC_STATUS Status;
     if (Stream->ClientCallbackHandler != NULL) {
         //

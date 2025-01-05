@@ -40,6 +40,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
+      repo: ${{ github.repository }}
 
   build-unix:
     name: Build Unix
@@ -47,8 +48,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
@@ -66,6 +67,7 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
       xdp: ${{ matrix.vec.xdp }}
+      repo: ${{ github.repository }}
 
   stress:
     name: Stress
@@ -79,8 +81,8 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
@@ -99,7 +101,7 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'windows'
       with:
@@ -159,7 +161,7 @@ jobs:
       pr-timeout: 600000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       if: matrix.vec.plat == 'windows'
       with:

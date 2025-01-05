@@ -578,10 +578,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->RxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
@@ -700,10 +701,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->TxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
@@ -936,6 +938,7 @@ CxPlatDpRawInitialize(
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
+    PMIB_IF_TABLE2 pIfTable = NULL;
     QUIC_STATUS Status;
 
     if (WorkerPool == NULL) {
@@ -971,7 +974,6 @@ CxPlatDpRawInitialize(
         Xdp,
         Xdp->PartitionCount);
 
-    PMIB_IF_TABLE2 pIfTable;
     if (GetIfTable2(&pIfTable) != NO_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
@@ -1086,7 +1088,6 @@ CxPlatDpRawInitialize(
             "CxPlatThreadCreate");
         goto Error;
     }
-    FreeMibTable(pIfTable);
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
         QuicTraceEvent(
@@ -1152,6 +1153,9 @@ CxPlatDpRawInitialize(
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
+    if (pIfTable != NULL) {
+        FreeMibTable(pIfTable);
+    }
 
     if (QUIC_FAILED(Status)) {
         while (!CxPlatListIsEmpty(&Xdp->Interfaces)) {

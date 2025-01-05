@@ -83,6 +83,8 @@ typedef struct DATAPATH_RX_IO_BLOCK {
 //
 
 typedef struct CXPLAT_SEND_DATA {
+    CXPLAT_SEND_DATA_COMMON;
+
     //
     // The proc context owning this send context.
     //
@@ -109,16 +111,6 @@ typedef struct CXPLAT_SEND_DATA {
     CXPLAT_LIST_ENTRY PendingSendLinkage;
 
     //
-    // The total buffer size for Buffers.
-    //
-    uint32_t TotalSize;
-
-    //
-    // The type of ECN markings needed for send.
-    //
-    CXPLAT_ECN_TYPE ECN;
-
-    //
     // Total number of Buffers currently in use.
     //
     uint32_t BufferCount;
@@ -142,11 +134,6 @@ typedef struct CXPLAT_SEND_DATA {
     // IO vectors used for sends on the socket.
     //
     struct iovec Iovs[CXPLAT_MAX_BATCH_SEND];
-
-    //
-    // The send segmentation size; zero if segmentation is not performed.
-    //
-    uint16_t SegmentSize;
 
 } CXPLAT_SEND_DATA;
 
@@ -577,6 +564,9 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
+    //
+    // Intentionally not enabling Feature_TTL on MacOS for now.
+    //
     return Datapath->Features;
 }
 
@@ -1127,6 +1117,7 @@ CxPlatSocketContextRecvComplete(
 
     RecvPacket->Route->Queue = SocketContext;
     RecvPacket->TypeOfService = 0;
+    RecvPacket->HopLimitTTL = 0; // TODO: We are not supporting this on MacOS (yet) unless there's a business need.
 
     struct cmsghdr *CMsg;
     for (CMsg = CMSG_FIRSTHDR(&SocketContext->RecvMsgHdr);

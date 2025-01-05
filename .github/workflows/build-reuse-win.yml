@@ -9,6 +9,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -69,12 +73,12 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@9c1eca9952ccc07f9ca4a2097b63df93d9d138e9
+      uses: shogo82148/actions-setup-perl@98dfedee230bcf1ee68d5b021931fc8d63f2016e
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -86,6 +90,13 @@ jobs:
       if: inputs.build == '-Test'
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
+    - name: Build External Platform Test
+      if: inputs.build == '-Test'
+      shell: pwsh
+      run: |
+        cmake --install build\${{ inputs.plat }}\${{ inputs.arch }}_${{ inputs.tls }} --config ${{ inputs.config }}
+        cmake src/platform/unittest/external -G "Visual Studio 17 2022" -A ${{ inputs.arch }} -B build_external "-DCMAKE_INSTALL_PREFIX:PATH=C:/Program Files/msquic"
+        cmake --build build_external --config ${{ inputs.config }}
     - name: Build For Perf
       if: inputs.build == '-Perf'
       shell: pwsh
