@@ -60,6 +60,7 @@ else()
 endif()
 
 add_library(msquic_platform STATIC ${SOURCES})
+set_target_properties(msquic_platform PROPERTIES EXPORT_NAME platform)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
