@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Fuzzing </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Fuzzing ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="../../toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/src/fuzzing/README.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+
+      <div class="content">
+        <div class="actionbar">
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="fuzzing">Fuzzing</h1>
+
+<p>This directory is used for fuzzing.<br>
+<a href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> automatically builds, runs and reports issue if there is any problem.</p>
+<h2 id="write-fuzzing">Write fuzzing</h2>
+<p><a href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> uses <a href="https://llvm.org/LibFuzzer">LibFuzzer</a> by default which is included in clang.<br>
+Refer <a href="https://llvm.org/LibFuzzer">Libfuzzer</a> official document if you want more detail.</p>
+<h2 id="run-locally">Run locally</h2>
+<p>You can build and run code by yourself. <a href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> offers convenient scripts</p>
+<pre><code class="lang-sh">cd $PATH_TO_OSS_FUZZ
+# build Docker image
+python infra/helper.py build_image msquic
+# build fuzzing code, memory sanitizer is not supported yet
+python infra/helper.py build_fuzzers --sanitizer &lt;address/memory/undefined&gt; msquic
+# run fuzzing
+python infra/helper.py run_fuzzer msquic $YOUR_COOL_FUZZING
+</code></pre>
+<p>Refer <a href="https://google.github.io/oss-fuzz">OSS-Fuzz official document</a> for more detail</p>
+<h2 id="reproduce-and-debug-issue">Reproduce and debug issue</h2>
+<h3 id="prep">Prep</h3>
+<p>Download test case file from oss-fuzz issue ticket from <a href="https://bugs.chromium.org/p/oss-fuzz/issues/list?q=msquic">OSS-Fuzz issues</a><br>
+Build base image for repro and debug</p>
+<pre><code class="lang-sh">export TESTFILE=$YOUR_TEST_FILE
+git clone --depth=1 https://github.com/google/oss-fuzz.git
+cd oss-fuzz
+python infra/helper.py pull_images
+python infra/helper.py build_image msquic
+python infra/helper.py build_fuzzers --sanitizer &lt;address/memory/undefined&gt; msquic
+</code></pre>
+<h3 id="reproduce-issue">Reproduce issue</h3>
+<p>Reproduce issue with spinquic</p>
+<pre><code class="lang-sh">cd oss-fuzz
+python infra/helper.py reproduce msquic spinquic $TESTFILE
+</code></pre>
+<h3 id="debug-issue">Debug issue</h3>
+<pre><code class="lang-sh">cd oss-fuzz
+cp $TESTFILE build/out/msquic/testcase
+# Launch docker container
+python3 infra/helper.py shell base-runner-debug
+# Run gdb in the container
+gdb --args /out/msquic/spinquic /out/msquic/testcase
+</code></pre>
+<p>Refer links for more details</p>
+<ul>
+<li><a href="https://google.github.io/oss-fuzz/advanced-topics/reproducing/">Reproduce</a></li>
+<li><a href="https://google.github.io/oss-fuzz/advanced-topics/debugging/">Debug</a></li>
+</ul>
+<h2 id="monitor-your-fuzzing">Monitor your fuzzing</h2>
+<p>Once fuzzing is deployed on OSS-Fuzz infra, it continuously run and report issue if it detects</p>
+<h3 id="receive-notification">Receive notification</h3>
+<p>List your email under <a href="https://google.github.io/oss-fuzz/getting-started/new-project-guide/#primary">auto_ccs</a> or <a href="https://google.github.io/oss-fuzz/getting-started/new-project-guide/#vendor">vendor_ccs</a> section in <a href="https://github.com/google/oss-fuzz/blob/master/projects/msquic/project.yaml">project.yaml</a><br>
+Most of developer should be under <a href="https://google.github.io/oss-fuzz/getting-started/new-project-guide/#vendor">vendor_ccs</a>. Please follow instruction in <a href="https://google.github.io/oss-fuzz/getting-started/new-project-guide/#vendor">vendor_ccs</a> and feel free to create PR and let us know on issue or discussion.</p>
+<h3 id="login-oss-fuzz-dashabord">Login OSS-Fuzz dashabord</h3>
+<p>Your email need to be associated with google account</p>
+<h2 id="before-adding-change">Before adding change....</h2>
+<p>Please go to <a href="https://github.com/google/oss-fuzz/tree/master/projects/msquic">msquic project directory</a> in <a href="https://github.com/google/oss-fuzz">OSS-Fuzz</a> whether your change can be run without issue.<br>
+You might need to change <code>Dockerfile</code> and/or <code>build.sh</code> for installing libraries, COPYing fuzzing source, configuration files and build options.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/src/fuzzing/README.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

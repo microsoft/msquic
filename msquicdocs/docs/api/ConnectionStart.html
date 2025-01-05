@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>ConnectionStart function </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="ConnectionStart function ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/api/ConnectionStart.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="connectionstart-function">ConnectionStart function</h1>
+
+<p>Starts connecting to the server.</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_START_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ _Pre_defensive_ HQUIC Configuration,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_reads_or_z_opt_(QUIC_MAX_SNI_LENGTH)
+        const char* ServerName,
+    _In_ uint16_t ServerPort // Host byte order
+    );
+</code></pre>
+<h1 id="parameters">Parameters</h1>
+<p><code>Connection</code></p>
+<p>The valid handle to an open connection object.</p>
+<p><code>Configuration</code></p>
+<p>The valid handle to an open and loaded configuration object.</p>
+<p><code>Family</code></p>
+<p>The address family to use for resolving the IP address of the <em>ServerName</em> parameter. Supported values definitions are supported (The values are platform specific):</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_UNSPEC</strong><br></td>
+<td>Unspecified address family.</td>
+</tr>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_INET</strong><br></td>
+<td>Version 4 IP address family.</td>
+</tr>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_INET6</strong><br></td>
+<td>Version 6 IP address family.</td>
+</tr>
+</tbody>
+</table>
+<p><code>ServerName</code></p>
+<p>The name of the server to connect to. It may also be an IP literal.</p>
+<p><code>ServerPort</code></p>
+<p>The UDP port, in host byte order, to connect to on the server.</p>
+<h1 id="return-value">Return Value</h1>
+<p>The function returns a <a href="QUIC_STATUS.html">QUIC_STATUS</a>. The app may use <code>QUIC_FAILED</code> or <code>QUIC_SUCCEEDED</code> to determine if the function failed or succeeded.</p>
+<h1 id="remarks">Remarks</h1>
+<p><code>ConnectionStart</code> initiates the connection from the client application. A server application doesn't start its side of the connection until it returns <code>QUIC_STATUS_SUCCESS</code> from the <code>QUIC_LISTENER_EVENT_NEW_CONNECTION</code> event.</p>
+<p>No packets are sent until <code>ConnectionStart</code> is called, which starts the handshake, generates the initial cryptographic keys, frames 0-RTT data if present, and then sends the initial flight of packets to the server.</p>
+<p>Since 0-RTT data is opportunistically sent during the connection handshake, it should be queued for send <strong>BEFORE</strong> calling <code>ConnectionStart</code> otherwise it may be sent after the handshake. Queueing 0-RTT data after calling <code>ConnectionStart</code> will race with the creation of the inital flight of packets and may not consistently be sent as 0-RTT data.</p>
+<p>Some settings on the <code>Configuration</code>, and on the <code>Connection</code>, only take effect if set before <code>ConnectionStart</code> is called. See <a href="ConfigurationOpen.html">ConfigurationOpen</a> and <a href="SetParam.html">SetParam</a> for more details about settings.</p>
+<h1 id="see-also">See Also</h1>
+<p><a href="ConnectionOpen.html">ConnectionOpen</a><br>
+<a href="ConnectionClose.html">ConnectionClose</a><br>
+<a href="ConnectionShutdown.html">ConnectionShutdown</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/api/ConnectionStart.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

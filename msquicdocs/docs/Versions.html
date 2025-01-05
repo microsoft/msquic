@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC Versions and Version Negotiation </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC Versions and Version Negotiation ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/Versions.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic-versions-and-version-negotiation">QUIC Versions and Version Negotiation</h1>
+
+<p>The QUIC protocol features a Version field to enable the protocol to evolve and have future versions, multiple of which may be supported by a given implementation.
+MsQuic is no exception and currently supports Draft-29 and Version 1 of the QUIC protocol.
+By default, MsQuic clients start all connections with Version 1.  MsQuic servers support Version 1 and Draft-29.</p>
+<p>The <a href="https://tools.ietf.org/html/draft-ietf-quic-version-negotiation">Version Negotiation Extension</a> is supported in MsQuic and is keeping pace with changes in the standard.  It is enabled by default on both MsQuic client and server.</p>
+<h2 id="configuring-quic-versions-on-msquic-clients">Configuring QUIC Versions on MsQuic Clients</h2>
+<p>An application may decide that it needs a specific feature only availble in one version of QUIC. The application may also wish to change the order of preference of supported version in MsQuic. Both scenarios are supported via the <code>QUIC_VERSION_SETTINGS</code> struct.  Since there are three different version lists, the client <strong>MUST</strong> set all three to be the same.</p>
+<p>The first version in the list of <code>FullyDeployedVersions</code> will always be the initial version MsQuic starts the connection with.</p>
+<blockquote>
+<p><strong>Warning</strong>
+A client may only set a version that MsQuic supports. Any other value will cause <a href="api/SetParam.html"><code>SetParam</code></a> to fail.</p>
+</blockquote>
+<p>Use the following code snippet to change the default initial version, and only support a single QUIC version. It must be used before <a href="api/ConnectionStart.html"><code>ConnectionStart</code></a> is called:</p>
+<pre><code class="lang-c">QUIC_VERSION_SETTINGS Settings = { 0 };
+const uint32_t SupportedVersion = 0xff00001dU; // This is the Draft-29 version in HOST byte order. If the server does not support this, the connection will fail.
+Settings.AcceptableVersionsList = &amp;SupportedVersion;
+Settings.AcceptableVersionsListLength = 1;
+Settings.OfferedVersionsList = &amp;SupportedVersion;
+Settings.OfferedVersionsListLength = 1;
+Settings.FullyDeployedVersionsList = &amp;SupportedVersion;
+Settings.FullyDeployedVersionsListLength = 1;
+
+MsQuic-&gt;SetParam(
+    Connection,
+    QUIC_PARAM_CONN_VERSION_SETTINGS,
+    sizeof(Settings),
+    &amp;Settings);
+</code></pre>
+<p>Changing the order of supported versions is the same as above, with the following change:</p>
+<pre><code class="lang-c">QUIC_VERSION_SETTINGS Settings = { 0 };
+const uint32_t SupportedVersions[2] = {
+    0xff00001dU, // This is the Draft-29 version in HOST byte order. It will be used first.
+    0x00000001U // QUIC version 1 in HOST byte order. It will be used if a VN packet is received.
+};
+Settings.AcceptableVersionsList = SupportedVersions;
+Settings.AcceptableVersionsListLength = 2;
+Settings.OfferedVersionsList = SupportedVersions;
+Settings.OfferedVersionsListLength = 2;
+Settings.FullyDeployedVersionsList = SupportedVersions;
+Settings.FullyDeployedVersionsListLength = 2;
+</code></pre>
+<p>The <code>QUIC_VERSION_SETTINGS</code> can be set on a single <code>QUIC_CONNECTION</code>, as well as a <code>QUIC_CONFIGURATION</code> with <a href="api/SetParam.html"><code>SetParam</code></a>.</p>
+<h2 id="configuring-quic-versions-on-msquic-servers">Configuring QUIC Versions on MsQuic Servers</h2>
+<p>A server application may also want to restrict the QUIC versions it supports to ensure a specific feature is available, or to prevent older versions of QUIC from being used.
+Configuring the QUIC versions on a MsQuic server is similar to configuring them on a client, however, the setting for server <strong>MUST</strong> be set globally, and not on the <code>QUIC_CONFIGURATION</code> used for the <code>QUIC_LISTENER</code> or <code>QUIC_CONNECTION</code>.</p>
+<p>If a server is not in a fleet, or the operator/application does not ever need to change QUIC versions, then all three lists in <code>QUIC_VERSION_SETTINGS</code> <strong>MUST</strong> be the same.</p>
+<p>If a server is deployed in a fleet, and the server operator wishes to change the supported QUIC versions, the <a href="https://www.rfc-editor.org/rfc/rfc9368.html#section-5">Version Negotiation specification</a> details how that should be done, quoted here:</p>
+<blockquote>
+<p>When adding support for a new version:</p>
+<ul>
+<li>The first step is to progressively add support for the new version to all server instances. This step updates the Acceptable Versions but not the Offered Versions nor the Fully-Deployed Versions. Once all server instances have been updated, operators wait for at least one MSL to allow any in-flight Version Negotiation packets to arrive.</li>
+<li>Then, the second step is to progressively add the new version to Offered Versions on all server instances. Once complete, operators wait for at least another MSL.</li>
+<li>Finally, the third step is to progressively add the new version to Fully-Deployed Versions on all server instances.</li>
+</ul>
+<p>When removing support for a version:</p>
+<ul>
+<li>The first step is to progressively remove the version from Fully-Deployed Versions on all server instances. Once it has been removed on all server instances, operators wait for at least one MSL to allow any in-flight Version Negotiation packets to arrive.</li>
+<li>Then, the second step is to progressively remove the version from Offered Versions on all server instances. Once complete, operators wait for at least another MSL.</li>
+<li>Finally, the third step is to progressively remove support for the version from all server instances. That step updates the Acceptable Versions.</li>
+</ul>
+</blockquote>
+<p><strong>Note that this opens connections to version downgrades (but only for partially-deployed versions) during the update window, since those could be due to clients communicating with both updated and non-updated server instances.</strong></p>
+<h3 id="configuring-versions-via-code">Configuring Versions via code</h3>
+<p>This snippet should execute before the server's <code>QUIC_CONFIGURATION</code> is created:</p>
+<pre><code class="lang-c">QUIC_VERSION_SETTINGS Settings = { 0 };
+const uint32_t SupportedVersions[2] = {
+    0xff00001dU, // This is the Draft-29 version in HOST byte order. It will be preferred over Version 1.
+    0x00000001U // QUIC version 1 in HOST byte order. It will be used if a client starts with Version 1, instead of Draft-29.
+};
+Settings.AcceptableVersionsList = SupportedVersion;
+Settings.AcceptableVersionsListLength = 2;
+Settings.OfferedVersionsList = SupportedVersion;
+Settings.OfferedVersionsListLength = 2;
+Settings.FullyDeployedVersionsList = SupportedVersion;
+Settings.FullyDeployedVersionsListLength = 2;
+
+MsQuic-&gt;SetParam(
+    NULL,
+    QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+    sizeof(Settings),
+    &amp;Settings);
+</code></pre>
+<h3 id="configuring-versions-via-windows-registry">Configuring Versions via Windows Registry</h3>
+<p>MsQuic supports setting the Acceptable Versions, Offered Versions, and Fully-Deployed Versions lists via the Windows registry. These settings are global for all servers and clients on the machine.
+The registry settings are overridden by settings specified in the code.
+The registry values must be created under the <code>HKLM\System\CurrentControlSet\Services\MsQuic\Parameters</code> key.
+Each list is stored in the registry as a <code>REG_BINARY</code> type, with the version numbers in little-endian (host) order.
+The registry value for Acceptable Versions must be named <code>AcceptableVersions</code>.
+The registry value for Offered Versions must be named <code>OfferedVersions</code>.
+The registry value for Fully-Deployed Versions must be named <code>FullyDeployedVersions</code>.</p>
+<p>Here's a sample .reg file that creates all three lists with QUIC version 2 first and QUIC version 1 after, in little endian order, and enables version negotiation:</p>
+<pre><code class="lang-reg">Windows Registry Editor Version 5.00
+
+[HKEY_LOCAL_MACHINE\SYSTEM\CurrentControlSet\Services\MsQuic\Parameters]
+&quot;AcceptableVersions&quot;=hex:cf,43,33,6b,01,00,00,00
+&quot;OfferedVersions&quot;=hex:cf,43,33,6b,01,00,00,00
+&quot;FullyDeployedVersions&quot;=hex:cf,43,33,6b,01,00,00,00
+&quot;VersionNegotiationExtEnabled&quot;=dword:00000001
+</code></pre>
+<h1 id="quic-version-negotiation-extension">QUIC Version Negotiation Extension</h1>
+<p>The Version Negotiation Extension is off by default in our officially-released binaries, but can be enabled via registry or <a href="Settings.html">Settings</a>.
+The Version Negotiated Extension has been standardized and is present in MsQuic since version 2.3.</p>
+<h2 id="enabling-version-negotiation-extension-on-msquic-client">Enabling Version Negotiation Extension on MsQuic Client</h2>
+<p>The Version Negotiation Extension is enabled on client when <code>QUIC_VERSION_SETTINGS</code> are set on the <code>QUIC_CONFIGURATION</code> or <code>QUIC_CONNECTION</code> via <a href="api/SetParam.html"><code>SetParam</code></a>.
+This setting <strong>MUST</strong> be set before <a href="api/ConnectionStart.html"><code>ConnectionStart</code></a> to take effect.</p>
+<h2 id="enabling-version-negotiation-extension-on-msquic-server">Enabling Version Negotiation Extension on MsQuic Server</h2>
+<p>Enabling the Version Negotiation Extension on server follows the same restrictions as setting the QUIC version on server, i.e. it <strong>MUST</strong> be set globally, using <a href="api/SetParam.html"><code>SetParam</code></a> before the <code>QUIC_CONFIGURATION</code> is opened for the server. It is set automatically when <code>QUIC_VERSION_SETTINGS</code> are set, except via registry.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/Versions.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

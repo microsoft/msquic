@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Trouble Shooting Guide </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Trouble Shooting Guide ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/TSG.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="trouble-shooting-guide">Trouble Shooting Guide</h1>
+
+<p>This document is meant to be a step-by-step guide for trouble shooting any issues while using MsQuic.</p>
+<h2 id="what-kind-of-issue-are-you-having">What kind of Issue are you having?</h2>
+<ol>
+<li><a href="#debugging-a-crash">I am debugging a crash.</a></li>
+<li><a href="#trouble-shooting-a-functional-issue">Something is not functionally working as I expect.</a></li>
+<li><a href="#trouble-shooting-a-performance-issue">Performance is not what I expect it to be.</a></li>
+</ol>
+<h1 id="debugging-a-crash">Debugging a Crash</h1>
+<blockquote>
+<p>TODO</p>
+</blockquote>
+<h1 id="trouble-shooting-a-functional-issue">Trouble Shooting a Functional Issue</h1>
+<ol>
+<li><a href="#logging">MsQuic logging?</a></li>
+<li><a href="#understanding-error-codes">I am getting an error code I don't understand.</a></li>
+<li><a href="#why-is-the-connection-shutting-down">The connection is unexpectedly shutting down.</a></li>
+<li><a href="#the-stream-is-aborted">The stream is aborted</a></li>
+<li><a href="#why-isnt-application-data-flowing">No application (stream) data seems to be flowing.</a></li>
+<li><a href="#why-is-this-api-failing">Why is this API failing?</a></li>
+<li><a href="#why-is-the-api-hanging-or-deadlocking">An MsQuic API is hanging.</a></li>
+<li><a href="#trouble-shooting-smb-over-quic-issues">I am having problems with SMB over QUIC.</a></li>
+<li><a href="#convert-pem-to-pkcs12-for-schannel">No credentials when loading a server certificate from PEM with Schannel.</a></li>
+<li><a href="#using-a-self-signed-certificate-for-http3">TLS handshake fails in Chrome and Edge for HTTP/3 (including WebTransport) even though HTTP/1.1 and HTTP/2 work.</a></li>
+<li><a href="#collecting-a-packet-capture">I need to get a packet capture</a>.</li>
+</ol>
+<h2 id="logging">Logging</h2>
+<p>See <a href="Diagnostics.html#Built-in-Tracing">Tracing</a></p>
+<h3 id="linux-xdp-logging">Linux XDP logging?</h3>
+<p>For XDP layer, enable <code>DEBUG</code> flag in <code>src/platform/CMakeLists.txt</code>.<br>
+You can see incomming packets information by <code>sudo cat /sys/kernel/debug/tracing/trace_pipe</code>.<br>
+<strong>Your workload must become too slow.</strong></p>
+<pre><code>msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk: ========&gt; To ifacename : [duo2], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.776875: bpf_trace_printk:  Eth[244]        SRC: 00:00:00:00:00:00 =&gt; DST:22:22:22:22:00:02
+msquictest-3797496 [005] ..s1. 2079546.776876: bpf_trace_printk:          Ipv4 TotalLen:[230]     Src: 192.168.1.11 =&gt; Dst: 192.168.1.12
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                  UDP[202]: SRC: 43829 DST:58141
+msquictest-3797496 [005] ..s1. 2079546.776877: bpf_trace_printk:                           [ec 00 00 00 01 00 09 c0 30 3d 49 a2]
+msquictest-3797496 [005] ..s1. 2079546.776878: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+
+msquictest-3797496 [005] ..s1. 2079546.777235: bpf_trace_printk: ========&gt; To ifacename : [duo1], RxQueueID:0
+msquictest-3797496 [005] ..s1. 2079546.777310: bpf_trace_printk:  Eth[1262]       SRC: 00:00:00:00:00:00 =&gt; DST:22:22:22:22:00:01
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:          Ipv4 TotalLen:[1248]    Src: 192.168.1.12 =&gt; Dst: 192.168.1.11
+msquictest-3797496 [005] ..s1. 2079546.777323: bpf_trace_printk:                  UDP[1220]: SRC: 58141 DST:43829
+msquictest-3797496 [005] ..s1. 2079546.777324: bpf_trace_printk:                           [c0 00 00 00 01 09 c0 30 3d 49 a2 56]
+msquictest-3797496 [005] ..s1. 2079546.777325: bpf_trace_printk:                  Redirect to QUIC service.  IpMatch:1, PortMatch:1, SocketExists:1, Redirection:4
+</code></pre>
+<h2 id="understanding-error-codes">Understanding Error Codes</h2>
+<p>Some error codes are MsQuic specific (<code>QUIC_STATUS_*</code>), and some are simply a passthrough from the platform. You can find the MsQuic specific error codes in the platform specific header (<a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_posix.h">msquic_posix.h</a>, <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winkernel.h">msquic_winkernel.h</a>, or <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>).</p>
+<p>From <a href="https://github.com/microsoft/msquic/tree/main/src/inc/msquic_winuser.h">msquic_winuser.h</a>:</p>
+<pre><code class="lang-C">#define QUIC_STATUS_ADDRESS_IN_USE          HRESULT_FROM_WIN32(WSAEADDRINUSE)               // 0x80072740
+#define QUIC_STATUS_CONNECTION_TIMEOUT      ERROR_QUIC_CONNECTION_TIMEOUT                   // 0x80410006
+#define QUIC_STATUS_CONNECTION_IDLE         ERROR_QUIC_CONNECTION_IDLE                      // 0x80410005
+#define QUIC_STATUS_UNREACHABLE             HRESULT_FROM_WIN32(ERROR_HOST_UNREACHABLE)      // 0x800704d0
+#define QUIC_STATUS_INTERNAL_ERROR          ERROR_QUIC_INTERNAL_ERROR                       // 0x80410003
+</code></pre>
+<p>For more info, see the <a href="api/QUIC_STATUS.html#well-known-status-codes">Well Known Status Codes</a>.</p>
+<h3 id="linux-file-handle-limit-too-small">Linux File Handle Limit Too Small</h3>
+<p>In many Linux setups, the default per-process file handle limit is relatively small (~1024). In scenarios where lots of (usually client) connection are opened, a large number of sockets (a type of file handle) are created. Eventually the handle limit is reached and connections start failing (error codes <code>0x16</code> or <code>0xbebc202</code>) because new sockets cannot be created. To fix this, you will need to increase the handle limit.</p>
+<p>To query the maximum limit you may set:</p>
+<pre><code>ulimit -Hn
+</code></pre>
+<p>To set a new limit (up to the max):</p>
+<pre><code>ulimit -n newValue
+</code></pre>
+<h2 id="why-is-the-connection-shutting-down">Why is the connection shutting down?</h2>
+<ol>
+<li><a href="#understanding-shutdown-by-transport">What does this QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT event mean?</a></li>
+<li><a href="#understanding-shutdown-by-peer">What does this QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER event mean?</a></li>
+</ol>
+<h3 id="understanding-shutdown-by-transport">Understanding shutdown by Transport.</h3>
+<p>There are two ways for a connection to be shutdown, either by the application layer or by the transport layer (i.e. the QUIC layer). The <code>QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT</code> event occurs when the transport shuts the connection down. Generally, the transport shuts down the connection either when there's some kind of error or if the negotiated idle period has elapsed.</p>
+<pre><code>[2]6F30.34B0::2021/04/13-09:22:48.297449100 [Microsoft-Quic][conn][0x1CF25AC46B0] Transport Shutdown: 18446744071566327813 (Remote=0) (QS=1)
+</code></pre>
+<p>Above is an example event collected during an attempt to connect to a non-existent server. Eventually the connection failed and the transport indicated the event with the appropriate error code. This error code (<code>18446744071566327813</code>) maps to <code>0xFFFFFFFF80410005</code>, which specifically refers to the <code>QUIC_STATUS</code> (indicated by <code>QS=1</code>) for <code>0x80410005</code>; which indicates <code>ERROR_QUIC_CONNECTION_IDLE</code>. For more details for understanding error codes see <a href="#understanding-error-codes">here</a>.</p>
+<h3 id="understanding-shutdown-by-peer">Understanding shutdown by Peer.</h3>
+<p>As indicated in <a href="#understanding-shutdown-by-transport">Understanding shutdown by Transport</a>, there are two ways for connections to be shutdown. The <code>QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER</code> event occurs when the peer application has explicitly shut down the connection. In MsQuic API terms, this would mean the app called <a href="api/ConnectionShutdown.html">ConnectionShutdown</a>.</p>
+<blockquote>
+<p>TODO - Add an example event</p>
+</blockquote>
+<p>The error code indicated in this event is completely application defined (type of <code>QUIC_UINT62</code>). The transport has no understanding of the meaning of this value. It never generates these error codes itself. So, to map these values to some meaning will require the application protocol documentation.</p>
+<h2 id="the-stream-is-aborted">The stream is aborted.</h2>
+<p>Stream abortion is stream terminated abruptly.</p>
+<h3 id="remote-stream-is-aborted-by-my-side">Remote Stream is aborted by my side?</h3>
+<p>symptom: Peer complains starting stream is failed due to remote abortion.</p>
+<p>The remote stream maybe aborted locally by</p>
+<ul>
+<li>Local calls the <a href="api/StreamShutdown.html">StreamShutdown</a> with <strong>abortive</strong> flags</li>
+<li>Local calls the <a href="api/StreamClose.html">StreamClose</a></li>
+<li>Local calls the <a href="api/ConnectionShutdown.html">ConnectionShutdown</a></li>
+<li>Connection callback handler returns the value other than <code>QUIC_STATUS_SUCCESS</code> for event: <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code></li>
+</ul>
+<h2 id="why-isnt-application-data-flowing">Why isn't application data flowing?</h2>
+<p>Application data is exchanged via <a href="Streams.html">Streams</a> and queued by the app via <a href="api/StreamSend.html">StreamSend</a>. The act of queuing data doesn't mean it will be immediately sent to the peer. There are a number of things that can block or delay the exchange. The <code>QUIC_FLOW_BLOCK_REASON</code> enum in <a href="https://github.com/microsoft/msquic/tree/main/src/inc/quic_trace.h">quic_trace.h</a> contains the full list of reasons that data may be blocked. Below is a short explanation of each:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_SCHEDULING</strong><br>1</td>
+<td>The cross-connection scheduling logic has determined that too much work is queued on the connection to be processed all at once. Generally, this means we are CPU-bound.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_PACING</strong><br>2</td>
+<td>Data burst sizes into the network are being limited and periodically sent into the network based on the congestion control's pacing logic.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT</strong><br>4</td>
+<td>The peer has not proved ownership of their IP address and therefore we are locally limiting the amount of data to send to it.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_CONGESTION_CONTROL</strong><br>8</td>
+<td>Congestion control has determined that the network cannot handle any more data currently.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL</strong><br>16</td>
+<td>The connection-wide limit for the amount of data that can be buffered or accepted by the peer at this time has been reached.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL</strong><br>32</td>
+<td>The limit on the number of streams the peer can accept has been reached.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL</strong><br>64</td>
+<td>The limit on the amount of data that can be buffered or accepted by the peer for this stream has been reached.</td>
+</tr>
+<tr>
+<td><strong>QUIC_FLOW_BLOCKED_APP</strong><br>128</td>
+<td>All data queued by the application on this stream has been sent. No more data is available to send.</td>
+</tr>
+</tbody>
+</table>
+<p>Internally, MsQuic tracks these flags at all times for every connection and stream. Whenever any of them change, MsQuic logs an event. For example:</p>
+<pre><code>[0]0004.0F54::2021/05/14-10:30:22.541024000 [Microsoft-Quic][strm][0xC16BA610] Send Blocked Flags: 128
+</code></pre>
+<p>This event indicates that stream <code>C16BA610</code> only has the <code>QUIC_FLOW_BLOCKED_APP</code> flag, so it is currently blocked because there is no more application data queued to be sent.</p>
+<p><img src="images/tx-blocked-state.png" alt=""></p>
+<p>The <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">QUIC WPA plugin</a> also supports visualizing these blocked states via the <code>QUIC TX Blocked State</code> graph. It allows you to see what flags are blocking the connection as a whole (shown as stream 0) and what is blocking each individual stream, over the lifetime of the whole connection.</p>
+<p>For instance, in the image above, you can see the stream (1) is blocked most of the time because there is no application data. Beyond that, the connection (&quot;stream&quot; 0) alternated between pacing and congestion control as the blocked reasons.</p>
+<h2 id="why-is-this-api-failing">Why is this API Failing?</h2>
+<p>The simplest way to determine exactly why a particular API is failing is via tracing. <a href="Diagnostics.html#trace-collection">Collect the traces</a> for the repro and convert them to text and open them in your favorite text editor (try <a href="Diagnostics.html#text-analysis-tool">TextAnalysisTool</a>!).</p>
+<p>MsQuic logs every API entry and exit. Depending on the platform and tool used to decode the traces to text, you may either have the number or an enum represented as the API type (see <code>QUIC_TRACE_API_TYPE</code> in <a href="https://github.com/microsoft/msquic/tree/main/src/inc/quic_trace.h">quic_trace.h</a>), but all events look something like this:</p>
+<pre><code>[cpu][process.thread][time][ api] Enter &lt;API Type&gt; (&lt;pointer&gt;)
+[cpu][process.thread][time][ api] Exit [optional status code]
+</code></pre>
+<p>A <a href="Diagnostics.html#text-analysis-tool">TextAnalysisTool</a> filter (<code>api.tat</code>) is also included in <a href="./tat">./docs/tat</a> to help quickly find all failed API calls.</p>
+<h3 id="example-listenerstart-failing-with-quic_status_invalid_state">Example (ListenerStart failing with QUIC_STATUS_INVALID_STATE)</h3>
+<p>In a recent example, we wanted to know why an app occasionally received <code>QUIC_STATUS_INVALID_STATE</code> when it called <code>ListenerStart</code>. We took the following steps to diagnose it.</p>
+<ol>
+<li>Collected traces for the repro.</li>
+<li>Converted to text and opened them in <a href="Diagnostics.html#text-analysis-tool">TextAnalysisTool</a>.</li>
+<li>Added a filter for all API enter events for <code>QUIC_TRACE_API_LISTENER_START</code> (<code>10</code>).</li>
+<li>Looked for the following <code>[ api] Exit</code> event after each enter event on the same <code>[process.thread]</code>.</li>
+</ol>
+<p>This quickly resulted in the following pair of events. They show the app called <code>ListenerStart</code> for the listener pointer <code>7f30ac0dcff0</code> at <code>09:54:03.528362</code> in process <code>2e73</code> on thread <code>2e8b</code> (CPU 1). Shortly after, MsQuic returned with status <code>200000002</code> (<code>QUIC_STATUS_INVALID_STATE</code> on Posix platforms).</p>
+<pre><code>[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+</code></pre>
+<p>From here, we simply went backwards from the exit event to find any errors; and came up with the full set of important traces:</p>
+<pre><code>[1][2e73.2e8b][09:54:03.528362][ api] Enter 10 (0x7f30ac0dcff0).
+[1][2e73.2e8b][09:54:03.528902][bind][0x7f30b80394e0] Listener (0x7f30ac076d90) already registered on ALPN
+[1][2e73.2e8b][09:54:03.528903][list][0x7f30ac0dcff0] ERROR, &quot;Register with binding&quot;.
+[1][2e73.2e8b][09:54:03.528913][ api] Exit 200000002
+</code></pre>
+<p>This clearly shows that listener <code>7f30ac0dcff0</code> failed to register with the binding (i.e. UDP socket abstraction) because listener <code>7f30ac076d90</code> was already registered for the same ALPN. MsQuic only allows a single listener to be registered for a given ALPN on a local IP address and port.</p>
+<h2 id="why-is-the-api-hanging-or-deadlocking">Why is the API hanging or deadlocking?</h2>
+<p>First, a bit of background. The MsQuic API has two types of APIs:</p>
+<ul>
+<li><strong>Blocking / Synchronous</strong> - These APIs run to completion and only return once finished. When running in the Windows kernel, these <strong>MUST NOT</strong> be called at <code>DISPATCH_LEVEL</code>. They are denoted by the <code>_IRQL_requires_max_(PASSIVE_LEVEL)</code> annotation. For example, <a href="api/ConnectionClose.html">ConnectionClose</a>.</li>
+<li><strong>Nonblocking / Asynchronous</strong> - These APIs merely queue work and return immediately. When running in the Windows kernel, these may be called at <code>DISPATCH_LEVEL</code>. They are denoted by the <code>_IRQL_requires_max_(DISPATCH_LEVEL)</code> annotation. For example, <a href="api/StreamSend.html">StreamSend</a>.</li>
+</ul>
+<p>Additional documentation on the MsQuic execution model is available <a href="API.html#execution-mode">here</a>.</p>
+<p>Now, back to the problem. The app is calling into an MsQuic API and it is hanging and likely deadlocked. This can only happen for <strong>synchronous</strong> APIs. What do you do next? Generally, this is because the app is breaking one of the following rules:</p>
+<ol>
+<li>Do not block the MsQuic thread/callback for any length of time. You may acquire a lock/mutex, but you must guarantee very quick execution. Do not grab a lock that you also hold (on a different thread) when calling back into MsQuic.</li>
+<li>Do not call MsQuic APIs cross-object on MsQuic the thread/callbacks. For instance, if you're in a callback for Connection A, do not call <a href="api/ConnectionClose.html">ConnectionClose</a> for Connection B.</li>
+</ol>
+<p>To verify exactly what is happening, <a href="Diagnostics.html#trace-collection">Collect the traces</a> and open then up in a text editor (ideally <a href="Diagnostics.html#text-analysis-tool">TextAnalysisTool</a>). The simplest way forward from here is to filter the logs based on the pointer of the object you are calling the API on. For instance, if you are calling <a href="api/ConnectionClose.html">ConnectionClose</a> on <code>0x7fd36c0019c0</code>, then add a filter for <code>7fd36c0019c0</code>. Here is an example (filtered) log for just such a case:</p>
+<pre><code>[0][53805.5381b][11:22:52.896762][ api] Enter 13 (0x7fd36c0019c0).
+
+[0][53805.53815][11:22:52.896796][conn][0x7fd36c0019c0] Scheduling: 2
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Execute: 1
+[0][53805.53815][11:22:52.896797][conn][0x7fd36c0019c0] Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896825][conn][0x7fd36c0019c0] IN: BytesRecv=2901
+[0][53805.53815][11:22:52.896826][conn][0x7fd36c0019c0] Batch Recv 1 UDP datagrams
+[0][53805.53815][11:22:52.896854][strm][0x7fd378028360] Created, Conn=0x7fd36c0019c0 ID=0 IsLocal=0
+[0][53805.53815][11:22:52.896856][conn][0x7fd36c0019c0] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [0x7fd378028360, 0x0]
+
+[1][53805.53813][11:22:53.142398][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.392819][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+[1][53805.53813][11:22:53.644259][conn][0x7fd36c0019c0] Queuing 1 UDP datagrams
+</code></pre>
+<p>You will notice 3 different threads (seen in <code>[0][53805.X]</code>):</p>
+<ul>
+<li><code>5381b</code> - The app thread that is calling in to close the connection.</li>
+<li><code>53815</code> - The MsQuic worker thread that drives execution for the connection.</li>
+<li><code>53813</code> - The MsQuic UDP thread that is processing received packets and queuing them on the connection.</li>
+</ul>
+<p>As you can see, the last event/log on the MsQuic worker thread was an indication of a <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> event to the app. There are no further events on this thread (easily verified by adding an additional filter for <code>[53805.53815]</code>). So, the app must be blocking this thread. The most likely scenario is that the app is holding a lock while calling <a href="api/ConnectionClose.html">ConnectionClose</a> on thread <code>5381b</code> and then in thread <code>53815</code>, the app is trying to acquire the same lock.</p>
+<p>The solution here is that the app <strong>must not</strong> hold the lock when it calls into the blocking API, if that lock may also be acquired on the MsQuic thread.</p>
+<h2 id="trouble-shooting-smb-over-quic-issues">Trouble Shooting SMB over QUIC issues</h2>
+<p>To troubleshoot any SMB over QUIC issues on windows platforms, the best way is to collect SMB and QUIC traces and sharing it with SMB developers. Following are the steps:</p>
+<pre><code>Copy msquic/scripts/t.cmd to a local folder.
+
+For SMB Client (a.k.a. RDR) WPP traces
+t.cmd clion
+// repro and get the relevant error.
+t.cmd off
+
+For SMB Server WPP traces
+t.cmd srvon
+// repro and get the relevant error.
+t.cmd off
+
+Share the generated cab file with SMB developers.
+</code></pre>
+<h2 id="convert-pem-to-pkcs12-for-schannel">Convert PEM to PKCS#12 for Schannel</h2>
+<p>When using Schannel, a certificate imported by <code>X509Certificate2.CreateFromPem()</code> in .NET needs to be exported to a <code>byte[]</code> in PKCS#12 (aka PFX) format and re-imported to be used as a server certificate.</p>
+<pre><code class="lang-cs">static X509Certificate2 CreatePkcs12FromPem(string certPem, string keyPem)
+{
+    using var cert = X509Certificate2.CreateFromPem(certPem, keyPem);
+    return new(cert.Export(X509ContentType.Pkcs12));
+}
+</code></pre>
+<h2 id="using-a-self-signed-certificate-for-http3">Using a self-signed certificate for HTTP/3</h2>
+<p>Chromium-based browsers requires the server certificate to be trusted by a default CA for QUIC (e.g. HTTP/3 and WebTransport), even though the same certificate may already be trusted for HTTP/1.1 and HTTP/2. To use a self-signed certificate or a certificate that is not ultimately issued by one of the default CAs, you need to whitelist its SHA-256 hash via the <a href="https://w3c.github.io/webtransport/#dom-webtransportoptions-servercertificatehashes">serverCertificateHashes</a> option and follow stricter <a href="https://w3c.github.io/webtransport/#custom-certificate-requirements">requirements</a>.</p>
+<p>See <a href="https://github.com/wegylexy/webtransport/blob/c55d9cc5a11f3a8b8dfd2a12c8d02ad462dc693d/Server/CustomCertificate.cs#L8-L33">FlyByWireless.CustomCertificate.Generate()</a> on how to generate such a certificate.</p>
+<h2 id="collecting-a-packet-capture">Collecting a Packet Capture</h2>
+<h3 id="linux-packet-capture">Linux Packet Capture</h3>
+<pre><code class="lang-sh"># Capture from any interface, all the udp traffic on the host and write it to the msquic.pcap file 
+tcpdump -i any udp -w msquic.pcap
+</code></pre>
+<pre><code class="lang-sh"># wireshark to view it. (You need load SSLKEYLOGFILE for the session key to decrypt the session)
+wireshark ./msquic.pcap
+</code></pre>
+<h3 id="window-packet-capture">Window Packet Capture</h3>
+<p>On Windows, <a href="https://docs.microsoft.com/en-us/windows-server/networking/technologies/pktmon/pktmon?msclkid=79c406dcab7711ec976873fd5c4a48bf">Packet Monitor</a> (<code>pktmon</code>) is the best way to collect a packet capture.</p>
+<p>The (optional) first step is usually to find the interface you want to collect the capture on. Do this by first running <code>pktmon list</code>:</p>
+<pre><code>&gt; pktmon list
+
+Network Adapters:
+   Id MAC Address       Name
+   -- -----------       ----
+    9 40-8D-5C-B5-46-51 Intel(R) Ethernet Connection (2) I219-V #2
+  104 00-15-5D-D1-5A-30 433db3ea-0acd-457a-9c86-55bb7fa27391
+   80 00-15-5D-AD-8B-40 433db3ea-0acd-457a-9c86-55bb7fa27391
+</code></pre>
+<blockquote>
+<p><strong>Note</strong>
+If you don't do this and use it to filter to a specific component, you will get a packet capture at <strong>every</strong> layer, which will include many duplicates of each packet.</p>
+</blockquote>
+<p>Once you find the interface you want, take note of the <code>Id</code>. For instance, in the example above, I want to use the Ethernet adapter, so I need <code>9</code>.</p>
+<p>Then, to collect the capture for your scenario (example below uses port <code>443</code>), run the following:</p>
+<pre><code>pktmon filter remove
+pktmon filter add -c 9 -t UDP -p 443
+pktmon start --capture --pkt-size 0
+&lt;run scenario&gt;
+pktmon stop
+pktmon etl2pcap pktmon.etl
+</code></pre>
+<p>This produced <code>pktmon.pcapng</code> in your current directory that can then be opened by <a href="https://www.wireshark.org/">Wireshark</a>. If you want to be able to decrypt the QUIC packets, you will need to get/export the TLS secrets from your code (todo: add link/instructions).</p>
+<blockquote>
+<p><strong>Note</strong>
+If you don't specify the component in the <code>filter</code> step, you can specify it at the <code>etl2pcap</code> step: <code>pktmon etl2pcap pktmon.etl -c 9</code> and it will produce the same final output <code>pcapng</code> file.</p>
+</blockquote>
+<h1 id="trouble-shooting-a-performance-issue">Trouble Shooting a Performance Issue</h1>
+<ol>
+<li><a href="#why-in-performance-bad-for-my-connection">Is it a problem with just a single (or very few) connection?</a></li>
+<li><a href="#why-is-performance-bad-across-all-my-connections">Is it a problem multiple (lots) of connections?</a></li>
+</ol>
+<h2 id="why-is-performance-bad-for-my-connection">Why is Performance bad for my Connection?</h2>
+<ol>
+<li><a href="#analyzing-cpu-usage">Where is the CPU being spent for my connection?</a></li>
+<li><a href="#finding-throughput-bottlenecks">What is limiting throughput for my connection?</a></li>
+<li><a href="#analyzing-network-issues">Why is the network limiting throughput for my connection?</a></li>
+</ol>
+<h3 id="analyzing-cpu-usage">Analyzing CPU Usage</h3>
+<blockquote>
+<p><strong>Important</strong> - The following is specific to Windows OS.</p>
+</blockquote>
+<p>It's extremely common that everything may be functional, but not just as fast as expected. So the normal next step is then to grab a performance trace for the scenario and then dive into the details to analyze what exactly is happening. When you're explicitly looking for where the CPU is spending its time in the scenario, you will need to collect CPU traces. One way to do this is to <a href="Diagnostics.html#using-wpr-to-collect-traces">use WPR</a> (with <code>Stacks.Light</code> profile).</p>
+<p>Once you have the ETL, open it <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">in WPA</a> (MsQuic plugin is unnecessary). Then, go to the <code>Graph Explorer</code>, expand <code>Computation</code>, expand <code>CPU Usage (Sampled)</code> and open up <code>Utilization by Process, Thread, Stack</code>. The following is an example of a CPU trace a server in a client upload scenario:</p>
+<p><img src="images/cpu-debug-1.png" alt=""></p>
+<p>The next step is to filter things down to only the important information. First, select the relavent time period: click and drag over the area, right click, select <code>Zoom</code>.</p>
+<p><img src="images/cpu-debug-2.png" alt=""></p>
+<p>Then eliminate any unrelated &quot;noise&quot;. The easiest way is to select all the Processes that have very little weight; then right click, and select <code>Filter Out Selection</code>. Another important thing to filter is the <code>[Idle]</code> stack under the <code>Idle (0)</code> process. Expact the <code>Thread ID</code> column for <code>Idle (0)</code>, right click the <code>[Idle]</code> row and then select <code>Filter Out Selection</code>. You should then be left with only the relavent CPU usage.</p>
+<p><img src="images/cpu-debug-3.png" alt=""></p>
+<p>The current view now shows the CPU usage as a fraction of the total available CPU resources. Generally, the total available resources will include multiple (possibly many) different CPUs. So, it's a lot more helpful to get a per-CPU view. To see this, right click the table header (for instance, on <code>Process</code>), expand <code>More Columns ...</code>, and select <code>CPU</code>. Next, drag the <code>CPU</code> column to the front, before <code>Process</code>.</p>
+<p>Initially, nothing will most likely show up in the graph view. You will need to manually enable the relavent CPUs. In this particular example, only CPUs 4 and 36 have any significant usage (as seen by <code>Count</code> or <code>Weight</code> columns). In the <code>Series</code> list in the graph view, click the boxes next to each relavent CPU series to enable it. You may also chose to explicitly filter out the CPUs that are irrelevant.</p>
+<p><img src="images/cpu-debug-4.png" alt=""></p>
+<p>Now, you could use this view to dig into the various stacks by expanding the rows under the <code>Stack</code> column, but a better way is to change the view to a Flame Graph. Click the icon at the top to <code>Select chart type</code> and change it to <code>Flame</code>. Additionally, check the <code>Enable</code> box under it to enable filtering.</p>
+<p><img src="images/cpu-debug-5.png" alt=""></p>
+<p>You can then slide the filter slider to change the level of filtering. In this example, after resizing the window some, it looks like this:</p>
+<p><img src="images/cpu-debug-6.png" alt=""></p>
+<p>As you will immediately see, <code>&lt;Symbols disabled&gt;</code> shows up everywhere because symbols haven't been loaded. To load them, you will first need to configure the symbol path. You can do this by clicking on <code>Trace</code> in the top and then <code>Configure Symbol Path</code>. Then add any relavent paths to the list and close the window (hit <code>Ok</code>). Next you can load the symbols; <code>Trace</code> -&gt; <code>Load Symbols</code>.</p>
+<p><img src="images/cpu-debug-7.png" alt=""></p>
+<p>This example has just the <code>msquic.dll</code> and <code>secnetperf.exe</code> symbols loaded. You can then drill down to various various part of the flame, and zoom into them by right clicking on them and selecting <code>Filter To Flame</code>. Also, remember you can change the Flame filter slider at any time as well. For example, the following is what filtering to the <code>msquic.dll!QuicWorkerThread</code> flame.</p>
+<p><img src="images/cpu-debug-8.png" alt=""></p>
+<p>Since this flame was essentially all of CPU 4, whatever is taking the most significant CPU resources here can be blamed as the most significant cost of CPU resources. Practically, this comes down to <code>bcrypt.dll</code>. From experience, since this happens in <code>QuicConnRecvDecryptAndAuthenticate</code> this is the work related to decrypting the packet payloads (over 71% of the CPU!).</p>
+<h3 id="finding-throughput-bottlenecks">Finding Throughput Bottlenecks</h3>
+<blockquote>
+<p>TODO</p>
+</blockquote>
+<h2 id="why-is-performance-bad-across-all-my-connections">Why is Performance bad across all my Connections?</h2>
+<ol>
+<li><p><a href="#diagnosing-udp-receive-offload-issues-windows-only">UDP receive offload is not working.</a></p>
+</li>
+<li><p><a href="#diagnosing-rss-issues">The work load isn't spreading evenly across cores.</a></p>
+</li>
+</ol>
+<h3 id="diagnosing-software-udp-receive-offload-issues">Diagnosing Software UDP Receive Offload Issues</h3>
+<blockquote>
+<p><strong>Important</strong> - The following is specific to Windows OS.</p>
+</blockquote>
+<p>Software UDP Receive Offload (URO) is an importance performance feature. To check if URO is working correctly, you can follow this <a href="https://github.com/microsoft/msquic/blob/main/docs/Diagnostics.md#trace-collection">guide</a> and use <code>Full.Verbose</code> profile to collect TCPIP traces. In the converted text file, if you see this event, URO is working. The below event indicates UDP layer saw a UDP packet coalesced from 5 UDP packets each with 1000 byte payload.</p>
+<pre><code>[Microsoft-Windows-TCPIP]UDP: endpoint 0xFFFFA4033FC652C0: URO SCU received. SegCount = 5, SegSize = 1000, DataLength = 5000.
+</code></pre>
+<p>If you are not seeing the above event at all, there are several things that can break URO functionality.</p>
+<h4 id="global-uro-knob">Global URO Knob</h4>
+<p>URO can be administratively turned off system-wide from a netsh knob. Check by running <code>netsh int udp show global</code>. If <code>Receive Offload State</code> is displayed as <code>disabled</code>, then URO has been administratively disabled.</p>
+<h4 id="incompatible-miniport-or-medium">Incompatible Miniport or Medium</h4>
+<p>Take a look at the IP interface rundown traces. Software RSC/URO applicable must be <code>TRUE</code> for URO to work. If it is <code>FALSE</code>, it means the underlying miniport driver is using NDIS 5 or the interface medium is not compatible (e.g. KDNic).</p>
+<pre><code>[Microsoft-Windows-TCPIP]Framing: interface rundown: Interface = 8, Luid = 0x6008000000000, Address family = 2(IPV4), Compartment = 1, Isolation mode = 0(None), Isolation ID = 0, DL address = 0x00155D563406, Interface type = 6, Physical medium type = 19(NdisPhysicalMediumOther), SW RSC/URO applicable = 0(FALSE), SW RSC enabled = 0(FALSE), Alias = Ethernet (Kernel Debugger).
+</code></pre>
+<h4 id="incompatible-software-component">Incompatible Software Component</h4>
+<p>We also have a rundown trace for URO global disabled mask. The mask must be zero for URO to work.</p>
+<ul>
+<li><p>It's common that the mask is <code>2</code> (<code>0b000010</code>), which means some incompatible WFP callouts have disabled URO. If you see this on a freshly installed machine, try disabling real-time protection from Microsoft Defender settings.</p>
+</li>
+<li><p>It's also possible the mask is <code>48</code> (<code>0b110000</code>), which means some incompatible IPSNPI clients have disabled URO. These (winnat or FSE) can automatically get enabled when WSL or Hyper-V are enabled on a machine.</p>
+</li>
+</ul>
+<pre><code>[Microsoft-Windows-TCPIP]TCP software RSC global disabled mask = 0, UDP software URO global disabled mask = 0.
+</code></pre>
+<h4 id="incompatible-hardware-feature-ptp-timestamps">Incompatible Hardware Feature (PTP Timestamps)</h4>
+<p>Another reason that UDP packets by design will not be coalesced if they carry different PTP timestamps. PTP timestamp is a feature for accurately synchronizing time supported by some NICs and it should be off by default. You can turn off PTP timestamps in NIC properties.</p>
+<p><img src="images/ptp-timestamp-config.png" alt=""></p>
+<h3 id="diagnosing-rss-issues">Diagnosing RSS Issues</h3>
+<blockquote>
+<p><strong>Important</strong> - The following is specific to Windows OS.</p>
+</blockquote>
+<p>For scenarios with lots of parallel connections, generally the work should be spread across all the available processors. But if there are issues with the work not spreading there are a few things you can do. First off, here's an example where the RPS tests were run to a server that should be able to handle near 1 million requests per second:</p>
+<pre><code>&gt; secnetperf.exe -test:RPS -target:quic-server -conns:250 -requests:7500 -request:0 -response:4096 -runtime:20000
+All Connected! Waiting for idle.
+Start sending request...
+Started!
+
+Result: 25869 RPS, Min: 944, Max: 888078, 50th: 281889.000000, 90th: 369965.000000, 99th: 490582.000000, 99.9th: 574533.000000, 99.99th: 797810.000000, 99.999th: 884055.000000, 99.9999th: 888078.000000, StdErr: 91.224221
+App Main returning status 0
+</code></pre>
+<p>As you can see from the output of <code>secnetperf.exe</code> the resulting <code>25869 RPS</code> is nowhere near what it should be. The next step is to grab a performance trace to see what is going on. For these type of issues the best way to collect the traces would be to <a href="Diagnostics.html#using-wpr-to-collect-traces">use WPR</a> (with <code>Scheduling.Verbose</code> or <code>Performance.Verbose</code> profiles).</p>
+<p>Once you have the ETL, open it <a href="https://github.com/microsoft/msquic/tree/main/src/plugins/trace/README.md">in WPA using the MsQuic plugin</a>. First thing after opening, let's take a look at the QUIC Worker utilization. In the <code>Graph Explorer</code>, under <code>Computation</code>, expand <code>QUIC Workers</code> and open the one labeled <code>Utilization by Worker</code>. For the example above (server-side trace), here is what the output looks like:</p>
+<p><img src="images/rss-debug-1.png" alt=""></p>
+<p>You can immediately see that only 2 different workers are being used, with worker <code>2</code> being used primarily.</p>
+<blockquote>
+<p><strong>In depth details</strong> - MsQuic always uses at least two workers on the server side for per connection. The first worker is a global, shared worker that is used to do initial validation of the connection request. Its job is to figure out which app the incoming connection belongs to. Once that's complete, the connection will be handed off to that app (and its worker thread(s)). So, this is why you only see usage of worker <code>1</code> at the beginning of the trace.</p>
+</blockquote>
+<p>The first usage spikes are from the RPS test initially connecting all its (250) parallel connections. There is a bit of back and forth to do the handshakes for these connections. Then there is an idle period while the test waits for things to die down. Finally, the actual RPS tests commense and that is where you see the solid usage of worker <code>2</code>.</p>
+<p>Ideally, RPS tests should generate work that is spread across <strong>many</strong> different workers. The fact that only 1 worker is being used is definitely the source of the low RPS numbers that were measured and indicated in the tool output above. Since MsQuic picks which workers to use based on how the UDP datagrams are received, the next step is to look into the UDP receive layer.</p>
+<p>One way to do this is by using the <code>Generic Events</code> table (under <code>System Activity</code> in the <code>Graph Explorer</code>). Open that up, and then filter to just MsQuic (also shows up as <code>ff15e657-4f26-570e-88ab-0796b258d11c</code> some times) <code>Provider Name</code> (Right Click -&gt; <code>Filter To Selection</code>). Next, we're looking for specifically the datapath receive events, which are <code>Id</code> 9218. Filter to just those and we see something like this:</p>
+<p><img src="images/rss-debug-2.png" alt=""></p>
+<p>Now, what we're really interested in is what CPU these events are coming in on. So, add the CPU column to the left of the yellow bar. It doesn't really show a much different picture, but you can clearly see that all events happen on CPU 0.</p>
+<p><img src="images/rss-debug-3.png" alt=""></p>
+<p>Now, we can clearly see that all our receive events are happening on the same CPU. This definitely not supposed to happen in an environment where RSS should be spreading all the different incoming UDP flows/tuples to different processors.</p>
+<p>The next step is to take a look at the RSS configuration on the machine to ensure things are properly configured. Run <code>Get-NetAdapterRss</code> to get an output like this:</p>
+<pre><code>Name                                            : Slot0A x8
+InterfaceDescription                            : Mellanox ConnectX-3 Pro Ethernet Adapter
+Enabled                                         : True
+NumberOfReceiveQueues                           : 8
+Profile                                         : Closest
+BaseProcessor: [Group:Number]                   : 0:0
+MaxProcessor: [Group:Number]                    : 1:38
+MaxProcessors                                   : 8
+RssProcessorArray: [Group:Number/NUMA Distance] : 0:0/0  0:2/0  0:4/0  0:6/0  0:8/0  0:10/0  0:12/0  0:14/0
+                                                  0:16/0  0:18/0  0:20/0  0:22/0  0:24/0  0:26/0  0:28/0  0:30/0
+                                                  0:32/0  0:34/0  0:36/0  0:38/0  1:0/32767  1:2/32767  1:4/32767
+                                                  1:6/32767
+                                                  1:8/32767  1:10/32767  1:12/32767  1:14/32767  1:16/32767
+                                                  1:18/32767  1:20/32767  1:22/32767
+                                                  1:24/32767  1:26/32767  1:28/32767  1:30/32767  1:32/32767
+                                                  1:34/32767  1:36/32767  1:38/32767
+IndirectionTable: [Group:Number]                : 0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+                                                  0:0   0:2     0:4     0:6     0:8     0:10    0:12    0:14
+</code></pre>
+<p>The output above indicates RSS is configured with 8 queues, so there should be spreading of the incoming flows to 8 different CPUs (and then passed to 8 different workers) instead of just the 1 that we are seeing. So, finally, in cases where everything seems to be configured correctly, but things <strong>still</strong> aren't working, that usually indicates a problem with the network card driver. Make sure the driver is up to date with the latest version available. If that still doesn't fix the problem, you will likely need to contact support from the network card vendor.</p>
+<h3 id="analyzing-network-issues">Analyzing Network Issues</h3>
+<p>TODO</p>
+<h4 id="drops-on-the-receiver">Drops on the Receiver</h4>
+<p>Sometimes the issue can actually be the receiver itself, and not the network in between. The problem is that the sender generally cannot distinguish between network drops and receiver drops; even the receiving QUIC layer cannot necessarily identify these drops on its own.</p>
+<p>On Windows, the OS has a number of performance counters (some seen below) that can be used to analyze packet drops or discards at various layers.</p>
+<p><img src="images/udp-perf-counters.png" alt=""></p>
+<p><strong>TODO</strong> - How to use ETW logs to collect even more detailed info on drops by the OS networking stack.</p>
+<p><strong>TODO</strong> - How can you get similar info for Linux?</p>
+<h5 id="network-card-discards">Network Card Discards</h5>
+<p>In some high throughput scenarios, the default number of NIC receive buffers might not be enough to handle spikes in network traffic. When a spike is too large for the NIC to handle, it has to drop the excess packets, resulting in <code>Packet Received Discarded</code> counter increases.</p>
+<p>When this happens, usually the best way to handle this it to increase the <code>Receive Buffers</code> value in the NIC's Advanced settings (seen below).</p>
+<p><img src="images/nic-recv-buffers.png" alt=""></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/TSG.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

@@ -1,0 +1,411 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Secured Network Performance Testing </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Secured Network Performance Testing ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="../../toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/src/perf/readme.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+
+      <div class="content">
+        <div class="actionbar">
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="secured-network-performance-testing">Secured Network Performance Testing</h1>
+
+<p>SecNetPerf is the standard (cross-platform) tool used for performance testing of MsQuic. It implements the protocol defined <a href="https://tools.ietf.org/html/draft-banks-quic-performance">here</a>. This protocol defines a generic interface that allows for client-driven performance testing.</p>
+<h1 id="server">Server</h1>
+<p>The server generally is meant to be run zero or minimal additional arguments.</p>
+<pre><code>&gt; secnetperf
+</code></pre>
+<p>or perhaps the following for high throughput tests:</p>
+<pre><code>&gt; secnetperf -exec:maxtput
+</code></pre>
+<p>There are all the arguments that can be passed to the server:</p>
+<table>
+<thead>
+<tr>
+<th>Argument</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>bind</td>
+<td><code>-bind:&lt;address&gt;</code></td>
+<td>Binds to the specified local address.</td>
+</tr>
+<tr>
+<td>cc</td>
+<td><code>-cc:&lt;cubic,bbr&gt;</code></td>
+<td>Congestion control algorithm used.</td>
+</tr>
+<tr>
+<td>cibir</td>
+<td><code>-cibir:&lt;hex_bytes&gt;</code></td>
+<td>The well-known CIBIR identifier.</td>
+</tr>
+<tr>
+<td>cipher</td>
+<td><code>-cipher:&lt;value&gt;</code></td>
+<td>Decimal value of 1 or more <code>QUIC_ALLOWED_CIPHER_SUITE_FLAGS</code>.</td>
+</tr>
+<tr>
+<td>cpu</td>
+<td><code>-cpu:&lt;cpu_indexes&gt;</code></td>
+<td>Comma-separated list of CPUs to run on.</td>
+</tr>
+<tr>
+<td>ecn</td>
+<td><code>-ecn:&lt;0,1&gt;</code></td>
+<td>Enables sender-side ECN support.</td>
+</tr>
+<tr>
+<td>exec</td>
+<td><code>-exec:&lt;lowlat,maxtput,scavenger,realtime&gt;</code></td>
+<td>The execution profile used for the application.</td>
+</tr>
+<tr>
+<td>pollidle</td>
+<td><code>-pollidle:&lt;time_us&gt;</code></td>
+<td>The time, in microseconds, to poll while idle before sleeping (falling back to interrupt-driven IO).</td>
+</tr>
+<tr>
+<td>stats</td>
+<td><code>-stats:&lt;0,1&gt;</code></td>
+<td>Prints out statistics at the end of each connection.</td>
+</tr>
+</tbody>
+</table>
+<h1 id="client">Client</h1>
+<p>Since tests are client-driven, the client side of secnetperf generally has several arguments passed in to specify which scenarios to run. For example, for a simple download test:</p>
+<pre><code>&gt; secnetperf -target:perf-server -down:1gb
+</code></pre>
+<p>or for a repeated request/response style exchange</p>
+<pre><code>&gt; secnetperf -target:perf-server -rstream:1 -run:10s -up:500 -down:4000
+</code></pre>
+<p>The <code>target</code> must be specified to indicate the hostname of the server to connect to. Note that <code>server</code>, <code>to</code>, <code>remote</code>, and <code>peer</code> are all aliases for <code>target</code>.</p>
+<h2 id="remote-options">Remote Options</h2>
+<p>The following options configure the behavior around connecting to the remote peer:</p>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ip, af</td>
+<td><code>-ip:&lt;0,4,6&gt;</code></td>
+<td>A address family hint for resolving the hostname to IP address.</td>
+</tr>
+<tr>
+<td>port</td>
+<td><code>-port:&lt;value&gt;</code></td>
+<td>The UDP port of the remote peer.</td>
+</tr>
+<tr>
+<td>cibir</td>
+<td><code>-cibir:&lt;hex_bytes&gt;</code></td>
+<td>The well-known CIBIR identifier.</td>
+</tr>
+<tr>
+<td>incttarget</td>
+<td><code>-inctarget:&lt;0,1&gt;</code></td>
+<td>Set to 1 to append core index to target hostname.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="local-options">Local Options</h2>
+<p>The following options configure the behavior related to local execution:</p>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>threads</td>
+<td><code>-threads:&lt;value&gt;</code></td>
+<td>The max number of worker threads to use.</td>
+</tr>
+<tr>
+<td>affinitize</td>
+<td><code>-affinitize:&lt;0,1&gt;</code></td>
+<td>Affinitizes worker threads to a core.</td>
+</tr>
+<tr>
+<td>comp</td>
+<td><code>-comp:&lt;value&gt;</code></td>
+<td>The network compartment ID to run in. <strong>Windows Only</strong></td>
+</tr>
+<tr>
+<td>bind</td>
+<td><code>-bind:&lt;addr(s)&gt;</code></td>
+<td>The local IP address(es)/port(s) to bind to.</td>
+</tr>
+<tr>
+<td>share</td>
+<td><code>-share:&lt;0,1&gt;</code></td>
+<td>Set to 1 to append core index to target hostname.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="general-configuration-options">General Configuration Options</h2>
+<p>The following options control various general configuration options:</p>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>tcp</td>
+<td><code>-tcp:&lt;0,1&gt;</code></td>
+<td>Disables/enables TCP usage (instead of QUIC).</td>
+</tr>
+<tr>
+<td>encrypt</td>
+<td><code>-encrypt:&lt;0,1&gt;</code></td>
+<td>Disables/enables encryption.</td>
+</tr>
+<tr>
+<td>pacing</td>
+<td><code>-pacing:&lt;0,1&gt;</code></td>
+<td>Disables/enables send pacing.</td>
+</tr>
+<tr>
+<td>sendbuf</td>
+<td><code>-sendbuf:&lt;0,1&gt;</code></td>
+<td>Disables/enables send buffering.</td>
+</tr>
+<tr>
+<td>ptput</td>
+<td><code>-ptput:&lt;0,1&gt;</code></td>
+<td>Print throughput information.</td>
+</tr>
+<tr>
+<td>pconnection, pconn</td>
+<td><code>-pconn:&lt;0,1&gt;</code></td>
+<td>Print connection statistics.</td>
+</tr>
+<tr>
+<td>pstream</td>
+<td><code>-pstream:&lt;0,1&gt;</code></td>
+<td>Print stream statistics.</td>
+</tr>
+<tr>
+<td>platency, plat</td>
+<td><code>-platency:&lt;0,1&gt;</code></td>
+<td>Print latency statistics.</td>
+</tr>
+<tr>
+<td>praw</td>
+<td><code>-praw:&lt;0,1&gt;</code></td>
+<td>Print raw information.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="scenario-options">Scenario Options</h2>
+<p>The following options configure the various scenario behaviors:</p>
+<table>
+<thead>
+<tr>
+<th>Alias</th>
+<th>Usage</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>conns</td>
+<td><code>-conns:&lt;value&gt;</code></td>
+<td>The number of connections to use.</td>
+</tr>
+<tr>
+<td>streams, requests</td>
+<td><code>-streams:&lt;value&gt;</code></td>
+<td>The number of streams to send on at a time.</td>
+</tr>
+<tr>
+<td>upload, up, request</td>
+<td><code>-upload:&lt;value&gt;[units]</code></td>
+<td>The length of bytes (or optional time or length unit) to send on each stream.</td>
+</tr>
+<tr>
+<td>download, down, response</td>
+<td><code>-download:&lt;value&gt;[units]</code></td>
+<td>The length of bytes (or optional time or length unit) to receive on each stream.</td>
+</tr>
+<tr>
+<td>iosize</td>
+<td><code>-iosize:&lt;value&gt;</code></td>
+<td>The size of each send request queued.</td>
+</tr>
+<tr>
+<td>rconn, rc</td>
+<td><code>-rconn:&lt;0,1&gt;</code></td>
+<td>Repeat the scenario at the connection level.</td>
+</tr>
+<tr>
+<td>rstream, rs</td>
+<td><code>-rstream:&lt;0,1&gt;</code></td>
+<td>Repeat the scenario at the stream level.</td>
+</tr>
+<tr>
+<td>runtime, run, time</td>
+<td><code>-runtime:&lt;value&gt;[units]</code></td>
+<td>The total runtime (in us, or optional unit). Only relevant for repeat scenarios.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="example-scenarios">Example Scenarios</h2>
+<p>Download for 5 seconds, printing throughput information</p>
+<pre><code>&gt; secnetperf -target:localhost -exec:maxtput -down:5s -ptput:1
+Started!
+
+Download: 2996595053 bytes @ 4793496 kbps (5001.101 ms).
+App Main returning status 0
+</code></pre>
+<p>Upload for 1 MB on 10 different streams, printing throughput information</p>
+<pre><code>&gt; secnetperf -target:localhost -exec:maxtput -up:10mb -streams:10 -ptput:1
+Started!
+
+  Upload: 10000000 bytes @ 1517393 kbps (52.722 ms).
+  Upload: 10000000 bytes @ 1513403 kbps (52.861 ms).
+  Upload: 10000000 bytes @ 1055868 kbps (75.767 ms).
+  Upload: 10000000 bytes @ 655189 kbps (122.102 ms).
+  Upload: 10000000 bytes @ 458289 kbps (174.562 ms).
+  Upload: 10000000 bytes @ 457202 kbps (174.977 ms).
+  Upload: 10000000 bytes @ 404422 kbps (197.813 ms).
+  Upload: 10000000 bytes @ 403960 kbps (198.039 ms).
+  Upload: 10000000 bytes @ 403632 kbps (198.200 ms).
+  Upload: 10000000 bytes @ 403057 kbps (198.483 ms).
+App Main returning status 0
+</code></pre>
+<p>Upload for 10 seconds on 10 different connections, printing throughput information</p>
+<pre><code>&gt; secnetperf -target:localhost -exec:maxtput -up:10s -conns:10 -ptput:1
+Started!
+
+  Upload: 3590914048 bytes @ 2869166 kbps (10012.423 ms).
+  Upload: 3586523136 bytes @ 2865446 kbps (10013.163 ms).
+  Upload: 1803091968 bytes @ 1439601 kbps (10019.950 ms).
+  Upload: 1765015552 bytes @ 1408638 kbps (10023.949 ms).
+  Upload: 1161232384 bytes @ 925992 kbps (10032.325 ms).
+  Upload: 1208811520 bytes @ 963208 kbps (10039.870 ms).
+  Upload: 1170145280 bytes @ 932025 kbps (10043.895 ms).
+  Upload: 1198981120 bytes @ 954894 kbps (10044.932 ms).
+  Upload: 1228996608 bytes @ 977891 kbps (10054.261 ms).
+  Upload: 1196163072 bytes @ 951211 kbps (10060.125 ms).
+App Main returning status 0
+</code></pre>
+<p>Send 512 byte requests, receive 4 KB responses on a single connection repeatidly for 7 seconds, printing total requests per second (RPS) and latency at the end</p>
+<pre><code>&gt; secnetperf -target:localhost -rstream:1 -run:7s -up:512 -down:4kb -plat:1
+Started!
+
+Result: 21566 RPS, Latency,us 0th: 39, 50th: 44, 90th: 46, 99th: 108, 99.9th: 166, 99.99th: 235, 99.999th: 7456, 99.9999th: 7567, Max: 7567
+App Main returning status 0
+</code></pre>
+<p>Do ths same as above, but using TCP/TLS instead of QUIC</p>
+<pre><code>&gt; secnetperf -target:localhost -rstream:1 -run:7s -up:512 -down:4kb -plat:1 -tcp:1
+Started!
+
+Result: 30555 RPS, Latency,us 0th: 24, 50th: 32, 90th: 34, 99th: 81, 99.9th: 131, 99.99th: 192, 99.999th: 456, 99.9999th: 1766, Max: 1766
+App Main returning status 0
+</code></pre>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/src/perf/readme.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

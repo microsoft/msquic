@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_API_TABLE structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_API_TABLE structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/api/QUIC_API_TABLE.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_api_table-structure">QUIC_API_TABLE structure</h1>
+
+<p>The function table for all MsQuic APIs.</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef struct QUIC_API_TABLE {
+
+    QUIC_SET_CONTEXT_FN                 SetContext;
+    QUIC_GET_CONTEXT_FN                 GetContext;
+    QUIC_SET_CALLBACK_HANDLER_FN        SetCallbackHandler;
+
+    QUIC_SET_PARAM_FN                   SetParam;
+    QUIC_GET_PARAM_FN                   GetParam;
+
+    QUIC_REGISTRATION_OPEN_FN           RegistrationOpen;
+    QUIC_REGISTRATION_CLOSE_FN          RegistrationClose;
+    QUIC_REGISTRATION_SHUTDOWN_FN       RegistrationShutdown;
+
+    QUIC_CONFIGURATION_OPEN_FN          ConfigurationOpen;
+    QUIC_CONFIGURATION_CLOSE_FN         ConfigurationClose;
+    QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN
+                                        ConfigurationLoadCredential;
+
+    QUIC_LISTENER_OPEN_FN               ListenerOpen;
+    QUIC_LISTENER_CLOSE_FN              ListenerClose;
+    QUIC_LISTENER_START_FN              ListenerStart;
+    QUIC_LISTENER_STOP_FN               ListenerStop;
+
+    QUIC_CONNECTION_OPEN_FN             ConnectionOpen;
+    QUIC_CONNECTION_CLOSE_FN            ConnectionClose;
+    QUIC_CONNECTION_SHUTDOWN_FN         ConnectionShutdown;
+    QUIC_CONNECTION_START_FN            ConnectionStart;
+    QUIC_CONNECTION_SET_CONFIGURATION_FN
+                                        ConnectionSetConfiguration;
+    QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
+
+    QUIC_STREAM_OPEN_FN                 StreamOpen;
+    QUIC_STREAM_CLOSE_FN                StreamClose;
+    QUIC_STREAM_START_FN                StreamStart;
+    QUIC_STREAM_SHUTDOWN_FN             StreamShutdown;
+    QUIC_STREAM_SEND_FN                 StreamSend;
+    QUIC_STREAM_RECEIVE_COMPLETE_FN     StreamReceiveComplete;
+    QUIC_STREAM_RECEIVE_SET_ENABLED_FN  StreamReceiveSetEnabled;
+
+    QUIC_DATAGRAM_SEND_FN               DatagramSend;
+
+} QUIC_API_TABLE;
+</code></pre>
+<h1 id="members">Members</h1>
+<p><code>SetContext</code></p>
+<p>See <a href="SetContext.html">SetContext</a></p>
+<p><code>GetContext</code></p>
+<p>See <a href="GetContext.html">GetContext</a></p>
+<p><code>SetCallbackHandler</code></p>
+<p>See <a href="SetCallbackHandler.html">SetCallbackHandler</a></p>
+<p><code>SetParam</code></p>
+<p>See <a href="SetParam.html">SetParam</a></p>
+<p><code>GetParam</code></p>
+<p>See <a href="GetParam.html">GetParam</a></p>
+<p><code>RegistrationOpen</code></p>
+<p>See <a href="RegistrationOpen.html">RegistrationOpen</a></p>
+<p><code>RegistrationClose</code></p>
+<p>See <a href="RegistrationClose.html">RegistrationClose</a></p>
+<p><code>RegistrationShutdown</code></p>
+<p>See <a href="RegistrationShutdown.html">RegistrationShutdown</a></p>
+<p><code>ConfigurationOpen</code></p>
+<p>See <a href="ConfigurationOpen.html">ConfigurationOpen</a></p>
+<p><code>ConfigurationClose</code></p>
+<p>See <a href="ConfigurationClose.html">ConfigurationClose</a></p>
+<p><code>ConfigurationLoadCredential</code></p>
+<p>See <a href="ConfigurationLoadCredential.html">ConfigurationLoadCredential</a></p>
+<p><code>ListenerOpen</code></p>
+<p>See <a href="ListenerOpen.html">ListenerOpen</a></p>
+<p><code>ListenerClose</code></p>
+<p>See <a href="ListenerClose.html">ListenerClose</a></p>
+<p><code>ListenerStart</code></p>
+<p>See <a href="ListenerStart.html">ListenerStart</a></p>
+<p><code>ListenerStop</code></p>
+<p>See <a href="ListenerStop.html">ListenerStop</a></p>
+<p><code>ConnectionOpen</code></p>
+<p>See <a href="ConnectionOpen.html">ConnectionOpen</a></p>
+<p><code>ConnectionClose</code></p>
+<p>See <a href="ConnectionClose.html">ConnectionClose</a></p>
+<p><code>ConnectionShutdown</code></p>
+<p>See <a href="ConnectionShutdown.html">ConnectionShutdown</a></p>
+<p><code>ConnectionStart</code></p>
+<p>See <a href="ConnectionStart.html">ConnectionStart</a></p>
+<p><code>ConnectionSetConfiguration</code></p>
+<p>See <a href="ConnectionSetConfiguration.html">ConnectionSetConfiguration</a></p>
+<p><code>ConnectionSendResumptionTicket</code></p>
+<p>See <a href="ConnectionSendResumptionTicket.html">ConnectionSendResumptionTicket</a></p>
+<p><code>StreamOpen</code></p>
+<p>See <a href="StreamOpen.html">StreamOpen</a></p>
+<p><code>StreamClose</code></p>
+<p>See <a href="StreamClose.html">StreamClose</a></p>
+<p><code>StreamStart</code></p>
+<p>See <a href="StreamStart.html">StreamStart</a></p>
+<p><code>StreamShutdown</code></p>
+<p>See <a href="StreamShutdown.html">StreamShutdown</a></p>
+<p><code>StreamSend</code></p>
+<p>See <a href="StreamSend.html">StreamSend</a></p>
+<p><code>StreamReceiveComplete</code></p>
+<p>See <a href="StreamReceiveComplete.html">StreamReceiveComplete</a></p>
+<p><code>StreamReceiveSetEnabled</code></p>
+<p>See <a href="StreamReceiveSetEnabled.html">StreamReceiveSetEnabled</a></p>
+<p><code>DatagramSend</code></p>
+<p>See <a href="DatagramSend.html">DatagramSend</a></p>
+<h1 id="see-also">See Also</h1>
+<p><a href="MsQuicOpen2.html">MsQuicOpen2</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/api/QUIC_API_TABLE.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

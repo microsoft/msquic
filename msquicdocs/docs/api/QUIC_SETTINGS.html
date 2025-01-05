@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_SETTINGS structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_SETTINGS structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/api/QUIC_SETTINGS.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_settings-structure">QUIC_SETTINGS structure</h1>
+
+<p>The set of all customizable parameters for the library.</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef struct QUIC_SETTINGS {
+
+    union {
+        uint64_t IsSetFlags;
+        struct {
+            uint64_t MaxBytesPerKey                         : 1;
+            uint64_t HandshakeIdleTimeoutMs                 : 1;
+            uint64_t IdleTimeoutMs                          : 1;
+            uint64_t MtuDiscoverySearchCompleteTimeoutUs    : 1;
+            uint64_t TlsClientMaxSendBuffer                 : 1;
+            uint64_t TlsServerMaxSendBuffer                 : 1;
+            uint64_t StreamRecvWindowDefault                : 1;
+            uint64_t StreamRecvBufferDefault                : 1;
+            uint64_t ConnFlowControlWindow                  : 1;
+            uint64_t MaxWorkerQueueDelayUs                  : 1;
+            uint64_t MaxStatelessOperations                 : 1;
+            uint64_t InitialWindowPackets                   : 1;
+            uint64_t SendIdleTimeoutMs                      : 1;
+            uint64_t InitialRttMs                           : 1;
+            uint64_t MaxAckDelayMs                          : 1;
+            uint64_t DisconnectTimeoutMs                    : 1;
+            uint64_t KeepAliveIntervalMs                    : 1;
+            uint64_t CongestionControlAlgorithm             : 1;
+            uint64_t PeerBidiStreamCount                    : 1;
+            uint64_t PeerUnidiStreamCount                   : 1;
+            uint64_t MaxBindingStatelessOperations          : 1;
+            uint64_t StatelessOperationExpirationMs         : 1;
+            uint64_t MinimumMtu                             : 1;
+            uint64_t MaximumMtu                             : 1;
+            uint64_t SendBufferingEnabled                   : 1;
+            uint64_t PacingEnabled                          : 1;
+            uint64_t MigrationEnabled                       : 1;
+            uint64_t DatagramReceiveEnabled                 : 1;
+            uint64_t ServerResumptionLevel                  : 1;
+            uint64_t MaxOperationsPerDrain                  : 1;
+            uint64_t MtuDiscoveryMissingProbeCount          : 1;
+            uint64_t DestCidUpdateIdleTimeoutMs             : 1;
+            uint64_t GreaseQuicBitEnabled                   : 1;
+            uint64_t EcnEnabled                             : 1;
+            uint64_t HyStartEnabled                         : 1;
+            uint64_t StreamRecvWindowBidiLocalDefault       : 1;
+            uint64_t StreamRecvWindowBidiRemoteDefault      : 1;
+            uint64_t StreamRecvWindowUnidiDefault           : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed               : 1;
+            uint64_t ReliableResetEnabled                   : 1;
+            uint64_t OneWayDelayEnabled                     : 1;
+            uint64_t NetStatsEventEnabled                   : 1;
+            uint64_t StreamMultiReceiveEnabled              : 1;
+            uint64_t RESERVED                               : 21;
+#else
+            uint64_t RESERVED                               : 26;
+#endif
+        } IsSet;
+    };
+
+    uint64_t MaxBytesPerKey;
+    uint64_t HandshakeIdleTimeoutMs;
+    uint64_t IdleTimeoutMs;
+    uint64_t MtuDiscoverySearchCompleteTimeoutUs;
+    uint32_t TlsClientMaxSendBuffer;
+    uint32_t TlsServerMaxSendBuffer;
+    uint32_t StreamRecvWindowDefault;
+    uint32_t StreamRecvBufferDefault;
+    uint32_t ConnFlowControlWindow;
+    uint32_t MaxWorkerQueueDelayUs;
+    uint32_t MaxStatelessOperations;
+    uint32_t InitialWindowPackets;
+    uint32_t SendIdleTimeoutMs;
+    uint32_t InitialRttMs;
+    uint32_t MaxAckDelayMs;
+    uint32_t DisconnectTimeoutMs;
+    uint32_t KeepAliveIntervalMs;
+    uint16_t CongestionControlAlgorithm; // QUIC_CONGESTION_CONTROL_ALGORITHM
+    uint16_t PeerBidiStreamCount;
+    uint16_t PeerUnidiStreamCount;
+    uint16_t MaxBindingStatelessOperations;
+    uint16_t StatelessOperationExpirationMs;
+    uint16_t MinimumMtu;
+    uint16_t MaximumMtu;
+    uint8_t SendBufferingEnabled            : 1;
+    uint8_t PacingEnabled                   : 1;
+    uint8_t MigrationEnabled                : 1;
+    uint8_t DatagramReceiveEnabled          : 1;
+    uint8_t ServerResumptionLevel           : 2;    // QUIC_SERVER_RESUMPTION_LEVEL
+    uint8_t GreaseQuicBitEnabled            : 1;
+    uint8_t EcnEnabled                      : 1;
+    uint8_t MaxOperationsPerDrain;
+    uint8_t MtuDiscoveryMissingProbeCount;
+    uint32_t DestCidUpdateIdleTimeoutMs;
+    union {
+        uint64_t Flags;
+        struct {
+            uint64_t HyStartEnabled            : 1;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+            uint64_t EncryptionOffloadAllowed  : 1;
+            uint64_t ReliableResetEnabled      : 1;
+            uint64_t OneWayDelayEnabled        : 1;
+            uint64_t NetStatsEventEnabled      : 1;
+            uint64_t StreamMultiReceiveEnabled : 1;
+            uint64_t ReservedFlags             : 58;
+#else
+            uint64_t ReservedFlags             : 63;
+#endif
+        };
+    };
+    uint32_t StreamRecvWindowBidiLocalDefault;
+    uint32_t StreamRecvWindowBidiRemoteDefault;
+    uint32_t StreamRecvWindowUnidiDefault;
+
+} QUIC_SETTINGS;
+</code></pre>
+<h1 id="members">Members</h1>
+<p><code>IsSetFlags</code></p>
+<p>The set of flags that indicate which other struct members are valid.</p>
+<p><code>MaxBytesPerKey</code></p>
+<p>Maximum number of bytes to encrypt with a single 1-RTT encryption key before initiating key update.</p>
+<p><strong>Default value:</strong> 274,877,906,944</p>
+<p><code>HandshakeIdleTimeoutMs</code></p>
+<p>How long a handshake can idle before it is discarded.</p>
+<p><strong>Default value:</strong> 10,000</p>
+<p><code>IdleTimeoutMs</code></p>
+<p>How long a connection can go idle before it is gracefully shut down. 0 to disable timeout.</p>
+<p><strong>Default value:</strong> 30,000</p>
+<p><code>TlsClientMaxSendBuffer</code></p>
+<p>How much client TLS data to buffer.  If the application expects large client certificates, or long client certificate chains, this value should be increased.</p>
+<p><strong>Default value:</strong> 4,096</p>
+<p><code>TlsServerMaxSendBuffer</code></p>
+<p>How much server TLS data to buffer.  If the application expects very large server certificates, or long server certificate chains, this value should be increased.</p>
+<p><strong>Default value:</strong>  8,192</p>
+<p><code>StreamRecvWindowDefault</code></p>
+<p>Initial stream receive flow control window size. This applies to all stream types. Limits for specific stream types can be set using <code>StreamRecvWindowBidirLocalDefault</code>, <code>StreamRecvWindowBidirRemoteDefault</code> and <code>StreamRecvWindowUnidirDefault</code>. The value must be a power of 2.</p>
+<p><strong>Default value:</strong> 65,536</p>
+<p><code>StreamRecvBufferDefault</code></p>
+<p>Stream initial buffer size.</p>
+<p><strong>Default value:</strong> 4,096</p>
+<p><code>ConnFlowControlWindow</code></p>
+<p>Connection-wide flow control window.</p>
+<p><strong>Default value:</strong> 16,777,216</p>
+<p><code>MaxWorkerQueueDelayUs</code></p>
+<p>The maximum queue delay (in microseconds) allowed for a worker thread. This affects loss detection and probe timeouts.</p>
+<p><strong>Default value:</strong> 250,000</p>
+<p><code>MaxStatelessOperations</code></p>
+<p>The maximum number of stateless operations that may be queued on a worker at any one time.</p>
+<p><strong>Default value:</strong> 16</p>
+<p><code>InitialWindowPackets</code></p>
+<p>The size (in packets) of the initial congestion window for a connection.</p>
+<p><strong>Default value:</strong> 10</p>
+<p><code>SendIdleTimeoutMs</code></p>
+<p>Reset congestion control after being idle <code>SendIdleTimeoutMs</code> milliseconds.</p>
+<p><strong>Default value:</strong> 1,000</p>
+<p><code>InitialRttMs</code></p>
+<p>Initial RTT estimate.</p>
+<p><strong>Default value:</strong> 333</p>
+<p><code>MaxAckDelayMs</code></p>
+<p>How long to wait after receiving data before sending an ACK. This controls batch sending ACKs, to get higher throughput with less overhead. Too long causes retransmits from the peer, too short wastefully sends ACKs.</p>
+<p><strong>Default value:</strong> 25</p>
+<p><code>DisconnectTimeoutMs</code></p>
+<p>How long to wait for an ACK before declaring a path dead and disconnecting.</p>
+<p><strong>Default value:</strong> 16,000</p>
+<p><code>KeepAliveIntervalMs</code></p>
+<p>How often to send PING frames to keep a connection alive. This also helps keep NAT table entries from expiring.</p>
+<p><strong>Default value:</strong> 0 (disabled)</p>
+<p><code>PeerBidiStreamCount</code></p>
+<p>Number of bidirectional streams to allow the peer to open. Must be non-zero to allow the peer to open any streams at all.</p>
+<p><strong>Default value:</strong> 0</p>
+<p><code>PeerUnidiStreamCount</code></p>
+<p>Number of unidirectional streams to allow the peer to open. Must be non-zero to allow the peer to open any streams at all.</p>
+<p><strong>Default value:</strong> 0</p>
+<p><code>RetryMemoryLimit</code></p>
+<p>The percentage of available memory usable for handshake connections before stateless retry is used. Calculated as <code>N/65535</code>. Global setting, not per-connection/configuration.</p>
+<p><strong>Default value:</strong> 65 (~0.1%)</p>
+<p><code>LoadBalancingMode</code></p>
+<p>Global setting, not per-connection/configuration.</p>
+<p><strong>Default value:</strong> 0 (disabled)</p>
+<p><code>MaxOperationsPerDrain</code></p>
+<p>The maximum number of operations to drain per connection quantum.</p>
+<p><strong>Default value:</strong> 16</p>
+<p><code>SendBufferingEnabled</code></p>
+<p>Buffer send data within MsQuic instead of holding application buffers until sent data is acknowledged.</p>
+<p><strong>Default value:</strong> 1 (<code>TRUE</code>)</p>
+<p><code>PacingEnabled</code></p>
+<p>Pace sending to avoid overfilling buffers on the path.</p>
+<p><strong>Default value:</strong> 1 (<code>TRUE</code>)</p>
+<p><code>MigrationEnabled</code></p>
+<p>Enable clients to migrate IP addresses and tuples. Requires the server to be behind a cooperative load-balancer, or behind no load-balancer.</p>
+<p><strong>Default value:</strong> 1 (<code>TRUE</code>)</p>
+<p><code>DatagramReceiveEnabled</code></p>
+<p>Advertise support for QUIC datagram extension. Both sides of a connection need to set this to <code>TRUE</code> for <a href="DatagramSend.html">DatagramSend</a> to be functional and supported.</p>
+<p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
+<p><code>ServerResumptionLevel</code></p>
+<p>Server only. Controls resumption tickets and/or 0-RTT server support. <code>QUIC_SERVER_RESUME_ONLY</code> enables sending and receiving TLS resumption tickets. The server app must call <a href="ConnectionSendResumptionTicket.html">ConnectionSendResumptionTicket</a> to send a resumption ticket to the client. <code>QUIC_SERVER_RESUME_AND_ZERORTT</code> enables sending and receiving TLS resumption tickets and generating 0-RTT keys and receiving 0-RTT payloads. The server app may decide accept/reject each 0-RTT payload individually.</p>
+<p><strong>Default value:</strong> <code>QUIC_SERVER_NO_RESUME</code> (disabled)</p>
+<p><code>MinimumMtu</code></p>
+<p>The minimum MTU supported by a connection. This will be used as the starting MTU.</p>
+<p><strong>Default value:</strong> 1248</p>
+<p><code>MaximumMtu</code></p>
+<p>The maximum MTU supported by a connection. This will be the maximum probed value.</p>
+<p><strong>Default value:</strong> 1500</p>
+<p><code>MtuDiscoverySearchCompleteTimeoutUs</code></p>
+<p>The time in microseconds to wait before reattempting MTU probing if max was not reached.</p>
+<p><strong>Default value:</strong> 600000000</p>
+<p><code>MtuDiscoveryMissingProbeCount</code></p>
+<p>The number of MTU probes to retry before exiting MTU probing.</p>
+<p><strong>Default value:</strong> 3</p>
+<p><code>MaxBindingStatelessOperations</code></p>
+<p>The maximum number of stateless operations that may be queued on a binding at any one time.</p>
+<p><strong>Default value:</strong> 100</p>
+<p><code>StatelessOperationExpirationMs</code></p>
+<p>The time limit between operations for the same endpoint, in milliseconds.</p>
+<p><strong>Default value:</strong> 100</p>
+<p><code>DestCidUpdateIdleTimeoutMs</code></p>
+<p>Idle timeout period after which the destination CID is updated before sending again.</p>
+<p><strong>Default value:</strong> 20,000</p>
+<p><code>GreaseQuicBitEnabled</code></p>
+<p>Advertise support for QUIC Grease Bit Extension. Both sides of a connection need to set this to <code>TRUE</code> for receiving and sending necessary transport parameter.</p>
+<p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
+<p><code>EcnEnabled</code></p>
+<p>Enable sender-side ECN support. The connection will validate and react to ECN feedback from peer.</p>
+<p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
+<p><code>StreamRecvWindowBidirLocalDefault</code></p>
+<p>Initial stream receive flow control window size for locally initiated bidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamRecvWindowBidirRemoteDefault</code></p>
+<p>Initial stream receive flow control window size for remotely initiated bidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamRecvWindowUnidiDefault</code></p>
+<p>Initial stream receive flow control window size for remotely initiated unidirectional streams. If set, this value overwrites the <code>StreamRecvWindowDefault</code>.</p>
+<p><strong>Default value:</strong> 0 (no overwrite)</p>
+<p><code>StreamMultiReceiveEnabled</code></p>
+<p>Enable multi receive mode. An app can continue receiving stream data without calling <code>StreamReceiveComplete</code> for each <code>QUIC_STREAM_EVENT_RECEIVE</code> indication.</p>
+<p><strong>Default value:</strong> 0 (<code>FALSE</code>)</p>
+<h1 id="remarks">Remarks</h1>
+<p>When setting new values for the settings, the app must set the corresponding <code>.IsSet.*</code> parameter for each actual parameter that is being set or updated. For example:</p>
+<pre><code class="lang-C">QUIC_SETTINGS Settings {0};
+
+//
+// Configures the server's idle timeout.
+//
+Settings.IdleTimeoutMs = 60000; // 60 seconds
+Settings.IsSet.IdleTimeoutMs = TRUE;
+
+//
+// Configures the server's resumption level to allow for resumption and 0-RTT.
+//
+Settings.ServerResumptionLevel = QUIC_SERVER_RESUME_AND_ZERORTT;
+Settings.IsSet.ServerResumptionLevel = TRUE;
+</code></pre>
+<h1 id="see-also">See Also</h1>
+<p><a href="ConfigurationOpen.html">ConfigurationOpen</a><br>
+<a href="GetParam.html">GetParam</a><br>
+<a href="SetParam.html">SetParam</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/api/QUIC_SETTINGS.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

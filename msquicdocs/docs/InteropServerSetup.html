@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Setting Up an MsQuic Interop Server </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Setting Up an MsQuic Interop Server ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/InteropServerSetup.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="setting-up-an-msquic-interop-server">Setting Up an MsQuic Interop Server</h1>
+
+<p>One of the tools in the MsQuic repo is <code>quicinteropserver</code> (<a href="https://github.com/microsoft/msquic/tree/main/src/tools/interopserver">source</a>). It is our server solution used for QUIC interoperability testing. You can find the general requirements for this on the <a href="https://github.com/quicwg/base-drafts/wiki/18th-Implementation-Draft">QUIC WG Wiki</a>.</p>
+<h1 id="building">Building</h1>
+<p>The tool is automatically built with the rest of the repo. See complete build instructions <a href="BUILD.html">here</a>.</p>
+<p>There are a few additional things to note beyond the default build instructions. Currently, 0-RTT is only supported on Windows, when using the OpenSSL TLS library. To build for OpenSSL, you must use the <code>-Tls openssl</code> option when calling <code>build.ps</code>. If 0-RTT is not required/needed, then <code>-Tls schannel</code> should be fine to use on Windows, and <code>-Tls openssl</code> for Linux.</p>
+<p>Once built, you can find the <code>quicinteropserver</code> in (assuming PowerShell is used to build):</p>
+<pre><code>./artifacts/bin/{platform}/{arch}_{config}_{tls}
+</code></pre>
+<p>For example, if you build with <code>build.ps1 -Config Release -Tls openssl</code> on Windows, the output would be in:</p>
+<pre><code>./artifacts/bin/windows/x64_release_openssl
+</code></pre>
+<p>The directory contains all the build artifacts, including the base MsQuic library (<code>msquic.dll</code> or <code>libmsquic.so</code>).</p>
+<h1 id="deploying">Deploying</h1>
+<p>To deploy quicinteropserver both the base MsQuic library and the application binary itself will have to be copied to the server machine. If you run quicinteropserver without any arguments, you will get the default usage text. For instance:</p>
+<pre><code>quicinteropserver is simple http 0.9/1.1 server.
+
+Usage:
+  quicinteropserver -listen:&lt;addr or *&gt; -root:&lt;path&gt; [-thumbprint:&lt;cert_thumbprint&gt;] [-name:&lt;cert_name&gt;] [-file:&lt;cert_filepath&gt; AND -key:&lt;cert_key_filepath&gt;] [-port:&lt;####&gt; (def:4433)]  [-retry:&lt;0/1&gt; (def:0)] [-upload:&lt;path&gt;]
+
+Examples:
+  quicinteropserver -listen:127.0.0.1 -name:localhost -port:443 -root:c:\temp
+  quicinteropserver -listen:* -retry:1 -thumbprint:175342733b39d81c997817296c9b691172ca6b6e -root:c:\temp
+</code></pre>
+<p>Please see <a href="Deployment.html">Deployment.md</a> for additional deployment considerations.</p>
+<h2 id="windows-instructions">Windows Instructions</h2>
+<p>The simplest and quickest way to set up the server on Windows is to use a self-signed certificate. The following PowerShell command can easily create one for you:</p>
+<pre><code class="lang-PowerShell">New-SelfSignedCertificate -DnsName $env:computername,localhost,{DnsName} -FriendlyName QuicInteropServer -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider &quot;Microsoft Software Key Storage Provider&quot;
+</code></pre>
+<p>Make sure to replace <code>{DnsName}</code> with the actual public domain name of the server, if you have one. If not available, you may just omit the parameter all together.</p>
+<p>The PowerShell command will dump the new certificate's thumbprint/hash to the console. You can then use that to start the server. For example:</p>
+<pre><code>quicinteropserver.exe -listen:* -port:4433 -thumbprint:{thumbprint} -root:{html_root_dir}
+</code></pre>
+<p>Make sure to replace <code>{thumbprint}</code> with the thumbprint of the certificate and <code>{html_root_dir}</code> with the full path of directory containing the HTML files you which to serve. It's recommended to include an <code>index.html</code> at the very least in this directory.</p>
+<p>Also make sure to configure both any necessary firewalls to allow incoming UDP traffic on the configured port (<code>4433</code> in the case above). The following PowerShell command can easily open up the port in the Windows firewall:</p>
+<pre><code class="lang-PowerShell">New-NetFirewallRule -DisplayName &quot;QuicInteropServer&quot; -Direction Inbound -Protocol UDP -LocalPort 4433 -Action Allow
+</code></pre>
+<h2 id="linux-instructions">Linux Instructions</h2>
+<blockquote>
+<p>TO-DO</p>
+</blockquote>
+<h1 id="enabling-dump-collection">Enabling Dump Collection</h1>
+<p>It is a good idea to enable dump collection for any possible crashes, since this is only a test application, and not actual production quality.</p>
+<h2 id="windows-instructions-1">Windows Instructions</h2>
+<p>You can easily configure WER (Windows Error Reporting) to collect dump files and save them locally, in the directory of you're choosing, via the following PowerShell registry commands:</p>
+<pre><code class="lang-PowerShell">$OutputDir = &quot;C:\dumps&quot;
+$WerDumpRegPath = &quot;HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\quicinteropserver.exe&quot;
+if (!(Test-Path $WerDumpRegPath)) {
+    New-Item -Path $WerDumpRegPath -Force | Out-Null
+}
+New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
+</code></pre>
+<p>Feel free to update <code>$OutputDir</code> to whatever local directory you wish.</p>
+<h2 id="linux-instructions-1">Linux Instructions</h2>
+<p>The following commands (run as root) should configure core dumps to be created in the local directory:</p>
+<pre><code class="lang-sh"># Enable core dumps for the system.
+sudo sh -c &quot;echo 'root soft core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo 'root hard core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* soft core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* hard core unlimited' &gt;&gt; /etc/security/limits.conf&quot;
+
+# Set the core dump pattern.
+sudo sh -c &quot;echo -n '%e.%p.%t.core' &gt; /proc/sys/kernel/core_pattern&quot;
+</code></pre>
+<p>The following are sudo basd run especially for using XDP</p>
+<pre><code class="lang-sh"># Increase the number of file descriptors.
+sudo sh -c &quot;echo 'root soft nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo 'root hard nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* soft nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+sudo sh -c &quot;echo '* hard nofile 1048576' &gt;&gt; /etc/security/limits.conf&quot;
+</code></pre>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/InteropServerSetup.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

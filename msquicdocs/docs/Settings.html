@@ -1,0 +1,957 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>MsQuic Settings </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="MsQuic Settings ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/Settings.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="msquic-settings">MsQuic Settings</h1>
+
+<p>MsQuic supports a number of configuration knobs (or settings). These settings can either be set dynamically (via the <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a> structure) or via persistent storage (e.g. registry on Windows).</p>
+<blockquote>
+<p><strong>Warning</strong>
+Generally MsQuic already choses the best / most correct default values for all settings. Settings should only be changed after due diligence and A/B testing is performed.</p>
+</blockquote>
+<p>MsQuic settings are available on most MsQuic API objects. <a href="#api-object-parameters">Here</a> we'll provide an overview of them with links to further details.</p>
+<h2 id="windows-registry">Windows Registry</h2>
+<p>MsQuic supports most of the settings in the QUIC_SETTINGS struct in the registry to be loaded as defaults when the MsQuic library is loaded in a process.  These registry settings only provide the defaults; the application is free to change the settings with a call to <a href="api/SetParam.html">SetParam</a> or in <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a> structs passed into <a href="api/ConfigurationOpen.html">ConfigurationOpen</a>.</p>
+<p>The default settings are updated automatically in the application when changing the registry, assuming the application hasn't already changed the setting, which overrides the registry value. However, this does not change the settings on Connections which are already established, or Configurations which are already created.</p>
+<p>Note: MaxWorkerQueueDelay uses <strong>milliseconds</strong> in the registry, but uses microseconds (us) in the <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a> struct.</p>
+<p>The following settings are unique to the registry:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Registry Name</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Max Worker Queue Delay</td>
+<td>uint32_t</td>
+<td>MaxWorkerQueueDelayMs</td>
+<td>250</td>
+<td>The maximum queue delay (in ms) allowed for a worker thread.</td>
+</tr>
+<tr>
+<td>Max Partition Count</td>
+<td>uint16_t</td>
+<td>MaxPartitionCount</td>
+<td>System CPU count</td>
+<td>The maximum processor count used for partitioning work in MsQuic. Max 512. <strong>Restart is required.</strong></td>
+</tr>
+</tbody>
+</table>
+<p>The following settings are available via registry as well as via <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Registry Name</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Max Bytes per Key</td>
+<td>uint64_t</td>
+<td>MaxBytesPerKey</td>
+<td>274,877,906,944</td>
+<td>Maximum number of bytes to encrypt with a single 1-RTT encryption key before initiating key update.</td>
+</tr>
+<tr>
+<td>Handshake Idle Timeout</td>
+<td>uint64_t</td>
+<td>HandshakeIdleTimeoutMs</td>
+<td>10,000</td>
+<td>How long a handshake can idle before it is discarded.</td>
+</tr>
+<tr>
+<td>Idle Timeout</td>
+<td>uint64_t</td>
+<td>IdleTimeoutMs</td>
+<td>30,000</td>
+<td>How long a connection can go idle before it is silently shut down. 0 to disable timeout</td>
+</tr>
+<tr>
+<td>Max TLS Send Buffer (Client)</td>
+<td>uint32_t</td>
+<td>TlsClientMaxSendBuffer</td>
+<td>4,096</td>
+<td>How much client TLS data to buffer.</td>
+</tr>
+<tr>
+<td>Max TLS Send Buffer (Server)</td>
+<td>uint32_t</td>
+<td>TlsServerMaxSendBuffer</td>
+<td>8,192</td>
+<td>How much server TLS data to buffer.</td>
+</tr>
+<tr>
+<td>Stream Receive Window</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowDefault</td>
+<td>65,536</td>
+<td>Initial stream receive window size for all stream types.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Bidirectional, locally created)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowBidiLocalDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for locally initiated bidirectional streams.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Bidirectional, remotely created)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowBidiRemoteDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for remote initiated bidirectional streams.</td>
+</tr>
+<tr>
+<td>Stream Receive Window (Unidirectional)</td>
+<td>uint32_t</td>
+<td>StreamRecvWindowUnidiDefault</td>
+<td>-</td>
+<td>If set, overrides stream receive window size for remote initiated unidirectional streams.</td>
+</tr>
+<tr>
+<td>Stream Receive Buffer</td>
+<td>uint32_t</td>
+<td>StreamRecvBufferDefault</td>
+<td>4,096</td>
+<td>Stream initial buffer size.</td>
+</tr>
+<tr>
+<td>Flow Control Window</td>
+<td>uint32_t</td>
+<td>ConnFlowControlWindow</td>
+<td>16,777,216</td>
+<td>Connection-wide flow control window.</td>
+</tr>
+<tr>
+<td>Max Stateless Operations</td>
+<td>uint32_t</td>
+<td>MaxStatelessOperations</td>
+<td>16</td>
+<td>The maximum number of stateless operations that may be queued on a worker at any one time.</td>
+</tr>
+<tr>
+<td>Initial Window</td>
+<td>uint32_t</td>
+<td>InitialWindowPackets</td>
+<td>10</td>
+<td>The size (in packets) of the initial congestion window for a connection.</td>
+</tr>
+<tr>
+<td>Send Idle Timeout</td>
+<td>uint32_t</td>
+<td>SendIdleTimeoutMs</td>
+<td>1,000</td>
+<td>Reset congestion control after being idle <code>SendIdleTimeoutMs</code> milliseconds.</td>
+</tr>
+<tr>
+<td>Initial RTT</td>
+<td>uint32_t</td>
+<td>InitialRttMs</td>
+<td>333</td>
+<td>Initial RTT estimate.</td>
+</tr>
+<tr>
+<td>Max ACK Delay</td>
+<td>uint32_t</td>
+<td>MaxAckDelayMs</td>
+<td>25</td>
+<td>How long to wait after receiving data before sending an ACK.</td>
+</tr>
+<tr>
+<td>Disconnect Timeout</td>
+<td>uint32_t</td>
+<td>DisconnectTimeoutMs</td>
+<td>16,000</td>
+<td>How long to wait for an ACK before declaring a path dead and disconnecting.</td>
+</tr>
+<tr>
+<td>Keep Alive Interval</td>
+<td>uint32_t</td>
+<td>KeepAliveIntervalMs</td>
+<td>0 (disabled)</td>
+<td>How often to send PING frames to keep a connection alive.</td>
+</tr>
+<tr>
+<td>Idle Timeout Period Changes DestCid</td>
+<td>uint32_t</td>
+<td>DestCidUpdateIdleTimeoutMs</td>
+<td>20,000</td>
+<td>Idle timeout period after which the destination CID is updated before sending again.</td>
+</tr>
+<tr>
+<td>Peer Stream Count (Bidirectional)</td>
+<td>uint16_t</td>
+<td>PeerBidiStreamCount</td>
+<td>0</td>
+<td>Number of bidirectional streams to allow the peer to open.</td>
+</tr>
+<tr>
+<td>Peer Stream Count (Unidirectional)</td>
+<td>uint16_t</td>
+<td>PeerUnidiStreamCount</td>
+<td>0</td>
+<td>Number of unidirectional streams to allow the peer to open.</td>
+</tr>
+<tr>
+<td>Retry Memory Limit</td>
+<td>uint16_t</td>
+<td>RetryMemoryFraction</td>
+<td>65 (~0.1%)</td>
+<td>The percentage of available memory usable for handshake connections before stateless retry is used. Calculated as <code>N/65535</code>.</td>
+</tr>
+<tr>
+<td>Load Balancing Mode</td>
+<td>uint16_t</td>
+<td>LoadBalancingMode</td>
+<td>0 (disabled)</td>
+<td>Global setting, not per-connection/configuration.</td>
+</tr>
+<tr>
+<td>Max Operations per Drain</td>
+<td>uint8_t</td>
+<td>MaxOperationsPerDrain</td>
+<td>16</td>
+<td>The maximum number of operations to drain per connection quantum.</td>
+</tr>
+<tr>
+<td>Send Buffering</td>
+<td>uint8_t</td>
+<td>SendBufferingEnabled</td>
+<td>1 (TRUE)</td>
+<td>Buffer send data within MsQuic instead of holding application buffers until sent data is acknowledged.</td>
+</tr>
+<tr>
+<td>Send Pacing</td>
+<td>uint8_t</td>
+<td>PacingEnabled</td>
+<td>1 (TRUE)</td>
+<td>Pace sending to avoid overfilling buffers on the path.</td>
+</tr>
+<tr>
+<td>Client Migration Support</td>
+<td>uint8_t</td>
+<td>MigrationEnabled</td>
+<td>1 (TRUE)</td>
+<td>Enable clients to migrate IP addresses and tuples. Requires a cooperative load-balancer, or no load-balancer.</td>
+</tr>
+<tr>
+<td>Datagram Receive Support</td>
+<td>uint8_t</td>
+<td>DatagramReceiveEnabled</td>
+<td>0 (FALSE)</td>
+<td>Advertise support for QUIC datagram extension.</td>
+</tr>
+<tr>
+<td>Server Resumption Level</td>
+<td>uint8_t</td>
+<td>ServerResumptionLevel</td>
+<td>0 (No resumption)</td>
+<td>Server only. Controls resumption tickets and/or 0-RTT server support.</td>
+</tr>
+<tr>
+<td>Grease Quic Bit Support</td>
+<td>uint8_t</td>
+<td>GreaseQuicBitEnabled</td>
+<td>0 (FALSE)</td>
+<td>Advertise support for Grease QUIC Bit extension.</td>
+</tr>
+<tr>
+<td>Minimum MTU</td>
+<td>uint16_t</td>
+<td>MinimumMtu</td>
+<td>1288</td>
+<td>The minimum MTU supported by a connection. This will be used as the starting MTU.</td>
+</tr>
+<tr>
+<td>Maximum MTU</td>
+<td>uint16_t</td>
+<td>MaximumMtu</td>
+<td>1500</td>
+<td>The maximum MTU supported by a connection. This will be the maximum probed value.</td>
+</tr>
+<tr>
+<td>MTU Discovery Search Timeout</td>
+<td>uint64_t</td>
+<td>MtuDiscoverySearchCompleteTimeoutUs</td>
+<td>600000000</td>
+<td>The time in microseconds to wait before reattempting MTU probing if max was not reached.</td>
+</tr>
+<tr>
+<td>MTU Discovery Missing Probe Count</td>
+<td>uint8_t</td>
+<td>MtuDiscoveryMissingProbeCount</td>
+<td>3</td>
+<td>The number of MTU probes to retry before exiting MTU probing.</td>
+</tr>
+<tr>
+<td>Max Binding Stateless Operations</td>
+<td>uint16_t</td>
+<td>MaxBindingStatelessOperations</td>
+<td>100</td>
+<td>The maximum number of stateless operations that may be queued on a binding at any one time.</td>
+</tr>
+<tr>
+<td>Stateless Operation Expiration</td>
+<td>uint16_t</td>
+<td>StatelessOperationExpirationMs</td>
+<td>100</td>
+<td>The time limit between operations for the same endpoint, in milliseconds.</td>
+</tr>
+<tr>
+<td>Congestion Control Algorithm</td>
+<td>uint16_t</td>
+<td>CongestionControlAlgorithm</td>
+<td>0 (Cubic)</td>
+<td>The congestion control algorithm used for the connection.</td>
+</tr>
+<tr>
+<td>ECN</td>
+<td>uint8_t</td>
+<td>EcnEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enable sender-side ECN support.</td>
+</tr>
+<tr>
+<td>Stream Multi Receive</td>
+<td>uint8_t</td>
+<td>StreamMultiReceiveEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enable multi receive support</td>
+</tr>
+</tbody>
+</table>
+<p>The types map to registry types as follows:</p>
+<ul>
+<li><code>uint64_t</code> is a <code>REG_QWORD</code>.</li>
+<li><code>uint32_t</code>, <code>uint16_t</code>, and <code>uint8_t</code> are <code>REG_DWORD</code>.</li>
+</ul>
+<p>While <code>REG_DWORD</code> can hold values larger than <code>uint16_t</code>, the administrator should ensure they do not exceed the maximum value of 65,535 when configuring a <code>uint16_t</code> setting via the Windows Registry.</p>
+<p>The following settings are available via registry as well as via <a href="Versions.html">QUIC_VERSION_SETTINGS</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Registry Name</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Acceptable Versions List</td>
+<td>uint32_t[]</td>
+<td>AcceptableVersions</td>
+<td>Unset</td>
+<td>Sets the list of versions that a given server instance will use if a client sends a first flight using them.</td>
+</tr>
+<tr>
+<td>Offered Versions List</td>
+<td>uint32_t[]</td>
+<td>OfferedVersions</td>
+<td>Unset</td>
+<td>Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list.</td>
+</tr>
+<tr>
+<td>Fully-Deployed Versions List</td>
+<td>uint32_t[]</td>
+<td>FullyDeployedVersions</td>
+<td>Unset</td>
+<td>Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter.</td>
+</tr>
+<tr>
+<td>Version Negotiation Ext. Enabled</td>
+<td>uint32_t</td>
+<td>VersionNegotiationExtEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enables the Version Negotiation Extension.</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>uint32_t[]</code> type is a <code>REG_BINARY</code> blob of the versions list, with each version in little-endian format.</p>
+<p>All restrictions and effects on the versions mentioned in <a href="Versions.html">QUIC_VERSION_SETTINGS</a> apply to the registry-set versions as well.</p>
+<p>Particularly, on server, these must be set <strong>GLOBALLY</strong> if you want them to take effect for servers.</p>
+<h2 id="quic_settings">QUIC_SETTINGS</h2>
+<p>A <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a> struct is used to configure settings on a <code>Configuration</code> handle, <code>Connection</code> handle, or globally.</p>
+<p>For more details see <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a>.</p>
+<h1 id="api-object-parameters">API Object Parameters</h1>
+<p>MsQuic API Objects have a number of settings, or parameters, which can be queried via <a href="api/GetParam.html">GetParam</a>, or can be set/modifed via <a href="api/SetParam.html">SetParam</a>.</p>
+<h2 id="global-parameters">Global Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_GLOBAL_*</code> and a <code>NULL</code> object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT</code><br> 0</td>
+<td>uint16_t</td>
+<td>Both</td>
+<td>The percentage of available memory usable for handshake connections before stateless retry is used.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_SUPPORTED_VERSIONS</code><br> 1</td>
+<td>uint32_t[]</td>
+<td>Get-only</td>
+<td>List of QUIC protocol versions supported in network byte order.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_LOAD_BALACING_MODE</code><br> 2</td>
+<td>uint16_t</td>
+<td>Both</td>
+<td>Must be a <code>QUIC_LOAD_BALANCING_MODE</code>.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_PERF_COUNTERS</code><br> 3</td>
+<td>uint64_t[]</td>
+<td>Get-only</td>
+<td>Array size is QUIC_PERF_COUNTER_MAX.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_LIBRARY_VERSION</code><br> 4</td>
+<td>uint32_t[4]</td>
+<td>Get-only</td>
+<td>MsQuic API version.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_SETTINGS</code><br> 5</td>
+<td>QUIC_SETTINGS</td>
+<td>Both</td>
+<td>Globally change settings for all subsequent connections.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS</code><br> 6</td>
+<td>QUIC_GLOBAL_SETTINGS</td>
+<td>Both</td>
+<td>Globally change global only settings.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_VERSION_SETTINGS</code><br> 7</td>
+<td>QUIC_VERSIONS_SETTINGS</td>
+<td>Both</td>
+<td>Globally change version settings for all subsequent connections.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH</code><br> 8</td>
+<td>char[64]</td>
+<td>Get-only</td>
+<td>Git hash used to build MsQuic (null terminated string)</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_EXECUTION_CONFIG</code><br> 9</td>
+<td>QUIC_EXECUTION_CONFIG</td>
+<td>Both</td>
+<td>Globally configure the execution model used for QUIC. Must be set before opening registration.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_TLS_PROVIDER</code><br> 10</td>
+<td>QUIC_TLS_PROVIDER</td>
+<td>Get-Only</td>
+<td>The TLS provider being used by MsQuic for the TLS handshake.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY</code><br> 11</td>
+<td>uint8_t[]</td>
+<td>Set-Only</td>
+<td>Globally change the stateless reset key for all subsequent connections.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED</code><br> (preview)</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Globally enable the version negotiation extension for all client and server connections.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="registration-parameters">Registration Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_REGISTRATION_*</code> and a Registration object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+</table>
+<h2 id="configuration-parameters">Configuration Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_CONFIGURATION_*</code> and a Configuration object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_SETTINGS</code><br> 0</td>
+<td>QUIC_SETTINGS</td>
+<td>Both</td>
+<td>Settings to use for all connections sharing this Configuration. See <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a>.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_TICKET_KEYS</code><br> 1</td>
+<td>QUIC_TICKET_KEY_CONFIG[]</td>
+<td>Set-only</td>
+<td>Resumption ticket encryption keys. Server-side only.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS</code><br> 2</td>
+<td>QUIC_VERSIONS_SETTINGS</td>
+<td>Both</td>
+<td>Change version settings for all connections on the configuration.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W</code><br> 3</td>
+<td>QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W</td>
+<td>Set-only</td>
+<td>Calls <code>SetCredentialsAttributesW</code> with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED</code><br> (preview)</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Enables the version negotiation extension for all client connections on the configuration.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="listener-parameters">Listener Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_LISTENER_*</code> and a Listener object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_LISTENER_LOCAL_ADDRESS</code><br> 0</td>
+<td>QUIC_ADDR</td>
+<td>Get-only</td>
+<td>Get the full address tuple the server is listening on.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_LISTENER_STATS</code><br> 1</td>
+<td>QUIC_LISTENER_STATISTICS</td>
+<td>Get-only</td>
+<td>Get statistics specific to this Listener instance.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_LISTENER_CIBIR_ID</code><br> 2</td>
+<td>uint8_t[]</td>
+<td>Both</td>
+<td>The CIBIR well-known idenfitier.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="connection-parameters">Connection Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_CONNECTION_*</code> and a Connection object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_CONN_QUIC_VERSION</code><br> 0</td>
+<td>uint32_t</td>
+<td>Get-only</td>
+<td>Negotiated QUIC protocol version</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_LOCAL_ADDRESS</code><br> 1</td>
+<td>QUIC_ADDR</td>
+<td>Both</td>
+<td>Set on client only. Must be set before start or after handshake confirmed.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_REMOTE_ADDRESS</code><br> 2</td>
+<td>QUIC_ADDR</td>
+<td>Both</td>
+<td>Set on client only. Must be set before start.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_IDEAL_PROCESSOR</code><br> 3</td>
+<td>uint16_t</td>
+<td>Get-only</td>
+<td>Ideal processor for the app to send from.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_SETTINGS</code><br> 4</td>
+<td>QUIC_SETTINGS</td>
+<td>Both</td>
+<td>Connection settings. See <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a></td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_STATISTICS</code><br> 5</td>
+<td>QUIC_STATISTICS</td>
+<td>Get-only</td>
+<td>Connection-level statistics.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_STATISTICS_PLAT</code><br> 6</td>
+<td>QUIC_STATISTICS</td>
+<td>Get-only</td>
+<td>Connection-level statistics with platform-specific time format.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_SHARE_UDP_BINDING</code><br> 7</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Set on client only. Must be called before start.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_LOCAL_BIDI_STREAM_COUNT</code><br> 8</td>
+<td>uint16_t</td>
+<td>Get-only</td>
+<td>Number of bidirectional streams available.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_LOCAL_UNIDI_STREAM_COUNT</code><br> 9</td>
+<td>uint16_t</td>
+<td>Get-only</td>
+<td>Number of unidirectional streams available.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_MAX_STREAM_IDS</code><br> 10</td>
+<td>uint64_t[4]</td>
+<td>Get-only</td>
+<td>Array of number of client and server, bidirectional and unidirectional streams.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_CLOSE_REASON_PHRASE</code><br> 11</td>
+<td>char[]</td>
+<td>Both</td>
+<td>Max length 512 chars.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_STREAM_SCHEDULING_SCHEME</code><br> 12</td>
+<td>QUIC_STREAM_SCHEDULING_SCHEME</td>
+<td>Both</td>
+<td>Whether to use FIFO or round-robin stream scheduling.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_DATAGRAM_RECEIVE_ENABLED</code><br> 13</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Indicate/query support for QUIC datagram extension. Must be set before start.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_DATAGRAM_SEND_ENABLED</code><br> 14</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Get-only</td>
+<td>Indicates peer advertised support for QUIC datagram extension. Call after connected.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION</code><br> 15</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Both</td>
+<td>Application must <code>#define QUIC_API_ENABLE_INSECURE_FEATURES</code> before including msquic.h.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_RESUMPTION_TICKET</code><br> 16</td>
+<td>uint8_t[]</td>
+<td>Set-only</td>
+<td>Must be set on client before starting connection.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_PEER_CERTIFICATE_VALID</code><br> 17</td>
+<td>uint8_t (BOOLEAN)</td>
+<td>Set-only</td>
+<td>Used for asynchronous custom certificate validation. <em>Deprecated soon. Replaced by <a href="api/ConnectionCertificateValidationComplete.html">ConnectionCertificateValidationComplete</a></em></td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_LOCAL_INTERFACE</code><br> 18</td>
+<td>uint32_t</td>
+<td>Set-only</td>
+<td>The local interface index to bind to.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_TLS_SECRETS</code><br> 19</td>
+<td>QUIC_TLS_SECRETS</td>
+<td>Set-only</td>
+<td>The TLS secrets struct to be populated by MsQuic.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_VERSION_SETTINGS</code><br> 20</td>
+<td>QUIC_VERSION_SETTINGS</td>
+<td>Both</td>
+<td>The desired QUIC versions for the connection.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_CIBIR_ID</code><br> 21</td>
+<td>uint8_t[]</td>
+<td>Set-only</td>
+<td>The CIBIR well-known identifier.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_STATISTICS_V2</code><br> 22</td>
+<td>QUIC_STATISTICS_V2</td>
+<td>Get-only</td>
+<td>Connection-level statistics, version 2.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_STATISTICS_V2_PLAT</code><br> 23</td>
+<td>QUIC_STATISTICS_V2</td>
+<td>Get-only</td>
+<td>Connection-level statistics with platform-specific time format, version 2.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_ORIG_DEST_CID</code> <br> 24</td>
+<td>uint8_t[]</td>
+<td>Get-only</td>
+<td>The original destination connection ID used by the client to connect to the server.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="quic_param_conn_statistics_v2">QUIC_PARAM_CONN_STATISTICS_V2</h3>
+<p>Querying the <code>QUIC_STATISTICS_V2</code> struct via <code>QUIC_PARAM_CONN_STATISTICS_V2</code> or <code>QUIC_PARAM_CONN_STATISTICS_V2_PLAT</code> should be aware of possible changes in the size of the struct, depending on the version of MsQuic the app using at runtime, not just what it was compiled against.</p>
+<p>The minimum size of the struct will always be <code>QUIC_STATISTICS_V2_SIZE_1</code>. Future version of MsQuic will append new fields to the end of the struct, so the maximum possible size will increase.</p>
+<p>When an app queries for the statistics, it must always supply an input buffer of length at least <code>QUIC_STATISTICS_V2_SIZE_1</code>, but <code>sizeof(QUIC_STATISTICS_V2)</code> will always work as well. MsQuic will support older callers that supply at least that buffer size, even if the maximum size of the struct has grown in a future version of MsQuic. MsQuic will only write the fields that can completely fit in the buffer supplied by the app.</p>
+<h2 id="tls-parameters">TLS Parameters</h2>
+<p>These parameters are accessed by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_TLS_*</code> and a Connection object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_TLS_HANDSHAKE_INFO</code><br> 0</td>
+<td>QUIC_HANDSHAKE_INFO</td>
+<td>Get-only</td>
+<td>Called in the <code>QUIC_CONNECTION_EVENT_CONNECTED</code> event to get the cryptographic parameters negotiated in the handshake.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_TLS_NEGOTIATED_ALPN</code><br> 1</td>
+<td>uint8_t[] (max 255 bytes)</td>
+<td>Get-only</td>
+<td>Called in the <code>QUIC_CONNECTION_EVENT_CONNECTED</code> event to get the negotiated ALPN.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="schannel-only-tls-parameters">Schannel-only TLS Parameters</h2>
+<p>These parameters are access by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_TLS_SCHANNEL_*</code> and a Connection object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W</code><br> 0</td>
+<td>QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_W</td>
+<td>Get-only</td>
+<td>Calls <code>QueryContextAttributesW</code> for the given attribute and buffer. Only valid until the <code>QUIC_CONNECTION_EVENT_CONNECTED</code> event, or when TLS is cleaned up.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W</code><br> 1</td>
+<td>QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W</td>
+<td>Get-only</td>
+<td>Calls <code>QueryContextAttributesExW</code> for the given attribute and buffer. Only valid until the <code>QUIC_CONNECTION_EVENT_CONNECTED</code> event, or when TLS is cleaned up.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN</code><br> 2</td>
+<td>HANDLE</td>
+<td>Get-only</td>
+<td>Calls <code>QuerySecurityContextToken</code> on the Schannel handle. Only valid until the <code>QUIC_CONNECTION_EVENT_CONNECTED</code> event, or when TLS is cleaned up.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="stream-parameters">Stream Parameters</h2>
+<p>These parameters are access by calling <a href="api/GetParam.html">GetParam</a> or <a href="api/SetParam.html">SetParam</a> with <code>QUIC_PARAM_STREAM_*</code> and a Stream object handle.</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Get/Set</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>QUIC_PARAM_STREAM_ID</code><br> 0</td>
+<td>QUIC_UINT62</td>
+<td>Get-only</td>
+<td>Must be called on a stream after <a href="api/StreamStart.html">StreamStart</a> is called.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_0RTT_LENGTH</code><br> 1</td>
+<td>uint64_t</td>
+<td>Get-only</td>
+<td>Length of 0-RTT data received from peer.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE</code><br> 2</td>
+<td>uint64_t - bytes</td>
+<td>Get-only</td>
+<td>Ideal buffer size to queue to the stream. Assumes only one stream sends steadily.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_PRIORITY</code> <br> 3</td>
+<td>uint16_t</td>
+<td>Get/Set</td>
+<td>Stream priority.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_STATISTICS</code> <br> 4</td>
+<td>QUIC_STREAM_STATISTICS</td>
+<td>Get-only</td>
+<td>Stream-level statistics.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_STREAM_RELIABLE_OFFSET</code> <br> 5</td>
+<td>uint64_t</td>
+<td>Get/Set</td>
+<td>Part of the new Reliable Reset preview feature. Sets/Gets the number of bytes a sender must send before closing SEND path.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="see-also">See Also</h2>
+<p><a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a><br>
+<a href="api/GetParam.html">GetParam</a><br>
+<a href="api/SetParam.html">SetParam</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/Settings.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

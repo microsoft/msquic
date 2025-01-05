@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Profile Guided Optimizations </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Profile Guided Optimizations ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/PGO.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="profile-guided-optimizations">Profile Guided Optimizations</h1>
+
+<p>MsQuic uses <a href="https://docs.microsoft.com/en-us/cpp/build/profile-guided-optimizations">profile-guided optimizations</a> (PGO) to generate optimized builds of the MsQuic library. PGO lets you optimize the whole library by using data from a previous run of the library.</p>
+<blockquote>
+<p><strong>Note</strong>
+This document is Windows specific.</p>
+</blockquote>
+<h1 id="build">Build</h1>
+<p>During the build for x86 and x64 release builds (arm/arm64 are currently unsupported) a profile-guided database file (<code>.pgd</code>), generated from a previous run, is passed to the linker. The linker uses this data to optimize the new build.</p>
+<h2 id="build-for-training">Build for Training</h2>
+<pre><code>&gt; ./scripts/build.ps1 -Config Release -PGO
+</code></pre>
+<p>By default, the library is not built in &quot;training mode&quot;. To enable this, you must pass the <code>-PGO</code> switch to the <code>build.ps1</code> PowerShell script. This configures the linker to configure the library so that it can be trained. Whenever the library unloads a <code>.pgc</code> file will be dumped to the local directory. This file can be used update the existing <code>.pgd</code> file.</p>
+<h1 id="training">Training</h1>
+<p>A fundamental part of profile-guided optimizations is training. The code is run through production scenarios while in &quot;training mode&quot; to generate a data set that can be used for a future build to optimize for the scenario.</p>
+<ol>
+<li><a href="#build-for-training">Build for training</a>.</li>
+<li>Copy the binaries to the test machine(s).
+<ol>
+<li>The PGO msquic library.</li>
+<li>The test tool (e.g. <code>secnetperf</code>).</li>
+<li>The PGO runtime library from your VS install: (e.g. <code>&quot;C:\Program Files (x86)\Microsoft Visual Studio\2022\Community\VC\Tools\MSVC\14.26.28801\bin\Hostx64\x64\pgort140.dll&quot;</code>).</li>
+</ol>
+</li>
+<li>Run the test for the production/performance scenario.</li>
+<li>Use <a href="https://docs.microsoft.com/en-us/cpp/build/pgomgr">pgomgr</a> to merge the <code>.pgc</code> into the <code>.pgd</code>.</li>
+<li>Update the <code>.pgd</code> and <code>.pdb</code> files in the repository.</li>
+</ol>
+<h1 id="kernel-mode-profile-guided-optimizations">Kernel mode Profile Guided Optimizations</h1>
+<p>PGO for kernel mode is a much more manual process than user mode. These steps guide you through the process.</p>
+<h2 id="build-1">Build</h2>
+<p>To build for kernel PGO, copy <code>pgortsys.lib</code> locally and edit the msquicpriv.kernel.vcxproj file with the following patch:</p>
+<pre><code class="lang-patch">diff --git a/src/bin/winkernel/msquicpriv.kernel.vcxproj b/src/bin/winkernel/msquicpriv.kernel.vcxproj
+index 04d89207..b125cdd7 100644
+--- a/src/bin/winkernel/msquicpriv.kernel.vcxproj
++++ b/src/bin/winkernel/msquicpriv.kernel.vcxproj
+@@ -78,7 +78,7 @@
+   &lt;ImportGroup Label=&quot;PropertySheets&quot;&gt;
+     &lt;Import Project=&quot;$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props&quot; Condition=&quot;exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')&quot; Label=&quot;LocalAppDataPlatform&quot; /&gt;
+   &lt;/ImportGroup&gt;
+-  &lt;PropertyGroup Label=&quot;UserMacros&quot; /&gt;
++  &lt;PropertyGroup&gt;&lt;LibraryPath&gt;$(LibraryPath);$(VC_LibraryPath_VC_x64_Desktop);c:\path\to\directory\containing\pgortsys.lib\&lt;/LibraryPath&gt;&lt;/PropertyGroup&gt;
+   &lt;PropertyGroup&gt;
+     &lt;QUIC_VER_BUILD_ID Condition=&quot;'$(QUIC_VER_BUILD_ID)' == ''&quot;&gt;0&lt;/QUIC_VER_BUILD_ID&gt;
+     &lt;QUIC_VER_SUFFIX Condition=&quot;'$(QUIC_VER_SUFFIX)' == ''&quot;&gt;-private&lt;/QUIC_VER_SUFFIX&gt;
+@@ -106,7 +106,7 @@
+     &lt;/ClCompile&gt;
+     &lt;Link&gt;
+       &lt;ModuleDefinitionFile&gt;msquicpriv.src&lt;/ModuleDefinitionFile&gt;
+-      &lt;AdditionalDependencies&gt;cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;%(AdditionalDependencies)&lt;/AdditionalDependencies&gt;
++      &lt;AdditionalDependencies&gt;cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;pgortsys.lib;%(AdditionalDependencies)&lt;/AdditionalDependencies&gt;
+       &lt;AdditionalOptions&gt;/kernel /NOOPTIDATA /pdbcompress /MERGE:.gfids=GFIDS /MERGE:.orpc=.text /MERGE:_PAGE=PAGE /MERGE:_RDATA=.rdata /MERGE:_TEXT=.text /section:GFIDS,d&lt;/AdditionalOptions&gt;
+       &lt;LinkTimeCodeGeneration&gt;UseLinkTimeCodeGeneration&lt;/LinkTimeCodeGeneration&gt;
+     &lt;/Link&gt;
+@@ -126,7 +126,7 @@
+   &lt;/ItemDefinitionGroup&gt;
+   &lt;ItemDefinitionGroup Condition=&quot;'$(Configuration)|$(Platform)'=='Release|x64'&quot;&gt;
+     &lt;Link&gt;
+-      &lt;AdditionalOptions&gt;%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\priv\msquic.pgd&lt;/AdditionalOptions&gt;
++      &lt;AdditionalOptions&gt;%(AdditionalOptions) /FORCE:PGOREPRO /LTCG:PGI /Profile&lt;/AdditionalOptions&gt;
+     &lt;/Link&gt;
+   &lt;/ItemDefinitionGroup&gt;
+   &lt;ItemGroup&gt;
+</code></pre>
+<p>You should <strong>clean</strong> build for x64 and Release.</p>
+<p>Then build user mode MsQuic using the regular script with the following flags <code>-PGO -Tls schannel -config Release</code>.</p>
+<h2 id="setting-up-the-perf-machines">Setting up the perf machines</h2>
+<p>To train kernel mode PGO, we use the <code>secnetperf</code> utility.  To configure the perf machines, run the following powershell script as Administrator:</p>
+<pre><code class="lang-ps1">param(
+    # Build path
+    [Parameter(Mandatory=$true)]
+    [string]$BuildPath,
+
+    # MsQuic location
+    [Parameter(Mandatory=$true)]
+    [string]$MsQuicPath,
+
+    # CPU Architecture
+    [Parameter(Mandatory=$false)]
+    [ValidateSet(&quot;amd64&quot;, &quot;x86&quot;, &quot;arm&quot;, &quot;arm64&quot;)]
+    [string]$Arch=&quot;amd64&quot;
+)
+
+$PgoBasePath = &quot;$($BuildPath)\$($Arch)fre\pgo&quot;
+
+if (!(Test-Path -Path &quot;c:\pgo_collection&quot;)) {
+    New-Item -Path &quot;c:\pgo_collection&quot; -ItemType Directory -Force | Out-Null
+}
+
+Copy-Item -Path &quot;$($PgoBasePath)\pgoapi\*&quot; -Filter *.ps1 -Destination &quot;C:\pgo_collection&quot;
+Copy-Item -Path &quot;$($BuildPath)\$($Arch)fre\bin\idw\signTool.exe&quot; -Destination &quot;C:\pgo_collection&quot;
+Copy-Item -Path &quot;$($BuildPath)\$($Arch)fre\bin\idw\signTool.dll&quot; -Destination &quot;C:\pgo_collection&quot;
+
+if (!(Test-Path -Path &quot;c:\pgo_collection\sweep&quot;)) {
+    New-Item -Path &quot;c:\pgo_collection\sweep&quot; -ItemType Directory -Force | Out-Null
+}
+
+Copy-Item -Path &quot;$($PgoBasePath)\kmode\system32\pgosweep.exe&quot;          -Destination &quot;C:\pgo_collection\sweep&quot;
+Copy-Item -Path &quot;$($PgoBasePath)\kmode\system32\vcruntime140.dll&quot;      -Destination &quot;C:\pgo_collection\sweep&quot;
+Copy-Item -Path &quot;$($PgoBasePath)\kmode\system32\drivers\pgodriver.sys&quot; -Destination &quot;C:\pgo_collection\sweep&quot;
+Copy-Item -Path &quot;$($PgoBasePath)\bbttools\bbtlddll.exe&quot;                -Destination &quot;C:\pgo_collection\sweep&quot;
+Copy-Item -Path &quot;$($PgoBasePath)\bbttools\createdir.sys&quot;               -Destination &quot;C:\pgo_collection\sweep&quot;
+Copy-Item -Path &quot;$($PgoBasePath)\tools\pgort140.dll&quot;                   -Destination &quot;C:\pgo_collection\sweep&quot;
+
+# Install PGO
+powershell -NonInteractive -NoProfile -File &quot;c:\pgo_collection\install-pgo.ps1&quot; -PgoChunkPath $PgoBasePath -PgoChunkNativePath $PgoBasePath -PgoCollectionDir &quot;c:\pgo_collection&quot; -SignTool &quot;c:\pgo_collection\signtool.exe&quot; -PGOArch $Arch
+
+# Fix PGODriver
+sc.exe config pgodriver start= auto
+
+# Copy MsQuic
+if ($arch -eq &quot;amd64&quot;) {
+    $QuicArch = &quot;x64&quot;
+} else {
+    $QuicArch = $Arch
+}
+
+$WindowsBinPath = &quot;artifacts\bin\windows\$($QuicArch)_Release_schannel&quot;
+$WinKernelBinPath = &quot;artifacts\bin\winKernel\$($QuicArch)_Release_schannel&quot;
+
+if (!(Test-Path -Path &quot;c:\msquic\$($WindowsBinPath)&quot;)) {
+    New-Item -Path &quot;c:\msquic\$($WindowsBinPath)&quot; -ItemType Directory -Force | Out-Null
+}
+
+if (!(Test-Path -Path &quot;c:\msquic\$($WinKernelBinPath)&quot;)) {
+    New-Item -Path &quot;c:\msquic\$($WinKernelBinPath)&quot; -ItemType Directory -Force | Out-Null
+}
+
+Copy-Item -Path &quot;$($MsQuicPath)\$($WindowsBinPath)\msquic.dll&quot;   -Destination &quot;c:\msquic\$($WinKernelBinPath)&quot;
+Copy-Item -Path &quot;$($MsQuicPath)\$($WindowsBinPath)\secnetperf.exe&quot; -Destination &quot;c:\msquic\$($WinKernelBinPath)&quot;
+Copy-Item -Path &quot;$($MsQuicPath)\$($WinKernelBinPath)\*&quot;          -Destination &quot;c:\msquic\$($WinKernelBinPath)&quot;
+
+sc.exe create &quot;msquicpriv&quot; type= kernel binpath= &quot;C:\msquic\$($WinKernelBinPath)\msquicpriv.sys&quot; start= demand
+
+New-NetFirewallRule -DisplayName &quot;Allow SecNetPerf&quot; -Enabled True -Profile Any -Direction Inbound -Action Allow -Protocol UDP -LocalPort 4433
+
+bcdedit /debug on
+
+Write-Host Now Reboot the machine
+</code></pre>
+<p>Make sure the machine is configured for kernel debugging and a kernel debugger is attached, otherwise the msquicpriv.sys driver won't load.</p>
+<h2 id="training-1">Training</h2>
+<p>Now that the perf machines are configured for kernel mode PGO, it's time to run the scenarios.</p>
+<p>On the machine that will act as server, run the following command to start the server:</p>
+<pre><code>secnetperf.exe -kernel
+</code></pre>
+<p>Once running, clear the PGO counts on both the client and server machines to get a clean slate:</p>
+<pre><code>pgosweep.exe /driver msquicpriv.sys .\msquicpriv.pgc
+del msquicpriv.pgc
+</code></pre>
+<p>On the machine acting as client, run the following commands to generate traffic:</p>
+<pre><code>secnetperf.exe --kernel -test:tput -target:&lt;server IP&gt; -upload:5000000000
+secnetperf.exe --kernel -test:tput -target:&lt;server IP&gt; -download:5000000000
+secnetperf.exe --kernel -test:RPS -target:&lt;server IP&gt;
+secnetperf.exe --kernel -test:HPS -target:&lt;server IP&gt;
+</code></pre>
+<p>After the client finishes all scenarios, run this again on the client and the server to collect the updated counts:</p>
+<pre><code>pgosweep.exe /driver msquicpriv.sys .\msquicpriv.pgc
+</code></pre>
+<p>Copy the .pgc files to a machine with the Visual Studio tools installed and run the following to merge
+the PGC files into the PGD that was generated during build, and then copy that PGD into the git repo:</p>
+<pre><code>pgomgr.exe /merge msquicpriv-client.pgc msquicpriv-server.pgc c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd
+xcopy :\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd c:\msquic\src\bin\winkernel\pgo_x64\msquic.pgd
+</code></pre>
+<p>If <code>pgomgr.exe</code> emits a warning that the database doesn't match, use <code>pgodump.exe</code> to check the ID of both the
+PGD and PGC files and ensure they match. If the PGC file doesn't match, it's most likely because <code>msquicpriv.sys</code>
+didn't unload completely when you installed a new one.  You will need to stop <code>PGODriver.sys</code> before stopping
+<code>msquicpriv.sys</code> when replacing <code>msquicpriv.sys</code> with a newer version.  You can also reboot the system after
+replacing <code>msquicpriv.sys</code>.</p>
+<p>Sample output from <code>pgodump.exe</code> showing the IDs are same between PGD and PGC</p>
+<pre><code>&gt; pgodump.exe c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd
+Microsoft (R) Profile Guided Optimization Database Dump Utility
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PGD File: c:\msquic\artifacts\bin\winkernel\x64_Release_schannel\msquicpriv.pgd (v44, ID CC21BC03, Signature 4F474F50)  10/27/2020 22:25:53
+</code></pre>
+<pre><code>&gt; pgodump.exe msquicpriv-client.pgc
+Microsoft (R) Profile Guided Optimization Database Dump Utility
+Copyright (C) Microsoft Corporation. All rights reserved.
+
+PGC File: msquicpriv!client.pgc (ID CC21BC03)
+</code></pre>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/PGO.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

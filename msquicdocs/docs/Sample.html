@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Running Sample MsQuic Server and Client </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Running Sample MsQuic Server and Client ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/Sample.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="running-sample-msquic-server-and-client">Running Sample MsQuic Server and Client</h1>
+
+<p><a href="https://github.com/microsoft/msquic/tree/main/src/tools/sample/sample.c">Sample</a> provides a very simple MsQuic API sample server and client application.</p>
+<h2 id="generate-self-signed-certificate">Generate Self Signed Certificate</h2>
+<p>A certificate needs to be available for the server to function. To generate a self-signed certificate, run</p>
+<h3 id="on-windows">On Windows</h3>
+<pre><code class="lang-Powershell">New-SelfSignedCertificate -DnsName $env:computername,localhost -FriendlyName MsQuic-Test -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider &quot;Microsoft Software Key Storage Provider&quot; -KeyExportPolicy Exportable
+</code></pre>
+<p>This works for both Schannel and OpenSSL TLS providers, assuming the KeyExportPolicy parameter is set to Exportable. The Thumbprint received from the command is then passed to the sample server at startup. Copy the thumbprint received.</p>
+<h3 id="on-linux">On Linux</h3>
+<pre><code class="lang-Powershell">openssl req  -nodes -new -x509  -keyout server.key -out server.cert
+</code></pre>
+<p>This works with OpenSSL TLS Provider. It can also be used for Windows OpenSSL, however we recommend the certificate store method above for ease of use. Currently key files with password protections are not supported. With these files, they can be passed to the sample server with <code>-cert_file:path/to/server.cert</code> and <code>-key_file path/to/server.key</code> parameters.</p>
+<h2 id="start-the-server">Start the server</h2>
+<p>Locate the quicsample.exe under your <code>artifacts/bin</code> directory under repo root. Start the server providing the thumbrint obtained in the previous step.</p>
+<pre><code class="lang-Powershell">quicsample.exe -server -cert_hash:FAF9B176D64930D67C372CB456BAD38E7E5689F7
+</code></pre>
+<p>By default, the server listens on port 4567.</p>
+<h2 id="start-the-client">Start the client</h2>
+<p>Start the client providing the IP address for the server. Here 127.0.0.1 is used as an example.</p>
+<pre><code class="lang-Powershell">quicsample.exe -client -unsecure -target:{127.0.0.1}
+</code></pre>
+<h2 id="troubleshooting-with-wireshark">Troubleshooting with Wireshark</h2>
+<p>When running the client you can set the environment variable <code>SSLKEYLOGFILE</code> to the absolute path of the file that will receive the TLS secrets. Learn how to load such file inside Wireshark and see what is being transmitted on the wire: <a href="https://wiki.wireshark.org/TLS#using-the-pre-master-secret">Using the (Pre)-Master-Secret</a></p>
+<h2 id="console-output">Console Output</h2>
+<p>Here is what the console output looks like on the server and client sides after connection is established and data flows:</p>
+<h3 id="server-side">Server side</h3>
+<pre><code>[conn][000001C32C29CC10] Connected
+[strm][000001C32C261000] Peer started
+[strm][000001C32C261000] Data received
+[strm][000001C32C261000] Peer shut down
+[strm][000001C32C261000] Sending data...
+[strm][000001C32C261000] Data sent
+[strm][000001C32C261000] All done
+[conn][000001C32C29CC10] Successfully shut down on idle.
+[conn][000001C32C29CC10] All done
+</code></pre>
+<h3 id="client-side">Client side</h3>
+<pre><code>[conn][000001BE9F0C7000] Connecting...
+[conn][000001BE9F0C7000] Connected
+[strm][000001BE9F0CADF0] Starting...
+[strm][000001BE9F0CADF0] Sending data...
+[strm][000001BE9F0CADF0] Data sent
+[conn][000001BE9F0C7000] Resumption ticket received (56 bytes):
+01000000013100010243E8030245C00404810000000504800100000604800100000704800100000801010E0104C0000000FF03DE1A027E80
+[strm][000001BE9F0CADF0] Data received
+[strm][000001BE9F0CADF0] Peer shut down
+[strm][000001BE9F0CADF0] All done
+[conn][000001BE9F0C7000] Successfully shut down on idle.
+[conn][000001BE9F0C7000] All done
+</code></pre>
+<h2 id="description">Description</h2>
+<p>The quicsample app implements a simple protocol (ALPN &quot;sample&quot;) where the client connects to the server, opens a single bidirectional stream, sends some data and shuts down the stream in the send direction. On the server side all connections, streams and data are accepted. After the stream is shut down, the server then sends its own data and shuts down its send direction. The connection only shuts down when the 1 second idle timeout triggers.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/Sample.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

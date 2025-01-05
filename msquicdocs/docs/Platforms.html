@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Platform Support </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Platform Support ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/Platforms.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="platform-support">Platform Support</h1>
+
+<p>MsQuic currently officially supports the following platform configurations. Information on support for MsQuic itself is located in <a href="Release.html">Release.md</a>.</p>
+<h2 id="windows">Windows</h2>
+<p>On Windows, by default, MsQuic relies on built-in support from <a href="https://docs.microsoft.com/en-us/windows/win32/com/schannel">Schannel</a> for TLS 1.3 functionality. MsQuic is shipped in-box in the Windows kernel in the form of the <code>msquic.sys</code> driver, to support built-in HTTP and SMB features. User mode applications use <code>msquic.dll</code> (built from here) and package it with their app.</p>
+<blockquote>
+<p><strong>Important</strong> This configuration requires running either Windows Server 2022, Windows 11 or the latest <a href="https://insider.windows.com/en-us/">Windows Insider Preview Builds</a> for Schannel's TLS 1.3 support.</p>
+</blockquote>
+<blockquote>
+<p><strong>Important</strong> This configuration does not support 0-RTT due to Schannel's current lack of support.</p>
+</blockquote>
+<h3 id="openssl">OpenSSL</h3>
+<p>Optionally, <code>msquic.dll</code> can be built with OpenSSL (see below for more details) instead of Schannel on Windows. This removes the Windows OS dependency on TLS from MsQuic, so MsQuic should work on most Windows 10 based client and server versions (it may work on even older Windows releases but supporting them is not a goal for MsQuic). Both version 1.1 and 3.1 of OpenSSL are supported.</p>
+<h2 id="linux">Linux</h2>
+<p>On Linux, MsQuic relies on <a href="https://www.openssl.org/">OpenSSL</a> for TLS 1.3 functionality. Both version 1.1 and 3.1 are supported. The libmsquic package will generally depend on the default OS installed OpenSSL version's libcrypto.</p>
+<blockquote>
+<p><strong>Important</strong> This configuration relies on a <a href="https://github.com/quictls/openssl">fork of OpenSSL</a> for QUIC/TLS support. It is still currently unknown as to when mainline will support QUIC. See <a href="https://www.openssl.org/blog/blog/2020/02/17/QUIC-and-OpenSSL/">here</a> for more details. MsQuic with OpenSSL <strong>does</strong> fully support 0-RTT.</p>
+</blockquote>
+<h2 id="other">Other</h2>
+<p>For testing or experimentation purposes, MsQuic may be built with other configurations, but they are not to be considered officially supported unless they are listed above. Any bugs found while using these configurations may be looked at, but no guarantees are provided that they will be fixed.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/Platforms.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

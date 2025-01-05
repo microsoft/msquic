@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>MsQuic TLS Abstraction Layer </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="MsQuic TLS Abstraction Layer ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/iiztp/msquic/blob/main/docs/TLS.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="msquic-tls-abstraction-layer">MsQuic TLS Abstraction Layer</h1>
+
+<p>MsQuic includes TLS in the general &quot;Platform Abstraction Layer&quot; or PAL. This interface provides all the functionality required of TLS by the QUIC protocol, as defined by the IETF <a href="https://datatracker.ietf.org/doc/html/rfc9001">QUIC-TLS</a> spec.</p>
+<h1 id="high-level-overview">High-Level Overview</h1>
+<p>At the TLS abstraction layer there is only one core interface/function that does most all the work: <code>CxPlatTlsProcessData</code>. The <code>ProcessData</code> function takes a number of parameters on input and then provides all the necessary output. The execution of this function drives the TLS state machine.</p>
+<p>This function executes very similarly to many existing (non-QUIC) TLS APIs with the following exceptions:</p>
+<ol>
+<li>The TLS record layer is not included.</li>
+<li>TLS exposes the encryption key material to QUIC to secure its own packets.</li>
+</ol>
+<p>Generally, the calling pattern for the function starts with the client calling <code>ProcessData</code> with a <code>null</code> input. It then takes the output data, encrypts it accordingly and sends it to the server. The server decrypts it and passes the data to TLS (via its own <code>ProcesData</code> call) and then gets its own output. This goes back and forth until the handshake is complete, and TLS has no other data it needs to exchange.</p>
+<h3 id="input">Input</h3>
+<ul>
+<li>The TLS context pointer.</li>
+<li>The CRYPTO buffer received from the peer. This is null/empty for the client's initial call.</li>
+</ul>
+<h3 id="output">Output</h3>
+<ul>
+<li>Any CRYPTO buffer to send to the peer. This may be null/empty.</li>
+<li>The associated encryption level at which the CRYPTO buffer must be secured.</li>
+<li>Any new read or write encryption key material.</li>
+<li>Any other state or meta information, such as negotiated ALPN, handshake completion, session resumption, alerts, etc.</li>
+</ul>
+<h2 id="additional-functionality">Additional Functionality</h2>
+<p>Beyond the core functionality described above, there are a few other functions:</p>
+<h3 id="quic-transport-parameters">QUIC Transport Parameters</h3>
+<p>QUIC has a custom TLS extension it uses on client and server to exchange QUIC specific configuration. The TLS library must support setting and retrieving this information.</p>
+<h3 id="session-resumption-tickets">Session Resumption Tickets</h3>
+<p>When a TLS session is resumed, QUIC is required to use the same QUIC layer configuration previously exchanged in the Transport Parameters. This allows QUIC to do things like apply the appropriate flow control limits to 0-RTT data. In order for this functionality to be achieved at the QUIC layer, the TLS library must allow for QUIC to embed QUIC information in the session resumption ticket (NST) and recall it on session resumption.</p>
+<h1 id="implementations">Implementations</h1>
+<p>MsQuic has a number of implementations for the TLS abstraction layer to support out various platforms and scenarios.</p>
+<h2 id="schannel">Schannel</h2>
+<p><a href="https://docs.microsoft.com/en-us/windows/win32/com/schannel">Schannel</a> is officially supported for Windows user mode and Windows kernel mode. It requires the latest Windows versions (Windows Server 2022 or Insider Preview) to function. Only the newest versions support TLS 1.3 and the necessary APIs for QUIC functionality. Currently, 0-RTT is not supported, and resumption is only partially supported.</p>
+<h2 id="openssl">OpenSSL</h2>
+<p><a href="https://www.openssl.org/">OpenSSL</a> is the primary TLS library by MsQuic on Linux. It is also works on Windows, but Schannel is preferred if supported by your OS build.</p>
+<blockquote>
+<p><strong>Important</strong> - Currently, OpenSSL doesn't officially have QUIC API support (hopefully coming soon), so MsQuic <strong>temporarily</strong> relies on a <a href="https://github.com/quictls/openssl">fork of OpenSSL</a> that is purely a fork + a set of (unapproved by OMC) changes to expose some QUIC functionality. This fork is only a <strong>stopgap solution</strong> until OpenSSL officially supports QUIC, at which MsQuic will immediately switch to it.</p>
+</blockquote>
+<h1 id="detailed-design">Detailed Design</h1>
+<p>TO-DO</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/iiztp/msquic/blob/main/docs/TLS.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
