@@ -79,11 +79,11 @@ TEST(PlatformTest, EventQueue)
 
     my_sqe sqe1, sqe2, sqe3;
     sqe1.data = 0x1234;
-    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_1, (CXPLAT_SQE*)&sqe1));
-    sqe1.data = 0x5678;
-    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_2, (CXPLAT_SQE*)&sqe2));
-    sqe1.data = 0x90;
-    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_3, (CXPLAT_SQE*)&sqe3));
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_1, &sqe1));
+    sqe2.data = 0x5678;
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_2, &sqe2));
+    sqe3.data = 0x90;
+    ASSERT_TRUE(CxPlatSqeInitialize(&queue, my_sqe::my_completion_3, &sqe3));
 
     // Single queue/dequeue tests
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1));
@@ -138,11 +138,11 @@ TEST(PlatformTest, EventQueueWorker)
     struct EventQueueContext {
         CXPLAT_EVENTQ* queue;
         uint32_t counts[3];
-        bool Running;
+        bool running;
         static CXPLAT_THREAD_CALLBACK(EventQueueCallback, Context) {
             auto ctx = (EventQueueContext*)Context;
             CXPLAT_CQE events[4];
-            while (ctx->Running) {
+            while (ctx->running) {
                 uint32_t count = CxPlatEventQDequeue(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
                 for (uint32_t i = 0; i < count; i++) {
                     auto sqe = CxPlatCqeGetSqe(&events[i]);
@@ -153,7 +153,7 @@ TEST(PlatformTest, EventQueueWorker)
         }
         static void shutdown_completion(CXPLAT_CQE* Cqe) {
             auto Sqe = (my_sqe*)CxPlatCqeGetSqe(Cqe);
-            Sqe->context->Running = false;
+            Sqe->context->running = false;
         }
         static void my_completion(CXPLAT_CQE* Cqe) {
             auto Sqe = (my_sqe*)CxPlatCqeGetSqe(Cqe);

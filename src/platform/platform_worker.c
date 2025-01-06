@@ -115,7 +115,10 @@ WakeCompletion(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    UNREFERENCED_PARAMETER(Cqe); // no-op
+    //
+    // No-op as the goal is simply to wake the event queue thread
+    //
+    UNREFERENCED_PARAMETER(Cqe);
 }
 
 void
