@@ -417,13 +417,13 @@ typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #define CxPlatDispatchRwLockUninitialize CxPlatRwLockUninitialize
 
-#define CxPlatDispatchRwLockAcquireShared CxPlatRwLockAcquireShared
+#define CxPlatDispatchRwLockAcquireShared(Lock, PrevIrql) CxPlatRwLockAcquireShared(Lock)
 
-#define CxPlatDispatchRwLockAcquireExclusive CxPlatRwLockAcquireExclusive
+#define CxPlatDispatchRwLockAcquireExclusive(Lock, PrevIrql) CxPlatRwLockAcquireExclusive(Lock)
 
-#define CxPlatDispatchRwLockReleaseShared CxPlatRwLockReleaseShared
+#define CxPlatDispatchRwLockReleaseShared(Lock, PrevIrql) CxPlatRwLockReleaseShared(Lock)
 
-#define CxPlatDispatchRwLockReleaseExclusive CxPlatRwLockReleaseExclusive
+#define CxPlatDispatchRwLockReleaseExclusive(Lock, PrevIrql) CxPlatRwLockReleaseExclusive(Lock)
 
 //
 // Represents a QUIC memory pool used for fixed sized allocations.

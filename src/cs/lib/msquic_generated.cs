@@ -99,6 +99,7 @@ namespace Microsoft.Quic
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
+        DISABLE_AIA = 0x00200000,
     }
 
     [System.Flags]
@@ -218,6 +219,7 @@ namespace Microsoft.Quic
         XDP = 0x0004,
         NO_IDEAL_PROC = 0x0008,
         HIGH_PRIORITY = 0x0010,
+        AFFINITIZE = 0x0020,
     }
 
     internal unsafe partial struct QUIC_EXECUTION_CONFIG
@@ -888,6 +890,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint32_t")]
         internal uint SendEcnCongestionCount;
+
+        [NativeTypeName("uint8_t")]
+        internal byte HandshakeHopLimitTTL;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS

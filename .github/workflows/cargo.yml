@@ -16,22 +16,36 @@ jobs:
   cargo:
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
+        features: ["", "--features static", "--features schannel", "--features schannel,static"]
+        exclude:
+          - os: ubuntu-latest
+            features: "--features schannel"
+          - os: ubuntu-latest
+            features: "--features schannel,static"
+          - os: macos-latest
+            features: "--features schannel"
+          - os: macos-latest
+            features: "--features schannel,static"
+          - os: macos-latest-xlarge
+            features: "--features schannel"
+          - os: macos-latest-xlarge
+            features: "--features schannel,static"
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7
+      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f
       with:
         egress-policy: audit
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@9c1eca9952ccc07f9ca4a2097b63df93d9d138e9
+      uses: shogo82148/actions-setup-perl@98dfedee230bcf1ee68d5b021931fc8d63f2016e
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -40,9 +54,13 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Cargo fmt
+      run: cargo fmt --all -- --check
+    - name: Cargo clippy
+      run: cargo clippy --all-targets -- -D warnings
     - name: Cargo build
-      run: cargo build --all
+      run: cargo build --all ${{ matrix.features }}
     - name: Cargo test
-      run: cargo test --all
+      run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty

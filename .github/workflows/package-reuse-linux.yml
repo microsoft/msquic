@@ -75,6 +75,7 @@ jobs:
       clang: ${{ inputs.clang }}
       build: ${{ inputs.build }}
       xdp: ${{ inputs.xdp }}
+      repo: ${{ github.repository }}
 
   package:
     name: Package
@@ -82,7 +83,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - name: Prepare Machine

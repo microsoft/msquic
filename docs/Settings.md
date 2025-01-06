@@ -74,11 +74,12 @@ While `REG_DWORD` can hold values larger than `uint16_t`, the administrator shou
 
 The following settings are available via registry as well as via [QUIC_VERSION_SETTINGS](./Versions.md):
 
-| Setting                           | Type       | Registry Name            | Default           | Description                                                                                                                   |
-|-----------------------------------|------------|--------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
-| Acceptable Versions List          | uint32_t[] | AcceptableVersions       | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
-| Offered Versions List             | uint32_t[] | OfferedVersions          | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
-| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions    | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
+| Setting                           | Type       | Registry Name                | Default           | Description                                                                                                                   |
+|-----------------------------------|------------|------------------------------|-------------------|-------------------------------------------------------------------------------------------------------------------------------|
+| Acceptable Versions List          | uint32_t[] | AcceptableVersions           | Unset             | Sets the list of versions that a given server instance will use if a client sends a first flight using them. |
+| Offered Versions List             | uint32_t[] | OfferedVersions              | Unset             | Sets the list of versions that a given server instance will send in a Version Negotiation packet if it receives a first flight from an unknown version. This list will most often be equal to the Acceptable Versions list. |
+| Fully-Deployed Versions List      | uint32_t[] | FullyDeployedVersions        | Unset             | Sets the list of QUIC versions that is supported and negotiated by every single QUIC server instance in this deployment. Used to generate the AvailableVersions list in the Version Negotiation Extension Transport Parameter. |
+| Version Negotiation Ext. Enabled  | uint32_t   | VersionNegotiationExtEnabled | 0 (FALSE)         | Enables the Version Negotiation Extension. |
 
 The `uint32_t[]` type is a `REG_BINARY` blob of the versions list, with each version in little-endian format.
 
@@ -114,6 +115,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9        | QUIC_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
+| `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
 
 ## Registration Parameters
 
@@ -132,6 +134,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONFIGURATION_TICKET_KEYS`<br> 1                     | QUIC_TICKET_KEY_CONFIG[]               | Set-only  | Resumption ticket encryption keys. Server-side only.                                                              |
 | `QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS`<br> 2                | QUIC_VERSIONS_SETTINGS                 | Both      | Change version settings for all connections on the configuration.                                                 |
 | `QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W`<br> 3 | QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W   | Set-only  | Calls `SetCredentialsAttributesW` with the supplied attribute and buffer on the credential handle. Schannel-only. Only valid once the credential has been loaded.  |
+| `QUIC_PARAM_CONFIGURATION_VERSION_NEG_ENABLED`<br> (preview)     | uint8_t (BOOLEAN)                      | Both      | Enables the version negotiation extension for all client connections on the configuration. |
 
 ## Listener Parameters
 

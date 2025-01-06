@@ -9,6 +9,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -33,7 +37,7 @@ on:
         #   - ubuntu-20.04
         #   - ubuntu-22.04
         #   - ubuntu-24.04
-        #   - macos-12
+        #   - macos-13
       arch:
         required: false
         default: 'x64'
@@ -89,9 +93,9 @@ jobs:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@eef61447b9ff4aafe5dcd4e0bbf5d482be7e7871
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Set ownership
       if: inputs.plat == 'linux'

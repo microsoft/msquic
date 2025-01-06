@@ -519,10 +519,10 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #define CxPlatDispatchRwLockInitialize(Lock) InitializeSRWLock(Lock)
 #define CxPlatDispatchRwLockUninitialize(Lock)
-#define CxPlatDispatchRwLockAcquireShared(Lock) AcquireSRWLockShared(Lock)
-#define CxPlatDispatchRwLockAcquireExclusive(Lock) AcquireSRWLockExclusive(Lock)
-#define CxPlatDispatchRwLockReleaseShared(Lock) ReleaseSRWLockShared(Lock)
-#define CxPlatDispatchRwLockReleaseExclusive(Lock) ReleaseSRWLockExclusive(Lock)
+#define CxPlatDispatchRwLockAcquireShared(Lock, PrevIrql) AcquireSRWLockShared(Lock)
+#define CxPlatDispatchRwLockAcquireExclusive(Lock, PrevIrql) AcquireSRWLockExclusive(Lock)
+#define CxPlatDispatchRwLockReleaseShared(Lock, PrevIrql) ReleaseSRWLockShared(Lock)
+#define CxPlatDispatchRwLockReleaseExclusive(Lock, PrevIrql) ReleaseSRWLockExclusive(Lock)
 
 //
 // Reference Count Interface

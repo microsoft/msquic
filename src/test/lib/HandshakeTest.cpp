@@ -317,6 +317,13 @@ QuicTestConnect(
                 }
                 TEST_TRUE(Client.GetIsConnected());
 
+                // After handshake, check and see if we have cached the TTL of the handshake packet.
+                if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_TTL)) {
+                    TEST_TRUE(Client.GetStatistics().HandshakeHopLimitTTL > 0);
+                } else {
+                    TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
+                }
+
                 TEST_NOT_EQUAL(nullptr, Server);
                 Server->SetSslKeyLogFilePath();
                 if (!Server->WaitForConnectionComplete()) {

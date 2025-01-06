@@ -59,21 +59,21 @@ else()
     message(FATAL_ERROR "TLS Provider not configured")
 endif()
 
-add_library(platform STATIC ${SOURCES})
+add_library(msquic_platform STATIC ${SOURCES})
 
 if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
-        platform
+        msquic_platform
         PUBLIC
         wbemuuid)
-    target_link_libraries(platform PUBLIC winmm)
+    target_link_libraries(msquic_platform PUBLIC winmm)
 elseif(QUIC_LINUX_XDP_ENABLED)
     find_library(NL_LIB nl-3)
     find_library(NL_ROUTE_LIB nl-route-3)
     find_library(XDP_LIB libxdp.so)
     find_library(BPF_LIB libbpf.so)
-    target_include_directories(platform PRIVATE /usr/include/xdp)
-    target_include_directories(platform PRIVATE /usr/include/bpf)
+    target_include_directories(msquic_platform PRIVATE /usr/include/xdp)
+    target_include_directories(msquic_platform PRIVATE /usr/include/bpf)
     set(XDP_PROG_INCLUDE_DIR "-I/usr/include/bpf")
 
     # building XDP program
@@ -88,7 +88,7 @@ elseif(QUIC_LINUX_XDP_ENABLED)
         DEPENDS ${PROJECT_SOURCE_DIR}/src/platform/datapath_raw_xdp_linux_kern.c
     )
     add_custom_target(xdp_program DEPENDS ${QUIC_OUTPUT_DIR}/datapath_raw_xdp_kern.o)
-    add_dependencies(platform xdp_program)
+    add_dependencies(msquic_platform xdp_program)
 
     if (NOT BUILD_SHARED_LIBS)
         find_library(ELF_LIB elf)   # for static
@@ -103,34 +103,37 @@ elseif(QUIC_LINUX_XDP_ENABLED)
         string(REPLACE ".so" ".a" BPF_LIB ${BPF_LIB})
     endif()
 
-    target_link_libraries(platform PUBLIC ${XDP_LIB} ${BPF_LIB} ${NL_LIB} ${NL_ROUTE_LIB} ${ELF_LIB} ${Z_LIB} ${ZSTD_LIB})
+    target_link_libraries(msquic_platform PUBLIC ${XDP_LIB} ${BPF_LIB} ${NL_LIB} ${NL_ROUTE_LIB} ${ELF_LIB} ${Z_LIB} ${ZSTD_LIB})
 endif()
 
-target_link_libraries(platform PUBLIC inc)
-target_link_libraries(platform PRIVATE warnings main_binary_link_args)
+target_link_libraries(msquic_platform PUBLIC inc)
+target_link_libraries(msquic_platform PRIVATE warnings main_binary_link_args)
 
-set_property(TARGET platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
+set_property(TARGET msquic_platform PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if ("${CX_PLATFORM}" STREQUAL "windows")
     target_include_directories(
-        platform
+        msquic_platform
         PRIVATE
         ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES}
         ${PROJECT_SOURCE_DIR}/submodules/xdp-for-windows/published/external)
 elseif(QUIC_LINUX_XDP_ENABLED)
     include_directories(/usr/include/libnl3)
-    target_include_directories(platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
+    target_include_directories(msquic_platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
 
 if (MSVC AND (QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
-    target_compile_options(platform PRIVATE /analyze)
+    target_compile_options(msquic_platform PRIVATE /analyze)
 endif()
 
 if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
-    target_link_libraries(platform PUBLIC OpenSSL)
+    target_link_libraries(msquic_platform PUBLIC OpenSSL)
     if (CX_PLATFORM STREQUAL "darwin")
-        target_link_libraries(platform PUBLIC "-framework CoreFoundation" "-framework Security")
+        target_link_libraries(msquic_platform PUBLIC "-framework CoreFoundation" "-framework Security")
     endif()
 elseif(QUIC_TLS STREQUAL "schannel")
-    target_link_libraries(platform PUBLIC secur32 onecore)
+    target_link_libraries(msquic_platform PUBLIC secur32)
+    if (NOT QUIC_GAMECORE_BUILD)
+        target_link_libraries(msquic_platform PUBLIC onecore)
+    endif()
 endif()

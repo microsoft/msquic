@@ -3604,13 +3604,13 @@ struct ConnectionPriorityTestContext {
 const uint8_t ConnectionPriorityTestContext::NumSend = 3;
 
 typedef void ConnectionPriorityTestType(
-    MsQuicConnection** Connections,
+    UniquePtr<MsQuicConnection> Connections[],
     uint8_t NumConnections,
     MsQuicStream** Streams,
     QUIC_BUFFER Buffer
     );
 
-static void ConnectionPriorityTest1(MsQuicConnection* Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
     // s: stream op
     // p: prioritized op
     // s0/s2: stream start, stream send
@@ -3666,7 +3666,7 @@ static void ConnectionPriorityTest1(MsQuicConnection* Connections[], uint8_t Num
     }
 }
 
-static void ConnectionPriorityTest2(MsQuicConnection* Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
     // processing                                                             | queued
     // [1[s0]]                                                                | []
     // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2]]
@@ -3730,7 +3730,7 @@ static void ConnectionPriorityTest2(MsQuicConnection* Connections[], uint8_t Num
     }
 }
 
-static void ConnectionPriorityTest3(MsQuicConnection* Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
     // processing        | queued
     // [1[s0]]           | []
     // [1[s0]]           | [5[s0, s2]]
@@ -3807,9 +3807,9 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
     const uint8_t NumConnections = 8;
 
     {
-        MsQuicConnection *Connections[NumConnections] = {0};
+        UniquePtr<MsQuicConnection> Connections[NumConnections];
         for (uint8_t i = 0; i < NumConnections; ++i) {
-            Connections[i] = new(std::nothrow) MsQuicConnection(Registration);
+            Connections[i].reset(new(std::nothrow) MsQuicConnection(Registration));
             TEST_QUIC_SUCCEEDED(Connections[i]->GetInitStatus());
             TEST_QUIC_SUCCEEDED(Connections[i]->Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
             TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
@@ -3832,10 +3832,6 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
         }
 
         ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer);
-
-        for (uint8_t i = 0; i < NumConnections; ++i) {
-            delete Connections[i];
-        }
     }
 }
 

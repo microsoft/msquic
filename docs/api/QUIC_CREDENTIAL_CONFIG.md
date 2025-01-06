@@ -161,6 +161,10 @@ Obtain the peer certificate using a faster in-process API call. Only available o
 
 Enable CA certificate file provided in the `CaCertificateFile` member.
 
+`QUIC_CREDENTIAL_FLAG_DISABLE_AIA`
+
+The following flag can be set to explicitly disable AIA retrievals. Only valid on Windows.
+
 #### `CertificateHash`
 
 Must **only** use with `QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH` type.

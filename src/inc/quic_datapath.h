@@ -223,6 +223,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint8_t TypeOfService;
 
     //
+    // TTL Hoplimit field of the IP header of the received packet on handshake.
+    //
+    uint8_t HopLimitTTL;
+
+    //
     // Flags.
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
@@ -438,6 +443,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
+#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
 
 //
 // Queries the currently supported features of the datapath.
