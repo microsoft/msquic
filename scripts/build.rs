@@ -21,8 +21,12 @@ fn main() {
     let mut config = Config::new(".");
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
-        .define("QUIC_TLS", "openssl")
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
+    if cfg!(feature = "schannel") {
+        config.define("QUIC_TLS", "schannel");
+    } else {
+        config.define("QUIC_TLS", "openssl");
+    }
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");
     }
