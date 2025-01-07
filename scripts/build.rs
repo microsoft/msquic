@@ -24,6 +24,8 @@ fn main() {
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
     if cfg!(feature = "schannel") {
         config.define("QUIC_TLS", "schannel");
+    } else if cfg!(feature = "openssl3") {
+        config.define("QUIC_TLS", "openssl3");
     } else {
         config.define("QUIC_TLS", "openssl");
     }

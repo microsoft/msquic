@@ -47,6 +47,7 @@ include = [
 [features]
 default = []
 schannel = []
+openssl3 = []
 static = []
 preview-api = []
 
