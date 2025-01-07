@@ -3607,13 +3607,24 @@ typedef void ConnectionPriorityTestType(
     UniquePtr<MsQuicConnection> Connections[],
     uint8_t NumConnections,
     MsQuicStream** Streams,
-    QUIC_BUFFER Buffer
+    QUIC_BUFFER Buffer,
+    MsQuicConfiguration* ClientConfiguration,
+    QuicAddr* ServerLocalAddr
     );
 
-MsQuicConfiguration* ClientConfigurationGlobal = nullptr;
-QuicAddr* ServerLocalAddrGlobal = nullptr;
+void
+ConnectionPriorityTestConnectionStart(UniquePtr<MsQuicConnection>& Connection, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr)
+{
+    TEST_QUIC_SUCCEEDED(Connection->Start(
+        *ClientConfiguration,
+        ServerLocalAddr->GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr->GetFamily()),
+        ServerLocalAddr->GetPort()));
+    TEST_TRUE(Connection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection->HandshakeComplete);
+}
 
-static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
     // s: stream op
     // p: prioritized op
     // s0/s2: stream start, stream send
@@ -3629,15 +3640,7 @@ static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], u
     MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     Context.ExpectedStream = &Stream1;
 
-    for (uint8_t i = 0; i < NumConnections; ++i) {
-        TEST_QUIC_SUCCEEDED(Connections[i]->Start(
-            *ClientConfigurationGlobal,
-            ServerLocalAddrGlobal->GetFamily(),
-            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddrGlobal->GetFamily()),
-            ServerLocalAddrGlobal->GetPort()));
-        TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Connections[i]->HandshakeComplete);
-    }
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
 
     Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
     // Wait until this StreamStart operation is drained
@@ -3656,6 +3659,10 @@ static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], u
     TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
     Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
     Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
+
+    for (uint8_t i = 1; i < 3; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
 
     MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
     ExpectedStartOrder[0] = &Stream1;
@@ -3679,7 +3686,7 @@ static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], u
     }
 }
 
-static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
     // processing                                                             | queued
     // [1[s0]]                                                                | []
     // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2]]
@@ -3692,15 +3699,7 @@ static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], u
     MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     Context.ExpectedStream = &Stream1;
 
-    for (uint8_t i = 0; i < NumConnections; ++i) {
-        TEST_QUIC_SUCCEEDED(Connections[i]->Start(
-            *ClientConfigurationGlobal,
-            ServerLocalAddrGlobal->GetFamily(),
-            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddrGlobal->GetFamily()),
-            ServerLocalAddrGlobal->GetPort()));
-        TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Connections[i]->HandshakeComplete);
-    }
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
 
     Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
     // Wait until this StreamStart operation is drained
@@ -3743,6 +3742,10 @@ static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], u
         ExpectedSendOrder[i] = Streams[i-1];
     }
 
+    for (uint8_t i = 1; i < 3; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
+
     TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
 
     TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
@@ -3753,7 +3756,7 @@ static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], u
     }
 }
 
-static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer) {
+static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
     // processing        | queued
     // [1[s0]]           | []
     // [1[s0]]           | [5[s0, s2]]
@@ -3771,16 +3774,7 @@ static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], u
     MsQuicStream Stream4(*Connections[3], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     MsQuicStream Stream5(*Connections[4], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
 
-
-    for (uint8_t i = 0; i < NumConnections; ++i) {
-        TEST_QUIC_SUCCEEDED(Connections[i]->Start(
-            *ClientConfigurationGlobal,
-            ServerLocalAddrGlobal->GetFamily(),
-            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddrGlobal->GetFamily()),
-            ServerLocalAddrGlobal->GetPort()));
-        TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-        TEST_TRUE(Connections[i]->HandshakeComplete);
-    }
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
 
     Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
     // Wait until this StreamStart operation is drained
@@ -3799,6 +3793,11 @@ static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], u
 
     Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
     Context.MaxSend = 5;
+
+    for (uint8_t i = 1; i < NumConnections; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
+
     TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
 
     MsQuicStream* ExpectedStartOrder[5] = {0};
@@ -3828,14 +3827,12 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
 
     MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-    ClientConfigurationGlobal = &ClientConfiguration;
 
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ConnectionPriorityTestContext::ConnCallback);
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
     QuicAddr ServerLocalAddr;
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-    ServerLocalAddrGlobal = &ServerLocalAddr;
 
     uint8_t RawBuffer[100];
     QUIC_BUFFER Buffer { sizeof(RawBuffer), RawBuffer };
@@ -3849,7 +3846,7 @@ void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest
             TEST_QUIC_SUCCEEDED(Connections[i]->GetInitStatus());
         }
 
-        ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer);
+        ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer, &ClientConfiguration, &ServerLocalAddr);
     }
 }
 
