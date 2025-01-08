@@ -8,6 +8,32 @@
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicExecutionCreate(
+    _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t PollingIdleTimeoutUs,
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicExecutionDelete(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+QUIC_API
+MsQuicExecutionPoll(
+    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicRegistrationOpen(
     _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
     _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
