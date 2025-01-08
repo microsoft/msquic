@@ -600,24 +600,9 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
-    do {
-        RTL_OSVERSIONINFOW osInfo;
-        RtlZeroMemory(&osInfo, sizeof(osInfo));
-        osInfo.dwOSVersionInfoSize = sizeof(osInfo);
-        NTSTATUS status = RtlGetVersion(&osInfo);
-        if (NT_SUCCESS(status)) {
-            DWORD BuildNumber = osInfo.dwBuildNumber;
-            //
-            // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
-            //
-            if (BuildNumber == 20348) {
-                break;
-            }
-        } else {
-            break;
-        }
+    if (CxPlatform.dwBuildNumber != 20348)
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-    } while (FALSE);
+    }
 
 Error:
 

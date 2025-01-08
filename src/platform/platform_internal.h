@@ -138,6 +138,11 @@ typedef struct CX_PLATFORM {
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
 
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
+
 #ifdef DEBUG
     //
     // 1/Denominator of allocations to fail.
@@ -304,6 +309,11 @@ typedef struct CX_PLATFORM {
     // Heap used for all allocations.
     //
     HANDLE Heap;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -747,7 +757,7 @@ CxPlatCryptUninitialize(
 
 //
 // Platform Worker APIs
-// 
+//
 
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
