@@ -600,7 +600,7 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
-    if (CxPlatform.dwBuildNumber != 20348)
+    if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     }
 
