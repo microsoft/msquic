@@ -32,5 +32,5 @@ set_target_properties(msquic::inc PROPERTIES  INTERFACE_COMPILE_DEFINITIONS "${d
 
 add_executable(msquicplatformtest ${SOURCES})
 target_include_directories(msquicplatformtest PRIVATE ${CMAKE_INSTALL_PREFIX}/include)
-target_link_libraries(msquicplatformtest PRIVATE gtest msquic::msquic msquic::msquic_platform ws2_32 ntdll ncrypt crypt32 iphlpapi)
+target_link_libraries(msquicplatformtest PRIVATE gtest msquic::msquic msquic::platform ws2_32 ntdll ncrypt crypt32 iphlpapi)
 target_compile_definitions(msquicplatformtest PRIVATE QUIC_EVENTS_STUB QUIC_LOGS_STUB _DISABLE_VECTOR_ANNOTATION _DISABLE_STRING_ANNOTATION)

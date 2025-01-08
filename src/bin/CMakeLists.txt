@@ -11,6 +11,7 @@ endif()
 
 if(BUILD_SHARED_LIBS)
     add_library(msquic SHARED ${SOURCES})
+    add_library(msquic::msquic ALIAS msquic)
     target_include_directories(msquic PUBLIC $<INSTALL_INTERFACE:include>)
     target_link_libraries(msquic PRIVATE core msquic_platform inc warnings logging base_link main_binary_link_args)
     set_target_properties(msquic PROPERTIES OUTPUT_NAME ${QUIC_LIBRARY_NAME})
@@ -251,8 +252,6 @@ elseif (CX_PLATFORM STREQUAL "darwin")
         PROPERTIES LINK_FLAGS "-exported_symbols_list \"${CMAKE_CURRENT_SOURCE_DIR}/darwin/exports.txt\"")
 endif()
 
-include(GNUInstallDirs)
-
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
 if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
@@ -264,11 +263,18 @@ if(WIN32)
 endif()
 
 if(BUILD_SHARED_LIBS)
-  install(TARGETS msquic msquic_platform inc logging_inc warnings main_binary_link_args ${OTHER_TARGETS} EXPORT msquic DESTINATION lib)
+    install(TARGETS msquic msquic_platform inc logging_inc warnings main_binary_link_args ${OTHER_TARGETS}
+        EXPORT msquic
+        RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+        LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+    )
 else()
-  install(FILES ${QUIC_STATIC_LIBRARY} DESTINATION lib)
+    install(FILES "${QUIC_STATIC_LIBRARY}"
+        DESTINATION lib
+    )
 endif()
-install(FILES ${PUBLIC_HEADERS} DESTINATION include)
+install(FILES ${PUBLIC_HEADERS} DESTINATION "${CMAKE_INSTALL_INCLUDEDIR}")
 
 configure_file(msquic-config.cmake.in ${CMAKE_BINARY_DIR}/msquic-config.cmake @ONLY)
 

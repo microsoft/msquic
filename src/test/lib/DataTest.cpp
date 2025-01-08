@@ -3603,8 +3603,221 @@ struct ConnectionPriorityTestContext {
 };
 const uint8_t ConnectionPriorityTestContext::NumSend = 3;
 
-void QuicTestConnectionPriority()
+typedef void ConnectionPriorityTestType(
+    UniquePtr<MsQuicConnection> Connections[],
+    uint8_t NumConnections,
+    MsQuicStream** Streams,
+    QUIC_BUFFER Buffer,
+    MsQuicConfiguration* ClientConfiguration,
+    QuicAddr* ServerLocalAddr
+    );
+
+void
+ConnectionPriorityTestConnectionStart(UniquePtr<MsQuicConnection>& Connection, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr)
 {
+    TEST_QUIC_SUCCEEDED(Connection->Start(
+        *ClientConfiguration,
+        ServerLocalAddr->GetFamily(),
+        QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr->GetFamily()),
+        ServerLocalAddr->GetPort()));
+    TEST_TRUE(Connection->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection->HandshakeComplete);
+}
+
+static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
+    // s: stream op
+    // p: prioritized op
+    // s0/s2: stream start, stream send
+    // n in sn0/sn2: stream id
+    // processing                                         | queued
+    // [1[s0]]                                            | []
+    // [1[s0]]                                            | [2[s00, s02, ..., s(n-1)0, s(n-1)2]]
+    // [1[s0]]                                            | [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]
+    // [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]  | []
+    UNREFERENCED_PARAMETER(NumConnections);
+    ConnectionPriorityTestContext Context;
+    MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    Context.ExpectedStream = &Stream1;
+
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
+
+    Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
+    // Wait until this StreamStart operation is drained
+    TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+    Context.ExpectedStream = &Stream3;
+
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+        Streams[i] = new(std::nothrow) MsQuicStream(
+            *Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual,
+            ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    }
+
+    TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+    Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
+    Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
+
+    for (uint8_t i = 1; i < 3; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
+
+    MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
+    ExpectedStartOrder[0] = &Stream1;
+    ExpectedStartOrder[1] = &Stream3;
+    for (uint8_t i = 2; i < ConnectionPriorityTestContext::NumSend + 2; ++i) {
+        ExpectedStartOrder[i] = Streams[i-2];
+    }
+    MsQuicStream* ExpectedSendOrder[ConnectionPriorityTestContext::NumSend + 1] = {0};
+    ExpectedSendOrder[0] = &Stream3;
+    for (uint8_t i = 1; i < ConnectionPriorityTestContext::NumSend + 1; ++i) {
+        ExpectedSendOrder[i] = Streams[i-1];
+    }
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+
+    TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
+    TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
+    TEST_TRUE(Context.TestSucceeded);
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+        delete Streams[i];
+    }
+}
+
+static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
+    // processing                                                             | queued
+    // [1[s0]]                                                                | []
+    // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2]]
+    // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2], 3[s0p, s2p]]
+    // [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2], 3[s0p, s2p]]  | []
+
+    UNREFERENCED_PARAMETER(NumConnections);
+    ConnectionPriorityTestContext Context;
+    MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    Context.ExpectedStream = &Stream1;
+
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
+
+    Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
+    // Wait until this StreamStart operation is drained
+    TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+        Streams[i] = new(std::nothrow) MsQuicStream(
+            *Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual,
+            ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+        TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
+
+        // NOTE: Splitting Start and Send without using QUIC_SEND_FLAG_START doesn't change operation order,
+        //       but it changes callback order. This is needed for using ExpectedXxxxOrder array.
+        if (i == ConnectionPriorityTestContext::NumSend-1) {
+            Context.ExpectedStream = Streams[i];
+            TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK))
+            TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+        } else {
+            TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_NONE))
+            TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+        }
+    }
+
+    TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_NONE));
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+    Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
+    Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
+
+    MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
+    ExpectedStartOrder[0] = &Stream1;
+    ExpectedStartOrder[1] = Streams[ConnectionPriorityTestContext::NumSend-1];
+    ExpectedStartOrder[ConnectionPriorityTestContext::NumSend+1] = &Stream3;
+    for (uint8_t i = 2; i < ConnectionPriorityTestContext::NumSend + 1; ++i) {
+        ExpectedStartOrder[i] = Streams[i-2];
+    }
+    MsQuicStream* ExpectedSendOrder[ConnectionPriorityTestContext::NumSend + 1] = {0};
+    ExpectedSendOrder[0] = Streams[ConnectionPriorityTestContext::NumSend-1];
+    ExpectedSendOrder[ConnectionPriorityTestContext::NumSend] = &Stream3;
+    for (uint8_t i = 1; i < ConnectionPriorityTestContext::NumSend; ++i) {
+        ExpectedSendOrder[i] = Streams[i-1];
+    }
+
+    for (uint8_t i = 1; i < 3; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+
+    TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
+    TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
+    TEST_TRUE(Context.TestSucceeded);
+    for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
+        delete Streams[i];
+    }
+}
+
+static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], uint8_t NumConnections, MsQuicStream* Streams[], QUIC_BUFFER Buffer, MsQuicConfiguration* ClientConfiguration, QuicAddr* ServerLocalAddr) {
+    // processing        | queued
+    // [1[s0]]           | []
+    // [1[s0]]           | [5[s0, s2]]
+    // [1[s0]]           | [4[s0p, s2p], 5[s0, s2]]
+    // [1[s0]]           | [4[s0p, s2p], 5[s0, s2]], 3[s0, s2]]
+    // [1[s0]]           | [4[s0p, s2p], 2[s0p, s2p], 5[s0, s2], 3[s0, s2]]
+    // [1[s0, s2]]       | [4[s0p, s2p], 2[s0p, s2p], 5[s0, s2], 3[s0, s2]]
+
+    UNREFERENCED_PARAMETER(NumConnections);
+    UNREFERENCED_PARAMETER(Streams);
+    ConnectionPriorityTestContext Context;
+    MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream2(*Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream4(*Connections[3], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+    MsQuicStream Stream5(*Connections[4], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
+
+    ConnectionPriorityTestConnectionStart(Connections[0], ClientConfiguration, ServerLocalAddr);
+
+    Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
+    // Wait until this StreamStart operation is drained
+    TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
+
+    TEST_QUIC_SUCCEEDED(Stream5.Start(QUIC_STREAM_START_FLAG_NONE));
+    TEST_QUIC_SUCCEEDED(Stream5.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    TEST_QUIC_SUCCEEDED(Stream4.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+    TEST_QUIC_SUCCEEDED(Stream4.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+    TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_NONE));
+    TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
+    TEST_QUIC_SUCCEEDED(Stream2.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
+    TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+
+    TEST_QUIC_SUCCEEDED(Stream1.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
+
+    Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
+    Context.MaxSend = 5;
+
+    for (uint8_t i = 1; i < NumConnections; ++i) {
+        ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
+    }
+
+    TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
+
+    MsQuicStream* ExpectedStartOrder[5] = {0};
+    MsQuicStream* ExpectedSendOrder[5] = {0};
+    ExpectedStartOrder[0] = &Stream1;
+    ExpectedStartOrder[1] = &Stream4;
+    ExpectedStartOrder[2] = &Stream2;
+    ExpectedStartOrder[3] = &Stream5;
+    ExpectedStartOrder[4] = &Stream3;
+    ExpectedSendOrder[0] = &Stream1;
+    ExpectedSendOrder[1] = &Stream4;
+    ExpectedSendOrder[2] = &Stream2;
+    ExpectedSendOrder[3] = &Stream5;
+    ExpectedSendOrder[4] = &Stream3;
+
+    TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
+    TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
+}
+
+void ConnectionPriorityCommon(ConnectionPriorityTestType* ConnectionPriorityTest) {
     // QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER for serializing Connections
     MsQuicRegistration Registration("MsQuicTest", QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER, true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -3631,200 +3844,18 @@ void QuicTestConnectionPriority()
         for (uint8_t i = 0; i < NumConnections; ++i) {
             Connections[i].reset(new(std::nothrow) MsQuicConnection(Registration));
             TEST_QUIC_SUCCEEDED(Connections[i]->GetInitStatus());
-            TEST_QUIC_SUCCEEDED(Connections[i]->Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-            TEST_TRUE(Connections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-            TEST_TRUE(Connections[i]->HandshakeComplete);
         }
 
-        // s: stream op
-        // p: prioritied op
-        // s0/s2: stream start, stream send
-        // n in sn0/sn2: stream id
-        // processing                                         | queued
-        // [1[s0]]                                            | []
-        // [1[s0]]                                            | [2[s00, s02, ..., s(n-1)0, s(n-1)2]]
-        // [1[s0]]                                            | [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]
-        // [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]  | []
-        {
-            ConnectionPriorityTestContext Context;
-            MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            Context.ExpectedStream = &Stream1;
-
-            // NOTE: This is to flush all operations in the queue.
-            //       If this is not done, the operation order is not guaranteed.
-            //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
-            //            This happens when [3] is already in the worker queue.
-            //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
-
-            Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
-            // Wait until this StreamStart operation is drained
-            TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
-            Context.ExpectedStream = &Stream3;
-
-            for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-                Streams[i] = new(std::nothrow) MsQuicStream(
-                    *Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual,
-                    ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-                TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
-                TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-            }
-
-            TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-            TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-            Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
-            Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
-
-            MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
-            ExpectedStartOrder[0] = &Stream1;
-            ExpectedStartOrder[1] = &Stream3;
-            for (uint8_t i = 2; i < ConnectionPriorityTestContext::NumSend + 2; ++i) {
-                ExpectedStartOrder[i] = Streams[i-2];
-            }
-            MsQuicStream* ExpectedSendOrder[ConnectionPriorityTestContext::NumSend + 1] = {0};
-            ExpectedSendOrder[0] = &Stream3;
-            for (uint8_t i = 1; i < ConnectionPriorityTestContext::NumSend + 1; ++i) {
-                ExpectedSendOrder[i] = Streams[i-1];
-            }
-
-            TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
-
-            TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
-            TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
-            TEST_TRUE(Context.TestSucceeded);
-            for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-                delete Streams[i];
-            }
-        }
-
-        // processing                                                             | queued
-        // [1[s0]]                                                                | []
-        // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2]]
-        // [1[s0]]                                                                | [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2], 3[s0p, s2p]]
-        // [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2], 3[s0p, s2p]]  | []
-        {
-            ConnectionPriorityTestContext Context;
-            MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            Context.ExpectedStream = &Stream1;
-
-            // NOTE: This is to flush all operations in the queue.
-            //       If this is not done, the operation order is not guaranteed.
-            //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
-            //            This happens when [3] is already in the worker queue.
-            //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
-
-            Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
-            // Wait until this StreamStart operation is drained
-            TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
-
-            for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-                Streams[i] = new(std::nothrow) MsQuicStream(
-                    *Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual,
-                    ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-                TEST_QUIC_SUCCEEDED(Streams[i]->GetInitStatus());
-
-                // NOTE: Splitting Start and Send without using QUIC_SEND_FLAG_START doesn't change operation order,
-                //       but it changes callback order. This is needed for using ExpectedXxxxOrder array.
-                if (i == ConnectionPriorityTestContext::NumSend-1) {
-                    Context.ExpectedStream = Streams[i];
-                    TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK))
-                    TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-                } else {
-                    TEST_QUIC_SUCCEEDED(Streams[i]->Start(QUIC_STREAM_START_FLAG_NONE))
-                    TEST_QUIC_SUCCEEDED(Streams[i]->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
-                }
-            }
-
-            TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_NONE));
-            TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
-            Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
-            Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
-
-            MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
-            ExpectedStartOrder[0] = &Stream1;
-            ExpectedStartOrder[1] = Streams[ConnectionPriorityTestContext::NumSend-1];
-            ExpectedStartOrder[ConnectionPriorityTestContext::NumSend+1] = &Stream3;
-            for (uint8_t i = 2; i < ConnectionPriorityTestContext::NumSend + 1; ++i) {
-                ExpectedStartOrder[i] = Streams[i-2];
-            }
-            MsQuicStream* ExpectedSendOrder[ConnectionPriorityTestContext::NumSend + 1] = {0};
-            ExpectedSendOrder[0] = Streams[ConnectionPriorityTestContext::NumSend-1];
-            ExpectedSendOrder[ConnectionPriorityTestContext::NumSend] = &Stream3;
-            for (uint8_t i = 1; i < ConnectionPriorityTestContext::NumSend; ++i) {
-                ExpectedSendOrder[i] = Streams[i-1];
-            }
-
-            TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
-
-            TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
-            TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
-            TEST_TRUE(Context.TestSucceeded);
-            for (uint8_t i = 0; i < ConnectionPriorityTestContext::NumSend; ++i) {
-                delete Streams[i];
-            }
-        }
-
-        // processing        | queued
-        // [1[s0]]           | []
-        // [1[s0]]           | [5[s0, s2]]
-        // [1[s0]]           | [4[s0p, s2p], 5[s0, s2]]
-        // [1[s0]]           | [4[s0p, s2p], 5[s0, s2]], 3[s0, s2]]
-        // [1[s0]]           | [4[s0p, s2p], 2[s0p, s2p], 5[s0, s2], 3[s0, s2]]
-        // [1[s0, s2]]       | [4[s0p, s2p], 2[s0p, s2p], 5[s0, s2], 3[s0, s2]]
-        {
-            ConnectionPriorityTestContext Context;
-            MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream2(*Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream4(*Connections[3], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-            MsQuicStream Stream5(*Connections[4], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
-
-            // NOTE: This is to flush all operations in the queue.
-            //       If this is not done, the operation order is not guaranteed.
-            //       e.g. This test case randomly swap [3] and [4] and fail without sleep.
-            //            This happens when [3] is already in the worker queue.
-            //            Normal enqueue doesn't re-queue the Connection
-            CxPlatSleep(300);
-
-            Stream1.Start(QUIC_STREAM_START_FLAG_IMMEDIATE);
-            // Wait until this StreamStart operation is drained
-            TEST_TRUE(Context.BlockAfterInitialStart.WaitTimeout(TestWaitTimeout));
-
-            TEST_QUIC_SUCCEEDED(Stream5.Start(QUIC_STREAM_START_FLAG_NONE));
-            TEST_QUIC_SUCCEEDED(Stream5.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-            TEST_QUIC_SUCCEEDED(Stream4.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-            TEST_QUIC_SUCCEEDED(Stream4.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-            TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_NONE));
-            TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN));
-            TEST_QUIC_SUCCEEDED(Stream2.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
-            TEST_QUIC_SUCCEEDED(Stream2.Send(&Buffer, 1, QUIC_SEND_FLAG_START | QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-
-            TEST_QUIC_SUCCEEDED(Stream1.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-
-            Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
-            Context.MaxSend = 5;
-            TEST_TRUE(Context.AllReceivesComplete.WaitTimeout(TestWaitTimeout));
-
-            MsQuicStream* ExpectedStartOrder[5] = {0};
-            MsQuicStream* ExpectedSendOrder[5] = {0};
-            ExpectedStartOrder[0] = &Stream1;
-            ExpectedStartOrder[1] = &Stream4;
-            ExpectedStartOrder[2] = &Stream2;
-            ExpectedStartOrder[3] = &Stream5;
-            ExpectedStartOrder[4] = &Stream3;
-            ExpectedSendOrder[0] = &Stream1;
-            ExpectedSendOrder[1] = &Stream4;
-            ExpectedSendOrder[2] = &Stream2;
-            ExpectedSendOrder[3] = &Stream5;
-            ExpectedSendOrder[4] = &Stream3;
-
-            TEST_TRUE(memcmp(Context.StartOrder, ExpectedStartOrder, sizeof(ExpectedStartOrder)) == 0);
-            TEST_TRUE(memcmp(Context.SendOrder, ExpectedSendOrder, sizeof(ExpectedSendOrder)) == 0);
-        }
+        ConnectionPriorityTest(Connections, NumConnections, Streams, Buffer, &ClientConfiguration, &ServerLocalAddr);
     }
+}
+
+void QuicTestConnectionPriority()
+{
+    // NOTE: re-allocating connections/streams can avoid contaminating operations operation from previous test
+    ConnectionPriorityCommon(ConnectionPriorityTest1);
+    ConnectionPriorityCommon(ConnectionPriorityTest2);
+    ConnectionPriorityCommon(ConnectionPriorityTest3);
 }
 
 struct StreamBlockUnblockConnFlowControl {

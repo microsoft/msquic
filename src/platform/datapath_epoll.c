@@ -205,6 +205,10 @@ typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
 #else
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type)
 #endif
+    
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextFlushTxEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
 
 void
 CxPlatDataPathCalculateFeatureSupport(
@@ -572,13 +576,10 @@ CxPlatSocketContextSqeInitialize(
     BOOLEAN IoSqeInitialized = FALSE;
     BOOLEAN FlushTxInitialized = FALSE;
 
-    SocketContext->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
-    SocketContext->IoSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_IO;
-    SocketContext->FlushTxSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX;
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
-            &SocketContext->ShutdownSqe.Sqe,
+            CxPlatSocketContextUninitializeEventComplete,
             &SocketContext->ShutdownSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -593,7 +594,7 @@ CxPlatSocketContextSqeInitialize(
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
-            &SocketContext->IoSqe.Sqe,
+            CxPlatSocketContextIoEventComplete,
             &SocketContext->IoSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -608,7 +609,7 @@ CxPlatSocketContextSqeInitialize(
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
-            &SocketContext->FlushTxSqe.Sqe,
+            CxPlatSocketContextFlushTxEventComplete,
             &SocketContext->FlushTxSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -627,13 +628,13 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
         }
         if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
         }
         if (FlushTxInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe.Sqe);
+            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
         }
     }
 
@@ -1154,9 +1155,9 @@ CxPlatSocketContextUninitializeComplete(
     }
 
     if (SocketContext->SqeInitialized) {
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe.Sqe);
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe.Sqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
     }
 
     CxPlatLockUninitialize(&SocketContext->TxQueueLock);
@@ -1166,6 +1167,16 @@ CxPlatSocketContextUninitializeComplete(
         CxPlatProcessorContextRelease(SocketContext->DatapathPartition);
     }
     CxPlatSocketRelease(SocketContext->Binding);
+}
+
+void
+CxPlatSocketContextUninitializeEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SOCKET_CONTEXT* SocketContext =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
+    CxPlatSocketContextUninitializeComplete(SocketContext);
 }
 
 void
@@ -1210,7 +1221,6 @@ CxPlatSocketContextUninitialize(
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
                 SocketContext->DatapathPartition->EventQ,
-                &SocketContext->ShutdownSqe.Sqe,
                 &SocketContext->ShutdownSqe));
     }
 }
@@ -2425,7 +2435,6 @@ SocketSend(
             CXPLAT_FRE_ASSERT(
                 CxPlatEventQEnqueue(
                     SocketContext->DatapathPartition->EventQ,
-                    &SocketContext->FlushTxSqe.Sqe,
                     &SocketContext->FlushTxSqe));
         }
         return;
@@ -2787,6 +2796,16 @@ CxPlatSocketContextFlushTxQueue(
     }
 }
 
+void
+CxPlatSocketContextFlushTxEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SOCKET_CONTEXT* SocketContext =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
+    CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 CxPlatSocketGetTcpStatistics(
@@ -2800,11 +2819,13 @@ CxPlatSocketGetTcpStatistics(
 }
 
 void
-CxPlatDataPathSocketProcessIoCompletion(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+CxPlatSocketContextIoEventComplete(
     _In_ CXPLAT_CQE* Cqe
     )
 {
+    CXPLAT_SOCKET_CONTEXT* SocketContext =
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
+
     if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
         if (EPOLLERR & Cqe->events) {
             CxPlatSocketHandleErrors(SocketContext);
@@ -2825,32 +2846,5 @@ CxPlatDataPathSocketProcessIoCompletion(
             }
         }
         CxPlatRundownRelease(&SocketContext->UpcallRundown);
-    }
-}
-
-void
-DataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    switch (CxPlatCqeType(Cqe)) {
-    case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
-        CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
-        CxPlatSocketContextUninitializeComplete(SocketContext);
-        break;
-    }
-    case CXPLAT_CQE_TYPE_SOCKET_IO: {
-        CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
-        CxPlatDataPathSocketProcessIoCompletion(SocketContext, Cqe);
-        break;
-    }
-    case CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX: {
-        CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(CxPlatCqeUserData(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
-        CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
-        break;
-    }
     }
 }
