@@ -597,7 +597,12 @@ QuicDatagramCancelBlocked(
 {
     QUIC_DATAGRAM* Datagram = &Connection->Datagram;
     QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
-    while (*SendQueue != NULL) {
+
+    if (*SendQueue == NULL) {
+        return;
+    }
+
+    do {
         if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
             QUIC_SEND_REQUEST* SendRequest = *SendQueue;
             if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
@@ -608,7 +613,8 @@ QuicDatagramCancelBlocked(
         } else {
             SendQueue = &((*SendQueue)->Next);
         }
-    }
+    } while (*SendQueue != NULL);
+    
     Datagram->SendQueueTail = SendQueue;
 
     if (Datagram->SendQueue != NULL) {
