@@ -43,7 +43,12 @@ if(QUIC_ENABLE_LOGGING)
         target_link_libraries(msquic.lttng PRIVATE ${LTTNGUST_LIBRARIES})
         set_target_properties(msquic.lttng PROPERTIES SOVERSION ${QUIC_FULL_VERSION} VERSION ${QUIC_FULL_VERSION})
 
-        install(TARGETS msquic.lttng DESTINATION lib)
+        install(TARGETS msquic.lttng
+            EXPORT msquic
+            RUNTIME DESTINATION "${CMAKE_INSTALL_BINDIR}"
+            LIBRARY DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+            ARCHIVE DESTINATION "${CMAKE_INSTALL_LIBDIR}"
+        )
     endif()
 
 else()
