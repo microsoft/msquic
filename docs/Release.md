@@ -106,7 +106,9 @@ When testing the pipeline, please make sure to comment out the PMC cli commands 
 
 Prerequisites:
 - Docker
+- Powershell
 
+1. Checkout to release tag. (e.g. `git checkout v2.4.7`)
 1. Run `generate-alpine-packaging-file.ps1` script on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
 1. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org). Create an account and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
 1. If you didn't fork `aports` repository yet, Fork `https://gitlab.alpinelinux.org/alpine/aports`.

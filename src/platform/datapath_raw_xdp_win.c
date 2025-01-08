@@ -62,13 +62,13 @@ typedef struct XDP_QUEUE {
     uint16_t RssProcessor;
     uint8_t* RxBuffers;
     HANDLE RxXsk;
-    DATAPATH_XDP_IO_SQE RxIoSqe;
+    CXPLAT_SQE RxIoSqe;
     XSK_RING RxFillRing;
     XSK_RING RxRing;
     HANDLE RxProgram;
     uint8_t* TxBuffers;
     HANDLE TxXsk;
-    DATAPATH_XDP_IO_SQE TxIoSqe;
+    CXPLAT_SQE TxIoSqe;
     XSK_RING TxRing;
     XSK_RING TxCompletionRing;
 
@@ -102,6 +102,10 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) XDP_TX_PACKET {
     CXPLAT_LIST_ENTRY Link;
     uint8_t FrameBuffer[MAX_ETH_FRAME_SIZE];
 } XDP_TX_PACKET;
+
+CXPLAT_EVENT_COMPLETION CxPlatIoXdpWaitRxEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatIoXdpWaitTxEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatIoXdpShutdownEventComplete;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
@@ -459,10 +463,6 @@ CxPlatDpRawInterfaceInitialize(
         CxPlatLockInitialize(&Queue->TxLock);
         CxPlatListInitializeHead(&Queue->TxQueue);
         CxPlatListInitializeHead(&Queue->PartitionTxQueue);
-        CxPlatDatapathSqeInitialize(&Queue->RxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->RxIoSqe.IoType = DATAPATH_XDP_IO_RECV;
-        CxPlatDatapathSqeInitialize(&Queue->TxIoSqe.DatapathSqe, CXPLAT_CQE_TYPE_SOCKET_IO);
-        Queue->TxIoSqe.IoType = DATAPATH_XDP_IO_SEND;
 
         //
         // RX datapath.
@@ -578,10 +578,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->RxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
@@ -700,10 +701,11 @@ CxPlatDpRawInterfaceInitialize(
         if (!SetFileCompletionNotificationModes(
                 (HANDLE)Queue->TxXsk,
                 FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+            Status = QUIC_STATUS_INTERNAL_ERROR;
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                Status,
+                GetLastError(),
                 "SetFileCompletionNotificationModes");
             goto Error;
         }
@@ -1109,7 +1111,7 @@ CxPlatDpRawInitialize(
         Partition->Ec.NextTimeUs = UINT64_MAX;
         Partition->Ec.Callback = CxPlatXdpExecute;
         Partition->Ec.Context = &Xdp->Partitions[i];
-        Partition->ShutdownSqe.CqeType = CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN;
+        CxPlatSqeInitializeEx(CxPlatIoXdpShutdownEventComplete, &Partition->ShutdownSqe);
         CxPlatRefIncrement(&Xdp->RefCount);
         Partition->EventQ = CxPlatWorkerPoolGetEventQ(WorkerPool, (uint16_t)i);
 
@@ -1751,7 +1753,7 @@ CxPlatXdpExecute(
             Queue->TxXsk = NULL;
             Queue = Queue->Next;
         }
-        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe.Sqe, &Partition->ShutdownSqe);
+        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe);
         return FALSE;
     }
 
@@ -1779,13 +1781,13 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoRx,
                     "[ xdp][%p] XDP async IO start (RX)",
                     Queue);
-                CxPlatZeroMemory(
-                    &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped,
-                    sizeof(Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped));
+                CxPlatSqeInitializeEx(
+                    CxPlatIoXdpWaitRxEventComplete,
+                    &Queue->RxIoSqe);
                 HRESULT hr =
                     Xdp->XdpApi->XskNotifyAsync(
                         Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
-                        &Queue->RxIoSqe.DatapathSqe.Sqe.Overlapped);
+                        &Queue->RxIoSqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->RxQueued = TRUE;
                 } else if (hr == S_OK) {
@@ -1803,13 +1805,13 @@ CxPlatXdpExecute(
                     XdpQueueAsyncIoTx,
                     "[ xdp][%p] XDP async IO start (TX)",
                     Queue);
-                CxPlatZeroMemory(
-                    &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped,
-                    sizeof(Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped));
+                CxPlatSqeInitializeEx(
+                    CxPlatIoXdpWaitTxEventComplete,
+                    &Queue->TxIoSqe);
                 HRESULT hr =
                     Xdp->XdpApi->XskNotifyAsync(
                         Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
-                        &Queue->TxIoSqe.DatapathSqe.Sqe.Overlapped);
+                        &Queue->TxIoSqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
                     Queue->TxQueued = TRUE;
                 } else if (hr == S_OK) {
@@ -1829,40 +1831,50 @@ CxPlatXdpExecute(
     return TRUE;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-RawDataPathProcessCqe(
+CxPlatIoXdpWaitRxEventComplete(
     _In_ CXPLAT_CQE* Cqe
     )
 {
-    if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_IO) {
-        DATAPATH_XDP_IO_SQE* Sqe =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_XDP_IO_SQE, DatapathSqe);
-        XDP_QUEUE* Queue;
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    XDP_QUEUE* Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
+    QuicTraceLogVerbose(
+        XdpQueueAsyncIoRxComplete,
+        "[ xdp][%p] XDP async IO complete (RX)",
+        Queue);
+    Queue->RxQueued = FALSE;
+    Queue->Partition->Ec.Ready = TRUE;
+}
 
-        if (Sqe->IoType == DATAPATH_XDP_IO_RECV) {
-            Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, RxIoSqe);
-            QuicTraceLogVerbose(
-                XdpQueueAsyncIoRxComplete,
-                "[ xdp][%p] XDP async IO complete (RX)",
-                Queue);
-            Queue->RxQueued = FALSE;
-        } else {
-            CXPLAT_DBG_ASSERT(Sqe->IoType == DATAPATH_XDP_IO_SEND);
-            Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, TxIoSqe);
-            QuicTraceLogVerbose(
-                XdpQueueAsyncIoTxComplete,
-                "[ xdp][%p] XDP async IO complete (TX)",
-                Queue);
-            Queue->TxQueued = FALSE;
-        }
-        Queue->Partition->Ec.Ready = TRUE;
-    } else if (CxPlatCqeType(Cqe) == CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN) {
-        XDP_PARTITION* Partition =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), XDP_PARTITION, ShutdownSqe);
-        QuicTraceLogVerbose(
-            XdpPartitionShutdownComplete,
-            "[ xdp][%p] XDP partition shutdown complete",
-            Partition);
-        CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
-    }
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoXdpWaitTxEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    XDP_QUEUE* Queue = CONTAINING_RECORD(Sqe, XDP_QUEUE, TxIoSqe);
+    QuicTraceLogVerbose(
+        XdpQueueAsyncIoTxComplete,
+        "[ xdp][%p] XDP async IO complete (TX)",
+        Queue);
+    Queue->TxQueued = FALSE;
+    Queue->Partition->Ec.Ready = TRUE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoXdpShutdownEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    XDP_PARTITION* Partition =
+        CONTAINING_RECORD(Sqe, XDP_PARTITION, ShutdownSqe);
+    QuicTraceLogVerbose(
+        XdpPartitionShutdownComplete,
+        "[ xdp][%p] XDP partition shutdown complete",
+        Partition);
+    CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
 }

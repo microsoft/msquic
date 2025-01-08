@@ -244,14 +244,6 @@ RawResolveRoute(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-void
-RawDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    UNREFERENCED_PARAMETER(Cqe);
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawUpdateRoute(

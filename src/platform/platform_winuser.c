@@ -582,17 +582,6 @@ CxPlatGetProcessorGroupInfo(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-CxPlatDatapathSqeInitialize(
-    _Out_ DATAPATH_SQE* DatapathSqe,
-    _In_ uint32_t CqeType
-    )
-{
-    RtlZeroMemory(DatapathSqe, sizeof(*DatapathSqe));
-    DatapathSqe->CqeType = CqeType;
-    DatapathSqe->Sqe.UserData = DatapathSqe;
-}
-
 #ifdef DEBUG
 void
 CxPlatSetAllocFailDenominator(
