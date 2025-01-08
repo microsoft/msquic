@@ -64,12 +64,13 @@ fn main() {
         println!("cargo:rustc-link-lib=static=msquic");
     }
 
-    #[cfg(feature = "overwrite")]
+    #[cfg(all(feature = "overwrite", not(target_os = "macos")))]
     overwrite_bindgen();
 }
 
 /// Read the c header and generate rust bindings.
-#[cfg(feature = "overwrite")]
+/// TODO: macos currently uses linux bindings.
+#[cfg(all(feature = "overwrite", not(target_os = "macos")))]
 fn overwrite_bindgen() {
     let manifest_dir = std::path::PathBuf::from(env::var("CARGO_MANIFEST_DIR").unwrap());
     let root_dir = manifest_dir;
