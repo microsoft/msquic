@@ -700,6 +700,10 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
+
+    //
+    // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+    //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     }
@@ -819,6 +823,9 @@ DataPathInitialize(
     // Check for port reservation support.
     //
 #ifndef QUIC_UWP_BUILD
+    //
+    // Only RS5 and newer can use the port reservation feature safely.
+    //
     if (CxPlatform.dwBuildNumber >= 17763) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
     }

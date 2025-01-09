@@ -262,7 +262,7 @@ CxPlatInitialize(
         }
         FreeLibrary(NtDllHandle);
     }
-    CXPLAT_DBG_ASSERT(SuccessfullySetVersion); // TODO: Is the assert here enough or is there an appropritae QUIC_STATUS we return?
+    CXPLAT_DBG_ASSERT(SuccessfullySetVersion); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
 
     if (QUIC_FAILED(Status = CxPlatProcessorInfoInit())) {
         QuicTraceEvent(
