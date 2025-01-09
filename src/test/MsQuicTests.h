@@ -642,6 +642,11 @@ QuicTestDatagramSend(
     _In_ int Family
     );
 
+void
+QuicTestDatagramDrop(
+    _In_ int Family
+    );
+
 //
 // Storage tests
 //
@@ -1331,4 +1336,8 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 125
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 126
