@@ -128,7 +128,7 @@ CxPlatInitialize(
         DWORD BuildNumber = osInfo.dwBuildNumber;
         CxPlatform.dwBuildNumber = BuildNumber;
     } else {
-        CXPLAT_DBG_ASSERT(FALSE); // TODO: Is the assert here enough or is there an appropritae QUIC_STATUS we return?
+        CXPLAT_DBG_ASSERT(FALSE); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
     }
 
     QUIC_STATUS Status =
