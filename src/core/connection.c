@@ -890,7 +890,7 @@ QuicConnGenerateNewSourceCid(
         BOOLEAN Collision = FALSE;
         int8_t Revert = -1;
         for (uint8_t i = 0; i < BindingsCount; ++i) {
-            if (!QuicBindingAddSourceConnectionID(Bindings[i], SourceCid)) {
+            if (!QuicBindingAddSourceConnectionID(Bindings[i], Connection, SourceCid)) {
                 Collision = TRUE;
                 if (i > 0) {
                     Revert = i - 1;
@@ -2004,7 +2004,7 @@ QuicConnStart(
         CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
     CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
-    if (!QuicBindingAddSourceConnectionID(Path->Binding, SourceCid)) {
+    if (!QuicBindingAddSourceConnectionID(Path->Binding, Connection, SourceCid)) {
         QuicLibraryReleaseBinding(Path->Binding);
         Path->Binding = NULL;
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -6351,7 +6351,7 @@ QuicConnOpenNewPath(
             CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
         CxPlatListPushEntry(&Connection->SourceCids, &SourceCid->Link);
 
-        if (!QuicBindingAddSourceConnectionID(NewBinding, SourceCid)) {
+        if (!QuicBindingAddSourceConnectionID(NewBinding, Connection, SourceCid)) {
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
     } else {
@@ -6365,7 +6365,6 @@ QuicConnOpenNewPath(
         "[conn][%p] New Local IP: %!ADDR!",
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
-
 
     QUIC_CID_LIST_ENTRY* NewDestCid = QuicConnGetUnusedDestCid(Connection);
     //
@@ -6430,10 +6429,6 @@ QuicConnAddLocalAddress(
 
     if (Connection->State.ClosedLocally) {
         return QUIC_STATUS_INVALID_STATE;
-    }
-
-    if (!QuicAddrIsValid(LocalAddress)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     BOOLEAN AddrInUse = FALSE;
@@ -6514,10 +6509,6 @@ QuicConnRemoveLocalAddress(
 {
     if (QuicConnIsServer(Connection)) {
         return QUIC_STATUS_INVALID_STATE;
-    }
-
-    if (!QuicAddrIsValid(LocalAddress)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     if (!Connection->State.LocalAddressSet) {
@@ -7062,7 +7053,14 @@ QuicConnParamSet(
             break;
         }
 
-        Status = QuicConnAddLocalAddress(Connection, (QUIC_ADDR*)Buffer);
+        QUIC_ADDR* LocalAddress = (QUIC_ADDR*)Buffer;
+
+        if (!QuicAddrIsValid(LocalAddress)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status = QuicConnAddLocalAddress(Connection, LocalAddress);
         break;
     }
 
@@ -7073,7 +7071,14 @@ QuicConnParamSet(
             break;
         }
 
-        Status = QuicConnRemoveLocalAddress(Connection, (QUIC_ADDR*)Buffer);
+        QUIC_ADDR* LocalAddress = (QUIC_ADDR*)Buffer;
+
+        if (!QuicAddrIsValid(LocalAddress)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Status = QuicConnRemoveLocalAddress(Connection, LocalAddress);
         break;
     }
 

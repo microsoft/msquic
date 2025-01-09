@@ -474,7 +474,6 @@ QuicCidNewRandomSource(
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = MsQuicLib.CidTotalLength;

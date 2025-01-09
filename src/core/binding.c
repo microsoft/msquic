@@ -560,10 +560,11 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicBindingAddSourceConnectionID(
     _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_CID_SLIST_ENTRY* SourceCid
     )
 {
-    return QuicLookupAddLocalCid(&Binding->Lookup, SourceCid, NULL);
+    return QuicLookupAddLocalCid(&Binding->Lookup, Connection, SourceCid, NULL);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -582,7 +583,7 @@ QuicBindingAddAllSourceConnectionIDs(
                 Link,
                 QUIC_CID_SLIST_ENTRY,
                 Link);
-        if (!QuicBindingAddSourceConnectionID(Binding, Entry)) {
+        if (!QuicBindingAddSourceConnectionID(Binding, Connection, Entry)) {
             return FALSE;
         }
     }
@@ -607,8 +608,6 @@ QuicBindingRemoveAllSourceConnectionIDs(
     _In_ QUIC_CONNECTION* Connection
     )
 {
-    CXPLAT_SLIST_ENTRY EntriesToFree = {0};
-
     for (CXPLAT_SLIST_ENTRY* Link = Connection->SourceCids.Next;
         Link != NULL;
         Link = Link->Next) {
@@ -619,30 +618,22 @@ QuicBindingRemoveAllSourceConnectionIDs(
                 QUIC_CID_SLIST_ENTRY,
                 Link);
 
-        CXPLAT_SLIST_ENTRY** Link1 = &Entry->HashEntries.Next;
-        while (*Link1 != NULL) {
-            QUIC_CID_HASH_ENTRY* Entry1 = 
+        CXPLAT_SLIST_ENTRY** HashLink = &Entry->HashEntries.Next;
+        while (*HashLink != NULL) {
+            QUIC_CID_HASH_ENTRY* HashEntry = 
                 CXPLAT_CONTAINING_RECORD(
-                    *Link1,
+                    *HashLink,
                     QUIC_CID_HASH_ENTRY,
                     Link);
-            if (Entry1->Binding == Binding) {
-                QuicBindingRemoveSourceConnectionID(Binding, Entry1);
-                *Link1 = (*Link1)->Next;
-                CxPlatListPushEntry(&EntriesToFree, &Entry1->Link);
+            if (HashEntry->Binding == Binding) {
+                QuicBindingRemoveSourceConnectionID(Binding, HashEntry);
+                *HashLink = (*HashLink)->Next;
+                CXPLAT_FREE(HashEntry, QUIC_POOL_CIDHASH);
+                HashEntry = NULL;
             } else {
-                Link1 = &(*Link1)->Next;
+                HashLink = &(*HashLink)->Next;
             }
         }
-    }
-
-    while (EntriesToFree.Next != NULL) {
-        QUIC_CID_HASH_ENTRY* Entry = 
-            CXPLAT_CONTAINING_RECORD(
-                CxPlatListPopEntry(&EntriesToFree),
-                QUIC_CID_HASH_ENTRY,
-                Link);
-        CXPLAT_FREE(Entry, QUIC_POOL_CIDHASH);
     }
 }
 

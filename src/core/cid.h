@@ -166,7 +166,6 @@ typedef struct QUIC_CID_LIST_ENTRY {
 typedef struct QUIC_CID_SLIST_ENTRY {
 
     CXPLAT_SLIST_ENTRY Link;
-    QUIC_CONNECTION* Connection;
     CXPLAT_SLIST_ENTRY HashEntries;
     QUIC_CID CID;
 
@@ -178,7 +177,7 @@ typedef struct QUIC_CID_HASH_ENTRY {
     CXPLAT_SLIST_ENTRY Link;
     QUIC_CONNECTION* Connection;
     QUIC_BINDING* Binding;
-    QUIC_CID_SLIST_ENTRY* CID;
+    QUIC_CID_SLIST_ENTRY* Parent;
 
 } QUIC_CID_HASH_ENTRY;
 
@@ -199,7 +198,6 @@ QuicCidNewNullSource(
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
     }
@@ -228,7 +226,6 @@ QuicCidNewSource(
             QUIC_POOL_CIDSLIST);
 
     if (Entry != NULL) {
-        Entry->Connection = Connection;
         Entry->HashEntries.Next = NULL;
         CxPlatZeroMemory(&Entry->CID, sizeof(Entry->CID));
         Entry->CID.Length = Length;
