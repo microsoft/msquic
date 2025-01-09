@@ -300,6 +300,7 @@ QuicPathSetActive(
     } else {
         CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
+            QuicConnIsServer(Connection) &&
             QuicAddrGetFamily(&Path->Route.RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress) &&
             QuicAddrCompareIp(&Path->Route.RemoteAddress, &Connection->Paths[0].Route.RemoteAddress);
 
