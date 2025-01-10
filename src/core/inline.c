@@ -29,20 +29,16 @@ QuicCidNewDestination(
 
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewSource(
-    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
     );
 
 QUIC_CID_SLIST_ENTRY*
-QuicCidNewNullSource(
-    _In_ QUIC_CONNECTION* Connection
-    );
+QuicCidNewNullSource();
 
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
     _In_ uint16_t PartitionID,

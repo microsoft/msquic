@@ -188,9 +188,7 @@ typedef struct QUIC_CID_HASH_ENTRY {
 inline
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
-QuicCidNewNullSource(
-    _In_ QUIC_CONNECTION* Connection
-    )
+QuicCidNewNullSource()
 {
     QUIC_CID_SLIST_ENTRY* Entry =
         (QUIC_CID_SLIST_ENTRY*)CXPLAT_ALLOC_NONPAGED(
@@ -212,7 +210,6 @@ inline
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewSource(
-    _In_ QUIC_CONNECTION* Connection,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data

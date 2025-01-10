@@ -453,7 +453,6 @@ inline
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
     _In_ uint16_t PartitionID,

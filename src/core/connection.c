@@ -217,7 +217,7 @@ QuicConnAlloc(
             CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
 
         QUIC_CID_SLIST_ENTRY* SourceCid =
-            QuicCidNewSource(Connection, Packet->DestCidLen, Packet->DestCid);
+            QuicCidNewSource(Packet->DestCidLen, Packet->DestCid);
         if (SourceCid == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
@@ -874,7 +874,6 @@ QuicConnGenerateNewSourceCid(
     do {
         SourceCid =
             QuicCidNewRandomSource(
-                Connection,
                 Connection->ServerID,
                 Connection->PartitionID,
                 Connection->CibirId[0],
@@ -1984,13 +1983,12 @@ QuicConnStart(
     if (Connection->State.ShareBinding) {
         SourceCid =
             QuicCidNewRandomSource(
-                Connection,
                 NULL,
                 Connection->PartitionID,
                 Connection->CibirId[0],
                 Connection->CibirId+2);
     } else {
-        SourceCid = QuicCidNewNullSource(Connection);
+        SourceCid = QuicCidNewNullSource();
     }
     if (SourceCid == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -6343,7 +6341,7 @@ QuicConnOpenNewPath(
     }
 
     if (!Connection->State.ShareBinding) {
-        QUIC_CID_SLIST_ENTRY* SourceCid = QuicCidNewNullSource(Connection);
+        QUIC_CID_SLIST_ENTRY* SourceCid = QuicCidNewNullSource();
         if (SourceCid == NULL) {
             return QUIC_STATUS_OUT_OF_MEMORY;
         }
