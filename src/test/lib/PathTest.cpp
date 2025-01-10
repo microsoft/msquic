@@ -216,7 +216,7 @@ void
 QuicTestMigration(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN Smooth
+    _In_ QUIC_MIGRATION_TYPE Type
     )
 {
     PathTestContext Context;
@@ -258,7 +258,7 @@ QuicTestMigration(
 
     PathProbeHelper* ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
 
-    if (Smooth) {
+    if (Type == MigrateWithProbe || Type == DeleteAndMigrate) {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         int Try = 0;
         do {
@@ -288,11 +288,22 @@ QuicTestMigration(
                 &Stats));
         TEST_EQUAL(Stats.RecvDroppedPackets, 0);
 
-        TEST_QUIC_SUCCEEDED(
-            Connection.SetParam(
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                sizeof(SecondLocalAddr.SockAddr),
-                &SecondLocalAddr.SockAddr));
+        if (Type == MigrateWithProbe) {
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(SecondLocalAddr.SockAddr),
+                    &SecondLocalAddr.SockAddr));
+        } else {
+            QuicAddr ClientLocalAddr;
+            TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(ClientLocalAddr));
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(ClientLocalAddr.SockAddr),
+                    &ClientLocalAddr.SockAddr));
+        }
     } else {
         //
         // Wait for handshake confirmation.

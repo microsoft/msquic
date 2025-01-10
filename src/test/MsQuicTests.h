@@ -372,11 +372,17 @@ QuicTestProbePath(
     _In_ uint32_t DropPacketCount
     );
 
+typedef enum QUIC_MIGRATION_TYPE {
+    MigrateWithProbe,
+    MigrateWithoutProbe,
+    DeleteAndMigrate,
+} QUIC_MIGRATION_TYPE;
+
 void
 QuicTestMigration(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN PathProbe
+    _In_ QUIC_MIGRATION_TYPE Type
     );
 
 void
@@ -1368,7 +1374,7 @@ typedef struct {
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
-    BOOLEAN Smooth;
+    QUIC_MIGRATION_TYPE Type;
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \

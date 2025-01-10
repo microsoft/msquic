@@ -975,7 +975,7 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestMigration(
                 Params->MigrationParams.Family,
                 Params->MigrationParams.ShareBinding,
-                Params->MigrationParams.Smooth));
+                Params->MigrationParams.Type));
         break;
 
     case IOCTL_QUIC_RUN_NAT_PORT_REBIND:

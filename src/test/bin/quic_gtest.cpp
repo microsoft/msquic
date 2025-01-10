@@ -1692,11 +1692,11 @@ TEST_P(WithMigrationArgs, Migration) {
         QUIC_RUN_MIGRATION_PARAMS Params = {
             GetParam().Family,
             GetParam().ShareBinding,
-            GetParam().Smooth
+            GetParam().Type
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MIGRATION, Params));
     } else {
-        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Smooth);
+        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Type);
     }
 }
 

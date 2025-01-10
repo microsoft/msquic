@@ -6531,11 +6531,8 @@ QuicConnRemoveLocalAddress(
 
     QUIC_PATH* Path = &Connection->Paths[PathIndex];
 
-    if (Path->IsActive && Connection->State.Started) {
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
-    if (Path->DestCid != NULL) {
+    if (Path->DestCid != NULL &&
+        Connection->State.Started && Connection->State.HandshakeConfirmed) {
         QuicConnRetireCid(Connection, Path->DestCid);
     }
 
@@ -6546,9 +6543,65 @@ QuicConnRemoveLocalAddress(
     }
 
     if (Connection->PathsCount == 1) {
-        CXPLAT_DBG_ASSERT(!Connection->State.Started);
-        Connection->State.LocalAddressSet = FALSE;
+        if (!Connection->State.Started) {
+            Connection->State.LocalAddressSet = FALSE;
+        } else {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Last Local Address Removed!");
+            QuicConnSilentlyAbort(Connection);
+            return QUIC_STATUS_ABORTED;
+        }
     } else {
+        if (Path->IsActive) {
+            CXPLAT_DBG_ASSERT(PathIndex == 0);
+            if (!Connection->State.Started) {
+                CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+                CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+#if DEBUG
+                QUIC_CID_CLEAR_PATH(Path->DestCid);
+#endif
+                // Move the dest CID to the new active path.
+                QUIC_CID_LIST_ENTRY* DestCid = Path->DestCid;
+                Path->DestCid = NULL;
+                QUIC_PATH* NewActivePath = &Connection->Paths[1];
+                NewActivePath->DestCid = DestCid;
+                QUIC_CID_SET_PATH(Connection, NewActivePath->DestCid, NewActivePath);
+                
+                QuicPathSetActive(Connection, NewActivePath);
+                PathIndex = 1; // The removing path is now at index 1.
+            } else if (!Connection->State.HandshakeConfirmed) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Active Local Address Removed during Handshake!");
+                QuicConnSilentlyAbort(Connection);
+                return QUIC_STATUS_ABORTED;
+            } else {
+                uint8_t NewActivePathIndex = Connection->PathsCount;
+                for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                    if (i != PathIndex && Connection->Paths[i].DestCid != NULL) {
+                        NewActivePathIndex = i;
+                        break;
+                    }
+                }
+                if (NewActivePathIndex == Connection->PathsCount) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "No Active Local Address Remaining!");
+                    QuicConnSilentlyAbort(Connection);
+                    return QUIC_STATUS_ABORTED;
+                }
+                QUIC_PATH* NewActivePath = &Connection->Paths[NewActivePathIndex];
+                QuicPathSetActive(Connection, NewActivePath);
+                PathIndex = NewActivePathIndex; // The removing path is now at the new active index.
+            }
+        }
         QuicPathRemove(Connection, PathIndex);
     }
 
