@@ -5291,16 +5291,18 @@ QuicConnRecvPostProcessing(
             //
             CxPlatRandom(sizeof((*Path)->Challenge), (*Path)->Challenge);
 
-            //
-            // We need to also send a challenge on the active path to make sure
-            // it is still good.
-            //
-            CXPLAT_DBG_ASSERT(Connection->Paths[0].IsActive);
-            if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
-                Connection->Paths[0].IsPeerValidated = FALSE;
-                Connection->Paths[0].SendChallenge = TRUE;
-                Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs64();
-                CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
+            if (!Connection->State.MultipathNegotiated) {
+                //
+                // We need to also send a challenge on the active path to make sure
+                // it is still good.
+                //
+                CXPLAT_DBG_ASSERT(Connection->Paths[0].IsActive);
+                if (Connection->Paths[0].IsPeerValidated) { // Not already doing peer validation.
+                    Connection->Paths[0].IsPeerValidated = FALSE;
+                    Connection->Paths[0].SendChallenge = TRUE;
+                    Connection->Paths[0].PathValidationStartTime = CxPlatTimeUs64();
+                    CxPlatRandom(sizeof(Connection->Paths[0].Challenge), Connection->Paths[0].Challenge);
+                }
             }
 
             QuicSendSetSendFlag(
