@@ -190,8 +190,8 @@ typedef struct CXPLAT_SEND_DATA {
 
 typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
     char Data[CMSG_SPACE(sizeof(struct in6_pktinfo)) + // IP_PKTINFO
-              2 * CMSG_SPACE(sizeof(int)) // TOS
-              + CMSG_SPACE(sizeof(int))]; // IP_TTL
+              3 * CMSG_SPACE(sizeof(int))]; // TOS + IP_TTL
+
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 #ifdef DEBUG
@@ -205,7 +205,7 @@ typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
 #else
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type)
 #endif
-    
+
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextFlushTxEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
@@ -339,9 +339,6 @@ Error:
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
-    //
-    // TTL should always be available / enabled on Linux.
-    //
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
 }
 
@@ -848,10 +845,6 @@ CxPlatSocketContextInitialize(
                 "setsockopt(IP_RECVTOS) failed");
             goto Exit;
         }
-
-        //
-        // TTL should always be available / enabled on Linux.
-        //
 
         //
         // On Linux, IP_HOPLIMIT does not exist. So we will use IP_RECVTTL, IPV6_RECVHOPLIMIT instead.
@@ -1895,9 +1888,6 @@ CxPlatSocketContextRecvComplete(
 
         CXPLAT_FRE_ASSERT(FoundLocalAddr);
         CXPLAT_FRE_ASSERT(FoundTOS);
-        //
-        // TTL should always be available/enabled on Linux.
-        //
         CXPLAT_FRE_ASSERT(FoundTTL);
 
         QuicTraceEvent(

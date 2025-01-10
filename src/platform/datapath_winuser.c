@@ -294,7 +294,7 @@ void
 SocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
-    
+
 CXPLAT_EVENT_COMPLETION CxPlatIoRecvEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRecvFailureEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoSendEventComplete;
@@ -524,12 +524,6 @@ Error:
     }
 }
 
-//
-// To determine the OS version, we are going to use RtlGetVersion API
-// since GetVersion call can be shimmed on Win8.1+.
-//
-typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
-
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -706,27 +700,12 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
+
     //
-    // TODO: This "TTL_FEATURE check" code works, and mirrors the approach for Kernel mode.
-    //       However, it is considered a "hack" and we should determine whether or not
-    //       the current release story fits this current workaround.
+    // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
     //
-    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
-    if (NtDllHandle) {
-        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
-        if (VersionFunc) {
-            RTL_OSVERSIONINFOW VersionInfo = {0};
-            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
-            if ((*VersionFunc)(&VersionInfo) == 0) {
-                //
-                // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
-                //
-                if (VersionInfo.dwBuildNumber != 20348) {
-                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-                }
-            }
-        }
-        FreeLibrary(NtDllHandle);
+    if (CxPlatform.dwBuildNumber != 20348) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
@@ -844,22 +823,11 @@ DataPathInitialize(
     // Check for port reservation support.
     //
 #ifndef QUIC_UWP_BUILD
-    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
-    if (NtDllHandle) {
-        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
-        if (VersionFunc) {
-            RTL_OSVERSIONINFOW VersionInfo = {0};
-            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
-            if ((*VersionFunc)(&VersionInfo) == 0) {
-                //
-                // Only RS5 and newer can use the port reservation feature safely.
-                //
-                if (VersionInfo.dwBuildNumber >= 17763) {
-                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
-                }
-            }
-        }
-        FreeLibrary(NtDllHandle);
+    //
+    // Only RS5 and newer can use the port reservation feature safely.
+    //
+    if (CxPlatform.dwBuildNumber >= 17763) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
     }
 #endif
 

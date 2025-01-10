@@ -376,7 +376,7 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_PARTITION Partitions[];
 
 } CXPLAT_DATAPATH;
-    
+
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
 
@@ -567,9 +567,6 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    //
-    // Intentionally not enabling Feature_TTL on MacOS for now.
-    //
     return Datapath->Features;
 }
 

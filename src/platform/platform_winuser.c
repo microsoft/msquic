@@ -30,6 +30,12 @@ TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
+//
+// To determine the OS version, we are going to use RtlGetVersion API
+// since GetVersion call can be shimmed on Win8.1+.
+//
+typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSystemLoad(
@@ -241,6 +247,22 @@ CxPlatInitialize(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+
+    BOOLEAN SuccessfullySetVersion = FALSE;
+    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
+    if (NtDllHandle) {
+        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
+        if (VersionFunc) {
+            RTL_OSVERSIONINFOW VersionInfo = {0};
+            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+            if ((*VersionFunc)(&VersionInfo) == 0) {
+                CxPlatform.dwBuildNumber = VersionInfo.dwBuildNumber;
+                SuccessfullySetVersion = TRUE;
+            }
+        }
+        FreeLibrary(NtDllHandle);
+    }
+    CXPLAT_DBG_ASSERT(SuccessfullySetVersion); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
 
     if (QUIC_FAILED(Status = CxPlatProcessorInfoInit())) {
         QuicTraceEvent(
