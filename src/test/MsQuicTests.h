@@ -671,6 +671,11 @@ QuicTestDatagramSend(
     _In_ int Family
     );
 
+void
+QuicTestDatagramDrop(
+    _In_ int Family
+    );
+
 //
 // Storage tests
 //
@@ -1360,6 +1365,10 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
@@ -1368,7 +1377,7 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
@@ -1378,7 +1387,7 @@ typedef struct {
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 127
+#define QUIC_MAX_IOCTL_FUNC_CODE 129

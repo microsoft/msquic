@@ -17,7 +17,20 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static"]
+        features: ["", "--features static", "--features schannel", "--features schannel,static", "--features overwrite"]
+        exclude:
+          - os: ubuntu-latest
+            features: "--features schannel"
+          - os: ubuntu-latest
+            features: "--features schannel,static"
+          - os: macos-latest
+            features: "--features schannel"
+          - os: macos-latest
+            features: "--features schannel,static"
+          - os: macos-latest-xlarge
+            features: "--features schannel"
+          - os: macos-latest-xlarge
+            features: "--features schannel,static"
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
@@ -47,6 +60,8 @@ jobs:
       run: cargo clippy --all-targets -- -D warnings
     - name: Cargo build
       run: cargo build --all ${{ matrix.features }}
+    - name: Check all generated files with git
+      run: git diff --exit-code
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)

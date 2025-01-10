@@ -341,10 +341,10 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             LastError,
-            "CxPlatSocketEnqueueSqe");
+            "CxPlatEventQEnqueueEx");
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = LastError = arg3
-// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+// arg4 = arg4 = "CxPlatEventQEnqueueEx" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

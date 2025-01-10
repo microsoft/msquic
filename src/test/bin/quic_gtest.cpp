@@ -2405,6 +2405,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
     }
 }
 
+TEST_P(WithFamilyArgs, DatagramDrop) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+    } else {
+        QuicTestDatagramDrop(GetParam().Family);
+    }
+}
+
 #ifdef _WIN32 // Storage tests only supported on Windows
 
 static BOOLEAN CanRunStorageTests = FALSE;

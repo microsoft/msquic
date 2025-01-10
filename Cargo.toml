@@ -34,7 +34,7 @@ include = [
     "/submodules/openssl/VMS",
     "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
-    "/src/*.rs",
+    "/src/**/*.rs",
     "/src/bin",
     "/src/core",
     "/src/inc",
@@ -46,11 +46,15 @@ include = [
 
 [features]
 default = []
+schannel = []
 static = []
 preview-api = []
+# Overwrite generated binding by reruning the bindgen
+overwrite = [ "dep:bindgen" ]
 
 [build-dependencies]
 cmake = "0.1"
+bindgen = { version = "0.71", optional = true }
 
 [dependencies]
 bitfield = "0.17.0"

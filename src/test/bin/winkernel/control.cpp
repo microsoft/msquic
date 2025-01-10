@@ -524,6 +524,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(BOOLEAN),
+    sizeof(INT32),
     sizeof(QUIC_RUN_PROBE_PATH_PARAMS),
     sizeof(QUIC_RUN_MIGRATION_PARAMS),
 };
@@ -956,6 +957,13 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_DROP:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestDatagramDrop(
                 Params->Family));
         break;
 
