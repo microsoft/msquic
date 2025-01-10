@@ -7107,37 +7107,25 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS: {
 
-        if (BufferLength != sizeof(QUIC_ADDR)) {
+        if (BufferLength != sizeof(QUIC_ADDR) || Buffer == NULL ||
+            !QuicAddrIsValid((QUIC_ADDR*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QUIC_ADDR* LocalAddress = (QUIC_ADDR*)Buffer;
-
-        if (!QuicAddrIsValid(LocalAddress)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Status = QuicConnAddLocalAddress(Connection, LocalAddress);
+        Status = QuicConnAddLocalAddress(Connection, (QUIC_ADDR*)Buffer);
         break;
     }
 
     case QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS: {
 
-        if (BufferLength != sizeof(QUIC_ADDR)) {
+        if (BufferLength != sizeof(QUIC_ADDR) || Buffer == NULL ||
+            !QuicAddrIsValid((QUIC_ADDR*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        QUIC_ADDR* LocalAddress = (QUIC_ADDR*)Buffer;
-
-        if (!QuicAddrIsValid(LocalAddress)) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        Status = QuicConnRemoveLocalAddress(Connection, LocalAddress);
+        Status = QuicConnRemoveLocalAddress(Connection, (QUIC_ADDR*)Buffer);
         break;
     }
 
