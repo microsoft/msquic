@@ -1485,8 +1485,7 @@ impl Configuration {
     pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), Error> {
         let status =
             unsafe { ((*APITABLE).configuration_load_credential)(self.handle, cred_config) };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 }
 
@@ -1522,8 +1521,7 @@ impl Connection {
         let status = unsafe {
             ((*APITABLE).connection_open)(registration.handle, handler, context, &self.handle)
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn start(
@@ -1542,8 +1540,7 @@ impl Connection {
                 server_port,
             )
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn close(&self) {
@@ -1605,8 +1602,7 @@ impl Connection {
         let status = unsafe {
             ((*APITABLE).connection_set_configuration)(self.handle, configuration.handle)
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn set_callback_handler(&self, handler: ConnectionEventHandler, context: *const c_void) {
@@ -1642,15 +1638,13 @@ impl Connection {
                 client_send_context,
             )
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), Error> {
         let status =
             unsafe { ((*APITABLE).resumption_ticket_validation_complete)(self.handle, result) };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn certificate_validation_complete(
@@ -1661,8 +1655,7 @@ impl Connection {
         let status = unsafe {
             ((*APITABLE).certificate_validation_complete)(self.handle, result, tls_alert)
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn get_local_addr(&self) -> Result<Addr, Error> {
@@ -1724,8 +1717,7 @@ impl Listener {
         let status = unsafe {
             ((*APITABLE).listener_open)(registration.handle, handler, context, &self.handle)
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Error> {
@@ -1739,8 +1731,7 @@ impl Listener {
                     .unwrap_or(ptr::null()),
             )
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn stop(&self) {
@@ -1804,20 +1795,17 @@ impl Stream {
         let status = unsafe {
             ((*APITABLE).stream_open)(connection.handle, flags, handler, context, &self.handle)
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).stream_start)(self.handle, flags) };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).stream_shutdown)(self.handle, flags, error_code) };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn close(&self) {
@@ -1842,8 +1830,7 @@ impl Stream {
                 client_send_context, //(self as *const Stream) as *const c_void,
             )
         };
-        Error::from_u32(status).ok()?;
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
     pub fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
