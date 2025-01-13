@@ -155,7 +155,7 @@ impl core::fmt::Debug for Error {
             Ok(c) => Some(c),
             Err(_) => None,
         };
-        debug.field("code", &self.0);
+        debug.field("code", &format_args!("0x{:x}", self.0));
         match str_code {
             Some(c) => debug.field("message", &c),
             None => debug.field("message", &"unknown quic error"),
@@ -172,8 +172,8 @@ impl core::fmt::Display for Error {
             Err(_) => None,
         };
         match str_code {
-            Some(c) => core::write!(fmt, "{} ({})", c, self.0),
-            None => core::write!(fmt, "{}", self.0),
+            Some(c) => core::write!(fmt, "{} (0x{:x})", c, self.0),
+            None => core::write!(fmt, "0x{:x}", self.0),
         }
     }
 }
@@ -189,11 +189,11 @@ mod tests {
         let err = Error::new(ErrorCode::QUIC_ERROR_ABORTED);
         // message is platform dependent.
         #[cfg(target_os = "windows")]
-        assert_eq!(format!("{err}"), "QUIC_ERROR_ABORTED (-2147467260)");
+        assert_eq!(format!("{err}"), "QUIC_ERROR_ABORTED (0x80004004)");
         #[cfg(target_os = "windows")]
         assert_eq!(
             format!("{err:?}"),
-            "Error { code: -2147467260, message: QUIC_ERROR_ABORTED }"
+            "Error { code: 0x80004004, message: QUIC_ERROR_ABORTED }"
         );
         let ec = err.try_as_error_code().unwrap();
         assert_eq!(format!("{ec}"), "QUIC_ERROR_ABORTED");
