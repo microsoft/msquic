@@ -6315,6 +6315,8 @@ QuicConnOpenNewPath(
     UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = 0;
+    // Open a new binding with the same partition as the connection.
+    UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
 #endif
