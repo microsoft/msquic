@@ -23,7 +23,9 @@ use std::result::Result;
 use std::sync::Once;
 #[macro_use]
 extern crate bitfield;
+mod error;
 pub mod ffi;
+pub use error::{Error, ErrorCode};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -114,153 +116,6 @@ impl From<SocketAddrV6> for Addr {
         let addr = addr.as_ptr().cast::<sockaddr_in6>();
         storage.ipv6 = unsafe { *addr };
         storage
-    }
-}
-
-#[cfg(target_os = "windows")]
-mod status {
-    pub const QUIC_STATUS_SUCCESS: u32 = 0x0;
-    pub const QUIC_STATUS_PENDING: u32 = 0x703e5;
-    pub const QUIC_STATUS_CONTINUE: u32 = 0x704de;
-    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 0x8007000e;
-    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 0x80070057;
-    pub const QUIC_STATUS_INVALID_STATE: u32 = 0x8007139f;
-    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 0x80004002;
-    pub const QUIC_STATUS_NOT_FOUND: u32 = 0x80070490;
-    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 0x8007007a;
-    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 0x80410000;
-    pub const QUIC_STATUS_ABORTED: u32 = 0x80004004;
-    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 0x80072740;
-    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 0x80072741;
-    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 0x80410006;
-    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 0x80410005;
-    pub const QUIC_STATUS_UNREACHABLE: u32 = 0x800704d0;
-    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 0x80410003;
-    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 0x800704c9;
-    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 0x80410004;
-    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 0x80410001;
-    pub const QUIC_STATUS_TLS_ERROR: u32 = 0x80072b18;
-    pub const QUIC_STATUS_USER_CANCELED: u32 = 0x80410002;
-    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 0x80410007;
-    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 0x80410008;
-    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 0x80410009;
-    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0x80410100;
-    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0x80410100 | 42;
-    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0x80410100 | 43;
-    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0x80410100 | 44;
-    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0x80410100 | 45;
-    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0x80410100 | 46;
-    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0x80410100 | 116;
-    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0x800B0101;
-    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0x800B0109;
-    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0x8009030E;
-}
-
-#[cfg(target_os = "linux")]
-mod status {
-    pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
-    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
-    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
-    pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
-    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 95;
-    pub const QUIC_STATUS_NOT_FOUND: u32 = 2;
-    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 75;
-    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 103;
-    pub const QUIC_STATUS_ABORTED: u32 = 125;
-    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 98;
-    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 97;
-    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 110;
-    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 62;
-    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 5;
-    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 111;
-    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 71;
-    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 93;
-    pub const QUIC_STATUS_UNREACHABLE: u32 = 113;
-    pub const QUIC_STATUS_TLS_ERROR: u32 = 126;
-    pub const QUIC_STATUS_USER_CANCELED: u32 = 130;
-    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 92;
-    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 86;
-    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 91;
-    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 99;
-    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0xBEBC300;
-    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0xBEBC32A;
-    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0xBEBC32B;
-    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0xBEBC32C;
-    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0xBEBC32D;
-    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0xBEBC32E;
-    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0xBEBC374;
-    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0xBEBC401;
-    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0xBEBC402;
-    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;
-}
-
-#[cfg(target_os = "macos")]
-mod status {
-    pub const QUIC_STATUS_SUCCESS: u32 = 0;
-    pub const QUIC_STATUS_PENDING: u32 = 0xFFFFFFFE; // -2
-    pub const QUIC_STATUS_CONTINUE: u32 = 0xFFFFFFFF; // -1
-    pub const QUIC_STATUS_OUT_OF_MEMORY: u32 = 12;
-    pub const QUIC_STATUS_INVALID_PARAMETER: u32 = 22;
-    pub const QUIC_STATUS_INVALID_STATE: u32 = 1;
-    pub const QUIC_STATUS_NOT_SUPPORTED: u32 = 102;
-    pub const QUIC_STATUS_NOT_FOUND: u32 = 2;
-    pub const QUIC_STATUS_BUFFER_TOO_SMALL: u32 = 84;
-    pub const QUIC_STATUS_HANDSHAKE_FAILURE: u32 = 53;
-    pub const QUIC_STATUS_ABORTED: u32 = 89;
-    pub const QUIC_STATUS_ADDRESS_IN_USE: u32 = 48;
-    pub const QUIC_STATUS_INVALID_ADDRESS: u32 = 47;
-    pub const QUIC_STATUS_CONNECTION_TIMEOUT: u32 = 60;
-    pub const QUIC_STATUS_CONNECTION_IDLE: u32 = 101;
-    pub const QUIC_STATUS_INTERNAL_ERROR: u32 = 5;
-    pub const QUIC_STATUS_CONNECTION_REFUSED: u32 = 61;
-    pub const QUIC_STATUS_PROTOCOL_ERROR: u32 = 100;
-    pub const QUIC_STATUS_VER_NEG_ERROR: u32 = 43;
-    pub const QUIC_STATUS_UNREACHABLE: u32 = 65;
-    pub const QUIC_STATUS_TLS_ERROR: u32 = 126;
-    pub const QUIC_STATUS_USER_CANCELED: u32 = 105;
-    pub const QUIC_STATUS_ALPN_NEG_FAILURE: u32 = 42;
-    pub const QUIC_STATUS_STREAM_LIMIT_REACHED: u32 = 86;
-    pub const QUIC_STATUS_ALPN_IN_USE: u32 = 41;
-    pub const QUIC_STATUS_ADDRESS_NOT_AVAILABLE: u32 = 47;
-    pub const QUIC_STATUS_CLOSE_NOTIFY: u32 = 0xBEBC300;
-    pub const QUIC_STATUS_BAD_CERTIFICATE: u32 = 0xBEBC32A;
-    pub const QUIC_STATUS_UNSUPPORTED_CERTIFICATE: u32 = 0xBEBC32B;
-    pub const QUIC_STATUS_REVOKED_CERTIFICATE: u32 = 0xBEBC32C;
-    pub const QUIC_STATUS_EXPIRED_CERTIFICATE: u32 = 0xBEBC32D;
-    pub const QUIC_STATUS_UNKNOWN_CERTIFICATE: u32 = 0xBEBC32E;
-    pub const QUIC_STATUS_REQUIRED_CERTIFICATE: u32 = 0xBEBC374;
-    pub const QUIC_STATUS_CERT_EXPIRED: u32 = 0xBEBC401;
-    pub const QUIC_STATUS_CERT_UNTRUSTED_ROOT: u32 = 0xBEBC402;
-    pub const QUIC_STATUS_CERT_NO_CERT: u32 = 0xBEBC403;
-}
-
-pub use status::*;
-
-/// Helper for processing MsQuic return statuses.
-pub struct Status {}
-
-impl Status {
-    /// Determines if a MsQuic status is considered a success, which includes
-    /// both "no error" and "pending" status codes.
-    #[cfg(target_os = "windows")]
-    pub fn succeeded(status: u32) -> bool {
-        (status as i32) >= 0
-    }
-    #[cfg(not(target_os = "windows"))]
-    pub fn succeeded(status: u32) -> bool {
-        (status as i32) <= 0
-    }
-
-    /// Determines if a MsQuic status is considered a failure.
-    #[cfg(target_os = "windows")]
-    pub fn failed(status: u32) -> bool {
-        (status as i32) < 0
-    }
-    #[cfg(not(target_os = "windows"))]
-    pub fn failed(status: u32) -> bool {
-        (status as i32) > 0
     }
 }
 
@@ -1503,8 +1358,8 @@ impl Api {
             START_MSQUIC.call_once(|| {
                 let table: *const ApiTable = ptr::null();
                 let status = MsQuicOpenVersion(2, &table);
-                if Status::failed(status) {
-                    panic!("Failed to open MsQuic: {}", status);
+                if let Err(err) = Error::from_u32(status).ok() {
+                    panic!("Failed to open MsQuic: {}", err);
                 }
                 APITABLE = table;
             });
@@ -1567,23 +1422,21 @@ fn close_msquic() {
 }
 
 impl Registration {
-    pub fn new(config: *const RegistrationConfig) -> Result<Registration, u32> {
+    pub fn new(config: *const RegistrationConfig) -> Result<Registration, Error> {
         // We initialize APITABLE at only once.
         unsafe {
             START_MSQUIC.call_once(|| {
                 let table: *const ApiTable = ptr::null();
                 let status = MsQuicOpenVersion(2, &table);
-                if Status::failed(status) {
-                    panic!("Failed to open MsQuic: {}", status);
+                if let Err(err) = Error::from_u32(status).ok() {
+                    panic!("Failed to open MsQuic: {}", err);
                 }
                 APITABLE = table;
             });
         }
         let new_registration: Handle = ptr::null();
         let status = unsafe { ((*APITABLE).registration_open)(config, &new_registration) };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(Registration {
             handle: new_registration,
         })
@@ -1605,7 +1458,7 @@ impl Configuration {
         registration: &Registration,
         alpn: &[Buffer],
         settings: *const Settings,
-    ) -> Result<Configuration, u32> {
+    ) -> Result<Configuration, Error> {
         let context: *const c_void = ptr::null();
         let new_configuration: Handle = ptr::null();
         let mut settings_size: u32 = 0;
@@ -1623,20 +1476,16 @@ impl Configuration {
                 &new_configuration,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(Configuration {
             handle: new_configuration,
         })
     }
 
-    pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), u32> {
+    pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), Error> {
         let status =
             unsafe { ((*APITABLE).configuration_load_credential)(self.handle, cred_config) };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 }
@@ -1669,13 +1518,11 @@ impl Connection {
         registration: &Registration,
         handler: ConnectionEventHandler,
         context: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).connection_open)(registration.handle, handler, context, &self.handle)
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -1684,7 +1531,7 @@ impl Connection {
         configuration: &Configuration,
         server_name: &str,
         server_port: u16,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
             ((*APITABLE).connection_start)(
@@ -1695,9 +1542,7 @@ impl Connection {
                 server_port,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -1713,8 +1558,9 @@ impl Connection {
         }
     }
 
-    pub fn set_param(&self, param: u32, buffer_length: u32, buffer: *const c_void) -> u32 {
-        unsafe { ((*APITABLE).set_param)(self.handle, param, buffer_length, buffer) }
+    pub fn set_param(&self, param: u32, buffer_length: u32, buffer: *const c_void) -> Error {
+        let status = unsafe { ((*APITABLE).set_param)(self.handle, param, buffer_length, buffer) };
+        Error::from_u32(status)
     }
 
     pub fn stream_close(&self, stream: Handle) {
@@ -1755,13 +1601,11 @@ impl Connection {
         unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) }
     }
 
-    pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), u32> {
+    pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).connection_set_configuration)(self.handle, configuration.handle)
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -1788,7 +1632,7 @@ impl Connection {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).datagram_send)(
                 self.handle,
@@ -1798,18 +1642,14 @@ impl Connection {
                 client_send_context,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
-    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), u32> {
+    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), Error> {
         let status =
             unsafe { ((*APITABLE).resumption_ticket_validation_complete)(self.handle, result) };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -1817,17 +1657,15 @@ impl Connection {
         &self,
         result: BOOLEAN,
         tls_alert: TlsAlertCode,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).certificate_validation_complete)(self.handle, result, tls_alert)
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
-    pub fn get_local_addr(&self) -> Result<Addr, u32> {
+    pub fn get_local_addr(&self) -> Result<Addr, Error> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         let status = unsafe {
@@ -1838,13 +1676,11 @@ impl Connection {
                 addr_buffer.as_mut_ptr() as *const c_void,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
-    pub fn get_remote_addr(&self) -> Result<Addr, u32> {
+    pub fn get_remote_addr(&self) -> Result<Addr, Error> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         let status = unsafe {
@@ -1855,9 +1691,7 @@ impl Connection {
                 addr_buffer.as_mut_ptr() as *const c_void,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 }
@@ -1886,17 +1720,15 @@ impl Listener {
         registration: &Registration,
         handler: ListenerEventHandler,
         context: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).listener_open)(registration.handle, handler, context, &self.handle)
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), u32> {
+    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).listener_start)(
                 self.handle,
@@ -1907,9 +1739,7 @@ impl Listener {
                     .unwrap_or(ptr::null()),
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -1919,7 +1749,7 @@ impl Listener {
         }
     }
 
-    pub fn get_local_addr(&self) -> Result<Addr, u32> {
+    pub fn get_local_addr(&self) -> Result<Addr, Error> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         let status = unsafe {
@@ -1930,9 +1760,7 @@ impl Listener {
                 addr_buffer.as_mut_ptr() as *const c_void,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
@@ -1972,29 +1800,23 @@ impl Stream {
         flags: StreamOpenFlags,
         handler: StreamEventHandler,
         context: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).stream_open)(connection.handle, flags, handler, context, &self.handle)
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
-    pub fn start(&self, flags: StreamStartFlags) -> Result<(), u32> {
+    pub fn start(&self, flags: StreamStartFlags) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).stream_start)(self.handle, flags) };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
-    pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), u32> {
+    pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).stream_shutdown)(self.handle, flags, error_code) };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -2010,7 +1832,7 @@ impl Stream {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe {
             ((*APITABLE).stream_send)(
                 self.handle,
@@ -2020,9 +1842,7 @@ impl Stream {
                 client_send_context, //(self as *const Stream) as *const c_void,
             )
         };
-        if Status::failed(status) {
-            return Err(status);
-        }
+        Error::from_u32(status).ok()?;
         Ok(())
     }
 
@@ -2037,20 +1857,14 @@ impl Stream {
         param: u32,
         buffer_length: *mut u32,
         buffer: *const c_void,
-    ) -> Result<(), u32> {
+    ) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).get_param)(self.handle, param, buffer_length, buffer) };
-        if Status::failed(status) {
-            return Err(status);
-        }
-        Ok(())
+        Error::from_u32(status).ok()
     }
 
-    pub fn receive_complete(&self, buffer_length: u64) -> Result<(), u32> {
+    pub fn receive_complete(&self, buffer_length: u64) -> Result<(), Error> {
         let status = unsafe { ((*APITABLE).stream_receive_complete)(self.handle, buffer_length) };
-        if Status::failed(status) {
-            return Err(status);
-        }
-        Ok(())
+        Error::from_u32(status).ok()
     }
 }
 
@@ -2134,7 +1948,7 @@ fn test_module() {
     let res = Registration::new(ptr::null());
     assert!(
         res.is_ok(),
-        "Failed to open registration: 0x{:x}",
+        "Failed to open registration: {}",
         res.err().unwrap()
     );
     let registration = res.unwrap();
@@ -2155,7 +1969,7 @@ fn test_module() {
     );
     assert!(
         res.is_ok(),
-        "Failed to open configuration: 0x{:x}",
+        "Failed to open configuration: {}",
         res.err().unwrap()
     );
     let configuration = res.unwrap();
@@ -2164,7 +1978,7 @@ fn test_module() {
     let res = configuration.load_credential(&cred_config);
     assert!(
         res.is_ok(),
-        "Failed to load credential: 0x{:x}",
+        "Failed to load credential: {}",
         res.err().unwrap()
     );
 
@@ -2176,14 +1990,14 @@ fn test_module() {
     );
     assert!(
         res.is_ok(),
-        "Failed to open connection: 0x{:x}",
+        "Failed to open connection: {}",
         res.err().unwrap()
     );
 
     let res = connection.start(&configuration, "www.cloudflare.com", 443);
     assert!(
         res.is_ok(),
-        "Failed to start connection: 0x{:x}",
+        "Failed to start connection: {}",
         res.err().unwrap()
     );
 
