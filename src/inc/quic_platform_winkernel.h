@@ -519,10 +519,10 @@ CxPlatEventQCleanup(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
+
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     )
 {
     CxPlatLockAcquire(&queue->Lock);
@@ -532,7 +532,6 @@ CxPlatEventQEnqueue(
         return TRUE;
     }
 
-    sqe->UserData = user_data;
     BOOLEAN SignalEvent = IsListEmpty(&queue->Events);
     InsertTailList(&queue->Events, &sqe->Link);
 

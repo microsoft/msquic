@@ -62,7 +62,7 @@ CxPlatGetSocket(
     while (Entry != NULL) {
         CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
         if (CxPlatSocketCompare(Temp, LocalAddress, RemoteAddress)) {
-            if (CxPlatRundownAcquire(&Temp->Rundown)) {
+            if (CxPlatRundownAcquire(&Temp->RawRundown)) {
                 Socket = Temp;
             }
             break;

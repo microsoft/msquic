@@ -246,6 +246,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathResolveHostNameFailed
+// [%p] Couldn't resolve hostname '%s' to an IP address
+// QuicTraceLogError(
+        DatapathResolveHostNameFailed,
+        "[%p] Couldn't resolve hostname '%s' to an IP address",
+        Datapath,
+        HostName);
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = HostName = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathResolveHostNameFailed,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -292,6 +315,25 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "No local unicast addresses found");
+// arg2 = arg2 = "No local unicast addresses found" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathErrorStatus
 // [data][%p] ERROR, %u, %s.
 // QuicTraceEvent(
@@ -299,10 +341,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             LastError,
-            "CxPlatSocketEnqueueSqe");
+            "CxPlatEventQEnqueueEx");
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = LastError = arg3
-// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+// arg4 = arg4 = "CxPlatEventQEnqueueEx" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathErrorStatus,
     TP_ARGS(

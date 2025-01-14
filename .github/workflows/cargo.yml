@@ -17,11 +17,25 @@ jobs:
     strategy:
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
+        features: ["", "--features static", "--features schannel", "--features schannel,static", "--features overwrite"]
+        exclude:
+          - os: ubuntu-latest
+            features: "--features schannel"
+          - os: ubuntu-latest
+            features: "--features schannel,static"
+          - os: macos-latest
+            features: "--features schannel"
+          - os: macos-latest
+            features: "--features schannel,static"
+          - os: macos-latest-xlarge
+            features: "--features schannel"
+          - os: macos-latest-xlarge
+            features: "--features schannel,static"
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@91182cccc01eb5e619899d80e4e971d6181294a7
+      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -40,9 +54,15 @@ jobs:
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+    - name: Cargo fmt
+      run: cargo fmt --all -- --check
+    - name: Cargo clippy
+      run: cargo clippy --all-targets -- -D warnings
     - name: Cargo build
-      run: cargo build --all
+      run: cargo build --all ${{ matrix.features }}
+    - name: Check all generated files with git
+      run: git diff --exit-code
     - name: Cargo test
-      run: cargo test --all
+      run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty

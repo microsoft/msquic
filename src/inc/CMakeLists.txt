@@ -17,6 +17,7 @@ target_compile_features(inc INTERFACE cxx_std_17)
 target_compile_features(inc INTERFACE c_std_11)
 
 add_library(base_link INTERFACE)
+add_library(msquic::base_link ALIAS base_link)
 
 if (HAS_GUARDCF)
     target_link_options(base_link INTERFACE /guard:cf /DYNAMICBASE)

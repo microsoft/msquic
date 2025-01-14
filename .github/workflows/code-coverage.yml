@@ -37,6 +37,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
+      repo: ${{ github.repository }}
 
   bvt-winlatest:
     name: BVT WinPrerelease
@@ -233,7 +234,7 @@ jobs:
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@b9fd7d16f6d7d1b5d2bec1a2887e65ceed900238
+      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
       with:
         fail_ci_if_error: true
         files: msquiccoverage.xml

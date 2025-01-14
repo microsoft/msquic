@@ -67,9 +67,6 @@ elseif (UNIX)
 endif()
 message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
-set(FILENAME_DEP_REPLACE "get_filename_component(SELF_DIR \"$\{CMAKE_CURRENT_LIST_FILE\}\" PATH)")
-set(SELF_DIR "$\{SELF_DIR\}")
-
 enable_testing()
 
 # Set the default TLS method for each platform.
@@ -200,6 +197,8 @@ set(CMAKE_LIBRARY_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
+
+include(GNUInstallDirs)
 
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
