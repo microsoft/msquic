@@ -474,21 +474,20 @@ _CxPlatEventWaitWithTimeout(
 // Event Queue Interfaces
 //
 
-typedef struct CXPLAT_EVENTQ {
-    CXPLAT_LOCK Lock;
-    LIST_ENTRY Events;
-    CXPLAT_EVENT EventsAvailable;
-} CXPLAT_EVENTQ;
+typedef HANDLE CXPLAT_EVENTQ;
+typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
 
-typedef struct CXPLAT_CQE {
-    void* UserData;
-} CXPLAT_CQE;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
 
-#define CXPLAT_SQE CXPLAT_SQE
-#define CXPLAT_SQE_DEFAULT {0}
 typedef struct CXPLAT_SQE {
-    LIST_ENTRY Link;
-    void* UserData;
+    CXPLAT_CQE Cqe;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -498,10 +497,13 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    CxPlatLockInitialize(&queue->Lock);
-    InitializeListHead(&queue->Events);
-    CxPlatEventInitialize(&queue->EventsAvailable, TRUE, FALSE);
-    return TRUE;
+    NTSTATUS status = NtCreateIoCompletion(
+                 queue,
+                 IO_COMPLETION_ALL_ACCESS,
+                 NULL,
+                 0
+                 );
+    return NT_SUCCESS(status);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -511,37 +513,19 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    CxPlatEventUninitialize(queue->EventsAvailable);
-    CXPLAT_DBG_ASSERT(IsListEmpty(&queue->Events));
-    CxPlatLockUninitialize(&queue->Lock);
+    NtClose(*queue);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 BOOLEAN
-
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
     _In_ CXPLAT_SQE* sqe
     )
 {
-    CxPlatLockAcquire(&queue->Lock);
-
-    if (sqe->Link.Flink != NULL) { // Already in a queue
-        CxPlatLockRelease(&queue->Lock);
-        return TRUE;
-    }
-
-    BOOLEAN SignalEvent = IsListEmpty(&queue->Events);
-    InsertTailList(&queue->Events, &sqe->Link);
-
-    CxPlatLockRelease(&queue->Lock);
-
-    if (SignalEvent) {
-        CxPlatEventSet(queue->EventsAvailable);
-    }
-
-    return TRUE;
+    NTSTATUS status = NtSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0);
+    return NT_SUCCESS(status);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -554,32 +538,30 @@ CxPlatEventQDequeue(
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    CxPlatLockAcquire(&queue->Lock);
-
-    if (IsListEmpty(&queue->Events)) {
-        CxPlatEventClear(queue->EventsAvailable);
-        CxPlatLockRelease(&queue->Lock);
-        if (wait_time == 0) {
-            return 0;
-        }
-        if (wait_time == UINT32_MAX) {
-            CxPlatEventWaitForever(queue->EventsAvailable);
-        } else {
-            CxPlatEventWaitWithTimeout(queue->EventsAvailable, wait_time);
-        }
-        CxPlatLockAcquire(&queue->Lock);
-    }
-
     uint32_t EventsDequeued = 0;
-    while (EventsDequeued < count && !IsListEmpty(&queue->Events)) {
-        CXPLAT_SQE* Sqe =
-            CXPLAT_CONTAINING_RECORD(
-                RemoveHeadList(&queue->Events), CXPLAT_SQE, Link);
-        events[EventsDequeued++].UserData = Sqe->UserData;
-        Sqe->Link.Flink = NULL; // Indicates it's not in a queue
-    }
+    LARGE_INTEGER timeout;
+    timeout.QuadPart = -10000 * wait_time;
 
-    CxPlatLockRelease(&queue->Lock);
+    while (EventsDequeued < count) {
+        PVOID keyContext;
+        PVOID apcContext;
+        IO_STATUS_BLOCK ioStatusBlock;
+
+        NTSTATUS status = NtRemoveIoCompletion(
+            *queue,
+            &keyContext,
+            &apcContext,
+            &ioStatusBlock,
+            wait_time == UINT32_MAX ? NULL : &timeout);
+        if (!NT_SUCCESS(status)) {
+            break;
+        }
+
+        events[EventsDequeued].KeyContext = keyContext;
+        events[EventsDequeued].ApcContext = apcContext;
+        events[EventsDequeued].IoStatusBlock = ioStatusBlock;
+        EventsDequeued++;
+    }
 
     return EventsDequeued;
 }
@@ -597,12 +579,46 @@ CxPlatEventQReturn(
 }
 
 inline
-void*
-CxPlatCqeUserData(
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Completion = completion;
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    sqe->Completion = completion;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+}
+
+inline
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return cqe->UserData;
+    return CONTAINING_RECORD(cqe->ApcContext, CXPLAT_SQE, Cqe);
 }
 
 //
