@@ -452,7 +452,6 @@ typedef KEVENT CXPLAT_EVENT;
 #define CxPlatEventUninitialize(Event) UNREFERENCED_PARAMETER(Event)
 #define CxPlatEventSet(Event) KeSetEvent(&(Event), IO_NO_INCREMENT, FALSE)
 #define CxPlatEventReset(Event) KeResetEvent(&(Event))
-#define CxPlatEventClear(Event) KeClearEvent(&(Event))
 #define CxPlatEventWaitForever(Event) \
     KeWaitForSingleObject(&(Event), Executive, KernelMode, FALSE, NULL)
 inline
@@ -486,7 +485,6 @@ void
 typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
 
 typedef struct CXPLAT_SQE {
-    CXPLAT_CQE Cqe;
     CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
 
@@ -531,32 +529,23 @@ CxPlatEventQDequeue(
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    uint32_t EventsDequeued = 0;
     LARGE_INTEGER timeout;
-    timeout.QuadPart = -10000 * wait_time;
+    timeout.QuadPart = -10000LL * wait_time;
 
-    while (EventsDequeued < count) {
-        PVOID keyContext;
-        PVOID apcContext;
-        IO_STATUS_BLOCK ioStatusBlock;
+    ULONG entriesRemoved = 0;
+    NTSTATUS status = NtRemoveIoCompletionEx(
+        *queue,
+        events,
+        count,
+        &entriesRemoved,
+        (wait_time == UINT32_MAX) ? NULL : &timeout,
+        FALSE
+    );
 
-        NTSTATUS status = NtRemoveIoCompletion(
-            *queue,
-            &keyContext,
-            &apcContext,
-            &ioStatusBlock,
-            wait_time == UINT32_MAX ? NULL : &timeout);
-        if (!NT_SUCCESS(status)) {
-            break;
-        }
-
-        events[EventsDequeued].KeyContext = keyContext;
-        events[EventsDequeued].ApcContext = apcContext;
-        events[EventsDequeued].IoStatusBlock = ioStatusBlock;
-        EventsDequeued++;
+    if (!NT_SUCCESS(status)) {
+        return 0;
     }
-
-    return EventsDequeued;
+    return entriesRemoved;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
