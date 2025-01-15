@@ -497,13 +497,7 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    NTSTATUS status = NtCreateIoCompletion(
-                 queue,
-                 IO_COMPLETION_ALL_ACCESS,
-                 NULL,
-                 0
-                 );
-    return NT_SUCCESS(status);
+    return NT_SUCCESS(NtCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, NULL, 0));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
