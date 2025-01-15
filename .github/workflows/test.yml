@@ -18,8 +18,8 @@ on:
 
 jobs:
     runs-on:
-      - self-hosted
-      - 1ES.Pool=1es-msquic-pool
+    - self-hosted
+    - 1ES.Pool=1es-msquic-pool
     steps:
     - name: Print OS information
       run: Get-ComputerInfo | Select-Object -Property WindowsBuildLabEx
@@ -27,4 +27,3 @@ jobs:
     - name: Print Powershell Version
       run: $PSVersionTable
       shell: pwsh
-      
