@@ -17,6 +17,8 @@ on:
     - release/*
 
 jobs:
+  test:
+    name: Test
     runs-on:
     - self-hosted
     - 1ES.Pool=1es-msquic-pool
