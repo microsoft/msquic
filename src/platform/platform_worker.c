@@ -121,6 +121,7 @@ WakeCompletion(
     UNREFERENCED_PARAMETER(Cqe);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
