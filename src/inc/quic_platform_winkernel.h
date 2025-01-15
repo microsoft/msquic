@@ -518,8 +518,7 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    NTSTATUS status = NtSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0);
-    return NT_SUCCESS(status);
+    return NT_SUCCESS(NtSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
