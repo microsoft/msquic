@@ -611,7 +611,7 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return CONTAINING_RECORD(cqe->ApcContext, CXPLAT_SQE, Cqe);
+    return (CXPLAT_SQE)cqe->ApcContext;
 }
 
 //
