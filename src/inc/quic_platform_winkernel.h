@@ -470,6 +470,75 @@ _CxPlatEventWaitWithTimeout(
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
 
 //
+// TODO: Publish and document the following APIs
+//
+
+// ACCESS_MASK
+#define IO_COMPLETION_QUERY_STATE   0x0001
+#define IO_COMPLETION_MODIFY_STATE  0x0002  // winnt
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) // winnt
+
+typedef struct _FILE_IO_COMPLETION_INFORMATION {
+    PVOID               KeyContext;
+    PVOID               ApcContext;
+    IO_STATUS_BLOCK     IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+
+inline
+NTSTATUS
+NtCreateIoCompletion (
+    _Out_ PHANDLE IoCompletionHandle,
+    _In_ ACCESS_MASK DesiredAccess,
+    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
+    _In_opt_ ULONG Count
+    )
+{
+    UNREFERENCED_PARAMETER(IoCompletionHandle);
+    UNREFERENCED_PARAMETER(DesiredAccess);
+    UNREFERENCED_PARAMETER(ObjectAttributes);
+    UNREFERENCED_PARAMETER(Count);
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+inline
+NTSTATUS
+NtSetIoCompletion (
+    _In_ HANDLE IoCompletionHandle,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation
+    )
+{
+    UNREFERENCED_PARAMETER(IoCompletionHandle);
+    UNREFERENCED_PARAMETER(KeyContext);
+    UNREFERENCED_PARAMETER(ApcContext);
+    UNREFERENCED_PARAMETER(IoStatus);
+    UNREFERENCED_PARAMETER(IoStatusInformation);
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+inline
+NTSTATUS
+NtRemoveIoCompletionEx (
+    _In_ HANDLE IoCompletionHandle,
+    _Out_writes_to_(Count, *NumEntriesRemoved) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _In_ ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_opt_ PLARGE_INTEGER Timeout,
+    _In_ BOOLEAN Alertable
+    )
+{
+    UNREFERENCED_PARAMETER(IoCompletionHandle);
+    UNREFERENCED_PARAMETER(IoCompletionInformation);
+    UNREFERENCED_PARAMETER(Count);
+    UNREFERENCED_PARAMETER(NumEntriesRemoved);
+    UNREFERENCED_PARAMETER(Timeout);
+    UNREFERENCED_PARAMETER(Alertable);
+    return STATUS_NOT_IMPLEMENTED;
+}
+
+//
 // Event Queue Interfaces
 //
 
@@ -600,7 +669,7 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (CXPLAT_SQE)cqe->ApcContext;
+    return (CXPLAT_SQE*)cqe->ApcContext;
 }
 
 //
