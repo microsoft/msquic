@@ -484,34 +484,38 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION {
     IO_STATUS_BLOCK     IoStatusBlock;
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
-__kernel_entry NTSYSCALLAPI
+// copied from zwapi.h
+NTSYSAPI
 NTSTATUS
-NtCreateIoCompletion (
-    _Out_ PHANDLE IoCompletionHandle,
-    _In_ ACCESS_MASK DesiredAccess,
-    _In_opt_ POBJECT_ATTRIBUTES ObjectAttributes,
-    _In_opt_ ULONG Count
+NTAPI
+ZwCreateIoCompletion (
+    OUT         PHANDLE IoCompletionHandle,
+    IN          ACCESS_MASK DesiredAccess,
+    IN OPTIONAL POBJECT_ATTRIBUTES ObjectAttributes,
+    IN OPTIONAL ULONG Count
     );
 
-__kernel_entry NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
-NtSetIoCompletion (
-    _In_ HANDLE IoCompletionHandle,
-    _In_opt_ PVOID KeyContext,
-    _In_opt_ PVOID ApcContext,
-    _In_ NTSTATUS IoStatus,
-    _In_ ULONG_PTR IoStatusInformation
+NTAPI
+ZwSetIoCompletion (
+    IN HANDLE IoCompletionHandle,
+    IN PVOID KeyContext,
+    IN PVOID ApcContext,
+    IN NTSTATUS IoStatus,
+    IN ULONG_PTR IoStatusInformation
     );
 
-__kernel_entry NTSYSCALLAPI
+NTSYSAPI
 NTSTATUS
-NtRemoveIoCompletionEx (
-    _In_ HANDLE IoCompletionHandle,
-    _Out_writes_to_(Count, *NumEntriesRemoved) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
-    _In_ ULONG Count,
-    _Out_ PULONG NumEntriesRemoved,
-    _In_opt_ PLARGE_INTEGER Timeout,
-    _In_ BOOLEAN Alertable
+NTAPI
+ZwRemoveIoCompletionEx (
+    IN HANDLE IoCompletionHandle,
+    OUT PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    IN ULONG Count,
+    OUT PULONG NumEntriesRemoved,
+    IN PLARGE_INTEGER Timeout OPTIONAL,
+    IN BOOLEAN Alertable
     );
 
 //
@@ -540,7 +544,7 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return NT_SUCCESS(NtCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, NULL, 0));
+    return NT_SUCCESS(ZwCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, NULL, 0));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -561,7 +565,7 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    return NT_SUCCESS(NtSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0));
+    return NT_SUCCESS(ZwSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -578,7 +582,7 @@ CxPlatEventQDequeue(
     timeout.QuadPart = -10000LL * wait_time;
 
     ULONG entriesRemoved = 0;
-    NTSTATUS status = NtRemoveIoCompletionEx(
+    NTSTATUS status = ZwRemoveIoCompletionEx(
         *queue,
         events,
         count,
