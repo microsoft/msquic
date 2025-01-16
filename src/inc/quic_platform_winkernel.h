@@ -578,23 +578,30 @@ CxPlatEventQDequeue(
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    LARGE_INTEGER timeout;
-    timeout.QuadPart = -10000LL * wait_time;
-
-    ULONG entriesRemoved = 0;
-    NTSTATUS status = ZwRemoveIoCompletionEx(
-        *queue,
-        events,
-        count,
-        &entriesRemoved,
-        (wait_time == UINT32_MAX) ? NULL : &timeout,
-        FALSE
-    );
-
-    if (!NT_SUCCESS(status)) {
-        return 0;
+    NTSTATUS status;
+    ULONG entriesRemoved;
+    if (wait_time == UINT32_MAX) {
+        status =
+            ZwRemoveIoCompletionEx(
+                *queue,
+                events,
+                count,
+                &entriesRemoved,
+                NULL,
+                FALSE);
+    } else {
+        LARGE_INTEGER timeout;
+        timeout.QuadPart = -10000LL * wait_time;
+        status =
+            ZwRemoveIoCompletionEx(
+                *queue,
+                events,
+                count,
+                &entriesRemoved,
+                &timeout,
+                FALSE);
     }
-    return entriesRemoved;
+    return NT_SUCCESS(status) ? entriesRemoved : 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
