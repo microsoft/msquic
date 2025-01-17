@@ -38,7 +38,10 @@ typedef struct QUIC_RECV_BUFFER {
     QUIC_RECV_CHUNK* PreallocatedChunk;
 
     //
-    // The ranges that currently have bytes written to them.
+    // Ranges of stream offsets that have been written to the buffer,
+    // starting from 0 (not only what is currently in the buffer).
+    // The first sub-range includes [0, BaseOffset + ReadLength),
+    // and potentially more if ReadLength is constrained by the chunk size.
     //
     QUIC_RANGE WrittenRanges;
 
