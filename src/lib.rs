@@ -1368,12 +1368,17 @@ macro_rules! define_quic_handle_impl {
                 self.handle = std::ptr::null_mut();
                 h
             }
+
+            /// Closes the handle and consumes it.
+            pub fn close(self) {
+                self.close_inner();
+            }
         }
 
-        /// drop the handle. Requires close() to be implemented.
+        /// drop the handle. Requires close_inner() to be implemented.
         impl Drop for $handle_name {
             fn drop(&mut self) {
-                self.close();
+                self.close_inner();
             }
         }
     };
@@ -1400,10 +1405,9 @@ impl Registration {
         unsafe { Api::ffi_ref().RegistrationShutdown.unwrap()(self.handle, 0, 0) }
     }
 
-    pub fn close(&mut self) {
+    fn close_inner(&self) {
         if !self.handle.is_null() {
             unsafe { Api::ffi_ref().RegistrationClose.unwrap()(self.handle) }
-            self.handle = std::ptr::null_mut();
         }
     }
 }
@@ -1450,10 +1454,9 @@ impl Configuration {
         Error::ok_from_raw(status)
     }
 
-    pub fn close(&mut self) {
+    fn close_inner(&self) {
         if !self.handle.is_null() {
             unsafe { Api::ffi_ref().ConfigurationClose.unwrap()(self.handle) };
-            self.handle = std::ptr::null_mut();
         }
     }
 }
@@ -1511,26 +1514,17 @@ impl Connection {
         Error::ok_from_raw(status)
     }
 
-    pub fn close(&mut self) {
+    fn close_inner(&self) {
         if !self.handle.is_null() {
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
             }
-            self.handle = std::ptr::null_mut();
         }
     }
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
         unsafe {
             Api::ffi_ref().ConnectionShutdown.unwrap()(self.handle, flags as i32, error_code);
-        }
-    }
-
-    /// # Safety
-    /// Raw handle must be valid.
-    pub unsafe fn stream_close(&self, stream: HQUIC) {
-        unsafe {
-            Api::ffi_ref().StreamClose.unwrap()(stream);
         }
     }
 
@@ -1741,11 +1735,10 @@ impl Listener {
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
-    pub fn close(&mut self) {
+    fn close_inner(&self) {
         if !self.handle.is_null() {
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
-                self.handle = std::ptr::null_mut();
             }
         }
     }
@@ -1799,12 +1792,11 @@ impl Stream {
         Error::ok_from_raw(status)
     }
 
-    pub fn close(&mut self) {
+    pub fn close_inner(&self) {
         if !self.handle.is_null() {
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
             }
-            self.handle = std::ptr::null_mut();
         }
     }
 
@@ -1853,7 +1845,7 @@ mod tests {
     use crate::ffi::{HQUIC, QUIC_ERROR};
     use crate::{
         ffi, Buffer, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
-        Settings, StreamEvent,
+        Settings, Stream, StreamEvent,
     };
 
     extern "C" fn test_conn_callback(
@@ -1897,10 +1889,9 @@ mod tests {
 
     extern "C" fn test_stream_callback(
         stream: HQUIC,
-        context: *mut c_void,
+        _context: *mut c_void,
         event: &StreamEvent,
     ) -> u32 {
-        let connection = unsafe { &*(context as *const Connection) };
         match event.event_type {
             crate::STREAM_EVENT_START_COMPLETE => {
                 println!("Stream start complete 0x{:x}", unsafe {
@@ -1917,7 +1908,8 @@ mod tests {
             crate::STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
             crate::STREAM_EVENT_SHUTDOWN_COMPLETE => {
                 println!("Stream shutdown complete");
-                unsafe { connection.stream_close(stream) };
+                // Attach to stream for auto close handle.
+                unsafe { Stream::from_raw(stream) };
             }
             crate::STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
             crate::STREAM_EVENT_PEER_ACCEPTED => println!("Peer accepted"),
