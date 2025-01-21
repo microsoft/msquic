@@ -1524,7 +1524,11 @@ impl Connection {
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
         unsafe {
-            Api::ffi_ref().ConnectionShutdown.unwrap()(self.handle, flags as i32, error_code);
+            Api::ffi_ref().ConnectionShutdown.unwrap()(
+                self.handle,
+                flags as crate::ffi::QuicFlag,
+                error_code,
+            );
         }
     }
 
@@ -1610,7 +1614,7 @@ impl Connection {
                 self.handle,
                 buffer as *const Buffer as *const QUIC_BUFFER,
                 buffer_count,
-                flags as i32,
+                flags as crate::ffi::QuicFlag,
                 client_send_context as *mut c_void,
             )
         };
@@ -1634,7 +1638,7 @@ impl Connection {
         let status = unsafe {
             Api::ffi_ref()
                 .ConnectionCertificateValidationComplete
-                .unwrap()(self.handle, result, tls_alert as i32)
+                .unwrap()(self.handle, result, tls_alert as crate::ffi::QuicFlag)
         };
         Error::ok_from_raw(status)
     }
@@ -1771,7 +1775,7 @@ impl Stream {
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
-                flags as i32,
+                flags as crate::ffi::QuicFlag,
                 Some(std::mem::transmute(handler)),
                 context as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
@@ -1781,13 +1785,19 @@ impl Stream {
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Error> {
-        let status = unsafe { Api::ffi_ref().StreamStart.unwrap()(self.handle, flags as i32) };
+        let status = unsafe {
+            Api::ffi_ref().StreamStart.unwrap()(self.handle, flags as crate::ffi::QuicFlag)
+        };
         Error::ok_from_raw(status)
     }
 
     pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Error> {
         let status = unsafe {
-            Api::ffi_ref().StreamShutdown.unwrap()(self.handle, flags as i32, error_code)
+            Api::ffi_ref().StreamShutdown.unwrap()(
+                self.handle,
+                flags as crate::ffi::QuicFlag,
+                error_code,
+            )
         };
         Error::ok_from_raw(status)
     }
@@ -1812,7 +1822,7 @@ impl Stream {
                 self.handle,
                 buffer as *const Buffer as *const QUIC_BUFFER,
                 buffer_count,
-                flags as i32,
+                flags as crate::ffi::QuicFlag,
                 client_send_context as *mut c_void, //(self as *const Stream) as *const c_void,
             )
         };
