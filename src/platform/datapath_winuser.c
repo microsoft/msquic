@@ -701,6 +701,41 @@ CxPlatDataPathQuerySockoptSupport(
     }
 }
 
+{
+    //
+    // Test ToS support with IPv6, because IPv4 just fails silently.
+    //
+    SOCKET Udpv6Socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (UdpSocket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathOpenUdpv6SocketFailed,
+            "[data] UDPv6 helper socket failed to open, 0x%x",
+            WsaError);
+        goto Error;
+    }
+
+    DWORD TypeOfService = 1; // Lower Effort
+    OptionLength = sizeof(TypeOfService);
+    Result =
+        setsockopt(
+            Udpv6Socket,
+            IPPROTO_IPV6,
+            IPV6_TCLASS,
+            (char*)&TypeOfService,
+            sizeof(TypeOfService));
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathTestSetIpv6TrafficClassFailed,
+            "[data] Test setting IPV6_TCLASS failed, 0x%x",
+            WsaError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE;
+    }
+    closesocket(Udpv6Socket);
+}
+
     //
     // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
     //
@@ -1724,6 +1759,49 @@ SocketCreateUdp(
                     Socket,
                     WsaError,
                     "Set IPV6_HOPLIMIT");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+        }
+
+        if ((Datapath->Features & CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE) &&
+            Config->TypeOfService != 0) {
+            Option = Config->TypeOfService;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IP,
+                    IP_TOS,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IP_TOS");
+                Status = HRESULT_FROM_WIN32(WsaError);
+                goto Error;
+            }
+
+            Option = Config->TypeOfService;
+            Result =
+                setsockopt(
+                    SocketProc->Socket,
+                    IPPROTO_IPV6,
+                    IPV6_TCLASS,
+                    (char*)&Option,
+                    sizeof(Option));
+            if (Result == SOCKET_ERROR) {
+                int WsaError = WSAGetLastError();
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    WsaError,
+                    "Set IPV6_TCLASS");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -4630,6 +4708,60 @@ SocketSend(
     } else {
         CxPlatSocketSendEnqueue(Route, SendData);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketSetTypeOfService(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t TypeOfService
+    )
+{
+    const uint16_t SocketCount =  Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    for (uint16_t i = 0; i < SocketCount; i++) {
+        CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[i];
+        int Option = TypeOfService;
+        int Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_TOS,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_TOS");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            break;
+        }
+
+        Option = TypeOfService;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_TCLASS,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_TCLASS");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            break;
+        }
+    }
+    return Status;
 }
 
 void

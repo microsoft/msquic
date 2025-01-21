@@ -251,6 +251,25 @@ CxPlatSocketGetRemoteAddress(
     *Address = Socket->RemoteAddress;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketSetTypeOfService(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t TypeOfService
+    )
+{
+    QUIC_STATUS Status;
+    if (Socket->RawSocketAvailable) {
+        Status = RawSocketSetTypeOfService(CxPlatSocketToRaw(Socket), TypeOfService);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
+    }
+    Status = SocketSetTypeOfService(Socket, TypeOfService);
+
+    return Status;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatSocketRawSocketAvailable(

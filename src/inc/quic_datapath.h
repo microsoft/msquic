@@ -59,6 +59,12 @@ typedef enum CXPLAT_ECN_TYPE {
 #define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
 
 //
+// Define the maximum type of service value allowed.
+// Note: this is without the ECN bits included
+//
+#define CXPLAT_MAX_TYPE_OF_SERVICE 63
+
+//
 // The maximum IP MTU this implementation supports for QUIC.
 //
 #define CXPLAT_MAX_MTU 1500
@@ -444,6 +450,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
 #define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
+#define CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE       0x0100
 
 //
 // Queries the currently supported features of the datapath.
@@ -544,6 +551,7 @@ typedef struct CXPLAT_UDP_CONFIG {
 #ifdef QUIC_OWNING_PROCESS
     QUIC_PROCESS OwningProcess;         // Kernel client-only
 #endif
+    uint8_t TypeOfService;              // Default 0. Optional.
 
     // used for RAW datapath
     uint8_t CibirIdLength;              // CIBIR ID length. Value of 0 indicates CIBIR isn't used
@@ -644,6 +652,17 @@ void
 CxPlatSocketGetRemoteAddress(
     _In_ CXPLAT_SOCKET* Socket,
     _Out_ QUIC_ADDR* Address
+    );
+
+//
+// Sets TypeOfService on the socket. May fail if insufficient privileges exist
+// to set the desired value on the socket.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketSetTypeOfService(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t TypeOfService
     );
 
 //

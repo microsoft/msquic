@@ -471,7 +471,7 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->WskProviderNpi.Dispatch->
         WskSocket(
             Datapath->WskProviderNpi.Client,
-            AF_INET,
+            AF_INET6,
             SOCK_DGRAM,
             IPPROTO_UDP,
             WSK_FLAG_BASIC_SOCKET,
@@ -597,6 +597,54 @@ CxPlatDataPathQuerySockoptSupport(
         }
 
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+
+    } while (FALSE);
+
+    do {
+        DWORD TypeOfService = 1; // Lower Effort
+
+        IoReuseIrp(Irp, STATUS_SUCCESS);
+        IoSetCompletionRoutine(
+            Irp,
+            CxPlatDataPathIoCompletion,
+            &CompletionEvent,
+            TRUE,
+            TRUE,
+            TRUE);
+        CxPlatEventReset(CompletionEvent);
+
+        Status =
+            Dispatch->WskControlSocket(
+                UdpSocket,
+                WskSetOption,
+                IPV6_TCLASS,
+                IPPROTO_IPV6,
+                sizeof(TypeOfService),
+                &TypeOfService,
+                0,
+                NULL,
+                &OutputSizeReturned,
+                Irp);
+        if (Status == STATUS_PENDING) {
+            CxPlatEventWaitForever(CompletionEvent);
+        } else if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailed,
+                "[data] Test setting IPV6_TCLASS failed, 0x%x",
+                Status);
+            break;
+        }
+
+        Status = Irp->IoStatus.Status;
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailedAsync,
+                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+                Status);
+            break;
+        }
+
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE;
 
     } while (FALSE);
 
@@ -1548,6 +1596,47 @@ SocketCreateUdp(
                 Binding,
                 Status,
                 "Set IPV6_HOPLIMIT");
+            goto Error;
+        }
+    }
+
+    if ((Datapath->Features & CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE) &&
+        Config->TypeOfService != 0) {
+        Option = Config->TypeOfService;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_TOS,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_TOS");
+            goto Error;
+        }
+
+        Option = Config->TypeOfService;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_TCLASS,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_TCLASS");
             goto Error;
         }
     }
@@ -2957,6 +3046,58 @@ SocketSend(
         // Callback still gets invoked on failure to do the cleanup.
         //
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketSetTypeOfService(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ uint8_t TypeOfService
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    uint32_t Option = TypeOfService;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Socket,
+            WskSetOption,
+            IP_TOS,
+            IPPROTO_IP,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IP_TOS");
+        goto Error;
+    }
+
+    Option = Config->TypeOfService;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Socket,
+            WskSetOption,
+            IPV6_TCLASS,
+            IPPROTO_IPV6,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IPV6_TCLASS");
+        goto Error;
+    }
+
+Error:
+
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

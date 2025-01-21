@@ -463,6 +463,12 @@ typedef struct QUIC_CONNECTION {
     uint8_t PeerReorderingThreshold;
 
     //
+    // Type of Service value to set on the socket when the connection is started.
+    // Default value of 0.
+    //
+    uint8_t TypeOfService;
+
+    //
     // The ACK frequency sequence number we are currently using to send.
     //
     uint64_t SendAckFreqSeqNum;

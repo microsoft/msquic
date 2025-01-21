@@ -265,6 +265,7 @@ typedef struct CXPLAT_SOCKET_RAW {
     SOCKET AuxSocket;
     BOOLEAN Wildcard;                // Using a wildcard local address. Optimization
                                      // to avoid always reading LocalAddress.
+    uint8_t TypeOfService;           // IP TypeOfService/IPv6 Traffic Class value. Default 0.
     uint8_t CibirIdLength;           // CIBIR ID length. Value of 0 indicates CIBIR isn't used
     uint8_t CibirIdOffsetSrc;        // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;        // CIBIR ID offset in destination CID
@@ -377,6 +378,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
+    _In_ uint8_t TypeOfService,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum,
     _In_ uint32_t TcpSeqNum,

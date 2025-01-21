@@ -1837,6 +1837,7 @@ QuicConnStart(
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
     UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
+    UdpConfig.TypeOfService = Connection->TypeOfService;
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
 #endif
@@ -6218,6 +6219,7 @@ QuicConnParamSet(
             UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
             UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
             UdpConfig.InterfaceIndex = 0;
+            UdpConfig.TypeOfService = Connection->TypeOfService;
 #ifdef QUIC_COMPARTMENT_ID
             UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
 #endif
@@ -6621,6 +6623,34 @@ QuicConnParamSet(
             Connection->CibirId[1]);
 
         return QUIC_STATUS_SUCCESS;
+    }
+
+    case QUIC_PARAM_CONN_TYPE_OF_SERVICE:
+    {
+        if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint8_t TypeOfService = 0;
+        CxPlatCopyMemory(&TypeOfService, Buffer, BufferLength);
+
+        if (TypeOfService > CXPLAT_MAX_TYPE_OF_SERVICE) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->TypeOfService = TypeOfService;
+
+        if (Connection->State.Started) {
+            Status =
+                CxPlatSocketSetTypeOfService(
+                    Connection->Paths[0].Binding->Socket,
+                    TypeOfService);
+        } else {
+            Status = QUIC_STATUS_SUCCESS;
+        }
+        break;
     }
 
     //
@@ -7207,27 +7237,55 @@ QuicConnParamGet(
     }
 
     case QUIC_PARAM_CONN_ORIG_DEST_CID:
+
         if (Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
             break;
         }
+
         if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+
         CxPlatCopyMemory(
             Buffer,
             Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
+
         //
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+     case QUIC_PARAM_CONN_TYPE_OF_SERVICE:
+
+        if (*BufferLength < sizeof(Connection->TypeOfService)) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = sizeof(Connection->TypeOfService);
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            &Connection->TypeOfService,
+            sizeof(Connection->TypeOfService));
+
+        *BufferLength = sizeof(Connection->TypeOfService);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
