@@ -48,6 +48,19 @@ Abstract:
 #endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvChunkInitialize(
+    _Inout_ QUIC_RECV_CHUNK* Chunk,
+    _In_ uint32_t AllocLength,
+    _In_ uint8_t* Buffer
+    )
+{
+    Chunk->AllocLength = AllocLength;
+    Chunk->Buffer = Buffer;
+    Chunk->ExternalReference = FALSE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS // TODO - Can only fail if PreallocatedChunk == NULL
 QuicRecvBufferInitialize(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
@@ -79,13 +92,12 @@ QuicRecvBufferInitialize(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
+        QuicRecvChunkInitialize(Chunk, AllocBufferLength, (uint8_t*)(Chunk + 1));
     }
 
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
     CxPlatListInsertHead(&RecvBuffer->Chunks, &Chunk->Link);
-    Chunk->AllocLength = AllocBufferLength;
-    Chunk->ExternalReference = FALSE;
     RecvBuffer->BaseOffset = 0;
     RecvBuffer->ReadStart = 0;
     RecvBuffer->ReadPendingLength = 0;
@@ -170,8 +182,72 @@ QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ uint32_t NewLength
     )
 {
+    // TODO guhetier: Must make sure this can't be called in new mode
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL);
     CXPLAT_DBG_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
     RecvBuffer->VirtualBufferLength = NewLength;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicRecvBufferProvideChunks(
+    _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
+    _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNKS */ Chunks
+    )
+{
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(Chunks));
+
+    //
+    // External chunks can be provided only if already in external mode, or if
+    // nothing has been written to the buffer yet.
+    //
+    uint64_t rangeMax;
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL &&
+        (QuicRangeGetMaxSafe(&RecvBuffer->WrittenRanges, &rangeMax) && rangeMax > 0)) {
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+        //
+        // Remove all existing chunks.
+        //
+        while (!CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
+            QUIC_RECV_CHUNK* Chunk =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&RecvBuffer->Chunks),
+                    QUIC_RECV_CHUNK,
+                    Link);
+            if (Chunk != RecvBuffer->PreallocatedChunk) {
+                CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+            }
+        }
+
+        RecvBuffer->RecvMode = QUIC_RECV_BUF_MODE_EXTERNAL;
+    }
+
+    if (CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
+        //
+        // If a new chunk becomes the first chunk, update the capacity.
+        //
+        CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
+        CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
+        QUIC_RECV_CHUNK* firstChunk = CXPLAT_CONTAINING_RECORD(Chunks->Flink, QUIC_RECV_CHUNK, Link);
+        RecvBuffer->Capacity = firstChunk->AllocLength;
+    }
+
+    uint32_t totalAdditionalLength = 0;
+    for (CXPLAT_LIST_ENTRY* Link = Chunks->Flink;
+         Link != Chunks;
+         Link = Link->Flink) {
+        QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(Link, QUIC_RECV_CHUNK, Link);
+        // TODO guhetier: Must deal with overflow?
+        totalAdditionalLength += Chunk->AllocLength;
+    }
+
+    RecvBuffer->VirtualBufferLength += totalAdditionalLength;
+    CxPlatListMoveItems(Chunks, &RecvBuffer->Chunks);
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 //
@@ -186,6 +262,7 @@ QuicRecvBufferResize(
     _In_ uint32_t TargetBufferLength
     )
 {
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL); // Should never resize in external mode
     CXPLAT_DBG_ASSERT(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
@@ -209,8 +286,7 @@ QuicRecvBufferResize(
         return FALSE;
     }
 
-    NewChunk->AllocLength = TargetBufferLength;
-    NewChunk->ExternalReference = FALSE;
+    QuicRecvChunkInitialize(NewChunk, TargetBufferLength, (uint8_t*)(NewChunk + 1));
     CxPlatListInsertTail(&RecvBuffer->Chunks, &NewChunk->Link);
 
     if (!LastChunk->ExternalReference) {
@@ -306,7 +382,8 @@ QuicRecvBufferGetTotalAllocLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
         //
         // In single and circular mode, the last chunk is the only chunk being
         // written to at any given time, and therefore the only chunk we care
@@ -321,30 +398,32 @@ QuicRecvBufferGetTotalAllocLength(
     }
 
     //
-    // For multiple mode, several chunks may be used at any point in time, so we
-    // need to consider the space allocated for all of them. Additionally, the
-    // first one is special because it may be used as a circular buffer, and
-    // already be partially drained.
+    // For multiple mode and external mode, several chunks may be used at any
+    // point in time, so we need to consider the space allocated for all of them.
+    // Additionally, the first one is special because it may be already partially
+    // drained, making it only partially usable.
     //
     QUIC_RECV_CHUNK* Chunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Flink,
             QUIC_RECV_CHUNK,
             Link);
-    if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE &&
+        Chunk->Link.Flink == &RecvBuffer->Chunks) {
         //
-        // Only one chunk means we don't have an artificial "end", and will just
-        // write to the whole allocated length.
+        // In Multiple mode, only one chunk means we don't have an artificial
+        // "end", and are using the full allocated length of the buffer in a
+        // circular fashion.
         //
         return Chunk->AllocLength;
     }
 
     //
-    // When we have additional chunks following this, then its possible part of
-    // the first chunk has already been drained, so we don't use the allocated
-    // length, but ReadLength instead when calculating total available space.
+    // Otherwise, it is possible part of the first chunk has already been
+    // drained, so we don't use the allocated length, but the Capacity instead
+    // when calculating total available space.
     //
-    uint32_t AllocLength = RecvBuffer->ReadLength;
+    uint32_t AllocLength = RecvBuffer->Capacity;
     while (Chunk->Link.Flink != &RecvBuffer->Chunks) {
         Chunk =
             CXPLAT_CONTAINING_RECORD(
@@ -368,9 +447,9 @@ QuicRecvBufferCopyIntoChunks(
     )
 {
     //
-    // Copy the data into the correct chunk(s). In multiple mode this may result
-    // in copies to multiple buffers. For single/circular it should always be
-    // just a single copy.
+    // Copy the data into the correct chunk(s). In multiple/external mode this
+    // may result in copies to multiple chunks. For single/circular it should
+    // always be just a single copy.
     //
 
     //
@@ -412,7 +491,7 @@ QuicRecvBufferCopyIntoChunks(
         }
     } else {
         //
-        // In multiple mode we may have to write to multiple (two max) chunks.
+        // In multiple/external mode we may have to write to multiple chunks.
         // We need to find the first chunk to start writing at and then
         // continue copying data into the chunks until we run out.
         //
@@ -426,14 +505,20 @@ QuicRecvBufferCopyIntoChunks(
         BOOLEAN IsFirstChunk = TRUE;
         uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
         uint32_t ChunkOffset = RecvBuffer->ReadStart;
-        if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE &&
+            Chunk->Link.Flink == &RecvBuffer->Chunks) {
+            //
+            // In multiple mode, when there is only one chunk, it is used as a circular buffer:
+            // the whole allocated length is usable.
+            //
             CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit if we only have one
             ChunkLength = Chunk->AllocLength;
             RecvBuffer->ReadLength =
                 (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
         } else {
             //
-            // In multiple mode, the first chunk may not start at the beginning.
+            // The first buffer might be partially drained and only the remaining capacity
+            // can be used.
             //
             ChunkLength = RecvBuffer->Capacity;
 
@@ -466,13 +551,14 @@ QuicRecvBufferCopyIntoChunks(
 
         BOOLEAN IsFirstLoop = TRUE;
         do {
+            // TODO guhetier: No reason to have that in the loop, can be done once outside of it
             uint32_t ChunkWriteOffset = (ChunkOffset + RelativeOffset) % Chunk->AllocLength;
             if (!IsFirstChunk) {
                 // This RelativeOffset is already shrunk to represent the offset from beginning of the current chunk.
                 ChunkWriteOffset = (uint32_t)RelativeOffset;
             }
             if (!IsFirstLoop) {
-                // We are continue writing from previous chunk. So, start from the beginning of the currnet chunk.
+                // We continue writing from the previous chunk. So, start from the beginning of the current chunk.
                 ChunkWriteOffset = 0;
             }
 
@@ -486,6 +572,7 @@ QuicRecvBufferCopyIntoChunks(
                     ChunkWriteLength = RecvBuffer->Capacity - (uint32_t)RelativeOffset;
                 }
                 if (Chunk->AllocLength < ChunkWriteOffset + ChunkWriteLength) {
+                    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL); // External mode capacity will never allow a wrap around
                     // Circular buffer wrap around case.
                     CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, Chunk->AllocLength - ChunkWriteOffset);
                     CxPlatCopyMemory(Chunk->Buffer, WriteBuffer + Chunk->AllocLength - ChunkWriteOffset, ChunkWriteLength - (Chunk->AllocLength - ChunkWriteOffset));
@@ -573,24 +660,28 @@ QuicRecvBufferWrite(
     // N.B. We do this before updating the written ranges below so we don't have
     // to support rolling back those changes on the possible allocation failure
     // here.
+    // This is skiped in external mode since the entire virtual length is
+    // always allocated.
     //
-    uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
-    if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
-        //
-        // If we don't currently have enough room then we will want to resize
-        // the last chunk to be big enough to hold everything. We do this by
-        // repeatedly doubling its size until it is large enough.
-        //
-        uint32_t NewBufferLength =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Blink,
-                QUIC_RECV_CHUNK,
-                Link)->AllocLength << 1;
-        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength + RecvBuffer->ReadPendingLength) {
-            NewBufferLength <<= 1;
-        }
-        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+        uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
+        if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
+            //
+            // If we don't currently have enough room then we will want to resize
+            // the last chunk to be big enough to hold everything. We do this by
+            // repeatedly doubling its size until it is large enough.
+            //
+            uint32_t NewBufferLength =
+                CXPLAT_CONTAINING_RECORD(
+                    RecvBuffer->Chunks.Blink,
+                    QUIC_RECV_CHUNK,
+                    Link)->AllocLength << 1;
+            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength + RecvBuffer->ReadPendingLength) {
+                NewBufferLength <<= 1;
+            }
+            if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
         }
     }
 
@@ -632,6 +723,8 @@ QuicRecvBufferWrite(
     return QUIC_STATUS_SUCCESS;
 }
 
+// TODO guhetier: This could return the number of buffers needed / extra buffer needed?
+//     For now, only fill up to the number of provided buffer and follow up
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferRead(
@@ -644,12 +737,20 @@ QuicRecvBufferRead(
 {
     CXPLAT_DBG_ASSERT(QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0) != NULL); // Only fail if you call read before write indicates read ready.
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
+    //
+    // Only MULTIPLE mode allows concurrent reads
+    //
     CXPLAT_DBG_ASSERT(
         RecvBuffer->ReadPendingLength == 0 ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
+    //
+    // Only MULTIPLE and EXTERNAL modes can have multiple chunks at read time.
+    // Other modes would coalesce chunks during a write or drain.
+    //
     CXPLAT_DBG_ASSERT(
-        RecvBuffer->Chunks.Flink->Flink == &RecvBuffer->Chunks || // Should only have one buffer if not using multiple receive mode
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
+        RecvBuffer->Chunks.Flink->Flink == &RecvBuffer->Chunks ||
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL );
 
     //
     // Find the length of the data written in the front, after the BaseOffset.
@@ -712,7 +813,7 @@ QuicRecvBufferRead(
             Buffers[0].Buffer = Chunk->Buffer + ReadStart;
         }
 
-    } else {
+    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadPendingLength < ContiguousLength); // Shouldn't call read if there is nothing new to read
         uint64_t UnreadLength = ContiguousLength - RecvBuffer->ReadPendingLength;
         CXPLAT_DBG_ASSERT(UnreadLength > 0);
@@ -800,6 +901,36 @@ QuicRecvBufferRead(
         }
         CXPLAT_DBG_ASSERT(TotalBuffersLength <= RecvBuffer->ReadPendingLength);
 #endif
+    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL
+
+        uint64_t remainingDataToRead = ContiguousLength;
+        // Read from the first chunk
+        QUIC_RECV_CHUNK* Chunk =
+            CXPLAT_CONTAINING_RECORD(
+                RecvBuffer->Chunks.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        Buffers[0].Buffer = Chunk->Buffer + RecvBuffer->ReadStart;
+        Buffers[0].Length = RecvBuffer->ReadLength;
+        remainingDataToRead -= RecvBuffer->ReadLength;
+
+        // Continue reading from the next chunks until we run out of buffers or data
+        for (uint32_t i = 0; i < *BufferCount && remainingDataToRead > 0; ++i)
+        {
+            Chunk =
+                CXPLAT_CONTAINING_RECORD(
+                    Chunk->Link.Flink,
+                    QUIC_RECV_CHUNK,
+                    Link);
+
+            uint32_t ChunkReadLength = (uint32_t)min(Chunk->AllocLength, remainingDataToRead);
+            Buffers[i].Buffer = Chunk->Buffer;
+            Buffers[i].Length = ChunkReadLength;
+            remainingDataToRead -= ChunkReadLength;
+        }
+
+        *BufferOffset = RecvBuffer->BaseOffset;
+        RecvBuffer->ReadPendingLength = ContiguousLength - remainingDataToRead;
     }
 }
 
@@ -890,6 +1021,14 @@ QuicRecvBufferPartialDrain(
         CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
         RecvBuffer->ReadPendingLength -= DrainLength;
     }
+
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        //
+        // In EXTERNAL mode, memory is never re-used: a drain consumes
+        // virtual buffer length.
+        //
+        RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
+    }
 }
 
 //
@@ -919,6 +1058,13 @@ QuicRecvBufferFullDrain(
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         RecvBuffer->ReadPendingLength -= RecvBuffer->ReadLength;
     }
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        //
+        // In EXTERNAL mode, memory is never re-used: a drain consumes
+        // virtual buffer length.
+        //
+        RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
+    }
     RecvBuffer->ReadLength =
         (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
 
@@ -940,7 +1086,8 @@ QuicRecvBufferFullDrain(
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
     }
 
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
         //
         // The rest of the contiguous data might not fit in just the next chunk
         // so we need to update the ReadLength of the first chunk to be no more
@@ -977,13 +1124,16 @@ QuicRecvBufferDrain(
     CXPLAT_DBG_ASSERT(FirstRange->Low == 0);
     do {
         BOOLEAN PartialDrain = (uint64_t)RecvBuffer->ReadLength > DrainLength;
-        if (PartialDrain ||
-            (QuicRangeSize(&RecvBuffer->WrittenRanges) > 1 &&
-             RecvBuffer->BaseOffset + RecvBuffer->ReadLength == FirstRange->Count)) {
+        // TODO guhetier: Seems wrong, if the end of the chunk aligns with the end of the first range, we still need a full drain
+        //      Or we will end up with a first buffer with capacity == 0
+        BOOLEAN GapInChunk = QuicRangeSize(&RecvBuffer->WrittenRanges) > 1 &&
+                RecvBuffer->BaseOffset + RecvBuffer->ReadLength == FirstRange->Count;
+        if (PartialDrain || GapInChunk) {
             //
-            // If there are 2 or more written ranges in the first chunk, it means that there may be
-            // more data later in the chunk that couldn't be read because there is a gap.
-            // Reuse the partial drain logic to preserve data after the gap.
+            // If not all the data readable from the first chunk is being drained,
+            // or if there is data in the chunk that isn't readable yet because of a gap
+            // (2 or more written ranges, the end of the first range constraining the read length),
+            // use the partial drain logic to preserve the data that isn't being drained.
             //
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
             return !PartialDrain;
