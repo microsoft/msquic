@@ -544,7 +544,15 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return NT_SUCCESS(ZwCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, NULL, 0));
+    OBJECT_ATTRIBUTES KernelObjectAttributes;
+
+    InitializeObjectAttributes(&KernelObjectAttributes,
+                               /* ObjectName */ NULL,
+                               /* AttributesFlag */ OBJ_KERNEL_HANDLE,
+                               /* RootDirectory */ NULL,
+                               /* SecurityAttributes */ NULL);
+
+    return NT_SUCCESS(ZwCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, &KernelObjectAttributes, 0));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
