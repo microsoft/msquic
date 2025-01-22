@@ -29,3 +29,6 @@ jobs:
     - name: Print Powershell Version
       run: $PSVersionTable
       shell: pwsh
+    - name: Double check and make sure
+      run: pwsh --version
+      shell: pwsh
