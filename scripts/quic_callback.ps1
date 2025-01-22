@@ -98,16 +98,16 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
-} elseif ($Command.Contains("Start_Server_CPU_Tracing")) {
+} elseif ($Command -eq "Start_Server_CPU_Tracing") {
     if ($IsWindows) {
         Write-Host "Starting CPU tracing with WPR on windows!"
-        $filename = $Command.Split(";")[1]
-        wpr -start CPU -filename "server_cpu_traces_$filename"
+        wpr -start CPU
     }
-} elseif ($Command -eq "Stop_Server_CPU_Tracing") {
+} elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
     if ($IsWindows) {
         Write-Host "Stopping CPU tracing with WPR on windows!"
-        wpr -stop
+        $filename = $Command.Split(";")[1]
+        wpr -stop "server-cpu-traces-$filename"
     }
 } else {
     throw "Invalid command: $Command"
