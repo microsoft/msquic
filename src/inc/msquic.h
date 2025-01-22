@@ -324,6 +324,18 @@ QUIC_STATUS
     );
 
 //
+// This is called to stop any further usage of the execution contexts. MsQuic
+// will no longer queue any additional work to the contexts.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_EXECUTION_SHUTDOWN_FN)(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    );
+
+//
 // This is called to delete the execution contexts.
 //
 typedef

@@ -433,6 +433,57 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
+struct MsQuicExecutionContext : public QUIC_EXECUTION_CONTEXT {
+    uint32_t Poll() noexcept {
+        return MsQuic->ExecutionPoll(this);
+    }
+};
+
+struct MsQuicExecution {
+    MsQuicExecutionContext* Contexts {nullptr};
+    uint32_t Count {0};
+    MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
+        QUIC_EXECUTION_CONTEXT_CONFIG Config = { 0, EventQ };
+        Initialize(Flags, PollingIdleTimeoutUs, &Config);
+    }
+    MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
+        auto Configs = new(std::nothrow) QUIC_EXECUTION_CONTEXT_CONFIG[Count];
+        if (Configs != nullptr) {
+            for (uint32_t i = 0; i < Count; ++i) {
+                Configs[i].IdealProcessor = i;
+                Configs[i].EventQ = EventQ[i];
+            }
+            Initialize(Flags, PollingIdleTimeoutUs, Configs);
+            delete [] Configs;
+        }
+    }
+    void Initialize(
+        _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+        _In_ uint32_t PollingIdleTimeoutUs,
+        _In_reads_(this->Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs
+        )
+    {
+        Contexts = new(std::nothrow) MsQuicExecutionContext[Count];
+        if (Contexts != nullptr) {
+            auto Status =
+                MsQuic->ExecutionCreate(
+                    Flags,
+                    PollingIdleTimeoutUs,
+                    Count,
+                    Configs,
+                    &Contexts);
+            if (QUIC_FAILED(Status)) {
+                delete [] Contexts;
+                Contexts = nullptr;
+            }
+        }
+    }
+    bool IsValid() const noexcept { return Contexts != nullptr; }
+    MsQuicExecutionContext& operator[](size_t i) const {
+        return *(Contexts + i);
+    }
+};
+
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};
@@ -1687,4 +1738,4 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-#endif  //  _WIN32
+#endif  //  _MSQUIC_HPP_
