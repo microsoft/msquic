@@ -687,7 +687,7 @@ function Invoke-Secnetperf {
                 if ($IsWindows) {
                     wpr -stop CPU
                 }
-                NetperfSendCommand "Stop_CPU_Tracing"
+                NetperfSendCommand "Stop_Server_CPU_Tracing"
                 NetperfWaitServerFinishExecution
             }
         } else {
