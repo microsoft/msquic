@@ -622,8 +622,17 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
+        if ($env:collect_cpu_traces) {
+            if ($IsWindows) {
+                wpr -start CPU -filename "cpu-traces-$scenario-$transport-$io-istcp-$tcp.etl"
+            }
+            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$transport-$io-istcp-$tcp"
+            NetperfWaitServerFinishExecution
+        }
+
         Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
+
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
@@ -674,6 +683,13 @@ function Invoke-Secnetperf {
                 )
                 $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
                 Write-Host "Sent special UDP packet to tell the server to die."
+            }
+            if ($env:collect_cpu_traces) {
+                if ($IsWindows) {
+                    wpr -stop CPU
+                }
+                NetperfSendCommand "Stop_CPU_Tracing"
+                NetperfWaitServerFinishExecution
             }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }

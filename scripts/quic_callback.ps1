@@ -3,7 +3,7 @@ param (
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
-    $isWindows = $true
+    $IsWindows = $true
 }
 
 function SetLinuxLibPath {
@@ -98,6 +98,15 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
+} elseif ($Command.Contains("Start_CPU_Tracing")) {
+    if ($IsWindows) {
+        $filename = $Command.Split(";")[1]
+        wpr -start CPU -filename "server_$filename"
+    }
+} elseif ($Command -eq "Stop_CPU_Tracing") {
+    if ($IsWindows) {
+        wpr -stop
+    }
 } else {
     throw "Invalid command: $Command"
 }
