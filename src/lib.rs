@@ -1532,7 +1532,7 @@ impl Connection {
         }
     }
 
-    pub fn get_stats(&self) -> QuicStatistics {
+    pub fn get_stats(&self) -> Result<QuicStatistics, Error> {
         let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
             [0; std::mem::size_of::<QuicStatistics>()];
         let stat_size_mut = std::mem::size_of::<QuicStatistics>();
@@ -1543,12 +1543,11 @@ impl Connection {
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *mut c_void,
             )
-        }
-        .expect("fail to get stats");
-        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) }
+        }?;
+        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) })
     }
 
-    pub fn get_stats_v2(&self) -> QuicStatisticsV2 {
+    pub fn get_stats_v2(&self) -> Result<QuicStatisticsV2, Error> {
         let mut stat_buffer: [u8; std::mem::size_of::<QuicStatisticsV2>()] =
             [0; std::mem::size_of::<QuicStatisticsV2>()];
         let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
@@ -1559,10 +1558,8 @@ impl Connection {
                 (&stat_size_mut) as *const usize as *const u32 as *mut u32,
                 stat_buffer.as_mut_ptr() as *mut c_void,
             )
-        }
-        .expect("fail to get stats v2");
-
-        unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) }
+        }?;
+        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) })
     }
 
     pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Error> {
