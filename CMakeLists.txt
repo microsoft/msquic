@@ -18,7 +18,8 @@ endif()
 message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
+set_property(TARGET GLOBAL PROPERTY UseInternalMSUniCrtPackage TRUE)
+ 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
