@@ -626,7 +626,7 @@ function Invoke-Secnetperf {
             if ($IsWindows) {
                 wpr -start CPU -filename "cpu-traces-$scenario-$transport-$io-istcp-$tcp.etl"
             }
-            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$transport-$io-istcp-$tcp"
+            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$transport-$io-istcp-$tcp.etl"
             NetperfWaitServerFinishExecution
         }
 

@@ -101,7 +101,7 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
 } elseif ($Command.Contains("Start_CPU_Tracing")) {
     if ($IsWindows) {
         $filename = $Command.Split(";")[1]
-        wpr -start CPU -filename "server_$filename"
+        wpr -start CPU -filename "server_cpu_traces_$filename"
     }
 } elseif ($Command -eq "Stop_CPU_Tracing") {
     if ($IsWindows) {
