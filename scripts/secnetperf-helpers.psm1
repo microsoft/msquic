@@ -624,12 +624,11 @@ function Invoke-Secnetperf {
     if ($Session -eq "NOT_SUPPORTED") {
         if ($env:collect_cpu_traces) {
             if ($IsWindows) {
-                wpr -start CPU -filename "cpu-traces-$scenario-$transport-$io-istcp-$tcp.etl"
+                wpr -start CPU -filename "cpu-traces-$scenario-$io-istcp-$tcp.etl"
             }
-            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$transport-$io-istcp-$tcp.etl"
+            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.etl"
             NetperfWaitServerFinishExecution
         }
-
         Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
 
