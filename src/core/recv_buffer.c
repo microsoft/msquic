@@ -76,6 +76,8 @@ QuicRecvBufferInitialize(
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
+    // TODO guhetier: What to do when starting in the EXTERNAL mode?
+    //     Can the code handle not having any chunks? In practice we should never start directly in EXTERNAL
     QUIC_RECV_CHUNK* Chunk = NULL;
     if (PreallocatedChunk != NULL) {
         RecvBuffer->PreallocatedChunk = PreallocatedChunk;
@@ -464,7 +466,8 @@ QuicRecvBufferCopyIntoChunks(
         WriteBuffer += Diff;
     }
 
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
         //
         // In single/circular mode we always just write to the last chunk.
         //
@@ -904,18 +907,24 @@ QuicRecvBufferRead(
     } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL
 
         uint64_t remainingDataToRead = ContiguousLength;
-        // Read from the first chunk
+        //
+        // Read from the first chunk.
+        //
         QUIC_RECV_CHUNK* Chunk =
             CXPLAT_CONTAINING_RECORD(
                 RecvBuffer->Chunks.Flink,
                 QUIC_RECV_CHUNK,
                 Link);
+        Chunk->ExternalReference = TRUE;
         Buffers[0].Buffer = Chunk->Buffer + RecvBuffer->ReadStart;
         Buffers[0].Length = RecvBuffer->ReadLength;
         remainingDataToRead -= RecvBuffer->ReadLength;
 
-        // Continue reading from the next chunks until we run out of buffers or data
-        for (uint32_t i = 0; i < *BufferCount && remainingDataToRead > 0; ++i)
+        //
+        // Continue reading from the next chunks until we run out of buffers or data.
+        //
+        uint32_t BufferId;
+        for (BufferId = 0; BufferId < *BufferCount && remainingDataToRead > 0; ++BufferId)
         {
             Chunk =
                 CXPLAT_CONTAINING_RECORD(
@@ -923,12 +932,13 @@ QuicRecvBufferRead(
                     QUIC_RECV_CHUNK,
                     Link);
 
+            Chunk->ExternalReference = TRUE;
             uint32_t ChunkReadLength = (uint32_t)min(Chunk->AllocLength, remainingDataToRead);
-            Buffers[i].Buffer = Chunk->Buffer;
-            Buffers[i].Length = ChunkReadLength;
+            Buffers[BufferId].Buffer = Chunk->Buffer;
+            Buffers[BufferId].Length = ChunkReadLength;
             remainingDataToRead -= ChunkReadLength;
         }
-
+        *BufferCount = BufferId + 1;
         *BufferOffset = RecvBuffer->BaseOffset;
         RecvBuffer->ReadPendingLength = ContiguousLength - remainingDataToRead;
     }
