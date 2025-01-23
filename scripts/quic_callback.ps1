@@ -32,6 +32,7 @@ function Wait-DriverStarted {
 $mode = "maxtput"
 $io = "iocp"
 $stats = "0"
+$env:linux_perf_prefix = ""
 
 if ($Command.Contains("lowlat")) {
     $mode = "lowlat"
@@ -61,7 +62,7 @@ function Repo-Path {
 if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
     SetLinuxLibPath
-    ./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats
+    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
@@ -98,10 +99,14 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
-} elseif ($Command -eq "Start_Server_CPU_Tracing") {
+} elseif ($Command.Contains("Start_Server_CPU_Tracing")) {
     if ($IsWindows) {
         Write-Host "Starting CPU tracing with WPR on windows!"
         wpr -start CPU
+    } else {
+        Write-Host "Preprending the command with 'perf record' to start CPU tracing on linux!"
+        $filename = $Command.Split(";")[1]
+        $env:linux_perf_prefix = "perf record -o server-cpu-traces-$filename -- "
     }
 } elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
     if ($IsWindows) {

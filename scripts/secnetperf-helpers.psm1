@@ -15,6 +15,7 @@ if ($psVersion.Major -lt 7) {
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
+$env:linux_perf_prefix = ""
 
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
@@ -305,12 +306,6 @@ function Start-RemoteServer {
     $RemoteResult = $RemoteResult -join "`n"
     Write-Host $RemoteResult.ToString()
     throw "Server failed to start!"
-}
-
-# Passively starts the server on the remote machine by queuing up a new script to execute.
-function Start-RemoteServerPassive {
-    param ($Command)
-    NetperfSendCommand $Command
 }
 
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
@@ -625,11 +620,13 @@ function Invoke-Secnetperf {
         if ($env:collect_cpu_traces) {
             if ($IsWindows) {
                 wpr -start CPU
+            } else {
+                $env:linux_perf_prefix = "sudo perf record -o $scenario-$io-istcp-$tcp.data -- "
             }
-            NetperfSendCommand "Start_Server_CPU_Tracing"
+            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
             NetperfWaitServerFinishExecution
         }
-        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
+        NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
 
     } else {
@@ -644,7 +641,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
+            $process = Start-LocalTest "$env:linux_perf_prefix$clientPath" $clientArgs $artifactDir $useSudo
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
