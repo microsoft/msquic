@@ -685,7 +685,7 @@ function Invoke-Secnetperf {
             }
             if ($env:collect_cpu_traces) {
                 if ($IsWindows) {
-                    wpr -stop CPU "cpu-traces-$scenario-$io-istcp-$tcp.etl"
+                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
                 }
                 NetperfSendCommand "Stop_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.etl"
                 NetperfWaitServerFinishExecution
