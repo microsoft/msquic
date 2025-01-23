@@ -621,7 +621,7 @@ function Invoke-Secnetperf {
             if ($IsWindows) {
                 wpr -start CPU
             } else {
-                $env:linux_perf_prefix = "sudo perf record -o $scenario-$io-istcp-$tcp.data -- "
+                $env:linux_perf_prefix = "sudo perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
             }
             NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
             NetperfWaitServerFinishExecution
