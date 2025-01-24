@@ -13,21 +13,20 @@ typedef enum QUIC_RECV_BUF_MODE {
     QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
     QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
     QUIC_RECV_BUF_MODE_MULTIPLE,    // Multiple independent receives that may indicate up to two contiguous buffers at a time.
-    // TODO guhetier: improve documentation
     QUIC_RECV_BUF_MODE_EXTERNAL     // Uses memory buffer provided by the app. Only one receive at a time,
-                                    // that may indicate up to the number of provided buffers.
+                                    //     that may indicate up to the number of provided buffers.
 } QUIC_RECV_BUF_MODE;
 
 //
 // Represents a single contiguous range of bytes.
 //
 typedef struct QUIC_RECV_CHUNK {
-    CXPLAT_LIST_ENTRY Link;         // Link in the list of chunks.
-    uint32_t AllocLength : 31;      // Allocation size of Buffer
-    uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
-    uint8_t *Buffer;                // Pointer to the buffer itself. Doesn't need to be freed independently:
-                                    //     - for internally allocated buffers, points in the same allocation.
-                                    //     - for exteral buffers, the buffer isn't owned
+    CXPLAT_LIST_ENTRY Link;                     // Link in the list of chunks.
+    uint32_t AllocLength : 31;                  // Allocation size of Buffer
+    uint32_t ExternalReference : 1;             // Indicates the buffer is being used externally.
+    _Field_size_(AllocLength) uint8_t *Buffer;  // Pointer to the buffer itself. Doesn't need to be freed independently:
+                                                //     - for internally allocated buffers, points in the same allocation.
+                                                //     - for exteral buffers, the buffer isn't owned
 } QUIC_RECV_CHUNK;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -35,7 +34,7 @@ void
 QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
-    _In_ uint8_t* Buffer
+    _Inout_updates_(AllocLength) uint8_t* Buffer
     );
 
 typedef struct QUIC_RECV_BUFFER {

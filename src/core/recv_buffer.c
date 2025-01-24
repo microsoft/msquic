@@ -52,7 +52,7 @@ void
 QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
-    _In_ uint8_t* Buffer
+    _Inout_updates_(AllocLength) uint8_t* Buffer
     )
 {
     Chunk->AllocLength = AllocLength;
@@ -76,8 +76,6 @@ QuicRecvBufferInitialize(
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
-    // TODO guhetier: What to do when starting in the EXTERNAL mode?
-    //     Can the code handle not having any chunks? In practice we should never start directly in EXTERNAL
     QUIC_RECV_CHUNK* Chunk = NULL;
     if (PreallocatedChunk != NULL) {
         RecvBuffer->PreallocatedChunk = PreallocatedChunk;
@@ -199,17 +197,15 @@ QuicRecvBufferProvideChunks(
 {
     // TODO guhetier: Consider making this valid in external mode only
     //  and have a reset function to change the mode.
-    // But that mean having to detect if the buffer is not empty + dealing with
-    // no chunks on init?
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(Chunks));
 
     //
     // External chunks can be provided only if already in external mode, or if
     // nothing has been written to the buffer yet.
     //
-    uint64_t rangeMax;
+    uint64_t RangeMax;
     if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL &&
-        (QuicRangeGetMaxSafe(&RecvBuffer->WrittenRanges, &rangeMax) && rangeMax > 0)) {
+        (QuicRangeGetMaxSafe(&RecvBuffer->WrittenRanges, &RangeMax) && RangeMax > 0)) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -685,7 +681,7 @@ QuicRecvBufferWrite(
     // N.B. We do this before updating the written ranges below so we don't have
     // to support rolling back those changes on the possible allocation failure
     // here.
-    // This is skiped in external mode since the entire virtual length is
+    // This is skipped in external mode since the entire virtual length is
     // always allocated.
     //
     if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
@@ -949,8 +945,7 @@ QuicRecvBufferRead(
         //
         // Continue reading from the next chunks until we run out of buffers or data.
         //
-        while (*BufferCount < ProvidedBufferCount && remainingDataToRead > 0)
-        {
+        while (*BufferCount < ProvidedBufferCount && remainingDataToRead > 0) {
             Chunk =
                 CXPLAT_CONTAINING_RECORD(
                     Chunk->Link.Flink,
@@ -1116,8 +1111,7 @@ QuicRecvBufferFullDrain(
         CXPLAT_FRE_ASSERTMSG(DrainLength == 0, "App drained more than was available!");
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
 
-        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL)
-        {
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
             //
             // In EXTERNAL mode, external chunks are never re-used:
             // free the last chunk.
