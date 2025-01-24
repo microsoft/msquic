@@ -69,13 +69,15 @@ typedef struct QUIC_RECV_BUFFER {
     uint64_t BaseOffset;
 
     //
-    // Start of the head in the circular of the first chunk.
+    // Position of the reading head in the first chunk.
     //
     uint32_t ReadStart;
 
     //
-    // The length of data available to read in the first chunk, starting at
-    // ReadStart.
+    // The length of data available to read in the first "active" chunk,
+    // starting at ReadStart.
+    // ("Active" means a chunk that can targetted by a read or write.
+    // In SINGLE and CIRCULAR modes, only the last chunk is "active".)
     //
     uint32_t ReadLength;
 
