@@ -48,28 +48,30 @@ struct RecvBuffer {
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
 
         auto Result = QUIC_STATUS_SUCCESS;
-        if (RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
+        if (Result != QUIC_STATUS_SUCCESS) {
+            return Result;
+        }
+
+        if (RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL && AllocBufferLength > 0) {
             //
-            // If the receive mode is EXTERNAL, simulate an initialization followed by providing external buffers.
+            // If the receive mode is EXTERNAL, provide external buffers.
             // Provide up to two chunks, so that:
             // - the first chunk has `AllocBufferLength` bytes
             // - the sum of the two is `VirtualBufferLength` bytes
             //
-            Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, QUIC_RECV_BUF_MODE_CIRCULAR, PreallocChunk);
-            if (Result == QUIC_STATUS_SUCCESS) {
-                ExternalBuffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(VirtualBufferLength, QUIC_POOL_TEST);
-                auto Chunk = (QUIC_RECV_CHUNK *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK), QUIC_POOL_RECVBUF);
-                QuicRecvChunkInitialize(Chunk, AllocBufferLength, ExternalBuffer);
-                CXPLAT_LIST_ENTRY ChunkList;
-                CxPlatListInitializeHead(&ChunkList);
-                CxPlatListInsertHead(&ChunkList, &Chunk->Link);
-                if (VirtualBufferLength > AllocBufferLength) {
-                    auto Chunk2 = (QUIC_RECV_CHUNK *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK), QUIC_POOL_RECVBUF);
-                    QuicRecvChunkInitialize(Chunk2, VirtualBufferLength - AllocBufferLength, ExternalBuffer + AllocBufferLength);
-                    CxPlatListInsertTail(&ChunkList, &Chunk2->Link);
-                }
-                Result = QuicRecvBufferProvideChunks(&RecvBuf, &ChunkList);
+            CXPLAT_LIST_ENTRY ChunkList;
+            CxPlatListInitializeHead(&ChunkList);
+            ExternalBuffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(VirtualBufferLength, QUIC_POOL_TEST);
+            auto Chunk = (QUIC_RECV_CHUNK *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK), QUIC_POOL_RECVBUF);
+            QuicRecvChunkInitialize(Chunk, AllocBufferLength, ExternalBuffer);
+            CxPlatListInsertHead(&ChunkList, &Chunk->Link);
+            if (VirtualBufferLength > AllocBufferLength) {
+                auto Chunk2 = (QUIC_RECV_CHUNK *)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK), QUIC_POOL_RECVBUF);
+                QuicRecvChunkInitialize(Chunk2, VirtualBufferLength - AllocBufferLength, ExternalBuffer + AllocBufferLength);
+                CxPlatListInsertTail(&ChunkList, &Chunk2->Link);
             }
+            Result = QuicRecvBufferProvideChunks(&RecvBuf, &ChunkList);
         }
         else
         {
@@ -91,7 +93,7 @@ struct RecvBuffer {
         return Result;
     }
     void IncreaseVirtualBufferLength(uint32_t Length) {
-        QuicRecvBufferIncreaseVirtualBufferLength(&RecvBuf, Length);
+        QuicRecvBufferTryIncreaseVirtualBufferLength(&RecvBuf, Length);
     }
     QUIC_STATUS Write(
         _In_ uint64_t WriteOffset,
@@ -1653,10 +1655,10 @@ void FreeChunkList(_Inout_ CXPLAT_LIST_ENTRY* ChunkList) {
     }
 }
 
-TEST(ExternalBuffersTest, EnableExternalMode)
+TEST(ExternalBuffersTest, ProvideChunks)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     //
     // Providing external chunks succeeds and change the buffer mode to external.
@@ -1683,33 +1685,10 @@ TEST(ExternalBuffersTest, EnableExternalMode)
     ASSERT_TRUE(CxPlatListIsEmpty(&ChunkList));
 }
 
-TEST(ExternalBuffersTest, ProvideChunksInOtherMode)
-{
-    RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
-
-    uint64_t InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
-    BOOLEAN NewDataReady = FALSE;
-    RecvBuf.Write(0, 8, &InOutWriteLength, &NewDataReady);
-
-    //
-    // Adding external chunks fails if data has already been written in another
-    // mode.
-    //
-    std::array<uint8_t, 16> Buffer{};
-    std::vector ChunkSizes{8u, 8u};
-    CXPLAT_LIST_ENTRY ChunkList;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, MakeExternalChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
-    ASSERT_EQ(QUIC_STATUS_INVALID_STATE, RecvBuf.ProvideChunks(&ChunkList));
-    ASSERT_FALSE(CxPlatListIsEmpty(&ChunkList));
-
-    FreeChunkList(&ChunkList);
-}
-
 TEST(ExternalBuffersTest, ProvideChunksOverflow)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     //
     // Ensure external buffers cannot be provided in a way that would overflow
@@ -1740,7 +1719,7 @@ TEST(ExternalBuffersTest, ProvideChunksOverflow)
 TEST(ExternalBuffersTest, ReadWriteManyChunks)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     const uint32_t NbChunks = 5;
     std::array<uint8_t, NbChunks * 8> Buffer{};
@@ -1771,7 +1750,7 @@ TEST(ExternalBuffersTest, ReadWriteManyChunks)
 TEST(ExternalBuffersTest, WriteTooLong)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     std::array<uint8_t, 16> Buffer{};
     std::vector ChunkSizes{8u, 8u};
@@ -1790,7 +1769,7 @@ TEST(ExternalBuffersTest, WriteTooLong)
 TEST(ExternalBuffersTest, OutOfBuffers)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     std::array<uint8_t, DEF_TEST_BUFFER_LENGTH> Buffer{};
     std::vector ChunkSizes{DEF_TEST_BUFFER_LENGTH};
@@ -1839,7 +1818,7 @@ TEST(ExternalBuffersTest, OutOfBuffers)
 TEST(ExternalBuffersTest, FreeBufferBeforeDrain)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize());
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
 
     auto Buffer1 = std::make_unique<uint8_t[]>(DEF_TEST_BUFFER_LENGTH);
     std::array<uint8_t, DEF_TEST_BUFFER_LENGTH> Buffer2{};

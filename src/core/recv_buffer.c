@@ -70,46 +70,51 @@ QuicRecvBufferInitialize(
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
-    QUIC_STATUS Status;
-
-    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 && (AllocBufferLength & (AllocBufferLength - 1)) == 0);       // Power of 2
-    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 && (VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
+    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
+    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
+    CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
+    CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
 
-    QUIC_RECV_CHUNK* Chunk = NULL;
-    if (PreallocatedChunk != NULL) {
-        RecvBuffer->PreallocatedChunk = PreallocatedChunk;
-        Chunk = PreallocatedChunk;
-    } else {
-        RecvBuffer->PreallocatedChunk = NULL;
-        Chunk = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
-        if (Chunk == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "recv_buffer",
-                sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-        QuicRecvChunkInitialize(Chunk, AllocBufferLength, (uint8_t*)(Chunk + 1));
-    }
-
-    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
-    CxPlatListInitializeHead(&RecvBuffer->Chunks);
-    CxPlatListInsertHead(&RecvBuffer->Chunks, &Chunk->Link);
     RecvBuffer->BaseOffset = 0;
     RecvBuffer->ReadStart = 0;
     RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
-    RecvBuffer->Capacity = AllocBufferLength;
-    RecvBuffer->VirtualBufferLength = VirtualBufferLength;
     RecvBuffer->RecvMode = RecvMode;
-    Status = QUIC_STATUS_SUCCESS;
+    QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
+    CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
-Error:
+    if (RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+        //
+        // Setup an initial chunk.
+        //
+        QUIC_RECV_CHUNK* Chunk = NULL;
+        if (PreallocatedChunk != NULL) {
+            RecvBuffer->PreallocatedChunk = PreallocatedChunk;
+            Chunk = PreallocatedChunk;
+        } else {
+            RecvBuffer->PreallocatedChunk = NULL;
+            Chunk = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
+            if (Chunk == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "recv_buffer",
+                    sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
+            QuicRecvChunkInitialize(Chunk, AllocBufferLength, (uint8_t*)(Chunk + 1));
+        }
+        CxPlatListInsertHead(&RecvBuffer->Chunks, &Chunk->Link);
+        RecvBuffer->Capacity = AllocBufferLength;
+        RecvBuffer->VirtualBufferLength = VirtualBufferLength;
+    } else {
+        RecvBuffer->PreallocatedChunk = NULL;
+        RecvBuffer->Capacity = 0;
+        RecvBuffer->VirtualBufferLength = 0;
+    }
 
-    return Status;
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -176,16 +181,19 @@ QuicRecvBufferHasUnreadData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicRecvBufferIncreaseVirtualBufferLength(
+BOOLEAN
+QuicRecvBufferTryIncreaseVirtualBufferLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     )
 {
-    // TODO guhetier: Must make sure this can't be called in new mode
-    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL);
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        return FALSE;
+    }
+
     CXPLAT_DBG_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
     RecvBuffer->VirtualBufferLength = NewLength;
+    return TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -195,25 +203,10 @@ QuicRecvBufferProvideChunks(
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNKS */ Chunks
     )
 {
-    // TODO guhetier: Consider making this valid in external mode only
-    //  and have a reset function to change the mode.
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(Chunks));
 
-    //
-    // External chunks can be provided only if already in external mode, or if
-    // nothing has been written to the buffer yet.
-    //
-    uint64_t RangeMax;
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL &&
-        (QuicRangeGetMaxSafe(&RecvBuffer->WrittenRanges, &RangeMax) && RangeMax > 0)) {
-        return QUIC_STATUS_INVALID_STATE;
-    }
-
     uint64_t NewBufferLength = RecvBuffer->VirtualBufferLength;
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
-        NewBufferLength = 0;
-    }
-
     for (CXPLAT_LIST_ENTRY* Link = Chunks->Flink;
          Link != Chunks;
          Link = Link->Flink) {
@@ -232,24 +225,6 @@ QuicRecvBufferProvideChunks(
         // We can't handle that much buffer space.
         //
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
-        //
-        // Remove all existing chunks.
-        //
-        while (!CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
-            QUIC_RECV_CHUNK* Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListRemoveHead(&RecvBuffer->Chunks),
-                    QUIC_RECV_CHUNK,
-                    Link);
-            if (Chunk != RecvBuffer->PreallocatedChunk) {
-                CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
-            }
-        }
-
-        RecvBuffer->RecvMode = QUIC_RECV_BUF_MODE_EXTERNAL;
     }
 
     if (CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
@@ -280,7 +255,7 @@ QuicRecvBufferResize(
     _In_ uint32_t TargetBufferLength
     )
 {
-    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL); // Should never resize in external mode
+    CXPLAT_DBG_ASSERTMSG(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL, "Should never resize in External mode");
     CXPLAT_DBG_ASSERT(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
