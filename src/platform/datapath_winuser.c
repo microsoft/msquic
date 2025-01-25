@@ -274,6 +274,7 @@ typedef struct CXPLAT_SEND_DATA {
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
         WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_TOS/IPV6_TCLASS
         WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
         ];
 
@@ -731,7 +732,7 @@ CxPlatDataPathQuerySockoptSupport(
             "[data] Test setting IPV6_TCLASS failed, 0x%x",
             WsaError);
     } else {
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_DSCP;
     }
     closesocket(Udpv6Socket);
 }
@@ -1759,49 +1760,6 @@ SocketCreateUdp(
                     Socket,
                     WsaError,
                     "Set IPV6_HOPLIMIT");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-        }
-
-        if ((Datapath->Features & CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE) &&
-            Config->TypeOfService != 0) {
-            Option = Config->TypeOfService;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_TOS,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IP_TOS");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            Option = Config->TypeOfService;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_TCLASS,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_TCLASS");
                 Status = HRESULT_FROM_WIN32(WsaError);
                 goto Error;
             }
@@ -4082,6 +4040,7 @@ SendDataAlloc(
         SendData->Owner = DatapathProc;
         SendData->SendDataPool = SendDataPool;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->SendFlags = Config->Flags;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
@@ -4569,6 +4528,16 @@ CxPlatSocketSendInline(
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
         *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
 
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_DSCP) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+            CXPLAT_DBG_ASSERT(CMsg != NULL);
+            CMsg->cmsg_level = IPPROTO_IP;
+            CMsg->cmsg_type = IP_TOS;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->DSCP;
+        }
+
     } else {
 
         if (!Socket->HasFixedRemoteAddress) {
@@ -4589,6 +4558,16 @@ CxPlatSocketSendInline(
         CMsg->cmsg_type = IPV6_ECN;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
         *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_DSCP) {
+            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+            CXPLAT_DBG_ASSERT(CMsg != NULL);
+            CMsg->cmsg_level = IPPROTO_IPV6;
+            CMsg->cmsg_type = IPV6_TCLASS;
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->DSCP;
+        }
     }
 
     if (SendData->SegmentSize > 0) {
@@ -4708,60 +4687,6 @@ SocketSend(
     } else {
         CxPlatSocketSendEnqueue(Route, SendData);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint8_t TypeOfService
-    )
-{
-    const uint16_t SocketCount =  Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    for (uint16_t i = 0; i < SocketCount; i++) {
-        CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[i];
-        int Option = TypeOfService;
-        int Result =
-            setsockopt(
-                SocketProc->Socket,
-                IPPROTO_IP,
-                IP_TOS,
-                (char*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "Set IP_TOS");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            break;
-        }
-
-        Option = TypeOfService;
-        Result =
-            setsockopt(
-                SocketProc->Socket,
-                IPPROTO_IPV6,
-                IPV6_TCLASS,
-                (char*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = WSAGetLastError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "Set IPV6_TCLASS");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            break;
-        }
-    }
-    return Status;
 }
 
 void

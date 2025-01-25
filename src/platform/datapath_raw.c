@@ -371,24 +371,12 @@ RawSocketSend(
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, Socket->TypeOfService,
+        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber,
         Route->TcpState.AckNumber,
         TH_ACK);
     CxPlatDpRawTxEnqueue(SendData);
-    return QUIC_STATUS_SUCCESS;
-}
-
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-RawSocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ uint8_t TypeOfService
-    )
-{
-    Socket->TypeOfService = TypeOfService;
     return QUIC_STATUS_SUCCESS;
 }

@@ -644,7 +644,7 @@ CxPlatDataPathQuerySockoptSupport(
             break;
         }
 
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_DSCP;
 
     } while (FALSE);
 
@@ -1600,47 +1600,6 @@ SocketCreateUdp(
         }
     }
 
-    if ((Datapath->Features & CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE) &&
-        Config->TypeOfService != 0) {
-        Option = Config->TypeOfService;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IP_TOS,
-                IPPROTO_IP,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IP_TOS");
-            goto Error;
-        }
-
-        Option = Config->TypeOfService;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IPV6_TCLASS,
-                IPPROTO_IPV6,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IPV6_TCLASS");
-            goto Error;
-        }
-    }
-
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Option = MAX_URO_PAYLOAD_LENGTH;
         Status =
@@ -2528,6 +2487,7 @@ SendDataAlloc(
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->WskBufs = NULL;
         SendData->TailBuf = NULL;
         SendData->TotalSize = 0;
@@ -2970,6 +2930,7 @@ SocketSend(
     BYTE CMsgBuffer[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
         WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_TOS/IPV6_TCLASS
         WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
         ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
@@ -3012,6 +2973,18 @@ SocketSend(
         *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
     }
 
+    if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_DSCP) {
+        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+        CMsg->cmsg_level =
+            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                IPPROTO_IP : IPPROTO_IPV6;
+        CMsg->cmsg_type =
+            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                IP_TOS : IPV6_TCLASS;
+        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+    }
+
     if (SendData->SegmentSize > 0) {
         CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
         CMsgLen += WSA_CMSG_SPACE(sizeof(*SegmentSize));
@@ -3046,58 +3019,6 @@ SocketSend(
         // Callback still gets invoked on failure to do the cleanup.
         //
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint8_t TypeOfService
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    uint32_t Option = TypeOfService;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Socket,
-            WskSetOption,
-            IP_TOS,
-            IPPROTO_IP,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IP_TOS");
-        goto Error;
-    }
-
-    Option = Config->TypeOfService;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Socket,
-            WskSetOption,
-            IPV6_TCLASS,
-            IPPROTO_IPV6,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IPV6_TCLASS");
-        goto Error;
-    }
-
-Error:
-
-    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -99,6 +99,11 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // The DSCP value to use for this send.
+    //
+    uint8_t DSCP;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
@@ -1152,13 +1157,6 @@ SocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint8_t TypeOfService
-    );
-
 CXPLAT_SOCKET*
 CxPlatRawToSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket
@@ -1283,13 +1281,6 @@ RawSocketSend(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-RawSocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ uint8_t TypeOfService
     );
 
 void

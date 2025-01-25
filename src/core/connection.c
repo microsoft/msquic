@@ -1837,7 +1837,6 @@ QuicConnStart(
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
     UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
-    UdpConfig.TypeOfService = Connection->TypeOfService;
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
 #endif
@@ -6219,7 +6218,6 @@ QuicConnParamSet(
             UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
             UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
             UdpConfig.InterfaceIndex = 0;
-            UdpConfig.TypeOfService = Connection->TypeOfService;
 #ifdef QUIC_COMPARTMENT_ID
             UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
 #endif
@@ -6625,31 +6623,24 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
-    case QUIC_PARAM_CONN_TYPE_OF_SERVICE:
+    case QUIC_PARAM_CONN_DSCP:
     {
         if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        uint8_t TypeOfService = 0;
-        CxPlatCopyMemory(&TypeOfService, Buffer, BufferLength);
+        uint8_t DSCP = 0;
+        CxPlatCopyMemory(&DSCP, Buffer, BufferLength);
 
-        if (TypeOfService > CXPLAT_MAX_TYPE_OF_SERVICE) {
+        if (DSCP > CXPLAT_MAX_DSCP) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        Connection->TypeOfService = TypeOfService;
+        Connection->DSCP = DSCP;
 
-        if (Connection->State.Started) {
-            Status =
-                CxPlatSocketSetTypeOfService(
-                    Connection->Paths[0].Binding->Socket,
-                    TypeOfService);
-        } else {
-            Status = QUIC_STATUS_SUCCESS;
-        }
+        Status = QUIC_STATUS_SUCCESS;
         break;
     }
 
@@ -7267,11 +7258,11 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-     case QUIC_PARAM_CONN_TYPE_OF_SERVICE:
+     case QUIC_PARAM_CONN_DSCP:
 
-        if (*BufferLength < sizeof(Connection->TypeOfService)) {
+        if (*BufferLength < sizeof(Connection->DSCP)) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            *BufferLength = sizeof(Connection->TypeOfService);
+            *BufferLength = sizeof(Connection->DSCP);
             break;
         }
 
@@ -7282,10 +7273,10 @@ QuicConnParamGet(
 
         CxPlatCopyMemory(
             Buffer,
-            &Connection->TypeOfService,
-            sizeof(Connection->TypeOfService));
+            &Connection->DSCP,
+            sizeof(Connection->DSCP));
 
-        *BufferLength = sizeof(Connection->TypeOfService);
+        *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
         break;
 

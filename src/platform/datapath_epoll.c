@@ -340,7 +340,7 @@ Error:
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TYPE_OF_SERVICE;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_DSCP;
 }
 
 void
@@ -886,46 +886,6 @@ CxPlatSocketContextInitialize(
                 Status,
                 "setsockopt(IPV6_RECVHOPLIMIT) failed");
             goto Exit;
-        }
-
-        if (Config->TypeOfService != 0) {
-            Option = Config->TypeOfService;
-            Result =
-                setsockopt(
-                    SocketContext->SocketFd,
-                    IPPROTO_IP,
-                    IP_TOS,
-                    (const void*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    Status,
-                    "setsockopt(IP_TOS) failed");
-                goto Exit;
-            }
-
-            Option = Config->TypeOfService;
-            Result =
-                setsockopt(
-                    SocketContext->SocketFd,
-                    IPPROTO_IPV6,
-                    IPV6_TCLASS,
-                    (const void*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    Status,
-                    "setsockopt(IPV6_TCLASS) failed");
-                goto Exit;
-            }
         }
 
     #ifdef UDP_GRO
@@ -2304,6 +2264,7 @@ SendDataAlloc(
         SendData->AlreadySentCount = 0;
         SendData->ControlBufferLength = 0;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->Flags = Config->Flags;
         SendData->OnConnectedSocket = Socket->Connected;
         SendData->SegmentationSupported =
@@ -2495,60 +2456,6 @@ SocketSend(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-SocketSetTypeOfService(
-    _In_ CXPLAT_SOCKET* Socket,
-    _In_ uint8_t TypeOfService
-    )
-{
-    const uint16_t SocketCount =  Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    for (uint16_t i = 0; i < SocketCount; i++) {
-        CXPLAT_SOCKET_CONTEXT* SocketContext = &Socket->SocketContexts[i];
-        int Option = TypeOfService;
-        int if (Config->TypeOfService != 0) {
-            Option = Config->TypeOfService;
-            Result =
-                setsockopt(
-                    SocketContext->SocketFd,
-                    IPPROTO_IP,
-                    IP_TOS,
-                    (const void*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    Status,
-                    "setsockopt(IP_TOS) failed");
-                break;
-            }
-
-            Option = TypeOfService;
-            Result =
-                setsockopt(
-                    SocketContext->SocketFd,
-                    IPPROTO_IPV6,
-                    IPV6_TCLASS,
-                    (const void*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                Status = errno;
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Binding,
-                    Status,
-                    "setsockopt(IPV6_TCLASS) failed");
-                break;
-            }
-        }
-    }
-    return Status;
-}
 //
 // This is defined and used instead of CMSG_NXTHDR because (1) we've already
 // done the work to ensure the necessary space is available and (2) CMSG_NXTHDR
@@ -2572,7 +2479,7 @@ CxPlatSendDataPopulateAncillaryData(
     CMsg->cmsg_level = SendData->LocalAddress.Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
     CMsg->cmsg_type = SendData->LocalAddress.Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
-    *(int*)CMSG_DATA(CMsg) = SendData->ECN;
+    *(int*)CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
 
     if (!SendData->OnConnectedSocket) {
         if (SendData->LocalAddress.Ip.sa_family == AF_INET) {
