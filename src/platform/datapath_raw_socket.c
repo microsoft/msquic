@@ -366,7 +366,7 @@ CxPlatDpRawParseIPv6(
     } VersionClassEcnFlow;
     VersionClassEcnFlow.Value = CxPlatByteSwapUint32(IP->VersionClassEcnFlow);
 
-    Packet->TypeOfService = ((uint8_t)VersionClassEcnFlow.EcnField) | (((uint8_t)VersionClassEcnFlow.Class) << 2);
+    Packet->TypeOfService = ((uint8_t)VersionClassEcnFlow.EcnField) | (uint8_t)(VersionClassEcnFlow.Class << 2);
     Packet->HopLimitTTL = IP->HopLimit;
     Packet->Route->RemoteAddress.Ipv6.sin6_family = AF_INET6;
     CxPlatCopyMemory(&Packet->Route->RemoteAddress.Ipv6.sin6_addr, IP->Source, sizeof(IP->Source));
