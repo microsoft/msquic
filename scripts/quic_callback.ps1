@@ -62,8 +62,17 @@ function Repo-Path {
 if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
     SetLinuxLibPath
+
+    # Check and see if a 'perf_command.txt' file exists. If it does, then we need to prepend the command with the contents of the file.
+    if (Test-Path "perf_command.txt") {
+        Write-Host "Found 'perf_command.txt' file. Prepending the command with the contents of the file."
+        $perf_command = Get-Content "perf_command.txt"
+        Write-Host "Prepending the command with: $perf_command"
+        $env:linux_perf_prefix = $perf_command
+    }
     Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
     Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
@@ -107,7 +116,10 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     } else {
         Write-Host "Preprending the command with 'perf record' to start CPU tracing on linux!"
         $filename = $Command.Split(";")[1]
-        $env:linux_perf_prefix = "perf record -o server-cpu-traces-$filename -- "
+        $write_this_string_to_disk = "perf record -o server-cpu-traces-$filename -- "
+        # now write the string to disk
+        Set-Content -Path "perf_command.txt" -Value $write_this_string_to_disk
+        ls
     }
 } elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
     if ($IsWindows) {
