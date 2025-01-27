@@ -102,34 +102,24 @@ impl Error {
     }
 
     /// Convert from raw ffi error type.
-    pub fn from_raw(ec: QUIC_ERROR) -> Self {
-        Self(ec)
-    }
-
-    /// Temp api to use in manually written ffi code which is going to be
-    /// removed and replaced by auto generated ffi code.
-    /// This api will be replaced by from_raw.
-    pub fn from_u32(ec: u32) -> Self {
-        Self(ec as QUIC_ERROR)
+    pub fn ok_from_raw(ec: QUIC_ERROR) -> Result<(), Self> {
+        let e = Self(ec);
+        if e.is_ok() {
+            Ok(())
+        } else {
+            Err(e)
+        }
     }
 
     /// Return Err if the error is considered a failure.
     /// Ok includes both "no error" and "pending" status codes.
-    pub fn ok(self) -> Result<(), Self> {
+    pub fn is_ok(&self) -> bool {
         // on windows it is signed.
         #[cfg(target_os = "windows")]
-        if self.0 < 0 {
-            Err(self)
-        } else {
-            Ok(())
-        }
+        return self.0 >= 0;
 
         #[cfg(not(target_os = "windows"))]
-        if (self.0 as i32) > 0 {
-            Err(self)
-        } else {
-            Ok(())
-        }
+        return self.0 as i32 <= 0;
     }
 }
 
@@ -201,10 +191,8 @@ mod tests {
 
     #[test]
     fn error_ok_test() {
-        assert!(Error::new(ErrorCode::QUIC_ERROR_ABORTED).ok().is_err());
-        assert!(Error::new(ErrorCode::QUIC_ERROR_SUCCESS).ok().is_ok());
-        assert!(Error::from_raw(ErrorCode::QUIC_ERROR_PENDING as QUIC_ERROR)
-            .ok()
-            .is_ok());
+        assert!(!Error::new(ErrorCode::QUIC_ERROR_ABORTED).is_ok());
+        assert!(Error::new(ErrorCode::QUIC_ERROR_SUCCESS).is_ok());
+        assert!(Error::ok_from_raw(ErrorCode::QUIC_ERROR_PENDING as QUIC_ERROR).is_ok());
     }
 }
