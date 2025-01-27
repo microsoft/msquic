@@ -8,7 +8,7 @@ use c_types::AF_INET6;
 #[allow(unused_imports)]
 use c_types::AF_UNSPEC;
 use c_types::{sa_family_t, sockaddr_in, sockaddr_in6, socklen_t};
-use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_ERROR, QUIC_SETTINGS};
+use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_STATUS, QUIC_SETTINGS};
 use libc::c_void;
 use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
@@ -25,7 +25,7 @@ use std::sync::Once;
 extern crate bitfield;
 mod error;
 pub mod ffi;
-pub use error::{Error, ErrorCode};
+pub use error::{Error, StatusCode};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -1134,7 +1134,7 @@ impl Api {
             START_MSQUIC.call_once(|| {
                 let mut table: *const QUIC_API_TABLE = ptr::null();
                 let status = MsQuicOpenVersion(2, std::ptr::addr_of_mut!(table));
-                if let Err(err) = Error::ok_from_raw(status as QUIC_ERROR) {
+                if let Err(err) = Error::ok_from_raw(status as QUIC_STATUS) {
                     panic!("Failed to open MsQuic: {}", err);
                 }
                 APITABLE = table;
@@ -1849,7 +1849,7 @@ mod tests {
     use std::ffi::c_void;
     use std::ptr;
 
-    use crate::ffi::{HQUIC, QUIC_ERROR};
+    use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
         ffi, Buffer, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
         Settings, Stream, StreamEvent,
@@ -1859,7 +1859,7 @@ mod tests {
         _connection: HQUIC,
         context: *mut c_void,
         event: *mut ffi::QUIC_CONNECTION_EVENT,
-    ) -> QUIC_ERROR {
+    ) -> QUIC_STATUS {
         let connection = unsafe { &*(context as *const Connection) };
         let event = unsafe { (event as *const ConnectionEvent).as_ref().unwrap() };
         match event.event_type {
