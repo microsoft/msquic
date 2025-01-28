@@ -337,7 +337,7 @@ function Wait-StartRemoteServerPassive {
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo ""
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -351,7 +351,7 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo, $LinuxPerfPrefix)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($isWindows) {
         $pinfo.FileName = $FullPath
@@ -359,13 +359,13 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $LinuxPerfPrefix$FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"$env:linux_perf_prefix$CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"$env:linux_perf_prefix$CommonCommand`""
+            $pinfo.Arguments = "-c `"$CommonCommand`""
         }
         $pinfo.WorkingDirectory = $OutputDir
     }
@@ -641,7 +641,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo $env:linux_perf_prefix
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
