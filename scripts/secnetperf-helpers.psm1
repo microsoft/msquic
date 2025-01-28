@@ -352,6 +352,7 @@ function Wait-StartRemoteServerPassive {
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
     param ($FullPath, $FullArgs, $OutputDir, $UseSudo, $LinuxPerfPrefix)
+    Write-Host "Starting Localtest with LinuxPerfPrefix: $LinuxPerfPrefix"
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($isWindows) {
         $pinfo.FileName = $FullPath
@@ -621,7 +622,7 @@ function Invoke-Secnetperf {
             if ($IsWindows) {
                 wpr -start CPU
             } else {
-                $env:linux_perf_prefix = "sudo perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
+                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
             }
             NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
             NetperfWaitServerFinishExecution
@@ -641,6 +642,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
+            Write-Host "About to start localtest with linux_perf_prefix: $env:linux_perf_prefix"
             $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo $env:linux_perf_prefix
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
