@@ -362,10 +362,10 @@ function Start-LocalTest {
         $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
-            $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
+            $pinfo.Arguments = "/usr/bin/bash -c `"$env:linux_perf_prefix$CommonCommand`""
         } else {
             $pinfo.FileName = "bash"
-            $pinfo.Arguments = "-c `"$CommonCommand`""
+            $pinfo.Arguments = "-c `"$env:linux_perf_prefix$CommonCommand`""
         }
         $pinfo.WorkingDirectory = $OutputDir
     }
