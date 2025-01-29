@@ -518,11 +518,61 @@ ZwRemoveIoCompletionEx (
     IN BOOLEAN Alertable
     );
 
+typedef struct _IO_MINI_COMPLETION_PACKET_USER IO_MINI_COMPLETION_PACKET_USER, *PIO_MINI_COMPLETION_PACKET_USER;
+
+typedef
+VOID
+IO_MINI_PACKET_CALLBACK_ROUTINE(
+    _In_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
+    _In_opt_ PVOID Context
+);
+
+typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
+
+struct _IO_MINI_COMPLETION_PACKET_USER {
+    LIST_ENTRY ListEntry;
+    ULONG PacketType;
+    PVOID KeyContext;
+    PVOID ApcContext;
+    NTSTATUS IoStatus;
+    ULONG_PTR IoStatusInformation;
+    PIO_MINI_PACKET_CALLBACK_ROUTINE MiniPacketCallback;
+    PVOID Context;
+    BOOLEAN Allocated;
+};
+
+NTSTATUS
+IoSetIoCompletionEx (
+    __in PVOID IoCompletion,
+    __in_opt PVOID KeyContext,
+    __in_opt PVOID ApcContext,
+    __in NTSTATUS IoStatus,
+    __in ULONG_PTR IoStatusInformation,
+    __in BOOLEAN Quota,
+    __in_opt PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+PIO_MINI_COMPLETION_PACKET_USER
+IoAllocateMiniCompletionPacket(
+    __in PIO_MINI_PACKET_CALLBACK_ROUTINE CallbackRoutine,
+    __in_opt PVOID Context
+    );
+
+VOID
+IoFreeMiniCompletionPacket(
+    __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
 //
 // Event Queue Interfaces
 //
 
-typedef HANDLE CXPLAT_EVENTQ;
+typedef struct CXPLAT_EVENTQ {
+    HANDLE Handle;
+    PKQUEUE IoCompletion;
+    PIO_MINI_COMPLETION_PACKET_USER miniPacket;
+} CXPLAT_EVENTQ;
+
 typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
 
 typedef
@@ -536,6 +586,16 @@ typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
+
+inline
+VOID
+IoMiniPacketCallbackRoutinePlaceholder (
+    _In_ struct _IO_MINI_COMPLETION_PACKET_USER * MiniPacket,
+    _In_opt_ PVOID Context
+) {
+    UNREFERENCED_PARAMETER(MiniPacket);
+    UNREFERENCED_PARAMETER(Context);
+}
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
@@ -552,7 +612,31 @@ CxPlatEventQInitialize(
                                /* RootDirectory */ NULL,
                                /* SecurityAttributes */ NULL);
 
-    return NT_SUCCESS(ZwCreateIoCompletion(queue, IO_COMPLETION_ALL_ACCESS, &KernelObjectAttributes, 0));
+    NTSTATUS Status = ZwCreateIoCompletion(&queue->Handle, IO_COMPLETION_ALL_ACCESS, &KernelObjectAttributes, 0);
+
+    if (!NT_SUCCESS(Status)) {
+        queue->Handle = NULL;
+        return FALSE;
+    }
+
+    Status = ObReferenceObjectByHandle(queue->Handle,
+                                       IO_COMPLETION_ALL_ACCESS,
+                                       NULL,
+                                       KernelMode,
+                                       (PVOID*)&queue->IoCompletion,
+                                       NULL);
+    if (!NT_SUCCESS(Status)) {
+        NtClose(queue->Handle);
+        return FALSE;
+    }
+
+    queue->miniPacket = IoAllocateMiniCompletionPacket(IoMiniPacketCallbackRoutinePlaceholder, NULL);
+    if (queue->miniPacket == NULL) {
+        NtClose(queue->Handle);
+        return FALSE;
+    }
+
+    return NT_SUCCESS(Status);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -562,7 +646,8 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    NtClose(*queue);
+    IoFreeMiniCompletionPacket(queue->miniPacket);
+    NtClose(queue->Handle);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -573,7 +658,7 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    return NT_SUCCESS(ZwSetIoCompletion(*queue, NULL, sqe, STATUS_SUCCESS, 0));
+    return NT_SUCCESS(IoSetIoCompletionEx(queue->IoCompletion, 0, sqe, STATUS_SUCCESS, 0, FALSE, queue->miniPacket));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -591,7 +676,7 @@ CxPlatEventQDequeue(
     if (wait_time == UINT32_MAX) {
         status =
             ZwRemoveIoCompletionEx(
-                *queue,
+                queue->Handle,
                 events,
                 count,
                 &entriesRemoved,
@@ -602,7 +687,7 @@ CxPlatEventQDequeue(
         timeout.QuadPart = -10000LL * wait_time;
         status =
             ZwRemoveIoCompletionEx(
-                *queue,
+                queue->Handle,
                 events,
                 count,
                 &entriesRemoved,
