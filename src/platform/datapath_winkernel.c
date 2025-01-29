@@ -279,7 +279,7 @@ CxPlatSendBufferPoolAlloc(
         0, \
         Size, \
         Tag, \
-        0)
+        1024)
 
 IO_COMPLETION_ROUTINE CxPlatDataPathIoCompletion;
 

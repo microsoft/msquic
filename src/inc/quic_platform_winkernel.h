@@ -265,7 +265,7 @@ typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
         0, \
         Size, \
         Tag, \
-        0)
+        1024)
 
 #define CxPlatPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
 #define CxPlatPoolAlloc(Pool) ExAllocateFromLookasideListEx(Pool)
