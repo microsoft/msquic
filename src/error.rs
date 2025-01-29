@@ -1,17 +1,17 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ffi::QUIC_ERROR;
+use crate::ffi::QUIC_STATUS;
 
-/// Defines quic error code enum and its conversion
+/// Defines quic error status enum and its conversion
 /// to raw type using macro.
-macro_rules! define_quic_error_code{
+macro_rules! define_quic_status_code{
   ($( $code1:ident ),*) =>{
     /// Enum of quic status codes.
     #[allow(non_camel_case_types)]
     #[derive(Debug, Clone, PartialEq)]
     #[repr(u32)]
-    pub enum ErrorCode {
+    pub enum StatusCode {
       $(
         $code1 = crate::ffi::$code1 as u32,
       )*
@@ -19,14 +19,14 @@ macro_rules! define_quic_error_code{
 
     /// Convert from ffi type to enum.
     /// Conversion failes when the status value is not a quic status.
-    impl std::convert::TryFrom<crate::ffi::QUIC_ERROR> for ErrorCode {
+    impl std::convert::TryFrom<crate::ffi::QUIC_STATUS> for StatusCode {
       type Error = &'static str;
-      fn try_from(value: crate::ffi::QUIC_ERROR) -> Result<Self, Self::Error> {
+      fn try_from(value: crate::ffi::QUIC_STATUS) -> Result<Self, Self::Error> {
           match value {
               $(
                 crate::ffi::$code1 => Ok(Self::$code1),
               )*
-              _ => Err("Unknown QUIC_ERROR")
+              _ => Err("Unknown QUIC_STATUS")
           }
       }
     }
@@ -34,52 +34,52 @@ macro_rules! define_quic_error_code{
 }
 
 // defines all quic error codes.
-define_quic_error_code!(
-    QUIC_ERROR_SUCCESS,
-    QUIC_ERROR_PENDING,
-    QUIC_ERROR_CONTINUE,
-    QUIC_ERROR_OUT_OF_MEMORY,
-    QUIC_ERROR_INVALID_PARAMETER,
-    QUIC_ERROR_INVALID_STATE,
-    QUIC_ERROR_NOT_SUPPORTED,
-    QUIC_ERROR_NOT_FOUND,
-    QUIC_ERROR_BUFFER_TOO_SMALL,
-    QUIC_ERROR_HANDSHAKE_FAILURE,
-    QUIC_ERROR_ABORTED,
-    QUIC_ERROR_ADDRESS_IN_USE,
-    QUIC_ERROR_INVALID_ADDRESS,
-    QUIC_ERROR_CONNECTION_TIMEOUT,
-    QUIC_ERROR_CONNECTION_IDLE,
-    QUIC_ERROR_UNREACHABLE,
-    QUIC_ERROR_INTERNAL_ERROR,
-    QUIC_ERROR_CONNECTION_REFUSED,
-    QUIC_ERROR_PROTOCOL_ERROR,
-    QUIC_ERROR_VER_NEG_ERROR,
-    QUIC_ERROR_TLS_ERROR,
-    QUIC_ERROR_USER_CANCELED,
-    QUIC_ERROR_ALPN_NEG_FAILURE,
-    QUIC_ERROR_STREAM_LIMIT_REACHED,
-    QUIC_ERROR_ALPN_IN_USE,
-    QUIC_ERROR_CLOSE_NOTIFY,
-    QUIC_ERROR_BAD_CERTIFICATE,
-    QUIC_ERROR_UNSUPPORTED_CERTIFICATE,
-    QUIC_ERROR_REVOKED_CERTIFICATE,
-    QUIC_ERROR_EXPIRED_CERTIFICATE,
-    QUIC_ERROR_UNKNOWN_CERTIFICATE,
-    QUIC_ERROR_REQUIRED_CERTIFICATE,
-    QUIC_ERROR_CERT_EXPIRED,
-    QUIC_ERROR_CERT_UNTRUSTED_ROOT,
-    QUIC_ERROR_CERT_NO_CERT
+define_quic_status_code!(
+    QUIC_STATUS_SUCCESS,
+    QUIC_STATUS_PENDING,
+    QUIC_STATUS_CONTINUE,
+    QUIC_STATUS_OUT_OF_MEMORY,
+    QUIC_STATUS_INVALID_PARAMETER,
+    QUIC_STATUS_INVALID_STATE,
+    QUIC_STATUS_NOT_SUPPORTED,
+    QUIC_STATUS_NOT_FOUND,
+    QUIC_STATUS_BUFFER_TOO_SMALL,
+    QUIC_STATUS_HANDSHAKE_FAILURE,
+    QUIC_STATUS_ABORTED,
+    QUIC_STATUS_ADDRESS_IN_USE,
+    QUIC_STATUS_INVALID_ADDRESS,
+    QUIC_STATUS_CONNECTION_TIMEOUT,
+    QUIC_STATUS_CONNECTION_IDLE,
+    QUIC_STATUS_UNREACHABLE,
+    QUIC_STATUS_INTERNAL_ERROR,
+    QUIC_STATUS_CONNECTION_REFUSED,
+    QUIC_STATUS_PROTOCOL_ERROR,
+    QUIC_STATUS_VER_NEG_ERROR,
+    QUIC_STATUS_TLS_ERROR,
+    QUIC_STATUS_USER_CANCELED,
+    QUIC_STATUS_ALPN_NEG_FAILURE,
+    QUIC_STATUS_STREAM_LIMIT_REACHED,
+    QUIC_STATUS_ALPN_IN_USE,
+    QUIC_STATUS_CLOSE_NOTIFY,
+    QUIC_STATUS_BAD_CERTIFICATE,
+    QUIC_STATUS_UNSUPPORTED_CERTIFICATE,
+    QUIC_STATUS_REVOKED_CERTIFICATE,
+    QUIC_STATUS_EXPIRED_CERTIFICATE,
+    QUIC_STATUS_UNKNOWN_CERTIFICATE,
+    QUIC_STATUS_REQUIRED_CERTIFICATE,
+    QUIC_STATUS_CERT_EXPIRED,
+    QUIC_STATUS_CERT_UNTRUSTED_ROOT,
+    QUIC_STATUS_CERT_NO_CERT
 );
 
-impl From<ErrorCode> for QUIC_ERROR {
-    fn from(value: ErrorCode) -> Self {
-        value as QUIC_ERROR
+impl From<StatusCode> for QUIC_STATUS {
+    fn from(value: StatusCode) -> Self {
+        value as QUIC_STATUS
     }
 }
 
 /// The display string is the same as the debug string, i.e. the enum string.
-impl core::fmt::Display for ErrorCode {
+impl core::fmt::Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         core::write!(f, "{:?}", self)
     }
@@ -88,21 +88,21 @@ impl core::fmt::Display for ErrorCode {
 /// Quic error used in non-ffi code.
 /// Internal representation matches the os platfrom type.
 #[derive(Clone)]
-pub struct Error(pub QUIC_ERROR);
+pub struct Error(pub QUIC_STATUS);
 
 impl Error {
     /// Create an error from enum.
-    pub fn new(ec: ErrorCode) -> Self {
-        Self(ec as QUIC_ERROR)
+    pub fn new(ec: StatusCode) -> Self {
+        Self(ec as QUIC_STATUS)
     }
     /// Convert to error code if possible.
-    pub fn try_as_error_code(&self) -> Result<ErrorCode, &str> {
+    pub fn try_as_error_code(&self) -> Result<StatusCode, &str> {
         use std::convert::TryFrom;
-        ErrorCode::try_from(self.0 as QUIC_ERROR)
+        StatusCode::try_from(self.0 as QUIC_STATUS)
     }
 
     /// Convert from raw ffi error type.
-    pub fn ok_from_raw(ec: QUIC_ERROR) -> Result<(), Self> {
+    pub fn ok_from_raw(ec: QUIC_STATUS) -> Result<(), Self> {
         let e = Self(ec);
         if e.is_ok() {
             Ok(())
@@ -125,14 +125,14 @@ impl Error {
 
 impl std::error::Error for Error {}
 
-impl From<QUIC_ERROR> for Error {
-    fn from(value: QUIC_ERROR) -> Self {
+impl From<QUIC_STATUS> for Error {
+    fn from(value: QUIC_STATUS) -> Self {
         Self(value)
     }
 }
 
-impl From<ErrorCode> for Error {
-    fn from(value: ErrorCode) -> Self {
+impl From<StatusCode> for Error {
+    fn from(value: StatusCode) -> Self {
         Self::new(value)
     }
 }
@@ -170,29 +170,29 @@ impl core::fmt::Display for Error {
 
 #[cfg(test)]
 mod tests {
-    use crate::ffi::QUIC_ERROR;
+    use crate::ffi::QUIC_STATUS;
 
-    use super::{Error, ErrorCode};
+    use super::{Error, StatusCode};
 
     #[test]
     fn error_fmt_test() {
-        let err = Error::new(ErrorCode::QUIC_ERROR_ABORTED);
+        let err = Error::new(StatusCode::QUIC_STATUS_ABORTED);
         // message is platform dependent.
         #[cfg(target_os = "windows")]
-        assert_eq!(format!("{err}"), "QUIC_ERROR_ABORTED (0x80004004)");
+        assert_eq!(format!("{err}"), "QUIC_STATUS_ABORTED (0x80004004)");
         #[cfg(target_os = "windows")]
         assert_eq!(
             format!("{err:?}"),
-            "Error { code: 0x80004004, message: QUIC_ERROR_ABORTED }"
+            "Error { code: 0x80004004, message: QUIC_STATUS_ABORTED }"
         );
         let ec = err.try_as_error_code().unwrap();
-        assert_eq!(format!("{ec}"), "QUIC_ERROR_ABORTED");
+        assert_eq!(format!("{ec}"), "QUIC_STATUS_ABORTED");
     }
 
     #[test]
     fn error_ok_test() {
-        assert!(!Error::new(ErrorCode::QUIC_ERROR_ABORTED).is_ok());
-        assert!(Error::new(ErrorCode::QUIC_ERROR_SUCCESS).is_ok());
-        assert!(Error::ok_from_raw(ErrorCode::QUIC_ERROR_PENDING as QUIC_ERROR).is_ok());
+        assert!(!Error::new(StatusCode::QUIC_STATUS_ABORTED).is_ok());
+        assert!(Error::new(StatusCode::QUIC_STATUS_SUCCESS).is_ok());
+        assert!(Error::ok_from_raw(StatusCode::QUIC_STATUS_PENDING as QUIC_STATUS).is_ok());
     }
 }
