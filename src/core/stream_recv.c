@@ -793,18 +793,19 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
-                QuicTraceLogStreamVerbose(
-                    IncreaseRxBuffer,
-                    Stream,
-                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                    Stream->RecvBuffer.VirtualBufferLength * 2,
-                    Stream->Connection->Paths[0].MinRtt,
-                    TimeNow,
-                    Stream->RecvWindowLastUpdate);
-
-                QuicRecvBufferIncreaseVirtualBufferLength(
+                if (QuicRecvBufferTryIncreaseVirtualBufferLength(
                     &Stream->RecvBuffer,
-                    Stream->RecvBuffer.VirtualBufferLength * 2);
+                    Stream->RecvBuffer.VirtualBufferLength * 2)) {
+
+                    QuicTraceLogStreamVerbose(
+                        IncreaseRxBuffer,
+                        Stream,
+                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                        Stream->RecvBuffer.VirtualBufferLength * 2,
+                        Stream->Connection->Paths[0].MinRtt,
+                        TimeNow,
+                        Stream->RecvWindowLastUpdate);
+                }
             }
         }
 
@@ -873,6 +874,7 @@ QuicStreamRecvFlush(
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
+        // TODO guhetier: Need to allocate a variable nb of buffers
         QUIC_BUFFER RecvBuffers[3];
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
