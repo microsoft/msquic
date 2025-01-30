@@ -92,10 +92,6 @@ jobs:
           { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-amd64", xdp: "-UseXdp", dotnetVersion: "9.0" },
           { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm32v7", dotnetVersion: "9.0" },
           { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm64v8", dotnetVersion: "9.0" },
-          # Ubuntu 22.04
-          { friendlyName: "Ubuntu 22.04 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-amd64", dotnetVersion: "8.0" },
-          { friendlyName: "Ubuntu 22.04 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-arm32v7", dotnetVersion: "8.0" },
-          { friendlyName: "Ubuntu 22.04 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:8.0-jammy-arm64v8", dotnetVersion: "8.0" },
           # Ubuntu 20.04
           { friendlyName: "Ubuntu 20.04 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "openssl", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:ubuntu-20.04-helix-amd64", dotnetVersion: "9.0" },
           { friendlyName: "Ubuntu 20.04 ARM64", config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:ubuntu-20.04-helix-arm64v8", dotnetVersion: "9.0" },
@@ -103,9 +99,6 @@ jobs:
           { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-amd64", dotnetVersion: "9.0" },
           { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm32v7", dotnetVersion: "9.0" },
           { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm64v8", dotnetVersion: "9.0" },
-          # CBL-Mariner 2.0
-          { friendlyName: "CBL-Mariner 2.0 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "openssl", image: "mcr.microsoft.com/dotnet/runtime:8.0-cbl-mariner2.0-amd64", dotnetVersion: "8.0" },
-          { friendlyName: "CBL-Mariner 2.0 ARM64", config: "Release", os: "ubuntu-20.04", arch: "arm64",   tls: "openssl", image: "mcr.microsoft.com/dotnet/runtime:8.0-cbl-mariner2.0-arm64v8", dotnetVersion: "8.0" },
           # Azure Linux 3.0
           { friendlyName: "AzureLinux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-amd64", dotnetVersion: "9.0", xdp: "-UseXdp" },
           { friendlyName: "AzureLinux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64",   tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-arm64v8", dotnetVersion: "9.0" },
