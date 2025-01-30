@@ -47,8 +47,7 @@ struct RecvBuffer {
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
 
-        auto Result = QUIC_STATUS_SUCCESS;
-        Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
+        auto Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
         if (Result != QUIC_STATUS_SUCCESS) {
             return Result;
         }
@@ -72,9 +71,7 @@ struct RecvBuffer {
                 CxPlatListInsertTail(&ChunkList, &Chunk2->Link);
             }
             Result = QuicRecvBufferProvideChunks(&RecvBuf, &ChunkList);
-        }
-        else
-        {
+        } else {
             Result = QuicRecvBufferInitialize(&RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
         }
 

@@ -212,12 +212,6 @@ QuicRecvBufferProvideChunks(
          Link = Link->Flink) {
         QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(Link, QUIC_RECV_CHUNK, Link);
         NewBufferLength += Chunk->AllocLength;
-        if (NewBufferLength < Chunk->AllocLength) {
-            //
-            // Overflow: we can't handle that much buffer space.
-            //
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
     }
 
     if (NewBufferLength > MAXUINT32) {
@@ -233,8 +227,8 @@ QuicRecvBufferProvideChunks(
         //
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
-        QUIC_RECV_CHUNK* firstChunk = CXPLAT_CONTAINING_RECORD(Chunks->Flink, QUIC_RECV_CHUNK, Link);
-        RecvBuffer->Capacity = firstChunk->AllocLength;
+        QUIC_RECV_CHUNK* FirstChunk = CXPLAT_CONTAINING_RECORD(Chunks->Flink, QUIC_RECV_CHUNK, Link);
+        RecvBuffer->Capacity = FirstChunk->AllocLength;
     }
 
     RecvBuffer->VirtualBufferLength = (uint32_t)NewBufferLength;
@@ -255,17 +249,21 @@ QuicRecvBufferResize(
     _In_ uint32_t TargetBufferLength
     )
 {
-    CXPLAT_DBG_ASSERTMSG(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL, "Should never resize in External mode");
+    CXPLAT_DBG_ASSERTMSG(
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL,
+        "Should never resize in External mode");
     CXPLAT_DBG_ASSERT(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
+    // Should always have at least one chunk
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
     QUIC_RECV_CHUNK* LastChunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Blink,
             QUIC_RECV_CHUNK,
             Link);
-    CXPLAT_DBG_ASSERT(TargetBufferLength > LastChunk->AllocLength); // Should only be called when buffer needs to grow
+    // Should only be called when buffer needs to grow
+    CXPLAT_DBG_ASSERT(TargetBufferLength > LastChunk->AllocLength);
     BOOLEAN LastChunkIsFirst = LastChunk->Link.Blink == &RecvBuffer->Chunks;
 
     QUIC_RECV_CHUNK* NewChunk =
@@ -734,13 +732,13 @@ QuicRecvBufferRead(
     CXPLAT_DBG_ASSERT(QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0) != NULL); // Only fail if you call read before write indicates read ready.
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
     //
-    // Only MULTIPLE mode allows concurrent reads
+    // Only multiple mode allows concurrent reads
     //
     CXPLAT_DBG_ASSERT(
         RecvBuffer->ReadPendingLength == 0 ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
     //
-    // Only MULTIPLE and EXTERNAL modes can have multiple chunks at read time.
+    // Only multiple and external modes can have multiple chunks at read time.
     // Other modes would coalesce chunks during a write or drain.
     //
     CXPLAT_DBG_ASSERT(
@@ -1033,7 +1031,7 @@ QuicRecvBufferPartialDrain(
 
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
         //
-        // In EXTERNAL mode, memory is never re-used: a drain consumes
+        // In external mode, memory is never re-used: a drain consumes
         // virtual buffer length.
         //
         RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
@@ -1070,7 +1068,7 @@ QuicRecvBufferFullDrain(
     }
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
         //
-        // In EXTERNAL mode, memory is never re-used: a drain consumes
+        // In external mode, memory is never re-used: a drain consumes
         // virtual buffer length.
         //
         RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
@@ -1088,7 +1086,7 @@ QuicRecvBufferFullDrain(
 
         if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
             //
-            // In EXTERNAL mode, external chunks are never re-used:
+            // In external mode, external chunks are never re-used:
             // free the last chunk.
             //
             CxPlatListEntryRemove(&Chunk->Link);
