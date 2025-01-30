@@ -50,7 +50,7 @@ jobs:
     runs-on:
      - self-hosted
      - "1ES.Pool=1es-msquic-pool"
-     - "1ES.ImageOverride=WinServerPrerelease"
+     - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
     steps:
     - uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
       with:
@@ -93,7 +93,7 @@ jobs:
     runs-on:
     - self-hosted
     - "1ES.Pool=1es-msquic-pool"
-    - "1ES.ImageOverride=WinServerPrerelease"
+    - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
     env:
       main-timeout: 3600000
       main-repeat: 100
@@ -143,7 +143,7 @@ jobs:
     runs-on:
     - self-hosted
     - "1ES.Pool=1es-msquic-pool"
-    - "1ES.ImageOverride=WinServerPrerelease"
+    - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
     env:
       main-timeout: 3600000
       pr-timeout: 600000
