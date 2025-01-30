@@ -28,9 +28,6 @@ jobs:
       matrix:
         vec: [
           { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
-          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm64v8" },
-          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
-          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm32v7" },
         ]
     runs-on: ubuntu-latest
     steps:
@@ -63,9 +60,6 @@ jobs:
       matrix:
         vec: [
           { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
-          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm64v8", dotnetVersion: "9.0" },
-          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
-          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm32v7", dotnetVersion: "9.0" },
         ]
     runs-on: ubuntu-latest
     steps:
