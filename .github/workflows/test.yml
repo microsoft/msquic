@@ -116,7 +116,7 @@ jobs:
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
-    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
+    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -176,7 +176,7 @@ jobs:
           { config: "Debug", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
-    runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease'']') || matrix.vec.os }}
+    runs-on: ${{ matrix.vec.plat == 'winkernel' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
@@ -223,7 +223,7 @@ jobs:
     runs-on:
     - self-hosted
     - "1ES.Pool=1es-msquic-pool"
-    - "1ES.ImageOverride=WinServerPrerelease"
+    - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
     steps:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
