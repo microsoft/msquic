@@ -498,17 +498,6 @@ ZwCreateIoCompletion (
 NTSYSAPI
 NTSTATUS
 NTAPI
-ZwSetIoCompletion (
-    IN HANDLE IoCompletionHandle,
-    IN PVOID KeyContext,
-    IN PVOID ApcContext,
-    IN NTSTATUS IoStatus,
-    IN ULONG_PTR IoStatusInformation
-    );
-
-NTSYSAPI
-NTSTATUS
-NTAPI
 ZwRemoveIoCompletionEx (
     IN HANDLE IoCompletionHandle,
     OUT PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
@@ -528,18 +517,6 @@ IO_MINI_PACKET_CALLBACK_ROUTINE(
 );
 
 typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
-
-struct _IO_MINI_COMPLETION_PACKET_USER {
-    LIST_ENTRY ListEntry;
-    ULONG PacketType;
-    PVOID KeyContext;
-    PVOID ApcContext;
-    NTSTATUS IoStatus;
-    ULONG_PTR IoStatusInformation;
-    PIO_MINI_PACKET_CALLBACK_ROUTINE MiniPacketCallback;
-    PVOID Context;
-    BOOLEAN Allocated;
-};
 
 NTSTATUS
 IoSetIoCompletionEx (
