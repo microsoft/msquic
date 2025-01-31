@@ -605,15 +605,18 @@ CxPlatEventQInitialize(
     )
 {
     OBJECT_ATTRIBUTES KernelObjectAttributes;
-
     InitializeObjectAttributes(&KernelObjectAttributes,
                                /* ObjectName */ NULL,
                                /* AttributesFlag */ OBJ_KERNEL_HANDLE,
                                /* RootDirectory */ NULL,
                                /* SecurityAttributes */ NULL);
 
-    NTSTATUS Status = ZwCreateIoCompletion(&queue->Handle, IO_COMPLETION_ALL_ACCESS, &KernelObjectAttributes, 0);
-
+    NTSTATUS Status =
+        ZwCreateIoCompletion(
+            &queue->Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            &KernelObjectAttributes,
+            0);
     if (!NT_SUCCESS(Status)) {
         queue->Handle = NULL;
         return FALSE;
