@@ -6623,15 +6623,13 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
-    case QUIC_PARAM_CONN_DSCP:
-    {
+    case QUIC_PARAM_CONN_SEND_DSCP: {
         if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
 
-        uint8_t DSCP = 0;
-        CxPlatCopyMemory(&DSCP, Buffer, BufferLength);
+        uint8_t DSCP = *(uint8_t*)Buffer;
 
         if (DSCP > CXPLAT_MAX_DSCP) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -7258,7 +7256,7 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-     case QUIC_PARAM_CONN_DSCP:
+     case QUIC_PARAM_CONN_SEND_DSCP:
 
         if (*BufferLength < sizeof(Connection->DSCP)) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;

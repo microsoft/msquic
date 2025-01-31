@@ -3447,8 +3447,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_ORIG_DEST_CID 0x05000018")]
         internal const uint QUIC_PARAM_CONN_ORIG_DEST_CID = 0x05000018;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_DSCP 0x50000019")]
-        internal const uint QUIC_PARAM_CONN_DSCP = 0x50000019;
+        [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x50000019")]
+        internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x50000019;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

@@ -538,7 +538,7 @@ CxPlatDpRawSocketAckFin(
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
 
     CXPLAT_ROUTE* Route = Packet->Route;
-    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;
@@ -577,7 +577,7 @@ CxPlatDpRawSocketAckSyn(
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
 
     CXPLAT_ROUTE* Route = Packet->Route;
-    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;
@@ -660,7 +660,7 @@ CxPlatDpRawSocketSyn(
     )
 {
     CXPLAT_DBG_ASSERT(Socket->UseTcp);
-    CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
         return;

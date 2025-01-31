@@ -644,7 +644,7 @@ CxPlatDataPathQuerySockoptSupport(
             break;
         }
 
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_DSCP;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
 
     } while (FALSE);
 
@@ -2070,7 +2070,7 @@ CxPlatDataPathSocketReceive(
         SOCKADDR_INET LocalAddr = { 0 };
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
-        INT TOS = 0;
+        INT ECN = 0;
         INT HopLimitTTL = 0;
 
         //
@@ -2100,9 +2100,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
-                } else if (CMsg->cmsg_type == IPV6_TCLASS) {
-                    TOS = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(TOS <= UINT8_MAX);
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
@@ -2123,9 +2123,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
-                } else if (CMsg->cmsg_type == IP_TOS) {
-                    TOS = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(TOS <= UINT8_MAX);
+                } else if (CMsg->cmsg_type == IP_ECN) {
+                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IP_TTL) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
@@ -2295,7 +2295,7 @@ CxPlatDataPathSocketReceive(
             Datagram->IoBlock = IoBlock;
             Datagram->Data.Next = NULL;
             Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
-            Datagram->Data.TypeOfService = (uint8_t)TOS;
+            Datagram->Data.TypeOfService = (uint8_t)ECN;
             Datagram->Data.HopLimitTTL = (uint8_t)HopLimitTTL;
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
@@ -2973,7 +2973,7 @@ SocketSend(
         *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
     }
 
-    if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_DSCP) {
+    if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
         CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
         CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
         CMsg->cmsg_level =
