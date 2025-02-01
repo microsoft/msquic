@@ -717,8 +717,65 @@ QuicRecvBufferWrite(
     return QUIC_STATUS_SUCCESS;
 }
 
-// TODO guhetier: This could return the number of buffers needed / extra buffer needed?
-//     For now, only fill up to the number of provided buffer and follow up
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicRecvBufferReadBufferNeededCount(
+    _In_ const QUIC_RECV_BUFFER* RecvBuffer
+)
+{
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
+        //
+        // Single mode only ever need one buffer, that's what it's designed for.
+        //
+        return 1;
+    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
+        //
+        // Circular mode need up to two buffers to deal with wrap around.
+        //
+        return 2;
+    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+        //
+        // Multiple mode need up to three buffers to deal with wrap around and a
+        // potential second chunk for overflow data.
+        //
+        return 3;
+    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL
+        //
+        // External mode can need any number of buffer, we must count.
+        //
+
+        //
+        // Determine how much data is readable
+        //
+        const QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+        const uint64_t ReadableData = FirstRange->Count - RecvBuffer->BaseOffset;
+
+        //
+        // Iterate through the chunks until they can contain all the readable data,
+        // to find the number of buffers needed.
+        //
+        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+        QUIC_RECV_CHUNK* Chunk =
+            CXPLAT_CONTAINING_RECORD(
+                RecvBuffer->Chunks.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        uint32_t DataInChunks = RecvBuffer->Capacity;
+        uint32_t BufferCount = 1;
+
+        while (ReadableData > DataInChunks) {
+            Chunk =
+                CXPLAT_CONTAINING_RECORD(
+                    Chunk->Link.Flink,
+                    QUIC_RECV_CHUNK,
+                    Link);
+            DataInChunks += Chunk->AllocLength;
+            BufferCount++;
+        }
+        return BufferCount;
+    }
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvBufferRead(
@@ -765,7 +822,6 @@ QuicRecvBufferRead(
                 Link);
         CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
-        CXPLAT_DBG_ASSERT(*BufferCount >= 1);
         CXPLAT_DBG_ASSERT(ContiguousLength <= (uint64_t)Chunk->AllocLength);
 
         *BufferCount = 1;

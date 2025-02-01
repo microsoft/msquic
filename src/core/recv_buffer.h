@@ -178,6 +178,16 @@ QuicRecvBufferWrite(
     );
 
 //
+// Returns how many QUIC_BUFFERs should be passed to `QuicRecvBufferRead` to
+// read all the available data in the buffer.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicRecvBufferReadBufferNeededCount(
+    _In_ const QUIC_RECV_BUFFER *RecvBuffer
+    );
+
+//
 // Returns a pointer into the buffer for data ready to be delivered to the
 // client.
 //

@@ -119,6 +119,8 @@ QuicOperationFree(
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
+        } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS) {
+            QuicStreamRelease(ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream, QUIC_STREAM_REF_OPERATION);
         }
         CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {

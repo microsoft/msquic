@@ -870,29 +870,55 @@ QuicStreamRecvFlush(
         return;
     }
 
+    //
+    // Have 3 buffers one the stack, it's enough for most use cases.
+    //
+    QUIC_BUFFER StackRecvBuffers[3];
+    QUIC_BUFFER *RecvBuffers = StackRecvBuffers;
+    uint32_t RecvBufferCount = ARRAYSIZE(StackRecvBuffers);
+
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
-        // TODO guhetier: Need to allocate a variable nb of buffers
-        QUIC_BUFFER RecvBuffers[3];
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
-        Event.RECEIVE.BufferCount = ARRAYSIZE(RecvBuffers);
-        Event.RECEIVE.Buffers = RecvBuffers;
+        Event.RECEIVE.BufferCount = ARRAYSIZE(StackRecvBuffers);
+        Event.RECEIVE.Buffers = StackRecvBuffers;
 
         //
         // Try to read the next available buffers.
         //
         BOOLEAN DataAvailable = QuicRecvBufferHasUnreadData(&Stream->RecvBuffer);
         if (DataAvailable) {
+            uint32_t NumBuffersNeeded = QuicRecvBufferReadBufferNeededCount(&Stream->RecvBuffer);
+            if (NumBuffersNeeded > RecvBufferCount) {
+                //
+                // We need more buffer than what we have currently, allocate them.
+                // If the allocation fails, we read what we can with the buffers we have.
+                //
+                QUIC_BUFFER* NewRecvBuffers =
+                    CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) * NumBuffersNeeded, QUIC_POOL_RECVBUF);
+
+                if (NewRecvBuffers != NULL) {
+                    if (RecvBuffers != StackRecvBuffers) {
+                        CXPLAT_FREE(RecvBuffers, QUIC_POOL_RECVBUF);
+                    }
+                    RecvBuffers = NewRecvBuffers;
+                    RecvBufferCount = NumBuffersNeeded;
+                }
+            }
+
+            Event.RECEIVE.Buffers = RecvBuffers;
+            Event.RECEIVE.BufferCount = RecvBufferCount;
+
             QuicRecvBufferRead(
                 &Stream->RecvBuffer,
                 &Event.RECEIVE.AbsoluteOffset,
                 &Event.RECEIVE.BufferCount,
                 RecvBuffers);
             for (uint32_t i = 0; i < Event.RECEIVE.BufferCount; ++i) {
-                Event.RECEIVE.TotalBufferLength += RecvBuffers[i].Length;
+                Event.RECEIVE.TotalBufferLength += Event.RECEIVE.Buffers[i].Length;
             }
             CXPLAT_DBG_ASSERT(Event.RECEIVE.TotalBufferLength != 0);
 
@@ -983,6 +1009,13 @@ QuicStreamRecvFlush(
                 -(int64_t)BufferLength);
             FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
         }
+    }
+
+    //
+    // Cleanup receive buffers if needed
+    //
+    if (RecvBuffers != StackRecvBuffers) {
+        CXPLAT_FREE(RecvBuffers, QUIC_POOL_RECVBUF);
     }
 }
 

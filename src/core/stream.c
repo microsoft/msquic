@@ -28,7 +28,6 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    uint32_t InitialRecvBufferLength;
     QUIC_WORKER* Worker = Connection->Worker;
 
     Stream = CxPlatPoolAlloc(&Worker->StreamPool);
@@ -63,6 +62,7 @@ QuicStreamInitialize(
             Stream,
             "Configured for delayed ID FC updates");
     }
+    Stream->Flags.UseExternalRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS);
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
@@ -112,13 +112,26 @@ QuicStreamInitialize(
         }
     }
 
-    InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
-    if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+    const uint32_t InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
+
+    QUIC_RECV_BUF_MODE RecvBufferMode = QUIC_RECV_BUF_MODE_CIRCULAR;
+    if (Stream->Flags.ReceiveMultiple) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
+    } else if (Stream->Flags.UseExternalRecvBuffers) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_EXTERNAL;
+    }
+
+    if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
+        RecvBufferMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
         PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
         }
+        QuicRecvChunkInitialize(
+            PreallocatedRecvChunk,
+            InitialRecvBufferLength,
+            (uint8_t *)(PreallocatedRecvChunk + 1));
     }
 
     const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
@@ -132,8 +145,7 @@ QuicStreamInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
             FlowControlWindowSize,
-            Stream->Flags.ReceiveMultiple ?
-                QUIC_RECV_BUF_MODE_MULTIPLE : QUIC_RECV_BUF_MODE_CIRCULAR,
+            RecvBufferMode,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -956,4 +968,25 @@ QuicStreamParamGet(
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamSwitchToExternalBuffers(
+    _In_ QUIC_STREAM* Stream
+)
+{
+    QuicRecvBufferUninitialize(&Stream->RecvBuffer);
+    (void)QuicRecvBufferInitialize(&Stream->RecvBuffer, 0, 0, QUIC_RECV_BUF_MODE_EXTERNAL, NULL);
+    Stream->Flags.UseExternalRecvBuffers = TRUE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamProvideRecvBuffers(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
+)
+{
+    return QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
 }
