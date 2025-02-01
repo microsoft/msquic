@@ -214,7 +214,7 @@ QuicRecvBufferProvideChunks(
         NewBufferLength += Chunk->AllocLength;
     }
 
-    if (NewBufferLength > MAXUINT32) {
+    if (NewBufferLength > UINT32_MAX) {
         //
         // We can't handle that much buffer space.
         //
@@ -982,7 +982,11 @@ QuicRecvBufferRead(
                     Link);
 
             Chunk->ExternalReference = TRUE;
-            uint32_t ChunkReadLength = (uint32_t)min(Chunk->AllocLength, remainingDataToRead);
+            uint32_t ChunkReadLength =
+                (uint32_t)(Chunk->AllocLength < remainingDataToRead ?
+                    Chunk->AllocLength :
+                    remainingDataToRead);
+
             Buffers[*BufferCount].Buffer = Chunk->Buffer;
             Buffers[*BufferCount].Length = ChunkReadLength;
             remainingDataToRead -= ChunkReadLength;
