@@ -25,7 +25,7 @@ use std::sync::Once;
 extern crate bitfield;
 mod error;
 pub mod ffi;
-pub use error::{Error, StatusCode};
+pub use error::{Status, StatusCode};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -1134,7 +1134,7 @@ impl Api {
             START_MSQUIC.call_once(|| {
                 let mut table: *const QUIC_API_TABLE = ptr::null();
                 let status = MsQuicOpenVersion(2, std::ptr::addr_of_mut!(table));
-                if let Err(err) = Error::ok_from_raw(status as QUIC_STATUS) {
+                if let Err(err) = Status::ok_from_raw(status as QUIC_STATUS) {
                     panic!("Failed to open MsQuic: {}", err);
                 }
                 APITABLE = table;
@@ -1277,11 +1277,11 @@ impl Api {
         param: u32,
         buffer_length: *const u32,
         buffer: *mut c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().GetParam.unwrap()(handle, param, buffer_length as *mut u32, buffer)
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     /// # Safety
@@ -1291,13 +1291,13 @@ impl Api {
         param: u32,
         buffer_length: u32,
         buffer: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status =
             unsafe { Api::ffi_ref().SetParam.unwrap()(handle, param, buffer_length, buffer) };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn get_perf(&self) -> Result<QuicPerformance, Error> {
+    pub fn get_perf(&self) -> Result<QuicPerformance, Status> {
         let mut perf = QuicPerformance {
             counters: [0; PERF_COUNTER_MAX as usize],
         };
@@ -1385,7 +1385,7 @@ macro_rules! define_quic_handle_impl {
 }
 
 impl Registration {
-    pub fn new(config: *const RegistrationConfig) -> Result<Registration, Error> {
+    pub fn new(config: *const RegistrationConfig) -> Result<Registration, Status> {
         // Initialize the global api table.
         // Registration is the first created in all msquic apps.
         let api = Api::get_ffi();
@@ -1397,7 +1397,7 @@ impl Registration {
             )
         };
 
-        Error::ok_from_raw(status)?;
+        Status::ok_from_raw(status)?;
         Ok(Registration { handle: h })
     }
 
@@ -1419,7 +1419,7 @@ impl Configuration {
         registration: &Registration,
         alpn: &[Buffer],
         settings: *const Settings,
-    ) -> Result<Configuration, Error> {
+    ) -> Result<Configuration, Status> {
         let context: *mut c_void = ptr::null_mut();
         let mut new_configuration: HQUIC = ptr::null_mut();
         let mut settings_size: u32 = 0;
@@ -1438,20 +1438,20 @@ impl Configuration {
                 std::ptr::addr_of_mut!(new_configuration),
             )
         };
-        Error::ok_from_raw(status)?;
+        Status::ok_from_raw(status)?;
         Ok(Configuration {
             handle: new_configuration,
         })
     }
 
-    pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), Error> {
+    pub fn load_credential(&self, cred_config: &CredentialConfig) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ConfigurationLoadCredential.unwrap()(
                 self.handle,
                 cred_config as *const CredentialConfig as *const QUIC_CREDENTIAL_CONFIG,
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     fn close_inner(&self) {
@@ -1483,7 +1483,7 @@ impl Connection {
         registration: &Registration,
         handler: ffi::QUIC_CONNECTION_CALLBACK_HANDLER,
         context: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
@@ -1492,7 +1492,7 @@ impl Connection {
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     pub fn start(
@@ -1500,7 +1500,7 @@ impl Connection {
         configuration: &Configuration,
         server_name: &str,
         server_port: u16,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let server_name_safe = std::ffi::CString::new(server_name).unwrap();
         let status = unsafe {
             Api::ffi_ref().ConnectionStart.unwrap()(
@@ -1511,7 +1511,7 @@ impl Connection {
                 server_port,
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     fn close_inner(&self) {
@@ -1532,7 +1532,7 @@ impl Connection {
         }
     }
 
-    pub fn get_stats(&self) -> Result<QuicStatistics, Error> {
+    pub fn get_stats(&self) -> Result<QuicStatistics, Status> {
         let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
             [0; std::mem::size_of::<QuicStatistics>()];
         let stat_size_mut = std::mem::size_of::<QuicStatistics>();
@@ -1547,7 +1547,7 @@ impl Connection {
         Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) })
     }
 
-    pub fn get_stats_v2(&self) -> Result<QuicStatisticsV2, Error> {
+    pub fn get_stats_v2(&self) -> Result<QuicStatisticsV2, Status> {
         let mut stat_buffer: [u8; std::mem::size_of::<QuicStatisticsV2>()] =
             [0; std::mem::size_of::<QuicStatisticsV2>()];
         let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
@@ -1562,11 +1562,11 @@ impl Connection {
         Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) })
     }
 
-    pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Error> {
+    pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ConnectionSetConfiguration.unwrap()(self.handle, configuration.handle)
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     /// # Safety
@@ -1605,7 +1605,7 @@ impl Connection {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().DatagramSend.unwrap()(
                 self.handle,
@@ -1615,32 +1615,32 @@ impl Connection {
                 client_send_context as *mut c_void,
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), Error> {
+    pub fn resumption_ticket_validation_complete(&self, result: BOOLEAN) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref()
                 .ConnectionResumptionTicketValidationComplete
                 .unwrap()(self.handle, result)
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     pub fn certificate_validation_complete(
         &self,
         result: BOOLEAN,
         tls_alert: TlsAlertCode,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref()
                 .ConnectionCertificateValidationComplete
                 .unwrap()(self.handle, result, tls_alert as crate::ffi::QuicFlag)
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn get_local_addr(&self) -> Result<Addr, Error> {
+    pub fn get_local_addr(&self) -> Result<Addr, Status> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         unsafe {
@@ -1654,7 +1654,7 @@ impl Connection {
         Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
     }
 
-    pub fn get_remote_addr(&self) -> Result<Addr, Error> {
+    pub fn get_remote_addr(&self) -> Result<Addr, Status> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         unsafe {
@@ -1690,7 +1690,7 @@ impl Listener {
         registration: &Registration,
         handler: ffi::QUIC_LISTENER_CALLBACK_HANDLER,
         context: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
@@ -1699,10 +1699,10 @@ impl Listener {
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Error> {
+    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ListenerStart.unwrap()(
                 self.handle,
@@ -1713,7 +1713,7 @@ impl Listener {
                     .unwrap_or(ptr::null()),
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     pub fn stop(&self) {
@@ -1722,7 +1722,7 @@ impl Listener {
         }
     }
 
-    pub fn get_local_addr(&self) -> Result<Addr, Error> {
+    pub fn get_local_addr(&self) -> Result<Addr, Status> {
         let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
         let addr_size_mut = mem::size_of::<Addr>();
         unsafe {
@@ -1766,7 +1766,7 @@ impl Stream {
         flags: StreamOpenFlags,
         handler: StreamEventHandler,
         context: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         // TODO: remove transmute.
         #[allow(clippy::missing_transmute_annotations)]
         let status = unsafe {
@@ -1778,17 +1778,17 @@ impl Stream {
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn start(&self, flags: StreamStartFlags) -> Result<(), Error> {
+    pub fn start(&self, flags: StreamStartFlags) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().StreamStart.unwrap()(self.handle, flags as crate::ffi::QuicFlag)
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
-    pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Error> {
+    pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().StreamShutdown.unwrap()(
                 self.handle,
@@ -1796,7 +1796,7 @@ impl Stream {
                 error_code,
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     pub fn close_inner(&self) {
@@ -1813,7 +1813,7 @@ impl Stream {
         buffer_count: u32,
         flags: SendFlags,
         client_send_context: *const c_void,
-    ) -> Result<(), Error> {
+    ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().StreamSend.unwrap()(
                 self.handle,
@@ -1823,7 +1823,7 @@ impl Stream {
                 client_send_context as *mut c_void, //(self as *const Stream) as *const c_void,
             )
         };
-        Error::ok_from_raw(status)
+        Status::ok_from_raw(status)
     }
 
     /// # Safety
