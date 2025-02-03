@@ -57,7 +57,7 @@ cmake = "0.1"
 bindgen = { version = "0.71", optional = true }
 
 [dependencies]
-bitfield = "0.17.0"
+bitfield = "0.18.1"
 libc = "0.2.0"
 c-types = "4.0.0"
 serde = { version = "1.0.117", features = ["derive"] }
