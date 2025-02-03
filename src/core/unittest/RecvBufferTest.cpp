@@ -84,6 +84,9 @@ struct RecvBuffer {
     bool HasUnreadData() {
         return QuicRecvBufferHasUnreadData(&RecvBuf) != FALSE;
     }
+    uint32_t ReadBufferNeededCount() {
+        return QuicRecvBufferReadBufferNeededCount(&RecvBuf) != FALSE;
+    }
     QUIC_STATUS ProvideChunks(_Inout_ CXPLAT_LIST_ENTRY* Chunks) {
         auto Result = QuicRecvBufferProvideChunks(&RecvBuf, Chunks);
         Dump();
@@ -1631,7 +1634,7 @@ QUIC_STATUS MakeExternalChunks(
         totalSize += size;
     }
     if (totalSize > BufferSize) {
-        QUIC_STATUS_INVALID_PARAMETER;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     CxPlatListInitializeHead(ChunkList);
@@ -1742,6 +1745,39 @@ TEST(ExternalBuffersTest, ReadWriteManyChunks)
     ExternalReferences[2] = FALSE;
     ExternalReferences[3] = FALSE;
     RecvBuf.Check(6, 0, 2, ExternalReferences.data());
+}
+
+TEST(ExternalBuffersTest, NumberOfBufferNeededForRead)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+
+    const uint32_t NbChunks = 5;
+    std::array<uint8_t, NbChunks * 8> Buffer{};
+    std::vector ChunkSizes(NbChunks, 8u);
+    CXPLAT_LIST_ENTRY ChunkList;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, MakeExternalChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(&ChunkList));
+
+    uint64_t InOutWriteLength = DEF_TEST_BUFFER_LENGTH;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 0);
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 5, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 1);
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(5, 11, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 2);
+
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(16, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 4);
+
+    RecvBuf.Drain(5);
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 4);
+    RecvBuf.Drain(20);
+    ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 1);
 }
 
 TEST(ExternalBuffersTest, WriteTooLong)
