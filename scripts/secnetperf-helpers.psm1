@@ -631,7 +631,18 @@ function Invoke-Secnetperf {
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
 
     } else {
-        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        if ($env:collect_cpu_traces) {
+            if ($IsWindows) {
+                wpr -start CPU
+                Invoke-Command -Session $Session -ScriptBlock { wpr -start CPU }
+                $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            } else {
+                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
+                $job = Start-RemoteServer $Session "perf record -o server-cpu-traces-$scenario-$io-istcp-$tcp.data -- $RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            }
+        } else {
+            $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        }
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -691,6 +702,15 @@ function Invoke-Secnetperf {
             }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
+            if ($env:collect_cpu_traces) {
+                if ($IsWindows) {
+                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
+                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$scenario-$io-istcp-$tcp.etl" }
+                    Copy-Item -FromSession $Session "server-cpu-traces-$scenario-$io-istcp-$tcp.etl" $artifactDir
+                } else {
+                    Copy-Item -FromSession $Session "server-cpu-traces-$scenario-$io-istcp-$tcp.data" $artifactDir
+                }
+            }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
