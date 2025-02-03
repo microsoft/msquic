@@ -478,8 +478,6 @@ QuicRecvBufferCopyIntoChunks(
         }
 
         if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
-            // TODO guhetier: Isn't this always true by definition, since Chunk is the last chunk?
-            //      Was this meant to update the ReadLength only if it is the first chunk instead?
             RecvBuffer->ReadLength =
                 (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
         }
@@ -545,7 +543,6 @@ QuicRecvBufferCopyIntoChunks(
 
         BOOLEAN IsFirstLoop = TRUE;
         do {
-            // TODO guhetier: No reason to have that in the loop, can be done once outside of it
             uint32_t ChunkWriteOffset = (ChunkOffset + RelativeOffset) % Chunk->AllocLength;
             if (!IsFirstChunk) {
                 // This RelativeOffset is already shrunk to represent the offset from beginning of the current chunk.
