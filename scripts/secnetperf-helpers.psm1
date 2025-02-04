@@ -550,7 +550,21 @@ function Invoke-Secnetperf {
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "-scenario:$Scenario -io:$io"
-    $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+
+    if ($env:collect_cpu_traces) {
+        $updated_runtime_for_cpu_traces = @{
+            "upload"=6
+            "download"=6
+            "hps"=6
+            "rps-multi"=5
+            "rps"=5
+            "latency"=5
+        }
+        $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
+    } else {
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+    }
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
