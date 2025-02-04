@@ -273,8 +273,7 @@ typedef struct CXPLAT_SEND_DATA {
     char CtrlBuf[
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_TOS
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
         ];
 
@@ -4520,22 +4519,26 @@ CxPlatSocketSendInline(
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
-
         if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
-            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-            CXPLAT_DBG_ASSERT(CMsg != NULL);
-            CMsg->cmsg_level = IPPROTO_IP;
-            CMsg->cmsg_type = IP_TOS;
-            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
         }
 
     } else {

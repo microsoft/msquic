@@ -2929,8 +2929,7 @@ SocketSend(
     //
     BYTE CMsgBuffer[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_TOS/IPV6_TCLASS
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
         ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
@@ -2961,30 +2960,33 @@ SocketSend(
         }
     }
 
-    if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
-        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
-        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg->cmsg_level =
-            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
-                IPPROTO_IP : IPPROTO_IPV6;
-        CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
-    }
-
     if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
-        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
-        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg->cmsg_level =
-            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
-                IPPROTO_IP : IPPROTO_IPV6;
-        CMsg->cmsg_type =
-            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
-                IP_TOS : IPV6_TCLASS;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            if (Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+            } else {
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+            }
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
 
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+        }
+    } else {
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg->cmsg_level =
+                Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                    IPPROTO_IP : IPPROTO_IPV6;
+            CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        }
     }
 
     if (SendData->SegmentSize > 0) {
