@@ -1091,7 +1091,8 @@ QuicRecvBufferPartialDrain(
         // In external mode, memory is never re-used: a drain consumes
         // virtual buffer length.
         //
-        RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
+        CXPLAT_DBG_ASSERT(RecvBuffer->VirtualBufferLength >= (uint32_t)DrainLength);
+        RecvBuffer->VirtualBufferLength -= (uint32_t)DrainLength;
     }
 }
 

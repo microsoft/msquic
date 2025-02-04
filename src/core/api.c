@@ -1469,6 +1469,7 @@ MsQuicStreamProvideReceiveBuffers(
         }
         Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS;
         Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Stream = Stream;
+        CxPlatListInitializeHead(&Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Chunks);
         CxPlatListMoveItems(&ChunkList, &Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Chunks);
 
         //

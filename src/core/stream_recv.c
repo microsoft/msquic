@@ -767,8 +767,8 @@ QuicStreamOnBytesDelivered(
         //
         // Limit stream FC window growth by the connection FC window size.
         //
-        if (Stream->RecvBuffer.VirtualBufferLength <
-            Stream->Connection->Settings.ConnFlowControlWindow) {
+        if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
 
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
@@ -831,7 +831,7 @@ QuicStreamOnBytesDelivered(
         "Updating flow control window");
 
     CXPLAT_DBG_ASSERT(
-        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >
+        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >=
         Stream->MaxAllowedRecvOffset);
 
     Stream->MaxAllowedRecvOffset =
