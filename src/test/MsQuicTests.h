@@ -781,11 +781,6 @@ typedef struct {
     QUIC_CTL_CODE(15, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
-    QUIC_CTL_CODE(16, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // int - Family
-
-
 #pragma pack(push)
 #pragma pack(1)
 
@@ -1346,4 +1341,8 @@ typedef struct {
     QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 126
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 127
