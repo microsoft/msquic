@@ -553,12 +553,12 @@ function Invoke-Secnetperf {
 
     if ($env:collect_cpu_traces) {
         $updated_runtime_for_cpu_traces = @{
-            "upload"=6
-            "download"=6
-            "hps"=6
-            "rps-multi"=5
-            "rps"=5
-            "latency"=5
+            "upload"=6 * 1000 * 1000
+            "download"=6 * 1000 * 1000
+            "hps"=6 * 1000 * 1000
+            "rps"=5 * 1000 * 1000
+            "rps-multi"=5 * 1000 * 1000
+            "latency"=5 * 1000 * 1000
         }
         $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
         $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
