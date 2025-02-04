@@ -97,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -779,6 +780,11 @@ typedef struct {
 #define IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT \
     QUIC_CTL_CODE(15, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
+
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(16, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
 
 #pragma pack(push)
 #pragma pack(1)
