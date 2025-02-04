@@ -705,10 +705,10 @@ function Invoke-Secnetperf {
             if ($env:collect_cpu_traces) {
                 if ($IsWindows) {
                     wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
-                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$scenario-$io-istcp-$tcp.etl" }
-                    Copy-Item -FromSession $Session "$RemoteDir/$SecNetPerfPath/server-cpu-traces-$scenario-$io-istcp-$tcp.etl" $artifactDir
+                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$Using:scenario-$Using:io-istcp-$Using:tcp.etl" }
+                    Copy-Item -FromSession $Session "C:\Users\Administrator\Documents\server-cpu-traces-$scenario-$io-istcp-$tcp.etl" .
                 } else {
-                    Copy-Item -FromSession $Session "$RemoteDir/$SecNetPerfPath/server-cpu-traces-$scenario-$io-istcp-$tcp.data" $artifactDir
+                    Copy-Item -FromSession $Session "home/secnetperf/server-cpu-traces-$scenario-$io-istcp-$tcp.data" .
                 }
             }
         }
