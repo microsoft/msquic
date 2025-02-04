@@ -6638,6 +6638,12 @@ QuicConnParamSet(
 
         Connection->DSCP = DSCP;
 
+        QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
@@ -7258,9 +7264,9 @@ QuicConnParamGet(
 
      case QUIC_PARAM_CONN_SEND_DSCP:
 
-        if (*BufferLength < sizeof(Connection->DSCP)) {
+        if (*BufferLength < sizeof(uint8_t)) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            *BufferLength = sizeof(Connection->DSCP);
+            *BufferLength = sizeof(uint8_t);
             break;
         }
 

@@ -4535,7 +4535,7 @@ CxPlatSocketSendInline(
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_TOS;
             CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->DSCP;
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
         }
 
     } else {
@@ -4566,7 +4566,7 @@ CxPlatSocketSendInline(
             CMsg->cmsg_level = IPPROTO_IPV6;
             CMsg->cmsg_type = IPV6_TCLASS;
             CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->DSCP;
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
         }
     }
 

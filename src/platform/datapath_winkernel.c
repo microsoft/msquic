@@ -1489,7 +1489,7 @@ SocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
-            IPV6_RECVTCLASS,
+            IPV6_ECN,
             IPPROTO_IPV6,
             sizeof(Option),
             &Option);
@@ -1499,7 +1499,7 @@ SocketCreateUdp(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "Set IPV6_RECVTCLASS");
+            "Set IPV6_ECN");
         goto Error;
     }
 
@@ -1508,7 +1508,7 @@ SocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
-            IP_RECVTOS,
+            IP_ECN,
             IPPROTO_IP,
             sizeof(Option),
             &Option);
@@ -1518,7 +1518,7 @@ SocketCreateUdp(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "Set IP_RECVTOS");
+            "Set IP_ECN");
         goto Error;
     }
 
@@ -2983,6 +2983,8 @@ SocketSend(
             Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
                 IP_TOS : IPV6_TCLASS;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
     }
 
     if (SendData->SegmentSize > 0) {

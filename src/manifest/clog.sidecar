@@ -1251,6 +1251,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnDscpSet": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Connection DSCP set to %hhu",
+      "UniqueId": "ConnDscpSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "ConnEcnCapable": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
@@ -13819,6 +13835,11 @@
         "UniquenessHash": "7b8fcbcd-b097-9b8b-3d56-a2ca2d8b5cb8",
         "TraceID": "ConnDropPacketEx",
         "EncodingString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s."
+      },
+      {
+        "UniquenessHash": "c753358e-985b-ee38-30e0-cc6cebbe5526",
+        "TraceID": "ConnDscpSet",
+        "EncodingString": "[conn][%p] Connection DSCP set to %hhu"
       },
       {
         "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",

@@ -900,6 +900,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnDscpSet
+// [conn][%p] Connection DSCP set to %hhu
+// QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->DSCP = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDscpSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApplySettings
 // [conn][%p] Applying new settings
 // QuicTraceLogConnInfo(
