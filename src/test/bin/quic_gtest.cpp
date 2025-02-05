@@ -708,7 +708,7 @@ TEST_P(WithFamilyArgs, TestAddrFunctions) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
     }
     else {
-        QuicTestBindConnectionExplicit(GetParam().Family);
+        QuicTestAddrFunctions(GetParam().Family);
     }
 }
 
