@@ -4554,22 +4554,26 @@ CxPlatSocketSendInline(
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
-
         if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
-            WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-            CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-            CXPLAT_DBG_ASSERT(CMsg != NULL);
-            CMsg->cmsg_level = IPPROTO_IPV6;
-            CMsg->cmsg_type = IPV6_TCLASS;
-            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
         }
     }
 
@@ -4581,6 +4585,13 @@ CxPlatSocketSendInline(
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
         *(PDWORD)WSA_CMSG_DATA(CMsg) = SendData->SegmentSize;
+    }
+
+    //
+    // Windows' networking stack doesn't like a non-NULL Control.buf when len is 0.
+    //
+    if (WSAMhdr.Control.len == 0) {
+        WSAMhdr.Control.buf = NULL;
     }
 
     if (Socket->Type == CXPLAT_SOCKET_UDP && Socket->UseRio) {
