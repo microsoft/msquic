@@ -988,5 +988,14 @@ QuicStreamProvideRecvBuffers(
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
 )
 {
-    return QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
+    QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
+    if (Status == QUIC_STATUS_SUCCESS) {
+        // Update the maximum allowed received size to take into account the new
+        // capacity.
+        // TODO guhetier: If done outside of a receive / before the stream start,
+        // and the recv window was zero before, may need to send a MAX_STREAM_DATA update to the peer.
+        Stream->MaxAllowedRecvOffset =
+            Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+    }
+    return Status;
 }

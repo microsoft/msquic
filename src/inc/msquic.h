@@ -199,7 +199,7 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
     QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
                                                         // connection should be delayed to StreamClose.
-    QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS = 0x0005,    // No buffer will be allocated for the stream, external buffers
+    QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS = 0x0008,    // No buffer will be allocated for the stream, external buffers
                                                         // must be provided (see StreamProvideReceiveBuffers)
 } QUIC_STREAM_OPEN_FLAGS;
 
