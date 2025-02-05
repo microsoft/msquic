@@ -1,6 +1,8 @@
-use std::ffi::c_void;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 use crate::ffi::QUIC_CONNECTION_EVENT;
+use std::ffi::c_void;
 
 /// Connection callback events.
 /// TODO: derive Debug once all enums are safe.
