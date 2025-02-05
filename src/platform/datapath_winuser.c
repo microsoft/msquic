@@ -637,26 +637,28 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-    Result =
-        WSAIoctl(
-            UdpSocket,
-            SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
-            &RioGuid,
-            sizeof(RioGuid),
-            &Datapath->RioDispatch,
-            sizeof(Datapath->RioDispatch),
-            &BytesReturned,
-            NULL,
-            NULL);
-    if (Result != NO_ERROR) {
-        int WsaError = WSAGetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            WsaError,
-            "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
-        Status = HRESULT_FROM_WIN32(WsaError);
-        goto Error;
+    if (Datapath->UseRio) {
+        Result =
+            WSAIoctl(
+                UdpSocket,
+                SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
+                &RioGuid,
+                sizeof(RioGuid),
+                &Datapath->RioDispatch,
+                sizeof(Datapath->RioDispatch),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result != NO_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                WsaError,
+                "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
     }
 
 {
