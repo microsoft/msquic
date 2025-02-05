@@ -1649,7 +1649,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
-                                        StreamProvideReceiveBuffers; // Available from v2.2
+                                        StreamProvideReceiveBuffers; // Available from v2.5
 } QUIC_API_TABLE;
 
 #define QUIC_API_VERSION_1      1 // Not supported any more
