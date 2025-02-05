@@ -953,10 +953,14 @@ QuicStreamRecvFlush(
         } else if (Status == QUIC_STATUS_PENDING) {
             //
             // The app called the receive complete API inline if
-            // RecvCompletionLength is non-zero.
+            // RecvCompletionInlineCalled is one.
             //
-            FlushRecv = (Stream->RecvCompletionLength != 0);
-
+            if (InterlockedCompareExchange16(
+                (short*)&Stream->RecvCompletionInlineCalled, 0, 1) == 1) {
+                FlushRecv = (Stream->RecvCompletionLength != 0);
+            } else {
+                FlushRecv = FALSE;
+            }
         } else {
             //
             // All failure status returns shouldn't be used by the app are

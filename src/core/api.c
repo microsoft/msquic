@@ -1326,6 +1326,7 @@ MsQuicStreamReceiveComplete(
 
     if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
         Stream->Flags.ReceiveCallActive) {
+        InterlockedCompareExchange16((short*)&Stream->RecvCompletionInlineCalled, 1, 0);
         goto Exit; // No need to queue a completion operation when run inline
     }
 

@@ -419,6 +419,11 @@ typedef struct QUIC_STREAM {
     volatile uint64_t RecvCompletionLength;
 
     //
+    // This flag indicates the app called the receive complete API inline.
+    //
+    uint16_t RecvCompletionInlineCalled;
+
+    //
     // The error code for why the receive path was shutdown.
     //
     QUIC_VAR_INT RecvShutdownErrorCode;
