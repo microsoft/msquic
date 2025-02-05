@@ -4509,4 +4509,199 @@ QuicTestStreamMultiReceive(
         delete[] Context.RecvBuffer;
     }
 }
+
+//
+// App provided buffers tests.
+//
+
+// Helper context to get a stream to send data from on the server side
+struct AppBuffersSenderContext {
+    MsQuicStream* SenderStream{};
+    CxPlatEvent SenderStreamCreated{};
+
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto* SenderContext = (AppBuffersSenderContext *)Context;
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            SenderContext->SenderStream = new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete);
+            SenderContext->SenderStreamCreated.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    MsQuicStream* WaitForSenderStream() {
+        SenderStreamCreated.WaitTimeout(TestWaitTimeout);
+        return SenderStream;
+    }
+};
+
+// Helper context to receive data on a stream
+struct AppBuffersReceiverContext {
+
+    QUIC_BUFFER *BuffersForStreamStarted{};
+    uint32_t NumBuffersForStreamStarted{};
+
+    uint64_t ReceivedBytes{};
+    CxPlatEvent StreamClosed{};
+
+    // Accept a stream on the listener side (no need to keep the handle to it)
+    static QUIC_STATUS ConnCallback(_In_ MsQuicConnection*, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto ReceiverContext = (AppBuffersReceiverContext*)Context;
+
+        if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, AppBuffersReceiverContext::StreamCallback, Context);
+            MsQuic->StreamProvideReceiveBuffers(
+                Event->PEER_STREAM_STARTED.Stream,
+                ReceiverContext->NumBuffersForStreamStarted,
+                ReceiverContext->BuffersForStreamStarted);
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static QUIC_STATUS StreamCallback(_In_ MsQuicStream* /* Stream */, _In_opt_ void* Context, _Inout_ QUIC_STREAM_EVENT* Event) {
+        auto ReceiverContext = (AppBuffersReceiverContext*)Context;
+        if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+            ReceiverContext->ReceivedBytes += Event->RECEIVE.TotalBufferLength;
+        } else if (Event->Type == QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE) {
+            ReceiverContext->StreamClosed.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestStreamAppProvidedBuffers(
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest",
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetConnFlowControlWindow(0x2000),
+        ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", 
+        MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetConnFlowControlWindow(0x2000),
+        MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    // Client side sending data
+    {
+        // Create send and receive buffers
+        const uint32_t BufferSize = 0x5000;
+        uint8_t SendDataBuffer[BufferSize] = {};
+        for (int i = 0; i < BufferSize; ++i) {
+            SendDataBuffer[i] = static_cast<uint8_t>(i);
+        }
+        uint8_t ReceiveDataBuffer[BufferSize] = {};
+        QUIC_BUFFER QuicBuffers[5]{};
+        for (auto i = 0u; i < 5; ++i) {
+            QuicBuffers[i].Buffer = ReceiveDataBuffer + i * BufferSize / 5;
+            QuicBuffers[i].Length = BufferSize / 5;
+        }
+
+        AppBuffersReceiverContext ReceiveContext;
+        ReceiveContext.BuffersForStreamStarted = QuicBuffers;
+        ReceiveContext.NumBuffersForStreamStarted = ARRAYSIZE(QuicBuffers);
+
+        // Setup a listener
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        // Setup and start a client connection
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        TEST_QUIC_SUCCEEDED(Connection.Start(
+            ClientConfiguration,
+            ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+            ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Connection.HandshakeComplete);
+
+        MsQuicStream ClientStream(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL);
+        TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+        // Send data
+        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer};
+        TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1));
+
+        ReceiveContext.StreamClosed.WaitTimeout(TestWaitTimeout);
+        TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
+        TEST_EQUAL(0, memcmp(SendDataBuffer, ReceiveDataBuffer, BufferSize));
+    }
+
+    // Server side sending data
+    {
+        // Setup a listener
+        AppBuffersSenderContext SenderContext{};
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersSenderContext::ConnCallback, &SenderContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        // Setup a client connection
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+        TEST_QUIC_SUCCEEDED(Connection.Start(
+            ClientConfiguration,
+            ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()),
+            ServerLocalAddr.GetPort()));
+        TEST_TRUE(Connection.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+        TEST_TRUE(Connection.HandshakeComplete);
+
+
+        // Create send and receive buffers
+        const uint32_t BufferSize = 0x5000;
+        uint8_t SendDataBuffer[BufferSize] = {};
+        for (int i = 0; i < BufferSize; ++i) {
+            SendDataBuffer[i] = static_cast<uint8_t>(i);
+        }
+
+        uint8_t ReceiveDataBuffer[BufferSize] = {};
+        QUIC_BUFFER QuicBuffers[5]{};
+        for (auto i = 0u; i < 5; ++i) {
+            QuicBuffers[i].Buffer = ReceiveDataBuffer + i * BufferSize / 5;
+            QuicBuffers[i].Length = BufferSize / 5;
+        }
+
+        // Create and start a stream
+        AppBuffersReceiverContext ReceiveContext;
+
+        MsQuicStream ClientStream(
+            Connection,
+            QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS,
+            CleanUpManual,
+            AppBuffersReceiverContext::StreamCallback,
+            &ReceiveContext);
+
+        TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
+
+        // Provide receive buffers before starting the stream
+        MsQuic->StreamProvideReceiveBuffers(
+            ClientStream,
+            ARRAYSIZE(QuicBuffers),
+            QuicBuffers);
+
+        TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
+
+        auto* SenderStream = SenderContext.WaitForSenderStream();
+
+        // Send data
+        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer};
+        TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1));
+
+        ReceiveContext.StreamClosed.WaitTimeout(TestWaitTimeout);
+        TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
+        TEST_EQUAL(0, memcmp(SendDataBuffer, ReceiveDataBuffer, BufferSize));
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

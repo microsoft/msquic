@@ -2254,6 +2254,17 @@ TEST(Misc, StreamMultiReceive) {
         QuicTestStreamMultiReceive();
     }
 }
+
+TEST(Misc, StreamAppProvidedBuffers) {
+    TestLogger Logger("StreamAppProvidedBuffers");
+    if (TestingKernelMode) {
+        // GTEST_SKIP();
+        // TODO guhetier: Implement
+        // ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+    } else {
+        QuicTestStreamAppProvidedBuffers();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {

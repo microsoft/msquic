@@ -603,6 +603,9 @@ QuicTestEcn(
     _In_ int Family
     );
 
+void QuicTestStreamAppProvidedBuffers(
+    );
+
 //
 // QuicDrill tests
 //
