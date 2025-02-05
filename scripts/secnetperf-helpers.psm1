@@ -553,8 +553,8 @@ function Invoke-Secnetperf {
 
     if ($env:collect_cpu_traces) {
         $updated_runtime_for_cpu_traces = @{
-            "upload"=6 * 1000 * 1000
-            "download"=6 * 1000 * 1000
+            "upload"=12 * 1000 * 1000
+            "download"=12 * 1000 * 1000
             "hps"=6 * 1000 * 1000
             "rps"=5 * 1000 * 1000
             "rps-multi"=5 * 1000 * 1000
