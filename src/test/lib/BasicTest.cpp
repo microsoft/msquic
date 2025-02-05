@@ -284,8 +284,8 @@ void QuicTestAddrFunctions(_In_ int Family)
         TEST_TRUE((SockAddr.Ipv4.sin_addr.s_addr & 0x00FFFF00UL) == 0);
     } else {
         memset(&SockAddr.Ipv6.sin6_addr, 0XFF, sizeof(SockAddr.Ipv6.sin6_addr));
-        for (int i = 0; i < sizeof(SockAddr.Ipv6.sin6_addr.u.Byte) - 1; i++) {
-            TEST_TRUE(SockAddr.Ipv6.sin6_addr.u.Byte[i] == 0);
+        for (int i = 0; i < sizeof(SockAddr.Ipv6.sin6_addr.s6_addr) - 1; i++) {
+            TEST_TRUE(SockAddr.Ipv6.sin6_addr.s6_addr[i] == 0);
         }
     }
 
