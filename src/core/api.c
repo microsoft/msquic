@@ -1488,10 +1488,16 @@ MsQuicStreamProvideReceiveBuffers(
     Status = QUIC_STATUS_SUCCESS;
 
 Error:
+    //
     // Cleanup allocated chunks if the operation failed.
+    //
     while (!CxPlatListIsEmpty(&ChunkList)) {
-        QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link);
-        CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
+        CXPLAT_FREE(
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&ChunkList),
+                QUIC_RECV_CHUNK,
+                Link),
+            QUIC_POOL_RECVBUF);
     }
 
     QuicTraceEvent(
