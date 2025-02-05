@@ -85,23 +85,24 @@ impl core::fmt::Display for StatusCode {
     }
 }
 
-/// Quic error used in non-ffi code.
+/// Quic status used in non-ffi code.
 /// Internal representation matches the os platfrom type.
+/// Used for all non-ffi error return and callback status code fields.
 #[derive(Clone)]
-pub struct Error(pub QUIC_STATUS);
+pub struct Status(pub QUIC_STATUS);
 
-impl Error {
-    /// Create an error from enum.
+impl Status {
+    /// Create an status from enum.
     pub fn new(ec: StatusCode) -> Self {
         Self(ec as QUIC_STATUS)
     }
-    /// Convert to error code if possible.
-    pub fn try_as_error_code(&self) -> Result<StatusCode, &str> {
+    /// Convert to status code if possible.
+    pub fn try_as_status_code(&self) -> Result<StatusCode, &str> {
         use std::convert::TryFrom;
         StatusCode::try_from(self.0 as QUIC_STATUS)
     }
 
-    /// Convert from raw ffi error type.
+    /// Convert from raw ffi status type.
     pub fn ok_from_raw(ec: QUIC_STATUS) -> Result<(), Self> {
         let e = Self(ec);
         if e.is_ok() {
@@ -111,7 +112,7 @@ impl Error {
         }
     }
 
-    /// Return Err if the error is considered a failure.
+    /// Return Err if the status is considered a failure.
     /// Ok includes both "no error" and "pending" status codes.
     pub fn is_ok(&self) -> bool {
         // on windows it is signed.
@@ -123,25 +124,25 @@ impl Error {
     }
 }
 
-impl std::error::Error for Error {}
+impl std::error::Error for Status {}
 
-impl From<QUIC_STATUS> for Error {
+impl From<QUIC_STATUS> for Status {
     fn from(value: QUIC_STATUS) -> Self {
         Self(value)
     }
 }
 
-impl From<StatusCode> for Error {
+impl From<StatusCode> for Status {
     fn from(value: StatusCode) -> Self {
         Self::new(value)
     }
 }
 
 /// The debug message is in the same format as error in windows crate.
-impl core::fmt::Debug for Error {
+impl core::fmt::Debug for Status {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let mut debug = fmt.debug_struct("Error");
-        let str_code = match self.try_as_error_code() {
+        let str_code = match self.try_as_status_code() {
             Ok(c) => Some(c),
             Err(_) => None,
         };
@@ -155,9 +156,9 @@ impl core::fmt::Debug for Error {
 }
 
 /// The display message is in the same format as error in windows crate.
-impl core::fmt::Display for Error {
+impl core::fmt::Display for Status {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let str_code = match self.try_as_error_code() {
+        let str_code = match self.try_as_status_code() {
             Ok(c) => Some(c),
             Err(_) => None,
         };
@@ -172,11 +173,11 @@ impl core::fmt::Display for Error {
 mod tests {
     use crate::ffi::QUIC_STATUS;
 
-    use super::{Error, StatusCode};
+    use super::{Status, StatusCode};
 
     #[test]
     fn error_fmt_test() {
-        let err = Error::new(StatusCode::QUIC_STATUS_ABORTED);
+        let err = Status::new(StatusCode::QUIC_STATUS_ABORTED);
         // message is platform dependent.
         #[cfg(target_os = "windows")]
         assert_eq!(format!("{err}"), "QUIC_STATUS_ABORTED (0x80004004)");
@@ -185,14 +186,14 @@ mod tests {
             format!("{err:?}"),
             "Error { code: 0x80004004, message: QUIC_STATUS_ABORTED }"
         );
-        let ec = err.try_as_error_code().unwrap();
+        let ec = err.try_as_status_code().unwrap();
         assert_eq!(format!("{ec}"), "QUIC_STATUS_ABORTED");
     }
 
     #[test]
     fn error_ok_test() {
-        assert!(!Error::new(StatusCode::QUIC_STATUS_ABORTED).is_ok());
-        assert!(Error::new(StatusCode::QUIC_STATUS_SUCCESS).is_ok());
-        assert!(Error::ok_from_raw(StatusCode::QUIC_STATUS_PENDING as QUIC_STATUS).is_ok());
+        assert!(!Status::new(StatusCode::QUIC_STATUS_ABORTED).is_ok());
+        assert!(Status::new(StatusCode::QUIC_STATUS_SUCCESS).is_ok());
+        assert!(Status::ok_from_raw(StatusCode::QUIC_STATUS_PENDING as QUIC_STATUS).is_ok());
     }
 }
