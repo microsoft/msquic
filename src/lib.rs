@@ -28,6 +28,8 @@ pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
 pub use types::ConnectionEvent;
+mod types2;
+pub use types2::StreamEvent2;
 
 //
 // The following starts the C interop layer of MsQuic API.
