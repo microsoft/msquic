@@ -287,7 +287,7 @@ void QuicTestAddrFunctions(_In_ int Family)
     if (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) {
         TEST_TRUE((SockAddr.Ipv4.sin_addr.s_addr & 0x00FFFF00UL) == 0);
     } else {
-        for (unsigned long i = 0; i < sizeof(SockAddr.Ipv6.sin6_addr._S6_un) - 1; i++) {
+        for (unsigned long i = 0; i < sizeof(SockAddr.Ipv6.sin6_addr) - 1; i++) {
             TEST_TRUE(SockAddr.Ipv6.sin6_addr.s6_addr[i] == 0);
         }
     }
