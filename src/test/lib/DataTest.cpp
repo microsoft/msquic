@@ -4590,7 +4590,7 @@ QuicTestStreamAppProvidedBuffers(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         uint8_t SendDataBuffer[BufferSize] = {};
-        for (int i = 0; i < BufferSize; ++i) {
+        for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
         uint8_t ReceiveDataBuffer[BufferSize] = {};
@@ -4662,7 +4662,7 @@ QuicTestStreamAppProvidedBuffers(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         uint8_t SendDataBuffer[BufferSize] = {};
-        for (int i = 0; i < BufferSize; ++i) {
+        for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
 
