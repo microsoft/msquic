@@ -2607,9 +2607,9 @@ void QuicTestGlobalParam()
             SimpleGetParamTest(nullptr, QUIC_PARAM_GLOBAL_EXECUTION_CONFIG, DataLength, Data);
         }
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        if (!UseQTIP && !UseDuoNic)
-#endif
+// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+//         if (!UseQTIP && !UseDuoNic)
+// #endif
         {
             //
             // Good GetParam with length == 0
