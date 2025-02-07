@@ -507,9 +507,9 @@ QuicTestConnectAndPing(
                     TEST_QUIC_SUCCEEDED(Connections.get()[i]->SetRemoteAddr(RemoteAddr));
 
                     if (i != 0
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//                         && !UseQTIP
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                        && !UseQTIP
+#endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
@@ -522,9 +522,9 @@ QuicTestConnectAndPing(
                             ServerLocalAddr.GetPort()));
 
                     if (i == 0
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//                         && !UseQTIP
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+                        && !UseQTIP
+#endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
                     }

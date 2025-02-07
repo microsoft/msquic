@@ -415,11 +415,11 @@ struct SendArgs2 {
         for (bool UseZeroRtt : { false })
 #endif
         {
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//             if (UseQTIP && UseZeroRtt) {
-//                 continue;
-//             }
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseQTIP && UseZeroRtt) {
+                continue;
+            }
+#endif
             list.push_back({ Family, UseSendBuffer, UseZeroRtt });
         }
         return list;

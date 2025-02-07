@@ -442,7 +442,7 @@ PerfClient::Wait(
     }
 
     if (GetConnectedConnections() == 0) {
-        WriteOutput("Error: No Successful Connections!\n");
+        WriteOutput("Error: Nooooooooooooooooo!\n");
         return QUIC_STATUS_CONNECTION_REFUSED;
     }
 

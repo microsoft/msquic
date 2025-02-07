@@ -1559,14 +1559,14 @@ TEST_P(WithFamilyArgs, ClientBlockedSourcePort) {
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 TEST_P(WithFamilyArgs, RebindPort) {
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//     if (UseQTIP) {
-//         //
-//         // NAT rebind doesn't make sense for TCP and QTIP.
-//         //
-//         return;
-//     }
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1580,14 +1580,14 @@ TEST_P(WithFamilyArgs, RebindPort) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//     if (UseQTIP) {
-//         //
-//         // NAT rebind doesn't make sense for TCP and QTIP.
-//         //
-//         return;
-//     }
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatPortRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1601,14 +1601,14 @@ TEST_P(WithRebindPaddingArgs, RebindPortPadded) {
 }
 
 TEST_P(WithFamilyArgs, RebindAddr) {
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-//     if (UseQTIP) {
-//         //
-//         // NAT rebind doesn't make sense for TCP and QTIP.
-//         //
-//         return;
-//     }
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1623,7 +1623,7 @@ TEST_P(WithFamilyArgs, RebindAddr) {
 
 TEST_P(WithFamilyArgs, RebindDatapathAddr) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    if (!UseDuoNic) { // OLD: (UseQTIP || !UseDuoNic)
+    if (UseQTIP || !UseDuoNic) {
         //
         // NAT rebind doesn't make sense for TCP and QTIP.
         //
@@ -1637,14 +1637,14 @@ TEST_P(WithFamilyArgs, RebindDatapathAddr) {
 }
 
 TEST_P(WithRebindPaddingArgs, RebindAddrPadded) {
-// #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    // if (UseQTIP) {
-    //     //
-    //     // NAT rebind doesn't make sense for TCP and QTIP.
-    //     //
-    //     return;
-    // }
-// #endif
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (UseQTIP) {
+        //
+        // NAT rebind doesn't make sense for TCP and QTIP.
+        //
+        return;
+    }
+#endif
     TestLoggerT<ParamType> Logger("QuicTestNatAddrRebind(pad)", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_REBIND_PARAMS Params = {
@@ -1833,13 +1833,13 @@ TEST_P(WithSendArgs3, SendIntermittently) {
 
 TEST_P(WithSend0RttArgs1, Send0Rtt) {
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    // if (UseQTIP) {
-    //     //
-    //     // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
-    //     // TCP handshake.
-    //     //
-    //     return;
-    // }
+    if (UseQTIP) {
+        //
+        // QTIP doesn't work with 0-RTT. QTIP only pauses and caches 1 packet during
+        // TCP handshake.
+        //
+        return;
+    }
 #endif
 
     TestLoggerT<ParamType> Logger("Send0Rtt", GetParam());
