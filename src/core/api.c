@@ -1387,7 +1387,12 @@ MsQuicStreamProvideReceiveBuffers(
     }
 
     for (uint32_t i = 0; i < BufferCount; ++i) {
-        if (Buffers[i].Length == 0) {
+        if (Buffers[i].Length == 0 ||
+            (Buffers[i].Length & ~(UINT32_MAX >> 2)) != 0) {
+            //
+            // Check the buffer length is non-zero and fit on 31 bits.
+            // (Chunks lenghts are stored on 31 bits)
+            //
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
