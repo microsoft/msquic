@@ -131,7 +131,8 @@ QuicStreamInitialize(
         QuicRecvChunkInitialize(
             PreallocatedRecvChunk,
             InitialRecvBufferLength,
-            (uint8_t *)(PreallocatedRecvChunk + 1));
+            (uint8_t *)(PreallocatedRecvChunk + 1),
+            FALSE);
     }
 
     const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
@@ -146,6 +147,7 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
+            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -977,7 +979,16 @@ QuicStreamSwitchToExternalBuffers(
 )
 {
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
-    (void)QuicRecvBufferInitialize(&Stream->RecvBuffer, 0, 0, QUIC_RECV_BUF_MODE_EXTERNAL, NULL);
+    //
+    // Rq: Can't fail when initializing in external mode.
+    //
+    (void)QuicRecvBufferInitialize(
+        &Stream->RecvBuffer,
+        0,
+        0,
+        QUIC_RECV_BUF_MODE_EXTERNAL,
+        &Stream->Connection->Worker->AppBufferChunkPool,
+        NULL);
     Stream->Flags.UseExternalRecvBuffers = TRUE;
 }
 

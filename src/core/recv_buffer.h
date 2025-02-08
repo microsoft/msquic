@@ -21,13 +21,13 @@ typedef enum QUIC_RECV_BUF_MODE {
 // Represents a single contiguous range of bytes.
 //
 typedef struct QUIC_RECV_CHUNK {
-    CXPLAT_LIST_ENTRY Link;         // Link in the list of chunks.
-    uint32_t AllocLength : 31;      // Allocation size of Buffer
-    uint32_t ExternalReference : 1; // Indicates the buffer is being used externally.
-    _Field_size_(AllocLength)
-    uint8_t *Buffer;                // Pointer to the buffer itself. Doesn't need to be freed independently:
-                                    //  - for internally allocated buffers, points in the same allocation.
-                                    //  - for exteral buffers, the buffer isn't owned
+    CXPLAT_LIST_ENTRY Link;          // Link in the list of chunks.
+    uint32_t AllocLength       : 31; // Allocation size of Buffer
+    uint32_t ExternalReference : 1;  // Indicates the buffer is being used externally.
+    uint8_t AppOwnedBuffer     : 1;  // Indicates the buffer is managed by the app.
+    uint8_t *Buffer;                 // Pointer to the buffer itself. Doesn't need to be freed independently:
+                                     //  - for internally allocated buffers, points in the same allocation.
+                                     //  - for exteral buffers, the buffer isn't owned
 } QUIC_RECV_CHUNK;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -35,7 +35,8 @@ void
 QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
-    _Inout_updates_(AllocLength) uint8_t* Buffer
+    _Inout_updates_(AllocLength) uint8_t* Buffer,
+    _In_ BOOLEAN AppOwnedBuffer
     );
 
 typedef struct QUIC_RECV_BUFFER {
@@ -44,6 +45,12 @@ typedef struct QUIC_RECV_BUFFER {
     // A list of chunks that make up the buffer.
     //
     CXPLAT_LIST_ENTRY Chunks;
+
+    //
+    // Pool for the chunks managing app provided buffers.
+    // See QUIC_RECV_CHUNK::AppOwnedBuffer
+    //
+    CXPLAT_POOL *AppBufferChunkPool;
 
     //
     // Optional, preallocated initial chunk.
@@ -101,6 +108,12 @@ typedef struct QUIC_RECV_BUFFER {
 
 } QUIC_RECV_BUFFER;
 
+//
+// Initialize a QUIC_RECV_BUFFER.
+// Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL.
+// PreallocatedChunk is owned by the caller and must be freed afte the buffer is uninitialized.
+// AppBufferChunkPool is used to allocate and free the chunk managing app-provided buffers.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicRecvBufferInitialize(
@@ -108,6 +121,7 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ QUIC_RECV_BUF_MODE RecvMode,
+    _In_ CXPLAT_POOL* AppBufferChunkPool,
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     );
 

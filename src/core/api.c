@@ -1371,6 +1371,7 @@ MsQuicStreamProvideReceiveBuffers(
 {
     QUIC_STATUS Status;
     QUIC_OPERATION* Oper;
+    QUIC_CONNECTION* Connection = NULL;
     CXPLAT_LIST_ENTRY ChunkList;
     CxPlatListInitializeHead(&ChunkList);
 
@@ -1398,7 +1399,7 @@ MsQuicStreamProvideReceiveBuffers(
     CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
-    QUIC_CONNECTION* Connection = Stream->Connection;
+    Connection = Stream->Connection;
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
     //
@@ -1432,7 +1433,8 @@ MsQuicStreamProvideReceiveBuffers(
     // The allocation is done here to make the worker thread task failure free.
     //
     for (uint32_t i = 0; i < BufferCount; ++i) {
-        QUIC_RECV_CHUNK* Chunk = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK), QUIC_POOL_RECVBUF);
+        QUIC_RECV_CHUNK* Chunk =
+            CxPlatPoolAlloc(&Connection->Worker->AppBufferChunkPool);
         if (Chunk == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1442,7 +1444,7 @@ MsQuicStreamProvideReceiveBuffers(
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
-        QuicRecvChunkInitialize(Chunk, Buffers[i].Length, Buffers[i].Buffer);
+        QuicRecvChunkInitialize(Chunk, Buffers[i].Length, Buffers[i].Buffer, TRUE);
         CxPlatListInsertTail(&ChunkList, &Chunk->Link);
     }
 
@@ -1492,6 +1494,9 @@ Error:
     // Cleanup allocated chunks if the operation failed.
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
+        CXPLAT_DBG_ASSERT(Connection != NULL);
+        CxPlatPoolFree(&Connection->Worker->AppBufferChunkPool,
+            CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         CXPLAT_FREE(
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&ChunkList),
