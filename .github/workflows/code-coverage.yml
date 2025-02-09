@@ -234,7 +234,7 @@ jobs:
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@7f8b4b4bde536c465e797be725718b88c5d95e0e
+      uses: codecov/codecov-action@13ce06bfc6bbe3ecf90edbbf1bc32fe5978ca1d3
       with:
         fail_ci_if_error: true
         files: msquiccoverage.xml
