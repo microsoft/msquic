@@ -128,7 +128,7 @@ jobs:
         name: ${{ matrix.vec.config }}-linux-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.xdp }}
         path: artifacts
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+      uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Set up .NET 9.0
       uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
       with:

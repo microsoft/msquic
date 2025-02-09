@@ -34,7 +34,7 @@ jobs:
     - name: Checkout Repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+      uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Generate APKBUILD
       shell: pwsh
       run: |
@@ -71,7 +71,7 @@ jobs:
         name: ${{ matrix.vec.friendlyName }}-package
         path: artifacts
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+      uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Set up .NET 9.0
       uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
       with:
