@@ -1490,9 +1490,8 @@ MsQuicStreamProvideReceiveBuffers(
         // Queue the operation but don't wait for the completion.
         //
         QuicConnQueueOper(Connection, Oper);
+        Status = QUIC_STATUS_SUCCESS;
     }
-
-    Status = QUIC_STATUS_SUCCESS;
 
 Error:
     //

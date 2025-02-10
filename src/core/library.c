@@ -1798,10 +1798,7 @@ MsQuicOpenVersion(
     Api->StreamSend = MsQuicStreamSend;
     Api->StreamReceiveComplete = MsQuicStreamReceiveComplete;
     Api->StreamReceiveSetEnabled = MsQuicStreamReceiveSetEnabled;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     Api->StreamProvideReceiveBuffers = MsQuicStreamProvideReceiveBuffers;
-#endif
 
     Api->DatagramSend = MsQuicDatagramSend;
 

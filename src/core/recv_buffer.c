@@ -748,55 +748,60 @@ QuicRecvBufferReadBufferNeededCount(
         // Single mode only ever need one buffer, that's what it's designed for.
         //
         return 1;
-    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
+    }
+
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
         //
         // Circular mode need up to two buffers to deal with wrap around.
         //
         return 2;
-    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+    }
+
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         //
         // Multiple mode need up to three buffers to deal with wrap around and a
         // potential second chunk for overflow data.
         //
         return 3;
-    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
-        //
-        // App-owned mode can need any number of buffer, we must count.
-        //
+    }
 
-        //
-        // Determine how much data is readable
-        //
-        const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
-        if (!FirstRange) {
-            return 0;
-        }
-        const uint64_t ReadableData = FirstRange->Count - RecvBuffer->BaseOffset;
+    //
+    // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
+    // App-owned mode can need any number of buffer, we must count.
+    //
 
-        //
-        // Iterate through the chunks until they can contain all the readable data,
-        // to find the number of buffers needed.
-        //
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
-        QUIC_RECV_CHUNK* Chunk =
+    //
+    // Determine how much data is readable
+    //
+    const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
+    if (!FirstRange) {
+        return 0;
+    }
+    const uint64_t ReadableData = FirstRange->Count - RecvBuffer->BaseOffset;
+
+    //
+    // Iterate through the chunks until they can contain all the readable data,
+    // to find the number of buffers needed.
+    //
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    QUIC_RECV_CHUNK* Chunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    uint32_t DataInChunks = RecvBuffer->Capacity;
+    uint32_t BufferCount = 1;
+
+    while (ReadableData > DataInChunks) {
+        Chunk =
             CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
+                Chunk->Link.Flink,
                 QUIC_RECV_CHUNK,
                 Link);
-        uint32_t DataInChunks = RecvBuffer->Capacity;
-        uint32_t BufferCount = 1;
-
-        while (ReadableData > DataInChunks) {
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    Chunk->Link.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-            DataInChunks += Chunk->AllocLength;
-            BufferCount++;
-        }
-        return BufferCount;
+        DataInChunks += Chunk->AllocLength;
+        BufferCount++;
     }
+    return BufferCount;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
