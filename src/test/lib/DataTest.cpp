@@ -4548,9 +4548,12 @@ struct AppBuffersReceiverContext {
         auto ReceiverContext = (AppBuffersReceiverContext*)Context;
 
         if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-            new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, AppBuffersReceiverContext::StreamCallback, Context);
-            MsQuic->StreamProvideReceiveBuffers(
+            auto* Stream = new(std::nothrow) MsQuicStream(
                 Event->PEER_STREAM_STARTED.Stream,
+                CleanUpAutoDelete,
+                AppBuffersReceiverContext::StreamCallback,
+                Context);
+            Stream->ProvideReceiveBuffers(
                 ReceiverContext->NumBuffersForStreamStarted,
                 ReceiverContext->BuffersForStreamStarted);
         }
@@ -4686,10 +4689,7 @@ QuicTestStreamAppProvidedBuffers(
         TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
 
         // Provide receive buffers before starting the stream
-        MsQuic->StreamProvideReceiveBuffers(
-            ClientStream,
-            ARRAYSIZE(QuicBuffers),
-            QuicBuffers);
+        ClientStream.ProvideReceiveBuffers(ARRAYSIZE(QuicBuffers), QuicBuffers);
 
         TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
