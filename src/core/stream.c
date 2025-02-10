@@ -1003,10 +1003,13 @@ QuicStreamProvideRecvBuffers(
     if (Status == QUIC_STATUS_SUCCESS) {
         // Update the maximum allowed received size to take into account the new
         // capacity.
-        // TODO guhetier: If done outside of a receive / before the stream start,
-        // and the recv window was zero before, may need to send a MAX_STREAM_DATA update to the peer.
         Stream->MaxAllowedRecvOffset =
             Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+        QuicSendSetStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_MAX_DATA,
+            FALSE);
     }
     return Status;
 }
