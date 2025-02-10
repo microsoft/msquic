@@ -153,7 +153,7 @@ namespace Microsoft.Quic
         UNIDIRECTIONAL = 0x0001,
         ZERO_RTT = 0x0002,
         DELAY_ID_FC_UPDATES = 0x0004,
-        EXTERNAL_BUFFERS = 0x0008,
+        APP_OWNED_BUFFERS = 0x0008,
     }
 
     [System.Flags]
