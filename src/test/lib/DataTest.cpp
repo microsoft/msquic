@@ -378,26 +378,9 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-    if (SendUdpToQtipListener && UseQTIP) {
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-        // Get the current global execution config.
-        TEST_TRUE(QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                nullptr,
-                &Config)));
-        // Turn off QTIP for the client.
-        Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-        TEST_TRUE(QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    sizeof(Config),
-                    &Config)));
-    }
-    MsQuicRegistration ClientRegistration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
-    TEST_TRUE(ClientRegistration.IsValid());
+    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
+
+    TEST_TRUE(Registration.IsValid());
 
     if (ServerRejectZeroRtt) {
         //
@@ -419,7 +402,6 @@ QuicTestConnectAndPing(
     }
 
     MsQuicAlpn Alpn("MsQuicTest");
-
     MsQuicSettings Settings;
     if (ClientZeroRtt) {
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
@@ -429,29 +411,7 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-
-    if (SendUdpToQtipListener && UseQTIP) {
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-        // Get the current global execution config.
-        TEST_TRUE(QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                nullptr,
-                &Config)));
-        // Turn on QTIP for the server.
-        Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-        TEST_TRUE(QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    sizeof(Config),
-                    &Config)));
-    }
-    MsQuicRegistration ServerRegistration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
-
-    MsQuicConfiguration ServerConfiguration(ServerRegistration, Alpn, Settings, ServerSelfSignedCredConfig);
-
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
     QUIC_TICKET_KEY_CONFIG GoodKey;
@@ -468,13 +428,13 @@ QuicTestConnectAndPing(
     }
 
     MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(ClientRegistration, Alpn, ClientCredConfig);
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
             QuicAddrFamily,
-            ClientRegistration,
+            Registration,
             ServerConfiguration,
             ClientConfiguration,
             &ClientStats.ResumptionTicket);
@@ -490,29 +450,45 @@ QuicTestConnectAndPing(
             TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
         }
         TestListener Listener(
-            ServerRegistration,
+            Registration,
             ListenerAcceptPingConnection,
             ServerConfiguration
             );
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
+        if (SendUdpToQtipListener && UseQTIP) {
+            // After we start the server listener (which at this point has QTIP enabled), we can turn off QTIP for the client.
+            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
+            // Get the current global execution config.
+            TEST_TRUE(QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    nullptr,
+                    &Config)));
+            // Turn off QTIP for the client.
+            Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+            TEST_TRUE(QUIC_SUCCEEDED(
+                    MsQuic->SetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                        sizeof(Config),
+                        &Config)));
+        }
+
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
         Listener.Context = &ServerStats;
-
         TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[ConnectionCount];
         if (ConnAlloc == nullptr) {
             return;
         }
-
         UniquePtrArray<TestConnection*> Connections(ConnAlloc);
-
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
-                    ClientRegistration,
+                    Registration,
                     &ClientStats,
                     UseSendBuffer);
             if (Connections.get()[i] == nullptr) {
@@ -523,7 +499,6 @@ QuicTestConnectAndPing(
                     Connections.get()[i]->SetTlsSecrets(&ClientSecrets[i]));
             }
         }
-
         QuicAddr LocalAddr;
         for (uint32_t j = 0; j < StreamBurstCount; ++j) {
             if (j != 0) {
