@@ -406,7 +406,8 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
+    _In_ bool FifoScheduling,
+    _In_ bool SendUdpToQtipListener
     );
 
 //
@@ -819,6 +820,7 @@ typedef struct {
     uint8_t UnidirectionalStreams;
     uint8_t ServerInitiatedStreams;
     uint8_t FifoScheduling;
+    uint8_t SendUdpToQtipListener;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)
