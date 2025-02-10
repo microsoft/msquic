@@ -353,7 +353,6 @@ pub const QUIC_STREAM_OPEN_FLAGS_QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL: QUIC_STRE
 pub const QUIC_STREAM_OPEN_FLAGS_QUIC_STREAM_OPEN_FLAG_0_RTT: QUIC_STREAM_OPEN_FLAGS = 2;
 pub const QUIC_STREAM_OPEN_FLAGS_QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES: QUIC_STREAM_OPEN_FLAGS =
     4;
-pub const QUIC_STREAM_OPEN_FLAGS_QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS: QUIC_STREAM_OPEN_FLAGS = 8;
 pub type QUIC_STREAM_OPEN_FLAGS = ::std::os::raw::c_int;
 pub const QUIC_STREAM_START_FLAGS_QUIC_STREAM_START_FLAG_NONE: QUIC_STREAM_START_FLAGS = 0;
 pub const QUIC_STREAM_START_FLAGS_QUIC_STREAM_START_FLAG_IMMEDIATE: QUIC_STREAM_START_FLAGS = 1;
@@ -5570,9 +5569,6 @@ pub type QUIC_STREAM_RECEIVE_COMPLETE_FN =
     ::std::option::Option<unsafe extern "C" fn(Stream: HQUIC, BufferLength: u64)>;
 pub type QUIC_STREAM_RECEIVE_SET_ENABLED_FN =
     ::std::option::Option<unsafe extern "C" fn(Stream: HQUIC, IsEnabled: BOOLEAN) -> HRESULT>;
-pub type QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN = ::std::option::Option<
-    unsafe extern "C" fn(Stream: HQUIC, BufferCount: u32, Buffers: *const QUIC_BUFFER) -> HRESULT,
->;
 pub type QUIC_DATAGRAM_SEND_FN = ::std::option::Option<
     unsafe extern "C" fn(
         Connection: HQUIC,
@@ -5616,11 +5612,10 @@ pub struct QUIC_API_TABLE {
     pub DatagramSend: QUIC_DATAGRAM_SEND_FN,
     pub ConnectionResumptionTicketValidationComplete: QUIC_CONNECTION_COMP_RESUMPTION_FN,
     pub ConnectionCertificateValidationComplete: QUIC_CONNECTION_COMP_CERT_FN,
-    pub StreamProvideReceiveBuffers: QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 256usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 248usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -5688,8 +5683,6 @@ const _: () = {
         QUIC_API_TABLE,
         ConnectionCertificateValidationComplete
     ) - 240usize];
-    ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 248usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 459749;
