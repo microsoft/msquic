@@ -24,7 +24,7 @@ struct RecvBuffer {
     QUIC_RECV_BUFFER RecvBuf {0};
     QUIC_RECV_CHUNK* PreallocChunk {nullptr};
     CXPLAT_POOL AppBufferChunkPool {};
-    uint8_t* ExternalBuffer {nullptr};
+    uint8_t* AppOwnedBuffer {nullptr};
     ~RecvBuffer() {
         if (RecvBuf.ReadPendingLength != 0) {
             Drain(RecvBuf.ReadPendingLength);
@@ -34,8 +34,8 @@ struct RecvBuffer {
         if (PreallocChunk) {
             CXPLAT_FREE(PreallocChunk, QUIC_POOL_TEST);
         }
-        if (ExternalBuffer) {
-            CXPLAT_FREE(ExternalBuffer, QUIC_POOL_TEST);
+        if (AppOwnedBuffer) {
+            CXPLAT_FREE(AppOwnedBuffer, QUIC_POOL_TEST);
         }
         CxPlatPoolUninitialize(&AppBufferChunkPool);
     }
@@ -60,22 +60,22 @@ struct RecvBuffer {
             return Result;
         }
 
-        if (RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL && AllocBufferLength > 0) {
+        if (RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED && AllocBufferLength > 0) {
             //
-            // If the receive mode is EXTERNAL, provide external buffers.
+            // In app-owned mode, provide app-owned buffers.
             // Provide up to two chunks, so that:
             // - the first chunk has `AllocBufferLength` bytes
             // - the sum of the two is `VirtualBufferLength` bytes
             //
             CXPLAT_LIST_ENTRY ChunkList;
             CxPlatListInitializeHead(&ChunkList);
-            ExternalBuffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(VirtualBufferLength, QUIC_POOL_TEST);
+            AppOwnedBuffer = (uint8_t *)CXPLAT_ALLOC_NONPAGED(VirtualBufferLength, QUIC_POOL_TEST);
             auto* Chunk = (QUIC_RECV_CHUNK *)CxPlatPoolAlloc(&AppBufferChunkPool);
-            QuicRecvChunkInitialize(Chunk, AllocBufferLength, ExternalBuffer, TRUE);
+            QuicRecvChunkInitialize(Chunk, AllocBufferLength, AppOwnedBuffer, TRUE);
             CxPlatListInsertHead(&ChunkList, &Chunk->Link);
             if (VirtualBufferLength > AllocBufferLength) {
                 auto* Chunk2 = (QUIC_RECV_CHUNK *)CxPlatPoolAlloc(&AppBufferChunkPool);
-                QuicRecvChunkInitialize(Chunk2, VirtualBufferLength - AllocBufferLength, ExternalBuffer + AllocBufferLength, TRUE);
+                QuicRecvChunkInitialize(Chunk2, VirtualBufferLength - AllocBufferLength, AppOwnedBuffer + AllocBufferLength, TRUE);
                 CxPlatListInsertTail(&ChunkList, &Chunk2->Link);
             }
             Result = QuicRecvBufferProvideChunks(&RecvBuf, &ChunkList);
@@ -108,7 +108,7 @@ struct RecvBuffer {
         )
     {
         CXPLAT_LIST_ENTRY ChunkList;
-        QUIC_STATUS Status = MakeExternalChunks(Sizes, BufferSize, Buffer, &ChunkList);
+        QUIC_STATUS Status = MakeAppOwnedChunks(Sizes, BufferSize, Buffer, &ChunkList);
         if (Status != QUIC_STATUS_SUCCESS) {
             return Status;
         }
@@ -260,9 +260,9 @@ struct RecvBuffer {
     }
 
     //
-    // Helper to build a list of external chunks
+    // Helper to build a list of app-owned chunks
     //
-    QUIC_STATUS MakeExternalChunks(
+    QUIC_STATUS MakeAppOwnedChunks(
         const std::vector<uint32_t>& ChunkSizes,
         size_t BufferSize,
         _In_reads_bytes_(BufferSize) uint8_t* Buffer,
@@ -615,7 +615,7 @@ TEST_P(WithMode, MultiWriteLarge)
     RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
     ASSERT_FALSE(RecvBuf.HasUnreadData());
     ASSERT_EQ(0ull, ReadOffset);
-    if (Mode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         ASSERT_EQ(2u, BufferCount);
         ASSERT_EQ(64u, ReadBuffers[0].Length);
         ASSERT_EQ(192u, ReadBuffers[1].Length);
@@ -679,7 +679,7 @@ TEST_P(WithMode, ReadPartial)
         ASSERT_EQ(16ull, ReadOffset);
         ASSERT_EQ(1u, BufferCount);
         ASSERT_EQ(64u, ReadBuffers[0].Length);
-    } else { // Mode == QUIC_RECV_BUF_MODE_CIRCULAR || QUIC_RECV_BUF_MODE_EXTERNAL
+    } else { // Mode == QUIC_RECV_BUF_MODE_CIRCULAR || QUIC_RECV_BUF_MODE_APP_OWNED
         ASSERT_EQ(16ull, ReadOffset);
         ASSERT_EQ(2u, BufferCount);
         ASSERT_EQ(48u, ReadBuffers[0].Length);
@@ -734,7 +734,7 @@ TEST_P(WithMode, ReadPendingMultiWrite)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
     ASSERT_EQ(32ull, ReadOffset);
     if (Mode == QUIC_RECV_BUF_MODE_MULTIPLE ||
-        Mode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         ASSERT_EQ(2u, BufferCount);
         ASSERT_EQ(32u, ReadBuffers[0].Length);
         ASSERT_EQ(16u, ReadBuffers[1].Length);
@@ -1681,18 +1681,18 @@ TEST(MultiRecvTest, ReadPendingOver2Chunk)
     RecvBuf.Drain(8);
 }
 
-TEST(ExternalBuffersTest, ProvideChunks)
+TEST(AppOwnedBuffersTest, ProvideChunks)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     //
-    // Providing external chunks succeeds right after initialization.
+    // Providing app-owned chunks succeeds right after initialization.
     //
     std::array<uint8_t, 16> Buffer{};
     std::vector ChunkSizes{8u, 8u};
     CXPLAT_LIST_ENTRY ChunkList;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeExternalChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
     ASSERT_TRUE(CxPlatListIsEmpty(&ChunkList));
 
@@ -1701,28 +1701,28 @@ TEST(ExternalBuffersTest, ProvideChunks)
     RecvBuf.Write(0, 8, &InOutWriteLength, &NewDataReady);
 
     //
-    // More external buffers can be added, even after a write.
+    // More app-owned buffers can be added, even after a write.
     //
     std::array<uint8_t, 16> Buffer2{};
     std::vector ChunkSizes2{8u, 8u};
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeExternalChunks(ChunkSizes2, Buffer2.size(), Buffer2.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes2, Buffer2.size(), Buffer2.data(), &ChunkList));
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
     ASSERT_TRUE(CxPlatListIsEmpty(&ChunkList));
 }
 
-TEST(ExternalBuffersTest, ProvideChunksOverflow)
+TEST(AppOwnedBuffersTest, ProvideChunksOverflow)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     //
-    // Ensure external buffers cannot be provided in a way that would overflow
+    // Ensure app-owned buffers cannot be provided in a way that would overflow
     // the virtual size.
     //
     std::array<uint8_t, 24> Buffer{};
     std::vector ChunkSizes{8u, 8u, 8u};
     CXPLAT_LIST_ENTRY ChunkList;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeExternalChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
 
     for (CXPLAT_LIST_ENTRY* Entry = ChunkList.Flink;
          Entry != &ChunkList;
@@ -1741,10 +1741,10 @@ TEST(ExternalBuffersTest, ProvideChunksOverflow)
     RecvBuf.FreeChunkList(ChunkList);
 }
 
-TEST(ExternalBuffersTest, PartialDrain)
+TEST(AppOwnedBuffersTest, PartialDrain)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     const uint32_t NbChunks = 2;
     std::array<uint8_t, NbChunks * 8> Buffer{};
@@ -1765,10 +1765,10 @@ TEST(ExternalBuffersTest, PartialDrain)
     RecvBuf.RecvBuf.Capacity = 4;
 }
 
-TEST(ExternalBuffersTest, ReadWriteManyChunks)
+TEST(AppOwnedBuffersTest, ReadWriteManyChunks)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     const uint32_t NbChunks = 5;
     std::array<uint8_t, NbChunks * 8> Buffer{};
@@ -1794,10 +1794,10 @@ TEST(ExternalBuffersTest, ReadWriteManyChunks)
     RecvBuf.Check(6, 0, 2, ExternalReferences.data());
 }
 
-TEST(ExternalBuffersTest, NumberOfBufferNeededForRead)
+TEST(AppOwnedBuffersTest, NumberOfBufferNeededForRead)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     const uint32_t NbChunks = 5;
     std::array<uint8_t, NbChunks * 8> Buffer{};
@@ -1821,7 +1821,7 @@ TEST(ExternalBuffersTest, NumberOfBufferNeededForRead)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(16, 20, &InOutWriteLength, &NewDataReady));
     ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 5);
 
-    // Reading with less buffers than needed still works in external mode.
+    // Reading with less buffers than needed still works in app-owned mode.
     // (3 are needed for other modes)
     QUIC_BUFFER Buffers[5]{};
     uint32_t NumBuffers = 3;
@@ -1839,10 +1839,10 @@ TEST(ExternalBuffersTest, NumberOfBufferNeededForRead)
     ASSERT_EQ(RecvBuf.ReadBufferNeededCount(), 2);
 }
 
-TEST(ExternalBuffersTest, WriteTooLong)
+TEST(AppOwnedBuffersTest, WriteTooLong)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     std::array<uint8_t, 16> Buffer{};
     std::vector ChunkSizes{8u, 8u};
@@ -1856,10 +1856,10 @@ TEST(ExternalBuffersTest, WriteTooLong)
     ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, RecvBuf.Write(0, 17, &InOutWriteLength, &NewDataReady));
 }
 
-TEST(ExternalBuffersTest, OutOfBuffers)
+TEST(AppOwnedBuffersTest, OutOfBuffers)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     std::array<uint8_t, DEF_TEST_BUFFER_LENGTH> Buffer{};
     std::vector ChunkSizes{DEF_TEST_BUFFER_LENGTH};
@@ -1901,10 +1901,10 @@ TEST(ExternalBuffersTest, OutOfBuffers)
     RecvBuf.Drain(8);
 }
 
-TEST(ExternalBuffersTest, FreeBufferBeforeDrain)
+TEST(AppOwnedBuffersTest, FreeBufferBeforeDrain)
 {
     RecvBuffer RecvBuf;
-    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_EXTERNAL, false, 0, 0));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
 
     auto Buffer1 = std::make_unique<uint8_t[]>(DEF_TEST_BUFFER_LENGTH);
     std::array<uint8_t, DEF_TEST_BUFFER_LENGTH> Buffer2{};
@@ -1937,5 +1937,5 @@ TEST(ExternalBuffersTest, FreeBufferBeforeDrain)
 INSTANTIATE_TEST_SUITE_P(
     RecvBufferTest,
     WithMode,
-    ::testing::Values(QUIC_RECV_BUF_MODE_SINGLE, QUIC_RECV_BUF_MODE_CIRCULAR, QUIC_RECV_BUF_MODE_MULTIPLE, QUIC_RECV_BUF_MODE_EXTERNAL),
+    ::testing::Values(QUIC_RECV_BUF_MODE_SINGLE, QUIC_RECV_BUF_MODE_CIRCULAR, QUIC_RECV_BUF_MODE_MULTIPLE, QUIC_RECV_BUF_MODE_APP_OWNED),
     testing::PrintToStringParamName());

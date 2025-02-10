@@ -658,10 +658,10 @@ MsQuicStreamOpen(
         goto Error;
     }
 
-    if (!!(Flags & QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS) &&
+    if (!!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) &&
         Connection->Settings.StreamMultiReceiveEnabled) {
         //
-        // External buffers are not supported with multi-receive.
+        // App-owned buffers are not supported with multi-receive.
         //
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Error;
@@ -1413,19 +1413,19 @@ MsQuicStreamProvideReceiveBuffers(
     BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
     BOOLEAN IsAlreadyInline = Connection->State.InlineApiExecution;
 
-    if (!Stream->Flags.UseExternalRecvBuffers) {
+    if (!Stream->Flags.UseAppOwnedRecvBuffers) {
         if (Stream->Flags.PeerStreamStartEventActive) {
             CXPLAT_DBG_ASSERT(IsWorkerThread);
             //
             // We are inline from the callback indicating a peer opened a stream.
-            // No data was received yet so we can setup external buffers.
+            // No data was received yet so we can setup app-owned buffers.
             //
             Connection->State.InlineApiExecution = TRUE;
-            QuicStreamSwitchToExternalBuffers(Stream);
+            QuicStreamSwitchToAppOwnedBuffers(Stream);
             Connection->State.InlineApiExecution = IsAlreadyInline;
         } else {
             //
-            // External buffers can't be provided after the stream has been
+            // App-owned buffers can't be provided after the stream has been
             // started using internal buffers.
             //
             Status = QUIC_STATUS_INVALID_STATE;

@@ -141,7 +141,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN SendEnabled             : 1;    // Application is allowed to send data.
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
         BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
-        BOOLEAN UseExternalRecvBuffers  : 1;    // The stream is using external, app provided receive buffers.
+        BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
@@ -1016,11 +1016,11 @@ QuicStreamRecvSetEnabledState(
     );
 
 //
-// Convert a stream receive buffer to external mode.
+// Convert a stream receive buffer to app-owned mode.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicStreamSwitchToExternalBuffers(
+QuicStreamSwitchToAppOwnedBuffers(
     _In_ QUIC_STREAM *Stream
     );
 

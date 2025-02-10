@@ -200,8 +200,8 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
                                                         // connection should be delayed to StreamClose.
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS  = 0x0008,   // No buffer will be allocated for the stream, external buffers
-                                                        // must be provided (see StreamProvideReceiveBuffers)
+    QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS  = 0x0008,  // No buffer will be allocated for the stream, the app must
+                                                        // provide buffers (see StreamProvideReceiveBuffers)
 #endif
 } QUIC_STREAM_OPEN_FLAGS;
 

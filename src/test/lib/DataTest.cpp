@@ -4678,7 +4678,7 @@ QuicTestStreamAppProvidedBuffers(
 
         MsQuicStream ClientStream(
             Connection,
-            QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS,
+            QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS,
             CleanUpManual,
             AppBuffersReceiverContext::StreamCallback,
             &ReceiveContext);

@@ -62,7 +62,7 @@ QuicStreamInitialize(
             Stream,
             "Configured for delayed ID FC updates");
     }
-    Stream->Flags.UseExternalRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_EXTERNAL_BUFFERS);
+    Stream->Flags.UseAppOwnedRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS);
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
@@ -117,12 +117,12 @@ QuicStreamInitialize(
     QUIC_RECV_BUF_MODE RecvBufferMode = QUIC_RECV_BUF_MODE_CIRCULAR;
     if (Stream->Flags.ReceiveMultiple) {
         RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
-    } else if (Stream->Flags.UseExternalRecvBuffers) {
-        RecvBufferMode = QUIC_RECV_BUF_MODE_EXTERNAL;
+    } else if (Stream->Flags.UseAppOwnedRecvBuffers) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_APP_OWNED;
     }
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
-        RecvBufferMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+        RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -974,22 +974,22 @@ QuicStreamParamGet(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicStreamSwitchToExternalBuffers(
+QuicStreamSwitchToAppOwnedBuffers(
     _In_ QUIC_STREAM* Stream
 )
 {
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     //
-    // Rq: Can't fail when initializing in external mode.
+    // Rq: Can't fail when initializing in app-owned mode.
     //
     (void)QuicRecvBufferInitialize(
         &Stream->RecvBuffer,
         0,
         0,
-        QUIC_RECV_BUF_MODE_EXTERNAL,
+        QUIC_RECV_BUF_MODE_APP_OWNED,
         &Stream->Connection->Worker->AppBufferChunkPool,
         NULL);
-    Stream->Flags.UseExternalRecvBuffers = TRUE;
+    Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

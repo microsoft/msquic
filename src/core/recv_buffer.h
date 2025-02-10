@@ -13,7 +13,7 @@ typedef enum QUIC_RECV_BUF_MODE {
     QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
     QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
     QUIC_RECV_BUF_MODE_MULTIPLE,    // Multiple independent receives that may indicate up to two contiguous buffers at a time.
-    QUIC_RECV_BUF_MODE_EXTERNAL     // Uses memory buffer provided by the app. Only one receive at a time,
+    QUIC_RECV_BUF_MODE_APP_OWNED    // Uses memory buffers provided by the app. Only one receive at a time,
                                     //   that may indicate up to the number of provided buffers.
 } QUIC_RECV_BUF_MODE;
 
@@ -110,7 +110,7 @@ typedef struct QUIC_RECV_BUFFER {
 
 //
 // Initialize a QUIC_RECV_BUFFER.
-// Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL.
+// Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED.
 // PreallocatedChunk is owned by the caller and must be freed afte the buffer is uninitialized.
 // AppBufferChunkPool is used to allocate and free the chunk managing app-provided buffers.
 //
@@ -162,9 +162,9 @@ QuicRecvBufferTryIncreaseVirtualBufferLength(
     );
 
 //
-// Provide externally allocated chunks to the buffer.
-// At least one chunk must be provided.
-// Only valid for QUIC_RECV_BUF_MODE_EXTERNAL mode.
+// Provide app-owned buffers. At least one chunk must be provided.
+// Chunks must be allocated using `AppBufferChunkPool`.
+// Only valid for QUIC_RECV_BUF_MODE_APP_OWNED mode.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS

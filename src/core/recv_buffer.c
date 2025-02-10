@@ -63,7 +63,7 @@ QuicRecvChunkInitialize(
     Chunk->Buffer = Buffer;
     Chunk->ExternalReference = FALSE;
     Chunk->AppOwnedBuffer = AppOwnedBuffer;
-    }
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -96,8 +96,8 @@ QuicRecvBufferInitialize(
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
-    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
-    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
+    CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+    CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
     CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
@@ -111,7 +111,7 @@ QuicRecvBufferInitialize(
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
-    if (RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
         // Setup an initial chunk.
         //
@@ -212,7 +212,7 @@ QuicRecvBufferTryIncreaseVirtualBufferLength(
     _In_ uint32_t NewLength
     )
 {
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         return FALSE;
     }
 
@@ -228,7 +228,7 @@ QuicRecvBufferProvideChunks(
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNKS */ Chunks
     )
 {
-    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL);
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(Chunks));
 
     uint64_t NewBufferLength = RecvBuffer->VirtualBufferLength;
@@ -275,8 +275,8 @@ QuicRecvBufferResize(
     )
 {
     CXPLAT_DBG_ASSERTMSG(
-        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL,
-        "Should never resize in External mode");
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED,
+        "Should never resize in App-owned mode");
     CXPLAT_DBG_ASSERT(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
@@ -412,7 +412,7 @@ QuicRecvBufferGetTotalAllocLength(
     }
 
     //
-    // For multiple mode and external mode, several chunks may be used at any
+    // For multiple mode and app-owned mode, several chunks may be used at any
     // point in time, so we need to consider the space allocated for all of them.
     // Additionally, the first one is special because it may be already partially
     // drained, making it only partially usable.
@@ -461,7 +461,7 @@ QuicRecvBufferCopyIntoChunks(
     )
 {
     //
-    // Copy the data into the correct chunk(s). In multiple/external mode this
+    // Copy the data into the correct chunk(s). In multiple/app-owned mode this
     // may result in copies to multiple chunks. For single/circular it should
     // always be just a single copy.
     //
@@ -506,7 +506,7 @@ QuicRecvBufferCopyIntoChunks(
         }
     } else {
         //
-        // In multiple/external mode we may have to write to multiple chunks.
+        // In multiple/app-owned mode we may have to write to multiple chunks.
         // We need to find the first chunk to start writing at and then
         // continue copying data into the chunks until we run out.
         //
@@ -586,7 +586,7 @@ QuicRecvBufferCopyIntoChunks(
                     ChunkWriteLength = RecvBuffer->Capacity - (uint32_t)RelativeOffset;
                 }
                 if (Chunk->AllocLength < ChunkWriteOffset + ChunkWriteLength) {
-                    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL); // External mode capacity will never allow a wrap around
+                    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED); // App-owned mode capacity will never allow a wrap around
                     // Circular buffer wrap around case.
                     CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, Chunk->AllocLength - ChunkWriteOffset);
                     CxPlatCopyMemory(Chunk->Buffer, WriteBuffer + Chunk->AllocLength - ChunkWriteOffset, ChunkWriteLength - (Chunk->AllocLength - ChunkWriteOffset));
@@ -674,10 +674,10 @@ QuicRecvBufferWrite(
     // N.B. We do this before updating the written ranges below so we don't have
     // to support rolling back those changes on the possible allocation failure
     // here.
-    // This is skipped in external mode since the entire virtual length is
+    // This is skipped in app-owned mode since the entire virtual length is
     // always allocated.
     //
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
         if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
             //
@@ -759,9 +759,9 @@ QuicRecvBufferReadBufferNeededCount(
         // potential second chunk for overflow data.
         //
         return 3;
-    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL
+    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
         //
-        // External mode can need any number of buffer, we must count.
+        // App-owned mode can need any number of buffer, we must count.
         //
 
         //
@@ -818,13 +818,13 @@ QuicRecvBufferRead(
         RecvBuffer->ReadPendingLength == 0 ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
     //
-    // Only multiple and external modes can have multiple chunks at read time.
+    // Only multiple and app-owned modes can have multiple chunks at read time.
     // Other modes would coalesce chunks during a write or drain.
     //
     CXPLAT_DBG_ASSERT(
         RecvBuffer->Chunks.Flink->Flink == &RecvBuffer->Chunks ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL );
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED );
 
     //
     // Find the length of the data written in the front, after the BaseOffset.
@@ -974,7 +974,7 @@ QuicRecvBufferRead(
         }
         CXPLAT_DBG_ASSERT(TotalBuffersLength <= RecvBuffer->ReadPendingLength);
 #endif
-    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL
+    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
 
         uint64_t remainingDataToRead = ContiguousLength;
         const uint32_t ProvidedBufferCount = *BufferCount;
@@ -1071,17 +1071,17 @@ QuicRecvBufferPartialDrain(
                 Chunk->Buffer + DrainLength,
                 (size_t)(Chunk->AllocLength - (uint32_t)DrainLength)); // TODO - Might be able to copy less than the full alloc length
 
-        } else { // Circular, multiple and external mode.
+        } else { // Circular, multiple and app-owned mode.
             //
             // Increment the buffer start, making sure to account for circular
             // buffer wrap around.
             //
             RecvBuffer->ReadStart =
                 (uint32_t)((RecvBuffer->ReadStart + DrainLength) % Chunk->AllocLength);
-            if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL ||
+            if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED ||
                 Chunk->Link.Flink != &RecvBuffer->Chunks) {
                 //
-                // Shrink the capacity of the first chunk in external mode or
+                // Shrink the capacity of the first chunk in app-owned mode or
                 // if there is another chunk (in circular and multiple mode,
                 // when there is a single chunk, it is used as a circular buffer).
                 //
@@ -1102,9 +1102,9 @@ QuicRecvBufferPartialDrain(
         RecvBuffer->ReadPendingLength -= DrainLength;
     }
 
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
-        // In external mode, memory is never re-used: a drain consumes
+        // In app-owned mode, memory is never re-used: a drain consumes
         // virtual buffer length.
         //
         CXPLAT_DBG_ASSERT(RecvBuffer->VirtualBufferLength >= (uint32_t)DrainLength);
@@ -1139,9 +1139,9 @@ QuicRecvBufferFullDrain(
         Chunk->ExternalReference = FALSE;
         RecvBuffer->ReadPendingLength -= RecvBuffer->ReadLength;
     }
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
-        // In external mode, memory is never re-used: a drain consumes
+        // In app-owned mode, memory is never re-used: a drain consumes
         // virtual buffer length.
         //
         RecvBuffer->VirtualBufferLength -= RecvBuffer->ReadLength;
@@ -1157,10 +1157,9 @@ QuicRecvBufferFullDrain(
         CXPLAT_FRE_ASSERTMSG(DrainLength == 0, "App drained more than was available!");
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadLength == 0);
 
-        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
             //
-            // In external mode, external chunks are never re-used:
-            // free the last chunk.
+            // In app-owned mode, chunks are never re-used: free the last chunk.
             //
             CxPlatListEntryRemove(&Chunk->Link);
             QuicRecvChunkFree(RecvBuffer, Chunk);
@@ -1245,9 +1244,9 @@ QuicRecvBufferDrain(
             // drained if its capacity is entirely consumed.
             //
             PartialDrain &= (uint64_t)RecvBuffer->Capacity > DrainLength;
-        } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_EXTERNAL) {
+        } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
             //
-            // In external mode, the chunk must be fully drained only if its capacity reaches 0.
+            // In app-owned mode, the chunk must be fully drained only if its capacity reaches 0.
             // Otherwise, we either have more bytes to read, or more space to write.
             // Contrary to other modes, we cannot reset ReadStart to the start of the buffer
             // whenever we drained all written data.
