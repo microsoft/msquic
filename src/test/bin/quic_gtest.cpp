@@ -1750,22 +1750,22 @@ TEST_P(WithSendArgs1, Send) {
             GetParam().ServerInitiatedStreams,
             false,  // FifoScheduling
             false); // SendUdpToQtipListener
-        // QuicTestConnectAndPing(
-        //     GetParam().Family,
-        //     GetParam().Length,
-        //     GetParam().ConnectionCount,
-        //     GetParam().StreamCount,
-        //     1,      // StreamBurstCount
-        //     0,      // StreamBurstDelayMs
-        //     false,  // ServerStatelessRetry
-        //     false,  // ClientRebind
-        //     false,  // ClientZeroRtt
-        //     false,  // ServerRejectZeroRtt
-        //     GetParam().UseSendBuffer,
-        //     GetParam().UnidirectionalStreams,
-        //     GetParam().ServerInitiatedStreams,
-        //     false,  // FifoScheduling
-        //     true);  // SendUdpToQtipListener
+        QuicTestConnectAndPing(
+            GetParam().Family,
+            GetParam().Length,
+            GetParam().ConnectionCount,
+            GetParam().StreamCount,
+            1,      // StreamBurstCount
+            0,      // StreamBurstDelayMs
+            false,  // ServerStatelessRetry
+            false,  // ClientRebind
+            false,  // ClientZeroRtt
+            false,  // ServerRejectZeroRtt
+            GetParam().UseSendBuffer,
+            GetParam().UnidirectionalStreams,
+            GetParam().ServerInitiatedStreams,
+            false,  // FifoScheduling
+            true);  // SendUdpToQtipListener
     }
 }
 
