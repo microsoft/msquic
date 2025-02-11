@@ -469,6 +469,7 @@ QuicTestConnectAndPing(
             TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
             // Turn off QTIP for the client.
             Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
             TEST_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
@@ -476,16 +477,16 @@ QuicTestConnectAndPing(
                         Size,
                         &Config)));
             // Another sanity check to ensure QTIP is OFF right before the instantiation of the ClientConfiguration.
-            Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
+            QUIC_EXECUTION_CONFIG TmpConfig = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
+            uint32_t TmpSize = sizeof(TmpConfig);
             // Get the current global execution config.
-            Size = sizeof(Config);
             TEST_TRUE(QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &Size,
-                    &Config)));
-            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
+                    &TmpSize,
+                    &TmpConfig)));
+            TEST_TRUE((TmpConfig.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
         }
 
         MsQuicCredentialConfig ClientCredConfig;
