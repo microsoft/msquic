@@ -72,8 +72,6 @@ QuicRecvChunkFree(
     _In_ QUIC_RECV_CHUNK* Chunk
     )
 {
-    CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
-
     if (Chunk == RecvBuffer->PreallocatedChunk) {
         return;
     }
@@ -1211,7 +1209,7 @@ QuicRecvBufferDrain(
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
 
     //
-    // Mark chunks as no longer externally referenced reset the read-pending data length.
+    // Mark chunks as no longer externally referenced and reset the read-pending data length.
     // For Multiple mode, this is done when each chunk is drained.
     //
     if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE) {
