@@ -461,11 +461,12 @@ QuicTestConnectAndPing(
             // After we start the server listener (which at this point has QTIP enabled), we can turn off QTIP for the client.
             QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
             // Get the current global execution config.
+            uint32_t Size = sizeof(Config);
             TEST_TRUE(QUIC_SUCCEEDED(
                 MsQuic->GetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    nullptr,
+                    &Size,
                     &Config)));
             // Turn off QTIP for the client.
             Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
