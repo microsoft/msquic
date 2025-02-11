@@ -427,22 +427,6 @@ QuicTestConnectAndPing(
         TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
     }
 
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
-
-    if (ClientZeroRtt) {
-        QuicTestPrimeResumption(
-            QuicAddrFamily,
-            Registration,
-            ServerConfiguration,
-            ClientConfiguration,
-            &ClientStats.ResumptionTicket);
-        if (!ClientStats.ResumptionTicket) {
-            return;
-        }
-    }
-
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
@@ -474,8 +458,23 @@ QuicTestConnectAndPing(
                     MsQuic->SetParam(
                         nullptr,
                         QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        sizeof(Config),
+                        Size,
                         &Config)));
+        }
+
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_TRUE(ClientConfiguration.IsValid());
+        if (ClientZeroRtt) {
+            QuicTestPrimeResumption(
+                QuicAddrFamily,
+                Registration,
+                ServerConfiguration,
+                ClientConfiguration,
+                &ClientStats.ResumptionTicket);
+            if (!ClientStats.ResumptionTicket) {
+                return;
+            }
         }
 
         QuicAddr ServerLocalAddr;
