@@ -30,7 +30,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquiccoretest core msquic_platform)
 endif()
 
-target_link_libraries(msquiccoretest inc gtest warnings logging base_link)
+target_link_libraries(msquiccoretest inc gtest warnings logging base_link oldnames)
 
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest

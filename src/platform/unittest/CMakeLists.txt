@@ -23,7 +23,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquicplatformtest msquic_platform)
 endif()
 
-target_link_libraries(msquicplatformtest inc gtest warnings logging base_link)
+target_link_libraries(msquicplatformtest inc gtest warnings logging base_link oldnames)
 
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest

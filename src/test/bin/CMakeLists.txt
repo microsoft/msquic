@@ -19,7 +19,7 @@ if (BUILD_SHARED_LIBS)
     target_link_libraries(msquictest msquic_platform)
 endif()
 
-target_link_libraries(msquictest inc gtest logging base_link)
+target_link_libraries(msquictest inc gtest logging base_link oldnames)
 
 # At least /W3 must be used on all windows builds to pass compliance
 if(MSVC)
