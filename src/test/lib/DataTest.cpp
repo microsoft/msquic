@@ -411,6 +411,20 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
+    if (UseQTIP) {
+        // Sanity check to make sure we actually have QTIP enabled right before we define ServerConfiguration.
+        // We ASSUME that the state of QUIC_PARAM_GLOBAL_EXECUTION_CONFIG gets COPIED at the time of configuration creation.
+        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
+        // Get the current global execution config.
+        uint32_t Size = sizeof(Config);
+        TEST_TRUE(QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                &Size,
+                &Config)));
+        TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
+    }
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -452,6 +466,7 @@ QuicTestConnectAndPing(
                     QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                     &Size,
                     &Config)));
+            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
             // Turn off QTIP for the client.
             Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
             TEST_TRUE(QUIC_SUCCEEDED(
@@ -460,6 +475,17 @@ QuicTestConnectAndPing(
                         QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
                         Size,
                         &Config)));
+            // Another sanity check to ensure QTIP is OFF right before the instantiation of the ClientConfiguration.
+            Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
+            // Get the current global execution config.
+            Size = sizeof(Config);
+            TEST_TRUE(QUIC_SUCCEEDED(
+                MsQuic->GetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    &Size,
+                    &Config)));
+            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
         }
 
         MsQuicCredentialConfig ClientCredConfig;
