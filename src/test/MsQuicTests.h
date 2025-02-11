@@ -606,6 +606,9 @@ QuicTestEcn(
 void QuicTestStreamAppProvidedBuffers(
     );
 
+void QuicTestStreamAppProvidedBuffersZeroWindow(
+    );
+
 //
 // QuicDrill tests
 //

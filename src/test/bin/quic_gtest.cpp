@@ -2265,6 +2265,17 @@ TEST(Misc, StreamAppProvidedBuffers) {
         QuicTestStreamAppProvidedBuffers();
     }
 }
+
+TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
+    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+    if (TestingKernelMode) {
+        // GTEST_SKIP();
+        // TODO guhetier: Implement
+        // ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+    } else {
+        QuicTestStreamAppProvidedBuffersZeroWindow();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
