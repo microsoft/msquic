@@ -414,7 +414,7 @@ QuicTestConnectAndPing(
     if (UseQTIP) {
         // Sanity check to make sure we actually have QTIP enabled right before we define ServerConfiguration.
         // We ASSUME that the state of QUIC_PARAM_GLOBAL_EXECUTION_CONFIG gets COPIED at the time of configuration creation.
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
+        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         // Get the current global execution config.
         uint32_t Size = sizeof(Config);
         TEST_TRUE(QUIC_SUCCEEDED(
