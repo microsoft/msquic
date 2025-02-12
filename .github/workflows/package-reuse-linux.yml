@@ -16,10 +16,10 @@ on:
       os:
         required: false
         type: string
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-22.04'
         # options:
-        #   - ubuntu-20.04
         #   - ubuntu-22.04
+        #   - ubuntu-24.04
       arch:
         required: false
         default: 'x64'
