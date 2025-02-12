@@ -49,7 +49,22 @@ jobs:
     - name: Cargo build
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
-      run: git diff --exit-code
+      run: git diff --exit-code >> cargo_generated_diff.txt
+    - name: Post a comment on PR on mismatch
+      if: |
+        failure() &&
+        !github.event.pull_request.head.repo.fork &&
+        steps.Check_all_generated_files_with_git.conclusion == 'failure'
+      uses: peter-evans/create-or-update-comment@v1
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number: ${{ github.event.number }}
+        body: |
+          ## ${{ github.workflow }}
+          The rust bindings need to be updated. Please apply (`git apply`) this diff:
+          ```diff
+          $(cat cargo_generated_diff.txt)
+          ```
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
