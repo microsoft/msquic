@@ -976,7 +976,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamSwitchToAppOwnedBuffers(
     _In_ QUIC_STREAM* Stream
-)
+    )
 {
     //
     // Reset the current receive buffer and preallocated chunk.
@@ -991,7 +991,7 @@ QuicStreamSwitchToAppOwnedBuffers(
     }
 
     //
-    // Rq: Can't fail when initializing in app-owned mode.
+    // Can't fail when initializing in app-owned mode.
     //
     (void)QuicRecvBufferInitialize(
         &Stream->RecvBuffer,
@@ -1008,12 +1008,14 @@ QUIC_STATUS
 QuicStreamProvideRecvBuffers(
     _In_ QUIC_STREAM* Stream,
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
-)
+    )
 {
     QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
     if (Status == QUIC_STATUS_SUCCESS) {
+        //
         // Update the maximum allowed received size to take into account the new
         // capacity.
+        //
         Stream->MaxAllowedRecvOffset =
             Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
         QuicSendSetStreamSendFlag(

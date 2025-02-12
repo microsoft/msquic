@@ -794,8 +794,8 @@ QuicStreamOnBytesDelivered(
                 //
 
                 if (QuicRecvBufferTryIncreaseVirtualBufferLength(
-                    &Stream->RecvBuffer,
-                    Stream->RecvBuffer.VirtualBufferLength * 2)) {
+                        &Stream->RecvBuffer,
+                        Stream->RecvBuffer.VirtualBufferLength * 2)) {
 
                     QuicTraceLogStreamVerbose(
                         IncreaseRxBuffer,

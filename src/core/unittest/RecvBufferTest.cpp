@@ -116,8 +116,8 @@ struct RecvBuffer {
         }
         return Status;
     }
-    void IncreaseVirtualBufferLength(uint32_t Length) {
-        QuicRecvBufferTryIncreaseVirtualBufferLength(&RecvBuf, Length);
+    BOOLEAN TryIncreaseVirtualBufferLength(uint32_t Length) {
+        return QuicRecvBufferTryIncreaseVirtualBufferLength(&RecvBuf, Length);
     }
     QUIC_STATUS Write(
         _In_ uint64_t WriteOffset,
@@ -992,6 +992,28 @@ TEST_P(WithMode, DrainFrontChunkExactly_NoGap)
     BufferCount = ARRAYSIZE(ReadBuffers);
     RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
     RecvBuf.Drain(4);
+}
+
+TEST_P(WithMode, IncreaseVirtualLength)
+{
+    RecvBuffer RecvBuf;
+    auto Mode = GetParam();
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, 8, DEF_TEST_BUFFER_LENGTH));
+    constexpr auto WriteLength = 2 * DEF_TEST_BUFFER_LENGTH;
+    uint64_t InOutWriteLength = WriteLength;
+    BOOLEAN NewDataReady = FALSE;
+
+    ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady));
+
+    bool Resized = RecvBuf.TryIncreaseVirtualBufferLength(WriteLength);
+    ASSERT_EQ(Resized, Mode != QUIC_RECV_BUF_MODE_APP_OWNED);
+
+    auto Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady);
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+        ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, Status);
+    } else {
+        ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
+    }
 }
 
 // Validate the gap can span the edge of a chunk

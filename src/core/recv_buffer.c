@@ -56,9 +56,6 @@ QuicRecvChunkInitialize(
     _In_ BOOLEAN AppOwnedBuffer
     )
 {
-    CXPLAT_DBG_ASSERTMSG((AllocLength & ~(UINT32_MAX >> 2)) == 0,
-        "Chunk length must fit in 31 bits.");
-
     Chunk->AllocLength = AllocLength;
     Chunk->Buffer = Buffer;
     Chunk->ExternalReference = FALSE;

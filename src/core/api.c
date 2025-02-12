@@ -658,15 +658,6 @@ MsQuicStreamOpen(
         goto Error;
     }
 
-    if (!!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS) &&
-        Connection->Settings.StreamMultiReceiveEnabled) {
-        //
-        // App-owned buffers are not supported with multi-receive.
-        //
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
-
     Status = QuicStreamInitialize(Connection, FALSE, Flags, (QUIC_STREAM**)NewStream);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -1387,12 +1378,7 @@ MsQuicStreamProvideReceiveBuffers(
     }
 
     for (uint32_t i = 0; i < BufferCount; ++i) {
-        if (Buffers[i].Length == 0 ||
-            (Buffers[i].Length & ~(UINT32_MAX >> 2)) != 0) {
-            //
-            // Check the buffer length is non-zero and fit on 31 bits.
-            // (Chunks lenghts are stored on 31 bits)
-            //
+        if (Buffers[i].Length == 0) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Error;
         }
