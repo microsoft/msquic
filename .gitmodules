@@ -15,4 +15,4 @@
 [submodule "submodules/xdp-for-windows"]
 	path = submodules/xdp-for-windows
 	url = https://github.com/microsoft/xdp-for-windows.git
-	branch = 300d18c43f989ca22ad1be2f2836e2bbec6a2c4f
+	branch = release/1.1
