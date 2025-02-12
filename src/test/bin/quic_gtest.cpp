@@ -2258,9 +2258,7 @@ TEST(Misc, StreamMultiReceive) {
 TEST(Misc, StreamAppProvidedBuffers) {
     TestLogger Logger("StreamAppProvidedBuffers");
     if (TestingKernelMode) {
-        // GTEST_SKIP();
-        // TODO guhetier: Implement
-        // ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
     } else {
         QuicTestStreamAppProvidedBuffers();
     }
@@ -2269,9 +2267,7 @@ TEST(Misc, StreamAppProvidedBuffers) {
 TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
     TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
     if (TestingKernelMode) {
-        // GTEST_SKIP();
-        // TODO guhetier: Implement
-        // ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
     } else {
         QuicTestStreamAppProvidedBuffersZeroWindow();
     }

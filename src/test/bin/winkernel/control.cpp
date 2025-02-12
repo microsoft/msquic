@@ -1509,6 +1509,16 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+        break;
+#endif
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
