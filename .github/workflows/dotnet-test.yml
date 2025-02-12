@@ -25,7 +25,8 @@ jobs:
     uses: ./.github/workflows/build-reuse-darwin-framework.yml
     with:
       config: 'Debug'
-  
+      repo: ${{ github.repository }}
+
   build-linux:
     name: Ubuntu
     needs: []
@@ -33,7 +34,6 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
@@ -61,7 +61,8 @@ jobs:
       os: ${{ matrix.vec.os }}
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
-    
+      repo: ${{ github.repository }}
+
   dotnet-test:
     name: DotNet Test
     needs: [build-windows, build-linux, build-darwin-frameworks]
@@ -71,7 +72,6 @@ jobs:
         vec: [
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl" },
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3" },
-          { plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
           { plat: "macos", os: "macos-12", arch: "universal", tls: "openssl" },
         ]

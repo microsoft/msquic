@@ -5,13 +5,11 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
 
 permissions: read-all
@@ -27,7 +25,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['20.04', '22.04']
+        version: ['22.04', '24.04']
+        target: ['cross']
 
     name: Build
     runs-on: ubuntu-latest
