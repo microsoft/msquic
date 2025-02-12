@@ -83,7 +83,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
@@ -105,7 +105,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
@@ -123,10 +123,6 @@ jobs:
         # TODO: android to support ubuntu-24.04
         - plat: android
           os: 'ubuntu-24.04'
-        # No openssl3 system crypto on ubuntu-20.04
-        - plat: linux
-          os: 'ubuntu-20.04'
-          tls: 'openssl3'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
@@ -140,8 +136,6 @@ jobs:
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu24.04 only for now
         - plat: android
-          xdp: "-UseXdp"
-        - os: 'ubuntu-20.04'
           xdp: "-UseXdp"
         - os: 'ubuntu-22.04'
           xdp: "-UseXdp"
