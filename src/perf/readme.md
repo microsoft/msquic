@@ -29,6 +29,8 @@ ecn | `-ecn:<0,1>` | Enables sender-side ECN support.
 exec | `-exec:<lowlat,maxtput,scavenger,realtime>` | The execution profile used for the application.
 pollidle | `-pollidle:<time_us>` | The time, in microseconds, to poll while idle before sleeping (falling back to interrupt-driven IO).
 stats | `-stats:<0,1>` | Prints out statistics at the end of each connection.
+delay | `[-delay:<microseconds>]` | Optional delay in microseconds to be introduced before the server responds to a request.
+delayType | `[-delayType:<fixed|variable>]` | Optional "delay type" can be specified in conjunction with the delay argument. "fixed" delay type introduces the specified delay before the server responds to any request and this is the default behavior. "variable" delay type introduces a statistical variability to the specified delay.
 
 # Client
 

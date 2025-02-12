@@ -15,6 +15,8 @@ Abstract:
 #include "PerfServer.cpp.clog.h"
 #endif
 
+#include <random>
+
 const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
@@ -70,6 +72,24 @@ PerfServer::Init(
             return Status;
         }
     }
+
+    _Benign_race_begin_
+    if (TryGetValue(argc, argv, "delay", &this->DelayMicroseconds)) {
+        // todo: Impose a limit on delay?
+        const char* DelayTypeString = nullptr;
+        this->DelayType = SYNTHETIC_DELAY_FIXED;
+
+        if (TryGetValue(argc, argv, "delayType", &DelayTypeString)) {
+            if (DelayTypeString != nullptr) {
+                if (IsValue(DelayTypeString, "variable")) {
+                    this->DelayType = SYNTHETIC_DELAY_VARIABLE;
+                } else if (!IsValue(DelayTypeString, "fixed")) {
+                    WriteOutput("Failed to parse DelayType[%s] parameter. Using fixed DelayType.\n", DelayTypeString);
+                }
+            }
+        }
+    }
+    _Benign_race_end_
 
     //
     // Set up the special UDP listener to allow remote tear down.
@@ -181,6 +201,74 @@ PerfServer::ConnectionCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
+void
+PerfServer::IntroduceFixedDelay(uint32_t DelayUs)
+{
+    uint64_t Start = CxPlatTimeUs64();
+    uint64_t Now = Start;
+    WriteOutput("%d\n", DelayUs);
+    do {
+
+        // Do some stalling work
+        InterlockedIncrement64(&this->WorkCounter);
+
+        // Get the current time and check if time has elapsed
+        Now = CxPlatTimeUs64();
+    } while (CxPlatTimeDiff64(Start, Now) <= DelayUs);
+}
+
+double
+PerfServer::CalculateVariableDelay(double lambda)
+{
+    lambda = abs(lambda);
+    std::mt19937 random_generator(CxPlatTimeUs32());
+    std::exponential_distribution<> distribution(lambda);
+    return distribution(random_generator);
+}
+
+void
+PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
+{
+    if (0 == DelayUs) {
+        return;
+    }
+
+    double lambda = ((double)1) / DelayUs;
+    // Mean value of VariableDelay is expected to be DelayUs
+    double VariableDelay = CalculateVariableDelay(lambda);
+    double MaxFixedDelayUs = 2 * DelayUs;
+
+    if (ceil(VariableDelay) < MaxFixedDelayUs) {
+        // Introduce a fixed delay up to a certain maximum value
+        IntroduceFixedDelay(static_cast<uint32_t>(VariableDelay));
+    } else {
+        // If the variable delay exceeds the maximum value,
+        // yield the thread and wait for the thread scheduling to add delay
+        WriteOutput("*\n");
+        CxPlatSleep(1UL);
+    }
+}
+
+void
+PerfServer::SimulateDelay(uint32_t DelayUs, SYNTHETIC_DELAY_TYPE Type)
+{
+    if (DelayUs == 0) {
+        // no delay introduced
+        return;
+    }
+
+    switch (Type) {
+    case SYNTHETIC_DELAY_VARIABLE:
+        IntroduceVariableDelay(DelayUs);
+        break;
+
+    case SYNTHETIC_DELAY_FIXED: // fall through
+    default:
+        IntroduceFixedDelay(DelayUs);
+        break;
+    }
+}
+
 QUIC_STATUS
 PerfServer::StreamCallback(
     _In_ StreamContext* Context,
@@ -190,6 +278,11 @@ PerfServer::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Context->ResponseSizeSet) {
+            // Introduce delay
+            _Benign_race_begin_
+            SimulateDelay(this->DelayMicroseconds, this->DelayType);
+            _Benign_race_end_
+
             uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
             for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
@@ -205,6 +298,7 @@ PerfServer::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         Context->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
+
         if (!Event->SEND_COMPLETE.Canceled) {
             SendResponse(Context, StreamHandle, false);
         }

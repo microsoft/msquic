@@ -168,4 +168,20 @@ private:
     static TcpConnectCallback TcpConnectCallback;
     static TcpReceiveCallback TcpReceiveCallback;
     static TcpSendCompleteCallback TcpSendCompleteCallback;
+
+    typedef enum SYNTHETIC_DELAY_TYPE {
+        SYNTHETIC_DELAY_FIXED,
+        SYNTHETIC_DELAY_VARIABLE
+    } SYNTHETIC_DELAY_TYPE;
+
+    void IntroduceVariableDelay(uint32_t DelayUs);
+    double CalculateVariableDelay(double lambda);
+    void IntroduceFixedDelay(uint32_t DelayUs);
+    void SimulateDelay(uint32_t DelayUs, SYNTHETIC_DELAY_TYPE DelayType);
+
+
+    volatile int64_t WorkCounter = 0;
+    uint32_t DelayMicroseconds = 0;
+    SYNTHETIC_DELAY_TYPE DelayType = SYNTHETIC_DELAY_FIXED;
+
 };
