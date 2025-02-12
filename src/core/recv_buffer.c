@@ -106,6 +106,7 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
     RecvBuffer->AppBufferChunkPool = AppBufferChunkPool;
+    RecvBuffer->PreallocatedChunk = PreallocatedChunk;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
@@ -115,10 +116,8 @@ QuicRecvBufferInitialize(
         //
         QUIC_RECV_CHUNK* Chunk = NULL;
         if (PreallocatedChunk != NULL) {
-            RecvBuffer->PreallocatedChunk = PreallocatedChunk;
             Chunk = PreallocatedChunk;
         } else {
-            RecvBuffer->PreallocatedChunk = NULL;
             Chunk = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_RECV_CHUNK) + AllocBufferLength, QUIC_POOL_RECVBUF);
             if (Chunk == NULL) {
                 QuicTraceEvent(
@@ -134,7 +133,6 @@ QuicRecvBufferInitialize(
         RecvBuffer->Capacity = AllocBufferLength;
         RecvBuffer->VirtualBufferLength = VirtualBufferLength;
     } else {
-        RecvBuffer->PreallocatedChunk = NULL;
         RecvBuffer->Capacity = 0;
         RecvBuffer->VirtualBufferLength = 0;
     }
