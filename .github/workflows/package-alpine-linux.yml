@@ -28,16 +28,13 @@ jobs:
       matrix:
         vec: [
           { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
-          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm64v8" },
-          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
-          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-arm32v7" },
         ]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+      uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Generate APKBUILD
       shell: pwsh
       run: |
@@ -50,7 +47,7 @@ jobs:
                 -v $(pwd):/msquic \
                 ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
     - name: Upload Package
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       with:
         name: ${{ matrix.vec.friendlyName }}-package
         path: packages/*.apk
@@ -63,9 +60,6 @@ jobs:
       matrix:
         vec: [
           { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
-          { friendlyName: "Alpine-3.20-ARM64", config: "Release", arch: "arm64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm64v8", dotnetVersion: "9.0" },
-          # .NET is not working properly for ARM32 Alpine with QEMU, so keep it disabled for now.
-          # { friendlyName: "Alpine-3.20-ARM32", config: "Release", arch: "arm", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-arm32v7", dotnetVersion: "9.0" },
         ]
     runs-on: ubuntu-latest
     steps:
@@ -77,7 +71,7 @@ jobs:
         name: ${{ matrix.vec.friendlyName }}-package
         path: artifacts
     - name: Set up QEMU
-      uses: docker/setup-qemu-action@49b3bc8e6bdd4a60e6116a5414239cba5943d3cf
+      uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Set up .NET 9.0
       uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
       with:

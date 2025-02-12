@@ -124,6 +124,42 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathQueryRecvMaxCoalescedSizeFailed , ar
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathOpenUdpv6SocketFailed
+// [data] UDPv6 helper socket failed to open, 0x%x
+// QuicTraceLogWarning(
+            DatapathOpenUdpv6SocketFailed,
+            "[data] UDPv6 helper socket failed to open, 0x%x",
+            WsaError);
+// arg2 = arg2 = WsaError = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathOpenUdpv6SocketFailed
+#define _clog_3_ARGS_TRACE_DatapathOpenUdpv6SocketFailed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathOpenUdpv6SocketFailed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailed
+// [data] Test setting IPV6_TCLASS failed, 0x%x
+// QuicTraceLogWarning(
+            DatapathTestSetIpv6TrafficClassFailed,
+            "[data] Test setting IPV6_TCLASS failed, 0x%x",
+            WsaError);
+// arg2 = arg2 = WsaError = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailed
+#define _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTestSetIpv6TrafficClassFailed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
 // QuicTraceLogWarning(
@@ -341,10 +377,10 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryError , arg2);\
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             LastError,
-            "CxPlatSocketEnqueueSqe");
+            "CxPlatEventQEnqueueEx");
 // arg2 = arg2 = SocketProc->Parent = arg2
 // arg3 = arg3 = LastError = arg3
-// arg4 = arg4 = "CxPlatSocketEnqueueSqe" = arg4
+// arg4 = arg4 = "CxPlatEventQEnqueueEx" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

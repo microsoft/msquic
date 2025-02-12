@@ -99,6 +99,7 @@ namespace Microsoft.Quic
         REVOCATION_CHECK_CACHE_ONLY = 0x00040000,
         INPROC_PEER_CERTIFICATE = 0x00080000,
         SET_CA_CERTIFICATE_FILE = 0x00100000,
+        DISABLE_AIA = 0x00200000,
     }
 
     [System.Flags]
@@ -196,6 +197,7 @@ namespace Microsoft.Quic
         DELAY_SEND = 0x0010,
         CANCEL_ON_LOSS = 0x0020,
         PRIORITY_WORK = 0x0040,
+        CANCEL_ON_BLOCKED = 0x0080,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -3444,6 +3446,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_ORIG_DEST_CID 0x05000018")]
         internal const uint QUIC_PARAM_CONN_ORIG_DEST_CID = 0x05000018;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x05000019")]
+        internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x05000019;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

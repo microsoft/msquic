@@ -30,7 +30,7 @@ By default, the server listens on port 4567.
 Start the client providing the IP address for the server. Here 127.0.0.1 is used as an example.
 
 ```Powershell
-quicsample.exe -client -unsecure -target:{127.0.0.1}
+quicsample.exe -client -unsecure -target:127.0.0.1
 ```
 
 ## Troubleshooting with Wireshark 

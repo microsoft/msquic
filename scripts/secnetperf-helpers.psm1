@@ -15,6 +15,7 @@ if ($psVersion.Major -lt 7) {
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
+$env:linux_perf_prefix = ""
 
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
@@ -323,12 +324,6 @@ function Start-RemoteServer {
     throw "Server failed to start!"
 }
 
-# Passively starts the server on the remote machine by queuing up a new script to execute.
-function Start-RemoteServerPassive {
-    param ($Command)
-    NetperfSendCommand $Command
-}
-
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
@@ -358,7 +353,7 @@ function Wait-StartRemoteServerPassive {
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo ""
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -372,7 +367,8 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo, $LinuxPerfPrefix)
+    Write-Host "Starting Localtest with LinuxPerfPrefix: $LinuxPerfPrefix"
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($isWindows) {
         $pinfo.FileName = $FullPath
@@ -380,7 +376,7 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $LinuxPerfPrefix$FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
             $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
@@ -540,7 +536,7 @@ function Get-LatencyOutput {
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $TestId, $ExeArgs, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
@@ -552,26 +548,39 @@ function Invoke-Secnetperf {
         $tcpSupported = 0
     }
     $metric = "throughput"
-    if ($exeArgs.Contains("conns:16cpu")) { # TODO: figure out a better way to detect max RPS tests
+    if ($Scenario.Contains("rps")) {
         $metric = "rps"
-    } elseif ($exeArgs.Contains("plat:1")) {
+    } elseif ($Scenario.Contains("latency")) {
         $metric = "latency"
         $latency = @(@(), @())
         $extraOutput = Repo-Path "latency.txt"
         if (!$isWindows) {
             chmod +rw "$extraOutput"
         }
-    } elseif ($exeArgs.Contains("prate:1")) {
+    } elseif ($Scenario.Contains("hps")) {
         $metric = "hps"
     }
 
     for ($tcp = 0; $tcp -le $tcpSupported; $tcp++) {
 
     # Set up all the parameters and paths for running the test.
-    $execMode = $ExeArgs.Substring(0, $ExeArgs.IndexOf(" ")) # First arg is the exec mode
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "$execMode -io:$io"
-    $clientArgs = "-target:$RemoteName $ExeArgs -tcp:$tcp -trimout -watchdog:25000"
+    $serverArgs = "-scenario:$Scenario -io:$io"
+
+    if ($env:collect_cpu_traces) {
+        $updated_runtime_for_cpu_traces = @{
+            "upload"=12 * 1000 * 1000
+            "download"=12 * 1000 * 1000
+            "hps"=6 * 1000 * 1000
+            "rps"=5 * 1000 * 1000
+            "rps-multi"=5 * 1000 * 1000
+            "latency"=5 * 1000 * 1000
+        }
+        $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
+    } else {
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+    }
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -600,9 +609,9 @@ function Invoke-Secnetperf {
     $useSudo = (!$isWindows -and $io -eq "xdp")
 
     if ($tcp -eq 0) {
-        $artifactName = "$TestId-quic"
+        $artifactName = "$Scenario-quic"
     } else {
-        $artifactName = "$TestId-tcp"
+        $artifactName = "$Scenario-tcp"
     }
     New-Item -ItemType Directory "artifacts/logs/$artifactName" -ErrorAction Ignore | Out-Null
     $artifactDir = Repo-Path "artifacts/logs/$artifactName"
@@ -639,10 +648,31 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
-        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
+        if ($env:collect_cpu_traces) {
+            if ($IsWindows) {
+                wpr -start CPU
+            } else {
+                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
+            }
+            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
+            NetperfWaitServerFinishExecution
+        }
+        NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
+
     } else {
-        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        if ($env:collect_cpu_traces) {
+            if ($IsWindows) {
+                wpr -start CPU
+                Invoke-Command -Session $Session -ScriptBlock { wpr -start CPU }
+                $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            } else {
+                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
+                $job = Start-RemoteServer $Session "perf record -o server-cpu-traces-$scenario-$io-istcp-$tcp.data -- $RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            }
+        } else {
+            $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        }
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -653,7 +683,8 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
+            Write-Host "About to start localtest with linux_perf_prefix: $env:linux_perf_prefix"
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo $env:linux_perf_prefix
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
@@ -692,8 +723,24 @@ function Invoke-Secnetperf {
                 $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
                 Write-Host "Sent special UDP packet to tell the server to die."
             }
+            if ($env:collect_cpu_traces) {
+                if ($IsWindows) {
+                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
+                }
+                NetperfSendCommand "Stop_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.etl"
+                NetperfWaitServerFinishExecution
+            }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
+            if ($env:collect_cpu_traces) {
+                if ($IsWindows) {
+                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
+                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$Using:scenario-$Using:io-istcp-$Using:tcp.etl" }
+                    Copy-Item -FromSession $Session "C:\Users\Administrator\Documents\server-cpu-traces-$scenario-$io-istcp-$tcp.etl" .
+                } else {
+                    Copy-Item -FromSession $Session "/home/secnetperf/server-cpu-traces-$scenario-$io-istcp-$tcp.data" .
+                }
+            }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
@@ -731,14 +778,14 @@ function Invoke-Secnetperf {
     }
 }
 
-function CheckRegressionResult($values, $testid, $transport, $regressionJson, $envStr) {
+function CheckRegressionResult($values, $scenario, $transport, $regressionJson, $envStr) {
 
     $sum = 0
     foreach ($item in $values) {
         $sum += $item
     }
     $avg = $sum / $values.Length
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -750,14 +797,14 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $avg
         $res.AggregateFunction = "AVG"
 
         if ($avg -lt $res.Baseline) {
-            Write-GHError "Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {
@@ -767,7 +814,7 @@ function CheckRegressionResult($values, $testid, $transport, $regressionJson, $e
     return $res
 }
 
-function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envStr) {
+function CheckRegressionLat($values, $regressionJson, $scenario, $transport, $envStr) {
 
     # TODO: Right now, we are not using a watermark based method for regression detection of latency percentile values because we don't know how to determine a "Best Ever" distribution.
     #       (we are just looking at P0, P50, P99 columns, and computing the baseline for each percentile as the mean - 2 * std of the last 20 runs. )
@@ -780,7 +827,7 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     $RpsAvg /= $NumRuns
-    $Testid = "$testid-$transport"
+    $Scenario = "$scenario-$transport"
 
     $res = @{
         Baseline = "N/A"
@@ -792,14 +839,14 @@ function CheckRegressionLat($values, $regressionJson, $testid, $transport, $envS
     }
 
     try {
-        $res.Baseline = $regressionJson.$Testid.$envStr.baseline
-        $res.BestResult = $regressionJson.$Testid.$envStr.BestResult
-        $res.BestResultCommit = $regressionJson.$Testid.$envStr.BestResultCommit
+        $res.Baseline = $regressionJson.$Scenario.$envStr.baseline
+        $res.BestResult = $regressionJson.$Scenario.$envStr.BestResult
+        $res.BestResultCommit = $regressionJson.$Scenario.$envStr.BestResultCommit
         $res.CumulativeResult = $RpsAvg
         $res.AggregateFunction = "AVG"
 
         if ($RpsAvg -lt $res.Baseline) {
-            Write-GHError "RPS Regression detected in $Testid for $envStr. See summary table for details."
+            Write-GHError "RPS Regression detected in $Scenario for $envStr. See summary table for details."
             $res.HasRegression = $true
         }
     } catch {

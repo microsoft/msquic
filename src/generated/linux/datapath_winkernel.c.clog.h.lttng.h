@@ -192,6 +192,44 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFai
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailed
+// [data] Test setting IPV6_TCLASS failed, 0x%x
+// QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailed,
+                "[data] Test setting IPV6_TCLASS failed, 0x%x",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathTestSetIpv6TrafficClassFailed,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailedAsync
+// [data] Test setting IPV6_TCLASS failed (async), 0x%x
+// QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailedAsync,
+                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathTestSetIpv6TrafficClassFailedAsync,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathDropEmptyMdl
 // [%p] Dropping datagram with empty mdl.
 // QuicTraceLogWarning(
