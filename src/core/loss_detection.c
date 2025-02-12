@@ -1332,7 +1332,7 @@ QuicLossDetectionProcessAckBlocks(
         // which would mean we mistakenly classified those packets as lost.
         //
         if (*LostPacketsStart != NULL) {
-            QUIC_SENT_PACKET_METADATA *lastNode =
+            QUIC_SENT_PACKET_METADATA* LastLostPacket =
                 CXPLAT_CONTAINING_RECORD(
                     LossDetection->LostPacketsTail, QUIC_SENT_PACKET_METADATA,
                     Next);
