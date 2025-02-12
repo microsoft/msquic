@@ -11,7 +11,9 @@ on:
     - main
     - release/*
 
-permissions: read-all
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   cargo:
@@ -52,7 +54,36 @@ jobs:
     - name: Cargo build
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
-      run: git diff --exit-code
+      id: bindings_diff
+      run: |
+        if git diff --exit-code >> cargo_generated_diff.txt; then
+          echo "diff-found=false" >> $GITHUB_OUTPUT
+        else
+          echo "diff-found=true" >> $GITHUB_OUTPUT
+          {
+            echo 'diff-content<<@@@'
+            echo "$(cat cargo_generated_diff.txt)"
+            echo '@@@'
+          } >> $GITHUB_OUTPUT
+        fi
+    - name: Post a comment on PR on mismatch
+      if: |
+        !github.event.pull_request.head.repo.fork &&
+        steps.bindings_diff.outputs.diff-found == 'true'
+      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number: ${{ github.event.number }}
+        body: |
+          ## ${{ github.workflow }}
+          The rust bindings need to be updated. Please apply (`git apply`) this diff:
+          ```diff
+          ${{ steps.bindings_diff.outputs.diff-content }}
+          ```
+        edit-mode: replace
+    - name: Fail if generated files are not up to date
+      if: steps.bindings_diff.outputs.diff-found == 'true'
+      run: exit 1
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
