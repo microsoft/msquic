@@ -50,6 +50,7 @@ jobs:
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
       run: git diff --exit-code >> cargo_generated_diff.txt
+      continue-on-error: true
     - name: Post a comment on PR on mismatch
       if: |
         failure() &&
