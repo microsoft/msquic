@@ -4621,14 +4621,14 @@ QuicTestStreamAppProvidedBuffers(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         const uint32_t NumBuffers = 0x10;
-        uint8_t SendDataBuffer[BufferSize] = {};
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
-        uint8_t ReceiveDataBuffer[BufferSize] = {};
+        UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         QUIC_BUFFER QuicBuffers[NumBuffers]{};
         for (auto i = 0u; i < NumBuffers; ++i) {
-            QuicBuffers[i].Buffer = ReceiveDataBuffer + i * BufferSize / NumBuffers;
+            QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
             QuicBuffers[i].Length = BufferSize / NumBuffers;
         }
 
@@ -4663,12 +4663,12 @@ QuicTestStreamAppProvidedBuffers(
         TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
         // Send data
-        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer};
+        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
         TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
         TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
         TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
-        TEST_EQUAL(0, memcmp(SendDataBuffer, ReceiveDataBuffer, BufferSize));
+        TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
     }
 
     // Server side sending data
@@ -4696,15 +4696,15 @@ QuicTestStreamAppProvidedBuffers(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         const uint32_t NumBuffers = 0x10;
-        uint8_t SendDataBuffer[BufferSize] = {};
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
 
-        uint8_t ReceiveDataBuffer[BufferSize]{};
+        UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         QUIC_BUFFER QuicBuffers[NumBuffers]{};
         for (auto i = 0u; i < NumBuffers; ++i) {
-            QuicBuffers[i].Buffer = ReceiveDataBuffer + i * BufferSize / NumBuffers;
+            QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
             QuicBuffers[i].Length = BufferSize / NumBuffers;
         }
 
@@ -4733,12 +4733,12 @@ QuicTestStreamAppProvidedBuffers(
         TEST_NOT_EQUAL(SenderStream, nullptr);
 
         // Send data
-        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer};
+        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
         TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
         TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
         TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
-        TEST_EQUAL(0, memcmp(SendDataBuffer, ReceiveDataBuffer, BufferSize));
+        TEST_EQUAL(0, memcmp(SendDataBuffer.get(), ReceiveDataBuffer.get(), BufferSize));
     }
 }
 
@@ -4764,11 +4764,11 @@ QuicTestStreamAppProvidedBuffersZeroWindow(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         const uint32_t NumBuffers = 0x10;
-        UniquePtr<uint8_t[]> SendDataBuffer{new uint8_t[BufferSize]};
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
-        UniquePtr<uint8_t[]> ReceiveDataBuffer{new uint8_t[BufferSize]};
+        UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         QUIC_BUFFER QuicBuffers[NumBuffers]{};
         for (auto i = 0u; i < NumBuffers; ++i) {
             QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
@@ -4843,12 +4843,12 @@ QuicTestStreamAppProvidedBuffersZeroWindow(
         // Create send and receive buffers
         const uint32_t BufferSize = 0x5000;
         const uint32_t NumBuffers = 0x10;
-        UniquePtr<uint8_t[]> SendDataBuffer{new uint8_t[BufferSize]};
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         for (auto i = 0u; i < BufferSize; ++i) {
             SendDataBuffer[i] = static_cast<uint8_t>(i);
         }
 
-        UniquePtr<uint8_t[]> ReceiveDataBuffer{new uint8_t[BufferSize]};
+        UniquePtr<uint8_t[]> ReceiveDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
         QUIC_BUFFER QuicBuffers[NumBuffers]{};
         for (auto i = 0u; i < NumBuffers; ++i) {
             QuicBuffers[i].Buffer = ReceiveDataBuffer.get() + i * BufferSize / NumBuffers;
