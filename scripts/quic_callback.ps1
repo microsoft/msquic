@@ -78,18 +78,10 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
-    # Install VCRT. Not required for official XDP builds.
-    Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"
-    Start-Process -FilePath "vc_redist.x64.exe" -ArgumentList "/install /quiet /norestart" -Wait -NoNewWindow
-
     Write-Host "(SERVER) Downloading XDP installer"
     $installerUri = $Command.Split(";")[1]
     $msiPath = Repo-Path "xdp.msi"
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
-    $CertFileName = 'xdp.cer'
-    Get-AuthenticodeSignature $msiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
-    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
     Write-Host "(SERVER) Installing XDP. Msi path: $msiPath"
     msiexec.exe /i $msiPath /quiet | Out-Host
     Wait-DriverStarted "xdp" 10000
