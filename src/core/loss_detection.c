@@ -1336,8 +1336,7 @@ QuicLossDetectionProcessAckBlocks(
                 CXPLAT_CONTAINING_RECORD(
                     LossDetection->LostPacketsTail, QUIC_SENT_PACKET_METADATA,
                     Next);
-
-            if (lastNode->PacketNumber < AckBlock->Low) {
+            if (LastLostPacket->PacketNumber < AckBlock->Low) {
                 goto CheckSentPackets;
             }
             while (*LostPacketsStart && (*LostPacketsStart)->PacketNumber < AckBlock->Low) {
