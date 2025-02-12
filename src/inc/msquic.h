@@ -1632,6 +1632,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
+    QUIC_CONNECTION_COMP_CERT_FN DummyValueForTest;
 } QUIC_API_TABLE;
 
 #define QUIC_API_VERSION_1      1 // Not supported any more
