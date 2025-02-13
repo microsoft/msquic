@@ -411,8 +411,8 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-    if (UseQTIP) {
-        // Sanity check to make sure we actually have QTIP enabled.
+    if (UseQTIP && SendUdpToQtipListener) {
+        // Do a sanity check to make sure we actually have QTIP enabled.
         QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         // Get the current global execution config.
         uint32_t Size = sizeof(Config);
