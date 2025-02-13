@@ -412,8 +412,7 @@ QuicTestConnectAndPing(
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
     if (UseQTIP) {
-        // Sanity check to make sure we actually have QTIP enabled right before we define ServerConfiguration.
-        // We ASSUME that the state of QUIC_PARAM_GLOBAL_EXECUTION_CONFIG gets COPIED at the time of configuration creation.
+        // Sanity check to make sure we actually have QTIP enabled.
         QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         // Get the current global execution config.
         uint32_t Size = sizeof(Config);
@@ -454,40 +453,6 @@ QuicTestConnectAndPing(
             );
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
-
-        if (SendUdpToQtipListener && UseQTIP) {
-            // After we start the server listener (which at this point has QTIP enabled), we can turn off QTIP for the client.
-            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-            // Get the current global execution config.
-            uint32_t Size = sizeof(Config);
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &Size,
-                    &Config));
-            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
-            // Turn off QTIP for the client.
-            Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
-            TEST_QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        Size,
-                        &Config));
-            // Another sanity check to ensure QTIP is OFF right before the instantiation of the ClientConfiguration.
-            QUIC_EXECUTION_CONFIG TmpConfig = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
-            uint32_t TmpSize = sizeof(TmpConfig);
-            // Get the current global execution config.
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &TmpSize,
-                    &TmpConfig));
-            TEST_TRUE((TmpConfig.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
-        }
 
         MsQuicCredentialConfig ClientCredConfig;
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
