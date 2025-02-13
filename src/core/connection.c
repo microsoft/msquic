@@ -7251,6 +7251,42 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case QUIC_PARAM_CONN_SEND_QTIP:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.SendViaQtip;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_RECV_QTIP:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.RecvViaQtip;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#endif
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
