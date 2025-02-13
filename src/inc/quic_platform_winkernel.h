@@ -494,18 +494,6 @@ ZwCreateIoCompletion(
     IN OPTIONAL ULONG Count
     );
 
-NTSYSAPI
-NTSTATUS
-NTAPI
-ZwRemoveIoCompletionEx(
-    IN HANDLE IoCompletionHandle,
-    OUT PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
-    IN ULONG Count,
-    OUT PULONG NumEntriesRemoved,
-    IN PLARGE_INTEGER Timeout OPTIONAL,
-    IN BOOLEAN Alertable
-    );
-
 typedef struct _IO_MINI_COMPLETION_PACKET_USER IO_MINI_COMPLETION_PACKET_USER, *PIO_MINI_COMPLETION_PACKET_USER;
 
 typedef
@@ -513,7 +501,7 @@ VOID
 IO_MINI_PACKET_CALLBACK_ROUTINE(
     _In_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
     _In_opt_ PVOID Context
-);
+    );
 
 typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
 
@@ -527,6 +515,19 @@ IoSetIoCompletionEx(
     __in ULONG_PTR IoStatusInformation,
     __in BOOLEAN Quota,
     __in_opt PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+NTSYSAPI
+NTSTATUS
+IoRemoveIoCompletion (
+    _In_  PVOID IoCompletionPtr,
+    _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _Out_writes_(Count) PLIST_ENTRY *EntryArray,
+    _In_  ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_  KPROCESSOR_MODE PreviousMode,
+    _In_opt_ PLARGE_INTEGER CapturedTimeout,
+    _In_  BOOLEAN Alertable
     );
 
 NTSYSAPI
@@ -659,6 +660,8 @@ CxPlatEventQEnqueue(
             queue->MiniPacket));
 }
 
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 uint32_t
@@ -671,24 +674,29 @@ CxPlatEventQDequeue(
 {
     NTSTATUS status;
     ULONG entriesRemoved;
+    PLIST_ENTRY EntryPtrArray[CXPLAT_EVENTQ_DEQUEUE_MAX];
     if (wait_time == UINT32_MAX) {
         status =
-            ZwRemoveIoCompletionEx(
-                queue->Handle,
+            IoRemoveIoCompletion(
+                queue->IoCompletion,
                 events,
+                EntryPtrArray,
                 count,
                 &entriesRemoved,
+                KernelMode,
                 NULL,
                 FALSE);
     } else {
         LARGE_INTEGER timeout;
         timeout.QuadPart = -10000LL * wait_time;
         status =
-            ZwRemoveIoCompletionEx(
-                queue->Handle,
+            IoRemoveIoCompletion(
+                queue->IoCompletion,
                 events,
+                EntryPtrArray,
                 count,
                 &entriesRemoved,
+                KernelMode,
                 &timeout,
                 FALSE);
     }

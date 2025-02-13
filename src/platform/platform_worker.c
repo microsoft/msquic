@@ -543,7 +543,7 @@ CxPlatProcessEvents(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
-    CXPLAT_CQE Cqes[16];
+    CXPLAT_CQE Cqes[CXPLAT_EVENTQ_DEQUEUE_MAX];
     uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
     InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
