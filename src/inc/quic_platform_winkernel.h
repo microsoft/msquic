@@ -519,7 +519,7 @@ IoSetIoCompletionEx(
 
 NTSYSAPI
 NTSTATUS
-IoRemoveIoCompletion (
+IoRemoveIoCompletion(
     _In_  PVOID IoCompletionPtr,
     _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
     _Out_writes_(Count) PLIST_ENTRY *EntryArray,
