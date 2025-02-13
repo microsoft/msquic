@@ -578,6 +578,7 @@ IoMiniPacketCallbackRoutineNoOp(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != FALSE)
 inline
 BOOLEAN
 CxPlatEventQInitialize(
