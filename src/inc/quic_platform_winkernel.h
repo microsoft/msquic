@@ -484,11 +484,10 @@ typedef struct _FILE_IO_COMPLETION_INFORMATION {
     IO_STATUS_BLOCK     IoStatusBlock;
 } FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
 
-// copied from zwapi.h
 NTSYSAPI
 NTSTATUS
 NTAPI
-ZwCreateIoCompletion (
+ZwCreateIoCompletion(
     OUT         PHANDLE IoCompletionHandle,
     IN          ACCESS_MASK DesiredAccess,
     IN OPTIONAL POBJECT_ATTRIBUTES ObjectAttributes,
@@ -498,7 +497,7 @@ ZwCreateIoCompletion (
 NTSYSAPI
 NTSTATUS
 NTAPI
-ZwRemoveIoCompletionEx (
+ZwRemoveIoCompletionEx(
     IN HANDLE IoCompletionHandle,
     OUT PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
     IN ULONG Count,
@@ -518,8 +517,9 @@ IO_MINI_PACKET_CALLBACK_ROUTINE(
 
 typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
 
+NTSYSAPI
 NTSTATUS
-IoSetIoCompletionEx (
+IoSetIoCompletionEx(
     __in PVOID IoCompletion,
     __in_opt PVOID KeyContext,
     __in_opt PVOID ApcContext,
@@ -529,12 +529,14 @@ IoSetIoCompletionEx (
     __in_opt PIO_MINI_COMPLETION_PACKET_USER MiniPacket
     );
 
+NTSYSAPI
 PIO_MINI_COMPLETION_PACKET_USER
 IoAllocateMiniCompletionPacket(
     __in PIO_MINI_PACKET_CALLBACK_ROUTINE CallbackRoutine,
     __in_opt PVOID Context
     );
 
+NTSYSAPI
 VOID
 IoFreeMiniCompletionPacket(
     __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
@@ -545,9 +547,8 @@ IoFreeMiniCompletionPacket(
 //
 
 typedef struct CXPLAT_EVENTQ {
-    HANDLE Handle;
     PKQUEUE IoCompletion;
-    PIO_MINI_COMPLETION_PACKET_USER miniPacket;
+    PIO_MINI_COMPLETION_PACKET_USER MiniPacket;
 } CXPLAT_EVENTQ;
 
 typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
@@ -566,10 +567,11 @@ typedef struct CXPLAT_SQE {
 
 inline
 VOID
-IoMiniPacketCallbackRoutinePlaceholder (
+IoMiniPacketCallbackRoutineNoOp(
     _In_ struct _IO_MINI_COMPLETION_PACKET_USER * MiniPacket,
     _In_opt_ PVOID Context
-) {
+    )
+{
     UNREFERENCED_PARAMETER(MiniPacket);
     UNREFERENCED_PARAMETER(Context);
 }
@@ -581,42 +583,49 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
+    HANDLE Handle;
     OBJECT_ATTRIBUTES KernelObjectAttributes;
-    InitializeObjectAttributes(&KernelObjectAttributes,
-                               /* ObjectName */ NULL,
-                               /* AttributesFlag */ OBJ_KERNEL_HANDLE,
-                               /* RootDirectory */ NULL,
-                               /* SecurityAttributes */ NULL);
+    InitializeObjectAttributes(
+        &KernelObjectAttributes,
+        NULL,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
 
     NTSTATUS Status =
         ZwCreateIoCompletion(
-            &queue->Handle,
+            &Handle,
             IO_COMPLETION_ALL_ACCESS,
             &KernelObjectAttributes,
             0);
     if (!NT_SUCCESS(Status)) {
-        queue->Handle = NULL;
         return FALSE;
     }
 
-    Status = ObReferenceObjectByHandle(queue->Handle,
-                                       IO_COMPLETION_ALL_ACCESS,
-                                       NULL,
-                                       KernelMode,
-                                       (PVOID*)&queue->IoCompletion,
-                                       NULL);
+    Status =
+        ObReferenceObjectByHandle(
+            Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            NULL,
+            KernelMode,
+            (PVOID*)&queue->IoCompletion,
+            NULL);
+    NtClose(Handle);
     if (!NT_SUCCESS(Status)) {
-        NtClose(queue->Handle);
         return FALSE;
     }
 
-    queue->miniPacket = IoAllocateMiniCompletionPacket(IoMiniPacketCallbackRoutinePlaceholder, NULL);
-    if (queue->miniPacket == NULL) {
-        NtClose(queue->Handle);
+    queue->MiniPacket =
+        IoAllocateMiniCompletionPacket(
+            IoMiniPacketCallbackRoutineNoOp,
+            NULL);
+    if (queue->MiniPacket == NULL) {
+        ObDereferenceObject(queue->IoCompletion);
+        queue->IoCompletion = NULL;
         return FALSE;
     }
 
-    return NT_SUCCESS(Status);
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -626,8 +635,8 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    IoFreeMiniCompletionPacket(queue->miniPacket);
-    NtClose(queue->Handle);
+    IoFreeMiniCompletionPacket(queue->MiniPacket);
+    ObDereferenceObject(queue->IoCompletion);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -638,7 +647,16 @@ CxPlatEventQEnqueue(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    return NT_SUCCESS(IoSetIoCompletionEx(queue->IoCompletion, 0, sqe, STATUS_SUCCESS, 0, FALSE, queue->miniPacket));
+    return
+        NT_SUCCESS(
+        IoSetIoCompletionEx(
+            queue->IoCompletion,
+            0,
+            sqe,
+            STATUS_SUCCESS,
+            0,
+            FALSE,
+            queue->MiniPacket));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
