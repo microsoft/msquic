@@ -303,7 +303,7 @@ QuicMainStart(
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, NULL, &WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
         CxPlatWorkerPoolUninit(&WorkerPool);
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);

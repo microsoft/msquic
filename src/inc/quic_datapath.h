@@ -388,6 +388,18 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 } CXPLAT_TCP_DATAPATH_CALLBACKS;
 
 //
+// RDMA Callback function pointers used by the datapath.
+//
+typedef struct CXPLAT_RDMA_DATAPATH_CALLBACKS {
+
+    CXPLAT_DATAPATH_ACCEPT_CALLBACK_HANDLER Accept;
+    CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER Connect;
+    CXPLAT_DATAPATH_RECEIVE_CALLBACK_HANDLER Receive;
+    CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK_HANDLER SendComplete;
+
+} CXPLAT_RDMA_DATAPATH_CALLBACKS;
+
+//
 // Function pointer type for send complete callbacks.
 //
 typedef
@@ -403,6 +415,40 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+
+// Function pointer type for datapath RDMA accept callbacks.
+// Any QUIC_FAILED status will reject the connection.
+// Do not call CxPlatSocketDelete from this callback, it will
+// crash.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_RDMA_DATAPATH_ACCEPT_CALLBACK)
+QUIC_STATUS
+(CXPLAT_RDMA_DATAPATH_ACCEPT_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* ListenerContext,
+    _Out_ void** AcceptClientContext
+    );
+
+typedef CXPLAT_RDMA_DATAPATH_ACCEPT_CALLBACK *CXPLAT_RDMA_DATAPATH_ACCEPT_CALLBACK_HANDLER;
+
+//
+// Function pointer type for datapath RDMA connect/disconnect callbacks.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_RDMA_DATAPATH_RDMA_CONNECT_CALLBACK)
+void
+(CXPLAT_DATAPATH_RDMA_CONNECT_CALLBACK)(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ BOOLEAN Connected
+    );
+
+typedef CXPLAT_DATAPATH_RDMA_CONNECT_CALLBACK *CXPLAT_DATAPATH_CONNECT_CALLBACK_HANDLER;
+
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -412,6 +458,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ const CXPLAT_RDMA_DATAPATH_CALLBACKS* RdmaCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
@@ -828,6 +875,302 @@ CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
     );
+
+
+//
+// The following APIs are specific for RDMA Implementation
+//
+
+#define CXPLAT_RDMA_FLAG_SHARE      0x00000001   // Forces sharing of the address and port
+#define CXPLAT_RDMA_SERVER_OWNED    0x00000002   // Indicates handle is an RDMA Listener handle
+
+typedef struct CXPLAT_RDMA_CONFIG {
+    const QUIC_ADDR* LocalAddress;      // optional
+    const QUIC_ADDR* RemoteAddress;     // optional
+    uint32_t Flags;                     // CXPLAT_RDMA_FLAG_*
+    uint32_t InterfaceIndex;            // 0 means any/all
+    uint16_t PartitionIndex;            // Client-only
+    void* CallbackContext;              // optional
+
+    // Memory related configuration
+    uint32_t SendRingBufferMemory;      // Send Memory allocated for Ring Buffer
+    uint32_t RecvRingBufferMemory;      // Receive Memory allocated for Ring Buffer
+
+#ifdef QUIC_COMPARTMENT_ID
+    QUIC_COMPARTMENT_ID CompartmentId;  // optional
+#endif
+
+    // used for De-multiplexing
+    uint8_t CibirIdLength;              // CIBIR ID length. Value of 0 indicates CIBIR isn't used
+    uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
+    uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
+    uint8_t CibirId[6];                 // CIBIR ID data
+} CXPLAT_RDMA_CONFIG;
+
+typedef struct _RDMA_ADAPTER_INFO {
+    UINT32 VendorId;
+    UINT32 DeviceId;
+    SIZE_T MaxInboundSge;
+    SIZE_T MaxInboundRequests;
+    SIZE_T MaxInboundLength;
+    SIZE_T MaxOutboundSge;
+    SIZE_T MaxOutboundRequests;
+    SIZE_T MaxOutboundLength;
+    SIZE_T MaxInlineData;
+    SIZE_T MaxInboundReadLimit;
+    SIZE_T MaxOutboundReadLimit;
+    SIZE_T MaxCqEntries;
+    SIZE_T MaxRegistrationSize;
+    SIZE_T MaxWindowSize;
+    SIZE_T LargeRequestThreshold;
+    SIZE_T MaxCallerData;
+    SIZE_T MaxCalleeData;
+} RDMA_ADAPTER_INFO, *PRDMA_ADAPTER_INFO;
+
+//
+// RDMA Connection Context
+//
+typedef struct _RDMA_CONNECTION_INFO {
+    void*      MemoryRegion;
+    void*      MemoryWindow;
+    void*      RecvCompletionQueue;
+    void*      SendCompletionQueue;
+    void*      QueuePair;
+    void*      AdapterFile;
+    void*      MemBuffer;
+    size_t     BufferSize;
+    void*      Ov;
+
+} RDMA_CONNECTION_INFO, *PRDMA_CONNECTION_INFO;
+
+
+//
+// Creates an RDMA  Initialization context
+//
+HRESULT
+CxPlatRdmaAdapterInitialize(
+    _In_ const QUIC_ADDR* pLocalAddress,
+    _Out_ void**          pAdapter
+    );
+
+//
+// Cleanup an RDMA context
+//
+HRESULT
+CxPlatRdmaAdapterRelease(
+    _In_ void* pAdapter
+    );
+
+//
+// get RDMA adapter information
+//
+HRESULT
+CxPlatRdmaGetAdapterInfo(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_ADAPTER_INFO pAdapterInfo
+    );
+
+//
+// Create a Memory Region
+//
+HRESULT
+CxPlatRdmaCreateMemoryRegion(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+    );
+
+//
+// Register a Memory region
+//
+HRESULT
+CxPlatRdmaRegisterMemoryRegion(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG flags
+    );
+
+//
+// DeRegister a Memory region
+//
+HRESULT
+CxPlatRdmaDeRegisterMemoryRegion(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+    );
+
+//
+// Create a Memory Window
+//
+HRESULT
+CxPlatRdmaCreateMemoryWindow(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+    );
+
+//
+// Invalidate a Memory Window
+//
+HRESULT
+CxPlatRdmaInvalidateMemoryWindow(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG flags
+    );
+
+//
+// Bind a memory window to an endpoint
+//
+HRESULT
+CxPlatRdmaBindMemoryWindow(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG flags
+    );
+
+//
+// Create a connector
+//
+HRESULT
+CxPlatRdmaCreateConnector(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+);
+
+//
+// Bind a connector
+//
+HRESULT
+CxPlatRdmaBindConnector(
+    __in_bcount(cbAddress) const struct sockaddr* pAddress,
+        ULONG cbAddress
+    );
+
+//
+// Perform a connect on a connector
+//
+HRESULT
+CxPlatRdmaConnectConnector(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    __in_bcount(cbDestAddress) const struct sockaddr* pDestAddress,
+    _In_ ULONG cbDestAddress,
+    _In_ ULONG inboundReadLimit,
+    _In_ ULONG outboundReadLimit,
+    __in_bcount_opt(cbPrivateData) const VOID* pPrivateData,
+    _In_ ULONG cbPrivateData
+    );
+
+//
+// Perform a complete connect on a connector
+//
+HRESULT
+CxPlatRdmaCompleteConnectConnector(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+    );
+
+//
+// Perform an accept on a connector
+//
+HRESULT
+CxPlatRdmaAcceptConnector(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG inboundReadLimit,
+    _In_ ULONG outboundReadLimit,
+    __in_bcount_opt(cbPrivateData) const VOID* pPrivateData,
+    _In_ ULONG cbPrivateData
+    );
+
+
+//
+// Release a connector
+//
+HRESULT
+CxPlatRdmaReleaseConnector(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext
+    );
+
+//
+// Create a completion queue
+//
+HRESULT 
+CxPlatRdmaCreateCompletionQueue(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG queueDepth,
+    _In_ USHORT group,
+    _In_ KAFFINITY affinity
+    );
+
+//
+// Get Result from a completion queue
+//
+HRESULT
+CxPlatRdmaGetCompletionQueueResults(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ BOOL wait
+    );
+
+//
+// Create a queue pair
+//
+HRESULT
+CxPlatRdmaCreateQueuePair(
+    _In_ void* pAdapter,
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    _In_ ULONG receiveQueueDepth,
+    _In_ ULONG initiatorQueueDepth,
+    _In_ ULONG maxReceiveRequestSge,
+    _In_ ULONG maxInitiatorRequestSge,
+    _In_ ULONG inlineDataSize
+);
+
+//
+// Bind a completion queue pair
+//
+HRESULT
+CxPlatRdmaBindCompletionQueuePair(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    __in_bcount(cbBuffer) const VOID* pBuffer,
+    _In_ SIZE_T cbBuffer,
+    _In_ ULONG flags
+    );
+
+//
+// RDMA Write
+//
+HRESULT
+CxPlatRdmaWrite(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    __in_ecount_opt(nSge) const void *sge,
+    _In_ ULONG nSge,
+    _In_ UINT64 remoteAddress,
+    _In_ UINT32 remoteToken,
+    _In_ ULONG flags
+    );
+
+//
+// RDMA Write with immediate
+//
+HRESULT
+CxPlatRdmaWriteWithImmediate(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    __in_ecount_opt(nSge) const void *sge,
+    _In_ ULONG nSge,
+    _In_ UINT64 remoteAddress,
+    _In_ UINT32 remoteToken,
+    _In_ ULONG flags,
+    _In_ UINT32 immediateData
+    );
+
+//
+// RDMA Read
+//
+HRESULT
+CxPlatRdmaRead(
+    _Inout_ PRDMA_CONNECTION_INFO pRdmaConnContext,
+    __in_ecount_opt(nSge) const void *sge,
+    _In_ ULONG nSge,
+    _In_ UINT64 remoteAddress,
+    _In_ UINT32 remoteToken,
+    _In_ ULONG flags
+    );
+
+
 
 #if defined(__cplusplus)
 }

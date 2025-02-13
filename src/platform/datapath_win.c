@@ -25,7 +25,7 @@ CxPlatSocketUpdateQeo(
     )
 {
     if (Socket->UseTcp || (Socket->RawSocketAvailable &&
-        !IS_LOOPBACK(Offloads[0].Address))) {
+        !IS_LOOPBACK(Offloads[0].Address))) {   
         return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }
     return QUIC_STATUS_NOT_SUPPORTED;

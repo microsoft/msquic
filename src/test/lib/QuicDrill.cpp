@@ -146,6 +146,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
+                NULL,
                 &WorkerPool,
                 NULL,
                 &Datapath);

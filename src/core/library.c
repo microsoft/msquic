@@ -683,6 +683,7 @@ QuicLibraryLazyInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
+            NULL,                   // RdmaCallbacks
             &MsQuicLib.WorkerPool,
             MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);

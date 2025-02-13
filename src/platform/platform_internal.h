@@ -58,6 +58,11 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     CXPLAT_TCP_DATAPATH_CALLBACKS TcpHandlers;
 
     //
+    // The RDMA callback function pointers.
+    //
+    CXPLAT_RDMA_DATAPATH_CALLBACKS RdmaHandlers;
+
+    //
     // The Worker WorkerPool
     //
     CXPLAT_WORKER_POOL* WorkerPool;
@@ -160,7 +165,10 @@ typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_UDP             = 0,
     CXPLAT_SOCKET_TCP_LISTENER    = 1,
     CXPLAT_SOCKET_TCP             = 2,
-    CXPLAT_SOCKET_TCP_SERVER      = 3
+    CXPLAT_SOCKET_TCP_SERVER      = 3,
+    CXPLAT_SOCKET_RDMA            = 4,
+    CXPLAT_SOCKET_RDMA_LISTENER   = 5,
+    CXPLAT_SOCKET_RDMA_SERVER     = 6,
 } CXPLAT_SOCKET_TYPE;
 
 #define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
@@ -594,6 +602,8 @@ typedef struct CXPLAT_DATAPATH {
 
     uint8_t UseTcp : 1;
 
+    uint8_t UseRdma : 1;  
+
     //
     // Per-processor completion contexts.
     //
@@ -661,12 +671,18 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t UseTcp : 1;                  // Quic over TCP
 
+    uint8_t UseRdma : 1;                 // Quic over RDMA
+
     uint8_t RawSocketAvailable : 1;
 
     //
     // Per-processor socket contexts.
     //
     CXPLAT_SOCKET_PROC PerProcSockets[0];
+
+    //
+    // RDMA connection paramters for the socket.
+    //
 
 } CXPLAT_SOCKET;
 
@@ -1096,6 +1112,14 @@ SocketCreateTcp(
     _In_opt_ void* CallbackContext,
     _Out_ CXPLAT_SOCKET** Socket
     );
+    
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketCreateRdma(
+    _In_ CXPLAT_DATAPATH* DataPath,
+    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _Out_ CXPLAT_SOCKET** NewSocket
+    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1118,6 +1142,7 @@ DataPathInitialize(
     _In_ uint32_t ClientRecvDataLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_opt_ const CXPLAT_RDMA_DATAPATH_CALLBACKS* RdmaCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
