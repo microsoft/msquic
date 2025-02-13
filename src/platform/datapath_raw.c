@@ -150,10 +150,7 @@ RawDataPathGetSupportedFeatures(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    //
-    // TTL should always be available / enabled for XDP.
-    //
-    return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL;
+    return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL | CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -374,7 +371,7 @@ RawSocketSend(
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN,
+        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
         Interface->OffloadStatus.Transmit.NetworkLayerXsum,
         Interface->OffloadStatus.Transmit.TransportLayerXsum,
         Route->TcpState.SequenceNumber,

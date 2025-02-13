@@ -31,30 +31,6 @@ CxPlatSocketUpdateQeo(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
-void
-CxPlatDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    switch (CxPlatCqeType(Cqe)) {
-    case CXPLAT_CQE_TYPE_SOCKET_IO: {
-        DATAPATH_IO_SQE* Sqe =
-            CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
-        if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
-            RawDataPathProcessCqe(Cqe);
-        } else {
-            DataPathProcessCqe(Cqe);
-        }
-        break;
-    }
-    case CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN: {
-        RawDataPathProcessCqe(Cqe);
-        break;
-    }
-    default: CXPLAT_DBG_ASSERT(FALSE); break;
-    }
-}
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(
