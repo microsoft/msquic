@@ -99,6 +99,11 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // The DSCP value to use for this send.
+    //
+    uint8_t DSCP;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;

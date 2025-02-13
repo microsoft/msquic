@@ -18,3 +18,9 @@ include!("linux_bindings.rs");
 pub type ADDRESS_FAMILY = u16;
 #[cfg(target_os = "windows")]
 include!("win_bindings.rs");
+
+/// Temp type for casting manual ffi flags. To be removed eventually.
+#[cfg(not(target_os = "windows"))]
+pub type QuicFlag = u32;
+#[cfg(target_os = "windows")]
+pub type QuicFlag = i32;

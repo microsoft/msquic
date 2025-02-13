@@ -66,7 +66,7 @@ struct LbInterface {
         Route.LocalAddress = LocalAddress;
         Route.RemoteAddress = *PeerAddress;
         CXPLAT_SEND_DATA* Send = nullptr;
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         while (RecvDataChain) {
             if (!Send) {
                 Send = CxPlatSendDataAlloc(Socket, &SendConfig);

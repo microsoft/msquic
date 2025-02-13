@@ -15,6 +15,7 @@ permissions: read-all
 jobs:
   cargo:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
         features: ["", "--features static", "--features schannel", "--features schannel,static", "--features overwrite"]
