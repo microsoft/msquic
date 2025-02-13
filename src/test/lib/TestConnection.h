@@ -218,7 +218,7 @@ public:
     void SetExpectedCustomValidationResult(bool AcceptCert) { CustomValidationResultSet = true; ExpectedCustomValidationResult = AcceptCert; }
     void SetAsyncCustomValidationResult(bool Async) { AsyncCustomValidation = Async; }
     void SetExpectedCustomTicketValidationResult(QUIC_STATUS Status) { ExpectedCustomTicketValidationResult = Status; }
-
+    
     const QUIC_STATUS* GetExpectedClientCertValidationResult() const { return ExpectedClientCertValidationResult; }
     void AddExpectedClientCertValidationResult(QUIC_STATUS Status) {
         CXPLAT_FRE_ASSERTMSG(

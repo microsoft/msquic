@@ -128,7 +128,8 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ const uint8_t UseTcpOverride
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -137,7 +138,8 @@ CxPlatSocketCreateUdp(
         SocketCreateUdp(
             Datapath,
             Config,
-            NewSocket);
+            NewSocket,
+            UseTcpOverride);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,

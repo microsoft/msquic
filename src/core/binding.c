@@ -37,7 +37,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Out_ QUIC_BINDING** NewBinding,
+    _In_ const UseTcpOverride
     )
 {
     QUIC_STATUS Status;
@@ -123,7 +124,8 @@ QuicBindingInitialize(
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
                 &HookUdpConfig,
-                &Binding->Socket);
+                &Binding->Socket,
+                UseTcpOverride);
     } else {
 #endif
         ((CXPLAT_UDP_CONFIG*)UdpConfig)->CallbackContext = Binding;
@@ -132,7 +134,8 @@ QuicBindingInitialize(
             CxPlatSocketCreateUdp(
                 MsQuicLib.Datapath,
                 UdpConfig,
-                &Binding->Socket);
+                &Binding->Socket,
+                UseTcpOverride);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif

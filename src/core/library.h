@@ -555,7 +555,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Out_ QUIC_BINDING** NewBinding,
+    _In_ const uint8_t UseTcpOverride
     );
 
 //

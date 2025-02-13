@@ -307,7 +307,8 @@ TestConnection*
 NewPingConnection(
     _In_ MsQuicRegistration& Registration,
     _In_ PingStats* ClientStats,
-    _In_ bool UseSendBuffer
+    _In_ bool UseSendBuffer,
+    _In_ bool SendUdpToQtipListener
     )
 {
     TestScopeLogger logScope(__FUNCTION__);
@@ -349,6 +350,9 @@ NewPingConnection(
         Connection->SetShareUdpBinding(true);
     }
 
+    QUIC_CONNECTION* QuicConnection = (QUIC_CONNECTION*) Connection->GetConnection();
+    QuicConnection
+
     return Connection;
 }
 
@@ -378,8 +382,23 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
+    if (UseQTIP && SendUdpToQtipListener) {
+        // Do a Quick sanity check to make sure we actually have QTIP enabled before we call RegistrationOpen.
+        // RegistrationOpen will initialize the Datapath layer with whatever settings set in the global MsQuicLib.
+        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
+        // Get the current global execution config.
+        uint32_t Size = sizeof(Config);
+        TEST_TRUE(QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                &Size,
+                &Config)));
+        // Make sure the QTIP flag is set.
+        TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
+    }
 
+    MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
     if (ServerRejectZeroRtt) {
@@ -411,20 +430,6 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-    if (UseQTIP) {
-        // Sanity check to make sure we actually have QTIP enabled right before we define ServerConfiguration.
-        // We ASSUME that the state of QUIC_PARAM_GLOBAL_EXECUTION_CONFIG gets COPIED at the time of configuration creation.
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-        // Get the current global execution config.
-        uint32_t Size = sizeof(Config);
-        TEST_TRUE(QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &Size,
-                &Config)));
-        TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
-    }
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -442,7 +447,9 @@ QuicTestConnectAndPing(
     }
 
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
+    if (UseQTIP && SendUdpToQtipListener) {
 
+    }
     {
         if (ServerRejectZeroRtt) {
             TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&BadKey));
@@ -454,40 +461,6 @@ QuicTestConnectAndPing(
             );
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
-
-        if (SendUdpToQtipListener && UseQTIP) {
-            // After we start the server listener (which at this point has QTIP enabled), we can turn off QTIP for the client.
-            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-            // Get the current global execution config.
-            uint32_t Size = sizeof(Config);
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &Size,
-                    &Config));
-            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
-            // Turn off QTIP for the client.
-            Config.Flags &= ~QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-            TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
-            TEST_QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        Size,
-                        &Config));
-            // Another sanity check to ensure QTIP is OFF right before the instantiation of the ClientConfiguration.
-            QUIC_EXECUTION_CONFIG TmpConfig = {QUIC_EXECUTION_CONFIG_FLAG_QTIP, 0, 0, {0}};
-            uint32_t TmpSize = sizeof(TmpConfig);
-            // Get the current global execution config.
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->GetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    &TmpSize,
-                    &TmpConfig));
-            TEST_TRUE((TmpConfig.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0);
-        }
 
         MsQuicCredentialConfig ClientCredConfig;
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
@@ -517,7 +490,8 @@ QuicTestConnectAndPing(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
-                    UseSendBuffer);
+                    UseSendBuffer,
+                    SendUdpToQtipListener);
             if (Connections.get()[i] == nullptr) {
                 return;
             }
@@ -550,7 +524,7 @@ QuicTestConnectAndPing(
 
                     if (i != 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                        && !UseQTIP
+                        && (!UseQTIP || SendUdpToQtipListener)
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
@@ -565,7 +539,7 @@ QuicTestConnectAndPing(
 
                     if (i == 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                        && !UseQTIP
+                        && (!UseQTIP || SendUdpToQtipListener)
 #endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);

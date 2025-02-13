@@ -114,7 +114,7 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t NetStatsEventEnabled            : 1;
     uint8_t StreamMultiReceiveEnabled       : 1;
     uint8_t MtuDiscoveryMissingProbeCount;
-
+    uint8_t UseTcp                          : 1;
 } QUIC_SETTINGS_INTERNAL;
 
 //

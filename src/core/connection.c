@@ -1850,7 +1850,8 @@ QuicConnStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Path->Binding);
+            &Path->Binding,
+            Configuration->Settings.UseTcp);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
