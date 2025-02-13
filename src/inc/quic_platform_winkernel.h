@@ -505,24 +505,16 @@ IO_MINI_PACKET_CALLBACK_ROUTINE(
 
 typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
 
-#define IO_SET_COMPLETION_WAIT_NEXT            0x00000001UL
-#define IO_SET_COMPLETION_HANDOFF              0x00000004UL
-#define IO_SET_COMPLETION_SKIP_DONATE_PRIORITY 0x00000008UL
-
-_When_((Flags & IO_SET_COMPLETION_WAIT_NEXT) == 0, _IRQL_requires_max_(DISPATCH_LEVEL))
-_When_((Flags & IO_SET_COMPLETION_WAIT_NEXT) != 0, _IRQL_requires_max_(APC_LEVEL))
 NTSYSAPI
 NTSTATUS
-IoSetIoCompletionEx4(
+IoSetIoCompletionEx(
     _In_ PVOID IoCompletion,
     _In_opt_ PVOID KeyContext,
     _In_opt_ PVOID ApcContext,
     _In_ NTSTATUS IoStatus,
     _In_ ULONG_PTR IoStatusInformation,
     _In_ BOOLEAN Quota,
-    _In_opt_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
-    _In_ CCHAR PriorityBoost,
-    _In_ ULONG Flags
+    _In_opt_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket
     );
 
 NTSYSAPI
@@ -645,16 +637,14 @@ CxPlatEventQEnqueue(
 {
     return
         NT_SUCCESS(
-        IoSetIoCompletionEx4(
+        IoSetIoCompletionEx(
             queue->IoCompletion,
             0,
             sqe,
             STATUS_SUCCESS,
             0,
             FALSE,
-            sqe->MiniPacket,
-            0,
-            0));
+            sqe->MiniPacket));
 }
 
 #define CXPLAT_EVENTQ_DEQUEUE_MAX 16
