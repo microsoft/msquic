@@ -23,7 +23,7 @@ typedef enum QUIC_RECV_BUF_MODE {
 typedef struct QUIC_RECV_CHUNK {
     CXPLAT_LIST_ENTRY Link;          // Link in the list of chunks.
     uint32_t AllocLength;            // Allocation size of Buffer
-    uint8_t ExternalReference : 1;   // Indicates the buffer is being used externally.
+    uint8_t ExternalReference  : 1;  // Indicates the buffer is being used externally.
     uint8_t AppOwnedBuffer     : 1;  // Indicates the buffer is managed by the app.
     uint8_t* Buffer;                 // Pointer to the buffer itself. Doesn't need to be freed independently:
                                      //  - for internally allocated buffers, points in the same allocation.

@@ -273,15 +273,13 @@ QuicRecvBufferResize(
     CXPLAT_DBG_ASSERT(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
-    // Should always have at least one chunk
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
     QUIC_RECV_CHUNK* LastChunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Blink,
             QUIC_RECV_CHUNK,
             Link);
-    // Should only be called when buffer needs to grow
-    CXPLAT_DBG_ASSERT(TargetBufferLength > LastChunk->AllocLength);
+    CXPLAT_DBG_ASSERT(TargetBufferLength > LastChunk->AllocLength); // Should only be called when buffer needs to grow
     BOOLEAN LastChunkIsFirst = LastChunk->Link.Blink == &RecvBuffer->Chunks;
 
     QUIC_RECV_CHUNK* NewChunk =
@@ -734,7 +732,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicRecvBufferReadBufferNeededCount(
     _In_ const QUIC_RECV_BUFFER* RecvBuffer
-)
+    )
 {
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
         //
@@ -843,6 +841,7 @@ QuicRecvBufferRead(
                 Link);
         CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
         CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
+        CXPLAT_DBG_ASSERT(*BufferCount >= 1);
         CXPLAT_DBG_ASSERT(ContiguousLength <= (uint64_t)Chunk->AllocLength);
 
         *BufferCount = 1;
@@ -1098,9 +1097,7 @@ QuicRecvBufferPartialDrain(
         Chunk->ExternalReference = RecvBuffer->ReadPendingLength != DrainLength;
         CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
         RecvBuffer->ReadPendingLength -= DrainLength;
-    }
-
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
         // In app-owned mode, memory is never re-used: a drain consumes
         // virtual buffer length.
@@ -1181,6 +1178,7 @@ QuicRecvBufferFullDrain(
     // Capacity is also updated to reflect the new first chunk's allocation length.
     //
     // Update the ReadLength and Capacity to match the new first chunk.
+    //
     Chunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Flink,
@@ -1253,12 +1251,6 @@ QuicRecvBufferDrain(
         }
 
         if (PartialDrain) {
-            //
-            // In single/circular mode, a full drain must be done only if all the data
-            // written to the buffer was read.
-            // A partial drain is done if not all the readily readable data was read
-            // or if the read is limited by a gap in the data.
-            //
             QuicRecvBufferPartialDrain(RecvBuffer, DrainLength);
             return !MoreDataReadable;
         }

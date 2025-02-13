@@ -766,9 +766,12 @@ QuicStreamOnBytesDelivered(
 
         //
         // Limit stream FC window growth by the connection FC window size.
+        // When using app-owned buffers, skip this: the virtual buffer length is entirely based
+        // on the amount of buffer space provided by the app.
         //
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
-            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
+            !Stream->Flags.UseAppOwnedRecvBuffers) {
 
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
