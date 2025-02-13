@@ -39,13 +39,6 @@
 
 #endif
 
-typedef struct DATAPATH_SQE {
-    uint32_t CqeType;
-#ifdef CXPLAT_SQE
-    CXPLAT_SQE Sqe;
-#endif
-} DATAPATH_SQE;
-
 typedef struct CXPLAT_DATAPATH_COMMON {
     //
     // The UDP callback function pointers.
@@ -106,6 +99,11 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // The DSCP value to use for this send.
+    //
+    uint8_t DSCP;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
@@ -121,40 +119,6 @@ typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_NORMAL,
     CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
 } CXPLAT_DATAPATH_TYPE;
-
-//
-// Type of IO.
-//
-typedef enum DATAPATH_IO_TYPE {
-    DATAPATH_IO_SIGNATURE         = 'WINU',
-    DATAPATH_IO_RECV              = DATAPATH_IO_SIGNATURE + 1,
-    DATAPATH_IO_SEND              = DATAPATH_IO_SIGNATURE + 2,
-    DATAPATH_IO_QUEUE_SEND        = DATAPATH_IO_SIGNATURE + 3,
-    DATAPATH_IO_ACCEPTEX          = DATAPATH_IO_SIGNATURE + 4,
-    DATAPATH_IO_CONNECTEX         = DATAPATH_IO_SIGNATURE + 5,
-    DATAPATH_IO_RIO_NOTIFY        = DATAPATH_IO_SIGNATURE + 6,
-    DATAPATH_IO_RIO_RECV          = DATAPATH_IO_SIGNATURE + 7,
-    DATAPATH_IO_RIO_SEND          = DATAPATH_IO_SIGNATURE + 8,
-    DATAPATH_IO_RECV_FAILURE      = DATAPATH_IO_SIGNATURE + 9,
-    DATAPATH_IO_MAX
-} DATAPATH_IO_TYPE;
-
-//
-// Type of IO for XDP.
-//
-typedef enum DATAPATH_XDP_IO_TYPE {
-    DATAPATH_XDP_IO_SIGNATURE         = 'XDPD',
-    DATAPATH_XDP_IO_RECV              = DATAPATH_XDP_IO_SIGNATURE + 1,
-    DATAPATH_XDP_IO_SEND              = DATAPATH_XDP_IO_SIGNATURE + 2
-} DATAPATH_XDP_IO_TYPE;
-
-//
-// IO header for SQE->CQE based completions.
-//
-typedef struct DATAPATH_IO_SQE {
-    DATAPATH_IO_TYPE IoType;
-    DATAPATH_SQE DatapathSqe;
-} DATAPATH_IO_SQE;
 
 typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_UDP             = 0,
@@ -180,6 +144,11 @@ typedef struct CX_PLATFORM {
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -360,6 +329,11 @@ typedef struct CX_PLATFORM {
     //
     HANDLE Heap;
 
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
+
 #ifdef DEBUG
     //
     // 1/Denominator of allocations to fail.
@@ -464,12 +438,12 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     //
     // Submission queue event for IO completion
     //
-    DATAPATH_IO_SQE IoSqe;
+    CXPLAT_SQE IoSqe;
 
     //
     // Submission queue event for RIO IO completion
     //
-    DATAPATH_IO_SQE RioSqe;
+    CXPLAT_SQE RioSqe;
 
     //
     // The datapath per-processor context.
@@ -817,11 +791,6 @@ CxPlatWorkerPoolGetEventQ(
     _In_ uint16_t Index // Into the config processor array
     );
 
-void
-CxPlatDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    );
-
 BOOLEAN // Returns FALSE no work was done.
 CxPlatDataPathPoll(
     _In_ void* Context,
@@ -837,15 +806,6 @@ size_t
 CxPlatDpRawGetDatapathSize(
     _In_opt_ const QUIC_EXECUTION_CONFIG* Config
     );
-
-#define CXPLAT_CQE_TYPE_WORKER_WAKE         CXPLAT_CQE_TYPE_QUIC_BASE + 1
-#define CXPLAT_CQE_TYPE_WORKER_UPDATE_POLL  CXPLAT_CQE_TYPE_QUIC_BASE + 2
-#define CXPLAT_CQE_TYPE_SOCKET_SHUTDOWN     CXPLAT_CQE_TYPE_QUIC_BASE + 3
-#define CXPLAT_CQE_TYPE_SOCKET_IO           CXPLAT_CQE_TYPE_QUIC_BASE + 4
-#define CXPLAT_CQE_TYPE_SOCKET_FLUSH_TX     CXPLAT_CQE_TYPE_QUIC_BASE + 5
-#define CXPLAT_CQE_TYPE_XDP_SHUTDOWN        CXPLAT_CQE_TYPE_QUIC_BASE + 6
-#define CXPLAT_CQE_TYPE_XDP_IO              CXPLAT_CQE_TYPE_QUIC_BASE + 7
-#define CXPLAT_CQE_TYPE_XDP_FLUSH_TX        CXPLAT_CQE_TYPE_QUIC_BASE + 8
 
 #if defined(CX_PLATFORM_LINUX)
 
@@ -874,17 +834,17 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The submission queue event for shutdown.
     //
-    DATAPATH_SQE ShutdownSqe;
+    CXPLAT_SQE ShutdownSqe;
 
     //
     // The submission queue event for IO.
     //
-    DATAPATH_SQE IoSqe;
+    CXPLAT_SQE IoSqe;
 
     //
     // The submission queue event for flushing the send queue.
     //
-    DATAPATH_SQE FlushTxSqe;
+    CXPLAT_SQE FlushTxSqe;
 
     //
     // The head of list containg all pending sends on this socket.
@@ -1212,11 +1172,6 @@ SocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-void
-DataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    );
-
 CXPLAT_SOCKET*
 CxPlatRawToSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket
@@ -1359,11 +1314,6 @@ RawResolveRoute(
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
-    );
-
-void
-RawDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -702,6 +702,16 @@ TEST_P(WithFamilyArgs, BindConnectionExplicit) {
     }
 }
 
+TEST_P(WithFamilyArgs, TestAddrFunctions) {
+    TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
+    }
+    else {
+        QuicTestAddrFunctions(GetParam().Family);
+    }
+}
+
 TEST_P(WithHandshakeArgs1, Connect) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Connect", GetParam());
     if (TestingKernelMode) {
@@ -2349,6 +2359,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
     } else {
         QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramDrop) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+    } else {
+        QuicTestDatagramDrop(GetParam().Family);
     }
 }
 

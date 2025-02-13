@@ -431,6 +431,9 @@ QuicSettingApply(
         Destination->IsSet.DatagramReceiveEnabled = TRUE;
     }
     if (Source->IsSet.MaxOperationsPerDrain && (!Destination->IsSet.MaxOperationsPerDrain || OverWrite)) {
+        if (Source->MaxOperationsPerDrain == 0) {
+            return FALSE;
+        }
         Destination->MaxOperationsPerDrain = Source->MaxOperationsPerDrain;
         Destination->IsSet.MaxOperationsPerDrain = TRUE;
     }
@@ -795,7 +798,7 @@ QuicSettingsLoad(
             QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
             (uint8_t*)&Value,
             &ValueLen);
-        if (Value <= UINT8_MAX) {
+        if (Value > 0 && Value <= UINT8_MAX) {
             Settings->MaxOperationsPerDrain = (uint8_t)Value;
         }
     }

@@ -97,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -639,6 +640,11 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
+    _In_ int Family
+    );
+
+void
+QuicTestDatagramDrop(
     _In_ int Family
     );
 
@@ -1331,4 +1337,12 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 125
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 127

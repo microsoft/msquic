@@ -15,4 +15,4 @@
 [submodule "submodules/xdp-for-windows"]
 	path = submodules/xdp-for-windows
 	url = https://github.com/microsoft/xdp-for-windows.git
-	branch = dev/daiki/xdp_api_v3
+	branch = release/1.1

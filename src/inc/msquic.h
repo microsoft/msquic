@@ -244,6 +244,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
     QUIC_SEND_FLAG_CANCEL_ON_LOSS           = 0x0020,   // Indicates that a stream is to be cancelled when packet loss is detected.
     QUIC_SEND_FLAG_PRIORITY_WORK            = 0x0040,   // Higher priority than other connection work.
+    QUIC_SEND_FLAG_CANCEL_ON_BLOCKED        = 0x0080,   // Indicates that a frame should be dropped when it can't be sent immediately.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
@@ -922,6 +923,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
+#define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 
 //
 // Parameters for TLS.
