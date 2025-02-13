@@ -640,7 +640,7 @@ CxPlatEventQCleanup(
     ObDereferenceObject(queue->IoCompletion);
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 BOOLEAN
 CxPlatEventQEnqueue(
