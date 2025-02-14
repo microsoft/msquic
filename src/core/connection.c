@@ -109,6 +109,7 @@ QuicConnAlloc(
 #if DEBUG
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
+    Connection->State.UseQTIP = 0;
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
@@ -6753,26 +6754,14 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 #endif
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case QUIC_PARAM_CONN_SEND_QTIP:
+    case QUIC_PARAM_CONN_QTIP:
         if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        Connection->State.SendViaQtip = *(BOOLEAN*)Buffer;
+        Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_RECV_QTIP:
-        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        Connection->State.RecvViaQtip = *(BOOLEAN*)Buffer;
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -7304,8 +7293,7 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    case QUIC_PARAM_CONN_SEND_QTIP:
+    case QUIC_PARAM_CONN_QTIP:
         if (*BufferLength < sizeof(BOOLEAN)) {
             *BufferLength = sizeof(BOOLEAN);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -7318,27 +7306,10 @@ QuicConnParamGet(
         }
 
         *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->State.SendViaQtip;
+        *(BOOLEAN*)Buffer = Connection->State.UseQTIP;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_RECV_QTIP:
-        if (*BufferLength < sizeof(BOOLEAN)) {
-            *BufferLength = sizeof(BOOLEAN);
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        *BufferLength = sizeof(BOOLEAN);
-        *(BOOLEAN*)Buffer = Connection->State.RecvViaQtip;
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-#endif
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;

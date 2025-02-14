@@ -889,6 +889,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
+#define QUIC_PARAM_LISTENER_QTIP                        0x04000004  // uint8_t (BOOLEAN)
 #endif
 
 //
@@ -926,8 +927,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_CONN_SEND_QTIP                       0x0500001A  // uint8_t (BOOLEAN)
-#define QUIC_PARAM_CONN_RECV_QTIP                       0x0500001B  // uint8_t (BOOLEAN)
+#define QUIC_PARAM_CONN_QTIP                            0x0500001A  // uint8_t (BOOLEAN)
 #endif
 
 //

@@ -769,6 +769,17 @@ QuicListenerParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    if (Param == QUIC_PARAM_LISTENER_QTIP) {
+        if (BufferLength > sizeof(uint8_t)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        Listener->UseQTIP = *(uint8_t*)Buffer;
+        return QUIC_STATUS_SUCCESS;
+    }
+
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
@@ -851,6 +862,25 @@ QuicListenerParamGet(
 
         *BufferLength = Listener->CibirId[0] + 1;
         memcpy(Buffer, Listener->CibirId + 1, Listener->CibirId[0]);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_LISTENER_QTIP:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            *BufferLength = sizeof(uint8_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint8_t);
+        *(uint8_t*)Buffer = Listener->UseQTIP;
 
         Status = QUIC_STATUS_SUCCESS;
         break;

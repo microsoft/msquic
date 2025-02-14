@@ -3372,6 +3372,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
         internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
 
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_QTIP 0x04000004")]
+        internal const uint QUIC_PARAM_LISTENER_QTIP = 0x04000004;
+
         [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
         internal const uint QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;
 
@@ -3450,11 +3453,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x05000019")]
         internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x05000019;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_SEND_QTIP 0x0500001A")]
-        internal const uint QUIC_PARAM_CONN_SEND_QTIP = 0x0500001A;
-
-        [NativeTypeName("#define QUIC_PARAM_CONN_RECV_QTIP 0x0500001B")]
-        internal const uint QUIC_PARAM_CONN_RECV_QTIP = 0x0500001B;
+        [NativeTypeName("#define QUIC_PARAM_CONN_QTIP 0x0500001A")]
+        internal const uint QUIC_PARAM_CONN_QTIP = 0x0500001A;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

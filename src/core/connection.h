@@ -209,17 +209,10 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN DisableVneTp : 1;
 #endif
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         //
         // Whether to use QTIP on sends for this connection.
         //
-        BOOLEAN SendViaQtip : 1;
-
-        //
-        // Whether to allow QTIP on receives for this connection.
-        //
-        BOOLEAN RecvViaQtip : 1;
-#endif
+        BOOLEAN UseQTIP : 1;
     };
 } QUIC_CONNECTION_STATE;
 
