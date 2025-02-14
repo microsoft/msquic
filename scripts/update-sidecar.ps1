@@ -5,6 +5,8 @@ This regenerates the CLOG sidecar file.
 
 #>
 
+#Requires -Version 7.2
+
 Set-StrictMode -Version 'Latest'
 $PSDefaultParameterValues['*:ErrorAction'] = 'Stop'
 
