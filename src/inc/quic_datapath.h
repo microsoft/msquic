@@ -210,6 +210,7 @@ typedef struct CXPLAT_ROUTE {
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
 
+    uint8_t UseQTIP : 1;         // TRUE if the route is using QTIP
 } CXPLAT_ROUTE;
 
 //

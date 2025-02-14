@@ -1490,7 +1490,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = 0; // TODO: revert this back to Datapath->UseTcp
+    Socket->UseTcp = Datapath->UseTcp; // TODO: We don't need this at all anymore. Remove once all instances of it are replaced with CXPLAT_ROUTE logic.
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
