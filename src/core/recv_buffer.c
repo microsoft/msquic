@@ -74,7 +74,7 @@ QuicRecvChunkFree(
     }
 
     if (Chunk->AppOwnedBuffer) {
-       CxPlatPoolFree(RecvBuffer->AppBufferChunkPool, Chunk);
+        CxPlatPoolFree(RecvBuffer->AppBufferChunkPool, Chunk);
     } else {
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
     }
@@ -199,19 +199,15 @@ QuicRecvBufferHasUnreadData(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicRecvBufferTryIncreaseVirtualBufferLength(
+void
+QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint32_t NewLength
     )
 {
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
-        return FALSE;
-    }
-
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
     RecvBuffer->VirtualBufferLength = NewLength;
-    return TRUE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

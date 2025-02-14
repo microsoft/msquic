@@ -796,19 +796,18 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
-                if (QuicRecvBufferTryIncreaseVirtualBufferLength(
-                        &Stream->RecvBuffer,
-                        Stream->RecvBuffer.VirtualBufferLength * 2)) {
+                QuicRecvBufferIncreaseVirtualBufferLength(
+                    &Stream->RecvBuffer,
+                    Stream->RecvBuffer.VirtualBufferLength * 2);
 
-                    QuicTraceLogStreamVerbose(
-                        IncreaseRxBuffer,
-                        Stream,
-                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                        Stream->RecvBuffer.VirtualBufferLength * 2,
-                        Stream->Connection->Paths[0].MinRtt,
-                        TimeNow,
-                        Stream->RecvWindowLastUpdate);
-                }
+                QuicTraceLogStreamVerbose(
+                    IncreaseRxBuffer,
+                    Stream,
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                    Stream->RecvBuffer.VirtualBufferLength * 2,
+                    Stream->Connection->Paths[0].MinRtt,
+                    TimeNow,
+                    Stream->RecvWindowLastUpdate);
             }
         }
 
