@@ -13,6 +13,7 @@ Abstract:
 #define XDP_API_VERSION 3
 #define XDP_INCLUDE_WINCOMMON
 
+#include <xdp/wincommon.h>
 #include "datapath_raw_win.h"
 #include "datapath_raw_xdp.h"
 #include <wbemidl.h>
