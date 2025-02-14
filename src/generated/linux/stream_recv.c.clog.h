@@ -357,13 +357,13 @@ tracepoint(CLOG_STREAM_RECV_C, RemoteBlocked , arg1, arg3);\
 // Decoder Ring for IncreaseRxBuffer
 // [strm][%p] Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)
 // QuicTraceLogStreamVerbose(
-                        IncreaseRxBuffer,
-                        Stream,
-                        "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
-                        Stream->RecvBuffer.VirtualBufferLength * 2,
-                        Stream->Connection->Paths[0].MinRtt,
-                        TimeNow,
-                        Stream->RecvWindowLastUpdate);
+                    IncreaseRxBuffer,
+                    Stream,
+                    "Increasing max RX buffer size to %u (MinRtt=%llu; TimeNow=%llu; LastUpdate=%llu)",
+                    Stream->RecvBuffer.VirtualBufferLength * 2,
+                    Stream->Connection->Paths[0].MinRtt,
+                    TimeNow,
+                    Stream->RecvWindowLastUpdate);
 // arg1 = arg1 = Stream = arg1
 // arg3 = arg3 = Stream->RecvBuffer.VirtualBufferLength * 2 = arg3
 // arg4 = arg4 = Stream->Connection->Paths[0].MinRtt = arg4
