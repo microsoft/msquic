@@ -902,7 +902,6 @@ TEST_F(TlsTest, HandshakeParamInfoDefault)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -920,7 +919,6 @@ TEST_F(TlsTest, HandshakeParamInfoDefault)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -951,7 +949,6 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -969,7 +966,6 @@ TEST_F(TlsTest, HandshakeParamInfoAES256GCM)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_256, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_384, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -1000,7 +996,6 @@ TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -1018,7 +1013,6 @@ TEST_F(TlsTest, HandshakeParamInfoAES128GCM)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_AES_128, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(128, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     //EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -1052,7 +1046,6 @@ TEST_F(TlsTest, HandshakeParamInfoChaCha20)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_CHACHA20, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);
@@ -1070,7 +1063,6 @@ TEST_F(TlsTest, HandshakeParamInfoChaCha20)
     EXPECT_EQ(QUIC_TLS_PROTOCOL_1_3, HandshakeInfo.TlsProtocolVersion);
     EXPECT_EQ(QUIC_CIPHER_ALGORITHM_CHACHA20, HandshakeInfo.CipherAlgorithm);
     EXPECT_EQ(256, HandshakeInfo.CipherStrength);
-    EXPECT_EQ(0, HandshakeInfo.KeyExchangeAlgorithm);
     EXPECT_EQ(0, HandshakeInfo.KeyExchangeStrength);
     EXPECT_EQ(QUIC_HASH_ALGORITHM_SHA_256, HandshakeInfo.Hash);
     EXPECT_EQ(0, HandshakeInfo.HashStrength);

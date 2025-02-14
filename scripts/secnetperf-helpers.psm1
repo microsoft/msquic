@@ -550,7 +550,21 @@ function Invoke-Secnetperf {
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "-scenario:$Scenario -io:$io"
-    $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+
+    if ($env:collect_cpu_traces) {
+        $updated_runtime_for_cpu_traces = @{
+            "upload"=12 * 1000 * 1000
+            "download"=12 * 1000 * 1000
+            "hps"=6 * 1000 * 1000
+            "rps"=5 * 1000 * 1000
+            "rps-multi"=5 * 1000 * 1000
+            "latency"=5 * 1000 * 1000
+        }
+        $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
+    } else {
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+    }
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -631,7 +645,18 @@ function Invoke-Secnetperf {
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
 
     } else {
-        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        if ($env:collect_cpu_traces) {
+            if ($IsWindows) {
+                wpr -start CPU
+                Invoke-Command -Session $Session -ScriptBlock { wpr -start CPU }
+                $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            } else {
+                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
+                $job = Start-RemoteServer $Session "perf record -o server-cpu-traces-$scenario-$io-istcp-$tcp.data -- $RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+            }
+        } else {
+            $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
+        }
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -691,6 +716,15 @@ function Invoke-Secnetperf {
             }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
+            if ($env:collect_cpu_traces) {
+                if ($IsWindows) {
+                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
+                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$Using:scenario-$Using:io-istcp-$Using:tcp.etl" }
+                    Copy-Item -FromSession $Session "C:\Users\Administrator\Documents\server-cpu-traces-$scenario-$io-istcp-$tcp.etl" .
+                } else {
+                    Copy-Item -FromSession $Session "/home/secnetperf/server-cpu-traces-$scenario-$io-istcp-$tcp.data" .
+                }
+            }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.

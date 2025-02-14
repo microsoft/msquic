@@ -803,7 +803,7 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(

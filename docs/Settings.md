@@ -177,6 +177,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2`<br> 22            | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics, version 2.                                                   |
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 | `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | The original destination connection ID used by the client to connect to the server.       |
+| `QUIC_PARAM_CONN_SEND_DSCP` <br> 25               | uint8_t                       | Both      | The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection. |
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 

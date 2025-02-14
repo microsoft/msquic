@@ -340,6 +340,7 @@ Error:
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
 }
 
 void
@@ -886,7 +887,6 @@ CxPlatSocketContextInitialize(
                 "setsockopt(IPV6_RECVHOPLIMIT) failed");
             goto Exit;
         }
-
 
     #ifdef UDP_GRO
         if (SocketContext->DatapathPartition->Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
@@ -2264,6 +2264,7 @@ SendDataAlloc(
         SendData->AlreadySentCount = 0;
         SendData->ControlBufferLength = 0;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->Flags = Config->Flags;
         SendData->OnConnectedSocket = Socket->Connected;
         SendData->SegmentationSupported =
@@ -2478,7 +2479,7 @@ CxPlatSendDataPopulateAncillaryData(
     CMsg->cmsg_level = SendData->LocalAddress.Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
     CMsg->cmsg_type = SendData->LocalAddress.Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
-    *(int*)CMSG_DATA(CMsg) = SendData->ECN;
+    *(int*)CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
 
     if (!SendData->OnConnectedSocket) {
         if (SendData->LocalAddress.Ip.sa_family == AF_INET) {

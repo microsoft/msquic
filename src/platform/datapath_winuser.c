@@ -273,7 +273,7 @@ typedef struct CXPLAT_SEND_DATA {
     char CtrlBuf[
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
         ];
 
@@ -637,26 +637,28 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-    Result =
-        WSAIoctl(
-            UdpSocket,
-            SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
-            &RioGuid,
-            sizeof(RioGuid),
-            &Datapath->RioDispatch,
-            sizeof(Datapath->RioDispatch),
-            &BytesReturned,
-            NULL,
-            NULL);
-    if (Result != NO_ERROR) {
-        int WsaError = WSAGetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            WsaError,
-            "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
-        Status = HRESULT_FROM_WIN32(WsaError);
-        goto Error;
+    if (Datapath->UseRio) {
+        Result =
+            WSAIoctl(
+                UdpSocket,
+                SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
+                &RioGuid,
+                sizeof(RioGuid),
+                &Datapath->RioDispatch,
+                sizeof(Datapath->RioDispatch),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result != NO_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                WsaError,
+                "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
     }
 
 {
@@ -699,6 +701,41 @@ CxPlatDataPathQuerySockoptSupport(
     } else {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
+}
+
+{
+    //
+    // Test ToS support with IPv6, because IPv4 just fails silently.
+    //
+    SOCKET Udpv6Socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (UdpSocket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathOpenUdpv6SocketFailed,
+            "[data] UDPv6 helper socket failed to open, 0x%x",
+            WsaError);
+        goto Error;
+    }
+
+    DWORD TypeOfService = 1; // Lower Effort
+    OptionLength = sizeof(TypeOfService);
+    Result =
+        setsockopt(
+            Udpv6Socket,
+            IPPROTO_IPV6,
+            IPV6_TCLASS,
+            (char*)&TypeOfService,
+            sizeof(TypeOfService));
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathTestSetIpv6TrafficClassFailed,
+            "[data] Test setting IPV6_TCLASS failed, 0x%x",
+            WsaError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+    }
+    closesocket(Udpv6Socket);
 }
 
     //
@@ -4004,6 +4041,7 @@ SendDataAlloc(
         SendData->Owner = DatapathProc;
         SendData->SendDataPool = SendDataPool;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->SendFlags = Config->Flags;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
@@ -4483,13 +4521,27 @@ CxPlatSocketSendInline(
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
+        }
 
     } else {
 
@@ -4504,13 +4556,27 @@ CxPlatSocketSendInline(
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
+        }
     }
 
     if (SendData->SegmentSize > 0) {
@@ -4521,6 +4587,13 @@ CxPlatSocketSendInline(
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
         *(PDWORD)WSA_CMSG_DATA(CMsg) = SendData->SegmentSize;
+    }
+
+    //
+    // Windows' networking stack doesn't like a non-NULL Control.buf when len is 0.
+    //
+    if (WSAMhdr.Control.len == 0) {
+        WSAMhdr.Control.buf = NULL;
     }
 
     if (Socket->Type == CXPLAT_SOCKET_UDP && Socket->UseRio) {
