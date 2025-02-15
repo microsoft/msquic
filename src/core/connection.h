@@ -213,6 +213,11 @@ typedef union QUIC_CONNECTION_STATE {
         // Whether to use QTIP on sends for this connection.
         //
         BOOLEAN UseQTIP : 1;
+
+        //
+        // Whether or not the app explicitly set the UseQTIP flag.
+        //
+        BOOLEAN AppDidSetQTIP : 1;
     };
 } QUIC_CONNECTION_STATE;
 

@@ -110,6 +110,7 @@ QuicConnAlloc(
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
     Connection->State.UseQTIP = 0;
+    Connection->State.AppDidSetQTIP = 0;
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
@@ -6760,6 +6761,7 @@ QuicConnParamSet(
             break;
         }
         Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
+        Connection->State.AppDidSetQTIP = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
 
