@@ -62,11 +62,18 @@ QuicStreamInitialize(
             Stream,
             "Configured for delayed ID FC updates");
     }
-    Stream->Flags.UseAppOwnedRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS);
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
-    Stream->Flags.ReceiveMultiple = Connection->Settings.StreamMultiReceiveEnabled;
+    Stream->Flags.UseAppOwnedRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS);
+    //
+    // A stream doesn't support ReceiveMultiple and AppOwnedRecvBuffer simultaneously.
+    // AppOwnedRecvBuffer is stream specific and takes precedence of the
+    // connection-wide ReceiveMultiple setting.
+    //
+    Stream->Flags.ReceiveMultiple =
+        Connection->Settings.StreamMultiReceiveEnabled &&
+        !Stream->Flags.UseAppOwnedRecvBuffers;
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
@@ -115,10 +122,10 @@ QuicStreamInitialize(
     const uint32_t InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
 
     QUIC_RECV_BUF_MODE RecvBufferMode = QUIC_RECV_BUF_MODE_CIRCULAR;
-    if (Stream->Flags.ReceiveMultiple) {
-        RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
-    } else if (Stream->Flags.UseAppOwnedRecvBuffers) {
+    if (Stream->Flags.UseAppOwnedRecvBuffers) {
         RecvBufferMode = QUIC_RECV_BUF_MODE_APP_OWNED;
+    } else if (Stream->Flags.ReceiveMultiple) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
     }
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
