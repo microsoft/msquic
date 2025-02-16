@@ -109,3 +109,75 @@ graph TD
         end
     end
 ```
+
+## Custom Execution
+
+MsQuic also supports scenarios where the application layer creates the threads that MsQuic uses to execute on.
+In this mode, the application creates one or more execution contexts that MsQuic will use to run all its internal logic.
+The application is responsible for calling down into MsQuic to allow these execution contexts to run.
+
+To create an execution context, the app much first create an event queue object, which is a platform specific type:
+
+- Windows: IOCP
+- Linux: epoll
+- macOS: kqueue
+
+On Windows, the following types are defined:
+
+```c++
+typedef HANDLE QUIC_EVENTQ;
+
+typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+
+typedef struct CXPLAT_SQE {
+    OVERLAPPED Overlapped;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
+```
+
+You will also notice the definiton for `QUIC_SQE` (SQE stands for submission queue entry), which defines the format that all completion events must take so they may be generically processed from the event queue (more on this below).
+
+Once the app has the event queue, it may create the execution context with the `ExecutionCreate` function:
+
+```c++
+HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
+QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
+
+QUIC_EXECUTION_CONTEXT* ExecContext = nullptr;
+QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext);
+```
+
+The above code createa a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.
+An application may expand this code to create multiple execution contexts, depending on their needs.
+
+To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
+
+```c
+bool AllDone = false;
+while (!AllDone) {
+    uint32_t WaitTime = MsQuic->ExecutionPoll(ExecContext);
+
+    ULONG OverlappedCount = 0;
+    OVERLAPPED_ENTRY Overlapped[8];
+    if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
+        for (ULONG i = 0; i < OverlappedCount; ++i) {
+            QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
+            Sqe->Completion(&Overlapped[i]);
+        }
+    }
+}
+```
+
+Above, you can see a simple loop that properly drives a single execution context on Windows.
+`OVERLAPPED_ENTRY` objects received from `GetQueuedCompletionStatusEx` are used to get the submission queue entry and then call its completion handler.
+
+In a real application, these completion events may come both from MsQuic and the application itself, therefore, this means **the application must use the same base format for its own submission entries**.
+This is necessary to be able to share the same event queue object.
