@@ -2156,13 +2156,17 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ uint8_t UseQTIP,
+    _In_ uint8_t OverrideGlobalQTIPSettings,
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
+    UNREFERENCED_PARAMETER(UseQTIP);
+    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }
