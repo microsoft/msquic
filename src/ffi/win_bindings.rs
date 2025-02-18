@@ -5,6 +5,8 @@
 pub struct __BindgenBitfieldUnit<Storage> {
     storage: Storage,
 }
+
+
 impl<Storage> __BindgenBitfieldUnit<Storage> {
     #[inline]
     pub const fn new(storage: Storage) -> Self {
