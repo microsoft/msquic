@@ -125,16 +125,16 @@ RawSocketCreateUdp(
 
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
-        // if (Socket->UseTcp) {
+        if (Socket->UseTcp) {
             Socket->RemoteAddress = *Config->RemoteAddress;
-        // }
+        }
         Socket->Connected = TRUE;
     }
 
     if (Config->LocalAddress) {
-        // if (Socket->UseTcp) {
+        if (Socket->UseTcp) {
             Socket->LocalAddress = *Config->LocalAddress;
-        // }
+        }
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
             if (!Socket->Connected) {
                 Socket->Wildcard = TRUE;
@@ -145,9 +145,9 @@ RawSocketCreateUdp(
             goto Error;
         }
     } else {
-        // if (Socket->UseTcp) {
+        if (Socket->UseTcp) {
             QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-        // }
+        }
         if (!Socket->Connected) {
             Socket->Wildcard = TRUE;
         }
