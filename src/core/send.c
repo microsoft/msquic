@@ -1190,9 +1190,6 @@ QuicSendFlush(
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
     QUIC_PATH* Path = &Connection->Paths[0];
 
-    Path->Route.UseQTIP = Connection->State.UseQTIP;
-    Path->Route.AppDidSetQTIP = Connection->State.AppDidSetQTIP;
-
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
     if (!CxPlatIsRouteReady(Connection, Path)) {
