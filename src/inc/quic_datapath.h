@@ -54,9 +54,36 @@ typedef enum CXPLAT_ECN_TYPE {
 } CXPLAT_ECN_TYPE;
 
 //
+// Different DiffServ Code Points
+//
+typedef enum CXPLAT_DSCP_TYPE {
+
+    CXPLAT_DSCP_CS0 = 0,
+    CXPLAT_DSCP_LE  = 1,
+    CXPLAT_DSCP_CS1 = 8,
+    CXPLAT_DSCP_CS2 = 16,
+    CXPLAT_DSCP_CS3 = 24,
+    CXPLAT_DSCP_CS4 = 32,
+    CXPLAT_DSCP_CS5 = 40,
+    CXPLAT_DSCP_EF  = 46,
+
+} CXPLAT_DSCP_TYPE;
+
+//
 // Helper to get the ECN type from the Type of Service field of received data.
 //
 #define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
+
+//
+// Helper to get the DSCP value from the Type of Service field of received data.
+//
+#define CXPLAT_DSCP_FROM_TOS(ToS) (uint8_t)((ToS) >> 2)
+
+//
+// Define the maximum type of service value allowed.
+// Note: this is without the ECN bits included
+//
+#define CXPLAT_MAX_DSCP 63
 
 //
 // The maximum IP MTU this implementation supports for QUIC.
@@ -444,6 +471,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
 #define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
+#define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
 
 //
 // Queries the currently supported features of the datapath.
@@ -675,6 +703,7 @@ typedef struct CXPLAT_SEND_CONFIG {
     uint16_t MaxPacketSize;
     uint8_t ECN; // CXPLAT_ECN_TYPE
     uint8_t Flags; // CXPLAT_SEND_FLAGS
+    uint8_t DSCP; // CXPLAT_DSCP_TYPE
 } CXPLAT_SEND_CONFIG;
 
 //

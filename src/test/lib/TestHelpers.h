@@ -194,6 +194,17 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
         }
     }
 
+    //
+    // Call with correct length now, but NULL buffer for added coverage.
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->GetParam(
+            Handle,
+            Param,
+            &Length,
+            nullptr));
+
     Length = (uint32_t)ExpectedLength; // Only query the expected size, which might be less.
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
     if (Value == nullptr) {

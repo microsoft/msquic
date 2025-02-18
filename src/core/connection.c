@@ -7105,6 +7105,31 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    case QUIC_PARAM_CONN_SEND_DSCP: {
+        if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint8_t DSCP = *(uint8_t*)Buffer;
+
+        if (DSCP > CXPLAT_MAX_DSCP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->DSCP = DSCP;
+
+        QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS: {
 
         if (BufferLength != sizeof(QUIC_ADDR) || Buffer == NULL ||
@@ -7738,10 +7763,12 @@ QuicConnParamGet(
     }
 
     case QUIC_PARAM_CONN_ORIG_DEST_CID:
+
         if (Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
@@ -7757,11 +7784,11 @@ QuicConnParamGet(
             Buffer,
             Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
+
         //
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
-
         Status = QUIC_STATUS_SUCCESS;
         break;
 

@@ -97,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -1369,6 +1370,10 @@ typedef struct {
     QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
@@ -1377,7 +1382,7 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
@@ -1387,7 +1392,7 @@ typedef struct {
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 128
+#define QUIC_MAX_IOCTL_FUNC_CODE 129

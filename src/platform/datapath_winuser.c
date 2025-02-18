@@ -273,7 +273,7 @@ typedef struct CXPLAT_SEND_DATA {
     char CtrlBuf[
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(DWORD))           // UDP_SEND_MSG_SIZE
         ];
 
@@ -294,7 +294,7 @@ void
 SocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
-    
+
 CXPLAT_EVENT_COMPLETION CxPlatIoRecvEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRecvFailureEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoSendEventComplete;
@@ -524,12 +524,6 @@ Error:
     }
 }
 
-//
-// To determine the OS version, we are going to use RtlGetVersion API
-// since GetVersion call can be shimmed on Win8.1+.
-//
-typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
-
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
@@ -643,26 +637,28 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-    Result =
-        WSAIoctl(
-            UdpSocket,
-            SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
-            &RioGuid,
-            sizeof(RioGuid),
-            &Datapath->RioDispatch,
-            sizeof(Datapath->RioDispatch),
-            &BytesReturned,
-            NULL,
-            NULL);
-    if (Result != NO_ERROR) {
-        int WsaError = WSAGetLastError();
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            WsaError,
-            "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
-        Status = HRESULT_FROM_WIN32(WsaError);
-        goto Error;
+    if (Datapath->UseRio) {
+        Result =
+            WSAIoctl(
+                UdpSocket,
+                SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
+                &RioGuid,
+                sizeof(RioGuid),
+                &Datapath->RioDispatch,
+                sizeof(Datapath->RioDispatch),
+                &BytesReturned,
+                NULL,
+                NULL);
+        if (Result != NO_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                WsaError,
+                "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
     }
 
 {
@@ -706,27 +702,47 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
     }
 }
+
+{
     //
-    // TODO: This "TTL_FEATURE check" code works, and mirrors the approach for Kernel mode.
-    //       However, it is considered a "hack" and we should determine whether or not
-    //       the current release story fits this current workaround.
+    // Test ToS support with IPv6, because IPv4 just fails silently.
     //
-    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
-    if (NtDllHandle) {
-        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
-        if (VersionFunc) {
-            RTL_OSVERSIONINFOW VersionInfo = {0};
-            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
-            if ((*VersionFunc)(&VersionInfo) == 0) {
-                //
-                // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
-                //
-                if (VersionInfo.dwBuildNumber != 20348) {
-                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-                }
-            }
-        }
-        FreeLibrary(NtDllHandle);
+    SOCKET Udpv6Socket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
+    if (UdpSocket == INVALID_SOCKET) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathOpenUdpv6SocketFailed,
+            "[data] UDPv6 helper socket failed to open, 0x%x",
+            WsaError);
+        goto Error;
+    }
+
+    DWORD TypeOfService = 1; // Lower Effort
+    OptionLength = sizeof(TypeOfService);
+    Result =
+        setsockopt(
+            Udpv6Socket,
+            IPPROTO_IPV6,
+            IPV6_TCLASS,
+            (char*)&TypeOfService,
+            sizeof(TypeOfService));
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathTestSetIpv6TrafficClassFailed,
+            "[data] Test setting IPV6_TCLASS failed, 0x%x",
+            WsaError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+    }
+    closesocket(Udpv6Socket);
+}
+
+    //
+    // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+    //
+    if (CxPlatform.dwBuildNumber != 20348) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
@@ -844,22 +860,11 @@ DataPathInitialize(
     // Check for port reservation support.
     //
 #ifndef QUIC_UWP_BUILD
-    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
-    if (NtDllHandle) {
-        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
-        if (VersionFunc) {
-            RTL_OSVERSIONINFOW VersionInfo = {0};
-            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
-            if ((*VersionFunc)(&VersionInfo) == 0) {
-                //
-                // Only RS5 and newer can use the port reservation feature safely.
-                //
-                if (VersionInfo.dwBuildNumber >= 17763) {
-                    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
-                }
-            }
-        }
-        FreeLibrary(NtDllHandle);
+    //
+    // Only RS5 and newer can use the port reservation feature safely.
+    //
+    if (CxPlatform.dwBuildNumber >= 17763) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS;
     }
 #endif
 
@@ -4036,6 +4041,7 @@ SendDataAlloc(
         SendData->Owner = DatapathProc;
         SendData->SendDataPool = SendDataPool;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->SendFlags = Config->Flags;
         SendData->SegmentSize =
             (Socket->Type != CXPLAT_SOCKET_UDP ||
@@ -4515,13 +4521,27 @@ CxPlatSocketSendInline(
             PktInfo->ipi_addr = LocalAddress->Ipv4.sin_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IP;
-        CMsg->cmsg_type = IP_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
+        }
 
     } else {
 
@@ -4536,13 +4556,27 @@ CxPlatSocketSendInline(
             PktInfo6->ipi6_addr = LocalAddress->Ipv6.sin6_addr;
         }
 
-        WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
-        CXPLAT_DBG_ASSERT(CMsg != NULL);
-        CMsg->cmsg_level = IPPROTO_IPV6;
-        CMsg->cmsg_type = IPV6_ECN;
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        if (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+            }
+        } else {
+            if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+                WSAMhdr.Control.len += WSA_CMSG_SPACE(sizeof(INT));
+                CMsg = WSA_CMSG_NXTHDR(&WSAMhdr, CMsg);
+                CXPLAT_DBG_ASSERT(CMsg != NULL);
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_ECN;
+                CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+                *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            }
+        }
     }
 
     if (SendData->SegmentSize > 0) {
@@ -4553,6 +4587,13 @@ CxPlatSocketSendInline(
         CMsg->cmsg_type = UDP_SEND_MSG_SIZE;
         CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(DWORD));
         *(PDWORD)WSA_CMSG_DATA(CMsg) = SendData->SegmentSize;
+    }
+
+    //
+    // Windows' networking stack doesn't like a non-NULL Control.buf when len is 0.
+    //
+    if (WSAMhdr.Control.len == 0) {
+        WSAMhdr.Control.buf = NULL;
     }
 
     if (Socket->Type == CXPLAT_SOCKET_UDP && Socket->UseRio) {
