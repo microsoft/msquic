@@ -740,44 +740,45 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_LISTENER_CIBIR_ID) {
-        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-        if (BufferLength == 0) {
-            CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
+    switch (Param) {
+        case QUIC_PARAM_LISTENER_CIBIR_ID: {
+            if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            if (BufferLength == 0) {
+                CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
+                return QUIC_STATUS_SUCCESS;
+            }
+            if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+
+            if (((uint8_t*)Buffer)[0] != 0) {
+                return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+            }
+
+            Listener->CibirId[0] = (uint8_t)BufferLength - 1;
+            memcpy(Listener->CibirId + 1, Buffer, BufferLength);
+
+            QuicTraceLogVerbose(
+                ListenerCibirIdSet,
+                "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+                Listener,
+                Listener->CibirId[0],
+                Listener->CibirId[1]);
+
             return QUIC_STATUS_SUCCESS;
         }
-        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
-            return QUIC_STATUS_INVALID_PARAMETER;
+        case QUIC_PARAM_LISTENER_QTIP: {
+            if (BufferLength > sizeof(uint8_t)) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            if (Buffer == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            Listener->UseQTIP = *(uint8_t*)Buffer;
+            return QUIC_STATUS_SUCCESS;
         }
-
-        if (((uint8_t*)Buffer)[0] != 0) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
-        }
-
-        Listener->CibirId[0] = (uint8_t)BufferLength - 1;
-        memcpy(Listener->CibirId + 1, Buffer, BufferLength);
-
-        QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
-            Listener,
-            Listener->CibirId[0],
-            Listener->CibirId[1]);
-
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    if (Param == QUIC_PARAM_LISTENER_QTIP) {
-        if (BufferLength > sizeof(uint8_t)) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-        if (Buffer == NULL) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-        Listener->UseQTIP = *(uint8_t*)Buffer;
-        return QUIC_STATUS_SUCCESS;
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;

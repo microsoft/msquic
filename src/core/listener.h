@@ -113,7 +113,7 @@ typedef struct QUIC_LISTENER {
     //
     // Whether or not this listener accepts QTIP traffic (BOOLEAN)
     //
-    uint8_t UseQTIP : 1;
+    BOOLEAN UseQTIP : 1;
 
 } QUIC_LISTENER;
 

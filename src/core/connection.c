@@ -109,8 +109,6 @@ QuicConnAlloc(
 #if DEBUG
     Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
 #endif
-    Connection->State.UseQTIP = 0;
-    Connection->State.AppDidSetQTIP = 0;
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
@@ -6650,6 +6648,21 @@ QuicConnParamSet(
         break;
     }
 
+    case QUIC_PARAM_CONN_QTIP: {
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
+        Connection->State.AppDidSetQTIP = TRUE;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     //
     // Private
     //
@@ -6755,15 +6768,6 @@ QuicConnParamSet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 #endif
-    case QUIC_PARAM_CONN_QTIP:
-        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-        Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
-        Connection->State.AppDidSetQTIP = TRUE;
-        Status = QUIC_STATUS_SUCCESS;
-        break;
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
