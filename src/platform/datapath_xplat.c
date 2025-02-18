@@ -416,6 +416,8 @@ CxPlatResolveRoute(
 {
     if (OverrideGlobalQTIPSettings) {
         Socket->UseTcp = UseQTIP;
+        Route->UseQTIP = UseQTIP;
+        Route->AppDidSetQTIP = TRUE;
     }
     if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
