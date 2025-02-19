@@ -41,7 +41,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-weak-ssl-ciphers no-shared no-tests)
 
 if (QUIC_USE_OPENSSL3)
-    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
+    list(APPEND OPENSSL_CONFIG_FLAGS no-quic no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
 endif()
 
 if (WIN32)
@@ -347,7 +347,7 @@ else()
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
             string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJOR)
-            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR 
+            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
                 # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
                 (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
                 target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)
