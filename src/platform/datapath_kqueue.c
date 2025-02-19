@@ -2158,7 +2158,7 @@ CxPlatResolveRoute(
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
     _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings,
+    _In_ uint8_t OverrideGlobalQTIPSettings
     )
 {
     UNREFERENCED_PARAMETER(Socket);
