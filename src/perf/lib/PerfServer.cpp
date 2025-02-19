@@ -32,6 +32,20 @@ TryGetVariableUnitValue(
     _Out_opt_ bool* isTimed = nullptr
 );
 
+/// <summary>
+/// Explicit template instantiation
+/// </summary>
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint32_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t * pValue,
+    _Out_opt_ bool* isTimed
+);
+
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,
