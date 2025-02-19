@@ -779,8 +779,10 @@ QuicListenerParamSet(
             Listener->UseQTIP = *(uint8_t*)Buffer;
             return QUIC_STATUS_SUCCESS;
         }
-    }
 
+        default:
+            break;
+    }
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
