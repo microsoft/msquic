@@ -449,7 +449,7 @@ PerfClient::Wait(
         CxPlatEventWaitForever(*CompletionEvent);
     }
     uint64_t Now = CxPlatTimeUs64();
-    WriteOutput("Runtime: %I64u us\n", CxPlatTimeDiff64(Start, Now));
+    WriteOutput("Runtime: %llu us\n", CxPlatTimeDiff64(Start, Now));
 
     Running = false;
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
