@@ -96,6 +96,20 @@ TryGetVariableUnitValue(
     return TryGetVariableUnitValue(argc, argv, names, pValue, isTimed);
 }
 
+/// <summary>
+/// Explicit template instantiation
+/// </summary>
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint32_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t * pValue,
+    _Out_opt_ bool* isTimed
+);
+
 QUIC_STATUS
 PerfClient::Init(
     _In_ int argc,
@@ -427,12 +441,15 @@ PerfClient::Wait(
     if (Timeout == 0 && RunTime != 0) {
         Timeout = RunTime < 1000 ? 1 : (int)US_TO_MS(RunTime);
     }
+    uint64_t Start = CxPlatTimeUs64();
 
     if (Timeout) {
         CxPlatEventWaitWithTimeout(*CompletionEvent, Timeout);
     } else {
         CxPlatEventWaitForever(*CompletionEvent);
     }
+    uint64_t Now = CxPlatTimeUs64();
+    WriteOutput("Runtime: %I64u us\n", CxPlatTimeDiff64(Start, Now));
 
     Running = false;
     Registration.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
