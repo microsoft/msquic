@@ -21,13 +21,14 @@ const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b25
 
 extern CXPLAT_WORKER_POOL DelayPool;
 
-template <typename uint32_t>
+_Success_(return != false)
+template <typename T>
 bool
 TryGetVariableUnitValue(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_z_ const char* name,
-    _Out_ uint32_t* pValue,
+    _Out_ T * pValue,
     _Out_opt_ bool* isTimed = nullptr
 );
 
@@ -257,10 +258,13 @@ PerfServer::CalculateVariableDelay(double lambda)
     if (0 == lambda) {
         lambda = 1;
     }
+    if (lambda < 0) {
+        lambda = -lambda;
+    }
     //
     // Only a fixed delay is supported in the Kernel mode
     //
-    return 1 / abs(lambda);
+    return 1/lambda;
 }
 
 #endif // !_KERNEL_MODE
@@ -277,7 +281,7 @@ PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
     //
     double VariableDelay = CalculateVariableDelay(Lambda);
 
-    if (ceil(VariableDelay) < MaxFixedDelayUs) {
+    if ((VariableDelay + 1) < MaxFixedDelayUs) {
         //
         // Introduce a fixed delay up to a certain maximum value
         //
