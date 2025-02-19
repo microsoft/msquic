@@ -187,7 +187,7 @@ pub enum StreamEvent<'a> {
     },
     Receive {
         absolute_offset: u64,
-        total_buffer_length: &'a mut u64,       // out parameter
+        total_buffer_length: &'a mut u64,       // inout parameter
         buffers: &'a [crate::ffi::QUIC_BUFFER], // TODO: impl buffer wrapper types
         flags: crate::ffi::QUIC_RECEIVE_FLAGS,
     },

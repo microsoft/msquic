@@ -1475,8 +1475,6 @@ impl Stream {
         handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
         context: *const c_void,
     ) -> Result<(), Status> {
-        // TODO: remove transmute.
-        #[allow(clippy::missing_transmute_annotations)]
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
