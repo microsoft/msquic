@@ -177,8 +177,14 @@ private:
         );
 
     void IntroduceVariableDelay(uint32_t DelayUs);
-    double CalculateVariableDelay(double lambda);
     void IntroduceFixedDelay(uint32_t DelayUs);
+
+#ifndef _KERNEL_MODE
+    //
+    // Variable delay method
+    //
+    double CalculateVariableDelay(double lambda);
+#endif // !_KERNEL_MODE
 
     CXPLAT_SOCKET* TeardownBinding {nullptr};
 
@@ -212,11 +218,17 @@ private:
 
     uint32_t DelayMicroseconds = 0;
     SYNTHETIC_DELAY_TYPE DelayType = SYNTHETIC_DELAY_FIXED;
-    double Lambda = 1;
-    double MaxFixedDelayUs = 1000;
     bool DelayPoolUsed = FALSE;
     DelayWorker* DelayWorkers = nullptr;
     uint16_t ProcCount = 0;
+
+#ifndef _KERNEL_MODE
+    //
+    // Variable delay parameters
+    //
+    double Lambda = 1;
+    double MaxFixedDelayUs = 1000;
+#endif // !_KERNEL_MODE
 
     static
     QUIC_STATUS

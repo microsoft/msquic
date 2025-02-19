@@ -87,14 +87,17 @@ PerfServer::Init(
     if (TryGetVariableUnitValue(argc, argv, "delay", &DelayMicroseconds, nullptr)) {
         const char* DelayTypeString = nullptr;
         DelayType = SYNTHETIC_DELAY_FIXED;
-        Lambda = ((double)1) / DelayMicroseconds;
-        MaxFixedDelayUs = static_cast<uint32_t>(4 * (uint64_t)DelayMicroseconds);
-        if (MaxFixedDelayUs < 1000) MaxFixedDelayUs = 1000;
 
         if (TryGetValue(argc, argv, "delayType", &DelayTypeString)) {
 #ifndef _KERNEL_MODE
             if (IsValue(DelayTypeString, "variable")) {
+                //
+                // Initialize variable delay parameters
+                //
                 DelayType = SYNTHETIC_DELAY_VARIABLE;
+                Lambda = ((double)1) / DelayMicroseconds;
+                MaxFixedDelayUs = static_cast<uint32_t>(4 * (uint64_t)DelayMicroseconds);
+                if (MaxFixedDelayUs < 1000) MaxFixedDelayUs = 1000;
             } else if (!IsValue(DelayTypeString, "fixed")) {
                 WriteOutput("Failed to parse DelayType[%s] parameter. Using fixed DelayType.\n", DelayTypeString);
             }
@@ -227,6 +230,10 @@ PerfServer::ConnectionCallback(
 void
 PerfServer::IntroduceFixedDelay(uint32_t DelayUs)
 {
+    if (0 == DelayUs) {
+        return;
+    }
+
     uint64_t Start = CxPlatTimeUs64();
     uint64_t Now = Start;
     do {
@@ -242,32 +249,12 @@ PerfServer::IntroduceFixedDelay(uint32_t DelayUs)
 #include <random>
 
 double
-PerfServer::CalculateVariableDelay(double lambda)
+PerfServer::CalculateVariableDelay(double DistributionParam)
 {
-    lambda = abs(lambda);
     std::mt19937 random_generator(CxPlatTimeUs32());
-    std::exponential_distribution<> distribution(lambda);
+    std::exponential_distribution<> distribution(abs(DistributionParam));
     return distribution(random_generator);
 }
-
-#else
-
-double
-PerfServer::CalculateVariableDelay(double lambda)
-{
-    if (0 == lambda) {
-        lambda = 1;
-    }
-    if (lambda < 0) {
-        lambda = -lambda;
-    }
-    //
-    // Only a fixed delay is supported in the Kernel mode
-    //
-    return 1/lambda;
-}
-
-#endif // !_KERNEL_MODE
 
 void
 PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
@@ -294,6 +281,17 @@ PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
         CxPlatSleep(static_cast<uint32_t>(MaxFixedDelayUs/1000));
     }
 }
+
+#else
+
+void
+PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
+{
+    IntroduceFixedDelay(DelayUs);
+}
+
+#endif // !_KERNEL_MODE
+
 
 void
 PerfServer::SimulateDelay()
