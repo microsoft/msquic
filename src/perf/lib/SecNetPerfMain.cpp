@@ -16,6 +16,7 @@ Abstract:
 
 const MsQuicApi* MsQuic;
 CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL DelayPool;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
 PerfServer* Server;
@@ -79,10 +80,10 @@ PrintHelp(
         "  -port:<####>             The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
         "  -serverid:<####>         The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
-        "  -delay:<microseconds>    Optional delay in microseconds to be introduced before the server responds to a request.\n"
-        "  -delayType:<fixed|variable>    Optional ""delay type"" can be specified in conjunction with the delay argument.\n"
-        "                                 ""fixed"" delay type introduces the specified delay before the server responds to any request and this is the default behavior.\n"
-        "                                 ""variable"" delay type introduces a statistical variability to the specified delay.\n"
+        "  -delay:<####>[unit]      Delay, with an optional unit (def unit is us), to be introduced before the server responds to a request. (def:0)\n"
+        "  -delayType:<fixed|variable>    Optional delay type can be specified in conjunction with the 'delay' argument.\n"
+        "                                 'fixed' - introduce the specified delay for each request (default).\n"
+        "                                 'variable'- introduce a statistical variability to the specified delay (user mode only).\n"
         "\n"
         "Client: secnetperf -target:<hostname/ip> [options]\n"
         "\n"
@@ -302,6 +303,7 @@ QuicMainStart(
     }
 
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolInit(&DelayPool);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
@@ -310,6 +312,7 @@ QuicMainStart(
     Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
         CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolUninit(&DelayPool);
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -354,6 +357,7 @@ QuicMainFree(
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
         CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolUninit(&DelayPool);
         Datapath = nullptr;
     }
 

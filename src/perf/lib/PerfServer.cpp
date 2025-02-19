@@ -15,11 +15,21 @@ Abstract:
 #include "PerfServer.cpp.clog.h"
 #endif
 
-#include <random>
-
 const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b258d11c}
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
+
+extern CXPLAT_WORKER_POOL DelayPool;
+
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ T* pValue,
+    _Out_opt_ bool* isTimed = nullptr
+);
 
 QUIC_STATUS
 PerfServer::Init(
@@ -51,10 +61,10 @@ PerfServer::Init(
         GlobalSettings.SetLoadBalancingMode(QUIC_LOAD_BALANCING_SERVER_ID_FIXED);
 
         QUIC_STATUS Status;
-	    if (QUIC_FAILED(Status = GlobalSettings.Set())) {
-	    	WriteOutput("Failed to set global settings %d\n", Status);
-	    	return Status;
-	    }
+        if (QUIC_FAILED(Status = GlobalSettings.Set())) {
+            WriteOutput("Failed to set global settings %d\n", Status);
+            return Status;
+        }
     }
 
     const char* CibirBytes = nullptr;
@@ -73,23 +83,34 @@ PerfServer::Init(
         }
     }
 
-    _Benign_race_begin_
-    if (TryGetValue(argc, argv, "delay", &this->DelayMicroseconds)) {
-        // todo: Impose a limit on delay?
+    if (TryGetVariableUnitValue(argc, argv, "delay", &DelayMicroseconds, nullptr)) {
         const char* DelayTypeString = nullptr;
-        this->DelayType = SYNTHETIC_DELAY_FIXED;
+        DelayType = SYNTHETIC_DELAY_FIXED;
+        Lambda = ((double)1) / DelayMicroseconds;
+        MaxFixedDelayUs = max(4 * DelayMicroseconds, 1000);
 
         if (TryGetValue(argc, argv, "delayType", &DelayTypeString)) {
-            if (DelayTypeString != nullptr) {
-                if (IsValue(DelayTypeString, "variable")) {
-                    this->DelayType = SYNTHETIC_DELAY_VARIABLE;
-                } else if (!IsValue(DelayTypeString, "fixed")) {
-                    WriteOutput("Failed to parse DelayType[%s] parameter. Using fixed DelayType.\n", DelayTypeString);
-                }
+#ifndef _KERNEL_MODE
+            if (IsValue(DelayTypeString, "variable")) {
+                DelayType = SYNTHETIC_DELAY_VARIABLE;
+            } else if (!IsValue(DelayTypeString, "fixed")) {
+                WriteOutput("Failed to parse DelayType[%s] parameter. Using fixed DelayType.\n", DelayTypeString);
+            }
+#else
+            WriteOutput("Kernel mode supports fixed delay only\n");
+#endif // !_KERNEL_MODE
+        }
+
+        ProcCount = (uint16_t)CxPlatProcCount();
+        DelayWorkers = new (std::nothrow) DelayWorker[ProcCount];
+        for (uint16_t i = 0; i < ProcCount; ++i) {
+            if (!DelayWorkers[i].Initialize(this, i)) {
+                WriteOutput("Failed to init delay workers.\n");
+                return QUIC_STATUS_INTERNAL_ERROR;
             }
         }
+        DelayPoolUsed = TRUE;
     }
-    _Benign_race_end_
 
     //
     // Set up the special UDP listener to allow remote tear down.
@@ -206,16 +227,17 @@ PerfServer::IntroduceFixedDelay(uint32_t DelayUs)
 {
     uint64_t Start = CxPlatTimeUs64();
     uint64_t Now = Start;
-    WriteOutput("%d\n", DelayUs);
     do {
-
-        // Do some stalling work
-        InterlockedIncrement64(&this->WorkCounter);
-
+        //
         // Get the current time and check if time has elapsed
+        //
         Now = CxPlatTimeUs64();
     } while (CxPlatTimeDiff64(Start, Now) <= DelayUs);
 }
+
+#ifndef _KERNEL_MODE
+
+#include <random>
 
 double
 PerfServer::CalculateVariableDelay(double lambda)
@@ -226,6 +248,22 @@ PerfServer::CalculateVariableDelay(double lambda)
     return distribution(random_generator);
 }
 
+#else
+
+double
+PerfServer::CalculateVariableDelay(double lambda)
+{
+    if (0 == lambda) {
+        lambda = 1;
+    }
+    //
+    // Only a fixed delay is supported in the Kernel mode
+    //
+    return 1 / abs(lambda);
+}
+
+#endif // !_KERNEL_MODE
+
 void
 PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
 {
@@ -233,38 +271,42 @@ PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
         return;
     }
 
-    double lambda = ((double)1) / DelayUs;
+    //
     // Mean value of VariableDelay is expected to be DelayUs
-    double VariableDelay = CalculateVariableDelay(lambda);
-    double MaxFixedDelayUs = 2 * DelayUs;
+    //
+    double VariableDelay = CalculateVariableDelay(Lambda);
 
     if (ceil(VariableDelay) < MaxFixedDelayUs) {
+        //
         // Introduce a fixed delay up to a certain maximum value
+        //
         IntroduceFixedDelay(static_cast<uint32_t>(VariableDelay));
     } else {
+        //
         // If the variable delay exceeds the maximum value,
-        // yield the thread and wait for the thread scheduling to add delay
-        WriteOutput("*\n");
-        CxPlatSleep(1UL);
+        // yield the thread for the max delay
+        //
+        CxPlatSleep(static_cast<uint32_t>(MaxFixedDelayUs/1000));
     }
 }
 
 void
-PerfServer::SimulateDelay(uint32_t DelayUs, SYNTHETIC_DELAY_TYPE Type)
+PerfServer::SimulateDelay()
 {
-    if (DelayUs == 0) {
+    if (DelayMicroseconds == 0) {
+        //
         // no delay introduced
+        //
         return;
     }
 
-    switch (Type) {
+    switch (DelayType) {
     case SYNTHETIC_DELAY_VARIABLE:
-        IntroduceVariableDelay(DelayUs);
+        IntroduceVariableDelay(DelayMicroseconds);
         break;
-
     case SYNTHETIC_DELAY_FIXED: // fall through
     default:
-        IntroduceFixedDelay(DelayUs);
+        IntroduceFixedDelay(DelayMicroseconds);
         break;
     }
 }
@@ -278,11 +320,6 @@ PerfServer::StreamCallback(
     switch (Event->Type) {
     case QUIC_STREAM_EVENT_RECEIVE:
         if (!Context->ResponseSizeSet) {
-            // Introduce delay
-            _Benign_race_begin_
-            SimulateDelay(this->DelayMicroseconds, this->DelayType);
-            _Benign_race_end_
-
             uint8_t* Dest = (uint8_t*)&Context->ResponseSize;
             uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
             for (uint32_t i = 0; Offset < sizeof(uint64_t) && i < Event->RECEIVE.BufferCount; ++i) {
@@ -298,7 +335,6 @@ PerfServer::StreamCallback(
         break;
     case QUIC_STREAM_EVENT_SEND_COMPLETE:
         Context->OutstandingBytes -= ((QUIC_BUFFER*)Event->SEND_COMPLETE.ClientContext)->Length;
-
         if (!Event->SEND_COMPLETE.Canceled) {
             SendResponse(Context, StreamHandle, false);
         }
@@ -311,7 +347,16 @@ PerfServer::StreamCallback(
                 // TODO - Not supported right now
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
             } else {
-                SendResponse(Context, StreamHandle, false);
+                if (DelayPoolUsed) {
+                    //
+                    // Send a delayed response using the background worker thread
+                    //
+                    uint16_t workerNumber = (uint16_t)CxPlatProcCurrentNumber();
+                    CXPLAT_DBG_ASSERT(workerNumber < ProcCount);
+                    DelayWorkers[workerNumber].QueueWork(Context, StreamHandle, false);
+                } else {
+                    SendResponse(Context, StreamHandle, false);
+                }
             }
         } else if (!Context->Unidirectional) {
             MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL, 0);
@@ -470,7 +515,16 @@ PerfServer::TcpReceiveCallback(
 
     } else if (Fin) {
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
-            Server->SendResponse(Stream, Connection, true);
+            if (Server->DelayPoolUsed) {
+                //
+                // Send a delayed response using the background worker thread
+                //
+                uint16_t workerNumber = (uint16_t)CxPlatProcCurrentNumber();
+                CXPLAT_DBG_ASSERT(workerNumber < Server->ProcCount);
+                Server->DelayWorkers[workerNumber].QueueWork(Stream, Connection, true);
+            } else {
+                Server->SendResponse(Stream, Connection, true);
+            }
         } else {
             auto SendData = Server->TcpSendDataAllocator.Alloc();
             SendData->StreamId = StreamID;
@@ -516,4 +570,150 @@ PerfServer::TcpSendCompleteCallback(
         SendDataChain = SendDataChain->Next;
         Server->TcpSendDataAllocator.Free(Data);
     }
+}
+
+DelayWorker::DelayWorker()
+{
+    CxPlatEventInitialize(&WakeEvent, FALSE, FALSE);
+    CxPlatEventInitialize(&DoneEvent, TRUE, FALSE);
+    CxPlatDispatchLockInitialize(&Lock);
+}
+
+DelayWorker::~DelayWorker()
+{
+    CXPLAT_FRE_ASSERT(!WorkItems);
+    CXPLAT_FRE_ASSERT(!Initialized);
+    CxPlatDispatchLockUninitialize(&Lock);
+    CxPlatEventUninitialize(DoneEvent);
+    CxPlatEventUninitialize(WakeEvent);
+}
+
+bool DelayWorker::Initialize(PerfServer* Server, uint16_t PartitionIndex)
+{
+    m_Server = Server;
+    ExecutionContext.Callback = DelayedWork;
+    ExecutionContext.Context = this;
+    InterlockedFetchAndSetBoolean(&ExecutionContext.Ready);
+    ExecutionContext.NextTimeUs = UINT64_MAX;
+
+    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+    //
+    // Not using the high priority flag for delay threads
+    //
+    CXPLAT_THREAD_CONFIG Config = { ThreadFlags, PartitionIndex, "DelayWorker", WorkerThread, this };
+    if (QUIC_FAILED(
+        CxPlatThreadCreate(
+            &Config,
+            &Thread))) {
+        WriteOutput("CxPlatThreadCreate FAILED\n");
+        return false;
+    }
+    Initialized = true;
+    return true;
+}
+
+void DelayWorker::Shutdown()
+{
+    Shuttingdown = true;
+
+    if (Initialized) {
+        WakeWorkerThread();
+        CxPlatThreadWait(&Thread);
+        Initialized = false;
+        //
+        // delete any pending work items
+        //
+        CxPlatDispatchLockAcquire(&Lock);
+        DelayedWorkContext* CurrentWorkItem = WorkItems;
+        while (nullptr != CurrentWorkItem) {
+            DelayedWorkContext* NextWorkItem;
+            if (WorkItemsTail == &CurrentWorkItem->Next) {
+                NextWorkItem = nullptr;
+            }
+            else {
+                NextWorkItem = CurrentWorkItem->Next;
+            }
+            delete CurrentWorkItem;
+            CurrentWorkItem = NextWorkItem;
+        }
+        WorkItems = nullptr;
+        CxPlatDispatchLockRelease(&Lock);
+    }
+}
+
+void DelayWorker::WakeWorkerThread() {
+    if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
+            CxPlatEventSet(WakeEvent);
+    }
+}
+
+CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Context)
+{
+    DelayWorker* This = (DelayWorker*)Context;
+    CXPLAT_EXECUTION_STATE DummyState = {
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
+    };
+    while (DelayedWork(This, &DummyState)) {
+        if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
+            CxPlatEventWaitForever(This->WakeEvent); // Wait for more work
+        }
+    }
+    CXPLAT_THREAD_RETURN(0);
+}
+
+BOOLEAN
+DelayWorker::DelayedWork(
+    _Inout_ void* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+)
+{
+    DelayWorker* This = (DelayWorker*)Context;
+    if (This->Shuttingdown) {
+        CxPlatEventSet(This->DoneEvent);
+        return FALSE;
+    }
+
+    DelayedWorkContext* WorkItem = nullptr;
+    CxPlatDispatchLockAcquire(&This->Lock);
+    if (This->WorkItems) {
+        WorkItem = This->WorkItems;
+        This->WorkItems = WorkItem->Next;
+        if (This->WorkItemsTail == &WorkItem->Next) {
+            This->WorkItemsTail = &This->WorkItems;
+        }
+        WorkItem->Next = nullptr;
+    }
+    CxPlatDispatchLockRelease(&This->Lock);
+
+    if (nullptr != WorkItem) {
+        This->m_Server->SimulateDelay();
+        This->m_Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+        delete WorkItem;
+        InterlockedFetchAndSetBoolean(&This->ExecutionContext.Ready); // We just did work, let's keep this thread hot.
+        State->NoWorkCount = 0;
+    }
+
+    return TRUE;
+}
+
+bool DelayWorker::QueueWork(
+    _In_ StreamContext* Context,
+    _In_ void* Handle,
+    _In_ bool IsTcp)
+{
+    DelayedWorkContext* Work = new (std::nothrow) DelayedWorkContext();
+    if (nullptr == Work) {
+        return false;
+    }
+
+    Work->Context = Context;
+    Work->Handle = Handle;
+    Work->IsTcp = IsTcp;
+
+    CxPlatDispatchLockAcquire(&Lock);
+    *WorkItemsTail = Work;
+    WorkItemsTail = &Work->Next;
+    WakeWorkerThread();
+    CxPlatDispatchLockRelease(&Lock);
+    return true;
 }
