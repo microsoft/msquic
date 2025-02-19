@@ -87,7 +87,8 @@ PerfServer::Init(
         const char* DelayTypeString = nullptr;
         DelayType = SYNTHETIC_DELAY_FIXED;
         Lambda = ((double)1) / DelayMicroseconds;
-        MaxFixedDelayUs = max(4 * DelayMicroseconds, 1000);
+        MaxFixedDelayUs = static_cast<uint32_t>(4 * (uint64_t)DelayMicroseconds);
+        if (MaxFixedDelayUs < 1000) MaxFixedDelayUs = 1000;
 
         if (TryGetValue(argc, argv, "delayType", &DelayTypeString)) {
 #ifndef _KERNEL_MODE
