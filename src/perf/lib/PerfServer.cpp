@@ -21,13 +21,13 @@ const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b25
 
 extern CXPLAT_WORKER_POOL DelayPool;
 
-template <typename T>
+template <typename uint32_t>
 bool
 TryGetVariableUnitValue(
     _In_ int argc,
     _In_reads_(argc) _Null_terminated_ char* argv[],
     _In_z_ const char* name,
-    _Out_ T* pValue,
+    _Out_ uint32_t* pValue,
     _Out_opt_ bool* isTimed = nullptr
 );
 
