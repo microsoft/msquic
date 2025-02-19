@@ -307,12 +307,17 @@ TestConnection*
 NewPingConnection(
     _In_ MsQuicRegistration& Registration,
     _In_ PingStats* ClientStats,
-    _In_ bool UseSendBuffer
+    _In_ bool UseSendBuffer,
+    _In_ bool SendUdpOverQtip
     )
 {
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
+    if (SendUdpOverQtip && UseQTIP) {
+        // Opt this connection out of QTIP.
+        Connection->SetQtipPreferences(0);
+    }
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
@@ -482,7 +487,8 @@ QuicTestConnectAndPing(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
-                    UseSendBuffer);
+                    UseSendBuffer,
+                    SendUdpToQtipListener);
             if (Connections.get()[i] == nullptr) {
                 return;
             }
@@ -624,6 +630,7 @@ QuicTestServerDisconnect(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    FALSE,
                     FALSE);
             if (Client == nullptr) {
                 return;
@@ -744,6 +751,7 @@ QuicTestClientDisconnect(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    false,
                     false);
             if (Client == nullptr) {
                 return;
@@ -841,6 +849,7 @@ QuicTestStatelessResetKey(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    false,
                     false);
             if (Client == nullptr) {
                 return;

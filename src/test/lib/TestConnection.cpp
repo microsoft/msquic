@@ -797,6 +797,18 @@ TestConnection::SetResumptionTicket(
 }
 
 QUIC_STATUS
+TestConnection::SetQtipPreferences(
+    const uint8_t OnOrOff
+) const {
+    return
+        MsQuic->SetParam(
+            QuicConnection,
+            QUIC_PARAM_CONN_QTIP,
+            sizeof(uint8_t),
+            &OnOrOff);
+}
+
+QUIC_STATUS
 TestConnection::SetCustomValidationResult(
     bool AcceptCert,
     QUIC_TLS_ALERT_CODES TlsAlert
