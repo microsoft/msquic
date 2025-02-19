@@ -1351,6 +1351,158 @@ Exit:
         "[ api] Exit");
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamProvideReceiveBuffers(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ uint32_t BufferCount,
+    _In_reads_(BufferCount) const QUIC_BUFFER* Buffers
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_OPERATION* Oper;
+    QUIC_CONNECTION* Connection = NULL;
+    CXPLAT_LIST_ENTRY ChunkList;
+    CxPlatListInitializeHead(&ChunkList);
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_STREAM_PROVIDE_RECEIVE_BUFFERS,
+        Handle);
+
+    if (!IS_STREAM_HANDLE(Handle) || Buffers == NULL || BufferCount == 0) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        if (Buffers[i].Length == 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+    }
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+    QUIC_STREAM* Stream = (QUIC_STREAM*)Handle;
+
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
+
+    Connection = Stream->Connection;
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+
+    //
+    // Execute this API call inline if called on the worker thread.
+    //
+    BOOLEAN IsWorkerThread = Connection->WorkerThreadID == CxPlatCurThreadID();
+    BOOLEAN IsAlreadyInline = Connection->State.InlineApiExecution;
+
+    if (!Stream->Flags.UseAppOwnedRecvBuffers) {
+        if (Stream->Flags.PeerStreamStartEventActive) {
+            CXPLAT_DBG_ASSERT(IsWorkerThread);
+            //
+            // We are inline from the callback indicating a peer opened a stream.
+            // No data was received yet so we can setup app-owned buffers.
+            //
+            Connection->State.InlineApiExecution = TRUE;
+            QuicStreamSwitchToAppOwnedBuffers(Stream);
+            Connection->State.InlineApiExecution = IsAlreadyInline;
+        } else {
+            //
+            // App-owned buffers can't be provided after the stream has been
+            // started using internal buffers.
+            //
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+    }
+
+    //
+    // Allocate a chunk for each buffer, linking them together.
+    // The allocation is done here to make the worker thread task failure free.
+    //
+    for (uint32_t i = 0; i < BufferCount; ++i) {
+        QUIC_RECV_CHUNK* Chunk =
+            CxPlatPoolAlloc(&Connection->Worker->AppBufferChunkPool);
+        if (Chunk == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "provided_chunk",
+                0);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+        QuicRecvChunkInitialize(Chunk, Buffers[i].Length, Buffers[i].Buffer, TRUE);
+        CxPlatListInsertTail(&ChunkList, &Chunk->Link);
+    }
+
+    if (IsWorkerThread) {
+        //
+        // Execute this API call inline if called on the worker thread.
+        //
+        Connection->State.InlineApiExecution = TRUE;
+        Status = QuicStreamProvideRecvBuffers(Stream, &ChunkList);
+        Connection->State.InlineApiExecution = IsAlreadyInline;
+    } else {
+        //
+        // Queue the operation to insert the chunks in the recv buffer, without waiting for the result.
+        //
+        Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        if (Oper == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "STRM_PROVIDE_RECV_BUFFERS, operation",
+                0);
+            goto Error;
+        }
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS;
+        Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Stream = Stream;
+        CxPlatListInitializeHead(&Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Chunks);
+        CxPlatListMoveItems(&ChunkList, &Oper->API_CALL.Context->STRM_PROVIDE_RECV_BUFFERS.Chunks);
+
+        //
+        // Async stream operations need to hold a ref on the stream so that the
+        // stream isn't freed before the operation can be processed. The ref is
+        // released after the operation is processed.
+        //
+        QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
+
+        //
+        // Queue the operation but don't wait for the completion.
+        //
+        QuicConnQueueOper(Connection, Oper);
+        Status = QUIC_STATUS_SUCCESS;
+    }
+
+Error:
+    //
+    // Cleanup allocated chunks if the operation failed.
+    //
+    while (!CxPlatListIsEmpty(&ChunkList)) {
+        CXPLAT_DBG_ASSERT(Connection != NULL);
+        CxPlatPoolFree(&Connection->Worker->AppBufferChunkPool,
+            CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
+        CXPLAT_FREE(
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&ChunkList),
+                QUIC_RECV_CHUNK,
+                Link),
+            QUIC_POOL_RECVBUF);
+    }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API

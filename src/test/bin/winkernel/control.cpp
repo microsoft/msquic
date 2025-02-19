@@ -526,6 +526,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(BOOLEAN),
     sizeof(INT32),
     sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1508,6 +1510,16 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
         break;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+        break;
+#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
