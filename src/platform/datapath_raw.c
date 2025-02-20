@@ -234,13 +234,13 @@ CxPlatDpRawRxEthernet(
 
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                //
-                // If we have UseTcp enabled, we should still support UDP type of packets.
-                //
-                // uint8_t SocketType = (Socket->UseTcp && PacketChain->Reserved == L4_TYPE_TCP) ? L4_TYPE_TCP : L4_TYPE_UDP;
-
-                uint8_t SocketType = (Socket->UseTcp) ? L4_TYPE_TCP : L4_TYPE_UDP; // This is the old code
-
+                // Route of this packet:
+                uint8_t PacketIsQtip = PacketChain->Route->UseQTIP;
+                uint8_t OverrideCurrentSettings = PacketChain->Route->AppDidSetQTIP;
+                if (OverrideCurrentSettings) {
+                    Socket->UseTcp = PacketIsQtip;
+                }
+                uint8_t SocketType = (Socket->UseTcp) ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
