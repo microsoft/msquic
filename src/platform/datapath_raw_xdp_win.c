@@ -1882,3 +1882,115 @@ CxPlatIoXdpShutdownEventComplete(
         Partition);
     CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetRssConfig(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t RssConfigSize = 0;
+    XDP_RSS_CONFIGURATION *RawRssConfig = NULL;
+
+    if (RssConfig == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    *RssConfig = NULL;
+
+    HANDLE InterfaceHandle = NULL;
+    HRESULT Result = XdpInterfaceOpen(InterfaceIndex, &InterfaceHandle);
+    if (FAILED(Result)) {
+        QuicTraceLogError(
+            XdpGetRssConfigInterfaceOpenFailed,
+            "[ xdp] Failed to open Xdp interface for index %u. Error %d",
+            InterfaceIndex,
+            Result);
+        Status = Result;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
+    if (SUCCEEDED(Result)) {
+        QuicTraceLogError(
+            XdpGetRssConfigSizeFailed,
+            "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
+            InterfaceHandle,
+            InterfaceIndex,
+            RssConfigSize,
+            Result);
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    RawRssConfig = CXPLAT_ALLOC_PAGED(RssConfigSize, QUIC_POOL_TMP_ALLOC);
+    if (RawRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
+    if (FAILED(Result)) {
+        QuicTraceLogError(
+            XdpGetRssConfigFailed,
+            "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d",
+            InterfaceHandle,
+            InterfaceIndex,
+            RssConfigSize,
+            Result);
+        Status = Result;
+        goto Error;
+    }
+
+    RssConfigSize = sizeof(CXPLAT_RSS_CONFIG) +
+        RawRssConfig->HashSecretKeySize +
+        RawRssConfig->IndirectionTableSize;
+    CXPLAT_RSS_CONFIG* NewRssConfig =
+        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_NONPAGED(
+            RssConfigSize,
+            QUIC_POOL_DATAPATH_RSS_CONFIG);
+    if (NewRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    NewRssConfig->HashTypes = RawRssConfig->HashType;
+
+    NewRssConfig->RssSecretKey = (uint8_t*)(NewRssConfig + 1);
+    NewRssConfig->RssSecretKeyLength = RawRssConfig->HashSecretKeySize;
+    CxPlatCopyMemory(
+        NewRssConfig->RssSecretKey,
+        RTL_PTR_ADD(RawRssConfig, RawRssConfig->HashSecretKeyOffset),
+        NewRssConfig->RssSecretKeyLength);
+
+    NewRssConfig->RssIndirectionTable =
+        (CXPLAT_PROCESSOR_INFO*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
+    NewRssConfig->RssIndirectionTableLength = RawRssConfig->IndirectionTableSize;
+    CxPlatCopyMemory(
+        NewRssConfig->RssIndirectionTable,
+        RTL_PTR_ADD(RawRssConfig, RawRssConfig->IndirectionTableOffset),
+        NewRssConfig->RssIndirectionTableLength);
+
+    *RssConfig = NewRssConfig;
+    NewRssConfig = NULL;
+
+Error:
+    if (RawRssConfig != NULL) {
+        CXPLAT_FREE(RawRssConfig, QUIC_POOL_TMP_ALLOC);
+    }
+    return Status;
+}
