@@ -153,6 +153,7 @@ namespace Microsoft.Quic
         UNIDIRECTIONAL = 0x0001,
         ZERO_RTT = 0x0002,
         DELAY_ID_FC_UPDATES = 0x0004,
+        APP_OWNED_BUFFERS = 0x0008,
     }
 
     [System.Flags]
@@ -3256,6 +3257,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
+
+        [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
     }
 
     internal static unsafe partial class MsQuic
