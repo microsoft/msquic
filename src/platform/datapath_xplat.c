@@ -415,7 +415,6 @@ CxPlatResolveRoute(
     )
 {
     if (OverrideGlobalQTIPSettings) {
-        Socket->UseTcp = UseQTIP;
         Route->UseQTIP = UseQTIP;
         Route->AppDidSetQTIP = TRUE;
     }
