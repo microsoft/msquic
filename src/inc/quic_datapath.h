@@ -858,6 +858,37 @@ CxPlatUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     );
 
+//
+// Get the RSS Configuration of the interface.
+//
+#define CXPLAT_RSS_HASH_TYPE_IPV4        0x001
+#define CXPLAT_RSS_HASH_TYPE_TCP_IPV4    0x002
+#define CXPLAT_RSS_HASH_TYPE_UDP_IPV4    0x004
+#define CXPLAT_RSS_HASH_TYPE_IPV6        0x008
+#define CXPLAT_RSS_HASH_TYPE_TCP_IPV6    0x010
+#define CXPLAT_RSS_HASH_TYPE_UDP_IPV6    0x020
+#define CXPLAT_RSS_HASH_TYPE_IPV6_EX     0x040
+#define CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX 0x080
+#define CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX 0x100
+
+typedef uint32_t CXPLAT_RSS_HASH_TYPE;
+
+typedef struct CXPLAT_RSS_CONFIG {
+    CXPLAT_RSS_HASH_TYPE HashTypes;
+    uint32_t RssSecretKeyLength;
+    uint32_t RssIndirectionTableLength;
+    uint8_t* RssSecretKey;
+    CXPLAT_PROCESSOR_INFO* RssIndirectionTable;
+} CXPLAT_RSS_CONFIG;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathGetRssConfig(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    );
+
 #if defined(__cplusplus)
 }
 #endif

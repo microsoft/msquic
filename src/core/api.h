@@ -287,3 +287,11 @@ MsQuicConnectionCertificateValidationComplete(
     _In_ BOOLEAN Result,
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Check_return_
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionPoolApiOpen(
+    _Out_ _Pre_defensive_ const void** ConnPoolApi
+    );

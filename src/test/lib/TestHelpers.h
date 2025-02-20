@@ -931,7 +931,8 @@ struct LoadBalancerHelper : public DatapathHook
     uint32_t PrivateAddressesCount;
     LoadBalancerHelper(const QUIC_ADDR& Public, const QUIC_ADDR* Private, uint32_t PrivateCount) :
         PublicAddress(Public), PrivateAddresses(Private), PrivateAddressesCount(PrivateCount) {
-        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+        CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+        Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
         CxPlatToeplitzHashInitialize(&Toeplitz);
         DatapathHooks::Instance->AddHook(this);
     }
