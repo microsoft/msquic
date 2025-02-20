@@ -27,7 +27,7 @@ mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::{ConnectionEvent, StreamEvent};
+pub use types::{ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -362,22 +362,6 @@ pub struct TicketKeyConfig {
 pub struct Buffer {
     pub length: u32,
     pub buffer: *mut u8,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct NewConnectionInfo {
-    pub quic_version: u32,
-    pub local_address: *const Addr,
-    pub remote_address: *const Addr,
-    pub crypto_buffer_length: u32,
-    pub client_alpn_list_length: u16,
-    pub server_name_length: u16,
-    pub negotiated_alpn_length: u8,
-    pub crypto_buffer: *const u8,
-    pub client_alpn_list: *const u8,
-    pub negotiated_alpn: *const u8,
-    pub server_name: *const i8,
 }
 
 pub type TlsProtocolVersion = u32;
@@ -763,46 +747,6 @@ pub const PARAM_STREAM_ID: u32 = 0x08000000;
 pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
 pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
 pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
-
-pub type ListenerEventType = u32;
-pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
-pub const LISTENER_EVENT_STOP_COMPLETE: ListenerEventType = 1;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ListenerEventNewConnection {
-    pub info: *const NewConnectionInfo,
-    pub connection: HQUIC,
-}
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Debug, Clone, Copy)]
-    pub struct ListenerEventStopCompleteBitfields(u8);
-    // The fields default to u8
-    pub app_close_in_progress, _: 0, 0;
-    _reserved, _: 7, 1;
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ListenerEventStopComplete {
-    pub bit_flags: ListenerEventStopCompleteBitfields,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union ListenerEventPayload {
-    pub new_connection: ListenerEventNewConnection,
-    pub stop_complete: ListenerEventStopComplete,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct ListenerEvent {
-    pub event_type: ListenerEventType,
-    pub payload: ListenerEventPayload,
-}
 
 #[link(name = "msquic")]
 unsafe extern "C" {
