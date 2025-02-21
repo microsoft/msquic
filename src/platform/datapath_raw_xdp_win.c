@@ -1609,7 +1609,7 @@ CxPlatDpRawTxAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    CXPLAT_DBG_ASSERT(Socket != NULL);
+    UNREFERENCED_PARAMETER(Socket);
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(Queue != NULL);
