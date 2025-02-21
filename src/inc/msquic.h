@@ -1610,16 +1610,6 @@ QUIC_STATUS
 //
 
 //
-// Closes the Connection Pool API table and cleans up the API reference.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_CONN_POOL_API_CLOSE)(
-    _In_ void* ConnPoolApi
-    );
-
-//
 // Creates a simple connection pool with NumberOfConnections connections
 // all with the same Context and Handler, and puts them in the
 // caller-supplied array.
@@ -1632,33 +1622,16 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Check_return_
 QUIC_STATUS
-(QUIC_API * QUIC_SIMPLE_CONN_POOL_CREATE_FN)(
-    _In_ HQUIC* Registration,
+(QUIC_API * QUIC_CONN_POOL_CREATE_FN)(
+    _In_ HQUIC Registration,
     _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _In_opt_ const char* ServerName,
     _In_opt_ const QUIC_ADDR* ServerAddress,
     _In_ uint16_t ServerPort,
-    _In_ uint32_t NumberOfConnections,
+    _In_ uint16_t NumberOfConnections,
     _Out_writes_bytes_(NumberOfConnections * sizeof(HQUIC))
         HQUIC** ConnectionPool
-    );
-
-typedef struct QUIC_CONNECTION_POOL_API_TABLE {
-    QUIC_CONN_POOL_API_CLOSE                ConnectionPoolApiClose;
-    QUIC_SIMPLE_CONN_POOL_CREATE_FN         SimpleConnectionPoolCreate;
-
-} QUIC_CONNECTION_POOL_API_TABLE;
-
-//
-// Gets the function table for the Connection Pool API, for a given version.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Check_return_
-QUIC_STATUS
-(QUIC_API * QUIC_CONNECTION_POOL_API_OPEN_FN)(
-    _Out_ _Pre_defensive_ const void** ConnPoolApi
     );
 
 //
@@ -1712,8 +1685,9 @@ typedef struct QUIC_API_TABLE {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
                                         StreamProvideReceiveBuffers; // Available from v2.5
+
+    QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
 #endif
-    QUIC_CONNECTION_POOL_API_OPEN_FN     ConnectionPoolApiOpen; // Available from v2.5
 
 } QUIC_API_TABLE;
 

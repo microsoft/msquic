@@ -883,10 +883,16 @@ typedef struct CXPLAT_RSS_CONFIG {
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathGetRssConfig(
+CxPlatDataPathRssConfigGet(
     _In_ uint32_t InterfaceIndex,
     _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
         CXPLAT_RSS_CONFIG** RssConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
     );
 
 #if defined(__cplusplus)

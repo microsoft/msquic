@@ -148,6 +148,10 @@ typedef SOCKADDR_INET QUIC_ADDR;
 #define QUIC_ADDR_V6_PORT_OFFSET        FIELD_OFFSET(SOCKADDR_IN6, sin6_port)
 #define QUIC_ADDR_V6_IP_OFFSET          FIELD_OFFSET(SOCKADDR_IN6, sin6_addr)
 
+// RFC 6335
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
 #define QUIC_ADDRESS_FAMILY_UNSPEC AF_UNSPEC
 #define QUIC_ADDRESS_FAMILY_INET AF_INET
 #define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
@@ -261,6 +265,20 @@ QuicAddrSetToLoopback(
         memset(&Addr->Ipv6.sin6_addr, 0, sizeof(Addr->Ipv6.sin6_addr));
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
+}
+
+inline
+void
+QuicAddrIncrementPort(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    uint32_t Port = QuicAddrGetPort(Addr);
+    Port += 1;
+    if (Port > QUIC_ADDR_EPHEMERAL_PORT_MAX) {
+        Port = QUIC_ADDR_EPHEMERAL_PORT_MIN;
+    }
+    QuicAddrSetPort(Addr, (uint16_t)Port);
 }
 
 //
