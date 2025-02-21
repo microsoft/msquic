@@ -315,7 +315,7 @@ NewPingConnection(
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
     if (SendUdpOverQtip && UseQTIP) {
-        // Opt this connection out of QTIP.
+        // Connection just uses normal UDP
         Connection->SetQtipPreferences(0);
     } else {
         Connection->SetQtipPreferences(1);
