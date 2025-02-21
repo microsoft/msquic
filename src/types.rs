@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use crate::ffi::QUIC_CONNECTION_EVENT;
+use crate::ffi::{QUIC_BUFFER, QUIC_CONNECTION_EVENT};
 use std::ffi::c_void;
 
 /// Listener event converted from ffi type.
@@ -123,9 +123,8 @@ pub enum ConnectionEvent<'a> {
         send_enabled: bool,
         max_send_length: u16,
     },
-    // TODO: buffer needs to be safely converted.
     DatagramReceived {
-        buffer: &'a crate::ffi::QUIC_BUFFER,
+        buffer: &'a BufferRef,
         // TODO: provide safe wrapper.
         flags: crate::ffi::QUIC_RECEIVE_FLAGS,
     },
@@ -209,7 +208,7 @@ impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED => {
               let ev = unsafe { value.__bindgen_anon_1.DATAGRAM_RECEIVED };
-              Self::DatagramReceived { buffer: unsafe { ev.Buffer.as_ref().unwrap() }, flags: ev.Flags }
+              Self::DatagramReceived { buffer: unsafe { BufferRef::from_ffi_ref(ev.Buffer.as_ref().unwrap()) }, flags: ev.Flags }
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED => {
               let ev = unsafe { value.__bindgen_anon_1.DATAGRAM_SEND_STATE_CHANGED };
@@ -252,8 +251,8 @@ pub enum StreamEvent<'a> {
     },
     Receive {
         absolute_offset: u64,
-        total_buffer_length: &'a mut u64,       // inout parameter
-        buffers: &'a [crate::ffi::QUIC_BUFFER], // TODO: impl buffer wrapper types
+        total_buffer_length: &'a mut u64, // inout parameter
+        buffers: &'a [BufferRef],
         flags: crate::ffi::QUIC_RECEIVE_FLAGS,
     },
     SendComplete {
@@ -303,7 +302,12 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
                 Self::Receive {
                     absolute_offset: ev.AbsoluteOffset,
                     total_buffer_length: &mut ev.TotalBufferLength,
-                    buffers: unsafe { slice_conv(ev.Buffers, ev.BufferCount as usize) },
+                    buffers: unsafe {
+                        BufferRef::from_ffi_slice_ref(slice_conv(
+                            ev.Buffers,
+                            ev.BufferCount as usize,
+                        ))
+                    },
                     flags: ev.Flags,
                 }
             }
@@ -368,6 +372,67 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
     }
 }
 
+/// Buffer with same abi as ffi type.
+/// It has no ownership of the memory chunk.
+#[repr(transparent)]
+pub struct BufferRef(pub QUIC_BUFFER);
+
+impl BufferRef {
+    /// Get the bytes of the buffer.
+    pub fn as_bytes(&self) -> &[u8] {
+        unsafe { slice_conv(self.0.Buffer, self.0.Length as usize) }
+    }
+
+    /// Cast from the ffi type.
+    /// # Safety
+    /// Raw buffer lifetime needs to be manually ensured.
+    pub unsafe fn from_ffi_ref(raw: &QUIC_BUFFER) -> &Self {
+        (raw as *const QUIC_BUFFER as *const Self).as_ref().unwrap()
+    }
+
+    /// Cast from ffi slice type
+    /// # Safety
+    /// Raw buffer lifetime needs to be manually ensured.
+    pub unsafe fn from_ffi_slice_ref(raw: &[QUIC_BUFFER]) -> &[Self] {
+        (raw as *const [QUIC_BUFFER] as *const [Self])
+            .as_ref()
+            .unwrap()
+    }
+}
+
+/// Buffers backed by vectors.
+/// T is the buffer type that can convert to slice, typically Vec<u8> or array
+/// are used.
+/// TODO: this impl is unstable.
+pub struct VecBuffers<T: AsRef<[u8]>> {
+    /// buffers. Each chunk T is heap allocated via Vec,
+    _data: Vec<T>,
+    meta: Vec<QUIC_BUFFER>,
+}
+
+impl<T: AsRef<[u8]>> VecBuffers<T> {
+    pub fn as_ffi(&self) -> &[QUIC_BUFFER] {
+        self.meta.as_slice()
+    }
+}
+
+impl<T: AsRef<[u8]>> VecBuffers<T> {
+    pub fn new(data: Vec<T>) -> Self {
+        let meta = data
+            .iter()
+            .by_ref()
+            .map(|b| {
+                let buf_ref = b.as_ref();
+                QUIC_BUFFER {
+                    Buffer: buf_ref.as_ptr() as *mut u8,
+                    Length: buf_ref.len() as u32,
+                }
+            })
+            .collect();
+        Self { _data: data, meta }
+    }
+}
+
 /// Convert array pointer to slice.
 /// Allows empty buffer. slice::from_raw_parts does not allow empty buffer.
 #[inline]
@@ -376,5 +441,89 @@ unsafe fn slice_conv<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
         &[]
     } else {
         std::slice::from_raw_parts(ptr, len)
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use crate::{ffi::QUIC_BUFFER, types::slice_conv, BufferRef};
+
+    use super::VecBuffers;
+
+    #[test]
+    fn slice_conv_test() {
+        {
+            let ptr = std::ptr::null::<u8>();
+            let len = 0;
+            let buff = unsafe { slice_conv(ptr, len) };
+            assert_eq!(buff.len(), 0)
+        }
+        {
+            let original = b"hello";
+            let buff = unsafe { slice_conv(original.as_ptr(), original.len()) };
+            assert_eq!(buff, original.as_slice())
+        }
+    }
+
+    #[test]
+    fn buffer_ref_test() {
+        let first = Box::new(b"first");
+        let second = b"second";
+        let buffers = Box::new([
+            QUIC_BUFFER {
+                Buffer: first.as_ptr() as *mut u8,
+                Length: first.len() as u32,
+            },
+            QUIC_BUFFER {
+                Buffer: second.as_ptr() as *mut u8,
+                Length: second.len() as u32,
+            },
+        ]);
+        let buffs = unsafe { BufferRef::from_ffi_slice_ref(buffers.as_ref()) };
+        // In callback events, BufferSlice buffs is the given type and memory is from C,
+        // and it has the right lifetime.
+        // In this test, `buffers` variable emulates the memory from C.
+
+        let first1 = &buffs[0];
+        // If we drop buffers here on this line, compiler can catch the first1's lifetime is violated.
+        // This shows that the BufferSlice wrapper captures the right lifetime of the buffers.
+        // However there is no way to carry the lifetime of the var `first` into var `buffers` because the C style
+        // api raw pointer boundary has been crossed.
+        // TODO: msquic has feature to hold on to buffers even after callback have returned. This is
+        // is not supported safely in rust. (event if we support this, buffs reference's lifetime is still only valid
+        // at the end of the callback function. However, the lifetime of content of the buffer, i.e. &[u8], can be extended.)
+        let second1 = &buffs[1];
+        assert_eq!(first.as_slice(), first1.as_bytes());
+        assert_eq!(second, second1.as_bytes());
+    }
+
+    const FIRST: &[u8; 5] = b"aaaaa";
+    const SECOND: &[u8; 5] = b"bbbbb";
+
+    #[test]
+    fn buffer_write_test_vec() {
+        let buffers = VecBuffers::new(vec![FIRST.to_vec(), SECOND.to_vec()]);
+        buffer_write_test(buffers);
+    }
+
+    #[test]
+    fn buffer_write_test_array() {
+        let buffers = VecBuffers::new(vec![FIRST.to_owned(), SECOND.to_owned()]);
+        buffer_write_test(buffers);
+    }
+
+    fn buffer_write_test<T: AsRef<[u8]>>(buffers: VecBuffers<T>) {
+        let refs = unsafe { BufferRef::from_ffi_slice_ref(buffers.as_ffi()) };
+        // try read it
+        assert_eq!(refs[0].as_bytes(), FIRST);
+        assert_eq!(refs[1].as_bytes(), SECOND);
+
+        // TODO: implement detach attach.
+        // // detach and reattach and check content
+        // let raw = buffers.into_raw();
+        // let buffers2 = unsafe { BoxedBuffersOwned::<T>::from_raw(raw) }.into_inner();
+        // let refs2 = BufferRefSlice(buffers2.as_ffi());
+        // assert_eq!(refs2.as_slice()[0].as_bytes(), FIRST);
+        // assert_eq!(refs2.as_slice()[1].as_bytes(), SECOND);
     }
 }
