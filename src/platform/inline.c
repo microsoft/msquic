@@ -316,6 +316,11 @@ QuicAddrSetPort(
     );
 
 void
+QuicAddrIncrementPort(
+    _Inout_ QUIC_ADDR* Addr
+    );
+
+void
 QuicAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
     );

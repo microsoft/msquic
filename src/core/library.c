@@ -1803,7 +1803,7 @@ MsQuicOpenVersion(
 
     Api->DatagramSend = MsQuicDatagramSend;
 
-    Api->ConnectionPoolApiOpen = MsQuicConnectionPoolApiOpen;
+    Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
     *QuicApi = Api;
 
@@ -2457,79 +2457,5 @@ QuicLibraryGenerateStatelessResetToken(
             HashOutput,
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
-    return Status;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-MsQuicConnectionPoolApiClose(
-    _In_ _Pre_defensive_ const void* ConnPoolApi
-    )
-{
-    if (ConnPoolApi != NULL) {
-        QuicTraceLogVerbose(
-            ApiMsQuicConnectionPoolApiClose,
-            "[ api] MsQuicConnectionPoolApiClose");
-        CXPLAT_FREE(ConnPoolApi, QUIC_POOL_CONN_POOL_API_TABLE);
-        MsQuicRelease();
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Check_return_
-QUIC_STATUS
-QUIC_API
-MsQuicConnectionPoolApiOpen(
-    _Out_ _Pre_defensive_ const void** ConnPoolApi
-    )
-{
-    QUIC_STATUS Status;
-    BOOLEAN ReleaseRefOnFailure = FALSE;
-
-    if (ConnPoolApi == NULL) {
-        QuicTraceLogVerbose(
-            ApiMsQuicConnectionPoolApiOpenNull,
-            "[ api] MsQuicConnectionPoolApiOpen, NULL");
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    QuicTraceLogVerbose(
-        ApiMsQuicConnectionPoolApiOpenEntry,
-        "[ api] MsQuicConnectionPoolApiOpen");
-
-    Status = MsQuicAddRef();
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
-    }
-    ReleaseRefOnFailure = TRUE;
-
-    QUIC_CONNECTION_POOL_API_TABLE* Api =
-        CXPLAT_ALLOC_NONPAGED(
-            sizeof(QUIC_CONNECTION_POOL_API_TABLE),
-            QUIC_POOL_CONN_POOL_API_TABLE);
-    if (Api == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
-
-    Api->ConnectionPoolApiClose = MsQuicConnectionPoolApiClose;
-    Api->SimpleConnectionPoolCreate = MsQuicSimpleConnectionPoolCreate;
-
-    *ConnPoolApi = Api;
-
-Exit:
-
-    QuicTraceLogVerbose(
-        ApiMsQuicConnectionPoolApiOpenExit,
-        "[ api] MsQuicConnectionPoolApiOpen, status=0x%x",
-        Status);
-
-    if (QUIC_FAILED(Status)) {
-        if (ReleaseRefOnFailure) {
-            MsQuicRelease();
-        }
-    }
-
     return Status;
 }

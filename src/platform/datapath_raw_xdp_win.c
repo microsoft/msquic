@@ -1885,7 +1885,7 @@ CxPlatIoXdpShutdownEventComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatDataPathGetRssConfig(
+CxPlatDataPathRssConfigGet(
     _In_ uint32_t InterfaceIndex,
     _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
         CXPLAT_RSS_CONFIG** RssConfig
@@ -1993,4 +1993,13 @@ Error:
         CXPLAT_FREE(RawRssConfig, QUIC_POOL_TMP_ALLOC);
     }
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
 }

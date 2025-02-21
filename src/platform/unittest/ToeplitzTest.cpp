@@ -91,7 +91,7 @@ struct ToeplitzTest : public ::testing::Test
 
             if (memcmp(ExpectedHash.Data, &Key, 4)) {
                 QUIC_ADDR_STR PrintBuf{};
-                printf("Expected Hash: %s, Actual Hash: %x\n", ExpectedHashes[i], Key);
+                printf("Expected Hash: %s, Actual Hash: %x\n", ExpectedHashes[i], CxPlatByteSwapUint32(Key));
                 QuicAddrToString(&SrcAddr, &PrintBuf);
                 printf("Source Address: %s\n", PrintBuf.Address);
                 QuicAddrToString(&DestAddr, &PrintBuf);
@@ -153,25 +153,21 @@ TEST_F(ToeplitzTest, IPv6WithTcp)
         "dde51bbf",
         "02d1feef"
     };
-
     const char* SourceAddresses[] = {
         "3ffe:2501:200:1fff::7",
         "3ffe:501:8::260:97ff:fe40:efab",
         "3ffe:1900:4545:3:200:f8ff:fe21:67cf"
     };
-
     const uint16_t SourcePorts[] = {
         2794,
         14230,
         44251
     };
-
     const char* DestinationAddresses[] = {
         "3ffe:2501:200:3::1",
         "ff02::1",
         "fe80::200:f8ff:fe21:67cf"
     };
-
     const uint16_t DestinationPorts[] = {
         1766,
         4739,

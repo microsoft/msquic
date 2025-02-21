@@ -289,9 +289,16 @@ MsQuicConnectionCertificateValidationComplete(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Check_return_
 QUIC_STATUS
 QUIC_API
-MsQuicConnectionPoolApiOpen(
-    _Out_ _Pre_defensive_ const void** ConnPoolApi
+MsQuicConnectionPoolCreate(
+    _In_ HQUIC Registration,
+    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _In_opt_ const char* ServerName,
+    _In_opt_ const QUIC_ADDR* ServerAddress,
+    _In_ uint16_t ServerPort,
+    _In_ uint16_t NumberOfConnections,
+    _Out_writes_bytes_(NumberOfConnections * sizeof(HQUIC))
+        HQUIC** ConnectionPool
     );
