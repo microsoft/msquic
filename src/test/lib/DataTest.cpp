@@ -318,7 +318,7 @@ NewPingConnection(
         // Connection just uses normal UDP
         Connection->SetQtipPreferences(0);
     } else {
-        Connection->SetQtipPreferences(1);
+        Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
     }
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
