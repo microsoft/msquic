@@ -11,6 +11,7 @@
 #define _NETDIRECT_H_
 
 #include <ndspi.h>
+#include <mana_ndspi.h>
 
 
 #ifdef __cplusplus

@@ -440,6 +440,7 @@ CxPlatDataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(RdmaCallbacks);
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }

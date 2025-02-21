@@ -493,7 +493,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     BOOLEAN RioNotifyArmed;
     };
     //
-    // TCP Listener socket data
+    // TCP / RDMAListener socket data
     //
     struct {
     CXPLAT_SOCKET* AcceptSocket;
@@ -577,6 +577,11 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t UseTcp : 1;
 
     uint8_t UseRdma : 1;  
+
+    //
+    // RDMA Adapter context
+    //
+    void *RdmaAdapter;
 
     //
     // Per-processor completion contexts.
@@ -1075,14 +1080,6 @@ SocketCreateTcp(
     
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-SocketCreateRdma(
-    _In_ CXPLAT_DATAPATH* DataPath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
 SocketCreateTcpListener(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
@@ -1331,6 +1328,26 @@ void
 RawUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
+    );
+
+//
+// RDMA related functions
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketCreateRdma(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _Out_ CXPLAT_SOCKET** NewSocket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketCreateRdmaListener(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ CXPLAT_SOCKET** NewSocket
     );
 
 #endif // CX_PLATFORM_LINUX || _WIN32

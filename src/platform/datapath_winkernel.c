@@ -703,6 +703,7 @@ DataPathInitialize(
     ULONG NoTdi = WSK_TDI_BEHAVIOR_BYPASS_TDI;
 
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(RdmaCallbacks);
     UNREFERENCED_PARAMETER(Config);
 
     if (NewDataPath == NULL) {

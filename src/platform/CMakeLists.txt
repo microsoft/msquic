@@ -12,7 +12,7 @@ endif()
 set(SOURCES crypt.c hashtable.c pcp.c platform_worker.c toeplitz.c)
 
 if("${CX_PLATFORM}" STREQUAL "windows")
-    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c datapath_xplat.c)
+    set(SOURCES ${SOURCES} platform_winuser.c storage_winuser.c datapath_win.c datapath_winuser.c datapath_winrdma.c datapath_xplat.c)
     if(QUIC_UWP_BUILD OR
        QUIC_GAMECORE_BUILD OR
        ${SYSTEM_PROCESSOR} STREQUAL "arm" OR

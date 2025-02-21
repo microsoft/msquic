@@ -290,7 +290,7 @@ typedef struct QUIC_EXECUTION_CONFIG {
     uint32_t ProcessorCount;
     _Field_size_(ProcessorCount)
     uint16_t ProcessorList[1];          // List of processors to use for threads.
-
+    QUIC_ADDR* RdmaAdapterAddress;
 } QUIC_EXECUTION_CONFIG;
 
 #define QUIC_EXECUTION_CONFIG_MIN_SIZE \

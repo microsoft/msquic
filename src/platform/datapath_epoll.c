@@ -370,6 +370,7 @@ DataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(RdmaCallbacks);
     if (NewDatapath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }

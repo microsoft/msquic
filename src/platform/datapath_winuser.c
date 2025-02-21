@@ -796,11 +796,12 @@ DataPathInitialize(
         }
     }
 
-    if(RdmaCallbacks != NULL) {
+    if (RdmaCallbacks != NULL) {
         if (RdmaCallbacks->Accept == NULL ||
             RdmaCallbacks->Connect == NULL ||
             RdmaCallbacks->Receive == NULL ||
-            RdmaCallbacks->SendComplete == NULL) {
+            RdmaCallbacks->SendComplete == NULL ||
+            Config == NULL || Config->RdmaAdapterAddress == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             goto Exit;
         }
@@ -852,6 +853,9 @@ DataPathInitialize(
     if (TcpCallbacks) {
         Datapath->TcpHandlers = *TcpCallbacks;
     }
+    if (RdmaCallbacks) {
+        Datapath->RdmaHandlers = *RdmaCallbacks;
+    }
     Datapath->WorkerPool = WorkerPool;
 
     if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
@@ -866,6 +870,23 @@ DataPathInitialize(
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
     if (QUIC_FAILED(Status)) {
         goto Error;
+    }
+
+    //
+    // Initialize RDMA adapter
+    //
+    if (RdmaCallbacks && Config || Config->RdmaAdapterAddress)
+    {
+        Status = CxPlatRdmaAdapterInitialize(Config->RdmaAdapterAddress, &Datapath->RdmaAdapter);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                RdmaAdapterInitFailed,
+                "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
+                Datapath,
+                Status);
+
+            goto Error;
+        }
     }
 
     //
@@ -1015,6 +1036,11 @@ CxPlatDataPathRelease(
         Datapath->Freed = TRUE;
         WSACleanup();
         CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+
+        if (Datapath->RdmaAdapter) {
+            CxPlatRdmaAdapterRelease(Datapath->RdmaAdapter);
+        }
+
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }

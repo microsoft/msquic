@@ -422,3 +422,48 @@ CxPlatResolveRoute(
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }
+
+
+// RDMA related platform functions
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketCreateRdma(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _Out_ CXPLAT_SOCKET** NewSocket
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    Status =
+        SocketCreateRdma(
+            Datapath,
+            Config,
+            NewSocket);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            SockCreateFail,
+            "[sock] Failed to create socket, status:%d", Status);
+        goto Error;
+    }
+
+Error:
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketCreateRdmaListener(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _Out_ CXPLAT_SOCKET** NewSocket
+    )
+{
+    return SocketCreateRdmaListener(
+        Datapath,
+        LocalAddress,
+        RecvCallbackContext,
+        NewSocket);
+}
