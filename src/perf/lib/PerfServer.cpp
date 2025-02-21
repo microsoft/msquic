@@ -570,7 +570,7 @@ PerfServer::TcpSendCompleteCallback(
     }
 }
 
-DelayWorker::DelayWorker() : WakeEvent(false), DoneEvent(true), Lock(), Thread(true)
+DelayWorker::DelayWorker() : Thread(true), WakeEvent(false), DoneEvent(true), Lock()
 {
 }
 
