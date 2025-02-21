@@ -3260,6 +3260,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
+
+        [NativeTypeName("QUIC_CONN_POOL_CREATE_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, sbyte*, QuicAddr*, ushort, ushort, QUIC_HANDLE***, int> ConnectionPoolCreate;
     }
 
     internal static unsafe partial class MsQuic

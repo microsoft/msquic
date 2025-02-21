@@ -1867,6 +1867,150 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnPoolCreateSocket": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to create socket, 0x%x",
+      "UniqueId": "ConnPoolCreateSocket",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolGetLocalAddresses": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to get local address info, 0x%x",
+      "UniqueId": "ConnPoolGetLocalAddresses",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolGetRssConfig": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to get RSS config, 0x%x",
+      "UniqueId": "ConnPoolGetRssConfig",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolInvalidParam": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Invalid parameter, 0x%x",
+      "UniqueId": "ConnPoolInvalidParam",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolInvalidParamNeedRemoteAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Neither ServerName nor ServerAddress were set, 0x%x",
+      "UniqueId": "ConnPoolInvalidParamNeedRemoteAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolLocalAddressNotFound": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to find local address, 0x%x",
+      "UniqueId": "ConnPoolLocalAddressNotFound",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolOpenConnection": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to open connection[%u], 0x%x",
+      "UniqueId": "ConnPoolOpenConnection",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolRssNotSupported": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] RSS not supported, 0x%x",
+      "UniqueId": "ConnPoolRssNotSupported",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolRssSecretKeyTooLong": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] RSS secret key too long, 0x%x",
+      "UniqueId": "ConnPoolRssSecretKeyTooLong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolSetLocalAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to set local address on connection[%u], 0x%x",
+      "UniqueId": "ConnPoolSetLocalAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolSetRemoteAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to set remote address on connection[%u], 0x%x",
+      "UniqueId": "ConnPoolSetRemoteAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "ConnQueueSendFlush": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queueing send flush, reason=%u",
@@ -12490,6 +12634,70 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "XdpGetRssConfigFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d",
+      "UniqueId": "XdpGetRssConfigFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "XdpGetRssConfigInterfaceOpenFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp] Failed to open Xdp interface for index %u. Error %d",
+      "UniqueId": "XdpGetRssConfigInterfaceOpenFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "XdpGetRssConfigSizeFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
+      "UniqueId": "XdpGetRssConfigSizeFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "XdpInitialize": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] XDP initialized, %u procs",
@@ -13995,6 +14203,61 @@
         "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
         "TraceID": "ConnPersistentCongestion",
         "EncodingString": "[conn][%p] Persistent congestion event"
+      },
+      {
+        "UniquenessHash": "28c17287-b016-ae68-60d9-69341d0d41ee",
+        "TraceID": "ConnPoolCreateSocket",
+        "EncodingString": "[conp] Failed to create socket, 0x%x"
+      },
+      {
+        "UniquenessHash": "412470bc-72b5-06e3-3c78-419cae4813e7",
+        "TraceID": "ConnPoolGetLocalAddresses",
+        "EncodingString": "[conp] Failed to get local address info, 0x%x"
+      },
+      {
+        "UniquenessHash": "c9af32e6-259c-e09d-f758-defdea772c3b",
+        "TraceID": "ConnPoolGetRssConfig",
+        "EncodingString": "[conp] Failed to get RSS config, 0x%x"
+      },
+      {
+        "UniquenessHash": "5d34108f-60e7-7db5-0739-37f6bc882994",
+        "TraceID": "ConnPoolInvalidParam",
+        "EncodingString": "[conp] Invalid parameter, 0x%x"
+      },
+      {
+        "UniquenessHash": "9e7c0260-bbaa-3080-9e51-0817142f0ad3",
+        "TraceID": "ConnPoolInvalidParamNeedRemoteAddress",
+        "EncodingString": "[conp] Neither ServerName nor ServerAddress were set, 0x%x"
+      },
+      {
+        "UniquenessHash": "ab5cf81d-9ef4-c6c2-fffc-81ed281bf136",
+        "TraceID": "ConnPoolLocalAddressNotFound",
+        "EncodingString": "[conp] Failed to find local address, 0x%x"
+      },
+      {
+        "UniquenessHash": "a6d8565d-4daa-4ce4-0fd8-c0a96e1f3857",
+        "TraceID": "ConnPoolOpenConnection",
+        "EncodingString": "[conp] Failed to open connection[%u], 0x%x"
+      },
+      {
+        "UniquenessHash": "a772835d-7920-f9dd-e9b6-1f7c0e21a3b2",
+        "TraceID": "ConnPoolRssNotSupported",
+        "EncodingString": "[conp] RSS not supported, 0x%x"
+      },
+      {
+        "UniquenessHash": "6706218c-7c1e-b832-b1e7-fc2b7209c3a3",
+        "TraceID": "ConnPoolRssSecretKeyTooLong",
+        "EncodingString": "[conp] RSS secret key too long, 0x%x"
+      },
+      {
+        "UniquenessHash": "f52999bc-8de3-798c-c4ed-0fa4ad686385",
+        "TraceID": "ConnPoolSetLocalAddress",
+        "EncodingString": "[conp] Failed to set local address on connection[%u], 0x%x"
+      },
+      {
+        "UniquenessHash": "57696af4-f367-3d05-7259-d55ac7dabf60",
+        "TraceID": "ConnPoolSetRemoteAddress",
+        "EncodingString": "[conp] Failed to set remote address on connection[%u], 0x%x"
       },
       {
         "UniquenessHash": "1774df63-d849-a89c-4a88-bf2ff1002e15",
@@ -17345,6 +17608,21 @@
         "UniquenessHash": "85daf4dc-93cf-8f55-f583-c708356db354",
         "TraceID": "XdpFindProbramSectionError",
         "EncodingString": "[ xdp] ERROR, finding program section '%s'"
+      },
+      {
+        "UniquenessHash": "3a56ae8d-b415-1527-5570-a2d90bb41c54",
+        "TraceID": "XdpGetRssConfigFailed",
+        "EncodingString": "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d"
+      },
+      {
+        "UniquenessHash": "bee5b34c-ac00-38e2-c85c-23a75b110c9c",
+        "TraceID": "XdpGetRssConfigInterfaceOpenFailed",
+        "EncodingString": "[ xdp] Failed to open Xdp interface for index %u. Error %d"
+      },
+      {
+        "UniquenessHash": "259b761c-655a-62b3-8826-84d1cd8321d1",
+        "TraceID": "XdpGetRssConfigSizeFailed",
+        "EncodingString": "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d"
       },
       {
         "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",

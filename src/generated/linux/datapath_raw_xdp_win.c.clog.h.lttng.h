@@ -315,6 +315,91 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for XdpGetRssConfigInterfaceOpenFailed
+// [ xdp] Failed to open Xdp interface for index %u. Error %d
+// QuicTraceLogError(
+            XdpGetRssConfigInterfaceOpenFailed,
+            "[ xdp] Failed to open Xdp interface for index %u. Error %d",
+            InterfaceIndex,
+            Result);
+// arg2 = arg2 = InterfaceIndex = arg2
+// arg3 = arg3 = Result = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigInterfaceOpenFailed,
+    TP_ARGS(
+        unsigned int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpGetRssConfigSizeFailed
+// [ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d
+// QuicTraceLogError(
+            XdpGetRssConfigSizeFailed,
+            "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
+            InterfaceHandle,
+            InterfaceIndex,
+            RssConfigSize,
+            Result);
+// arg2 = arg2 = InterfaceHandle = arg2
+// arg3 = arg3 = InterfaceIndex = arg3
+// arg4 = arg4 = RssConfigSize = arg4
+// arg5 = arg5 = Result = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigSizeFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        int, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(int, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpGetRssConfigFailed
+// [ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d
+// QuicTraceLogError(
+            XdpGetRssConfigFailed,
+            "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d",
+            InterfaceHandle,
+            InterfaceIndex,
+            RssConfigSize,
+            Result);
+// arg2 = arg2 = InterfaceHandle = arg2
+// arg3 = arg3 = InterfaceIndex = arg3
+// arg4 = arg4 = RssConfigSize = arg4
+// arg5 = arg5 = Result = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4,
+        int, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(int, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
