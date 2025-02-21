@@ -222,7 +222,7 @@ CxPlatSocketGetLocalMtu(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket), UseQTIP);
+        return RawSocketGetLocalMtu(UseQTIP);
     }
     return Socket->Mtu;
 }

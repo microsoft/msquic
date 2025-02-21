@@ -151,7 +151,7 @@ void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ BOOLEAN IsCreated,
-    _In_ BOOLEAN
+    _In_ BOOLEAN UseQTIP
     );
 
 //
@@ -187,7 +187,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
     _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ BOOLEAN UseTcp
+    _In_ BOOLEAN UseQTIP
     );
 
 //
