@@ -603,6 +603,12 @@ QuicTestEcn(
     _In_ int Family
     );
 
+void QuicTestStreamAppProvidedBuffers(
+    );
+
+void QuicTestStreamAppProvidedBuffersZeroWindow(
+    );
+
 //
 // QuicDrill tests
 //
@@ -1345,4 +1351,10 @@ typedef struct {
     QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 127
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+    QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 129

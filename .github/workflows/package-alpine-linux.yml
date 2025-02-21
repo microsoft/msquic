@@ -73,7 +73,7 @@ jobs:
     - name: Set up QEMU
       uses: docker/setup-qemu-action@4574d27a4764455b42196d70a065bc6853246a25
     - name: Set up .NET 9.0
-      uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
+      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
       with:
         dotnet-version: ${{ matrix.vec.dotnetVersion }}
     - name: Build .NET QUIC Test Project
