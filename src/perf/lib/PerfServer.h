@@ -57,10 +57,10 @@ public:
     PerfServer* m_Server = nullptr;
     CXPLAT_EXECUTION_CONTEXT ExecutionContext = { 0 };
     bool Initialized{ false };
-    CXPLAT_THREAD Thread;
-    CXPLAT_EVENT WakeEvent;
-    CXPLAT_EVENT DoneEvent;
-    CXPLAT_DISPATCH_LOCK Lock;
+    CxPlatThread Thread;
+    CxPlatEvent WakeEvent;
+    CxPlatEvent DoneEvent;
+    CxPlatLock Lock;
     DelayedWorkContext* WorkItems = nullptr;
     DelayedWorkContext** WorkItemsTail{ &WorkItems };
     bool Shuttingdown{ false };
@@ -74,11 +74,12 @@ public:
     bool QueueWork(
         _In_ StreamContext* Context,
         _In_ void* Handle,
-        _In_ bool IsTcp);
+        _In_ bool IsTcp
+        );
     static BOOLEAN DelayedWork(
         _Inout_ void* Context,
         _Inout_ CXPLAT_EXECUTION_STATE* State
-    );
+        );
 };
 
 class PerfServer {
@@ -96,12 +97,12 @@ public:
     }
 
     ~PerfServer() {
-        if (DelayPoolUsed) {
+        if (DelayWorkers) {
             for (uint16_t i = 0; i < ProcCount; ++i) {
                 DelayWorkers[i].Shutdown();
             }
             delete[] DelayWorkers;
-            DelayPoolUsed = FALSE;
+            DelayWorkers = nullptr;
         }
 
         if (TeardownBinding) {
@@ -123,7 +124,13 @@ public:
         _In_ StreamContext* Context,
         _In_ void* Handle,
         _In_ bool IsTcp
-    );
+        );
+    void
+    SendDelayedResponse(
+        _In_ StreamContext* Context,
+        _In_ void* StreamHandle,
+        _In_ bool IsTcp
+        );
 
     static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
     static void DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
@@ -216,11 +223,10 @@ private:
     TcpEngine Engine;
     TcpServer Server;
 
-    uint32_t DelayMicroseconds = 0;
-    SYNTHETIC_DELAY_TYPE DelayType = SYNTHETIC_DELAY_FIXED;
-    bool DelayPoolUsed = FALSE;
-    DelayWorker* DelayWorkers = nullptr;
-    uint16_t ProcCount = 0;
+    uint32_t DelayMicroseconds {0};
+    SYNTHETIC_DELAY_TYPE DelayType {SYNTHETIC_DELAY_FIXED};
+    DelayWorker* DelayWorkers {nullptr};
+    uint16_t ProcCount {0};
 
 #ifndef _KERNEL_MODE
     //

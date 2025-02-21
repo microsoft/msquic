@@ -224,3 +224,32 @@ QuicPrintStreamStatistics(
         (unsigned long long)Stats.StreamBlockedByFlowControlUs,
         (unsigned long long)Stats.StreamBlockedByAppUs);
 }
+
+extern const char* TimeUnits[];
+extern const uint64_t TimeMult[];
+extern const char* SizeUnits[];
+extern const uint64_t SizeMult[];
+extern const char* CountUnits[];
+extern uint64_t CountMult[];
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed = nullptr
+);
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed = nullptr
+);
