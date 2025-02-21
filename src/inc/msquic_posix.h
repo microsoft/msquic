@@ -218,6 +218,10 @@ extern "C" {
 // IP Address Abstraction Helpers
 //
 
+// RFC 6335
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
 inline
 BOOLEAN
 QuicAddrFamilyIsValid(
@@ -316,6 +320,20 @@ QuicAddrSetPort(
     } else {
         Addr->Ipv6.sin6_port = htons(Port);
     }
+}
+
+inline
+void
+QuicAddrIncrementPort(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    uint32_t Port = QuicAddrGetPort(Addr);
+    Port += 1;
+    if (Port > QUIC_ADDR_EPHEMERAL_PORT_MAX) {
+        Port = QUIC_ADDR_EPHEMERAL_PORT_MIN;
+    }
+    QuicAddrSetPort(Addr, (uint16_t)Port);
 }
 
 //

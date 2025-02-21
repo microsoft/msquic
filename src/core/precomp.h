@@ -73,7 +73,6 @@
 #include "datagram.h"
 #include "version_neg.h"
 #include "connection.h"
-#include "connection_pool.h"
 #include "packet_builder.h"
 #include "listener.h"
 #include "cubic.h"
