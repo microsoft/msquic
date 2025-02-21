@@ -73,7 +73,8 @@ PerfServer::Init(
         }
     }
 
-    if (TryGetVariableUnitValue(argc, argv, "delay", &DelayMicroseconds, nullptr)) {
+    if (TryGetVariableUnitValue(argc, argv, "delay", &DelayMicroseconds, nullptr) &&
+        (0 != DelayMicroseconds)) {
         const char* DelayTypeString = nullptr;
         DelayType = SYNTHETIC_DELAY_FIXED;
 
@@ -273,15 +274,6 @@ PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
         CxPlatSleep(static_cast<uint32_t>(MaxFixedDelayUs/1000));
     }
 }
-
-#else
-
-void
-PerfServer::IntroduceVariableDelay(uint32_t DelayUs)
-{
-    IntroduceFixedDelay(DelayUs);
-}
-
 #endif // !_KERNEL_MODE
 
 void
@@ -295,9 +287,11 @@ PerfServer::SimulateDelay()
     }
 
     switch (DelayType) {
+#ifndef _KERNEL_MODE
     case SYNTHETIC_DELAY_VARIABLE:
         IntroduceVariableDelay(DelayMicroseconds);
         break;
+#endif // !_KERNEL_MODE
     case SYNTHETIC_DELAY_FIXED: // fall through
     default:
         IntroduceFixedDelay(DelayMicroseconds);
@@ -423,7 +417,7 @@ PerfServer::SendDelayedResponse(
     CXPLAT_DBG_ASSERT(WorkerNumber < ProcCount);
     if (!DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp)) {
         WriteOutput("Failed to queue delay worker on processor %d.\n", WorkerNumber);
-    };
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -570,19 +564,9 @@ PerfServer::TcpSendCompleteCallback(
     }
 }
 
-DelayWorker::DelayWorker() : Thread(true), WakeEvent(false), DoneEvent(true), Lock()
+bool DelayWorker::Initialize(PerfServer* GivenServer, uint16_t PartitionIndex)
 {
-}
-
-DelayWorker::~DelayWorker()
-{
-    CXPLAT_FRE_ASSERT(!WorkItems);
-    CXPLAT_FRE_ASSERT(!Initialized);
-}
-
-bool DelayWorker::Initialize(PerfServer* Server, uint16_t PartitionIndex)
-{
-    m_Server = Server;
+    Server = GivenServer;
     ExecutionContext.Callback = DelayedWork;
     ExecutionContext.Context = this;
     InterlockedFetchAndSetBoolean(&ExecutionContext.Ready);
@@ -617,8 +601,7 @@ void DelayWorker::Shutdown()
             DelayedWorkContext* NextWorkItem;
             if (WorkItemsTail == &CurrentWorkItem->Next) {
                 NextWorkItem = nullptr;
-            }
-            else {
+            } else {
                 NextWorkItem = CurrentWorkItem->Next;
             }
             delete CurrentWorkItem;
@@ -631,7 +614,7 @@ void DelayWorker::Shutdown()
 
 void DelayWorker::WakeWorkerThread() {
     if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
-            CxPlatEventSet(WakeEvent);
+            WakeEvent.Set();
     }
 }
 
@@ -643,7 +626,7 @@ CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Context)
     };
     while (DelayedWork(This, &DummyState)) {
         if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
-            CxPlatEventWaitForever(This->WakeEvent); // Wait for more work
+            This->WakeEvent.WaitForever(); // Wait for more work
         }
     }
     CXPLAT_THREAD_RETURN(0);
@@ -653,11 +636,11 @@ BOOLEAN
 DelayWorker::DelayedWork(
     _Inout_ void* Context,
     _Inout_ CXPLAT_EXECUTION_STATE* State
-)
+    )
 {
     DelayWorker* This = (DelayWorker*)Context;
     if (This->Shuttingdown) {
-        CxPlatEventSet(This->DoneEvent);
+        This->DoneEvent.Set();
         return FALSE;
     }
 
@@ -674,8 +657,8 @@ DelayWorker::DelayedWork(
     This->Lock.Release();
 
     if (nullptr != WorkItem) {
-        This->m_Server->SimulateDelay();
-        This->m_Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+        This->Server->SimulateDelay();
+        This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
         delete WorkItem;
         InterlockedFetchAndSetBoolean(&This->ExecutionContext.Ready); // We just did work, let's keep this thread hot.
         State->NoWorkCount = 0;

@@ -54,7 +54,7 @@ struct DelayedWorkContext {
 
 class DelayWorker {
 public:
-    PerfServer* m_Server = nullptr;
+    PerfServer* Server = nullptr;
     CXPLAT_EXECUTION_CONTEXT ExecutionContext = { 0 };
     bool Initialized{ false };
     CxPlatThread Thread;
@@ -65,9 +65,17 @@ public:
     DelayedWorkContext** WorkItemsTail{ &WorkItems };
     bool Shuttingdown{ false };
 
-    DelayWorker();
-    ~DelayWorker();
-    bool Initialize(PerfServer* Server, uint16_t PartitionIndex);
+    DelayWorker() : Thread(true), WakeEvent(false), DoneEvent(true), Lock()
+    {
+    }
+
+    ~DelayWorker()
+    {
+        CXPLAT_FRE_ASSERT(!WorkItems);
+        CXPLAT_FRE_ASSERT(!Initialized);
+    }
+
+    bool Initialize(PerfServer* GivenServer, uint16_t PartitionIndex);
     void Shutdown();
     void WakeWorkerThread();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
@@ -183,14 +191,14 @@ private:
         _Inout_ QUIC_STREAM_EVENT* Event
         );
 
-    void IntroduceVariableDelay(uint32_t DelayUs);
     void IntroduceFixedDelay(uint32_t DelayUs);
 
 #ifndef _KERNEL_MODE
     //
-    // Variable delay method
+    // Variable delay methods are not included in Kernel mode
     //
     double CalculateVariableDelay(double lambda);
+    void IntroduceVariableDelay(uint32_t DelayUs);
 #endif // !_KERNEL_MODE
 
     CXPLAT_SOCKET* TeardownBinding {nullptr};
@@ -232,8 +240,8 @@ private:
     //
     // Variable delay parameters
     //
-    double Lambda = 1;
-    double MaxFixedDelayUs = 1000;
+    double Lambda {1};
+    double MaxFixedDelayUs  {1000};
 #endif // !_KERNEL_MODE
 
     static

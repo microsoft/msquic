@@ -241,7 +241,7 @@ TryGetVariableUnitValue(
     _In_z_ const char** names,
     _Out_ T * pValue,
     _Out_opt_ bool* isTimed = nullptr
-);
+    );
 
 _Success_(return != false)
 template <typename T>
@@ -252,4 +252,4 @@ TryGetVariableUnitValue(
     _In_z_ const char* name,
     _Out_ T * pValue,
     _Out_opt_ bool* isTimed = nullptr
-);
+    );

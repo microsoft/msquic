@@ -395,7 +395,7 @@ TryGetVariableUnitValue(
     _In_z_ const char** names,
     _Out_ T * pValue,
     _Out_opt_ bool* isTimed
-)
+    )
 {
     if (isTimed) *isTimed = false; // Default
 
@@ -454,7 +454,7 @@ TryGetVariableUnitValue(
     _In_z_ const char* name,
     _Out_ T * pValue,
     _Out_opt_ bool* isTimed
-)
+    )
 {
     const char* names[] = { name, nullptr };
     return TryGetVariableUnitValue(argc, argv, names, pValue, isTimed);
@@ -472,7 +472,7 @@ TryGetVariableUnitValue<uint32_t>(
     _In_z_ const char* name,
     _Out_ uint32_t * pValue,
     _Out_opt_ bool* isTimed
-);
+    );
 
 _Success_(return != false)
 template
@@ -483,4 +483,4 @@ TryGetVariableUnitValue<uint64_t>(
     _In_z_ const char** names,
     _Out_ uint64_t * pValue,
     _Out_opt_ bool* isTimed
-);
+    );
