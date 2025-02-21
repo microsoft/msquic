@@ -4,6 +4,77 @@
 use crate::ffi::QUIC_CONNECTION_EVENT;
 use std::ffi::c_void;
 
+/// Listener event converted from ffi type.
+pub enum ListenerEvent<'a> {
+    NewConnection {
+        info: NewConnectionInfo<'a>,
+        connection: crate::Connection,
+    },
+    StopComplete {
+        app_close_in_progress: bool,
+    },
+}
+
+pub struct NewConnectionInfo<'a> {
+    pub quic_version: u32,
+    pub local_address: &'a crate::Addr,
+    pub remote_address: &'a crate::Addr,
+    pub crypto_buffer: &'a [u8],
+    pub client_alpn_list: &'a [u8],
+    pub server_name: &'a [u8],
+    pub negotiated_alpn: &'a [u8],
+}
+
+impl<'a> From<&'a crate::ffi::QUIC_NEW_CONNECTION_INFO> for NewConnectionInfo<'a> {
+    fn from(value: &crate::ffi::QUIC_NEW_CONNECTION_INFO) -> Self {
+        Self {
+            quic_version: value.QuicVersion,
+            local_address: unsafe { (value.LocalAddress as *const crate::Addr).as_ref().unwrap() },
+            remote_address: unsafe {
+                (value.RemoteAddress as *const crate::Addr)
+                    .as_ref()
+                    .unwrap()
+            },
+            crypto_buffer: unsafe {
+                slice_conv(value.CryptoBuffer, value.CryptoBufferLength as usize)
+            },
+            client_alpn_list: unsafe {
+                slice_conv(value.ClientAlpnList, value.ClientAlpnListLength as usize)
+            },
+            server_name: unsafe {
+                slice_conv(
+                    value.ServerName as *const u8,
+                    value.ServerNameLength as usize,
+                )
+            },
+            negotiated_alpn: unsafe {
+                slice_conv(value.NegotiatedAlpn, value.NegotiatedAlpnLength as usize)
+            },
+        }
+    }
+}
+
+impl<'a> From<&'a crate::ffi::QUIC_LISTENER_EVENT> for ListenerEvent<'a> {
+    fn from(value: &'a crate::ffi::QUIC_LISTENER_EVENT) -> Self {
+        match value.Type {
+            crate::ffi::QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_NEW_CONNECTION => {
+                let ev = unsafe { &value.__bindgen_anon_1.NEW_CONNECTION };
+                Self::NewConnection {
+                    info: NewConnectionInfo::from(unsafe { ev.Info.as_ref().unwrap() }),
+                    connection: unsafe { crate::Connection::from_raw(ev.Connection) },
+                }
+            }
+            crate::ffi::QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_STOP_COMPLETE => {
+                let ev = unsafe { &value.__bindgen_anon_1.STOP_COMPLETE };
+                Self::StopComplete {
+                    app_close_in_progress: ev.AppCloseInProgress() != 0,
+                }
+            }
+            _ => panic!("unknown listener event {}", value.Type),
+        }
+    }
+}
+
 /// Connection callback events.
 /// TODO: derive Debug once all enums are safe.
 pub enum ConnectionEvent<'a> {
@@ -89,11 +160,7 @@ impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
         match value.Type {
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_CONNECTED => {
                 let ev = unsafe { value.__bindgen_anon_1.CONNECTED };
-                let alpn = if ev.NegotiatedAlpnLength > 0{
-                  unsafe { std::slice::from_raw_parts(ev.NegotiatedAlpn, ev.NegotiatedAlpnLength as usize)}
-                }else{
-                  &[]
-                };
+                let alpn = unsafe { slice_conv(ev.NegotiatedAlpn, ev.NegotiatedAlpnLength as usize) };
                 Self::Connected { session_resumed: ev.SessionResumed != 0, negotiated_alpn: alpn }
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT => {
@@ -150,16 +217,14 @@ impl<'a> From<&'a QUIC_CONNECTION_EVENT> for ConnectionEvent<'a> {
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_RESUMED =>{
               let ev = unsafe { value.__bindgen_anon_1.RESUMED };
-              // TODO: may need to check 0 len.
               Self::Resumed {
-                resumption_state:  unsafe { std::slice::from_raw_parts(ev.ResumptionState, ev.ResumptionStateLength as usize) }
+                resumption_state:  unsafe { slice_conv(ev.ResumptionState, ev.ResumptionStateLength as usize) }
               }
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED =>{
               let ev = unsafe { value.__bindgen_anon_1.RESUMPTION_TICKET_RECEIVED };
-              // TODO: may need to check 0 len.
               Self::ResumptionTicketReceived {
-                resumption_ticket:  unsafe { std::slice::from_raw_parts(ev.ResumptionTicket, ev.ResumptionTicketLength as usize) }
+                resumption_ticket:  unsafe {slice_conv(ev.ResumptionTicket, ev.ResumptionTicketLength as usize) }
               }
             }
             crate::ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED => {
@@ -238,9 +303,7 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
                 Self::Receive {
                     absolute_offset: ev.AbsoluteOffset,
                     total_buffer_length: &mut ev.TotalBufferLength,
-                    buffers: unsafe {
-                        std::slice::from_raw_parts(ev.Buffers, ev.BufferCount as usize)
-                    },
+                    buffers: unsafe { slice_conv(ev.Buffers, ev.BufferCount as usize) },
                     flags: ev.Flags,
                 }
             }
@@ -302,5 +365,16 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
                 panic!("unknown stream event: {}", value.Type)
             }
         }
+    }
+}
+
+/// Convert array pointer to slice.
+/// Allows empty buffer. slice::from_raw_parts does not allow empty buffer.
+#[inline]
+unsafe fn slice_conv<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
+    if len == 0 {
+        &[]
+    } else {
+        std::slice::from_raw_parts(ptr, len)
     }
 }
