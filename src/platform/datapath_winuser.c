@@ -842,10 +842,6 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        Datapath->UseTcp = TRUE;
-    }
-
     Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
@@ -1490,7 +1486,6 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Datapath->UseTcp; // TODO: If we ever decide to remove the global execution param, this needs to be updated.
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1500,14 +1495,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
-
-    if (Datapath->UseTcp) {
-        //
-        // Skip normal socket settings to use AuxSocket in raw socket
-        //
-        goto Skip;
-    }
+    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
 
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
@@ -2068,8 +2056,6 @@ SocketCreateUdp(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-Skip:
-
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -2082,11 +2068,9 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
-        for (uint16_t i = 0; i < SocketCount; i++) {
-            CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
-            Socket->PerProcSockets[i].IoStarted = TRUE;
-        }
+    for (uint16_t i = 0; i < SocketCount; i++) {
+        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+        Socket->PerProcSockets[i].IoStarted = TRUE;
     }
 
     Socket = NULL;
@@ -2625,16 +2609,12 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
-        // QTIP did not initialize PerProcSockets
-        CxPlatSocketRelease(Socket);
-    } else {
-        const uint16_t SocketCount =
+    const uint16_t SocketCount =
             Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-        for (uint16_t i = 0; i < SocketCount; ++i) {
-            CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
-        }
+    for (uint16_t i = 0; i < SocketCount; ++i) {
+        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
+    CxPlatSocketRelease(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

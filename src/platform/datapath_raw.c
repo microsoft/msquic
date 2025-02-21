@@ -55,10 +55,6 @@ RawDataPathInitialize(
 
     DataPath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        DataPath->UseTcp = TRUE;
-    }
-
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -187,7 +183,8 @@ RawSocketDelete(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE, TRUE);
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE, FALSE);
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->RawRundown);
     if (Socket->PausedTcpSend) {
@@ -202,12 +199,12 @@ RawSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     // Reserve space for TCP header.
-    return Socket->UseTcp ? 1488 : 1500;
-
+    return UseQTIP ? 1488 : 1500;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -234,13 +231,7 @@ CxPlatDpRawRxEthernet(
 
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                // Route of this packet:
-                uint8_t PacketIsQtip = PacketChain->Route->UseQTIP;
-                uint8_t OverrideCurrentSettings = PacketChain->Route->AppDidSetQTIP;
-                if (OverrideCurrentSettings) {
-                    Socket->UseTcp = PacketIsQtip;
-                }
-                uint8_t SocketType = (Socket->UseTcp) ? L4_TYPE_TCP : L4_TYPE_UDP;
+                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
@@ -354,7 +345,7 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Socket->UseTcp &&
+    if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
         Socket->PausedTcpSend = SendData;

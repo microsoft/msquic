@@ -227,12 +227,14 @@ CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
+    _In_ uint32_t OffloadCount,
+    _In_ BOOLEAN UseQTIP
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Offloads);
     UNREFERENCED_PARAMETER(OffloadCount);
+    UNREFERENCED_PARAMETER(UseQTIP);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -515,11 +517,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ BOOLEAN IsCreated
+    _In_ BOOLEAN IsCreated,
+    _In_ BOOLEAN UseQTIP
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(IsCreated);
+    UNREFERENCED_PARAMETER(UseQTIP);
     // no-op currently since DPDK simply steals all traffic
 }
 
@@ -637,7 +641,7 @@ CxPlatDpRawTxAlloc(
         Packet->Interface = Interface;
         Packet->Mbuf = rte_pktmbuf_alloc(Interface->MemoryPool);
         if (likely(Packet->Mbuf)) {
-            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
+            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family, FALSE);
             Packet->Dpdk = Dpdk;
             Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;

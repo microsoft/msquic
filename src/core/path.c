@@ -35,10 +35,7 @@ QuicPathInitialize(
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 
-    if (MsQuicLib.ExecutionConfig &&
-        MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) {
-        CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
-    }
+    CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
 
     QuicTraceLogConnInfo(
         PathInitialized,
@@ -348,7 +345,7 @@ QuicPathUpdateQeo(
         Offloads[1].NextPacketNumber = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged;
         if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
             QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
-            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2))) {
+            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, FALSE))) {
             Connection->Stats.EncryptionOffloaded = TRUE;
             Path->EncryptionOffloading = TRUE;
             QuicTraceLogConnInfo(
@@ -360,7 +357,7 @@ QuicPathUpdateQeo(
         CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
     } else {
         CXPLAT_DBG_ASSERT(Path->EncryptionOffloading);
-        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2);
+        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, FALSE);
         Path->EncryptionOffloading = FALSE;
         QuicTraceLogConnInfo(
             PathQeoDisabled,

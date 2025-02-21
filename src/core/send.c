@@ -1061,7 +1061,7 @@ CxPlatIsRouteReady(
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
         QUIC_STATUS Status =
             CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion, Connection->State.UseQTIP, Connection->State.AppDidSetQTIP);
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion, Connection->State.UseQTIP);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
             return TRUE;

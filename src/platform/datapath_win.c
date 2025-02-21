@@ -21,10 +21,11 @@ CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
+    _In_ uint32_t OffloadCount,
+    _In_ BOOLEAN UseQTIP
     )
 {
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Offloads[0].Address))) {
         return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }

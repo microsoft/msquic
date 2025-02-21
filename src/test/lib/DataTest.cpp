@@ -317,6 +317,8 @@ NewPingConnection(
     if (SendUdpOverQtip && UseQTIP) {
         // Opt this connection out of QTIP.
         Connection->SetQtipPreferences(0);
+    } else {
+        Connection->SetQtipPreferences(1);
     }
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");

@@ -204,7 +204,6 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t UseTcp : 1; // always false?
     uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
@@ -277,8 +276,6 @@ typedef struct CXPLAT_DATAPATH {
     // The number of processors.
     //
     uint32_t ProcCount;
-
-    uint8_t UseTcp : 1; // Not supported. always false
 
     //
     // Per-processor completion contexts.
@@ -566,8 +563,6 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;
-
     //
     // Per-processor completion contexts.
     //
@@ -632,8 +627,6 @@ typedef struct CXPLAT_SOCKET {
     //
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
-
-    uint8_t UseTcp : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 
@@ -917,8 +910,6 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t UseTcp : 1;                  // Quic over TCP
-
     uint8_t RawSocketAvailable : 1;
 
     //
@@ -1023,8 +1014,6 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 #endif
-
-    uint8_t UseTcp : 1;
 
     //
     // The per proc datapath contexts.
@@ -1231,7 +1220,8 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ BOOLEAN UseQTIP
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
