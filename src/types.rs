@@ -303,7 +303,7 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
                     absolute_offset: ev.AbsoluteOffset,
                     total_buffer_length: &mut ev.TotalBufferLength,
                     buffers: unsafe {
-                        BufferRef::from_ffi_slice_ref(slice_conv(
+                        BufferRef::slice_from_ffi_ref(slice_conv(
                             ev.Buffers,
                             ev.BufferCount as usize,
                         ))
@@ -373,7 +373,11 @@ impl<'b> From<&'b mut crate::ffi::QUIC_STREAM_EVENT> for StreamEvent<'b> {
 }
 
 /// Buffer with same abi as ffi type.
-/// It has no ownership of the memory chunk.
+/// # Safety
+/// It has no ownership of the memory chunk,
+/// and user needs to ensure that this ref has
+/// the same lifetime as the original buffer
+/// location.
 #[repr(transparent)]
 pub struct BufferRef(pub QUIC_BUFFER);
 
@@ -384,52 +388,38 @@ impl BufferRef {
     }
 
     /// Cast from the ffi type.
-    /// # Safety
-    /// Raw buffer lifetime needs to be manually ensured.
-    pub unsafe fn from_ffi_ref(raw: &QUIC_BUFFER) -> &Self {
-        (raw as *const QUIC_BUFFER as *const Self).as_ref().unwrap()
+    /// This achieves zero copy.
+    pub fn from_ffi_ref(raw: &QUIC_BUFFER) -> &Self {
+        unsafe { (raw as *const QUIC_BUFFER as *const Self).as_ref().unwrap() }
     }
 
-    /// Cast from ffi slice type
-    /// # Safety
-    /// Raw buffer lifetime needs to be manually ensured.
-    pub unsafe fn from_ffi_slice_ref(raw: &[QUIC_BUFFER]) -> &[Self] {
-        (raw as *const [QUIC_BUFFER] as *const [Self])
-            .as_ref()
-            .unwrap()
-    }
-}
-
-/// Buffers backed by vectors.
-/// T is the buffer type that can convert to slice, typically Vec<u8> or array
-/// are used.
-/// TODO: this impl is unstable.
-pub struct VecBuffers<T: AsRef<[u8]>> {
-    /// buffers. Each chunk T is heap allocated via Vec,
-    _data: Vec<T>,
-    meta: Vec<QUIC_BUFFER>,
-}
-
-impl<T: AsRef<[u8]>> VecBuffers<T> {
-    pub fn as_ffi(&self) -> &[QUIC_BUFFER] {
-        self.meta.as_slice()
+    /// Cast from ffi slice type.
+    /// This achieves zero copy.
+    pub fn slice_from_ffi_ref(raw: &[QUIC_BUFFER]) -> &[Self] {
+        unsafe {
+            (raw as *const [QUIC_BUFFER] as *const [Self])
+                .as_ref()
+                .unwrap()
+        }
     }
 }
 
-impl<T: AsRef<[u8]>> VecBuffers<T> {
-    pub fn new(data: Vec<T>) -> Self {
-        let meta = data
-            .iter()
-            .by_ref()
-            .map(|b| {
-                let buf_ref = b.as_ref();
-                QUIC_BUFFER {
-                    Buffer: buf_ref.as_ptr() as *mut u8,
-                    Length: buf_ref.len() as u32,
-                }
-            })
-            .collect();
-        Self { _data: data, meta }
+// Convert from various common buffer types
+impl From<&str> for BufferRef {
+    fn from(value: &str) -> Self {
+        Self(QUIC_BUFFER {
+            Length: value.len() as u32,
+            Buffer: value.as_ptr() as *mut u8,
+        })
+    }
+}
+
+impl From<&[u8]> for BufferRef {
+    fn from(value: &[u8]) -> Self {
+        Self(QUIC_BUFFER {
+            Length: value.len() as u32,
+            Buffer: value.as_ptr() as *mut u8,
+        })
     }
 }
 
@@ -445,11 +435,8 @@ unsafe fn slice_conv<'a, T>(ptr: *const T, len: usize) -> &'a [T] {
 }
 
 #[cfg(test)]
-mod tests {
+mod buff_tests {
     use crate::{ffi::QUIC_BUFFER, types::slice_conv, BufferRef};
-
-    use super::VecBuffers;
-
     #[test]
     fn slice_conv_test() {
         {
@@ -466,7 +453,7 @@ mod tests {
     }
 
     #[test]
-    fn buffer_ref_test() {
+    fn buffer_ref_raw_test() {
         let first = Box::new(b"first");
         let second = b"second";
         let buffers = Box::new([
@@ -479,8 +466,9 @@ mod tests {
                 Length: second.len() as u32,
             },
         ]);
-        let buffs = unsafe { BufferRef::from_ffi_slice_ref(buffers.as_ref()) };
-        // In callback events, BufferSlice buffs is the given type and memory is from C,
+        let buffer_refs = BufferRef::slice_from_ffi_ref(buffers.as_ref());
+        let buffs = buffer_refs;
+        // In callback events, buffers has memory from C,
         // and it has the right lifetime.
         // In this test, `buffers` variable emulates the memory from C.
 
@@ -497,33 +485,66 @@ mod tests {
         assert_eq!(second, second1.as_bytes());
     }
 
-    const FIRST: &[u8; 5] = b"aaaaa";
-    const SECOND: &[u8; 5] = b"bbbbb";
-
+    /// This test shows how to construct simple
+    /// buffers to call msquic.
     #[test]
-    fn buffer_write_test_vec() {
-        let buffers = VecBuffers::new(vec![FIRST.to_vec(), SECOND.to_vec()]);
-        buffer_write_test(buffers);
+    fn buffer_ref_conv_test() {
+        let b1 = b"11";
+        let b2 = b"22".to_vec();
+        let b3 = "33";
+
+        let buffer_refs = [
+            BufferRef::from(b1.as_slice()),
+            BufferRef::from(b2.as_slice()),
+            BufferRef::from(b3),
+        ];
+        // One can call msquic api here using the slice.
+
+        assert_eq!(buffer_refs[0].as_bytes(), b1);
+        assert_eq!(buffer_refs[1].as_bytes(), b2);
+        assert_eq!(buffer_refs[2].as_bytes(), b3.as_bytes());
     }
 
     #[test]
-    fn buffer_write_test_array() {
-        let buffers = VecBuffers::new(vec![FIRST.to_owned(), SECOND.to_owned()]);
-        buffer_write_test(buffers);
+    fn buffer_ref_detach_test() {
+        let data = b"data".to_vec().into_boxed_slice();
+        let buff_refs = [BufferRef::from(data.as_ref())];
+
+        // Detach the data as raw ptr.
+        // raw ptr can be pass to msquic as client context.
+        let raw = Box::into_raw(data);
+
+        // MsQuic takes ownership of the buff and can inspect it.
+        assert_eq!(buff_refs[0].as_bytes(), b"data");
+
+        // Attach back the ownership
+        // Usually used when msquic gives back the client context
+        // in the callback event.
+        let _ = unsafe { Box::from_raw(raw) };
     }
 
-    fn buffer_write_test<T: AsRef<[u8]>>(buffers: VecBuffers<T>) {
-        let refs = unsafe { BufferRef::from_ffi_slice_ref(buffers.as_ffi()) };
-        // try read it
-        assert_eq!(refs[0].as_bytes(), FIRST);
-        assert_eq!(refs[1].as_bytes(), SECOND);
+    #[test]
+    fn multi_buffer_ref_detach_test() {
+        let data = b"data".to_vec();
+        let data2 = Box::new("data2");
+        let buff_refs = [
+            BufferRef::from(data.as_slice()),
+            BufferRef::from(data2.as_bytes()),
+        ];
 
-        // TODO: implement detach attach.
-        // // detach and reattach and check content
-        // let raw = buffers.into_raw();
-        // let buffers2 = unsafe { BoxedBuffersOwned::<T>::from_raw(raw) }.into_inner();
-        // let refs2 = BufferRefSlice(buffers2.as_ffi());
-        // assert_eq!(refs2.as_slice()[0].as_bytes(), FIRST);
-        // assert_eq!(refs2.as_slice()[1].as_bytes(), SECOND);
+        let ctx = Box::new((data, data2));
+
+        // Detach the data as raw ptr.
+        // raw ptr can be pass to msquic as client context.
+        let raw = Box::into_raw(ctx);
+
+        // MsQuic takes ownership of the buff and can inspect it.
+        assert_eq!(buff_refs[0].as_bytes(), b"data");
+        assert_eq!(buff_refs[1].as_bytes(), b"data2");
+
+        // Attach back the ownership
+        // Usually used when msquic gives back the client context
+        // in the callback event.
+        let _ = unsafe { Box::from_raw(raw) };
     }
 }
