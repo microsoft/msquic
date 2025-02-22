@@ -199,6 +199,10 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
     QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
                                                         // connection should be delayed to StreamClose.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS = 0x0008,   // No buffer will be allocated for the stream, the app must
+                                                        // provide buffers (see StreamProvideReceiveBuffers)
+#endif
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
@@ -1568,6 +1572,23 @@ QUIC_STATUS
     _In_ BOOLEAN IsEnabled
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Provides receive buffers to the stream.
+// The buffers are owned by the caller and must remain valid until a receive
+// indication for all bytes in the buffer, or the stream is closed.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN)(
+    _In_ _Pre_defensive_ HQUIC Stream,
+    _In_ uint32_t BufferCount,
+    _In_reads_(BufferCount) const QUIC_BUFFER* Buffers
+    );
+
+#endif
+
 //
 // Datagrams
 //
@@ -1636,6 +1657,10 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
+                                        StreamProvideReceiveBuffers; // Available from v2.5
+#endif
 } QUIC_API_TABLE;
 
 #define QUIC_API_VERSION_1      1 // Not supported any more

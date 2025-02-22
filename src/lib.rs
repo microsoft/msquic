@@ -27,7 +27,7 @@ mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::ConnectionEvent;
+pub use types::{ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -362,22 +362,6 @@ pub struct TicketKeyConfig {
 pub struct Buffer {
     pub length: u32,
     pub buffer: *mut u8,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct NewConnectionInfo {
-    pub quic_version: u32,
-    pub local_address: *const Addr,
-    pub remote_address: *const Addr,
-    pub crypto_buffer_length: u32,
-    pub client_alpn_list_length: u16,
-    pub server_name_length: u16,
-    pub negotiated_alpn_length: u8,
-    pub crypto_buffer: *const u8,
-    pub client_alpn_list: *const u8,
-    pub negotiated_alpn: *const u8,
-    pub server_name: *const i8,
 }
 
 pub type TlsProtocolVersion = u32;
@@ -763,166 +747,6 @@ pub const PARAM_STREAM_ID: u32 = 0x08000000;
 pub const PARAM_STREAM_0RTT_LENGTH: u32 = 0x08000001;
 pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
 pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
-
-pub type ListenerEventType = u32;
-pub const LISTENER_EVENT_NEW_CONNECTION: ListenerEventType = 0;
-pub const LISTENER_EVENT_STOP_COMPLETE: ListenerEventType = 1;
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ListenerEventNewConnection {
-    pub info: *const NewConnectionInfo,
-    pub connection: HQUIC,
-}
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Debug, Clone, Copy)]
-    pub struct ListenerEventStopCompleteBitfields(u8);
-    // The fields default to u8
-    pub app_close_in_progress, _: 0, 0;
-    _reserved, _: 7, 1;
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct ListenerEventStopComplete {
-    pub bit_flags: ListenerEventStopCompleteBitfields,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union ListenerEventPayload {
-    pub new_connection: ListenerEventNewConnection,
-    pub stop_complete: ListenerEventStopComplete,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct ListenerEvent {
-    pub event_type: ListenerEventType,
-    pub payload: ListenerEventPayload,
-}
-
-pub type StreamEventType = u32;
-pub const STREAM_EVENT_START_COMPLETE: StreamEventType = 0;
-pub const STREAM_EVENT_RECEIVE: StreamEventType = 1;
-pub const STREAM_EVENT_SEND_COMPLETE: StreamEventType = 2;
-pub const STREAM_EVENT_PEER_SEND_SHUTDOWN: StreamEventType = 3;
-pub const STREAM_EVENT_PEER_SEND_ABORTED: StreamEventType = 4;
-pub const STREAM_EVENT_PEER_RECEIVE_ABORTED: StreamEventType = 5;
-pub const STREAM_EVENT_SEND_SHUTDOWN_COMPLETE: StreamEventType = 6;
-pub const STREAM_EVENT_SHUTDOWN_COMPLETE: StreamEventType = 7;
-pub const STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE: StreamEventType = 8;
-pub const STREAM_EVENT_PEER_ACCEPTED: StreamEventType = 9;
-pub const STREAM_EVENT_CANCEL_ON_LOSS: StreamEventType = 10;
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Debug, Clone, Copy)]
-    pub struct StreamEventStartCompleteBitfields(u8);
-    // The fields default to u8
-    pub peer_accepted, _: 0, 0;
-    _reserved, _: 7, 1;
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventStartComplete {
-    pub status: u32,
-    pub id: u62,
-    pub bit_flags: StreamEventStartCompleteBitfields,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventReceive {
-    pub absolute_offset: u64,
-    pub total_buffer_length: u64,
-    pub buffer: *const Buffer,
-    pub buffer_count: u32,
-    pub flags: ReceiveFlags,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventSendComplete {
-    pub canceled: bool,
-    pub client_context: *const c_void,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventPeerSendAborted {
-    pub error_code: u62,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventPeerReceiveAborted {
-    pub error_code: u62,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventSendShutdownComplete {
-    pub graceful: bool,
-}
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Clone, Copy)]
-    pub struct StreamEventShutdownCompleteBitfields(u8);
-    // The fields default to u8
-    pub app_close_in_progress, _: 0, 0;
-    pub conn_shutdown_by_app, _: 1, 1;
-    pub conn_closed_remotely, _: 2, 2;
-    _reserved, _: 7, 3;
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct StreamEventShutdownComplete {
-    pub connection_shutdown: bool,
-    pub bit_flags: StreamEventShutdownCompleteBitfields,
-    pub connection_error_code: u62,
-    pub connection_close_status: u32,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventIdealSendBufferSize {
-    pub byte_count: u64,
-}
-
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct StreamEventCancelOnLoss {
-    pub error_code: u62,
-}
-
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union StreamEventPayload {
-    pub start_complete: StreamEventStartComplete,
-    pub receive: StreamEventReceive,
-    pub send_complete: StreamEventSendComplete,
-    pub peer_send_aborted: StreamEventPeerSendAborted,
-    pub peer_receive_aborted: StreamEventPeerReceiveAborted,
-    pub send_shutdown_complete: StreamEventSendShutdownComplete,
-    pub shutdown_complete: StreamEventShutdownComplete,
-    pub ideal_send_buffer_size: StreamEventIdealSendBufferSize,
-    pub cancel_on_loss: StreamEventCancelOnLoss,
-}
-
-#[repr(C)]
-pub struct StreamEvent {
-    pub event_type: StreamEventType,
-    pub payload: StreamEventPayload,
-}
-
-pub type StreamEventHandler =
-    extern "C" fn(stream: HQUIC, context: *mut c_void, event: &StreamEvent) -> u32;
 
 #[link(name = "msquic")]
 unsafe extern "C" {
@@ -1592,16 +1416,14 @@ impl Stream {
         &mut self,
         connection: &Connection,
         flags: StreamOpenFlags,
-        handler: StreamEventHandler,
+        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
         context: *const c_void,
     ) -> Result<(), Status> {
-        // TODO: remove transmute.
-        #[allow(clippy::missing_transmute_annotations)]
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
                 flags as crate::ffi::QuicFlag,
-                Some(std::mem::transmute(handler)),
+                handler,
                 context as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
@@ -1656,8 +1478,18 @@ impl Stream {
 
     /// # Safety
     /// handler and context must be valid.
-    pub unsafe fn set_callback_handler(&self, handler: StreamEventHandler, context: *const c_void) {
-        unsafe { Api::set_callback_handler(self.handle, handler as *const c_void, context) };
+    pub unsafe fn set_callback_handler(
+        &self,
+        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
+        context: *const c_void,
+    ) {
+        unsafe {
+            Api::set_callback_handler(
+                self.handle,
+                std::mem::transmute::<ffi::QUIC_STREAM_CALLBACK_HANDLER, *const c_void>(handler),
+                context,
+            )
+        };
     }
 
     pub fn receive_complete(&self, buffer_length: u64) {
@@ -1745,7 +1577,7 @@ mod tests {
             }
             ConnectionEvent::PeerStreamStarted { stream, flags } => {
                 println!("Peer stream started: flags: {flags}");
-                unsafe { stream.set_callback_handler(test_stream_callback, context) };
+                unsafe { stream.set_callback_handler(Some(test_stream_callback), context) };
             }
             ConnectionEvent::StreamsAvailable {
                 bidirectional_count,
@@ -1766,32 +1598,67 @@ mod tests {
     extern "C" fn test_stream_callback(
         stream: HQUIC,
         _context: *mut c_void,
-        event: &StreamEvent,
-    ) -> u32 {
-        match event.event_type {
-            crate::STREAM_EVENT_START_COMPLETE => {
-                println!("Stream start complete 0x{:x}", unsafe {
-                    event.payload.start_complete.status
-                })
+        event: *mut ffi::QUIC_STREAM_EVENT,
+    ) -> QUIC_STATUS {
+        let event_ref = unsafe { event.as_mut().unwrap() };
+        let event = StreamEvent::from(event_ref);
+        match event {
+            StreamEvent::StartComplete {
+                status,
+                id,
+                peer_accepted,
+            } => {
+                println!("Stream start complete: {status}, {id}, {peer_accepted}");
             }
-            crate::STREAM_EVENT_RECEIVE => println!("Receive {} bytes", unsafe {
-                event.payload.receive.total_buffer_length
-            }),
-            crate::STREAM_EVENT_SEND_COMPLETE => println!("Send complete"),
-            crate::STREAM_EVENT_PEER_SEND_SHUTDOWN => println!("Peer send shutdown"),
-            crate::STREAM_EVENT_PEER_SEND_ABORTED => println!("Peer send aborted"),
-            crate::STREAM_EVENT_PEER_RECEIVE_ABORTED => println!("Peer receive aborted"),
-            crate::STREAM_EVENT_SEND_SHUTDOWN_COMPLETE => println!("Peer receive aborted"),
-            crate::STREAM_EVENT_SHUTDOWN_COMPLETE => {
-                println!("Stream shutdown complete");
+            StreamEvent::Receive {
+                absolute_offset,
+                total_buffer_length,
+                buffers: _,
+                flags: _,
+            } => {
+                println!("Stream receive: {absolute_offset}, {total_buffer_length}");
+            }
+            StreamEvent::SendComplete {
+                cancelled,
+                client_context: _,
+            } => {
+                println!("Stream send complete: {cancelled}");
+            }
+            StreamEvent::PeerSendShutdown => {
+                println!("Stream peer send shutdown");
+            }
+            StreamEvent::PeerSendAborted { error_code } => {
+                println!("Stream peer send abort: {error_code}");
+            }
+            StreamEvent::PeerReceiveAborted { error_code } => {
+                println!("Stream peer receive aborted: {error_code}");
+            }
+            StreamEvent::SendShutdownComplete { graceful } => {
+                println!("Stream send shutdown complete: {graceful}");
+            }
+            StreamEvent::ShutdownComplete {
+                connection_shutdown,
+                app_close_in_progress,
+                connection_shutdown_by_app,
+                connection_closed_remotely,
+                connection_error_code,
+                connection_close_status,
+            } => {
+                println!("Stream shutdown complete: {connection_shutdown} {app_close_in_progress} {connection_shutdown_by_app} {connection_closed_remotely} {connection_error_code} {connection_close_status}");
                 // Attach to stream for auto close handle.
                 unsafe { Stream::from_raw(stream) };
             }
-            crate::STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE => println!("Ideal send buffer size"),
-            crate::STREAM_EVENT_PEER_ACCEPTED => println!("Peer accepted"),
-            _ => println!("Other callback {}", event.event_type),
+            StreamEvent::IdealSendBufferSize { byte_count } => {
+                println!("Stream ideal send buffer size: {byte_count}");
+            }
+            StreamEvent::PeerAccepted => {
+                println!("Stream peer accepted.");
+            }
+            StreamEvent::CancelOnLoss { error_code } => {
+                println!("Stream cancel on loss: {error_code}");
+            }
         }
-        0
+        StatusCode::QUIC_STATUS_SUCCESS.into()
     }
 
     #[test]

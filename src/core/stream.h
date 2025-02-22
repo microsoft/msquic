@@ -112,6 +112,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN StartedIndicated        : 1;    // The app received a start complete event.
+        BOOLEAN PeerStreamStartEventActive : 1; // The app is processing QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
         BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
@@ -140,6 +141,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN SendEnabled             : 1;    // Application is allowed to send data.
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
         BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
+        BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
@@ -389,7 +391,14 @@ typedef struct QUIC_STREAM {
     //
     uint64_t MaxAllowedRecvOffset;
 
+    //
+    // The number of bytes received since the last recv window update.
+    //
     uint64_t RecvWindowBytesDelivered;
+
+    //
+    // Timestamp of the last recv window update.
+    //
     uint64_t RecvWindowLastUpdate;
 
     //
@@ -1004,4 +1013,24 @@ QUIC_STATUS
 QuicStreamRecvSetEnabledState(
     _In_ QUIC_STREAM* Stream,
     _In_ BOOLEAN NewRecvEnabled
+    );
+
+//
+// Convert a stream receive buffer to app-owned mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamSwitchToAppOwnedBuffers(
+    _In_ QUIC_STREAM *Stream
+    );
+
+//
+// Provide new chunks for the stream receive buffer.
+// Terminate the connection on failure.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamProvideRecvBuffers(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
     );
