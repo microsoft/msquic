@@ -232,7 +232,6 @@ extern const uint64_t SizeMult[];
 extern const char* CountUnits[];
 extern uint64_t CountMult[];
 
-_Success_(return != false)
 template <typename T>
 bool
 TryGetVariableUnitValue(
@@ -243,7 +242,6 @@ TryGetVariableUnitValue(
     _Out_opt_ bool* isTimed = nullptr
     );
 
-_Success_(return != false)
 template <typename T>
 bool
 TryGetVariableUnitValue(
