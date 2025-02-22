@@ -7,3 +7,6 @@ coverage:
     patch:
       target: 80%
       threshold: 2%
+ignore:
+  - "**/*.md"
+  - "docs"
