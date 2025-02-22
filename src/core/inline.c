@@ -27,22 +27,22 @@ QuicCidNewDestination(
         const uint8_t* const Data
     );
 
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicCidNewSource(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATHID* PathID,
     _In_ uint8_t Length,
     _In_reads_(Length)
         const uint8_t* const Data
     );
 
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicCidNewNullSource(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_PATHID* PathID
     );
 
-QUIC_CID_HASH_ENTRY*
+QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_opt_ QUIC_PATHID* PathID,
     _In_reads_opt_(MsQuicLib.CidServerIdLength)
         const void* ServerID,
     _In_ uint16_t PartitionID,
@@ -254,6 +254,18 @@ void
 QuicCryptoCombineIvAndPacketNumber(
     _In_reads_bytes_(CXPLAT_IV_LENGTH)
         const uint8_t* const IvIn,
+    _In_reads_bytes_(sizeof(uint64_t))
+        const uint8_t* const PacketNumber,
+    _Out_writes_bytes_(CXPLAT_IV_LENGTH)
+        uint8_t* IvOut
+    );
+
+void
+QuicCryptoCombineIvAndPathIDAndPacketNumber(
+    _In_reads_bytes_(CXPLAT_IV_LENGTH)
+        const uint8_t* const IvIn,
+    _In_reads_bytes_(sizeof(uint32_t))
+        const uint8_t* const PathID,
     _In_reads_bytes_(sizeof(uint64_t))
         const uint8_t* const PacketNumber,
     _Out_writes_bytes_(CXPLAT_IV_LENGTH)
@@ -594,7 +606,7 @@ QuicPktNumDecode(
 
 void
 QuicConnLogOutFlowStats(
-    _In_ const QUIC_CONNECTION* const Connection
+    _In_ const QUIC_PATHID* const PathID
     );
 
 void
@@ -715,6 +727,11 @@ QuicRetryTokenDecrypt(
     _Out_ QUIC_TOKEN_CONTENTS* Token
     );
 
+QUIC_BINDING*
+QuicLookupGetBinding(
+    _In_ QUIC_LOOKUP* Lookup
+    );
+
 void
 QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
@@ -723,7 +740,7 @@ QuicConnLogStatistics(
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _In_ uint8_t FrameType,
+    _In_ uint32_t FrameType,
     _In_ BOOLEAN IsAckEliciting
     );
 
@@ -744,25 +761,37 @@ QuicPacketBuilderHasAllowance(
     _In_ const QUIC_PACKET_BUILDER* Builder
     );
 
-QUIC_CID_HASH_ENTRY*
-QuicConnGetSourceCidFromSeq(
-    _In_ QUIC_CONNECTION* Connection,
+void
+QuicPathIDAddRef(
+    _In_ QUIC_PATHID* PathID,
+    _In_ QUIC_PATHID_REF Ref
+    );
+
+BOOLEAN
+QuicPathIDRelease(
+    _In_ __drv_freesMem(Mem) QUIC_PATHID* PathID,
+    _In_ QUIC_PATHID_REF Ref
+    );
+
+QUIC_CID_SLIST_ENTRY*
+QuicPathIDGetSourceCidFromSeq(
+    _In_ QUIC_PATHID* PathID,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList,
     _Out_ BOOLEAN* IsLastCid
     );
 
-QUIC_CID_HASH_ENTRY*
-QuicConnGetSourceCidFromBuf(
-    _In_ QUIC_CONNECTION* Connection,
+QUIC_CID_SLIST_ENTRY*
+QuicPathIDGetSourceCidFromBuf(
+    _In_ QUIC_PATHID* PathID,
     _In_ uint8_t CidLength,
     _In_reads_(CidLength)
         const uint8_t* CidBuffer
     );
 
 QUIC_CID_LIST_ENTRY*
-QuicConnGetDestCidFromSeq(
-    _In_ QUIC_CONNECTION* Connection,
+QuicPathIDGetDestCidFromSeq(
+    _In_ QUIC_PATHID* PathID,
     _In_ QUIC_VAR_INT SequenceNumber,
     _In_ BOOLEAN RemoveFromList
     );

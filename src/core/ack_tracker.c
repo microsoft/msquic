@@ -290,6 +290,7 @@ QuicAckTrackerAckFrameEncode(
     _Inout_ QUIC_PACKET_BUILDER* Builder
     )
 {
+    QUIC_PACKET_SPACE* PacketSpace = QuicAckTrackerGetPacketSpace(Tracker);
     CXPLAT_DBG_ASSERT(QuicAckTrackerHasPacketsToAck(Tracker));
 
     const uint64_t Timestamp = CxPlatTimeUs64();
@@ -310,6 +311,9 @@ QuicAckTrackerAckFrameEncode(
     }
 
     if (!QuicAckFrameEncode(
+            PacketSpace->Connection->State.MultipathNegotiated &&
+                Builder->EncryptLevel == QUIC_ENCRYPT_LEVEL_1_RTT,
+            PacketSpace->PathID->ID,
             &Tracker->PacketNumbersToAck,
             AckDelay,
             Tracker->NonZeroRecvECN ?

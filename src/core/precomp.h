@@ -72,6 +72,8 @@
 #include "stream_set.h"
 #include "datagram.h"
 #include "version_neg.h"
+#include "pathid_set.h"
+#include "pathid.h"
 #include "connection.h"
 #include "packet_builder.h"
 #include "listener.h"

@@ -618,6 +618,28 @@ pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
 pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
 pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
 
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VersionSettings {
+    acceptable_versions: *const u32,
+    offered_versions: *const u32,
+    fully_deployed_versions: *const u32,
+    acceptable_versions_length: u32,
+    offered_versions_length: u32,
+    fully_deployed_versions_length: u32,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PathStatus {
+    peer_address: Addr,
+    local_address: Addr,
+    path_id: u32,
+    active: BOOLEAN,
+}
+
 pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
 
 #[repr(C)]
@@ -721,6 +743,13 @@ pub const PARAM_CONN_VERSION_SETTINGS: u32 = 0x05000014;
 pub const PARAM_CONN_INITIAL_DCID_PREFIX: u32 = 0x05000015;
 pub const PARAM_CONN_STATISTICS_V2: u32 = 0x05000016;
 pub const PARAM_CONN_STATISTICS_V2_PLAT: u32 = 0x05000017;
+pub const PARAM_CONN_ORIG_DEST_CID: u32 = 0x05000018;
+#[cfg(feature = "preview-api")]
+pub const PARAM_CONN_ADD_LOCAL_ADDRESS: u32 = 0x05000019;
+#[cfg(feature = "preview-api")]
+pub const PARAM_CONN_REMOVE_LOCAL_ADDRESS: u32 = 0x0500001A;
+#[cfg(feature = "preview-api")]
+pub const PARAM_CONN_PATH_STATUS: u32 = 0x0500001B;
 
 pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 0x06000000;
 pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 0x06000001;
@@ -913,6 +942,12 @@ impl Settings {
     pub fn set_stream_multi_receive_enabled(&mut self, value: bool) -> &mut Settings {
         self.is_set_flags |= 1 << 42;
         self.other2_flags |= (value as u64) << 5;
+        self
+    }
+    #[cfg(feature = "preview-api")]
+    pub fn set_multipath_enabled(&mut self, value: bool) -> &mut Settings {
+        self.is_set_flags |= 1 << 43;
+        self.other2_flags |= (value as u64) << 6;
         self
     }
 }
