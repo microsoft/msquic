@@ -583,40 +583,45 @@ pub struct QuicListenerStatistics {
     pub binding: u64,
 }
 
-/// A helper struct for accessing performance counters.
-pub struct QuicPerformance {
-    pub counters: [i64; PERF_COUNTER_MAX as usize],
-}
+type QuicPerformanceCountersParam =
+    [i64; crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_MAX as usize];
 
-pub type PerformanceCounter = u32;
-pub const PERF_COUNTER_CONN_CREATED: PerformanceCounter = 0;
-pub const PERF_COUNTER_CONN_HANDSHAKE_FAIL: PerformanceCounter = 1;
-pub const PERF_COUNTER_CONN_APP_REJECT: PerformanceCounter = 2;
-pub const PERF_COUNTER_CONN_RESUMED: PerformanceCounter = 3;
-pub const PERF_COUNTER_CONN_ACTIVE: PerformanceCounter = 4;
-pub const PERF_COUNTER_CONN_CONNECTED: PerformanceCounter = 5;
-pub const PERF_COUNTER_CONN_PROTOCOL_ERRORS: PerformanceCounter = 6;
-pub const PERF_COUNTER_CONN_NO_ALPN: PerformanceCounter = 7;
-pub const PERF_COUNTER_STRM_ACTIVE: PerformanceCounter = 8;
-pub const PERF_COUNTER_PKTS_SUSPECTED_LOST: PerformanceCounter = 9;
-pub const PERF_COUNTER_PKTS_DROPPED: PerformanceCounter = 10;
-pub const PERF_COUNTER_PKTS_DECRYPTION_FAIL: PerformanceCounter = 11;
-pub const PERF_COUNTER_UDP_RECV: PerformanceCounter = 12;
-pub const PERF_COUNTER_UDP_SEND: PerformanceCounter = 13;
-pub const PERF_COUNTER_UDP_RECV_BYTES: PerformanceCounter = 14;
-pub const PERF_COUNTER_UDP_SEND_BYTES: PerformanceCounter = 15;
-pub const PERF_COUNTER_UDP_RECV_EVENTS: PerformanceCounter = 16;
-pub const PERF_COUNTER_UDP_SEND_CALLS: PerformanceCounter = 17;
-pub const PERF_COUNTER_APP_SEND_BYTES: PerformanceCounter = 18;
-pub const PERF_COUNTER_APP_RECV_BYTES: PerformanceCounter = 19;
-pub const PERF_COUNTER_CONN_QUEUE_DEPTH: PerformanceCounter = 20;
-pub const PERF_COUNTER_CONN_OPER_QUEUE_DEPTH: PerformanceCounter = 21;
-pub const PERF_COUNTER_CONN_OPER_QUEUED: PerformanceCounter = 22;
-pub const PERF_COUNTER_CONN_OPER_COMPLETED: PerformanceCounter = 23;
-pub const PERF_COUNTER_WORK_OPER_QUEUE_DEPTH: PerformanceCounter = 24;
-pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
-pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
-pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
+/// A helper struct for accessing performance counters.
+#[derive(Debug)]
+pub struct QuicPerformanceCounters {
+    pub conn_created: i64,
+    pub conn_handshake_fail: i64,
+    pub conn_app_reject: i64,
+    pub conn_resumed: i64,
+    pub conn_active: i64,
+    pub conn_connected: i64,
+    pub conn_protocol_errors: i64,
+    pub conn_no_alpn: i64,
+    pub strm_active: i64,
+    pub pkts_suspected_lost: i64,
+    pub pkts_dropped: i64,
+    pub pkts_decryption_fail: i64,
+    pub udp_recv: i64,
+    pub udp_send: i64,
+    pub udp_recv_bytes: i64,
+    pub udp_send_bytes: i64,
+    pub udp_recv_events: i64,
+    pub udp_send_calls: i64,
+    pub app_send_bytes: i64,
+    pub app_recv_bytes: i64,
+    pub conn_queue_depth: i64,
+    pub conn_oper_queue_depth: i64,
+    pub conn_oper_queued: i64,
+    pub conn_oper_completed: i64,
+    pub work_oper_queue_depth: i64,
+    pub work_oper_queued: i64,
+    pub work_oper_completed: i64,
+    pub path_validated: i64,
+    pub path_failure: i64,
+    pub send_stateless_reset: i64,
+    pub send_stateless_retry: i64,
+    pub conn_load_reject: i64,
+}
 
 pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
 
@@ -879,9 +884,84 @@ impl From<Buffer> for Vec<u8> {
     }
 }
 
-impl QuicPerformance {
-    pub fn counter(&self, counter: PerformanceCounter) -> i64 {
-        self.counters[counter as usize]
+impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
+    fn from(value: QuicPerformanceCountersParam) -> Self {
+        Self {
+            conn_created: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_CREATED as usize],
+            conn_handshake_fail: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL
+                    as usize],
+            conn_app_reject: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_APP_REJECT as usize],
+            conn_resumed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_RESUMED as usize],
+            conn_active: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_ACTIVE as usize],
+            conn_connected: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_CONNECTED as usize],
+            conn_protocol_errors: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS
+                    as usize],
+            conn_no_alpn: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_NO_ALPN as usize],
+            strm_active: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_STRM_ACTIVE as usize],
+            pkts_suspected_lost: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST
+                    as usize],
+            pkts_dropped: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_DROPPED as usize],
+            pkts_decryption_fail: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL
+                    as usize],
+            udp_recv: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV as usize],
+            udp_send: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND as usize],
+            udp_recv_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV_BYTES as usize],
+            udp_send_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND_BYTES as usize],
+            udp_recv_events: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV_EVENTS as usize],
+            udp_send_calls: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND_CALLS as usize],
+            app_send_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_APP_SEND_BYTES as usize],
+            app_recv_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_APP_RECV_BYTES as usize],
+            conn_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH as usize],
+            conn_oper_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH
+                    as usize],
+            conn_oper_queued: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_QUEUED as usize],
+            conn_oper_completed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_COMPLETED
+                    as usize],
+            work_oper_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH
+                    as usize],
+            work_oper_queued: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_QUEUED as usize],
+            work_oper_completed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_COMPLETED
+                    as usize],
+            path_validated: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PATH_VALIDATED as usize],
+            path_failure: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PATH_FAILURE as usize],
+            send_stateless_reset: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_SEND_STATELESS_RESET
+                    as usize],
+            send_stateless_retry: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_SEND_STATELESS_RETRY
+                    as usize],
+            conn_load_reject: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_LOAD_REJECT as usize],
+        }
     }
 }
 
@@ -948,6 +1028,16 @@ impl Api {
         Status::ok_from_raw(status)
     }
 
+    /// Auto create param type T
+    /// # Safety
+    /// T needs to be ffi type compatible.
+    pub unsafe fn get_param_auto<T>(handle: HQUIC, param: u32) -> Result<T, Status> {
+        let buffer = std::mem::zeroed::<T>();
+        let len = std::mem::size_of::<T>() as u32;
+        Self::get_param(handle, param, &len, &buffer as *const T as *mut c_void)?;
+        Ok(buffer)
+    }
+
     /// # Safety
     /// buffer needs to be valid.
     pub unsafe fn set_param(
@@ -961,20 +1051,14 @@ impl Api {
         Status::ok_from_raw(status)
     }
 
-    pub fn get_perf(&self) -> Result<QuicPerformance, Status> {
-        let mut perf = QuicPerformance {
-            counters: [0; PERF_COUNTER_MAX as usize],
-        };
-        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
+    pub fn get_perf() -> Result<QuicPerformanceCounters, Status> {
         unsafe {
-            Api::get_param(
+            Api::get_param_auto::<QuicPerformanceCountersParam>(
                 std::ptr::null_mut(),
-                PARAM_GLOBAL_PERF_COUNTERS,
-                std::ptr::addr_of!(perf_length),
-                perf.counters.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(perf)
+                crate::ffi::QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            )
+        }
+        .map(QuicPerformanceCounters::from)
     }
 
     /// # Safety
@@ -1721,5 +1805,9 @@ mod tests {
 
         let duration = std::time::Duration::from_millis(1000);
         std::thread::sleep(duration);
+
+        let perf = crate::Api::get_perf().unwrap();
+        assert!(perf.conn_created > 0);
+        assert!(perf.strm_active > 0);
     }
 }
