@@ -254,9 +254,11 @@ QuicAddrSetToLoopback(
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        Addr->Ipv4.sin_addr.s_addr = 0UL;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
+        memset(&Addr->Ipv6.sin6_addr, 0, sizeof(Addr->Ipv6.sin6_addr));
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
 }

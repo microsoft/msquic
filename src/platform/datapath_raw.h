@@ -377,6 +377,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
+    _In_ uint8_t DSCP,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum,
     _In_ uint32_t TcpSeqNum,

@@ -1588,6 +1588,11 @@ QuicSendFlush(
         //QuicConnUpdatePeerPacketTolerance(Connection, Builder.TotalCountDatagrams);
     }
 
+    //
+    // Clears the SendQueue list of not sent packets if the flag is applied
+    //
+    QuicDatagramCancelBlocked(Connection);
+
     return Result != QUIC_SEND_INCOMPLETE;
 }
 #pragma warning(pop)

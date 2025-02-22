@@ -56,6 +56,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_SEND,
     QUIC_API_TYPE_STRM_RECV_COMPLETE,
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
+    QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS,
 
     QUIC_API_TYPE_SET_PARAM,
     QUIC_API_TYPE_GET_PARAM,
@@ -154,6 +155,10 @@ typedef struct QUIC_API_CONTEXT {
             QUIC_STREAM* Stream;
             BOOLEAN IsEnabled;
         } STRM_RECV_SET_ENABLED;
+        struct {
+            QUIC_STREAM* Stream;
+            CXPLAT_LIST_ENTRY /* QUIC_RECV_CHUNK */ Chunks;
+        } STRM_PROVIDE_RECV_BUFFERS;
 
         struct {
             HQUIC Handle;

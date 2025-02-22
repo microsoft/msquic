@@ -4521,6 +4521,83 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
     }
 }
 
+void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_SEND_DSCP");
+    {
+        TestScopeLogger LogScope1("SetParam null buffer");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                nullptr));
+    }
+    {
+        TestScopeLogger LogScope1("SetParam zero length");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                0,
+                &Dummy));
+    }
+    {
+        TestScopeLogger LogScope1("SetParam non-DSCP number");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 64;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                &Dummy));
+        Dummy = 255;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                &Dummy));
+    }
+    {
+        TestScopeLogger LogScope1("GetParam Default");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dscp = 0;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SEND_DSCP, sizeof(Dscp), &Dscp);
+    }
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam Valid DSCP");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dscp = CXPLAT_DSCP_LE;
+        uint8_t GetValue = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dscp),
+                &Dscp));
+        uint32_t BufferSize = sizeof(GetValue);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                &BufferSize,
+                &GetValue));
+        TEST_EQUAL(BufferSize, sizeof(GetValue));
+        TEST_EQUAL(GetValue, Dscp);
+    }
+}
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 void QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
 {
@@ -4594,12 +4671,14 @@ void QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(MsQuicRegistration& Registration
             TestScopeLogger LogScope2("Duplicate address");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
             QUIC_ADDR Dummy = {};
             TEST_QUIC_SUCCEEDED(
                 Connection.SetParam(
                     QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
                     sizeof(Dummy),
                     &Dummy));
+
             TEST_QUIC_STATUS(
                 QUIC_STATUS_ADDRESS_IN_USE,
                 Connection.SetParam(
@@ -4627,6 +4706,36 @@ void QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(MsQuicRegistration& Registration
                         &ClientAddr));
             }
         }
+
+        //
+        // Too many local addresses
+        //
+        {
+            TestScopeLogger LogScope2("Too many local addresses");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            uint16_t Port = 4433;
+
+            for (uint8_t i = 0; i < 5; i++) {
+                QUIC_ADDR ClientAddr;
+                QuicAddrFromString("127.0.0.1", Port++, &ClientAddr);
+                if (i < 4) {
+                    TEST_QUIC_SUCCEEDED(
+                        Connection.SetParam(
+                            QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                            sizeof(ClientAddr),
+                            &ClientAddr));
+                } else {
+                    TEST_QUIC_STATUS(
+                        QUIC_STATUS_OUT_OF_MEMORY,
+                        Connection.SetParam(
+                            QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                            sizeof(ClientAddr),
+                            &ClientAddr));
+                }
+            }
+        }
+
     }
 }
 
@@ -4657,12 +4766,35 @@ void QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(MsQuicRegistration& Registrat
         }
 
         //
+        // Set and remove a local address
+        //
+        {
+            TestScopeLogger LogScope2("Set and remove a local address");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+            QUIC_ADDR Dummy = {};
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(Dummy),
+                    &Dummy));
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(Dummy),
+                    &Dummy));
+        }
+
+        //
         // Add and remove a local address
         //
         {
             TestScopeLogger LogScope2("Add and remove a local address");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
             QUIC_ADDR Dummy = {};
             TEST_QUIC_SUCCEEDED(
                 Connection.SetParam(
@@ -4678,10 +4810,62 @@ void QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(MsQuicRegistration& Registrat
         }
 
         //
-        // Remove a local address that belongs to another the active path
+        // Add two local addresses and remove the first local address
         //
         {
-            TestScopeLogger LogScope2("Remove a local address that belongs to another the active path");
+            TestScopeLogger LogScope2("Add two local addresses and remove the first local address");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+            uint16_t Port = 4433;
+            QUIC_ADDR ClientAddr[2];
+            for (uint8_t i = 0; i < 2; i++) {
+                QuicAddrFromString("127.0.0.1", Port++, &ClientAddr[i]);
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                        sizeof(ClientAddr[i]),
+                        &ClientAddr[i]));
+            }
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(ClientAddr[0]),
+                    &ClientAddr[0]));
+        }
+
+        //
+        // Add two local addresses and remove the second local address
+        //
+        {
+            TestScopeLogger LogScope2("Add two local addresses and remove the second local address");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+
+            uint16_t Port = 4433;
+            QUIC_ADDR ClientAddr[2];
+            for (uint8_t i = 0; i < 2; i++) {
+                QuicAddrFromString("127.0.0.1", Port++, &ClientAddr[i]);
+                TEST_QUIC_SUCCEEDED(
+                    Connection.SetParam(
+                        QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                        sizeof(ClientAddr[i]),
+                        &ClientAddr[i]));
+            }
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(ClientAddr[1]),
+                    &ClientAddr[0]));
+        }
+
+        //
+        // Remove a local address that belongs to the active path dusring handshake
+        //
+        {
+            TestScopeLogger LogScope2("Remove the last one local address after start");
             MsQuicConnection Connection(Registration);
             TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
             TEST_QUIC_SUCCEEDED(
@@ -4694,12 +4878,81 @@ void QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(MsQuicRegistration& Registrat
 
             QuicAddr ClientLocalAddr;
             TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(ClientLocalAddr));
+
             TEST_QUIC_STATUS(
-                QUIC_STATUS_INVALID_STATE,
+                QUIC_STATUS_ABORTED,
                 Connection.SetParam(
                     QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
                     sizeof(ClientLocalAddr.SockAddr),
                     &ClientLocalAddr.SockAddr));
+        }
+
+        //
+        // Remove a local address that belongs to the active path dusring handshake
+        //
+        {
+            TestScopeLogger LogScope2("Remove a local address that belongs to the active path during handshake");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    "localhost",
+                    4433));
+
+            QuicAddr SecondLocalAddr;
+            TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
+            SecondLocalAddr.IncrementPort();
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                    sizeof(SecondLocalAddr.SockAddr),
+                    &SecondLocalAddr.SockAddr));
+
+            QuicAddr ClientLocalAddr;
+            TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(ClientLocalAddr));
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_ABORTED,
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(ClientLocalAddr.SockAddr),
+                    &ClientLocalAddr.SockAddr));
+        }
+
+        //
+        // Remove a local address that belongs to the non-active path dusring handshake
+        //
+        {
+            TestScopeLogger LogScope2("Remove a local address that belongs to the non-active path during handshake");
+            MsQuicConnection Connection(Registration);
+            TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->ConnectionStart(
+                    Connection.Handle,
+                    ClientConfiguration,
+                    QUIC_ADDRESS_FAMILY_INET,
+                    "localhost",
+                    4433));
+
+            QuicAddr SecondLocalAddr;
+            TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
+            SecondLocalAddr.IncrementPort();
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS,
+                    sizeof(SecondLocalAddr.SockAddr),
+                    &SecondLocalAddr.SockAddr));
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(SecondLocalAddr.SockAddr),
+                    &SecondLocalAddr.SockAddr));
         }
     }
 }
@@ -4738,6 +4991,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(Registration, ClientConfiguration);

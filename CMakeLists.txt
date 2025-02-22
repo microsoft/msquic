@@ -18,7 +18,8 @@ endif()
 message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
-
+set(CMAKE_VS_GLOBALS "UseInternalMSUniCrtPackage=true")
+ 
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -198,6 +199,8 @@ set(CMAKE_RUNTIME_OUTPUT_DIRECTORY_DEBUG ${QUIC_OUTPUT_DIR})
 
 set(QUIC_INCLUDE_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/inc)
 
+include(GNUInstallDirs)
+
 if (WIN32)
     set(QUIC_WARNING_FLAGS /WX /W4 /sdl /wd4206 CACHE INTERNAL "")
     set(QUIC_COMMON_FLAGS "")
@@ -310,7 +313,8 @@ else()
         list(APPEND QUIC_WARNING_FLAGS -Wno-strict-aliasing)
     elseif(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
         list(APPEND QUIC_WARNING_FLAGS -Wno-missing-braces -Wno-microsoft-anon-tag)
-        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18)
+        if (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 18 OR
+           (CMAKE_CXX_COMPILER_VERSION VERSION_GREATER_EQUAL 16 AND CMAKE_CXX_COMPILER_ID MATCHES "AppleClang"))
             list(APPEND QUIC_WARNING_FLAGS -Wno-invalid-unevaluated-string)
         endif()
     endif()

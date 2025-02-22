@@ -33,6 +33,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Initialized             : 1;    // Initialized successfully. Used for Debugging.
         BOOLEAN Started                 : 1;    // The app has started the stream.
         BOOLEAN StartedIndicated        : 1;    // The app received a start complete event.
+        BOOLEAN PeerStreamStartEventActive : 1; // The app is processing QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED
         BOOLEAN Unidirectional          : 1;    // Sends/receives in 1 direction only.
         BOOLEAN Opened0Rtt              : 1;    // A 0-RTT packet opened the stream.
         BOOLEAN IndicatePeerAccepted    : 1;    // The app requested the PEER_ACCEPTED event.
@@ -43,6 +44,9 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN LocalNotAllowed         : 1;    // Peer's unidirectional stream.
         BOOLEAN LocalCloseFin           : 1;    // Locally closed (graceful).
         BOOLEAN LocalCloseReset         : 1;    // Locally closed (locally aborted).
+        BOOLEAN LocalCloseResetReliable : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN LocalCloseResetReliableAcked : 1; // Indicates the peer has acknowledged we will stop sending once we sent/ACK'd ReliableOffsetSend bytes.
+        BOOLEAN RemoteCloseResetReliable : 1;   // Indicates that the peer initiated a reliable reset. Keep Recv path available for RecvMaxLength bytes.
         BOOLEAN ReceivedStopSending     : 1;    // Peer sent STOP_SENDING frame.
         BOOLEAN LocalCloseAcked         : 1;    // Any close acknowledged.
         BOOLEAN FinAcked                : 1;    // Our FIN was acknowledged.
@@ -57,6 +61,8 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN SendEnabled             : 1;    // Application is allowed to send data.
         BOOLEAN ReceiveEnabled          : 1;    // Application is ready for receive callbacks.
+        BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
+        BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
         BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
@@ -74,8 +80,6 @@ typedef union QUIC_STREAM_FLAGS {
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
-
-        BOOLEAN ShutdownReliableSend    : 1;    // Indicates that we should shutdown the send path once we sent/ACK'd ReliableOffsetSend bytes.
     };
 } QUIC_STREAM_FLAGS;
 

@@ -270,3 +270,27 @@ void QuicTestBindConnectionExplicit(_In_ int Family)
         TEST_QUIC_SUCCEEDED(Status);
     }
 }
+
+void QuicTestAddrFunctions(_In_ int Family)
+{
+    QUIC_ADDR SockAddr;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
+    // initialize the struct to 0xFF to ensure any code issues are caught by the following tests
+    memset(&SockAddr, 0xFF, sizeof(SockAddr));
+
+    QuicAddrSetFamily(&SockAddr, QuicAddrFamily);
+    TEST_TRUE(QuicAddrGetFamily(&SockAddr) == QuicAddrFamily);
+
+    QuicAddrSetToLoopback(&SockAddr);
+
+    if (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) {
+        TEST_TRUE((SockAddr.Ipv4.sin_addr.s_addr & 0x00FFFF00UL) == 0);
+    } else {
+        for (unsigned long i = 0; i < sizeof(SockAddr.Ipv6.sin6_addr) - 1; i++) {
+            TEST_TRUE(SockAddr.Ipv6.sin6_addr.s6_addr[i] == 0);
+        }
+    }
+
+    TEST_TRUE(QuicAddrGetFamily(&SockAddr) == QuicAddrFamily);
+}

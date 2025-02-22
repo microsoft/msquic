@@ -3,7 +3,7 @@ param (
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
-    $isWindows = $true
+    $IsWindows = $true
 }
 
 function SetLinuxLibPath {
@@ -32,6 +32,7 @@ function Wait-DriverStarted {
 $mode = "maxtput"
 $io = "iocp"
 $stats = "0"
+$env:linux_perf_prefix = ""
 
 if ($Command.Contains("lowlat")) {
     $mode = "lowlat"
@@ -61,7 +62,17 @@ function Repo-Path {
 if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
     SetLinuxLibPath
-    ./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats
+
+    # Check and see if a 'perf_command.txt' file exists. If it does, then we need to prepend the command with the contents of the file.
+    if (Test-Path "perf_command.txt") {
+        Write-Host "Found 'perf_command.txt' file. Prepending the command with the contents of the file."
+        $perf_command = Get-Content "perf_command.txt"
+        Write-Host "Prepending the command with: $perf_command"
+        $env:linux_perf_prefix = $perf_command
+    }
+    Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
@@ -98,6 +109,28 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
+} elseif ($Command.Contains("Start_Server_CPU_Tracing")) {
+    if ($IsWindows) {
+        Write-Host "Starting CPU tracing with WPR on windows!"
+        wpr -start CPU
+    } else {
+        Write-Host "Preprending the command with 'perf record' to start CPU tracing on linux!"
+        $filename = $Command.Split(";")[1]
+        $write_this_string_to_disk = "perf record -o server-cpu-traces-$filename -- "
+        # now write the string to disk
+        Set-Content -Path "perf_command.txt" -Value $write_this_string_to_disk
+        ls
+    }
+} elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
+    if ($IsWindows) {
+        Write-Host "Stopping CPU tracing with WPR on windows!"
+        $filename = $Command.Split(";")[1]
+        wpr -stop "server-cpu-traces-$filename"
+    } else {
+        Write-Host "Nothing to do on Linux. 'perf' should have stopped recording."
+        Write-Host "Listing directory: "
+        ls
+    }
 } else {
     throw "Invalid command: $Command"
 }

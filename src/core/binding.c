@@ -625,8 +625,6 @@ QuicBindingRemoveAllSourceConnectionIDs(
     QuicPathIDSetGetPathIDs(&Connection->PathIDs, PathIDs, &PathIDCount);
 
     for (uint8_t i = 0; i < PathIDCount; i++) {
-        CXPLAT_SLIST_ENTRY EntriesToFree = {0};
-
         for (CXPLAT_SLIST_ENTRY* Link = PathIDs[i]->SourceCids.Next;
             Link != NULL;
             Link = Link->Next) {
@@ -637,30 +635,22 @@ QuicBindingRemoveAllSourceConnectionIDs(
                     QUIC_CID_SLIST_ENTRY,
                     Link);
 
-            CXPLAT_SLIST_ENTRY** Link1 = &Entry->HashEntries.Next;
-            while (*Link1 != NULL) {
-                QUIC_CID_HASH_ENTRY* Entry1 = 
+            CXPLAT_SLIST_ENTRY** HashLink = &Entry->HashEntries.Next;
+            while (*HashLink != NULL) {
+                QUIC_CID_HASH_ENTRY* HashEntry = 
                     CXPLAT_CONTAINING_RECORD(
-                        *Link1,
+                        *HashLink,
                         QUIC_CID_HASH_ENTRY,
                         Link);
-                if (Entry1->Binding == Binding) {
-                    QuicBindingRemoveSourceConnectionID(Binding, Entry1);
-                    *Link1 = (*Link1)->Next;
-                    CxPlatListPushEntry(&EntriesToFree, &Entry1->Link);
+                if (HashEntry->Binding == Binding) {
+                    QuicBindingRemoveSourceConnectionID(Binding, HashEntry);
+                    *HashLink = (*HashLink)->Next;
+                    CXPLAT_FREE(HashEntry, QUIC_POOL_CIDHASH);
+                    HashEntry = NULL;
                 } else {
-                    Link1 = &(*Link1)->Next;
+                    HashLink = &(*HashLink)->Next;
                 }
             }
-        }
-
-        while (EntriesToFree.Next != NULL) {
-            QUIC_CID_HASH_ENTRY* Entry = 
-                CXPLAT_CONTAINING_RECORD(
-                    CxPlatListPopEntry(&EntriesToFree),
-                    QUIC_CID_HASH_ENTRY,
-                    Link);
-            CXPLAT_FREE(Entry, QUIC_POOL_CIDHASH);
         }
 
         QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
@@ -878,7 +868,7 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(

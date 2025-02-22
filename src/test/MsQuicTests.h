@@ -97,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -372,11 +373,17 @@ QuicTestProbePath(
     _In_ uint32_t DropPacketCount
     );
 
+typedef enum QUIC_MIGRATION_TYPE {
+    MigrateWithProbe,
+    MigrateWithoutProbe,
+    DeleteAndMigrate,
+} QUIC_MIGRATION_TYPE;
+
 void
 QuicTestMigration(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN PathProbe
+    _In_ QUIC_MIGRATION_TYPE Type
     );
 
 void
@@ -630,6 +637,12 @@ QuicTestEcn(
     _In_ int Family
     );
 
+void QuicTestStreamAppProvidedBuffers(
+    );
+
+void QuicTestStreamAppProvidedBuffersZeroWindow(
+    );
+
 //
 // QuicDrill tests
 //
@@ -667,6 +680,11 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
+    _In_ int Family
+    );
+
+void
+QuicTestDatagramDrop(
     _In_ int Family
     );
 
@@ -1359,6 +1377,20 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+    QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
+
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
@@ -1367,17 +1399,17 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
-    BOOLEAN Smooth;
+    QUIC_MIGRATION_TYPE Type;
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION
 
 typedef struct {
@@ -1385,6 +1417,6 @@ typedef struct {
 } QUIC_RUN_MULTIPATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_MULTIPATH \
-    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MULTIPATH
-#define QUIC_MAX_IOCTL_FUNC_CODE 128
+#define QUIC_MAX_IOCTL_FUNC_CODE 132

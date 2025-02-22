@@ -588,3 +588,40 @@ QuicDatagramProcessFrame(
 
     return TRUE;
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicDatagramCancelBlocked(
+    _In_ QUIC_CONNECTION* Connection
+    )
+{
+    QUIC_DATAGRAM* Datagram = &Connection->Datagram;
+    QUIC_SEND_REQUEST** SendQueue = &Datagram->SendQueue;
+
+    if (*SendQueue == NULL) {
+        return;
+    }
+
+    do {
+        if ((*SendQueue)->Flags & QUIC_SEND_FLAG_CANCEL_ON_BLOCKED) {
+            QUIC_SEND_REQUEST* SendRequest = *SendQueue;
+            if (Datagram->PrioritySendQueueTail == &SendRequest->Next) {
+                Datagram->PrioritySendQueueTail = SendQueue;
+            }
+            *SendQueue = SendRequest->Next;
+            QuicDatagramCancelSend(Connection, SendRequest);
+        } else {
+            SendQueue = &((*SendQueue)->Next);
+        }
+    } while (*SendQueue != NULL);
+    
+    Datagram->SendQueueTail = SendQueue;
+
+    if (Datagram->SendQueue != NULL) {
+        QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    } else {
+        QuicSendClearSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_DATAGRAM);
+    }
+
+    QuicDatagramValidate(Datagram);
+}

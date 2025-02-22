@@ -148,8 +148,9 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 #define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
-#define QUIC_POOL_CIDSLIST                  'D4cQ' // Qc4D - QUIC CID SLIST Entry
-#define QUIC_POOL_PATHID                    'E4cQ' // Qc4E - QUIC PathID
+#define QUIC_POOL_APP_BUFFER_CHUNK          'D4cQ' // Qc4D - QUIC receive chunk for app buffers
+#define QUIC_POOL_CIDSLIST                  'E4cQ' // Qc0D - QUIC CID SLIST Entry
+#define QUIC_POOL_PATHID                    'F4cQ' // Qc4E - QUIC PathID
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -542,18 +543,6 @@ CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
 #endif
-
-//
-// The "type" of the completion queue event is stored as the first uint32_t of
-// the user data. Everything after that in the user data is type-specific.
-//
-#define CxPlatCqeType(cqe) (*(uint32_t*)CxPlatCqeUserData(cqe))
-
-//
-// All QUIC (and lower layer) completion queue events have a type starting with
-// 0x8000.
-//
-#define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
 
 //
 // Test Interface for loading a self-signed certificate.

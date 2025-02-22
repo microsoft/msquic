@@ -173,7 +173,7 @@ QuicTestProbePath(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
 
-    PathProbeHelper *ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+    PathProbeHelper *ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t Try = 0;
@@ -186,7 +186,7 @@ QuicTestProbePath(
         if (Status != QUIC_STATUS_SUCCESS) {
             delete ProbeHelper;
             SecondLocalAddr.IncrementPort();
-            ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
+            ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort(), DropPacketCount, DropPacketCount);
         }
     } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
     TEST_EQUAL(Status, QUIC_STATUS_SUCCESS);
@@ -217,7 +217,7 @@ void
 QuicTestMigration(
     _In_ int Family,
     _In_ BOOLEAN ShareBinding,
-    _In_ BOOLEAN Smooth
+    _In_ QUIC_MIGRATION_TYPE Type
     )
 {
     PathTestContext Context;
@@ -257,9 +257,9 @@ QuicTestMigration(
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
 
-    PathProbeHelper* ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
+    PathProbeHelper* ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort());
 
-    if (Smooth) {
+    if (Type == MigrateWithProbe || Type == DeleteAndMigrate) {
         QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         int Try = 0;
         do {
@@ -271,7 +271,7 @@ QuicTestMigration(
             if (Status != QUIC_STATUS_SUCCESS) {
                 delete ProbeHelper;
                 SecondLocalAddr.IncrementPort();
-                ProbeHelper = new PathProbeHelper(SecondLocalAddr.GetPort());
+                ProbeHelper = new(std::nothrow) PathProbeHelper(SecondLocalAddr.GetPort());
             }
         } while (Status == QUIC_STATUS_ADDRESS_IN_USE && ++Try <= 3);
         TEST_QUIC_SUCCEEDED(Status);
@@ -289,11 +289,22 @@ QuicTestMigration(
                 &Stats));
         TEST_EQUAL(Stats.RecvDroppedPackets, 0);
 
-        TEST_QUIC_SUCCEEDED(
-            Connection.SetParam(
-                QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                sizeof(SecondLocalAddr.SockAddr),
-                &SecondLocalAddr.SockAddr));
+        if (Type == MigrateWithProbe) {
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(SecondLocalAddr.SockAddr),
+                    &SecondLocalAddr.SockAddr));
+        } else {
+            QuicAddr ClientLocalAddr;
+            TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(ClientLocalAddr));
+
+            TEST_QUIC_SUCCEEDED(
+                Connection.SetParam(
+                    QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+                    sizeof(ClientLocalAddr.SockAddr),
+                    &ClientLocalAddr.SockAddr));
+        }
     } else {
         //
         // Wait for handshake confirmation.

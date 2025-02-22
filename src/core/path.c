@@ -241,6 +241,11 @@ QuicConnGetPathForPacket(
         return &Connection->Paths[i];
     }
 
+    if (!QuicConnIsServer(Connection)) {
+        // Client doesn't create a new path.
+        return NULL;
+    }
+
     if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
         //
         // See if any old paths share the same remote address, and is just a rebind.
@@ -354,6 +359,7 @@ QuicPathSetActive(
     } else {
         CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
+            QuicConnIsServer(Connection) &&
             QuicAddrGetFamily(&Path->Route.RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress) &&
             QuicAddrCompareIp(&Path->Route.RemoteAddress, &Connection->Paths[0].Route.RemoteAddress);
 
@@ -382,8 +388,8 @@ QuicPathSetActive(
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Path->PathID->CongestionControl, FALSE);
     }
-    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
-    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+    CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid != NULL);
+    CXPLAT_DBG_ASSERT(!Connection->Paths[0].DestCid->CID.Retired);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

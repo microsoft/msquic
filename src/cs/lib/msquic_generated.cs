@@ -153,6 +153,7 @@ namespace Microsoft.Quic
         UNIDIRECTIONAL = 0x0001,
         ZERO_RTT = 0x0002,
         DELAY_ID_FC_UPDATES = 0x0004,
+        APP_OWNED_BUFFERS = 0x0008,
     }
 
     [System.Flags]
@@ -197,6 +198,7 @@ namespace Microsoft.Quic
         DELAY_SEND = 0x0010,
         CANCEL_ON_LOSS = 0x0020,
         PRIORITY_WORK = 0x0040,
+        CANCEL_ON_BLOCKED = 0x0080,
     }
 
     internal enum QUIC_DATAGRAM_SEND_STATE
@@ -3255,6 +3257,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
+
+        [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
     }
 
     internal static unsafe partial class MsQuic
@@ -3445,6 +3450,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_ORIG_DEST_CID 0x05000018")]
         internal const uint QUIC_PARAM_CONN_ORIG_DEST_CID = 0x05000018;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x05000019")]
+        internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x05000019;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

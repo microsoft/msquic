@@ -6103,6 +6103,8 @@ QuicConnOpenNewPath(
     UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
     UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
     UdpConfig.InterfaceIndex = 0;
+    // Open a new binding with the same partition as the connection.
+    UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
 #endif
@@ -6233,10 +6235,6 @@ QuicConnAddLocalAddress(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!QuicAddrIsValid(LocalAddress)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     BOOLEAN AddrInUse = FALSE;
     if (Connection->State.LocalAddressSet) {
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
@@ -6317,10 +6315,6 @@ QuicConnRemoveLocalAddress(
         return QUIC_STATUS_INVALID_STATE;
     }
 
-    if (!QuicAddrIsValid(LocalAddress)) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     if (!Connection->State.LocalAddressSet) {
         return QUIC_STATUS_NOT_FOUND;
     }
@@ -6346,7 +6340,8 @@ QuicConnRemoveLocalAddress(
             return QUIC_STATUS_INVALID_STATE;
         }
 
-        if (Path->DestCid != NULL) {
+        if (Path->DestCid != NULL &&
+            Connection->State.Started && Connection->State.HandshakeConfirmed) {
             QuicPathIDRetireCid(Path->PathID, Path->DestCid);
         }
 
@@ -6357,9 +6352,65 @@ QuicConnRemoveLocalAddress(
         }
 
         if (Connection->PathsCount == 1) {
-            CXPLAT_DBG_ASSERT(!Connection->State.Started);
-            Connection->State.LocalAddressSet = FALSE;
+            if (!Connection->State.Started) {
+                Connection->State.LocalAddressSet = FALSE;
+            } else {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Last Local Address Removed!");
+                QuicConnSilentlyAbort(Connection);
+                return QUIC_STATUS_ABORTED;
+            }
         } else {
+            if (Path->IsActive) {
+                CXPLAT_DBG_ASSERT(PathIndex == 0);
+                if (!Connection->State.Started) {
+                    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
+                    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+#if DEBUG
+                    QUIC_CID_CLEAR_PATH(Path->DestCid);
+#endif
+                    // Move the dest CID to the new active path.
+                    QUIC_CID_LIST_ENTRY* DestCid = Path->DestCid;
+                    Path->DestCid = NULL;
+                    QUIC_PATH* NewActivePath = &Connection->Paths[1];
+                    NewActivePath->DestCid = DestCid;
+                    QUIC_CID_SET_PATH(Connection, NewActivePath->DestCid, NewActivePath);
+                    
+                    QuicPathSetActive(Connection, NewActivePath);
+                    PathIndex = 1; // The removing path is now at index 1.
+                } else if (!Connection->State.HandshakeConfirmed) {
+                    QuicTraceEvent(
+                        ConnError,
+                        "[conn][%p] ERROR, %s.",
+                        Connection,
+                        "Active Local Address Removed during Handshake!");
+                    QuicConnSilentlyAbort(Connection);
+                    return QUIC_STATUS_ABORTED;
+                } else {
+                    uint8_t NewActivePathIndex = Connection->PathsCount;
+                    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                        if (i != PathIndex && Connection->Paths[i].DestCid != NULL) {
+                            NewActivePathIndex = i;
+                            break;
+                        }
+                    }
+                    if (NewActivePathIndex == Connection->PathsCount) {
+                        QuicTraceEvent(
+                            ConnError,
+                            "[conn][%p] ERROR, %s.",
+                            Connection,
+                            "No Active Local Address Remaining!");
+                        QuicConnSilentlyAbort(Connection);
+                        return QUIC_STATUS_ABORTED;
+                    }
+                    QUIC_PATH* NewActivePath = &Connection->Paths[NewActivePathIndex];
+                    QuicPathSetActive(Connection, NewActivePath);
+                    PathIndex = NewActivePathIndex; // The removing path is now at the new active index.
+                }
+            }
             QuicPathRemove(Connection, PathIndex);
         }
     } else {
@@ -6862,9 +6913,35 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    case QUIC_PARAM_CONN_SEND_DSCP: {
+        if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint8_t DSCP = *(uint8_t*)Buffer;
+
+        if (DSCP > CXPLAT_MAX_DSCP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->DSCP = DSCP;
+
+        QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS: {
 
-        if (BufferLength != sizeof(QUIC_ADDR)) {
+        if (BufferLength != sizeof(QUIC_ADDR) || Buffer == NULL ||
+            !QuicAddrIsValid((QUIC_ADDR*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -6875,7 +6952,8 @@ QuicConnParamSet(
 
     case QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS: {
 
-        if (BufferLength != sizeof(QUIC_ADDR)) {
+        if (BufferLength != sizeof(QUIC_ADDR) || Buffer == NULL ||
+            !QuicAddrIsValid((QUIC_ADDR*)Buffer)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
@@ -7541,10 +7619,12 @@ QuicConnParamGet(
     }
 
     case QUIC_PARAM_CONN_ORIG_DEST_CID:
+
         if (Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
@@ -7560,11 +7640,11 @@ QuicConnParamGet(
             Buffer,
             Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
+
         //
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
-
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -7885,6 +7965,25 @@ QuicConnProcessApiOperation(
             QuicStreamRecvSetEnabledState(
                 ApiCtx->STRM_RECV_SET_ENABLED.Stream,
                 ApiCtx->STRM_RECV_SET_ENABLED.IsEnabled);
+        break;
+
+    case QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS:
+        Status =
+            QuicStreamProvideRecvBuffers(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream,
+                &ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            //
+            // If we cannot accept the app provided buffers at this point, we need to abort
+            // the connection: otherwise, we break the contract with the app about writting
+            // data to the provided buffers in order.
+            //
+            QuicConnFatalError(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream->Connection,
+                Status,
+                "Failed to accept app provided receive buffers");
+        }
         break;
 
     case QUIC_API_TYPE_SET_PARAM:

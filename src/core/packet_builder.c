@@ -265,7 +265,8 @@ QuicPacketBuilderPrepare(
                         DatagramSize),
                 Builder->EcnEctSet ? CXPLAT_ECN_ECT_0 : CXPLAT_ECN_NON_ECT,
                 Builder->Connection->Registration->ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT ?
-                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE
+                    CXPLAT_SEND_FLAGS_MAX_THROUGHPUT : CXPLAT_SEND_FLAGS_NONE,
+                Connection->DSCP
             };
             Builder->SendData =
                 CxPlatSendDataAlloc(Builder->Path->Binding->Socket, &SendConfig);

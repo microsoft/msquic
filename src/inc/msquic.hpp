@@ -1617,6 +1617,14 @@ struct MsQuicStream {
     }
 
     QUIC_STATUS
+    ProvideReceiveBuffers(
+        _In_ uint32_t BufferCount,
+        _In_reads_(BufferCount) const QUIC_BUFFER* Buffers
+        ) const noexcept {
+        return MsQuic->StreamProvideReceiveBuffers(Handle, BufferCount, Buffers);
+    }
+
+    QUIC_STATUS
     GetReliableOffsetRecv(_Out_ uint64_t* Offset) const noexcept {
         uint32_t Size = sizeof(*Offset);
         return

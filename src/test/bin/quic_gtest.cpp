@@ -702,6 +702,16 @@ TEST_P(WithFamilyArgs, BindConnectionExplicit) {
     }
 }
 
+TEST_P(WithFamilyArgs, TestAddrFunctions) {
+    TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
+    }
+    else {
+        QuicTestAddrFunctions(GetParam().Family);
+    }
+}
+
 TEST_P(WithHandshakeArgs1, Connect) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Connect", GetParam());
     if (TestingKernelMode) {
@@ -1692,11 +1702,11 @@ TEST_P(WithMigrationArgs, Migration) {
         QUIC_RUN_MIGRATION_PARAMS Params = {
             GetParam().Family,
             GetParam().ShareBinding,
-            GetParam().Smooth
+            GetParam().Type
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MIGRATION, Params));
     } else {
-        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Smooth);
+        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Type);
     }
 }
 
@@ -2309,6 +2319,24 @@ TEST(Misc, StreamMultiReceive) {
         QuicTestStreamMultiReceive();
     }
 }
+
+TEST(Misc, StreamAppProvidedBuffers) {
+    TestLogger Logger("StreamAppProvidedBuffers");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+    } else {
+        QuicTestStreamAppProvidedBuffers();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
+    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+    } else {
+        QuicTestStreamAppProvidedBuffersZeroWindow();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
@@ -2414,6 +2442,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
     } else {
         QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramDrop) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+    } else {
+        QuicTestDatagramDrop(GetParam().Family);
     }
 }
 

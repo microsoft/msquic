@@ -72,26 +72,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInterfaceQueues , arg2, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for XdpInitialize
-// [ xdp][%p] XDP initialized, %u procs
-// QuicTraceLogVerbose(
-        XdpInitialize,
-        "[ xdp][%p] XDP initialized, %u procs",
-        Xdp,
-        Xdp->PartitionCount);
-// arg2 = arg2 = Xdp = arg2
-// arg3 = arg3 = Xdp->PartitionCount = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpInitialize
-#define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for XdpInterfaceInitialize
 // [ixdp][%p] Initializing interface %u
 // QuicTraceLogVerbose(
@@ -145,6 +125,26 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueStart , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_XdpWorkerStart
 #define _clog_4_ARGS_TRACE_XdpWorkerStart(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpWorkerStart , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for XdpInitialize
+// [ xdp][%p] XDP initialized, %u procs
+// QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
+// arg2 = arg2 = Xdp = arg2
+// arg3 = arg3 = Xdp->PartitionCount = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_XdpInitialize
+#define _clog_4_ARGS_TRACE_XdpInitialize(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpInitialize , arg2, arg3);\
 
 #endif
 
@@ -263,9 +263,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTx , arg2);\
 // Decoder Ring for XdpQueueAsyncIoRxComplete
 // [ xdp][%p] XDP async IO complete (RX)
 // QuicTraceLogVerbose(
-                XdpQueueAsyncIoRxComplete,
-                "[ xdp][%p] XDP async IO complete (RX)",
-                Queue);
+        XdpQueueAsyncIoRxComplete,
+        "[ xdp][%p] XDP async IO complete (RX)",
+        Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoRxComplete
@@ -281,9 +281,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoRxComplete , arg2);\
 // Decoder Ring for XdpQueueAsyncIoTxComplete
 // [ xdp][%p] XDP async IO complete (TX)
 // QuicTraceLogVerbose(
-                XdpQueueAsyncIoTxComplete,
-                "[ xdp][%p] XDP async IO complete (TX)",
-                Queue);
+        XdpQueueAsyncIoTxComplete,
+        "[ xdp][%p] XDP async IO complete (TX)",
+        Queue);
 // arg2 = arg2 = Queue = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpQueueAsyncIoTxComplete
@@ -299,9 +299,9 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete , arg2);\
 // Decoder Ring for XdpPartitionShutdownComplete
 // [ xdp][%p] XDP partition shutdown complete
 // QuicTraceLogVerbose(
-            XdpPartitionShutdownComplete,
-            "[ xdp][%p] XDP partition shutdown complete",
-            Partition);
+        XdpPartitionShutdownComplete,
+        "[ xdp][%p] XDP partition shutdown complete",
+        Partition);
 // arg2 = arg2 = Partition = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
