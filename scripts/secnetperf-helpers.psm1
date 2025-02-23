@@ -136,11 +136,19 @@ function Wait-DriverStarted {
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
+    # Install VCRT. Not required for official XDP builds.
+    Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"
+    Start-Process -FilePath "vc_redist.x64.exe" -ArgumentList "/install /quiet /norestart" -Wait -NoNewWindow
+
     $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
     $msiPath = Repo-Path "artifacts/xdp.msi"
     Write-Host "Downloading XDP installer"
     whoami
     Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
+    $CertFileName = 'xdp.cer'
+    Get-AuthenticodeSignature $msiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
     Write-Host "Installing XDP driver locally"
     msiexec.exe /i $msiPath /quiet | Out-Null
     $Size = Get-FileHash $msiPath
@@ -158,6 +166,14 @@ function Install-XDP {
     Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
     $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
+        # Install VCRT. Not required for official XDP builds.
+        Invoke-WebRequest -Uri "https://aka.ms/vs/17/release/vc_redist.x64.exe" -OutFile "vc_redist.x64.exe"
+        Start-Process -FilePath "vc_redist.x64.exe" -ArgumentList "/install /quiet /norestart" -Wait -NoNewWindow
+
+        $CertFileName = 'xdp.cer'
+        Get-AuthenticodeSignature $Using:remoteMsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
+        Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
+        Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
         msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
         $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
         & $WaitDriverStarted xdp 10000

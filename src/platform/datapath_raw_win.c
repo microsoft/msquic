@@ -195,8 +195,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
             CXPLAT_ROUTE_RESOLUTION_OPERATION* Operation =
                 CXPLAT_CONTAINING_RECORD(
                     CxPlatListRemoveHead(&Operations), CXPLAT_ROUTE_RESOLUTION_OPERATION, WorkerLink);
-            NETIO_STATUS Status =
-            Status = GetIpNetEntry2(&Operation->IpnetRow);
+            NETIO_STATUS Status = GetIpNetEntry2(&Operation->IpnetRow);
             if (Status != ERROR_SUCCESS || Operation->IpnetRow.State <= NlnsIncomplete) {
                 Status =
                     ResolveIpNetEntry2(&Operation->IpnetRow, NULL);
@@ -242,5 +241,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
         CXPLAT_FREE(Operation, QUIC_POOL_ROUTE_RESOLUTION_OPER);
     }
 
+#ifndef _KERNEL_MODE
     return 0;
+#endif
 }

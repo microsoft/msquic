@@ -42,6 +42,7 @@ Environment:
 #include <wsk.h>
 #include <bcrypt.h>
 #include <intrin.h>
+#include <xdp/overlapped.h>
 #include "msquic_winkernel.h"
 #pragma warning(pop)
 
@@ -128,6 +129,27 @@ InterlockedFetchAndSetBoolean(
     )
 {
     return (BOOLEAN)InterlockedOr8((char*)Target, 1);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCloseHandle(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    ZwClose(Handle);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCancelIo(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    // TODO: Implement
+    UNREFERENCED_PARAMETER(Handle);
 }
 
 //
@@ -470,57 +492,241 @@ _CxPlatEventWaitWithTimeout(
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
 
 //
+// TODO: Publish and document the following APIs
+//
+
+// ACCESS_MASK
+#define IO_COMPLETION_QUERY_STATE   0x0001
+#define IO_COMPLETION_MODIFY_STATE  0x0002  // winnt
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) // winnt
+
+typedef struct _FILE_IO_COMPLETION_INFORMATION {
+    PVOID               KeyContext;
+    PVOID               ApcContext;
+    IO_STATUS_BLOCK     IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwCreateIoCompletion(
+    OUT         PHANDLE IoCompletionHandle,
+    IN          ACCESS_MASK DesiredAccess,
+    IN OPTIONAL POBJECT_ATTRIBUTES ObjectAttributes,
+    IN OPTIONAL ULONG Count
+    );
+
+typedef struct _IO_MINI_COMPLETION_PACKET_USER IO_MINI_COMPLETION_PACKET_USER, *PIO_MINI_COMPLETION_PACKET_USER;
+
+typedef
+VOID
+IO_MINI_PACKET_CALLBACK_ROUTINE(
+    _In_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
+    _In_opt_ PVOID Context
+    );
+
+typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
+
+NTSYSAPI
+NTSTATUS
+IoSetIoCompletionEx(
+    _In_ PVOID IoCompletion,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _In_ BOOLEAN Quota,
+    _In_opt_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+NTSYSAPI
+NTSTATUS
+IoRemoveIoCompletion(
+    _In_  PVOID IoCompletionPtr,
+    _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _Out_writes_(Count) PLIST_ENTRY *EntryArray,
+    _In_  ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_  KPROCESSOR_MODE PreviousMode,
+    _In_opt_ PLARGE_INTEGER CapturedTimeout,
+    _In_  BOOLEAN Alertable
+    );
+
+NTSYSAPI
+PIO_MINI_COMPLETION_PACKET_USER
+IoAllocateMiniCompletionPacket(
+    __in PIO_MINI_PACKET_CALLBACK_ROUTINE CallbackRoutine,
+    __in_opt PVOID Context
+    );
+
+NTSYSAPI
+VOID
+IoFreeMiniCompletionPacket(
+    __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+//
 // Event Queue Interfaces
 //
 
-typedef KEVENT CXPLAT_EVENTQ; // Event queue
-typedef void* CXPLAT_CQE;
+typedef struct CXPLAT_EVENTQ {
+    PKQUEUE IoCompletion;
+} CXPLAT_EVENTQ;
 
+typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+
+typedef struct CXPLAT_SQE {
+    PIO_MINI_COMPLETION_PACKET_USER MiniPacket;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
+
+inline
+VOID
+IoMiniPacketCallbackRoutineNoOp(
+    _In_ struct _IO_MINI_COMPLETION_PACKET_USER * MiniPacket,
+    _In_opt_ PVOID Context
+    )
+{
+    UNREFERENCED_PARAMETER(MiniPacket);
+    UNREFERENCED_PARAMETER(Context);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != FALSE)
 inline
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
-    return TRUE;
+    HANDLE Handle;
+    OBJECT_ATTRIBUTES KernelObjectAttributes;
+    InitializeObjectAttributes(
+        &KernelObjectAttributes,
+        NULL,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    NTSTATUS Status =
+        ZwCreateIoCompletion(
+            &Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            &KernelObjectAttributes,
+            0);
+    if (!NT_SUCCESS(Status)) {
+        return FALSE;
+    }
+
+    Status =
+        ObReferenceObjectByHandle(
+            Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            NULL,
+            KernelMode,
+            (PVOID*)&queue->IoCompletion,
+            NULL);
+
+    NtClose(Handle);
+    return NT_SUCCESS(Status);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
+    ObDereferenceObject(queue->IoCompletion);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+BOOLEAN
+CxPlatEventQAssociateHandle(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ HANDLE fileHandle
+    )
+{
+    // TODO: implement
     UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(fileHandle);
+    return TRUE;
 }
 
 inline
 BOOLEAN
-_CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
     )
 {
-    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
-    return TRUE;
+    return
+        NT_SUCCESS(
+        IoSetIoCompletionEx(
+            queue->IoCompletion,
+            0,
+            sqe,
+            STATUS_SUCCESS,
+            0,
+            FALSE,
+            sqe->MiniPacket));
 }
 
-#define CxPlatEventQEnqueue(queue, sqe) _CxPlatEventQEnqueue(queue)
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
-    _In_ uint32_t count,
+    _Out_writes_to_(count, return) CXPLAT_CQE* events,
+    _In_range_(0, CXPLAT_EVENTQ_DEQUEUE_MAX)
+        uint32_t count,
     _In_ uint32_t wait_time // milliseconds
     )
 {
-    UNREFERENCED_PARAMETER(count);
-    *events = NULL;
-    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+    NTSTATUS status;
+    ULONG entriesRemoved;
+    PLIST_ENTRY EntryPtrArray[CXPLAT_EVENTQ_DEQUEUE_MAX];
+    if (wait_time == UINT32_MAX) {
+        status =
+            IoRemoveIoCompletion(
+                queue->IoCompletion,
+                events,
+                EntryPtrArray,
+                count,
+                &entriesRemoved,
+                KernelMode,
+                NULL,
+                FALSE);
+    } else {
+        LARGE_INTEGER timeout;
+        timeout.QuadPart = -10000LL * wait_time;
+        status =
+            IoRemoveIoCompletion(
+                queue->IoCompletion,
+                events,
+                EntryPtrArray,
+                count,
+                &entriesRemoved,
+                KernelMode,
+                &timeout,
+                FALSE);
+    }
+    return NT_SUCCESS(status) ? entriesRemoved : 0;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
 CxPlatEventQReturn(
@@ -533,13 +739,63 @@ CxPlatEventQReturn(
 }
 
 inline
-void*
-CxPlatCqeUserData(
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Completion = completion;
+    sqe->MiniPacket =
+        IoAllocateMiniCompletionPacket(
+            IoMiniPacketCallbackRoutineNoOp,
+            NULL);
+    return sqe->MiniPacket ? TRUE : FALSE;
+}
+
+inline
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    sqe->Completion = completion;
+    sqe->MiniPacket =
+        IoAllocateMiniCompletionPacket(
+            IoMiniPacketCallbackRoutineNoOp,
+            NULL);
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    IoFreeMiniCompletionPacket(sqe->MiniPacket);
+}
+
+inline
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return *cqe;
+    return (CXPLAT_SQE*)cqe->ApcContext;
 }
+
+typedef struct DATAPATH_SQE DATAPATH_SQE;
+
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    );
 
 //
 // Time Measurement Interfaces
@@ -880,6 +1136,23 @@ typedef ULONG_PTR CXPLAT_THREAD_ID;
 //
 // Processor Count and Index
 //
+
+typedef struct CXPLAT_PROCESSOR_INFO {
+    uint16_t Group;  // The group number this processor is a part of
+    uint8_t Index;   // Index in the current group
+    uint8_t PADDING; // Here to align with PROCESSOR_NUMBER struct
+} CXPLAT_PROCESSOR_INFO;
+
+CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_PROCESSOR_INFO) == sizeof(PROCESSOR_NUMBER), "Size check");
+
+typedef struct CXPLAT_PROCESSOR_GROUP_INFO {
+    KAFFINITY Mask;  // Bit mask of active processors in the group
+    uint32_t Count;  // Count of active processors in the group
+    uint32_t Offset; // Base process index offset this group starts at
+} CXPLAT_PROCESSOR_GROUP_INFO;
+
+extern CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+extern CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 
 extern uint32_t CxPlatProcessorCount;
 #define CxPlatProcCount() CxPlatProcessorCount

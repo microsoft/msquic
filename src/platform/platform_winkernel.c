@@ -18,6 +18,9 @@ Environment:
 #include "platform_winkernel.c.clog.h"
 #endif
 
+CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
+CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
+
 typedef enum _SYSTEM_INFORMATION_CLASS {
     SystemBasicInformation                          = 0
 } SYSTEM_INFORMATION_CLASS;
@@ -245,6 +248,18 @@ CxPlatRandom(
             (uint8_t*)Buffer,
             BufferLen,
             0);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDatapathSqeInitialize(
+    _Out_ DATAPATH_SQE* DatapathSqe,
+    _In_ uint32_t CqeType
+    )
+{
+    RtlZeroMemory(DatapathSqe, sizeof(*DatapathSqe));
+    DatapathSqe->CqeType = CqeType;
+    DatapathSqe->Sqe.UserData = DatapathSqe;
 }
 
 #ifdef DEBUG
