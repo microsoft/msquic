@@ -13,7 +13,6 @@ use libc::c_void;
 use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
 use std::convert::TryInto;
-use std::fmt;
 use std::io;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -21,8 +20,6 @@ use std::option::Option;
 use std::ptr;
 use std::result::Result;
 use std::sync::Once;
-#[macro_use]
-extern crate bitfield;
 mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
@@ -398,180 +395,6 @@ pub struct HandshakeInfo {
     pub key_exchange_algorithm: KeyExchangeAlgorithm,
     pub key_exchange_strength: i32,
     pub cipher_suite: CipherSuite,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsTiming {
-    pub start: u64,
-    /// Processed all peer's Initial packets
-    pub start_flight_end: u64,
-    /// Processed all peer's Handshake packets
-    pub handshake_fligh_end: u64,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsHandshake {
-    /// Sum of TLS payloads
-    pub client_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub server_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub client_flight_2_bytes: u32,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsSend {
-    /// Current path MTU.
-    pub path_mtu: u16,
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub total_packets: u64,
-    pub retransmittable_packets: u64,
-    pub suspected_lost_packets: u64,
-    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
-    pub spurious_lost_packets: u64,
-    /// Sum of UDP payloads
-    pub total_bytes: u64,
-    /// Sum of stream payloads
-    pub total_stream_bytes: u64,
-    /// Number of congestion events
-    pub congestion_count: u32,
-    /// Number of persistent congestion events
-    pub persistent_congestion_count: u32,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsRecv {
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub total_packets: u64,
-    /// Packets where packet number is less than highest seen.
-    pub reordered_packets: u64,
-    /// Includes DuplicatePackets.
-    pub dropped_packets: u64,
-    pub duplicate_packets: u64,
-    /// Sum of UDP payloads
-    pub total_bytes: u64,
-    /// Sum of stream payloads
-    pub total_stream_bytes: u64,
-    /// Count of packet decryption failures.
-    pub decryption_failures: u64,
-    /// Count of receive ACK frames.
-    pub valid_ack_frames: u64,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsMisc {
-    pub key_update_count: u32,
-}
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Serialize, Deserialize, Clone, Copy)]
-    pub struct QuicStatisticsBitfields(u32);
-    // The fields default to u32
-    version_negotiation, _: 1, 0;
-    stateless_retry, _: 1, 1;
-    resumption_attempted, _: 1, 2;
-    resumption_succeeded, _: 1, 3;
-    grease_bit_negotiated, _: 1, 4;
-}
-
-/// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
-/// This is implemented manually because the derived implementation by the bitfield macro
-/// has been observed to cause panic.
-impl fmt::Debug for QuicStatisticsBitfields {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{:#06x}", &self.0))
-    }
-}
-
-/// A helper struct for accessing connection statistics
-#[repr(C)]
-#[derive(Serialize, Deserialize, Copy, Clone)]
-pub struct QuicStatistics {
-    correlation_id: u64,
-    pub flags: QuicStatisticsBitfields,
-    /// In microseconds
-    pub rtt: u32,
-    /// In microseconds
-    pub min_rtt: u32,
-    /// In microseconds
-    pub max_rtt: u32,
-    pub timing: QuicStatisticsTiming,
-    pub handshake: QuicStatisticsHandshake,
-    pub send: QuicStatisticsSend,
-    pub recv: QuicStatisticsRecv,
-    pub misc: QuicStatisticsMisc,
-}
-
-/// A helper struct for accessing connection statistics
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsV2 {
-    correlation_id: u64,
-    pub flags: QuicStatisticsBitfields,
-    /// In microseconds
-    pub rtt: u32,
-    /// In microseconds
-    pub min_rtt: u32,
-    /// In microseconds
-    pub max_rtt: u32,
-
-    pub timing_start: u64,
-    /// Processed all peer's Initial packets
-    pub timing_start_flight_end: u64,
-    /// Processed all peer's Handshake packets
-    pub timing_handshake_fligh_end: u64,
-
-    /// Sum of TLS payloads
-    pub handshake_client_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub handshake_server_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub handshake_client_flight_2_bytes: u32,
-
-    /// Current path MTU.
-    pub send_path_mtu: u16,
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub send_total_packets: u64,
-    pub send_retransmittable_packets: u64,
-    pub send_suspected_lost_packets: u64,
-    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
-    pub send_spurious_lost_packets: u64,
-    /// Sum of UDP payloads
-    pub send_total_bytes: u64,
-    /// Sum of stream payloads
-    pub send_total_stream_bytes: u64,
-    /// Number of congestion events
-    pub send_congestion_count: u32,
-    /// Number of persistent congestion events
-    pub send_persistent_congestion_count: u32,
-
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub recv_total_packets: u64,
-    /// Packets where packet number is less than highest seen.
-    pub recv_reordered_packets: u64,
-    /// Includes DuplicatePackets.
-    pub recv_dropped_packets: u64,
-    pub recv_duplicate_packets: u64,
-    /// Sum of UDP payloads
-    pub recv_total_bytes: u64,
-    /// Sum of stream payloads
-    pub recv_total_stream_bytes: u64,
-    /// Count of packet decryption failures.
-    pub recv_decryption_failures: u64,
-    /// Count of receive ACK frames.
-    pub recv_valid_ack_frames: u64,
-
-    pub key_update_count: u32,
-
-    pub send_congestion_window: u32,
-    // Number of times the destination CID changed.
-    pub dest_cid_update_count: u32,
 }
 
 /// A helper struct for accessing listener statistics.
@@ -1061,6 +884,24 @@ impl Api {
         .map(QuicPerformanceCounters::from)
     }
 
+    pub fn get_retry_memory_percent() -> Result<u16, Status> {
+        unsafe {
+            Api::get_param_auto(
+                std::ptr::null_mut(),
+                crate::ffi::QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            )
+        }
+    }
+
+    pub fn get_tls_provider() -> Result<crate::ffi::QUIC_TLS_PROVIDER, Status> {
+        unsafe {
+            Api::get_param_auto(
+                std::ptr::null_mut(),
+                crate::ffi::QUIC_PARAM_GLOBAL_TLS_PROVIDER,
+            )
+        }
+    }
+
     /// # Safety
     /// handler and context must be valid.
     pub unsafe fn set_callback_handler(
@@ -1280,34 +1121,14 @@ impl Connection {
         }
     }
 
-    pub fn get_stats(&self) -> Result<QuicStatistics, Status> {
-        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
-            [0; std::mem::size_of::<QuicStatistics>()];
-        let stat_size_mut = std::mem::size_of::<QuicStatistics>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_STATISTICS,
-                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
-                stat_buffer.as_mut_ptr() as *mut c_void,
-            )
-        }?;
-        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) })
+    /// TODO: provide safe wrapper for ffi
+    pub fn get_stats(&self) -> Result<crate::ffi::QUIC_STATISTICS, Status> {
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_STATISTICS) }
     }
 
-    pub fn get_stats_v2(&self) -> Result<QuicStatisticsV2, Status> {
-        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatisticsV2>()] =
-            [0; std::mem::size_of::<QuicStatisticsV2>()];
-        let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_STATISTICS_V2,
-                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
-                stat_buffer.as_mut_ptr() as *mut c_void,
-            )
-        }?;
-        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) })
+    /// TODO: provide safe wrapper for ffi
+    pub fn get_stats_v2(&self) -> Result<crate::ffi::QUIC_STATISTICS_V2, Status> {
+        unsafe { Api::get_param_auto(self.handle, PARAM_CONN_STATISTICS_V2) }
     }
 
     pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Status> {
@@ -1377,31 +1198,11 @@ impl Connection {
     }
 
     pub fn get_local_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_LOCAL_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_LOCAL_ADDRESS) }
     }
 
     pub fn get_remote_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_REMOTE_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_REMOTE_ADDRESS) }
     }
 }
 
@@ -1459,17 +1260,7 @@ impl Listener {
     }
 
     pub fn get_local_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_LISTENER_LOCAL_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_LISTENER_LOCAL_ADDRESS) }
     }
 
     fn close_inner(&self) {
@@ -1755,6 +1546,18 @@ mod tests {
         );
         let registration = res.unwrap();
 
+        // check global settings
+        {
+            let retry_memory_percent = crate::Api::get_retry_memory_percent().unwrap();
+            assert!(retry_memory_percent > 0);
+            let tls_provider = crate::Api::get_tls_provider().unwrap();
+            // rust test by default uses openssl.
+            assert_eq!(
+                tls_provider,
+                crate::ffi::QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_OPENSSL
+            );
+        }
+
         let alpn = [Buffer::from("h3")];
         let res = Configuration::new(
             &registration,
@@ -1803,11 +1606,37 @@ mod tests {
             res.err().unwrap()
         );
 
+        // check getting addr params are ok.
+        {
+            let local_addr = connection
+                .get_local_addr()
+                .expect("cannot get local addr")
+                .as_socket()
+                .unwrap();
+            let remove_addr = connection
+                .get_remote_addr()
+                .expect("cannot get local addr")
+                .as_socket()
+                .unwrap();
+            println!("Connection local addr {local_addr}, remote addr {remove_addr}");
+        }
+
         let duration = std::time::Duration::from_millis(1000);
         std::thread::sleep(duration);
 
-        let perf = crate::Api::get_perf().unwrap();
-        assert!(perf.conn_created > 0);
-        assert!(perf.strm_active > 0);
+        // check get stats ok
+        {
+            let stats = connection.get_stats().expect("fail to get stats");
+            assert!(stats.Recv.TotalBytes > 0);
+
+            let stats2 = connection.get_stats_v2().expect("fail to get stats v2");
+            assert!(stats2.RecvTotalBytes > 0);
+        }
+        // check perf counters.
+        {
+            let perf = crate::Api::get_perf().unwrap();
+            assert!(perf.conn_created > 0);
+            assert!(perf.strm_active > 0);
+        }
     }
 }
