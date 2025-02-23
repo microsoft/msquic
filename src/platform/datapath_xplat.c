@@ -409,9 +409,16 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ uint8_t UseQTIP,
+    _In_ uint8_t OverrideGlobalQTIPSettings
     )
 {
+    if (OverrideGlobalQTIPSettings) {
+        Socket->UseTcp = UseQTIP;
+        Route->UseQTIP = UseQTIP;
+        Route->AppDidSetQTIP = TRUE;
+    }
     if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {

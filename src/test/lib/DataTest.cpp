@@ -367,7 +367,8 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
+    _In_ bool FifoScheduling,
+    _In_ bool SendUdpToQtipListener
     )
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
@@ -378,6 +379,7 @@ QuicTestConnectAndPing(
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
+
     TEST_TRUE(Registration.IsValid());
 
     if (ServerRejectZeroRtt) {
@@ -400,7 +402,6 @@ QuicTestConnectAndPing(
     }
 
     MsQuicAlpn Alpn("MsQuicTest");
-
     MsQuicSettings Settings;
     if (ClientZeroRtt) {
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
@@ -410,7 +411,19 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-
+    if (UseQTIP && SendUdpToQtipListener) {
+        // Do a sanity check to make sure we actually have QTIP enabled.
+        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
+        // Get the current global execution config.
+        uint32_t Size = sizeof(Config);
+        TEST_TRUE(QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                &Size,
+                &Config)));
+        TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
+    }
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -427,22 +440,6 @@ QuicTestConnectAndPing(
         TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
     }
 
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
-    TEST_TRUE(ClientConfiguration.IsValid());
-
-    if (ClientZeroRtt) {
-        QuicTestPrimeResumption(
-            QuicAddrFamily,
-            Registration,
-            ServerConfiguration,
-            ClientConfiguration,
-            &ClientStats.ResumptionTicket);
-        if (!ClientStats.ResumptionTicket) {
-            return;
-        }
-    }
-
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
@@ -457,18 +454,29 @@ QuicTestConnectAndPing(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_TRUE(ClientConfiguration.IsValid());
+        if (ClientZeroRtt) {
+            QuicTestPrimeResumption(
+                QuicAddrFamily,
+                Registration,
+                ServerConfiguration,
+                ClientConfiguration,
+                &ClientStats.ResumptionTicket);
+            if (!ClientStats.ResumptionTicket) {
+                return;
+            }
+        }
+
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
         Listener.Context = &ServerStats;
-
         TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[ConnectionCount];
         if (ConnAlloc == nullptr) {
             return;
         }
-
         UniquePtrArray<TestConnection*> Connections(ConnAlloc);
-
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
@@ -483,7 +491,6 @@ QuicTestConnectAndPing(
                     Connections.get()[i]->SetTlsSecrets(&ClientSecrets[i]));
             }
         }
-
         QuicAddr LocalAddr;
         for (uint32_t j = 0; j < StreamBurstCount; ++j) {
             if (j != 0) {

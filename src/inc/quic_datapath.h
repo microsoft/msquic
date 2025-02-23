@@ -202,6 +202,8 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
 
     uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
+    uint8_t UseQTIP : 1;         // TRUE if the route is using QTIP
+    uint8_t AppDidSetQTIP : 1;   // TRUE if the app explicitly set the UseQTIP flag
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
@@ -209,7 +211,6 @@ typedef struct CXPLAT_ROUTE {
 
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
-
 } CXPLAT_ROUTE;
 
 //
@@ -848,7 +849,9 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ uint8_t UseQTIP,
+    _In_ uint8_t OverrideGlobalQTIPSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

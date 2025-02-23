@@ -6648,6 +6648,21 @@ QuicConnParamSet(
         break;
     }
 
+    case QUIC_PARAM_CONN_QTIP: {
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
+        Connection->State.AppDidSetQTIP = TRUE;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     //
     // Private
     //
@@ -7281,6 +7296,24 @@ QuicConnParamGet(
             sizeof(Connection->DSCP));
 
         *BufferLength = sizeof(Connection->DSCP);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_QTIP:
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.UseQTIP;
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 
