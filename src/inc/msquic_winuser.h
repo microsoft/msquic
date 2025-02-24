@@ -85,12 +85,7 @@ Environment:
 #define QUIC_TLS_ALERT_HRESULT_PREFIX   _HRESULT_TYPEDEF_(0x80410100L)
 #endif
 
-#ifdef _WIN32
-#define QUIC_API                            __stdcall
-#else
 #define QUIC_API                            __cdecl
-#endif
-
 #define QUIC_MAIN_EXPORT                    __cdecl
 #define QUIC_STATUS                         HRESULT
 #define QUIC_FAILED(X)                      FAILED(X)

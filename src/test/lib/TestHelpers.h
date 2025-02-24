@@ -12,6 +12,7 @@ Abstract:
 #ifdef QUIC_CLOG
 #include "TestHelpers.h.clog.h"
 #endif
+#define QUIC_API __cdecl
 
 extern bool UseDuoNic;
 
