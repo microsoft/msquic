@@ -23,7 +23,7 @@ public:
     }
 };
 
-int QUIC_API main(int argc, char** argv) {
+int QUIC_MAIN_EXPORT main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
