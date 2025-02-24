@@ -315,13 +315,12 @@ NewPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
-    // if (SendUdpOverQtip && UseQTIP) {
-    //     // Connection just uses normal UDP
-    //     Connection->SetQtipPreferences(0);
-    // } else {
-    //     Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
-    // }
-    Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
+    if (SendUdpOverQtip && UseQTIP) {
+        // Connection just uses normal UDP
+        Connection->SetQtipPreferences(0);
+    } else {
+        Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
+    }
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
