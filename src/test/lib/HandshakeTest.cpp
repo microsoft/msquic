@@ -107,6 +107,7 @@ QuicTestPrimeResumption(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -2298,6 +2299,7 @@ QuicTestConnectBadSni(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerRejectConnection(
     _In_ TestListener* /*  Listener */,
     _In_ HQUIC ConnectionHandle
@@ -3761,6 +3763,7 @@ QuicTestChangeAlpn(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnectionTestTP(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
