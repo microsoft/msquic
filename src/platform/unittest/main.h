@@ -10,7 +10,6 @@
 #include "gtest/gtest.h"
 
 #define QUIC_TEST_APIS 1
-#define QUIC_API __cdecl
 
 #include "quic_platform.h"
 
