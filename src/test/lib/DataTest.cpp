@@ -3213,7 +3213,7 @@ struct StreamAbortConnFlowControl {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS QUIC_API ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             Event->RECEIVE.TotalBufferLength = 0;
             Stream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE);
