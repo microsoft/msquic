@@ -1055,13 +1055,23 @@ extern uint32_t CxPlatProcessorCount;
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
+CxPlatProcNumberToIndex(
+    CXPLAT_PROCESSOR_INFO* ProcNumber
+    )
+{
+    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber->Group];
+    return Group->Offset + (ProcNumber->Index % Group->Count);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint32_t
 CxPlatProcCurrentNumber(
     void
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
-    return Group->Offset + (ProcNumber.Number % Group->Count);
+    return CxPlatProcNumberToIndex((CXPLAT_PROCESSOR_INFO*)&ProcNumber);
 }
 
 
