@@ -449,6 +449,9 @@ CxPlatDpRawInterfaceInitialize(
         RssConfig.Base.IndirectionTableSize = sizeof(RssConfig.IndirectionTable);
         RssConfig.Base.Flags |= XDP_RSS_FLAG_SET_INDIRECTION_TABLE;
 
+        //
+        // TODO: Query the RSS capabilities and bound the #CPUs by the #queues.
+        //
         for (uint32_t i = 0; i < RTL_NUMBER_OF(RssConfig.IndirectionTable); i++) {
             RssConfig.IndirectionTable[i] =
                 *(const PROCESSOR_NUMBER*)&CxPlatProcessorInfo[i % CxPlatProcCount()];
