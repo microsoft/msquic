@@ -597,6 +597,7 @@ ResumptionFailConnectionCallback(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerFailSendResumeCallback(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -1092,6 +1093,7 @@ void QuicTestValidateConnection()
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestStreamShutdown(
     _In_ TestStream* Stream
     )
@@ -1102,6 +1104,7 @@ ServerApiTestStreamShutdown(
 _Function_class_(NEW_STREAM_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestNewStream(
     _In_ TestConnection* /* Connection */,
     _In_ HQUIC StreamHandle,
@@ -1118,6 +1121,7 @@ ServerApiTestNewStream(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
