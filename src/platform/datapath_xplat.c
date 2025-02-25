@@ -157,7 +157,7 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
-            CxPlatSocketDelete(*NewSocket);
+            // CxPlatSocketDelete(*NewSocket); TODO: If we couldn't initialize a Raw socket, why do we delete the entire socket?
             goto Error;
         }
     }
