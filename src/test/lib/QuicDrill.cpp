@@ -81,6 +81,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 QuicDrillConnectionCallbackHandler(
     _In_ TestListener* /* Listener */,
     _In_ HQUIC /* ConnectionHandle */
