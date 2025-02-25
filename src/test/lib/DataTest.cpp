@@ -315,12 +315,18 @@ NewPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
-    if (SendUdpOverQtip && UseQTIP) {
-        // Connection just uses normal UDP
+
+    if (SendUdpOverQtip) {
+        // UseQTIP is implicitly true here. We are alternating between QTIP and QUIC to ping the same listener.
         Connection->SetQtipPreferences(0);
+    } else if (UseQTIP) {
+        // We hit this case either when we are alternating between QTIP and QUIC to ping the same listener, or SendUdpOverQtip is always false.
+        Connection->SetQtipPreferences(1);
     } else {
-        Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
+        // Normal QUIC
+        Connection->SetQtipPreferences(0);
     }
+
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
@@ -478,7 +484,7 @@ QuicTestConnectAndPing(
                     Registration,
                     &ClientStats,
                     UseSendBuffer,
-                    SendUdpToQtipListener);
+                    SendUdpToQtipListener && (i % 2 == 1)); // Every other connection, we alternate the QTIP preferences (if UseQTIP is true AND SendUdpToQtipListener is true).
             if (Connections.get()[i] == nullptr) {
                 return;
             }
