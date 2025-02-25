@@ -292,13 +292,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicConnectionPoolCreate(
-    _In_ HQUIC Registration,
-    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
-    _In_opt_ void* Context,
-    _In_opt_ const char* ServerName,
-    _In_opt_ const QUIC_ADDR* ServerAddress,
-    _In_ uint16_t ServerPort,
-    _In_ uint16_t NumberOfConnections,
-    _Out_writes_bytes_(NumberOfConnections * sizeof(HQUIC))
-        HQUIC** ConnectionPool
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
     );

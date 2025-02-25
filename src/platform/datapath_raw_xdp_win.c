@@ -1955,7 +1955,7 @@ CxPlatDataPathRssConfigGet(
         RawRssConfig->HashSecretKeySize +
         RawRssConfig->IndirectionTableSize;
     CXPLAT_RSS_CONFIG* NewRssConfig =
-        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_NONPAGED(
+        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_PAGED(
             RssConfigSize,
             QUIC_POOL_DATAPATH_RSS_CONFIG);
     if (NewRssConfig == NULL) {

@@ -66,6 +66,7 @@ MsQuicConnectionOpen(
             Registration,
             NULL,
             NULL,
+            NULL,
             &Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;

@@ -1274,6 +1274,7 @@ QuicBindingCreateConnection(
             MsQuicLib.StatelessRegistration,
             Worker,
             Packet,
+            NULL,
             &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");

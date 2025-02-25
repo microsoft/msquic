@@ -273,20 +273,6 @@ QuicAddrSetToLoopback(
     }
 }
 
-inline
-void
-QuicAddrIncrementPort(
-    _Inout_ QUIC_ADDR* Addr
-    )
-{
-    uint32_t Port = QuicAddrGetPort(Addr);
-    Port += 1;
-    if (Port > QUIC_ADDR_EPHEMERAL_PORT_MAX) {
-        Port = QUIC_ADDR_EPHEMERAL_PORT_MIN;
-    }
-    QuicAddrSetPort(Addr, (uint16_t)Port);
-}
-
 //
 // Test only API to increment the IP address value.
 //
