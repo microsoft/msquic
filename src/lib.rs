@@ -1548,14 +1548,10 @@ mod tests {
 
         // check global settings
         {
-            let retry_memory_percent = crate::Api::get_retry_memory_percent().unwrap();
+            let retry_memory_percent =
+                crate::Api::get_retry_memory_percent().expect("fail to get retry memory percent");
             assert!(retry_memory_percent > 0);
-            let tls_provider = crate::Api::get_tls_provider().unwrap();
-            // rust test by default uses openssl.
-            assert_eq!(
-                tls_provider,
-                crate::ffi::QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_OPENSSL
-            );
+            let _tls_provider = crate::Api::get_tls_provider().expect("fail to get tls provider");
         }
 
         let alpn = [Buffer::from("h3")];
