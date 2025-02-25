@@ -1501,14 +1501,6 @@ SocketCreateUdp(
         Socket->PcpBinding = TRUE;
     }
     CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
-
-    if (Datapath->UseTcp) {
-        //
-        // Skip normal socket settings to use AuxSocket in raw socket
-        //
-        goto Skip;
-    }
-
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
@@ -2082,11 +2074,9 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
-        for (uint16_t i = 0; i < SocketCount; i++) {
-            CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
-            Socket->PerProcSockets[i].IoStarted = TRUE;
-        }
+    for (uint16_t i = 0; i < SocketCount; i++) {
+        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+        Socket->PerProcSockets[i].IoStarted = TRUE;
     }
 
     Socket = NULL;
