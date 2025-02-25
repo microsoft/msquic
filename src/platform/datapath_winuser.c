@@ -2060,8 +2060,6 @@ SocketCreateUdp(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-Skip:
-
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
