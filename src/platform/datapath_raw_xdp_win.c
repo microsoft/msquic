@@ -451,10 +451,13 @@ CxPlatDpRawInterfaceInitialize(
 
         //
         // TODO: Query the RSS capabilities and bound the #CPUs by the #queues.
+        // Sanity test: cap queues to 1 to make sure perf drops.
         //
+        uint32_t MaxRssQueues = 1;
+
         for (uint32_t i = 0; i < RTL_NUMBER_OF(RssConfig.IndirectionTable); i++) {
             RssConfig.IndirectionTable[i] =
-                *(const PROCESSOR_NUMBER*)&CxPlatProcessorInfo[i % CxPlatProcCount()];
+                *(const PROCESSOR_NUMBER*)&CxPlatProcessorInfo[i % min(CxPlatProcCount(), MaxRssQueues)];
         }
 
         //
