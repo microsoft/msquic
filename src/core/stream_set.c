@@ -23,20 +23,32 @@ QuicStreamSetValidate(
     _In_ QUIC_STREAM_SET* StreamSet
     )
 {
-    if (StreamSet->StreamTable == NULL) {
-        return; // No streams have been created.
+    const QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
+
+    if (StreamSet->StreamTable != NULL) {
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            const QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
+            CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
+            CXPLAT_DBG_ASSERT(Stream->Flags.InStreamTable);
+            UNREFERENCED_PARAMETER(Stream);
+        }
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
-    QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
-    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
-    CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-        const QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+
+    for (CXPLAT_LIST_ENTRY *Link = StreamSet->WaitingStreams.Flink;
+         Link != &StreamSet->WaitingStreams;
+         Link = Link->Flink) {
+        QUIC_STREAM* Stream =
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingForIdFlowControlLink);
         CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
         CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
+        CXPLAT_DBG_ASSERT(Stream->Flags.InWaitingList);
         UNREFERENCED_PARAMETER(Stream);
     }
-    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 #else
 #define QuicStreamSetValidate(StreamSet)
@@ -76,28 +88,29 @@ QuicStreamSetTraceRundown(
     _In_ QUIC_STREAM_SET* StreamSet
     )
 {
-    if (StreamSet->StreamTable == NULL) {
-        return; // No streams have been created yet.
+    if (StreamSet->StreamTable != NULL) {
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            QuicStreamTraceRundown(
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry));
+        }
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 
-    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
-    CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+    for (CXPLAT_LIST_ENTRY *Link = StreamSet->WaitingStreams.Flink;
+         Link != &StreamSet->WaitingStreams;
+         Link = Link->Flink) {
         QuicStreamTraceRundown(
-            CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry));
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingForIdFlowControlLink));
     }
-    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicStreamSetInsertStream(
-    _Inout_ QUIC_STREAM_SET* StreamSet,
-    _In_ QUIC_STREAM* Stream
-    )
-{
+QuicStreamSetLazyInitStreamTable(_Inout_ QUIC_STREAM_SET* StreamSet) {
     if (StreamSet->StreamTable == NULL) {
         //
         // Lazily initialize the hash table.
@@ -110,6 +123,20 @@ QuicStreamSetInsertStream(
                 0);
             return FALSE;
         }
+    }
+    return TRUE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicStreamSetInsertStream(
+    _Inout_ QUIC_STREAM_SET* StreamSet,
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    if (!QuicStreamSetLazyInitStreamTable(StreamSet)) {
+        return FALSE;
     }
     Stream->Flags.InStreamTable = TRUE;
     CxPlatHashtableInsert(
@@ -152,15 +179,27 @@ QuicStreamSetShutdown(
     _Inout_ QUIC_STREAM_SET* StreamSet
     )
 {
-    if (StreamSet->StreamTable == NULL) {
-        return; // No streams have been created.
+    if (StreamSet->StreamTable != NULL) {
+        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+        CXPLAT_HASHTABLE_ENTRY* Entry;
+        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+            QuicStreamShutdown(
+                Stream,
+                QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND |
+                QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE |
+                QUIC_STREAM_SHUTDOWN_SILENT,
+                0);
+        }
+        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 
-    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
-    CXPLAT_HASHTABLE_ENTRY* Entry;
-    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-        QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+    for (CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
+         Link != &StreamSet->WaitingStreams;
+         Link = Link->Flink) {
+        QUIC_STREAM* Stream =
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingForIdFlowControlLink);
         QuicStreamShutdown(
             Stream,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND |
@@ -168,7 +207,6 @@ QuicStreamSetShutdown(
             QUIC_STREAM_SHUTDOWN_SILENT,
             0);
     }
-    CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -178,16 +216,22 @@ QuicStreamSetReleaseStream(
     _In_ QUIC_STREAM* Stream
     )
 {
-    if (!Stream->Flags.InStreamTable) {
-        return;
-    }
-    Stream->Flags.InStreamTable = FALSE;
-
     //
     // Remove the stream from the list of open streams.
     //
-    CxPlatHashtableRemove(StreamSet->StreamTable, &Stream->TableEntry, NULL);
-    CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
+    if (Stream->Flags.InStreamTable) {
+        CxPlatHashtableRemove(StreamSet->StreamTable, &Stream->TableEntry, NULL);
+        Stream->Flags.InStreamTable = FALSE;
+    } else if (Stream->Flags.InWaitingList) {
+        CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
+        Stream->Flags.InWaitingList = FALSE;
+    } else {
+        //
+        // Nothing to do, the stream was already released.
+        //
+        return;
+    }
+
     CxPlatListInsertTail(&StreamSet->ClosedStreams, &Stream->ClosedLink);
 
     uint8_t Flags = (uint8_t)(Stream->ID & STREAM_ID_MASK);
@@ -305,51 +349,59 @@ QuicStreamSetInitializeTransportParameters(
         UpdateAvailableStreams = TRUE;
     }
 
-    if (StreamSet->StreamTable != NULL) {
-        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
-        CXPLAT_HASHTABLE_ENTRY* Entry;
-        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-            QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+    CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
+    while (Link != &StreamSet->WaitingStreams) {
+        QUIC_STREAM* Stream =
+            CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingForIdFlowControlLink);
+        Link = Link->Flink;
 
-            uint8_t FlowBlockedFlagsToRemove = 0;
+        const uint64_t StreamType = Stream->ID & STREAM_ID_MASK;
+        const uint64_t StreamCount = (Stream->ID >> 2) + 1;
+        const QUIC_STREAM_TYPE_INFO* Info = &Stream->Connection->Streams.Types[StreamType];
 
-            uint64_t StreamType = Stream->ID & STREAM_ID_MASK;
-            uint64_t StreamCount = (Stream->ID >> 2) + 1;
-            const QUIC_STREAM_TYPE_INFO* Info =
-                &Stream->Connection->Streams.Types[StreamType];
-            if (Info->MaxTotalStreamCount >= StreamCount &&
-                Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL) {
-                FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
-                CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
-                QuicStreamIndicatePeerAccepted(Stream);
-            } else {
-                QuicSendSetSendFlag(
-                    &Stream->Connection->Send,
-                    STREAM_ID_IS_UNI_DIR(Stream->ID) ?
-                        QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+        CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
+
+        uint8_t FlowBlockedFlagsToRemove = 0;
+        if (Info->MaxTotalStreamCount >= StreamCount) {
+            FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
+            CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
+            Stream->Flags.InWaitingList = FALSE;
+
+            CXPLAT_DBG_ASSERT(StreamSet->StreamTable != NULL);
+            if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
+                //
+                // The stream hash-table should have been initialized
+                // already when inserting stream in `WaitingStreams`
+                //
+                CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
             }
 
-            uint64_t NewMaxAllowedSendOffset =
-                QuicStreamGetInitialMaxDataFromTP(
-                    Stream->ID,
-                    QuicConnIsServer(Connection),
-                    &Connection->PeerTransportParams);
-
-            if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
-                Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
-                FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
-                Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
-            }
-
-            if (FlowBlockedFlagsToRemove) {
-                QuicStreamRemoveOutFlowBlockedReason(
-                    Stream, FlowBlockedFlagsToRemove);
-                QuicStreamSendDumpState(Stream);
-                MightBeUnblocked = TRUE;
-            }
+            QuicStreamIndicatePeerAccepted(Stream);
+        } else {
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
         }
-        CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
+
+        uint64_t NewMaxAllowedSendOffset =
+            QuicStreamGetInitialMaxDataFromTP(
+                Stream->ID,
+                QuicConnIsServer(Connection),
+                &Connection->PeerTransportParams);
+
+        if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
+            Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
+            FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+            Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
+        }
+
+        if (FlowBlockedFlagsToRemove) {
+            QuicStreamRemoveOutFlowBlockedReason(
+                Stream, FlowBlockedFlagsToRemove);
+            QuicStreamSendDumpState(Stream);
+            MightBeUnblocked = TRUE;
+        }
     }
 
     if (UpdateAvailableStreams) {
@@ -430,6 +482,7 @@ QuicStreamSetUpdateMaxStreams(
                 CXPLAT_DBG_ASSERTMSG(FALSE, "Stream should be blocked by id flow control");
             }
             CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
+            Stream->Flags.InWaitingList = FALSE;
             QuicStreamIndicatePeerAccepted(Stream);
             FlushSend = TRUE;
         }
@@ -558,13 +611,23 @@ QuicStreamSetNewLocalStream(
 
     Stream->ID = NewStreamId;
 
-    if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        Stream->ID = UINT64_MAX;
-        goto Exit;
-    }
+    if (!NewStreamBlocked) {
+        if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            Stream->ID = UINT64_MAX;
+            goto Exit;
+        }
+    } else {
+        //
+        // Initialize the stream table now: we will need it soon and don't want to fail
+        // when the stream is unblocked and gets inserted in the table.
+        //
+        if (!QuicStreamSetLazyInitStreamTable(StreamSet)) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            Stream->ID = UINT64_MAX;
+            goto Exit;
+        }
 
-    if (NewStreamBlocked) {
         //
         // Insert the stream into the list of streams waiting for stream id flow control.
         // Make sure to keep the list ordered by stream ID.
@@ -579,6 +642,7 @@ QuicStreamSetNewLocalStream(
             Link = Link->Blink;
         }
         CxPlatListInsertTail(Link, &Stream->WaitingForIdFlowControlLink);
+        Stream->Flags.InWaitingList = TRUE;
 
         //
         // We don't call QuicStreamAddOutFlowBlockedReason here because we haven't

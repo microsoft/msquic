@@ -158,6 +158,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
@@ -236,17 +237,16 @@ typedef struct QUIC_STREAM {
         CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
+        // The entry in the connection's list of streams waiting on stream
+        // id flow control.
+        //
+        CXPLAT_LIST_ENTRY WaitingForIdFlowControlLink;
+
+        //
         // The entry in the connection's list of closed streams to clean up.
         //
         CXPLAT_LIST_ENTRY ClosedLink;
     };
-
-    //
-    // TODO guhetier: Check if can be moved in the union or if need to be in hashtable + this at the same time.
-    // The entry in the connection's list of streams waiting on stream
-    // id flow control.
-    //
-    CXPLAT_LIST_ENTRY WaitingForIdFlowControlLink;
 
     //
     // The list entry in the output module's send list.
