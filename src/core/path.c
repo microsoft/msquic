@@ -345,7 +345,7 @@ QuicPathUpdateQeo(
         Offloads[1].NextPacketNumber = Connection->Packets[QUIC_ENCRYPT_LEVEL_1_RTT]->AckTracker.LargestPacketNumberAcknowledged;
         if (QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.WriteKeys[QUIC_PACKET_KEY_1_RTT], "Tx offload", &Offloads[0]) &&
             QuicTlsPopulateOffloadKeys(Connection->Crypto.TLS, Connection->Crypto.TlsState.ReadKeys[QUIC_PACKET_KEY_1_RTT],  "Rx offload", &Offloads[1]) &&
-            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, FALSE))) {
+            QUIC_SUCCEEDED(CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, Path->Route.UseQTIP))) {
             Connection->Stats.EncryptionOffloaded = TRUE;
             Path->EncryptionOffloading = TRUE;
             QuicTraceLogConnInfo(
@@ -357,7 +357,7 @@ QuicPathUpdateQeo(
         CxPlatSecureZeroMemory(Offloads, sizeof(Offloads));
     } else {
         CXPLAT_DBG_ASSERT(Path->EncryptionOffloading);
-        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, FALSE);
+        (void)CxPlatSocketUpdateQeo(Path->Binding->Socket, Offloads, 2, Path->Route.UseQTIP);
         Path->EncryptionOffloading = FALSE;
         QuicTraceLogConnInfo(
             PathQeoDisabled,

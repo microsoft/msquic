@@ -1059,9 +1059,16 @@ CxPlatIsRouteReady(
     //
     if (Path->Route.State == RouteUnresolved || Path->Route.State == RouteSuspected) {
         QuicConnAddRef(Connection, QUIC_CONN_REF_ROUTE);
+        BOOLEAN UseQTIP = Connection->State.UseQTIP;
+        if (QuicConnIsServer(Connection)) {
+            //
+            // If this connection was claimed by a server, we need to pass along the QTIP preference. Not override it with local preference.
+            //
+            UseQTIP = Path->Route.UseQTIP;
+        }
         QUIC_STATUS Status =
             CxPlatResolveRoute(
-                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion, Connection->State.UseQTIP);
+                Path->Binding->Socket, &Path->Route, Path->ID, (void*)Connection, QuicConnQueueRouteCompletion, UseQTIP);
         if (Status == QUIC_STATUS_SUCCESS) {
             QuicConnRelease(Connection, QUIC_CONN_REF_ROUTE);
             return TRUE;
