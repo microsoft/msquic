@@ -314,10 +314,18 @@ NewPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
-    if (SendUdpOverQtip && UseQTIP) {
-        // Opt this connection out of QTIP.
+
+    if (SendUdpOverQtip) {
+        // UseQTIP is implicitly true here. We are alternating between QTIP and QUIC to ping the same listener.
+        Connection->SetQtipPreferences(0);
+    } else if (UseQTIP) {
+        // We hit this case either when we are alternating between QTIP and QUIC to ping the same listener, or SendUdpOverQtip is always false.
+        Connection->SetQtipPreferences(1);
+    } else {
+        // Normal QUIC
         Connection->SetQtipPreferences(0);
     }
+
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
@@ -416,19 +424,6 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-    if (UseQTIP && SendUdpToQtipListener) {
-        // Do a sanity check to make sure we actually have QTIP enabled.
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
-        // Get the current global execution config.
-        uint32_t Size = sizeof(Config);
-        TEST_TRUE(QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                &Size,
-                &Config)));
-        TEST_TRUE((Config.Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) != 0);
-    }
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -488,7 +483,7 @@ QuicTestConnectAndPing(
                     Registration,
                     &ClientStats,
                     UseSendBuffer,
-                    SendUdpToQtipListener);
+                    SendUdpToQtipListener && (i % 2 == 1)); // Every other connection, we alternate the QTIP preferences (if UseQTIP is true AND SendUdpToQtipListener is true).
             if (Connections.get()[i] == nullptr) {
                 return;
             }
