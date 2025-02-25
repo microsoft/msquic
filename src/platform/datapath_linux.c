@@ -20,12 +20,14 @@ CxPlatSocketUpdateQeo(
     _In_ CXPLAT_SOCKET* Socket,
     _In_reads_(OffloadCount)
         const CXPLAT_QEO_CONNECTION* Offloads,
-    _In_ uint32_t OffloadCount
+    _In_ uint32_t OffloadCount,
+    _In_ BOOLEAN UseQTIP
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Offloads);
     UNREFERENCED_PARAMETER(OffloadCount);
+    UNREFERENCED_PARAMETER(UseQTIP);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 

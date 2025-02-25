@@ -569,7 +569,7 @@ struct CxPlatSocket {
                 // This is a connected socket and its route must be resolved
                 // to be able to send traffic.
                 //
-                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete, FALSE, FALSE);
+                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete, FALSE);
                 //
                 // Duonic sets up static neighbor entries, so CxPlatResolveRoute should
                 // complete synchronously. If this changes, we will need to add code to
@@ -782,7 +782,7 @@ TEST_F(DataPathTest, UdpQeo)
     ASSERT_TRUE(QuicAddrFromString("192.168.0.1:5555", 5555, &Offloads[1].Address));
     ASSERT_EQ(
         QUIC_STATUS_NOT_SUPPORTED,
-        CxPlatSocketUpdateQeo(Socket.Socket, Offloads, 2));
+        CxPlatSocketUpdateQeo(Socket.Socket, Offloads, 2, FALSE));
 }
 
 TEST_P(DataPathTest, UdpData)

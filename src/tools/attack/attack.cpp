@@ -144,7 +144,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
     CallbackContext Context = {&Route, };
-    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE, FALSE);
+    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
@@ -234,7 +234,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
     CallbackContext Context = {&Route, };
-    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE, FALSE);
+    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
