@@ -826,7 +826,7 @@ enum MsQuicCleanUpMode {
     CleanUpAutoDelete,
 };
 
-typedef QUIC_STATUS MsQuicListenerCallback(
+typedef QUIC_STATUS QUIC_API MsQuicListenerCallback(
     _In_ struct MsQuicListener* Listener,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
