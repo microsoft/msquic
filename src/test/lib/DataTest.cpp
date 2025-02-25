@@ -261,7 +261,6 @@ ListenerAcceptPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(ConnectionHandle, ConnectionAcceptPingStream);
-    Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to accept new TestConnection.");
         delete Connection;
