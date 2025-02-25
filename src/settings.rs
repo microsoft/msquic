@@ -50,7 +50,7 @@ impl Settings {
 }
 
 // Defines the setters for each setting.
-// Keep the casing as the ffi function for easy of using macro. 
+// Keep the casing as the ffi function for easy of using macro.
 #[allow(non_snake_case)]
 impl Settings {
     define_settings_entry!(set_MaxBytesPerKey, MaxBytesPerKey, u64);
