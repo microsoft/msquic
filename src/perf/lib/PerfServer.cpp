@@ -19,8 +19,6 @@ const uint8_t SecNetPerfShutdownGuid[16] = { // {ff15e657-4f26-570e-88ab-0796b25
     0x57, 0xe6, 0x15, 0xff, 0x26, 0x4f, 0x0e, 0x57,
     0x88, 0xab, 0x07, 0x96, 0xb2, 0x58, 0xd1, 0x1c};
 
-extern CXPLAT_WORKER_POOL DelayPool;
-
 QUIC_STATUS
 PerfServer::Init(
     _In_ int argc,
@@ -415,9 +413,7 @@ PerfServer::SendDelayedResponse(
 {
     uint16_t WorkerNumber = (uint16_t)CxPlatProcCurrentNumber();
     CXPLAT_DBG_ASSERT(WorkerNumber < ProcCount);
-    if (!DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp)) {
-        WriteOutput("Failed to queue delay worker on processor %d.\n", WorkerNumber);
-    }
+    DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -567,20 +563,17 @@ PerfServer::TcpSendCompleteCallback(
 bool DelayWorker::Initialize(PerfServer* GivenServer, uint16_t PartitionIndex)
 {
     Server = GivenServer;
-    ExecutionContext.Callback = DelayedWork;
-    ExecutionContext.Context = this;
-    InterlockedFetchAndSetBoolean(&ExecutionContext.Ready);
-    ExecutionContext.NextTimeUs = UINT64_MAX;
 
-    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     //
-    // Not using the high priority flag for delay threads
+    // Pin the delay thread to the given partition/processor
     //
+    uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC | CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
     CXPLAT_THREAD_CONFIG Config = { ThreadFlags, PartitionIndex, "DelayWorker", WorkerThread, this };
     if (QUIC_FAILED(Thread.Create(&Config))) {
         WriteOutput("CxPlatThreadCreate FAILED\n");
         return false;
     }
+
     Initialized = true;
     return true;
 }
@@ -613,71 +606,67 @@ void DelayWorker::Shutdown()
 }
 
 void DelayWorker::WakeWorkerThread() {
-    if (!InterlockedFetchAndSetBoolean(&ExecutionContext.Ready)) {
-            WakeEvent.Set();
-    }
+    WakeEvent.Set();
 }
 
 CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Context)
 {
     DelayWorker* This = (DelayWorker*)Context;
-    CXPLAT_EXECUTION_STATE DummyState = {
-        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
-    };
-    while (DelayedWork(This, &DummyState)) {
-        if (!InterlockedFetchAndClearBoolean(&This->ExecutionContext.Ready)) {
-            This->WakeEvent.WaitForever(); // Wait for more work
-        }
+    while (DelayedWork(This)) {
+        This->WakeEvent.WaitForever();
     }
     CXPLAT_THREAD_RETURN(0);
 }
 
 BOOLEAN
 DelayWorker::DelayedWork(
-    _Inout_ void* Context,
-    _Inout_ CXPLAT_EXECUTION_STATE* State
+    _Inout_ void* Context
     )
 {
     DelayWorker* This = (DelayWorker*)Context;
-    if (This->Shuttingdown) {
-        This->DoneEvent.Set();
-        return FALSE;
-    }
+    DelayedWorkContext* WorkItem;
+    DelayedWorkContext* NextWorkItem;
 
-    DelayedWorkContext* WorkItem = nullptr;
-    This->Lock.Acquire();
-    if (This->WorkItems) {
-        WorkItem = This->WorkItems;
-        This->WorkItems = WorkItem->Next;
-        if (This->WorkItemsTail == &WorkItem->Next) {
-            This->WorkItemsTail = &This->WorkItems;
+    do {
+        if (This->Shuttingdown) {
+            This->DoneEvent.Set();
+            return FALSE;
         }
-        WorkItem->Next = nullptr;
-    }
-    This->Lock.Release();
 
-    if (nullptr != WorkItem) {
-        This->Server->SimulateDelay();
-        This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
-        delete WorkItem;
-        InterlockedFetchAndSetBoolean(&This->ExecutionContext.Ready); // We just did work, let's keep this thread hot.
-        State->NoWorkCount = 0;
-    }
+        WorkItem = nullptr;
+        NextWorkItem = nullptr;
+
+        This->Lock.Acquire();
+        if (nullptr != This->WorkItems) {
+            WorkItem = This->WorkItems;
+            if (nullptr != WorkItem) {
+                NextWorkItem = This->WorkItems = WorkItem->Next;
+                if (This->WorkItemsTail == &WorkItem->Next) {
+                    This->WorkItemsTail = &This->WorkItems;
+                }
+                WorkItem->Next = nullptr;
+            }
+        }
+        This->Lock.Release();
+
+        if (nullptr != WorkItem) {
+            This->Server->SimulateDelay();
+            This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+            delete WorkItem;
+        }
+    } while (nullptr != NextWorkItem);
 
     return TRUE;
 }
 
-bool
+void
 DelayWorker::QueueWork(
     _In_ StreamContext* Context,
     _In_ void* Handle,
     _In_ bool IsTcp
     )
 {
-    DelayedWorkContext* Work = new (std::nothrow) DelayedWorkContext();
-    if (nullptr == Work) {
-        return false;
-    }
+    DelayedWorkContext* Work = new DelayedWorkContext();
 
     Work->Context = Context;
     Work->Handle = Handle;
@@ -688,5 +677,4 @@ DelayWorker::QueueWork(
     WorkItemsTail = &Work->Next;
     WakeWorkerThread();
     Lock.Release();
-    return true;
 }

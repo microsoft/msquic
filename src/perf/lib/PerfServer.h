@@ -54,16 +54,15 @@ struct DelayedWorkContext {
 
 class DelayWorker {
 public:
-    PerfServer* Server = nullptr;
-    CXPLAT_EXECUTION_CONTEXT ExecutionContext = { 0 };
-    bool Initialized{ false };
+    PerfServer* Server {nullptr};
+    bool Initialized {false};
     CxPlatThread Thread;
     CxPlatEvent WakeEvent;
     CxPlatEvent DoneEvent;
     CxPlatLock Lock;
-    DelayedWorkContext* WorkItems = nullptr;
-    DelayedWorkContext** WorkItemsTail{ &WorkItems };
-    bool Shuttingdown{ false };
+    DelayedWorkContext* WorkItems {nullptr};
+    DelayedWorkContext** WorkItemsTail {&WorkItems};
+    bool Shuttingdown {false};
 
     DelayWorker() : Thread(true), WakeEvent(false), DoneEvent(true), Lock()
     {
@@ -79,14 +78,13 @@ public:
     void Shutdown();
     void WakeWorkerThread();
     static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
-    bool QueueWork(
+    void QueueWork(
         _In_ StreamContext* Context,
         _In_ void* Handle,
         _In_ bool IsTcp
         );
     static BOOLEAN DelayedWork(
-        _Inout_ void* Context,
-        _Inout_ CXPLAT_EXECUTION_STATE* State
+        _Inout_ void* Context
         );
 };
 
