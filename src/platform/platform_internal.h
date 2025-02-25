@@ -764,6 +764,7 @@ CxPlatCryptUninitialize(
 // Platform Worker APIs
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
