@@ -666,7 +666,7 @@ DelayWorker::QueueWork(
     _In_ bool IsTcp
     )
 {
-    DelayedWorkContext* Work = new DelayedWorkContext();
+    DelayedWorkContext* Work = new (std::nothrow) DelayedWorkContext();
 
     Work->Context = Context;
     Work->Handle = Handle;
