@@ -1609,6 +1609,26 @@ QUIC_STATUS
 // Connection Pool API
 //
 
+typedef enum QUIC_CONNECTION_POOL_FLAGS {
+    QUIC_CONNECTION_POOL_FLAG_NONE = 0x00000000,
+} QUIC_CONNECTION_POOL_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_POOL_FLAGS);
+
+typedef struct QUIC_CONNECTION_POOL_CONFIG {
+    _In_ HQUIC Registration;
+    _In_ HQUIC Configuration;
+    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler;
+    _In_reads_opt_(NumberOfConnections)
+        void** Context;
+    _In_ const char* ServerName;
+    _In_opt_ const QUIC_ADDR* ServerAddress;
+    _In_ QUIC_ADDRESS_FAMILY Family;
+    _In_ uint16_t ServerPort;
+    _In_ uint16_t NumberOfConnections;
+    _In_ QUIC_CONNECTION_POOL_FLAGS Flags;
+} QUIC_CONNECTION_POOL_CONFIG;
+
 //
 // Creates a simple connection pool with NumberOfConnections connections
 // all with the same Context and Handler, and puts them in the
@@ -1623,15 +1643,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Check_return_
 QUIC_STATUS
 (QUIC_API * QUIC_CONN_POOL_CREATE_FN)(
-    _In_ HQUIC Registration,
-    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
-    _In_opt_ void* Context,
-    _In_opt_ const char* ServerName,
-    _In_opt_ const QUIC_ADDR* ServerAddress,
-    _In_ uint16_t ServerPort,
-    _In_ uint16_t NumberOfConnections,
-    _Out_writes_bytes_(NumberOfConnections * sizeof(HQUIC))
-        HQUIC** ConnectionPool
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
     );
 
 //

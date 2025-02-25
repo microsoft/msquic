@@ -75,7 +75,7 @@ CxPlatToeplitzHashInitialize(
     //
     // Initialize the Toeplitz->LookupTables.
     //
-    for (uint32_t i = 0; i < Toeplitz->InputSize; i++) {
+    for (uint32_t i = 0; i < Toeplitz->InputSize * NIBBLES_PER_BYTE; i++) {
         //
         // First construct the 32-bit word that is obtained after
         // shifting the key left by i*4 bits. That goes into Word1
