@@ -218,6 +218,10 @@ extern "C" {
 // IP Address Abstraction Helpers
 //
 
+// RFC 6335
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
 inline
 BOOLEAN
 QuicAddrFamilyIsValid(
