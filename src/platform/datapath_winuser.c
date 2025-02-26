@@ -1500,7 +1500,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
@@ -2612,17 +2612,12 @@ SocketDelete(
 
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
-
-    if (Socket->UseTcp) {
-        // QTIP did not initialize PerProcSockets
-        CxPlatSocketRelease(Socket);
-    } else {
-        const uint16_t SocketCount =
-            Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-        for (uint16_t i = 0; i < SocketCount; ++i) {
-            CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
-        }
+    const uint16_t SocketCount =
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
+    for (uint16_t i = 0; i < SocketCount; ++i) {
+        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
+    CxPlatSocketRelease(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
