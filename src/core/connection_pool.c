@@ -127,7 +127,8 @@ MsQuicConnectionPoolCreate(
     //
     // Resolve the server name or use the remote address.
     //
-    QUIC_ADDR ResolvedRemoteAddress = {.si_family = Config->Family, };
+    QUIC_ADDR ResolvedRemoteAddress = {};
+    QuicAddrSetFamily(&ResolvedRemoteAddress, Config->Family);
     if (Config->ServerAddress != NULL) {
          ResolvedRemoteAddress = *Config->ServerAddress;
     } else {
@@ -175,9 +176,9 @@ MsQuicConnectionPoolCreate(
         goto Error;
     }
 
-    if ((LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
+    if ((QuicAddrGetFamily(&LocalAddress) == QUIC_ADDRESS_FAMILY_INET &&
             (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV4) == 0) ||
-        (LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
+        (QuicAddrGetFamily(&LocalAddress) == QUIC_ADDRESS_FAMILY_INET6 &&
             (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV6) == 0)) {
         //
         // This RSS implementation doesn't support hashing UDP ports, which

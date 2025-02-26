@@ -26,6 +26,24 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for ConnPoolLocalAddressNotFound
+// [conp] Failed to find local address, 0x%x
+// QuicTraceLogError(
+            ConnPoolLocalAddressNotFound,
+            "[conp] Failed to find local address, 0x%x",
+            Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound
+#define _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolLocalAddressNotFound , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPoolInvalidParam
 // [conp] Invalid parameter, 0x%x
 // QuicTraceLogError(
@@ -44,17 +62,17 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolInvalidParam , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnPoolInvalidParamNeedRemoteAddress
-// [conp] Neither ServerName nor ServerAddress were set, 0x%x
+// Decoder Ring for ConnPoolResolveAddress
+// [conp] Failed to resolve address, 0x%x
 // QuicTraceLogError(
-            ConnPoolInvalidParamNeedRemoteAddress,
-            "[conp] Neither ServerName nor ServerAddress were set, 0x%x",
-            Status);
+                ConnPoolResolveAddress,
+                "[conp] Failed to resolve address, 0x%x",
+                Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolInvalidParamNeedRemoteAddress
-#define _clog_3_ARGS_TRACE_ConnPoolInvalidParamNeedRemoteAddress(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolInvalidParamNeedRemoteAddress , arg2);\
+#ifndef _clog_3_ARGS_TRACE_ConnPoolResolveAddress
+#define _clog_3_ARGS_TRACE_ConnPoolResolveAddress(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolResolveAddress , arg2);\
 
 #endif
 
@@ -62,53 +80,17 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolInvalidParamNeedRemoteAddress , arg2)
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnPoolCreateSocket
-// [conp] Failed to create socket, 0x%x
+// Decoder Ring for ConnPoolGetLocalAddress
+// [conp] Failed to get local address, 0x%x
 // QuicTraceLogError(
-            ConnPoolCreateSocket,
-            "[conp] Failed to create socket, 0x%x",
+            ConnPoolGetLocalAddress,
+            "[conp] Failed to get local address, 0x%x",
             Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolCreateSocket
-#define _clog_3_ARGS_TRACE_ConnPoolCreateSocket(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolCreateSocket , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolGetLocalAddresses
-// [conp] Failed to get local address info, 0x%x
-// QuicTraceLogError(
-            ConnPoolGetLocalAddresses,
-            "[conp] Failed to get local address info, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolGetLocalAddresses
-#define _clog_3_ARGS_TRACE_ConnPoolGetLocalAddresses(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetLocalAddresses , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolLocalAddressNotFound
-// [conp] Failed to find local address, 0x%x
-// QuicTraceLogError(
-            ConnPoolLocalAddressNotFound,
-            "[conp] Failed to find local address, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound
-#define _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolLocalAddressNotFound , arg2);\
+#ifndef _clog_3_ARGS_TRACE_ConnPoolGetLocalAddress
+#define _clog_3_ARGS_TRACE_ConnPoolGetLocalAddress(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetLocalAddress , arg2);\
 
 #endif
 
@@ -135,10 +117,10 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetRssConfig , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnPoolRssNotSupported
-// [conp] RSS not supported, 0x%x
+// [conp] RSS not supported for UDP, 0x%x
 // QuicTraceLogError(
             ConnPoolRssNotSupported,
-            "[conp] RSS not supported, 0x%x",
+            "[conp] RSS not supported for UDP, 0x%x",
             Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
@@ -173,10 +155,10 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong , arg2);\
 // Decoder Ring for ConnPoolOpenConnection
 // [conp] Failed to open connection[%u], 0x%x
 // QuicTraceLogError(
-                ConnPoolOpenConnection,
-                "[conp] Failed to open connection[%u], 0x%x",
-                i,
-                Status);
+                    ConnPoolOpenConnection,
+                    "[conp] Failed to open connection[%u], 0x%x",
+                    i,
+                    Status);
 // arg2 = arg2 = i = arg2
 // arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
@@ -193,10 +175,10 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolOpenConnection , arg2, arg3);\
 // Decoder Ring for ConnPoolSetRemoteAddress
 // [conp] Failed to set remote address on connection[%u], 0x%x
 // QuicTraceLogError(
-                ConnPoolSetRemoteAddress,
-                "[conp] Failed to set remote address on connection[%u], 0x%x",
-                i,
-                Status);
+                    ConnPoolSetRemoteAddress,
+                    "[conp] Failed to set remote address on connection[%u], 0x%x",
+                    i,
+                    Status);
 // arg2 = arg2 = i = arg2
 // arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
@@ -213,16 +195,80 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetRemoteAddress , arg2, arg3);\
 // Decoder Ring for ConnPoolSetLocalAddress
 // [conp] Failed to set local address on connection[%u], 0x%x
 // QuicTraceLogError(
-                ConnPoolSetLocalAddress,
-                "[conp] Failed to set local address on connection[%u], 0x%x",
-                i,
-                Status);
+                    ConnPoolSetLocalAddress,
+                    "[conp] Failed to set local address on connection[%u], 0x%x",
+                    i,
+                    Status);
 // arg2 = arg2 = i = arg2
 // arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ConnPoolSetLocalAddress
 #define _clog_4_ARGS_TRACE_ConnPoolSetLocalAddress(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetLocalAddress , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolStartConnection
+// [conp] Failed to start connection[%u], 0x%x
+// QuicTraceLogError(
+                    ConnPoolStartConnection,
+                    "[conp] Failed to start connection[%u], 0x%x",
+                    i,
+                    Status);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPoolStartConnection
+#define _clog_4_ARGS_TRACE_ConnPoolStartConnection(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolStartConnection , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolMaxRetries
+// [conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x
+// QuicTraceLogError(
+                ConnPoolMaxRetries,
+                "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x",
+                MaxCreationRetries,
+                i,
+                QuicAddrGetPort(&LocalAddress),
+                Status);
+// arg2 = arg2 = MaxCreationRetries = arg2
+// arg3 = arg3 = i = arg3
+// arg4 = arg4 = QuicAddrGetPort(&LocalAddress) = arg4
+// arg5 = arg5 = Status = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_ConnPoolMaxRetries
+#define _clog_6_ARGS_TRACE_ConnPoolMaxRetries(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolMaxRetries , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
+// QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_POOL_CREATE,
+        Config->Registration);
+// arg2 = arg2 = QUIC_TRACE_API_CONNECTION_POOL_CREATE = arg2
+// arg3 = arg3 = Config->Registration = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
+#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ApiEnter , arg2, arg3);\
 
 #endif
 
@@ -243,6 +289,24 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetLocalAddress , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_POOL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExitStatus
+// [ api] Exit %u
+// QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
+#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ApiExitStatus , arg2);\
 
 #endif
 
