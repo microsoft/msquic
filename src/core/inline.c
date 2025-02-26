@@ -140,6 +140,11 @@ QuicIsVersionSupported(
     );
 
 uint16_t
+QuicLibraryGetPartitionFromProcessorIndex(
+    uint32_t ProcessorIndex
+    );
+
+uint16_t
 QuicLibraryGetCurrentPartition(
     void
     );

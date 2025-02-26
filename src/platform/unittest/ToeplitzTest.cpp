@@ -80,11 +80,11 @@ struct ToeplitzTest : public ::testing::Test
 
             QUIC_ADDR SrcAddr;
             ASSERT_TRUE(QuicAddrFromString(SourceAddresses[i], SourcePorts[i], &SrcAddr));
-            ASSERT_EQ(SrcAddr.si_family, Family);
+            ASSERT_EQ(QuicAddrGetFamily(&SrcAddr), Family);
 
             QUIC_ADDR DestAddr;
             ASSERT_TRUE(QuicAddrFromString(DestinationAddresses[i], DestinationPorts[i], &DestAddr));
-            ASSERT_EQ(DestAddr.si_family, Family);
+            ASSERT_EQ(QuicAddrGetFamily(&DestAddr), Family);
 
             uint32_t Key = 0, Offset = 0;
             CxPlatToeplitzHashComputeRss(&ToeplitzHash, &SrcAddr, &DestAddr, &Key, &Offset);
