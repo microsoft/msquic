@@ -26,13 +26,13 @@ QuicStreamSetValidate(
     const QUIC_CONNECTION* Connection = QuicStreamSetGetConnection(StreamSet);
 
     if (StreamSet->StreamTable != NULL) {
-        CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
-        CXPLAT_HASHTABLE_ENTRY* Entry;
-        CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
-        while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
-            const QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
-            CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
-            CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
+    CXPLAT_HASHTABLE_ENUMERATOR Enumerator;
+    CXPLAT_HASHTABLE_ENTRY* Entry;
+    CxPlatHashtableEnumerateBegin(StreamSet->StreamTable, &Enumerator);
+    while ((Entry = CxPlatHashtableEnumerateNext(StreamSet->StreamTable, &Enumerator)) != NULL) {
+        const QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, TableEntry);
+        CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
+        CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
             CXPLAT_DBG_ASSERT(Stream->Flags.InStreamTable);
             UNREFERENCED_PARAMETER(Stream);
         }
@@ -356,13 +356,13 @@ QuicStreamSetInitializeTransportParameters(
         Link = Link->Flink;
 
         const uint64_t StreamType = Stream->ID & STREAM_ID_MASK;
-        const uint64_t StreamCount = (Stream->ID >> 2) + 1;
+        const uint64_t StreamIndex = (Stream->ID >> 2);
         const QUIC_STREAM_TYPE_INFO* Info = &Stream->Connection->Streams.Types[StreamType];
 
         CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
 
-        uint8_t FlowBlockedFlagsToRemove = 0;
-        if (Info->MaxTotalStreamCount >= StreamCount) {
+            uint8_t FlowBlockedFlagsToRemove = 0;
+        if (StreamIndex < Info->MaxTotalStreamCount) {
             FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
             CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
             Stream->Flags.InWaitingList = FALSE;
@@ -376,32 +376,32 @@ QuicStreamSetInitializeTransportParameters(
                 CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
             }
 
-            QuicStreamIndicatePeerAccepted(Stream);
-        } else {
-            QuicSendSetSendFlag(
-                &Stream->Connection->Send,
-                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
-                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
-        }
+                QuicStreamIndicatePeerAccepted(Stream);
+            } else {
+                QuicSendSetSendFlag(
+                    &Stream->Connection->Send,
+                    STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                        QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+            }
 
-        uint64_t NewMaxAllowedSendOffset =
-            QuicStreamGetInitialMaxDataFromTP(
-                Stream->ID,
-                QuicConnIsServer(Connection),
-                &Connection->PeerTransportParams);
+            uint64_t NewMaxAllowedSendOffset =
+                QuicStreamGetInitialMaxDataFromTP(
+                    Stream->ID,
+                    QuicConnIsServer(Connection),
+                    &Connection->PeerTransportParams);
 
-        if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
-            Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
-            FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
-            Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
-        }
+            if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
+                Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
+                FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+                Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
+            }
 
-        if (FlowBlockedFlagsToRemove) {
-            QuicStreamRemoveOutFlowBlockedReason(
-                Stream, FlowBlockedFlagsToRemove);
-            QuicStreamSendDumpState(Stream);
-            MightBeUnblocked = TRUE;
-        }
+            if (FlowBlockedFlagsToRemove) {
+                QuicStreamRemoveOutFlowBlockedReason(
+                    Stream, FlowBlockedFlagsToRemove);
+                QuicStreamSendDumpState(Stream);
+                MightBeUnblocked = TRUE;
+            }
     }
 
     if (UpdateAvailableStreams) {
@@ -468,7 +468,6 @@ QuicStreamSetUpdateMaxStreams(
             Link = Link->Flink;
 
             uint64_t Index = (Stream->ID >> 2);
-            CXPLAT_DBG_ASSERT(Index >= Info->MaxTotalStreamCount);
             if (Index >= MaxStreams) {
                 break;
             }
@@ -477,6 +476,10 @@ QuicStreamSetUpdateMaxStreams(
                 continue;
             }
 
+            //
+            // Any stream in the waiting list was blocked by the previous peer id flow control.
+            //
+            CXPLAT_DBG_ASSERT(Index >= Info->MaxTotalStreamCount);
             if (!QuicStreamRemoveOutFlowBlockedReason(
                     Stream, QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL)) {
                 CXPLAT_DBG_ASSERTMSG(FALSE, "Stream should be blocked by id flow control");
@@ -641,7 +644,7 @@ QuicStreamSetNewLocalStream(
             }
             Link = Link->Blink;
         }
-        CxPlatListInsertTail(Link, &Stream->WaitingForIdFlowControlLink);
+        CxPlatListInsertAfter(Link, &Stream->WaitingForIdFlowControlLink);
         Stream->Flags.InWaitingList = TRUE;
 
         //
