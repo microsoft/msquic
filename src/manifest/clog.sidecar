@@ -1879,6 +1879,18 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "ConnPoolGetLocalAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to get local address, 0x%x",
+      "UniqueId": "ConnPoolGetLocalAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "ConnPoolGetLocalAddresses": {
       "ModuleProperites": {},
       "TraceString": "[conp] Failed to get local address info, 0x%x",
@@ -1939,6 +1951,30 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "ConnPoolMaxRetries": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x",
+      "UniqueId": "ConnPoolMaxRetries",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "ConnPoolOpenConnection": {
       "ModuleProperites": {},
       "TraceString": "[conp] Failed to open connection[%u], 0x%x",
@@ -1955,9 +1991,21 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "ConnPoolResolveAddress": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to resolve address, 0x%x",
+      "UniqueId": "ConnPoolResolveAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "ConnPoolRssNotSupported": {
       "ModuleProperites": {},
-      "TraceString": "[conp] RSS not supported, 0x%x",
+      "TraceString": "[conp] RSS not supported for UDP, 0x%x",
       "UniqueId": "ConnPoolRssNotSupported",
       "splitArgs": [
         {
@@ -1999,6 +2047,22 @@
       "ModuleProperites": {},
       "TraceString": "[conp] Failed to set remote address on connection[%u], 0x%x",
       "UniqueId": "ConnPoolSetRemoteAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolStartConnection": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to start connection[%u], 0x%x",
+      "UniqueId": "ConnPoolStartConnection",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -14210,6 +14274,11 @@
         "EncodingString": "[conp] Failed to create socket, 0x%x"
       },
       {
+        "UniquenessHash": "9603502c-8cb9-1921-8d36-26287b5ce149",
+        "TraceID": "ConnPoolGetLocalAddress",
+        "EncodingString": "[conp] Failed to get local address, 0x%x"
+      },
+      {
         "UniquenessHash": "412470bc-72b5-06e3-3c78-419cae4813e7",
         "TraceID": "ConnPoolGetLocalAddresses",
         "EncodingString": "[conp] Failed to get local address info, 0x%x"
@@ -14235,14 +14304,24 @@
         "EncodingString": "[conp] Failed to find local address, 0x%x"
       },
       {
+        "UniquenessHash": "fa99b8b0-d616-8f5c-6e72-e488f84ffc15",
+        "TraceID": "ConnPoolMaxRetries",
+        "EncodingString": "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x"
+      },
+      {
         "UniquenessHash": "a6d8565d-4daa-4ce4-0fd8-c0a96e1f3857",
         "TraceID": "ConnPoolOpenConnection",
         "EncodingString": "[conp] Failed to open connection[%u], 0x%x"
       },
       {
-        "UniquenessHash": "a772835d-7920-f9dd-e9b6-1f7c0e21a3b2",
+        "UniquenessHash": "1bff1b11-bb91-55c2-5dbe-b556895ec49c",
+        "TraceID": "ConnPoolResolveAddress",
+        "EncodingString": "[conp] Failed to resolve address, 0x%x"
+      },
+      {
+        "UniquenessHash": "b30e8087-8bd3-3ec5-5531-5c4409721a62",
         "TraceID": "ConnPoolRssNotSupported",
-        "EncodingString": "[conp] RSS not supported, 0x%x"
+        "EncodingString": "[conp] RSS not supported for UDP, 0x%x"
       },
       {
         "UniquenessHash": "6706218c-7c1e-b832-b1e7-fc2b7209c3a3",
@@ -14258,6 +14337,11 @@
         "UniquenessHash": "57696af4-f367-3d05-7259-d55ac7dabf60",
         "TraceID": "ConnPoolSetRemoteAddress",
         "EncodingString": "[conp] Failed to set remote address on connection[%u], 0x%x"
+      },
+      {
+        "UniquenessHash": "4a8d226c-314f-ad09-87bd-fbd785079e4d",
+        "TraceID": "ConnPoolStartConnection",
+        "EncodingString": "[conp] Failed to start connection[%u], 0x%x"
       },
       {
         "UniquenessHash": "1774df63-d849-a89c-4a88-bf2ff1002e15",
