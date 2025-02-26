@@ -361,7 +361,7 @@ QuicStreamSetInitializeTransportParameters(
 
         CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
 
-            uint8_t FlowBlockedFlagsToRemove = 0;
+        uint8_t FlowBlockedFlagsToRemove = 0;
         if (StreamIndex < Info->MaxTotalStreamCount) {
             FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
             CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
@@ -376,32 +376,32 @@ QuicStreamSetInitializeTransportParameters(
                 CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
             }
 
-                QuicStreamIndicatePeerAccepted(Stream);
-            } else {
-                QuicSendSetSendFlag(
-                    &Stream->Connection->Send,
-                    STREAM_ID_IS_UNI_DIR(Stream->ID) ?
-                        QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
-            }
+            QuicStreamIndicatePeerAccepted(Stream);
+        } else {
+            QuicSendSetSendFlag(
+                &Stream->Connection->Send,
+                STREAM_ID_IS_UNI_DIR(Stream->ID) ?
+                    QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED : QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED);
+        }
 
-            uint64_t NewMaxAllowedSendOffset =
-                QuicStreamGetInitialMaxDataFromTP(
-                    Stream->ID,
-                    QuicConnIsServer(Connection),
-                    &Connection->PeerTransportParams);
+        uint64_t NewMaxAllowedSendOffset =
+            QuicStreamGetInitialMaxDataFromTP(
+                Stream->ID,
+                QuicConnIsServer(Connection),
+                &Connection->PeerTransportParams);
 
-            if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
-                Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
-                FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
-                Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
-            }
+        if (Stream->MaxAllowedSendOffset < NewMaxAllowedSendOffset) {
+            Stream->MaxAllowedSendOffset = NewMaxAllowedSendOffset;
+            FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_FLOW_CONTROL;
+            Stream->SendWindow = (uint32_t)CXPLAT_MIN(Stream->MaxAllowedSendOffset, UINT32_MAX);
+        }
 
-            if (FlowBlockedFlagsToRemove) {
-                QuicStreamRemoveOutFlowBlockedReason(
-                    Stream, FlowBlockedFlagsToRemove);
-                QuicStreamSendDumpState(Stream);
-                MightBeUnblocked = TRUE;
-            }
+        if (FlowBlockedFlagsToRemove) {
+            QuicStreamRemoveOutFlowBlockedReason(
+                Stream, FlowBlockedFlagsToRemove);
+            QuicStreamSendDumpState(Stream);
+            MightBeUnblocked = TRUE;
+        }
     }
 
     if (UpdateAvailableStreams) {
@@ -486,6 +486,14 @@ QuicStreamSetUpdateMaxStreams(
             }
             CxPlatListEntryRemove(&Stream->WaitingForIdFlowControlLink);
             Stream->Flags.InWaitingList = FALSE;
+            CXPLAT_DBG_ASSERT(StreamSet->StreamTable != NULL);
+            if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
+                //
+                // The stream hash-table should have been initialized
+                // already when inserting stream in `WaitingStreams`
+                //
+                CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
+            }
             QuicStreamIndicatePeerAccepted(Stream);
             FlushSend = TRUE;
         }
