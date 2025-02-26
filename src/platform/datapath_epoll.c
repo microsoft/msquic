@@ -517,7 +517,7 @@ DataPathIsPaddingPreferred(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return SendData->SegmentSize != 0 && SendData->Iovs[0].iov_len > 0;
+    return SendData->SegmentSize != 0 && SendData->ClientBuffer.Length > 0;
 }
 
 QUIC_STATUS

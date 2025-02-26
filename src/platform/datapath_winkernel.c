@@ -948,9 +948,7 @@ DataPathIsPaddingPreferred(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return
-        SendData->SegmentSize != 0 && SendData->WskBufferCount > 0 &&
-            SendData->TailBuf->Link.Buffer.Length > 0;
+    return SendData->SegmentSize != 0 && SendData->ClientBuffer.Length > 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
