@@ -1068,10 +1068,14 @@ DataPathGetSupportedFeatures(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 DataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
+    UNREFERENCED_PARAMETER(Datapath);
+    return
+        SendData->SegmentSize != 0 && SendData->WsaBufferCount > 0 &&
+            SendData->WsaBuffers[SendData->WsaBufferCount - 1].len > 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

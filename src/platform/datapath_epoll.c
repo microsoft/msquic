@@ -512,10 +512,12 @@ DataPathGetSupportedFeatures(
 
 BOOLEAN
 DataPathIsPaddingPreferred(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
+    UNREFERENCED_PARAMETER(Datapath);
+    return SendData->SegmentSize != 0 && SendData->Iovs[0].iov_len > 0;
 }
 
 QUIC_STATUS
