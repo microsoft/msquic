@@ -752,11 +752,13 @@ QuicPacketBuilderFinalize(
 
         FinalQuicPacket = TRUE;
 
-        if (!FlushBatchedDatagrams && CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath, Builder->SendData)) {
+        if (CxPlatDataPathIsPaddingPreferred(MsQuicLib.Datapath, Builder->SendData)) {
             //
             // When buffering multiple datagrams in a single contiguous buffer
             // (at the datapath layer), all but the last datagram needs to be
-            // fully padded.
+            // fully padded. In practice, some NICs could benefit from the
+            // final packet also being padded on the send and/or receive path,
+            // so optimistically pad that, too. This will reduce goodput.
             //
             Builder->MinimumDatagramLength = (uint16_t)Builder->Datagram->Length;
         }
