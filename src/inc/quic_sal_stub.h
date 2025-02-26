@@ -67,6 +67,14 @@
 #define _Out_range_(...)
 #endif
 
+#ifndef _Field_size_
+#define _Field_size_(...)
+#endif
+
+#ifndef _Field_size_opt_
+#define _Field_size_opt_(...)
+#endif
+
 #ifndef _Field_size_bytes_
 #define _Field_size_bytes_(...)
 #endif
