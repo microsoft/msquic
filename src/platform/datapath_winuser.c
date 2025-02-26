@@ -1500,7 +1500,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount + 1); // + 1 for the AuxSocket
+    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
@@ -2617,7 +2617,6 @@ SocketDelete(
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
-    CxPlatSocketRelease(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

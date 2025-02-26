@@ -187,7 +187,8 @@ RawSocketDelete(
     _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
-    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE);
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE, FALSE);
+    CxPlatDpRawPlumbRulesOnSocket(Socket, FALSE, TRUE);
     CxPlatRemoveSocket(&Socket->RawDatapath->SocketPool, Socket);
     CxPlatRundownReleaseAndWait(&Socket->RawRundown);
     if (Socket->PausedTcpSend) {

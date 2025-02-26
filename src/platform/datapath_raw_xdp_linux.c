@@ -939,9 +939,11 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ BOOLEAN IsCreated
+    _In_ BOOLEAN IsCreated,
+    _In_ BOOLEAN IsQTIP
     )
 {
+    UNREFERENCED_PARAMETER(IsQTIP);
     CXPLAT_LIST_ENTRY* Entry = Socket->RawDatapath->Interfaces.Flink;
     for (; Entry != &Socket->RawDatapath->Interfaces; Entry = Entry->Flink) {
         XDP_INTERFACE* Interface = (XDP_INTERFACE*)CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_INTERFACE, Link);
