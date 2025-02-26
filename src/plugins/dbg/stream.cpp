@@ -131,6 +131,7 @@ EXT_COMMAND(
         Strm.RecvStateStr(),
         Strm.MaxAllowedRecvOffset(),
         Strm.RecvMax0RttLength(),
+        RecvBuf.ModeStr(),
         RecvBuf.VirtualBufferLength(),
         RecvBuf.AllocBufferLength(),
         RecvBuf.BaseOffset());
