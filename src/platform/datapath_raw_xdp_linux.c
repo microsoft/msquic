@@ -1395,5 +1395,6 @@ CxPlatDataPathRssConfigFree(
     _In_ CXPLAT_RSS_CONFIG* RssConfig
     )
 {
+    UNREFERENCED_PARAMETER(RssConfig);
     CXPLAT_FRE_ASSERTMSG(FALSE, "CxPlatDataPathRssConfigFree not supported");
 }

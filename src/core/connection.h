@@ -11,11 +11,6 @@
 typedef struct QUIC_LISTENER QUIC_LISTENER;
 
 //
-// Connection start flags
-//
-#define QUIC_CONN_START_SILENT_FAILURE      0x00000001U // Don't send notification to API client
-
-//
 // Connection close flags
 //
 #define QUIC_CLOSE_SILENT                   0x00000001U // Don't send connection close or wait for response
@@ -1008,7 +1003,7 @@ QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const QUIC_RX_PACKET* Packet,
-    _In_opt_ uint16_t* DesiredPartitionIndex,
+    _In_opt_ const uint16_t* DesiredPartitionIndex,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
     );
@@ -1195,6 +1190,11 @@ QuicConnQueueHighestPriorityOper(
     _In_ QUIC_OPERATION* Oper
     );
 
+typedef enum QUIC_CONN_START_FLAGS {
+    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
+    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
+} QUIC_CONN_START_FLAGS;
+
 //
 // Starts the connection. Shouldn't be called directly in most instances.
 //
@@ -1206,7 +1206,7 @@ QuicConnStart(
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort, // Host byte order
-    _In_ uint32_t StartFlags
+    _In_ QUIC_CONN_START_FLAGS StartFlags
     );
 
 //
