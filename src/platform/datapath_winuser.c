@@ -2617,7 +2617,6 @@ SocketDelete(
     for (uint16_t i = 0; i < SocketCount; ++i) {
         CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
-    CxPlatSocketRelease(Socket);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
