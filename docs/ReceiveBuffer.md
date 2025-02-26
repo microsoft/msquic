@@ -27,58 +27,62 @@ The caller then 'reads' data. The receive buffer reads as much contiguous data a
 It will populate the array of `QUIC_BUFFER` provided by the caller with pointers and length, as a **view of its internal buffers**.
 
 Finally, the caller 'drains' data from the receive buffer. The receive buffer discards the drained data, moving its reading head by the number of drained bytes.
-The receive buffer ensures that the `QUIC_BUFFER`s provided for a 'read' are valid until the data is drained (more on details on when discussing the buffer modes).
+The receive buffer ensures that the `QUIC_BUFFER`s provided for a 'read' are valid until the data is drained (more details on this when discussing the buffer modes).
 The caller doesn't necessarily drain all the data indicated by a 'read'.
 
-Throughout the lifetime of the receive buffer, the circle of write, read, drain calls continues until the caller is done with the receive buffer.
+Throughout the lifetime of the receive buffer, the cycle of write, read, drain calls continues until the caller is done with the receive buffer.
 
 ### Different Modes of Operation
 
 Different modes of operation are supported by the receive buffer.
 
-- **Single**, `QUIC_RECV_BUF_MODE_SINGLE` - Ensures 'reads' indicate a single contiguous buffer;
-- **Circular**, `QUIC_RECV_BUF_MODE_CIRCULAR` - Default receive buffer mode;
+- **Single**, `QUIC_RECV_BUF_MODE_SINGLE` - Ensures a 'reads' always indicates a single contiguous buffer;
+- **Circular**, `QUIC_RECV_BUF_MODE_CIRCULAR` - Default receive buffer mode, balances performances and ease of use;
 - **Multiple**, `QUIC_RECV_BUF_MODE_MULTIPLE` - Allows multiple independent pending reads;
-- **AppOwned**, `QUIC_RECV_BUF_MODE_APP_OWNED` - Uses memory buffers provided by the caller to store data;
+- **AppOwned**, `QUIC_RECV_BUF_MODE_APP_OWNED` - Uses memory buffers provided by the caller to write data;
 
 The 'write' operation is similar for all modes, but the behavior of 'read' and 'drain' operations change.
 
 #### Contiguous data buffering
 
-The Single mode guarantees that all data indicated on a 'read' is contiguous in memory: it always reports a single `QUIC_BUFFER` on a 'read'.
-Single mode needs additional data copy to implement this behavior and is less performant.
+The Single mode guarantees that all data indicated on a 'read' is contiguous in memory: it always returns a single `QUIC_BUFFER`.
+However, Single mode needs additional data copy to implement this behavior and is less performant.
 This mode is used because the TLS libraries do not support 'gather' semantics and expect to operate on single, contiguous buffers.
 
-Other modes can indicate multiple `QUIC_BUFFER` pointing to non-continuous memory.
-The number of `QUIC_BUFFER` reported on a read is not fixed for other modes and is subject to change (the caller should not assume an upper bound).
-
+Other modes can indicate multiple `QUIC_BUFFER` pointing to non-continuous memory:
+the number of `QUIC_BUFFER` reported on a 'read' is not fixed and is subject to change (the caller should not assume an upper bound).
 In practice, Circular mode can currently use up to 2 buffers, Multiple mode up to 3 and AppOwned mode up to the number of buffers provided by the application.
 
 #### Number of pending 'read'
 
 For Single, Circular and AppOwned modes, only a single 'read' can be pending at a time.
-Each 'read' must be matched by a 'drain' (for up to the size of the 'read', but potentially less),
+Each 'read' must be paired with a 'drain' (for up to the size of the 'read', but potentially less),
 before another 'read' can be done.
 
-For the Multiple mode, multiple 'read' can be pending simultaneously.
+For the Multiple mode, multiple 'reads' can be pending simultaneously.
 The number of 'drains' can differ from the number of 'read' (higher or smaller)
-as long as the total number of bytes drained stays lower than the total number of bytes read.
+as long as the total number of bytes drained stays lower than the total number of bytes read at all time.
 
 #### Partial 'drain'
 
-For Single, Circular and AppOwned modes, data indicated during a 'read' that is not drained will be
+For Single, Circular and AppOwned modes, the data indicated during a 'read' that is not drained will be
 indicated again in the next 'read'.
 
-For the Multiple mode, data is only indicated once.
+For the Multiple mode, each byte of data is only indicated once.
 A 'read' will always indicate data starting from the end of the previous 'read'.
 
 #### Memory ownership
 
-For Single, Circular and Multiple modes, the receive buffer owns the buffers memory
-and gives out pointer to its internal buffers on a 'read'. A pre-allocated buffer
-can be provided by the caller to optimize the receive buffer initialization.
+For Single, Circular and Multiple modes, the receive buffer owns the memory buffers
+and gives out pointer to its internal buffers on a 'read'.
+
+A pre-allocated buffer can be provided by the caller to optimize the receive buffer initialization,
+this pre-allocated buffer is owned by the caller.
 
 For the AppOwned mode, buffers are owned by the application and provided to the receive buffer.
+The caller must ensure buffers stay valid until they are fully drained or the receive buffer is deinitialized
+(more precisely, a buffer can be released by the caller as soon as all its bytes have been 'read' as long as
+the matching 'drain' drains all the buffer bytes - the receive buffer ).
 This allows to avoid a copy but increases the application memory management complexity.
 
 ## Internal Design
@@ -104,7 +108,7 @@ In very few words, the receive buffers does the following:
     Data is read and written there.
 
 The logic surrounding `WrittenRanges` is pretty straightforward: when data is written to the receive buffer,
-the new byte offsets are inserted in `WrittenRanges`. At any time, the first contiguous segment of `WrittenRanges` is the data has been, or can be read by the client.
+the new byte offsets are inserted in `WrittenRanges`. At any time, the first contiguous segment of `WrittenRanges` is the data that has been, or can be read by the client.
 
 The interesting logic is largely about managing the list of `Chunks`.
 
@@ -126,13 +130,12 @@ However, the first **active** chunk has a special behavior:
 - it is treated as a circular buffer, starting from the reading head position (see `ReadStart` below).
 - it can be shrunk, reducing the amount of buffer space that can be used (see `Capacity` below).
 
-Once `(ReadStart + Capacity) % FirstChunkLength` is reached, the processing continues with the next chunk and progress linerarly from there.
+Once the index `(ReadStart + Capacity) % FirstChunkLength` is reached, wrapping around if needed,
+the processing continues with the next chunk and progress linerarly from there.
 
 This circular behavior allows the receive buffer to minimize copy and re-allocations.
 
 ### Control variables and invariants
-
-TODO: Some invariants are currently not fully respected depending on the mode. It should be addressed in future refactoring.
 
 `BaseOffset`
 : The stream byte index of the byte at the reading head position.
@@ -150,7 +153,7 @@ TODO: Some invariants are currently not fully respected depending on the mode. I
 
 **Invariant**:
 - `BaseOffset + ReadPendingLength` is smaller than the size of the first range in `WrittenRanges`.
-- For modes other than "Multiple", a 'read' is allowed if and only if `ReadPendingLength == 0`.
+- For modes other than "Multiple", a 'read' is allowed if and only if `ReadPendingLength == 0` and a drain reset `ReadPendingLength` to 0.
 
 The variables below are tracking properties of the first *active* chunk in the `Chunks` list to handle its special behavior.
 
@@ -160,9 +163,11 @@ The variables below are tracking properties of the first *active* chunk in the `
 **Invariant**: For Single mode, `ReadStart == 0`.
 
 `Capacity`
-: The usable size of the first active chunk. Only bytes in `[ReadStart, ReadStart + Capacity)` (seen in a circular way) should be accessed. It is used to progressively shrink the size of the first active chunk when data is 'read' and the buffer space should not be re-used (App-owned and Multiple modes).
+: The usable size of the first active chunk. Only bytes in `[ReadStart, ReadStart + Capacity)` (seen in a circular way) should be accessed.
+  It is used to progressively shrink the size of the first active chunk when data is 'read' and the buffer space should not be re-used (App-owned and Multiple modes).
 
-**Invariant**: For Single and AppOwned modes, `ReadStart + Capacity` is smaller than the first active chunk size. This implies that the chunk will never be used in a circular fashion in these modes.
+**Invariant**: For Single and AppOwned modes, `ReadStart + Capacity` is smaller than the first active chunk size.
+This implies that the chunk will never be used in a circular fashion in these modes.
 
 `ReadLength`
 : The number of bytes that can be 'read' from the first active chunk.
@@ -172,8 +177,8 @@ The variables below are tracking properties of the first *active* chunk in the `
 
 ### Memory Management
 
-As mentioned above, the receive buffer generally manages memory itself.
-Only the AppOwned mode follows the common socket `recv` model of requiring the app the pre-post a buffer.
+As mentioned above, the receive buffer generally manages memory itself and doesn't follow the common socket `recv` model of requiring the app the pre-post a buffer.
+The AppOwned mode is the exception, with memory being managed by the caller. 
 
 Internally, the receive buffer tries to minimize total memory usage, both in terms of bytes and number of unique buffers to keep at once.
 It generally prefers one large chunk over multiple smaller chunks, even if this means data must be copied from one buffer to another (larger) one.
@@ -212,6 +217,7 @@ This receive buffer has 1 retired chunk and 3 active chunks.
 - The second segment goes over the end of Chunk 1 and the start of Chunk 2;
 - The third segment is at the start of chunk3
 
-**Remark**: The state of the receive buffer could actually never happen in practice - it is so generic it violates each mode constraints.
-For instance, single and circular modes would have a single active chunk, and multiple and app-owned would not have a retired chunk.
-However, this is the picture to keep in mind for code that must be compatible with all modes.
+**Remark**: The state of the receive buffer presented above would actually never happen in practice - it is so generic it violates each mode constraints.
+For instance, single and circular modes would only have a single active chunk at a time.
+Multiple and app-owned would not have a retired chunk.
+However, this is the model to keep in mind for code that must be compatible with all modes.
