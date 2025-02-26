@@ -17,22 +17,22 @@ extern "C" {
 //
 // The size (in bytes) of the input.
 //
-typedef uint32_t CXPLAT_TOEPLITZ_INPUT_SIZE;
+typedef enum CXPLAT_TOEPLITZ_INPUT_SIZE {
+    //
+    // This includes space for 16 bytes for source IPv6 address, 16 bytes for
+    // destination IPv6 address, 2 bytes for source port, and 2 bytes for
+    // destination port.
+    //
+    CXPLAT_TOEPLITZ_INPUT_SIZE_IP =             36,
 
-//
-// This includes space for 16 bytes for source IPv6 address, 16 bytes for
-// destination IPv6 address, 2 bytes for source port, and 2 bytes for
-// destination port.
-//
-#define CXPLAT_TOEPLITZ_INPUT_SIZE_IP               36
+    //
+    // This includes space for a 20 bytes for CID, 16 bytes for IPv6 address
+    // and 2 bytes for UDP port.
+    //
+    CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC =           38,
 
-//
-// This includes space for a 20 bytes for CID, 16 bytes for IPv6 address
-// and 2 bytes for UDP port.
-//
-#define CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC             38
-
-#define CXPLAT_TOEPLITZ_INPUT_SIZE_MAX              38
+    CXPLAT_TOEPLITZ_INPUT_SIZE_MAX =            38,
+} CXPLAT_TOEPLITZ_INPUT_SIZE;
 
 //
 // The size (in bytes) of the output hash.
