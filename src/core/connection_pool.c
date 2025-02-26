@@ -273,7 +273,7 @@ MsQuicConnectionPoolCreate(
     }
 
     //
-    // Start testing ports and creating connections.
+    // Start creating connections and starting them.
     //
 
     const uint32_t ConnectionsPerProc = (Config->NumberOfConnections / RssProcessorCount) + 1;
@@ -374,7 +374,7 @@ MsQuicConnectionPoolCreate(
                 goto Error;
             }
 
-            Status = QuicConnStart( // REVIEW CLOSELY -- can this be called on a non-worker thread?
+            Status = QuicConnStart(
                 Connections[i],
                 (QUIC_CONFIGURATION*)Config->Configuration,
                 Config->Family,
@@ -404,7 +404,8 @@ MsQuicConnectionPoolCreate(
             Status = QUIC_STATUS_ADDRESS_IN_USE;
             QuicTraceLogError(
                 ConnPoolMaxRetries,
-                "[conp] Ran out of retries. Iteration %u, Port %u, 0x%x",
+                "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x",
+                MaxCreationRetries,
                 i,
                 QuicAddrGetPort(&LocalAddress),
                 Status);
