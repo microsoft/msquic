@@ -303,7 +303,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint16_t
 QuicLibraryGetPartitionFromProcessorIndex(
-    uint16_t ProcessorIndex
+    uint32_t ProcessorIndex
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
@@ -319,7 +319,7 @@ QuicLibraryGetPartitionFromProcessorIndex(
         }
         return (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount - 1;
     }
-    return ProcessorIndex % MsQuicLib.PartitionCount;
+    return (uint16_t)(ProcessorIndex % MsQuicLib.PartitionCount);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

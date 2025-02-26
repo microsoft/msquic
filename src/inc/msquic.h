@@ -1609,6 +1609,8 @@ QUIC_STATUS
 // Connection Pool API
 //
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
 typedef enum QUIC_CONNECTION_POOL_FLAGS {
     QUIC_CONNECTION_POOL_FLAG_NONE = 0x00000000,
 } QUIC_CONNECTION_POOL_FLAGS;
@@ -1619,10 +1621,10 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
     _In_ HQUIC Registration;
     _In_ HQUIC Configuration;
     _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler;
-    _In_reads_opt_(NumberOfConnections)
-        void** Context;
+    _Field_size_opt_(NumberOfConnections)
+        void** Context;                         // Optional
     _In_ const char* ServerName;
-    _In_opt_ const QUIC_ADDR* ServerAddress;
+    _In_opt_ const QUIC_ADDR* ServerAddress;    // Optional
     _In_ QUIC_ADDRESS_FAMILY Family;
     _In_ uint16_t ServerPort;
     _In_ uint16_t NumberOfConnections;
@@ -1630,13 +1632,11 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
 } QUIC_CONNECTION_POOL_CONFIG;
 
 //
-// Creates a simple connection pool with NumberOfConnections connections
-// all with the same Context and Handler, and puts them in the
-// caller-supplied array.
-//
-// One of ServerName or ServerAddress *MUST* be supplied, and for the pool to
-// work correctly, the connections *MUST* be started with the same ServerName
-// and ServerPort as supplied in this call.
+// Creates a simple pool of NumberOfConnections connections, all with the same
+// Handler, and puts them in the caller-supplied array.
+// Connections are spread evenly across RSS CPUs as much as possible.
+// If NumberOfConnections is more than the number of RSS cores, then multiple
+// connections will be put on the same CPU.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1647,6 +1647,8 @@ QUIC_STATUS
     _Out_writes_(Config->NumberOfConnections)
         HQUIC* ConnectionPool
     );
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
 // Version 2 API Function Table. Returned from MsQuicOpenVersion when Version

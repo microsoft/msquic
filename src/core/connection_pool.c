@@ -20,95 +20,57 @@ Abstract:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QUIC_API
-MsQuicConnectionPoolCreate(
-    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
-    _Out_writes_(Config->NumberOfConnections)
-        HQUIC* ConnectionPool
+QuicConnPoolGetStartingLocalAddress(
+    _In_ QUIC_ADDR* RemoteAddress,
+    _Out_ QUIC_ADDR* LocalAddress
     )
 {
-    QUIC_CONNECTION** Connections = NULL;
     CXPLAT_SOCKET* Socket = NULL;
-    CXPLAT_RSS_CONFIG* RssConfig = NULL;
-    CXPLAT_PROCESSOR_INFO* RssProcessors = NULL;
-    uint32_t* ConnectionCounts = NULL;
-    CXPLAT_TOEPLITZ_HASH ToeplitzHash;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    uint32_t CreatedConnections = 0;
-
-    if (Config->NumberOfConnections == 0 || Config->ServerPort == 0 || ConnectionPool == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceLogError(
-            ConnPoolInvalidParam,
-            "[conp] Invalid parameter, 0x%x",
-            Status);
-        goto Error;
-    }
-
-    CxPlatZeroMemory(ConnectionPool, sizeof(HQUIC) * Config->NumberOfConnections);
-
-    //
-    // Resolve the server name or use the remote address.
-    //
-    QUIC_ADDR ResolvedRemoteAddress = {};
-    if (Config->ServerAddress != NULL) {
-         ResolvedRemoteAddress = *Config->ServerAddress;
-    } else if (Config->ServerName != NULL) {
-        Status =
-            CxPlatDataPathResolveAddress(
-                MsQuicLib.Datapath,
-                Config->ServerName,
-                &ResolvedRemoteAddress);
-    } else {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceLogError(
-            ConnPoolInvalidParamNeedRemoteAddress,
-            "[conp] Neither ServerName nor ServerAddress were set, 0x%x",
-            Status);
-        goto Error;
-    }
-
-    QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
-
-    CXPLAT_UDP_CONFIG UdpConfig = {.RemoteAddress = &ResolvedRemoteAddress, };
-    Status = CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
+    CXPLAT_UDP_CONFIG UdpConfig = { .RemoteAddress = RemoteAddress, };
+    QUIC_STATUS Status =
+        CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(
-            ConnPoolCreateSocket,
-            "[conp] Failed to create socket, 0x%x",
-            Status);
         goto Error;
     }
 
-    //
-    // Get the local address and a port to start from.
-    //
-    QUIC_ADDR LocalAddress;
-    CxPlatSocketGetLocalAddress(Socket, &LocalAddress);
-    CxPlatSocketDelete(Socket);
-    Socket = NULL;
+    CxPlatSocketGetLocalAddress(Socket, LocalAddress);
 
-    //
-    // Get the interface index from the local address to get the RSS config
-    //
-    CXPLAT_ADAPTER_ADDRESS* Addresses;
+Error:
+    if (Socket != NULL) {
+        CxPlatSocketDelete(Socket);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnPoolGetInterfaceIndexForLocalAddress(
+    _In_ QUIC_ADDR* LocalAddress,
+    _Out_ uint32_t* InterfaceIndex
+    )
+{
+    CXPLAT_ADAPTER_ADDRESS* Addresses = NULL;
     uint32_t AddressesCount;
-    Status = CxPlatDataPathGetLocalAddresses(MsQuicLib.Datapath, &Addresses, &AddressesCount);
+
+    *InterfaceIndex = 0;
+
+    QUIC_STATUS Status =
+        CxPlatDataPathGetLocalAddresses(
+            MsQuicLib.Datapath,
+            &Addresses,
+            &AddressesCount);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(
-            ConnPoolGetLocalAddresses,
-            "[conp] Failed to get local address info, 0x%x",
-            Status);
         goto Error;
     }
-    uint32_t InterfaceIndex = 0;
+
     for (uint32_t i = 0; i < AddressesCount; i++) {
-        if (QuicAddrCompareIp(&LocalAddress, &Addresses[i].Address)) {
-            InterfaceIndex = Addresses[i].InterfaceIndex;
+        if (QuicAddrCompareIp(LocalAddress, &Addresses[i].Address)) {
+            *InterfaceIndex = Addresses[i].InterfaceIndex;
             break;
         }
     }
-    CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
+
     if (InterfaceIndex == 0) {
         Status = QUIC_STATUS_NOT_FOUND;
         QuicTraceLogError(
@@ -118,9 +80,92 @@ MsQuicConnectionPoolCreate(
         goto Error;
     }
 
+Error:
+
+    if (Addresses != NULL) {
+        CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionPoolCreate(
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
+    )
+{
+    QUIC_CONNECTION** Connections = NULL;
+    CXPLAT_RSS_CONFIG* RssConfig = NULL;
+    uint32_t* RssProcessors = NULL;
+    uint32_t* ConnectionCounts = NULL;
+    CXPLAT_TOEPLITZ_HASH ToeplitzHash;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t CreatedConnections = 0;
+
+    if (Config == NULL || Config->NumberOfConnections == 0 || Config->Handler == NULL ||
+        Config->ServerName == NULL || Config->ServerPort == 0 || ConnectionPool == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceLogError(
+            ConnPoolInvalidParam,
+            "[conp] Invalid parameter, 0x%x",
+            Status);
+        goto Error;
+    }
+
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_POOL_CREATE,
+        Config->Registration);
+
+    CxPlatZeroMemory(ConnectionPool, sizeof(HQUIC) * Config->NumberOfConnections);
+
     //
-    // Actually get the RSS config
+    // Resolve the server name or use the remote address.
     //
+    QUIC_ADDR ResolvedRemoteAddress = {.si_family = Config->Family, };
+    if (Config->ServerAddress != NULL) {
+         ResolvedRemoteAddress = *Config->ServerAddress;
+    } else {
+        Status =
+            CxPlatDataPathResolveAddress(
+                MsQuicLib.Datapath,
+                Config->ServerName,
+                &ResolvedRemoteAddress);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogError(
+                ConnPoolResolveAddress,
+                "[conp] Failed to resolve address, 0x%x",
+                Status);
+            goto Error;
+        }
+    }
+
+    QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
+
+    //
+    // Get the local address and a port to start from.
+    //
+    QUIC_ADDR LocalAddress;
+    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogError(
+            ConnPoolGetLocalAddress,
+            "[conp] Failed to get local address, 0x%x",
+            Status);
+        goto Error;
+    }
+
+    uint32_t InterfaceIndex;
+    Status = QuicConnPoolGetInterfaceIndexForLocalAddress(&LocalAddress, &InterfaceIndex);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
     Status = CxPlatDataPathRssConfigGet(InterfaceIndex, &RssConfig);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogError(
@@ -130,7 +175,10 @@ MsQuicConnectionPoolCreate(
         goto Error;
     }
 
-    if ((RssConfig->HashTypes & (CXPLAT_RSS_HASH_TYPE_UDP_IPV4 | CXPLAT_RSS_HASH_TYPE_UDP_IPV6)) == 0) {
+    if ((LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET &&
+            (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV4) == 0) ||
+        (LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET6 &&
+            (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV6) == 0)) {
         //
         // This RSS implementation doesn't support hashing UDP ports, which
         // means the connection pool can't spread connections across CPUs.
@@ -138,7 +186,7 @@ MsQuicConnectionPoolCreate(
         Status = QUIC_STATUS_NOT_SUPPORTED;
         QuicTraceLogError(
             ConnPoolRssNotSupported,
-            "[conp] RSS not supported, 0x%x",
+            "[conp] RSS not supported for UDP, 0x%x",
             Status);
         goto Error;
     }
@@ -147,7 +195,7 @@ MsQuicConnectionPoolCreate(
     // Prepare array of unique RSS processors.
     //
     RssProcessors =
-        (CXPLAT_PROCESSOR_INFO*)CXPLAT_ALLOC_PAGED(
+        (uint32_t*)CXPLAT_ALLOC_PAGED(
             RssConfig->RssIndirectionTableLength,
             QUIC_POOL_TMP_ALLOC);
     if (RssProcessors == NULL) {
@@ -161,11 +209,10 @@ MsQuicConnectionPoolCreate(
     }
 
     uint32_t RssProcessorCount = 0;
-    for (uint32_t i = 0; i < RssConfig->RssIndirectionTableLength / sizeof(CXPLAT_PROCESSOR_INFO); i++) {
+    for (uint32_t i = 0; i < RssConfig->RssIndirectionTableLength / sizeof(uint32_t); i++) {
         uint32_t j;
         for (j = 0; j < RssProcessorCount; j++) {
-            if (RssProcessors[j].Group == RssConfig->RssIndirectionTable[i].Group &&
-                RssProcessors[j].Index == RssConfig->RssIndirectionTable[i].Index) {
+            if (RssProcessors[j] == RssConfig->RssIndirectionTable[i]) {
                 break;
             }
         }
@@ -173,12 +220,12 @@ MsQuicConnectionPoolCreate(
         // This is safe because the RssProcessor array is the same size as the indirection table.
         //
         if (j == RssProcessorCount) {
-            CXPLAT_DBG_ASSERT(RssProcessorCount < RssConfig->RssIndirectionTableLength / sizeof(CXPLAT_PROCESSOR_INFO));
+            CXPLAT_DBG_ASSERT(RssProcessorCount < RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
             RssProcessors[RssProcessorCount++] = RssConfig->RssIndirectionTable[i];
         }
     }
 
-    CXPLAT_DBG_ASSERT(RssProcessorCount <= RssConfig->RssIndirectionTableLength / sizeof(CXPLAT_PROCESSOR_INFO));
+    CXPLAT_DBG_ASSERT(RssProcessorCount <= RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
 
     ConnectionCounts =
         (uint32_t*)CXPLAT_ALLOC_PAGED(
@@ -237,8 +284,7 @@ MsQuicConnectionPoolCreate(
         uint32_t RssProcIndex;
         for (; RetryCount < MaxCreationRetries; RetryCount++) {
 
-            uint32_t NewPort = QuicAddrGetPort(&LocalAddress);
-            NewPort += 1;
+            uint32_t NewPort = QuicAddrGetPort(&LocalAddress) + 1;
             if (NewPort > QUIC_ADDR_EPHEMERAL_PORT_MAX) {
                 NewPort = QUIC_ADDR_EPHEMERAL_PORT_MIN;
             }
@@ -255,12 +301,12 @@ MsQuicConnectionPoolCreate(
                 &LocalAddress,
                 &RssHash,
                 &Offset);
-            uint32_t Mask = (RssConfig->RssIndirectionTableLength / sizeof(CXPLAT_PROCESSOR_INFO)) - 1;
+            uint32_t Mask = (RssConfig->RssIndirectionTableLength / sizeof(uint32_t)) - 1;
             RssProcIndex = RssProcessorCount;
-            CXPLAT_DBG_ASSERT((RssHash & Mask) < RssConfig->RssIndirectionTableLength / sizeof(CXPLAT_PROCESSOR_INFO));
-            CXPLAT_PROCESSOR_INFO* RssProc = &RssConfig->RssIndirectionTable[RssHash & Mask];
+            CXPLAT_DBG_ASSERT((RssHash & Mask) < RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
+            uint32_t RssProc = RssConfig->RssIndirectionTable[RssHash & Mask];
             for (uint32_t j = 0; j < RssProcessorCount; j++) {
-                if (RssProcessors[j].Group == RssProc->Group && RssProcessors[j].Index == RssProc->Index) {
+                if (RssProcessors[j] == RssProc) {
                     RssProcIndex = j;
                     break;
                 }
@@ -274,8 +320,7 @@ MsQuicConnectionPoolCreate(
             }
 
             uint16_t PartitionIndex =
-            QuicLibraryGetPartitionFromProcessorIndex(
-                (uint16_t)CxPlatProcNumberToIndex(&RssProcessors[RssProcIndex]));
+                QuicLibraryGetPartitionFromProcessorIndex(RssProcessors[RssProcIndex]);
 
             Status =
                 QuicConnAlloc(
@@ -293,8 +338,17 @@ MsQuicConnectionPoolCreate(
                 goto Error;
             }
             CreatedConnections++;
+            Connections[i]->ClientCallbackHandler = Config->Handler;
+            if (Config->Context != NULL) {
+                Connections[i]->ClientContext = Config->Context[i];
+            }
 
-            Status = QuicConnParamSet(Connections[i], QUIC_PARAM_CONN_REMOTE_ADDRESS, sizeof(ResolvedRemoteAddress), &ResolvedRemoteAddress);
+            Status =
+                QuicConnParamSet(
+                    Connections[i],
+                    QUIC_PARAM_CONN_REMOTE_ADDRESS,
+                    sizeof(ResolvedRemoteAddress),
+                    &ResolvedRemoteAddress);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogError(
@@ -304,7 +358,12 @@ MsQuicConnectionPoolCreate(
                     Status);
                 goto Error;
             }
-            Status = QuicConnParamSet(Connections[i], QUIC_PARAM_CONN_LOCAL_ADDRESS, sizeof(LocalAddress), &LocalAddress);
+            Status =
+                QuicConnParamSet(
+                    Connections[i],
+                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
+                    sizeof(LocalAddress),
+                    &LocalAddress);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogError(
@@ -321,7 +380,7 @@ MsQuicConnectionPoolCreate(
                 Config->Family,
                 Config->ServerName,
                 Config->ServerPort,
-                QUIC_CONN_START_SILENT_FAILURE);
+                QUIC_CONN_START_FLAG_FAIL_SILENTLY);
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogError(
                     ConnPoolStartConnection,
@@ -338,9 +397,7 @@ MsQuicConnectionPoolCreate(
             // The connection was created successfully, add it to the count for this processor.
             //
             ConnectionCounts[RssProcIndex]++;
-
             break;
-
         }
 
         if (RetryCount == MaxCreationRetries) {
@@ -376,5 +433,11 @@ Error:
     if (RssConfig != NULL) {
         CxPlatDataPathRssConfigFree(RssConfig);
     }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
     return Status;
 }

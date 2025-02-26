@@ -38,6 +38,9 @@ struct ToeplitzTest : public ::testing::Test
             }
         }
 
+        QuicBuffer(const QuicBuffer&) = delete;
+        QuicBuffer(QuicBuffer&&) = delete;
+
         ~QuicBuffer()
         {
             delete [] Data;
@@ -53,7 +56,7 @@ struct ToeplitzTest : public ::testing::Test
 
     static
     auto
-    RunTest(
+    ValidateRssToeplitzHash(
         _In_ const char** ExpectedHashes,
         _In_ const char** SourceAddresses,
         _In_ const uint16_t* SourcePorts,
@@ -143,7 +146,14 @@ TEST_F(ToeplitzTest, IPv4WithTcp)
         1303
     };
 
-    RunTest(ExpectedHashes, SourceAddresses, SourcePorts, DestinationAddresses, DestinationPorts, 5, QUIC_ADDRESS_FAMILY_INET);
+    ValidateRssToeplitzHash(
+        ExpectedHashes,
+        SourceAddresses,
+        SourcePorts,
+        DestinationAddresses,
+        DestinationPorts,
+        5,
+        QUIC_ADDRESS_FAMILY_INET);
 }
 
 TEST_F(ToeplitzTest, IPv6WithTcp)
@@ -174,5 +184,11 @@ TEST_F(ToeplitzTest, IPv6WithTcp)
         38024
     };
 
-    RunTest(ExpectedHashes, SourceAddresses, SourcePorts, DestinationAddresses, DestinationPorts, 3, QUIC_ADDRESS_FAMILY_INET6);
+    ValidateRssToeplitzHash(
+        ExpectedHashes,
+        SourceAddresses,SourcePorts,
+        DestinationAddresses,
+        DestinationPorts,
+        3,
+        QUIC_ADDRESS_FAMILY_INET6);
 }

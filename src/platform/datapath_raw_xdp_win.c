@@ -1914,8 +1914,8 @@ CxPlatDataPathRssConfigGet(
         goto Error;
     }
 
-    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
-    if (SUCCEEDED(Result)) {
+    Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
+    if (Result != HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW)) {
         QuicTraceLogError(
             XdpGetRssConfigSizeFailed,
             "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
@@ -1923,7 +1923,7 @@ CxPlatDataPathRssConfigGet(
             InterfaceIndex,
             RssConfigSize,
             Result);
-        Status = QUIC_STATUS_INTERNAL_ERROR;
+        Status = FAILED(Result) ? Result : QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
 
@@ -1951,6 +1951,7 @@ CxPlatDataPathRssConfigGet(
         goto Error;
     }
 
+    CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(PROCESSOR_NUMBER), "Ensure same size");
     RssConfigSize = sizeof(CXPLAT_RSS_CONFIG) +
         RawRssConfig->HashSecretKeySize +
         RawRssConfig->IndirectionTableSize;
@@ -1978,12 +1979,20 @@ CxPlatDataPathRssConfigGet(
         NewRssConfig->RssSecretKeyLength);
 
     NewRssConfig->RssIndirectionTable =
-        (CXPLAT_PROCESSOR_INFO*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
+        (uint32_t*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
     NewRssConfig->RssIndirectionTableLength = RawRssConfig->IndirectionTableSize;
-    CxPlatCopyMemory(
-        NewRssConfig->RssIndirectionTable,
-        RTL_PTR_ADD(RawRssConfig, RawRssConfig->IndirectionTableOffset),
-        NewRssConfig->RssIndirectionTableLength);
+
+    PROCESSOR_NUMBER* IndirectionTable =
+        (PROCESSOR_NUMBER*)RTL_PTR_ADD(
+            RawRssConfig,
+            RawRssConfig->IndirectionTableOffset);
+
+    CXPLAT_DBG_ASSERT(
+        RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER) ==
+        NewRssConfig->RssIndirectionTableLength / sizeof(uint32_t));
+    for (uint32_t i = 0; i < RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER); i++) {
+        NewRssConfig->RssIndirectionTable[i] = CxPlatProcNumberToIndex(&IndirectionTable[i]);
+    }
 
     *RssConfig = NewRssConfig;
     NewRssConfig = NULL;

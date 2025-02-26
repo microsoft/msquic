@@ -59,7 +59,7 @@ QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const QUIC_RX_PACKET* Packet,
-    _In_opt_ uint16_t* DesiredPartitionIndex,
+    _In_opt_ const uint16_t* DesiredPartitionIndex,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
     )
@@ -74,8 +74,8 @@ QuicConnAlloc(
     // partition can be updated accordingly.
     //
     const uint16_t PartitionIndex =
-        DesiredPartitionIndex != NULL ? *DesiredPartitionIndex :
-            IsServer ? Packet->PartitionIndex : QuicLibraryGetCurrentPartition();
+        DesiredPartitionIndex != NULL ?
+            *DesiredPartitionIndex : QuicLibraryGetCurrentPartition();
     const uint16_t PartitionId = QuicPartitionIdCreate(PartitionIndex);
     CXPLAT_DBG_ASSERT(PartitionIndex == QuicPartitionIdGetIndex(PartitionId));
 
@@ -1740,7 +1740,7 @@ QuicConnStart(
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
     _In_ uint16_t ServerPort, // Host byte order
-    _In_ uint32_t StartFlags
+    _In_ QUIC_CONN_START_FLAGS StartFlags
     )
 {
     QUIC_STATUS Status;
@@ -1931,7 +1931,7 @@ Exit:
     if (QUIC_FAILED(Status)) {
         QuicConnCloseLocally(
             Connection,
-            StartFlags & QUIC_CONN_START_SILENT_FAILURE ?
+            StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
                 QUIC_CLOSE_SILENT | QUIC_CLOSE_QUIC_STATUS :
                 QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)Status,
@@ -7486,7 +7486,7 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
                 ApiCtx->CONN_START.ServerPort,
-                0);
+                QUIC_CONN_START_FLAG_NONE);
         ApiCtx->CONN_START.ServerName = NULL;
         break;
 

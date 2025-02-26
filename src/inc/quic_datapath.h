@@ -42,6 +42,12 @@ extern "C" {
 #define CXPLAT_TCP_HEADER_SIZE 20
 
 //
+// The minimum and maximum ephemeral ports according to RFC 6335.
+//
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
+//
 // Different types of Explicit Congestion Notifications
 //
 typedef enum CXPLAT_ECN_TYPE {
@@ -861,24 +867,28 @@ CxPlatUpdateRoute(
 //
 // Get the RSS Configuration of the interface.
 //
-#define CXPLAT_RSS_HASH_TYPE_IPV4        0x001
-#define CXPLAT_RSS_HASH_TYPE_TCP_IPV4    0x002
-#define CXPLAT_RSS_HASH_TYPE_UDP_IPV4    0x004
-#define CXPLAT_RSS_HASH_TYPE_IPV6        0x008
-#define CXPLAT_RSS_HASH_TYPE_TCP_IPV6    0x010
-#define CXPLAT_RSS_HASH_TYPE_UDP_IPV6    0x020
-#define CXPLAT_RSS_HASH_TYPE_IPV6_EX     0x040
-#define CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX 0x080
-#define CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX 0x100
+typedef enum CXPLAT_RSS_HASH_TYPE {
+    CXPLAT_RSS_HASH_TYPE_IPV4        = 0x001,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV4    = 0x002,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV4    = 0x004,
+    CXPLAT_RSS_HASH_TYPE_IPV6        = 0x008,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6    = 0x010,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6    = 0x020,
+    CXPLAT_RSS_HASH_TYPE_IPV6_EX     = 0x040,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX = 0x080,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX = 0x100
+} CXPLAT_RSS_HASH_TYPE;
 
-typedef uint32_t CXPLAT_RSS_HASH_TYPE;
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_RSS_HASH_TYPE)
 
 typedef struct CXPLAT_RSS_CONFIG {
     CXPLAT_RSS_HASH_TYPE HashTypes;
     uint32_t RssSecretKeyLength;
     uint32_t RssIndirectionTableLength;
+    _Field_size_bytes_(RssSecretKeyLength)
     uint8_t* RssSecretKey;
-    CXPLAT_PROCESSOR_INFO* RssIndirectionTable;
+    _Field_size_bytes_(RssIndirectionTableLength)
+    uint32_t* RssIndirectionTable;      // Converted to processor indices from platform-specific representation.
 } CXPLAT_RSS_CONFIG;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
