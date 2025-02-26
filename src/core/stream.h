@@ -237,17 +237,16 @@ typedef struct QUIC_STREAM {
         CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
+        // The entry in the connection's list of streams waiting on stream
+        // id flow control.
+        //
+        CXPLAT_LIST_ENTRY WaitingForIdFlowControlLink;
+
+        //
         // The entry in the connection's list of closed streams to clean up.
         //
         CXPLAT_LIST_ENTRY ClosedLink;
     };
-
-    //
-    // TODO guhetier: Check if can be moved in the union or if need to be in hashtable + this at the same time.
-    // The entry in the connection's list of streams waiting on stream
-    // id flow control.
-    //
-    CXPLAT_LIST_ENTRY WaitingForIdFlowControlLink;
 
     //
     // The list entry in the output module's send list.

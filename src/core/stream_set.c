@@ -195,11 +195,15 @@ QuicStreamSetShutdown(
         CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 
-    for (CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
-         Link != &StreamSet->WaitingStreams;
-         Link = Link->Flink) {
+    //
+    // Warning: `QuicStreamShutdown` may call back into the stream set and remove the stream
+    // from the list. Make sure to get the next link before calling it.
+    //
+    CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
+    while (Link != &StreamSet->WaitingStreams) {
         QUIC_STREAM* Stream =
             CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingForIdFlowControlLink);
+        Link = Link->Flink;
         QuicStreamShutdown(
             Stream,
             QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND |
