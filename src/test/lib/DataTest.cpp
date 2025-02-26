@@ -317,7 +317,7 @@ NewPingConnection(
 
     if (SendUdpOverQtip) {
         // UseQTIP is implicitly true here. We are alternating between QTIP and QUIC to ping the same listener.
-        Connection->SetQtipPreferences(UseQTIP ? 1 : 0); // Just for the sanity check
+        Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
     } else if (UseQTIP) {
         // We hit this case either when we are alternating between QTIP and QUIC to ping the same listener, or SendUdpOverQtip is always false.
         Connection->SetQtipPreferences(1);
