@@ -204,7 +204,7 @@ QuicStreamFree(
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
     CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
-    CXPLAT_DBG_ASSERT(Stream->WaitingForIdFlowControlLink.Flink == NULL);
+    CXPLAT_DBG_ASSERT(!Stream->Flags.InWaitingList);
     CXPLAT_DBG_ASSERT(Stream->ClosedLink.Flink == NULL);
     CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
 

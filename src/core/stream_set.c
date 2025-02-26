@@ -39,7 +39,7 @@ QuicStreamSetValidate(
         CxPlatHashtableEnumerateEnd(StreamSet->StreamTable, &Enumerator);
     }
 
-    for (CXPLAT_LIST_ENTRY *Link = StreamSet->WaitingStreams.Flink;
+    for (CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
          Link != &StreamSet->WaitingStreams;
          Link = Link->Flink) {
         QUIC_STREAM* Stream =
