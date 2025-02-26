@@ -197,9 +197,11 @@ size - except in AppOwned mode, where the application must provide memory to mat
 
 ### Less words, more ASCII art!!
 
-- `x`: A 'write' put data here
+- `x`, `+`: A 'write' put data here
 - `.`: No data here yet
 - ` `: Bytes that should no longer be accessed
+
+A very generic view of the receive buffer could be:
 
 ```
    Retired                                         Chunk 1                            Chunk 2              Chunk 3       
@@ -217,7 +219,84 @@ This receive buffer has 1 retired chunk and 3 active chunks.
 - The second segment goes over the end of Chunk 1 and the start of Chunk 2;
 - The third segment is at the start of chunk3
 
-**Remark**: The state of the receive buffer presented above would actually never happen in practice - it is so generic it violates each mode constraints.
+However, the state of the receive buffer presented above is so generic it will actually never happen:
 For instance, single and circular modes would only have a single active chunk at a time.
 Multiple and app-owned would not have a retired chunk.
-However, this is the model to keep in mind for code that must be compatible with all modes.
+
+Still, this is the model to keep in mind for code that must be compatible with all modes.
+
+#### Circular mode
+
+```
+                                Chunk 1                              
+┌───────────────────────────────────────────────────────────┐        
+│xxx.......xxxxxxxx...................xxxxxxxxxxxxxxxxxxxxxx│        
+└───▲─────────────────────────────────▲───────────────▲─────┘        
+    │                                 │               │              
+ReadStart +                        ReadStart       ReadStart +       
+ ReadLength                           │             ReadPendingLength
+                                      │                              
+                                  ReadStart +                        
+                                   Capacity                          
+```
+
+In circular mode, the data can wrap around the end. There is always a single active chunk
+and the capacity is always the full buffer size. A "retired" chunk can be present in a similar way
+as in the Single mode exemple below.
+
+#### Single mode
+
+```
+   Retired                                         Chunk 1                            
+┌──────────────┐   ┌───────────────────────────────────────────────────────────┐      
+│xxxxxxxxxx....│   │xxxxxxxxxx+++++++...++++...................................│      
+└──────────────┘   └▲─────────▲──────▲─────────────────────────────────────────▲      
+                    │         │      │                                         │      
+                 ReadStart    │  ReadStart +                               ReadStart +
+                              │   ReadLength                                Capacity  
+                              │                                                       
+                          ReadStart +                                                 
+                           ReadPendingLength                                          
+```
+
+In single mode, `ReadStart` is always at the front of the buffer.
+A 'read' was pending and data `+` could not fit in the initial chunk: the old chunk had to be retired
+until it isn't referenced anymore and data `x` was copied to the new chunk front.
+
+#### Multiple mode
+
+```
+                                Chunk 1                            Chunk 2       
+┌───────────────────────────────────────────────────────────┐   ┌────────────────┐
+│xxx.......xxxxxxxx                   ++++++++++++++++xxxxxx├──►│xxxxxxxx........│
+└───▲──────────────▲──────────────────▲───────────────▲─────┘   └────────────────┘
+    │              │                  │               │                           
+ReadStart +      ReadStart +       ReadStart       ReadStart +                    
+ ReadLength       Capacity                          ReadPendingLength             
+```
+
+In multiple mode, several chunks can be active at the same time.
+It took several steps to arrive to the situation above:
+- Data `+` was written to the buffer
+- A 'read' was performed for all the data `+`
+- More data `x` was written to the buffer, causing the creation of Chunk 2 once Chunk 1 was full
+    - Note that if a read was not pending on Chunk 1, data would have been copied instead to Chunk 2.
+- A 'drain' was performed for part of the data `+`
+    - Since a second chunk is present, the `Capacity` was shrunk as part of the drain
+
+#### App-owned mode
+
+```
+                                Chunk 1                            Chunk 2              Chunk 3      
+┌───────────────────────────────────────────────────────────┐   ┌────────────────┐   ┌──────────────┐
+│                     xxxxxxxxxxxxxxxxxxxxxxxx..............├──►│xxxxxxxx........├──►│....xxxxxxx...│
+└─────────────────────▲───────────────────────▲─────────────▲   └────────────────┘   └──────────────┘
+                      │                       │             │                                        
+                   ReadStart              ReadStart +     ReadStart +                                
+                                           ReadLength      Capacity                                  
+```
+
+In app-owned mode, `ReadStart + Capacity` always point to the end of the first chunk, no wrap around ever happen.
+Bytes from the start of the first chunk up to `ReadStart` should no longer be accessed:
+we need to write in the provided buffer only once and in order.
+Many active chunks can be present at the same time.
