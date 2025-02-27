@@ -1987,6 +1987,12 @@ SocketCreateUdp(
             }
         }
 
+        QuicTraceLogVerbose(
+            DatapathUdpPerprocBinding,
+            "[data][%p] Binding UDP SOCKET to %s",
+            SocketProc->Socket,
+            (PSOCKADDR)&Socket->LocalAddress);
+
         Result =
             bind(
                 SocketProc->Socket,

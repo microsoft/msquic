@@ -214,6 +214,26 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUroPreallocExceeded , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathUdpPerprocBinding
+// [data][%p] Binding UDP SOCKET to %s
+// QuicTraceLogVerbose(
+            DatapathUdpPerprocBinding,
+            "[data][%p] Binding UDP SOCKET to %s",
+            SocketProc->Socket,
+            (PSOCKADDR)&Socket->LocalAddress);
+// arg2 = arg2 = SocketProc->Socket = arg2
+// arg3 = arg3 = (PSOCKADDR)&Socket->LocalAddress = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DatapathUdpPerprocBinding
+#define _clog_4_ARGS_TRACE_DatapathUdpPerprocBinding(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathUdpPerprocBinding , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathShutDownComplete
 // [data][%p] Shut down (complete)
 // QuicTraceLogVerbose(
