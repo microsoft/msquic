@@ -2003,6 +2003,18 @@
       ],
       "macroName": "QuicTraceLogError"
     },
+    "ConnPoolRssNotConfigured": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] RSS not configured, 0x%x",
+      "UniqueId": "ConnPoolRssNotConfigured",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "ConnPoolRssNotSupported": {
       "ModuleProperites": {},
       "TraceString": "[conp] RSS not supported for UDP, 0x%x",
@@ -2017,12 +2029,48 @@
     },
     "ConnPoolRssSecretKeyTooLong": {
       "ModuleProperites": {},
-      "TraceString": "[conp] RSS secret key too long, 0x%x",
+      "TraceString": "[conp] RSS secret key too long (%u bytes), 0x%x",
       "UniqueId": "ConnPoolRssSecretKeyTooLong",
       "splitArgs": [
         {
-          "DefinationEncoding": "x",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolRssSecretKeyTooShort": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] RSS secret key too short (%u bytes), 0x%x",
+      "UniqueId": "ConnPoolRssSecretKeyTooShort",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolSetCibirId": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
+      "UniqueId": "ConnPoolSetCibirId",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogError"
@@ -2047,6 +2095,22 @@
       "ModuleProperites": {},
       "TraceString": "[conp] Failed to set remote address on connection[%u], 0x%x",
       "UniqueId": "ConnPoolSetRemoteAddress",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolSetShareBinding": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] Failed to set share binding on connection[%u], 0x%x",
+      "UniqueId": "ConnPoolSetShareBinding",
       "splitArgs": [
         {
           "DefinationEncoding": "u",
@@ -14319,14 +14383,29 @@
         "EncodingString": "[conp] Failed to resolve address, 0x%x"
       },
       {
+        "UniquenessHash": "8b2978e4-1bea-604f-7025-4232fd0352a2",
+        "TraceID": "ConnPoolRssNotConfigured",
+        "EncodingString": "[conp] RSS not configured, 0x%x"
+      },
+      {
         "UniquenessHash": "b30e8087-8bd3-3ec5-5531-5c4409721a62",
         "TraceID": "ConnPoolRssNotSupported",
         "EncodingString": "[conp] RSS not supported for UDP, 0x%x"
       },
       {
-        "UniquenessHash": "6706218c-7c1e-b832-b1e7-fc2b7209c3a3",
+        "UniquenessHash": "0f1cace5-9a63-5f7c-fc34-b34d3139e2e0",
         "TraceID": "ConnPoolRssSecretKeyTooLong",
-        "EncodingString": "[conp] RSS secret key too long, 0x%x"
+        "EncodingString": "[conp] RSS secret key too long (%u bytes), 0x%x"
+      },
+      {
+        "UniquenessHash": "33ae3aed-4b8f-97b5-c6ea-bd70a3911635",
+        "TraceID": "ConnPoolRssSecretKeyTooShort",
+        "EncodingString": "[conp] RSS secret key too short (%u bytes), 0x%x"
+      },
+      {
+        "UniquenessHash": "783dface-e5d4-81d2-213a-a40abc4b00d9",
+        "TraceID": "ConnPoolSetCibirId",
+        "EncodingString": "[conp] Failed to set CIBIR ID on connection[%u], 0x%x"
       },
       {
         "UniquenessHash": "f52999bc-8de3-798c-c4ed-0fa4ad686385",
@@ -14337,6 +14416,11 @@
         "UniquenessHash": "57696af4-f367-3d05-7259-d55ac7dabf60",
         "TraceID": "ConnPoolSetRemoteAddress",
         "EncodingString": "[conp] Failed to set remote address on connection[%u], 0x%x"
+      },
+      {
+        "UniquenessHash": "13538c59-4bf3-962f-0ce7-0f65dcd761e4",
+        "TraceID": "ConnPoolSetShareBinding",
+        "EncodingString": "[conp] Failed to set share binding on connection[%u], 0x%x"
       },
       {
         "UniquenessHash": "4a8d226c-314f-ad09-87bd-fbd785079e4d",
