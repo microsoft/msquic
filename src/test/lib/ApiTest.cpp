@@ -3169,6 +3169,88 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     }
 }
 
+
+// Used by Listener
+void DosMitigationTests(HQUIC Handle, uint32_t Param) {
+    //
+    // buffer length test
+    //
+    {
+        TestScopeLogger LogScope0("Buffer length test");
+        //
+        // Buffer is bigger than 1 byte
+        //
+        {
+            TestScopeLogger LogScope1("Buffer is bigger than 1 byte");
+            uint8_t buffer[2] = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+
+        //
+        // BufferLength == 1
+        //
+        {
+            TestScopeLogger LogScope1("BufferLength == 1");
+            uint8_t buffer[1] = {0};
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_SUCCESS,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+
+        //
+        // Good without value, length 0
+        //
+        {
+            TestScopeLogger LogScope1("no value, Bufferlength == 0");
+            TEST_QUIC_SUCCEEDED(
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    0,
+                    nullptr));
+        }
+    }
+
+    //
+    // Test with value of 1
+    //
+    {
+        TestScopeLogger LogScope0("Buffer starts from non-zero is not supported");
+        uint8_t buffer[1] = {1};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+
+    //
+    // Test with value of 0
+    //
+    {
+        uint8_t buffer[1] = {0};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+}
+
 void QuicTestListenerParam()
 {
     MsQuicRegistration Registration;
@@ -3311,6 +3393,41 @@ void QuicTestListenerParam()
             // TODO: Stateful test once Listener->CibrId is filled
         }
     }
+
+    //
+    // QUIC_PARAM_DOS_MITIGATION
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_DOS_MITIGATION");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
+            TEST_TRUE(Listener.IsValid());
+            DosMitigationTests(Listener.Handle, QUIC_PARAM_DOS_MITIGATION);
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            uint32_t Length = 65535;
+            uint8_t buffer[1] = {0};
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_DOS_MITIGATION,
+                    &Length,
+                    &buffer));
+            TEST_EQUAL(Length, 1 /*sizeof Listener->DosMitigationOptIn) */);
+        }
+    }
+
+
 #endif
 }
 

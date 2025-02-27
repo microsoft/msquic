@@ -68,6 +68,7 @@ MsQuicListenerOpen(
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
+    Listener->DosMitigationOptIn = FALSE;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
@@ -407,6 +408,22 @@ QuicListenerIndicateEvent(
     )
 {
     CXPLAT_PASSIVE_CODE();
+    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
+    return
+        Listener->ClientCallbackHandler(
+            (HQUIC)Listener,
+            Listener->ClientContext,
+            Event);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicListenerIndicateDispatchEvent(
+    _In_ QUIC_LISTENER* Listener,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE);
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
@@ -767,6 +784,24 @@ QuicListenerParamSet(
             Listener->CibirId[1]);
 
         return QUIC_STATUS_SUCCESS;
+    } else if (Param == QUIC_PARAM_DOS_MITIGATION) {
+        if (BufferLength > 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (BufferLength == 0) {
+            Listener->DosMitigationOptIn = FALSE;
+            return QUIC_STATUS_SUCCESS;
+        }
+
+        if (BufferLength == 1) {
+            if (((uint8_t *)Buffer)[0] != 0) {
+                Listener->DosMitigationOptIn = TRUE;
+            } else {
+                Listener->DosMitigationOptIn = FALSE;
+            }
+        }
+        return QUIC_STATUS_SUCCESS;
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
@@ -852,6 +887,17 @@ QuicListenerParamGet(
         *BufferLength = Listener->CibirId[0] + 1;
         memcpy(Buffer, Listener->CibirId + 1, Listener->CibirId[0]);
 
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_DOS_MITIGATION:
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        *BufferLength = sizeof(Listener->DosMitigationOptIn);
+        memcpy(Buffer, &Listener->DosMitigationOptIn, sizeof(Listener->DosMitigationOptIn));
         Status = QUIC_STATUS_SUCCESS;
         break;
 
