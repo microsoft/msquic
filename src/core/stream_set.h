@@ -47,6 +47,11 @@ typedef struct QUIC_STREAM_SET {
     CXPLAT_HASHTABLE* StreamTable;
 
     //
+    // The list of streams that are waiting for stream id flow control.
+    //
+    CXPLAT_LIST_ENTRY WaitingStreams;
+
+    //
     // The list of streams that are completely closed and need to be released.
     //
     CXPLAT_LIST_ENTRY ClosedStreams;
