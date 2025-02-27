@@ -3197,6 +3197,12 @@ namespace Microsoft.Quic
         [NativeTypeName("uint16_t")]
         internal ushort NumberOfConnections;
 
+        [NativeTypeName("uint8_t **")]
+        internal byte** CibirIds;
+
+        [NativeTypeName("uint8_t")]
+        internal byte CibirIdLength;
+
         internal QUIC_CONNECTION_POOL_FLAGS Flags;
     }
 

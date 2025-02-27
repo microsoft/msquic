@@ -107,7 +107,8 @@ MsQuicConnectionPoolCreate(
     uint32_t CreatedConnections = 0;
 
     if (Config == NULL || Config->NumberOfConnections == 0 || Config->Handler == NULL ||
-        Config->ServerName == NULL || Config->ServerPort == 0 || ConnectionPool == NULL) {
+        Config->ServerName == NULL || Config->ServerPort == 0 || ConnectionPool == NULL ||
+        (Config->CibirIds != NULL && Config->CibirIdLength == 0)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceLogError(
             ConnPoolInvalidParam,
@@ -127,7 +128,7 @@ MsQuicConnectionPoolCreate(
     //
     // Resolve the server name or use the remote address.
     //
-    QUIC_ADDR ResolvedRemoteAddress = {};
+    QUIC_ADDR ResolvedRemoteAddress = { 0 };
     QuicAddrSetFamily(&ResolvedRemoteAddress, Config->Family);
     if (Config->ServerAddress != NULL) {
          ResolvedRemoteAddress = *Config->ServerAddress;
@@ -192,6 +193,36 @@ MsQuicConnectionPoolCreate(
         goto Error;
     }
 
+    if (RssConfig->RssIndirectionTableLength < sizeof(uint32_t)) {
+        //
+        // No RSS cores configured.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceLogError(
+            ConnPoolRssNotConfigured,
+            "[conp] RSS not configured, 0x%x",
+            Status);
+        goto Error;
+    }
+
+    if (RssConfig->RssSecretKeyLength > CXPLAT_TOEPLITZ_KEY_SIZE_MAX) {
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        QuicTraceLogError(
+            ConnPoolRssSecretKeyTooLong,
+            "[conp] RSS secret key too long (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+        goto Error;
+    } else if (RssConfig->RssSecretKeyLength < CXPLAT_TOEPLITZ_KEY_SIZE_MIN) {
+        Status = QUIC_STATUS_INVALID_STATE;
+        QuicTraceLogError(
+            ConnPoolRssSecretKeyTooShort,
+            "[conp] RSS secret key too short (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+        goto Error;
+    }
+
     //
     // Prepare array of unique RSS processors.
     //
@@ -247,14 +278,6 @@ MsQuicConnectionPoolCreate(
     //
     // Initialize the Toeplitz hash.
     //
-    if (RssConfig->RssSecretKeyLength > CXPLAT_TOEPLITZ_KEY_SIZE_MAX) {
-        Status = QUIC_STATUS_INTERNAL_ERROR;
-        QuicTraceLogError(
-            ConnPoolRssSecretKeyTooLong,
-            "[conp] RSS secret key too long, 0x%x",
-            Status);
-        goto Error;
-    }
     CxPlatCopyMemory(&ToeplitzHash.HashKey, RssConfig->RssSecretKey, RssConfig->RssSecretKeyLength);
     ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_IP;
     CxPlatToeplitzHashInitialize(&ToeplitzHash);
@@ -342,6 +365,44 @@ MsQuicConnectionPoolCreate(
             Connections[i]->ClientCallbackHandler = Config->Handler;
             if (Config->Context != NULL) {
                 Connections[i]->ClientContext = Config->Context[i];
+            }
+
+            //
+            // Set parameters on the connections before starting them.
+            //
+            if (Config->CibirIds) {
+                uint8_t True = TRUE;
+                Status =
+                    QuicConnParamSet(
+                        Connections[i],
+                        QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                        sizeof(True),
+                        &True);
+                CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+                if (QUIC_FAILED(Status)) {
+                    QuicTraceLogError(
+                        ConnPoolSetShareBinding,
+                        "[conp] Failed to set share binding on connection[%u], 0x%x",
+                        i,
+                        Status);
+                    goto Error;
+                }
+
+                Status =
+                    QuicConnParamSet(
+                        Connections[i],
+                        QUIC_PARAM_CONN_CIBIR_ID,
+                        Config->CibirIdLength,
+                        Config->CibirIds[i]);
+                CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+                if (QUIC_FAILED(Status)) {
+                    QuicTraceLogError(
+                        ConnPoolSetCibirId,
+                        "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
+                        i,
+                        Status);
+                    goto Error;
+                }
             }
 
             Status =
