@@ -144,7 +144,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
     CallbackContext Context = {&Route, };
-    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
+    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE, FALSE);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
@@ -161,7 +161,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
     uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
-    
+
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
         if (CxPlatTimeDiff64(BucketTime, CurTime) > 1000) {
@@ -214,9 +214,9 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
-        
+
         if (TCP) {
             CxPlatSendDataFree(SendData);
             Route.LocalAddress.Ipv4.sin_port++;
@@ -234,7 +234,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     CxPlatSocketGetRemoteAddress(Binding, &Route.RemoteAddress);
     CallbackContext Context = {&Route, };
-    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete);
+    QUIC_STATUS Status = CxPlatResolveRoute(Binding, &Route, 0, &Context, ResolveRouteComplete, FALSE, FALSE);
     if (Status == QUIC_STATUS_PENDING) {
         CxPlatEventInitialize(&(Context.Event), FALSE, FALSE);
         BOOLEAN EventSet = CxPlatEventWaitWithTimeout(Context.Event, (uint32_t)TimeoutMs);
@@ -283,7 +283,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             BucketTime = CurTime;
             BucketCount = 0;
         }
-        
+
         if (BucketCount >= BucketThreshold) {
             continue;
         }
@@ -352,7 +352,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
     }
 }
