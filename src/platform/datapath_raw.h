@@ -152,7 +152,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ BOOLEAN IsCreated
+    _In_ BOOLEAN IsCreated,
+    _In_ BOOLEAN IsQTIP
     );
 
 //

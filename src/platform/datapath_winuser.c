@@ -1500,15 +1500,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
-
-    if (Datapath->UseTcp) {
-        //
-        // Skip normal socket settings to use AuxSocket in raw socket
-        //
-        goto Skip;
-    }
-
+    CxPlatRefInitializeEx(&Socket->RefCount, SocketCount);
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
@@ -1995,6 +1987,12 @@ SocketCreateUdp(
             }
         }
 
+        QuicTraceLogVerbose(
+            DatapathUdpPerprocBinding,
+            "[data][%p] Binding UDP SOCKET to %s",
+            SocketProc->Socket,
+            (PSOCKADDR)&Socket->LocalAddress);
+
         Result =
             bind(
                 SocketProc->Socket,
@@ -2068,8 +2066,6 @@ SocketCreateUdp(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-Skip:
-
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -2082,11 +2078,9 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
-        for (uint16_t i = 0; i < SocketCount; i++) {
-            CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
-            Socket->PerProcSockets[i].IoStarted = TRUE;
-        }
+    for (uint16_t i = 0; i < SocketCount; i++) {
+        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+        Socket->PerProcSockets[i].IoStarted = TRUE;
     }
 
     Socket = NULL;
@@ -2624,16 +2618,10 @@ SocketDelete(
 
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
-
-    if (Socket->UseTcp) {
-        // QTIP did not initialize PerProcSockets
-        CxPlatSocketRelease(Socket);
-    } else {
-        const uint16_t SocketCount =
-            Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
-        for (uint16_t i = 0; i < SocketCount; ++i) {
-            CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
-        }
+    const uint16_t SocketCount =
+        Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
+    for (uint16_t i = 0; i < SocketCount; ++i) {
+        CxPlatSocketContextUninitialize(&Socket->PerProcSockets[i]);
     }
 }
 

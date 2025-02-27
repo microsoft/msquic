@@ -164,7 +164,8 @@ RawSocketCreateUdp(
         goto Error;
     }
 
-    CxPlatDpRawPlumbRulesOnSocket(NewSocket, TRUE);
+    CxPlatDpRawPlumbRulesOnSocket(NewSocket, TRUE, FALSE);
+    CxPlatDpRawPlumbRulesOnSocket(NewSocket, TRUE, TRUE);
 Error:
 
     if (QUIC_FAILED(Status)) {

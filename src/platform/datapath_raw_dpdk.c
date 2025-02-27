@@ -515,11 +515,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ BOOLEAN IsCreated
+    _In_ BOOLEAN IsCreated,
+    _In_ BOOLEAN IsQTIP
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(IsCreated);
+    UNREFERENCED_PARAMETER(IsQTIP);
     // no-op currently since DPDK simply steals all traffic
 }
 

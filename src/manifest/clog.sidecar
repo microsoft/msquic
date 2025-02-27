@@ -3095,6 +3095,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "DatapathUdpPerprocBinding": {
+      "ModuleProperites": {},
+      "TraceString": "[data][%p] Binding UDP SOCKET to %s",
+      "UniqueId": "DatapathUdpPerprocBinding",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "DatapathUnreachableMsg": {
       "ModuleProperites": {},
       "TraceString": "[sock][%p] Unreachable error from %!ADDR!",
@@ -14370,6 +14386,11 @@
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",
         "TraceID": "DatapathTooLarge",
         "EncodingString": "[data][%p] Received larger than expected datagram from %!ADDR!"
+      },
+      {
+        "UniquenessHash": "c634f6a0-08c4-b9fa-6828-e496149a4180",
+        "TraceID": "DatapathUdpPerprocBinding",
+        "EncodingString": "[data][%p] Binding UDP SOCKET to %s"
       },
       {
         "UniquenessHash": "29acd049-f710-a71e-1271-698510cfc519",

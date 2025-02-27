@@ -1332,7 +1332,8 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawPlumbRulesOnSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ BOOLEAN IsCreated
+    _In_ BOOLEAN IsCreated,
+    _In_ BOOLEAN IsQTIP
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
@@ -1340,7 +1341,7 @@ CxPlatDpRawPlumbRulesOnSocket(
         XDP_RULE Rules[3] = {0};
         uint8_t RulesSize = 0;
         if (Socket->CibirIdLength) {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID;
+            Rules[0].Match = IsQTIP ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID;
             Rules[0].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[0].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
@@ -1348,7 +1349,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
 
-            Rules[1].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID;
+            Rules[1].Match = IsQTIP ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID;
             Rules[1].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[1].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[1].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
@@ -1360,7 +1361,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
 
             RulesSize = 2;
-            if (Socket->UseTcp) {
+            if (IsQTIP) {
                 Rules[2].Match = XDP_MATCH_TCP_CONTROL_DST;
                 Rules[2].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
                 Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
@@ -1370,7 +1371,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             }
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST;
+            Rules[0].Match = IsQTIP ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST;
             Rules[0].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
@@ -1398,11 +1399,11 @@ CxPlatDpRawPlumbRulesOnSocket(
         uint8_t* IpAddress;
         size_t IpAddressSize;
         if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
+            MatchType = IsQTIP ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
             IpAddressSize = sizeof(IN_ADDR);
         } else {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
+            MatchType = IsQTIP ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
             IpAddressSize = sizeof(IN6_ADDR);
         }
