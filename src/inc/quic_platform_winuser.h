@@ -1035,7 +1035,7 @@ CxPlatTimeAtOrBefore32(
 typedef struct CXPLAT_PROCESSOR_INFO {
     uint16_t Group;  // The group number this processor is a part of
     uint8_t Index;   // Index in the current group
-    uint8_t PADDING; // Here to align with PROCESSOR_NUMBER struct
+    uint8_t Reserved; // Must be zero.
 } CXPLAT_PROCESSOR_INFO;
 
 CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_PROCESSOR_INFO) == sizeof(PROCESSOR_NUMBER), "Size check");

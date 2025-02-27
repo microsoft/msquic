@@ -419,6 +419,64 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
+    //
+    // TODO: add an independent knob for RSS max-CPU config.
+    //
+    if (Interface->IfIndex != Interface->ActualIfIndex) {
+        struct {
+            XDP_RSS_CONFIGURATION Base;
+            PROCESSOR_NUMBER IndirectionTable[128]; // 128 is the largest table supported by NDIS.
+        } RssConfig;
+
+        //
+        // Fill the interface's RSS indirection table with all QUIC CPUs in
+        // round robin order. This will allow all CPUs to be used for networking
+        // by user and kernel mode if the CPU count is <= 128. If the number of
+        // CPUs is not a power of two, the load distribution will be uneven.
+        // This assumes the NIC has been configured with at least as many RSS
+        // queues as CPUs, or is capable of software RSS.
+        //
+
+        QuicTraceLogVerbose(
+            XdpVfRssConfig,
+            "[ixdp][%p] Applying max CPU RSS config for actual interface %u",
+            Interface,
+            Interface->ActualIfIndex);
+
+        XdpInitializeRssConfiguration(&RssConfig.Base, sizeof(RssConfig));
+        RssConfig.Base.IndirectionTableOffset =
+            FIELD_OFFSET(__typeof__(RssConfig), IndirectionTable);
+        RssConfig.Base.IndirectionTableSize = sizeof(RssConfig.IndirectionTable);
+        RssConfig.Base.Flags |= XDP_RSS_FLAG_SET_INDIRECTION_TABLE;
+
+        //
+        // TODO: Query the RSS capabilities and bound the #CPUs by the #queues.
+        // Sanity test: cap queues to 1 to make sure perf drops.
+        //
+        uint32_t MaxRssQueues = 1;
+
+        for (uint32_t i = 0; i < RTL_NUMBER_OF(RssConfig.IndirectionTable); i++) {
+            RssConfig.IndirectionTable[i] =
+                *(const PROCESSOR_NUMBER*)
+                    &CxPlatProcessorInfo[i % min(CxPlatProcCount(), MaxRssQueues)];
+        }
+
+        //
+        // TODO: if multiple instances of QUIC are loaded on this interface,
+        // only the first will be able to apply the settings. This introduces a
+        // race condition if multiple instances start/stop in arbitrary order.
+        //
+        Status = XdpRssSet(Interface->XdpHandle, &RssConfig.Base, sizeof(RssConfig));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XdpRssSet");
+            goto Error;
+        }
+    }
+
     Status = CxPlatGetRssQueueProcessors(Interface->ActualIfIndex, &Interface->QueueCount, Processors);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -1031,7 +1089,6 @@ CxPlatDpRawInitialize(
 
                 // Look for VF which associated with Adapter
                 // It has same MAC address. and empirically these flags
-                /* TODO - Currently causes issues some times
                 for (int i = 0; i < (int) pIfTable->NumEntries; i++) {
                     MIB_IF_ROW2* pIfRow = &pIfTable->Table[i];
                     if (!pIfRow->InterfaceAndOperStatusFlags.FilterInterface &&
@@ -1049,7 +1106,7 @@ CxPlatDpRawInitialize(
                             Interface->ActualIfIndex);
                         break; // assuming there is 1:1 matching
                     }
-                }*/
+                }
 
                 QuicTraceLogVerbose(
                     XdpInterfaceInitialize,
