@@ -1,5 +1,6 @@
 // header wrapper to feed into bindgen
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 #include "msquic.h"
 
 // undef the macro type and define the enum type.
