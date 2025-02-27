@@ -153,6 +153,9 @@ CxPlatProcessorInfoInit(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CxPlatZeroMemory(
+        CxPlatProcessorInfo,
+        ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
     CxPlatProcessorGroupInfo =
