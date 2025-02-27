@@ -269,8 +269,6 @@ class TcpConnection {
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
     void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
-    bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
-    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
     void* Context{nullptr}; // App context
     TcpConnection(
@@ -290,6 +288,8 @@ public:
     bool GetStats(CXPLAT_TCP_STATISTICS* Stats) {
         return QUIC_SUCCEEDED(CxPlatSocketGetTcpStatistics(Socket, Stats));
     }
+    bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
+    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 };
 
 inline
