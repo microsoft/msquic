@@ -12,7 +12,6 @@ use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_SETTI
 use libc::c_void;
 use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
-use std::convert::TryInto;
 use std::io;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -24,7 +23,7 @@ mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::{ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -353,14 +352,6 @@ pub struct TicketKeyConfig {
     pub material_length: u8,
 }
 
-/// A generic wrapper for contiguous buffer.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Buffer {
-    pub length: u32,
-    pub buffer: *mut u8,
-}
-
 pub type TlsProtocolVersion = u32;
 pub const TLS_PROTOCOL_UNKNOWN: TlsProtocolVersion = 0;
 pub const TLS_PROTOCOL_1_3: TlsProtocolVersion = 12288;
@@ -670,43 +661,6 @@ unsafe impl Send for Stream {}
 /// should not be closed by default.
 pub struct StreamRef(Stream);
 
-impl From<&str> for Buffer {
-    fn from(data: &str) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
-        }
-    }
-}
-
-impl From<&Vec<u8>> for Buffer {
-    fn from(data: &Vec<u8>) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
-        }
-    }
-}
-
-impl From<&[u8]> for Buffer {
-    fn from(data: &[u8]) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
-        }
-    }
-}
-
-impl From<Buffer> for Vec<u8> {
-    fn from(data: Buffer) -> Vec<u8> {
-        let mut vec = vec![0; data.length.try_into().unwrap()];
-        for index in 0..data.length - 1 {
-            vec[index as usize] = unsafe { *data.buffer.offset(index as isize) };
-        }
-        vec
-    }
-}
-
 impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     fn from(value: QuicPerformanceCountersParam) -> Self {
         Self {
@@ -1006,7 +960,7 @@ define_quic_handle_impl!(Registration);
 impl Configuration {
     pub fn new(
         registration: &Registration,
-        alpn: &[Buffer],
+        alpn: &[BufferRef],
         settings: *const Settings,
     ) -> Result<Configuration, Status> {
         let context: *mut c_void = ptr::null_mut();
@@ -1156,18 +1110,23 @@ impl Connection {
         };
     }
 
-    pub fn datagram_send(
+    /// # Safety
+    /// buffers memory needs to be valid until callback
+    /// [ConnectionEvent::DatagramSendStateChanged]
+    /// is delivered.
+    /// One can optionally pass client_send_context along
+    /// and get it back in the callback.
+    pub unsafe fn datagram_send(
         &self,
-        buffer: &Buffer,
-        buffer_count: u32,
+        buffers: &[BufferRef],
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().DatagramSend.unwrap()(
                 self.handle,
-                buffer as *const Buffer as *const QUIC_BUFFER,
-                buffer_count,
+                buffers.as_ptr() as *const QUIC_BUFFER,
+                buffers.len() as u32,
                 flags as crate::ffi::QuicFlag,
                 client_send_context as *mut c_void,
             )
@@ -1239,7 +1198,7 @@ impl Listener {
         Status::ok_from_raw(status)
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Status> {
+    pub fn start(&self, alpn: &[BufferRef], local_address: Option<&Addr>) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ListenerStart.unwrap()(
                 self.handle,
@@ -1332,20 +1291,25 @@ impl Stream {
         }
     }
 
-    pub fn send(
+    /// # Safety
+    /// buffers memory needs to be valid until callback
+    /// [StreamEvent::SendComplete]
+    /// is delivered.
+    /// One can optionally pass client_send_context along
+    /// and get it back in the callback.
+    pub unsafe fn send(
         &self,
-        buffer: &Buffer,
-        buffer_count: u32,
+        buffers: &[BufferRef],
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().StreamSend.unwrap()(
                 self.handle,
-                buffer as *const Buffer as *const QUIC_BUFFER,
-                buffer_count,
+                buffers.as_ptr() as *const QUIC_BUFFER,
+                buffers.len() as u32,
                 flags as crate::ffi::QuicFlag,
-                client_send_context as *mut c_void, //(self as *const Stream) as *const c_void,
+                client_send_context as *mut c_void,
             )
         };
         Status::ok_from_raw(status)
@@ -1409,7 +1373,7 @@ mod tests {
 
     use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
-        ffi, Buffer, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
+        ffi, BufferRef, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
         Settings, StatusCode, Stream, StreamEvent,
     };
 
@@ -1554,7 +1518,7 @@ mod tests {
             let _tls_provider = crate::Api::get_tls_provider().expect("fail to get tls provider");
         }
 
-        let alpn = [Buffer::from("h3")];
+        let alpn = [BufferRef::from("h3")];
         let res = Configuration::new(
             &registration,
             &alpn,
