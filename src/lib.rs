@@ -1460,6 +1460,8 @@ mod tests {
         let settings = Settings::new()
             .set_PeerBidiStreamCount(100)
             .set_PeerUnidiStreamCount(3);
+        #[cfg(feature = "preview-api")]
+        let settings = settings.set_StreamMultiReceiveEnabled();
         let res = Configuration::new(&registration, &alpn, Some(&settings));
         assert!(
             res.is_ok(),

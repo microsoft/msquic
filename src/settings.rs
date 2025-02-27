@@ -42,6 +42,18 @@ macro_rules! define_settings_entry_bitflag {
     };
 }
 
+/// Macro to define function to set a bit flag in a substruct.
+/// It sets the IsSet bitflag for the entry and set the bit flage value.
+macro_rules! define_settings_entry_bitflag2 {
+    ( $fn_name:ident) => {
+        pub fn $fn_name(mut self) -> Self {
+            unsafe { self.inner.__bindgen_anon_1.IsSet.$fn_name(1) };
+            unsafe { self.inner.__bindgen_anon_2.__bindgen_anon_1.$fn_name(1) };
+            self
+        }
+    };
+}
+
 impl Settings {
     pub fn new() -> Self {
         Self::default()
@@ -115,17 +127,20 @@ impl Settings {
     define_settings_entry_bitflag!(set_GreaseQuicBitEnabled);
     define_settings_entry_bitflag!(set_EcnEnabled);
 
-    // TODO: add preview feature.
-    pub fn set_HyStartEnabled(&mut self) -> &mut Self {
-        unsafe { self.inner.__bindgen_anon_1.IsSet.set_HyStartEnabled(1) };
-        unsafe {
-            self.inner
-                .__bindgen_anon_2
-                .__bindgen_anon_1
-                .set_HyStartEnabled(1)
-        };
-        self
-    }
+    define_settings_entry_bitflag2!(set_HyStartEnabled);
+
+    // preview features
+
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_EncryptionOffloadAllowed);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_ReliableResetEnabled);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_OneWayDelayEnabled);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_NetStatsEventEnabled);
+    #[cfg(feature = "preview-api")]
+    define_settings_entry_bitflag2!(set_StreamMultiReceiveEnabled);
 
     define_settings_entry!(
         set_StreamRecvWindowBidiLocalDefault,
