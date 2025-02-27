@@ -457,7 +457,8 @@ CxPlatDpRawInterfaceInitialize(
 
         for (uint32_t i = 0; i < RTL_NUMBER_OF(RssConfig.IndirectionTable); i++) {
             RssConfig.IndirectionTable[i] =
-                *(const PROCESSOR_NUMBER*)&CxPlatProcessorInfo[i % min(CxPlatProcCount(), MaxRssQueues)];
+                *(const PROCESSOR_NUMBER*)
+                    &CxPlatProcessorInfo[i % min(CxPlatProcCount(), MaxRssQueues)];
         }
 
         //
