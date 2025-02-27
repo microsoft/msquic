@@ -257,6 +257,7 @@ MsQuicConnectionPoolCreate(
         }
     }
 
+    CXPLAT_DBG_ASSERT(RssProcessorCount > 0);
     CXPLAT_DBG_ASSERT(RssProcessorCount <= RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
 
     ConnectionCounts =
@@ -420,6 +421,7 @@ MsQuicConnectionPoolCreate(
                     Status);
                 goto Error;
             }
+
             Status =
                 QuicConnParamSet(
                     Connections[i],
