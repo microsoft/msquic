@@ -122,7 +122,10 @@ QuicStreamSetTraceRundown(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
-QuicStreamSetLazyInitStreamTable(_Inout_ QUIC_STREAM_SET* StreamSet) {
+QuicStreamSetLazyInitStreamTable(
+    _Inout_ QUIC_STREAM_SET* StreamSet
+    )
+{
     if (StreamSet->StreamTable == NULL) {
         //
         // Lazily initialize the hash table.
