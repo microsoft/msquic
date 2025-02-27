@@ -11,8 +11,10 @@ Abstract:
 
 #include "datapath_raw_win.h"
 #ifdef QUIC_CLOG
-#include "datapath_raw_socket_win.c.clog.h"
+#include "datapath_raw_socket_winuser.c.clog.h"
 #endif
+
+#define SocketError() WSAGetLastError()
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
@@ -20,31 +22,6 @@ Abstract:
 //
 // Socket Pool Logic
 //
-
-#ifdef _KERNEL_MODE
-
-BOOLEAN
-CxPlatSockPoolInitialize(
-    _Inout_ CXPLAT_SOCKET_POOL* Pool
-    )
-{
-    if (!CxPlatHashtableInitializeEx(&Pool->Sockets, CXPLAT_HASH_MIN_SIZE)) {
-        return FALSE;
-    }
-    // WskRegister etc. is called in DataPathInitialize
-    return TRUE;
-}
-
-void
-CxPlatSockPoolUninitialize(
-    _Inout_ CXPLAT_SOCKET_POOL* Pool
-    )
-{
-    UNREFERENCED_PARAMETER(Pool);
-    // WskDeregister etc. is called in DataPathUninitialize
-}
-
-#else
 
 BOOLEAN
 CxPlatSockPoolInitialize(
@@ -76,8 +53,6 @@ CxPlatSockPoolUninitialize(
     (void)WSACleanup();
 }
 
-#endif // _KERNEL_MODE
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawResolveRoute(
@@ -88,7 +63,7 @@ RawResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    NETIO_STATUS Status = ERROR_SUCCESS;
+    NETIO_STATUS Status;
     MIB_IPFORWARD_ROW2 IpforwardRow = {0};
     CXPLAT_ROUTE_STATE State = Route->State;
     QUIC_ADDR LocalAddress = {0};
@@ -117,7 +92,7 @@ RawResolveRoute(
             &IpforwardRow,
             &LocalAddress); // BestSourceAddress
 
-    if (Status != ERROR_SUCCESS) {
+    if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -137,7 +112,7 @@ RawResolveRoute(
         //
         // We can't handle local address change here easily due to lack of full migration support.
         //
-        Status = ERROR_INVALID_STATE;
+        Status = QUIC_STATUS_INVALID_STATE;
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -165,7 +140,7 @@ RawResolveRoute(
     }
 
     if (Route->Queue == NULL) {
-        Status = ERROR_NOT_FOUND;
+        Status = QUIC_STATUS_NOT_FOUND;
         QuicTraceEvent(
             DatapathError,
             "[data][%p] ERROR, %s.",
@@ -204,7 +179,7 @@ RawResolveRoute(
     // We queue an operation on the route worker for NS because it involves network IO and
     // we don't want our connection worker queue blocked.
     //
-    if ((Status != ERROR_SUCCESS || IpnetRow.State <= NlnsIncomplete) ||
+    if ((QUIC_FAILED(Status) || IpnetRow.State <= NlnsIncomplete) ||
         (State == RouteSuspected &&
          memcmp(
              Route->NextHopLinkLayerAddress,
@@ -218,7 +193,7 @@ RawResolveRoute(
                 "Allocation of '%s' failed. (%llu bytes)",
                 "CXPLAT_DATAPATH",
                 sizeof(CXPLAT_ROUTE_RESOLUTION_OPERATION));
-            Status = ERROR_NOT_ENOUGH_MEMORY;
+            Status = QUIC_STATUS_PENDING;
             goto Done;
         }
         Operation->IpnetRow = IpnetRow;
@@ -229,17 +204,17 @@ RawResolveRoute(
         CxPlatListInsertTail(&Worker->Operations, &Operation->WorkerLink);
         CxPlatDispatchLockRelease(&Worker->Lock);
         CxPlatEventSet(Worker->Ready);
-        Status = ERROR_IO_PENDING;
+        Status = QUIC_STATUS_PENDING;
     } else {
         CxPlatResolveRouteComplete(Context, Route, IpnetRow.PhysicalAddress, PathId);
     }
 
 Done:
-    if (Status != ERROR_IO_PENDING && Status != ERROR_SUCCESS) {
+    if (Status != QUIC_STATUS_PENDING && QUIC_FAILED(Status)) {
         Callback(Context, NULL, PathId, FALSE);
     }
 
-    if (Status == ERROR_IO_PENDING) {
+    if (Status == QUIC_STATUS_PENDING) {
         return QUIC_STATUS_PENDING;
     } else {
         return HRESULT_FROM_WIN32(Status);

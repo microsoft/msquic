@@ -14,20 +14,6 @@ Abstract:
 #include "datapath_raw_socket.c.clog.h"
 #endif
 
-#if defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
-#define CxPlatSocketError() errno
-#define CxPlatCloseSocket(s) close(s)
-#define CxPlatQuicErrorFromSocketError(e) (QUIC_STATUS)e
-#define CxPlatAddressLengthType uint32_t
-#elif defined(_WIN32) || defined(_KERNEL_MODE)
-#define CxPlatSocketError() WSAGetLastError()
-#define CxPlatCloseSocket(s) closesocket(s)
-#define CxPlatQuicErrorFromSocketError(e) HRESULT_FROM_WIN32(e)
-#define CxPlatAddressLengthType int
-#else
-#error unsupported platform
-#endif
-
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 #pragma warning(disable:4100) // unreferenced formal parameter
 
@@ -71,29 +57,6 @@ CxPlatGetSocket(
     }
     CxPlatRwLockReleaseShared(&((CXPLAT_SOCKET_POOL*)Pool)->Lock);
     return Socket;
-}
-
-void
-CxPlatRemoveSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_RAW* Socket
-    )
-{
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
-    CxPlatHashtableRemove(&Pool->Sockets, &Socket->Entry, NULL);
-
-    if (Socket->AuxSocket != INVALID_SOCKET &&
-        CxPlatCloseSocket(Socket->AuxSocket) == SOCKET_ERROR) {
-        int Error = CxPlatSocketError();
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Error,
-            "closesocket");
-    }
-
-    CxPlatRwLockReleaseExclusive(&Pool->Lock);
 }
 
 void
@@ -152,11 +115,11 @@ CxPlatDpRawParseUdp(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const UDP_HEADER* Udp,
+        const RAW_UDP_HEADER* Udp,
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(UDP_HEADER)) {
+    if (Length < sizeof(RAW_UDP_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -182,7 +145,7 @@ CxPlatDpRawParseUdp(
     Packet->Route->LocalAddress.Ipv4.sin_port = Udp->DestinationPort;
 
     Packet->Buffer = (uint8_t*)Udp->Data;
-    Packet->BufferLength = QuicNetByteSwapShort(Udp->Length) - sizeof(UDP_HEADER);
+    Packet->BufferLength = QuicNetByteSwapShort(Udp->Length) - sizeof(RAW_UDP_HEADER);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -192,12 +155,12 @@ CxPlatDpRawParseTcp(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const TCP_HEADER* Tcp,
+        const RAW_TCP_HEADER* Tcp,
     _In_ uint16_t Length
     )
 {
     uint16_t HeaderLength;
-    if (Length < sizeof(TCP_HEADER)) {
+    if (Length < sizeof(RAW_TCP_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -262,11 +225,11 @@ CxPlatDpRawParseIPv4(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const IPV4_HEADER* IP,
+        const RAW_IPV4_HEADER* IP,
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(IPV4_HEADER)) {
+    if (Length < sizeof(RAW_IPV4_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -276,7 +239,7 @@ CxPlatDpRawParseIPv4(
         return;
     }
 
-    if (IP->VersionAndHeaderLength != IPV4_DEFAULT_VERHLEN) {
+    if (IP->VersionAndHeaderLength != RAW_IPV4_DEFAULT_VERHLEN) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -305,9 +268,9 @@ CxPlatDpRawParseIPv4(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
+        CxPlatDpRawParseUdp(Datapath, Packet, (RAW_UDP_HEADER*)IP->Data, IPTotalLength - sizeof(RAW_IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
-        CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
+        CxPlatDpRawParseTcp(Datapath, Packet, (RAW_TCP_HEADER*)IP->Data, IPTotalLength - sizeof(RAW_IPV4_HEADER));
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -325,12 +288,12 @@ CxPlatDpRawParseIPv6(
     _In_ const CXPLAT_DATAPATH* Datapath,
     _Inout_ CXPLAT_RECV_DATA* Packet,
     _In_reads_bytes_(Length)
-        const IPV6_HEADER* IP,
+        const RAW_IPV6_HEADER* IP,
     _In_ uint16_t Length
     )
 {
 
-    if (Length < sizeof(IPV6_HEADER)) {
+    if (Length < sizeof(RAW_IPV6_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -341,7 +304,7 @@ CxPlatDpRawParseIPv6(
     }
 
     uint16_t IPPayloadLength = CxPlatByteSwapUint16(IP->PayloadLength);
-    if (IPPayloadLength + sizeof(IPV6_HEADER) > Length) {
+    if (IPPayloadLength + sizeof(RAW_IPV6_HEADER) > Length) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -374,9 +337,9 @@ CxPlatDpRawParseIPv6(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
-        CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
+        CxPlatDpRawParseUdp(Datapath, Packet, (RAW_UDP_HEADER*)IP->Data, IPPayloadLength);
     } else if (IP->NextHeader == IPPROTO_TCP) {
-        CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPPayloadLength);
+        CxPlatDpRawParseTcp(Datapath, Packet, (RAW_TCP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -407,7 +370,7 @@ CxPlatDpRawParseEthernet(
     _In_ uint16_t Length
     )
 {
-    if (Length < sizeof(ETHERNET_HEADER)) {
+    if (Length < sizeof(RAW_ETHERNET_HEADER)) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -417,9 +380,9 @@ CxPlatDpRawParseEthernet(
         return;
     }
 
-    Length -= sizeof(ETHERNET_HEADER);
+    Length -= sizeof(RAW_ETHERNET_HEADER);
 
-    const ETHERNET_HEADER* Ethernet = (const ETHERNET_HEADER*)Payload;
+    const RAW_ETHERNET_HEADER* Ethernet = (const RAW_ETHERNET_HEADER*)Payload;
 
     if (IsEthernetBroadcast(Ethernet->Destination) || IsEthernetMulticast(Ethernet->Destination)) {
         QuicTraceEvent(
@@ -435,10 +398,10 @@ CxPlatDpRawParseEthernet(
     CxPlatCopyMemory(&Packet->Route->NextHopLinkLayerAddress, Ethernet->Source, sizeof(Ethernet->Source));
 
     uint16_t EthernetType = Ethernet->Type;
-    if (EthernetType == ETHERNET_TYPE_IPV4) {
-        CxPlatDpRawParseIPv4(Datapath, Packet, (IPV4_HEADER*)Ethernet->Data, Length);
-    } else if (EthernetType == ETHERNET_TYPE_IPV6) {
-        CxPlatDpRawParseIPv6(Datapath, Packet, (IPV6_HEADER*)Ethernet->Data, Length);
+    if (EthernetType == RAW_ETHERNET_TYPE_IPV4) {
+        CxPlatDpRawParseIPv4(Datapath, Packet, (RAW_IPV4_HEADER*)Ethernet->Data, Length);
+    } else if (EthernetType == RAW_ETHERNET_TYPE_IPV6) {
+        CxPlatDpRawParseIPv6(Datapath, Packet, (RAW_IPV6_HEADER*)Ethernet->Data, Length);
     } else {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -457,10 +420,10 @@ CxPlatDpRawCalculateHeaderBackFill(
     )
 {
     HEADER_BACKFILL HeaderBackFill;
-    HeaderBackFill.TransportLayer = UseTcp ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER);
+    HeaderBackFill.TransportLayer = UseTcp ? sizeof(RAW_TCP_HEADER) : sizeof(RAW_UDP_HEADER);
     HeaderBackFill.NetworkLayer =
-        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
-    HeaderBackFill.LinkLayer = sizeof(ETHERNET_HEADER);
+        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(RAW_IPV4_HEADER) : sizeof(RAW_IPV6_HEADER);
+    HeaderBackFill.LinkLayer = sizeof(RAW_ETHERNET_HEADER);
     HeaderBackFill.AllLayer =
         HeaderBackFill.TransportLayer + HeaderBackFill.NetworkLayer + HeaderBackFill.LinkLayer;
     return HeaderBackFill;
@@ -555,7 +518,7 @@ CxPlatDpRawSocketAckFin(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
-    TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
+    RAW_TCP_HEADER* ReceivedTcpHeader = (RAW_TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     CxPlatFramingWriteHeaders(
         Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
@@ -587,7 +550,7 @@ CxPlatDpRawSocketAckSyn(
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
     const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
-    TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
+    RAW_TCP_HEADER* ReceivedTcpHeader = (RAW_TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     QuicTraceEvent(
         DatapathSendTcpControl,
@@ -703,9 +666,9 @@ CxPlatFramingWriteHeaders(
     uint8_t* Transport;
     uint16_t TransportLength;
     uint8_t TransportProtocol;
-    TCP_HEADER* TCP = NULL;
-    UDP_HEADER* UDP = NULL;
-    ETHERNET_HEADER* Ethernet;
+    RAW_TCP_HEADER* TCP = NULL;
+    RAW_UDP_HEADER* UDP = NULL;
+    RAW_ETHERNET_HEADER* Ethernet;
     uint16_t EthType;
     uint16_t IpHeaderLen;
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Route->RemoteAddress);
@@ -717,32 +680,32 @@ CxPlatFramingWriteHeaders(
         //
         // Fill TCP header.
         //
-        TCP = (TCP_HEADER*)(Buffer->Buffer - sizeof(TCP_HEADER));
+        TCP = (RAW_TCP_HEADER*)(Buffer->Buffer - sizeof(RAW_TCP_HEADER));
         TCP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
         TCP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
         TCP->Window = 0xFFFF;
         TCP->X2 = 0;
         TCP->Checksum = 0;
         TCP->UrgentPointer = 0;
-        TCP->HeaderLength = sizeof(TCP_HEADER) / sizeof(uint32_t);
+        TCP->HeaderLength = sizeof(RAW_TCP_HEADER) / sizeof(uint32_t);
         TCP->SequenceNumber = TcpSeqNum;
         TCP->AckNumber = TcpAckNum;
         TCP->Flags = TcpFlags;
 
         Transport = (uint8_t*)TCP;
-        TransportLength = sizeof(TCP_HEADER);
+        TransportLength = sizeof(RAW_TCP_HEADER);
         TransportProtocol = IPPROTO_TCP;
     } else {
         //
         // Fill UDP header.
         //
-        UDP = (UDP_HEADER*)(Buffer->Buffer - sizeof(UDP_HEADER));
+        UDP = (RAW_UDP_HEADER*)(Buffer->Buffer - sizeof(RAW_UDP_HEADER));
         UDP->DestinationPort = Route->RemoteAddress.Ipv4.sin_port;
         UDP->SourcePort = Route->LocalAddress.Ipv4.sin_port;
-        UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(UDP_HEADER));
+        UDP->Length = QuicNetByteSwapShort((uint16_t)Buffer->Length + sizeof(RAW_UDP_HEADER));
         UDP->Checksum = 0;
         Transport = (uint8_t*)UDP;
-        TransportLength = sizeof(UDP_HEADER);
+        TransportLength = sizeof(RAW_UDP_HEADER);
         TransportProtocol = IPPROTO_UDP;
     }
 
@@ -750,22 +713,22 @@ CxPlatFramingWriteHeaders(
     // Fill IPv4/IPv6 header.
     //
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        IPV4_HEADER* IPv4 = (IPV4_HEADER*)(Transport - sizeof(IPV4_HEADER));
-        IPv4->VersionAndHeaderLength = IPV4_DEFAULT_VERHLEN;
+        RAW_IPV4_HEADER* IPv4 = (RAW_IPV4_HEADER*)(Transport - sizeof(RAW_IPV4_HEADER));
+        IPv4->VersionAndHeaderLength = RAW_IPV4_DEFAULT_VERHLEN;
         IPv4->TypeOfService = DSCP;
         IPv4->EcnField = ECN;
-        IPv4->TotalLength = htons(sizeof(IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
+        IPv4->TotalLength = htons(sizeof(RAW_IPV4_HEADER) + TransportLength + (uint16_t)Buffer->Length);
         IPv4->Identification = 0;
         IPv4->FlagsAndFragmentOffset = 0;
-        IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
+        IPv4->TimeToLive = RAW_IP_DEFAULT_HOP_LIMIT;
         IPv4->Protocol = TransportProtocol;
         IPv4->HeaderChecksum = 0;
         CxPlatCopyMemory(IPv4->Source, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
         CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
-        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
-        EthType = ETHERNET_TYPE_IPV4;
-        Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
-        IpHeaderLen = sizeof(IPV4_HEADER);
+        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(RAW_IPV4_HEADER), 0);
+        EthType = RAW_ETHERNET_TYPE_IPV4;
+        Ethernet = (RAW_ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(RAW_ETHERNET_HEADER));
+        IpHeaderLen = sizeof(RAW_IPV4_HEADER);
         if (!SkipTransportLayerXsum) {
             if (Socket->UseTcp) {
                 TCP->Checksum =
@@ -773,18 +736,18 @@ CxPlatFramingWriteHeaders(
                         IPv4->Source, IPv4->Destination,
                         sizeof(Route->LocalAddress.Ipv4.sin_addr),
                         IPPROTO_TCP,
-                        (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
+                        (uint8_t*)TCP, sizeof(RAW_TCP_HEADER) + Buffer->Length);
             } else {
                 UDP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv4->Source, IPv4->Destination,
                         sizeof(Route->LocalAddress.Ipv4.sin_addr),
                         IPPROTO_UDP,
-                        (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+                        (uint8_t*)UDP, sizeof(RAW_UDP_HEADER) + Buffer->Length);
             }
         }
     } else {
-        IPV6_HEADER* IPv6 = (IPV6_HEADER*)(Transport - sizeof(IPV6_HEADER));
+        RAW_IPV6_HEADER* IPv6 = (RAW_IPV6_HEADER*)(Transport - sizeof(RAW_IPV6_HEADER));
         //
         // IPv6 Version, Traffic Class, ECN Field and Flow Label fields in host
         // byte order.
@@ -799,20 +762,20 @@ CxPlatFramingWriteHeaders(
             uint32_t Value;
         } VersionClassEcnFlow = {0};
 
-        VersionClassEcnFlow.Version = IPV6_VERSION;
+        VersionClassEcnFlow.Version = RAW_IPV6_VERSION;
         VersionClassEcnFlow.Class = DSCP;
         VersionClassEcnFlow.EcnField = ECN;
         VersionClassEcnFlow.Flow = (uint32_t)(uintptr_t)Socket;
 
         IPv6->VersionClassEcnFlow = CxPlatByteSwapUint32(VersionClassEcnFlow.Value);
         IPv6->PayloadLength = htons(TransportLength + (uint16_t)Buffer->Length);
-        IPv6->HopLimit = IP_DEFAULT_HOP_LIMIT;
+        IPv6->HopLimit = RAW_IP_DEFAULT_HOP_LIMIT;
         IPv6->NextHeader = TransportProtocol;
         CxPlatCopyMemory(IPv6->Source, &Route->LocalAddress.Ipv6.sin6_addr, sizeof(Route->LocalAddress.Ipv6.sin6_addr));
         CxPlatCopyMemory(IPv6->Destination, &Route->RemoteAddress.Ipv6.sin6_addr, sizeof(Route->RemoteAddress.Ipv6.sin6_addr));
-        EthType = ETHERNET_TYPE_IPV6;
-        Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
-        IpHeaderLen = sizeof(IPV6_HEADER);
+        EthType = RAW_ETHERNET_TYPE_IPV6;
+        Ethernet = (RAW_ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(RAW_ETHERNET_HEADER));
+        IpHeaderLen = sizeof(RAW_IPV6_HEADER);
         if (!SkipTransportLayerXsum) {
             if (Socket->UseTcp) {
                 TCP->Checksum =
@@ -820,14 +783,14 @@ CxPlatFramingWriteHeaders(
                         IPv6->Source, IPv6->Destination,
                         sizeof(Route->LocalAddress.Ipv6.sin6_addr),
                         IPPROTO_TCP,
-                        (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
+                        (uint8_t*)TCP, sizeof(RAW_TCP_HEADER) + Buffer->Length);
             } else {
                 UDP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv6->Source, IPv6->Destination,
                         sizeof(Route->LocalAddress.Ipv6.sin6_addr),
                         IPPROTO_UDP,
-                        (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+                        (uint8_t*)UDP, sizeof(RAW_UDP_HEADER) + Buffer->Length);
                 UDP->Checksum = UDP->Checksum != 0 ? UDP->Checksum : ~0;
             }
         }
@@ -840,303 +803,6 @@ CxPlatFramingWriteHeaders(
     CxPlatCopyMemory(Ethernet->Destination, Route->NextHopLinkLayerAddress, sizeof(Route->NextHopLinkLayerAddress));
     CxPlatCopyMemory(Ethernet->Source, Route->LocalLinkLayerAddress, sizeof(Route->LocalLinkLayerAddress));
 
-    Buffer->Length += TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
-    Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(ETHERNET_HEADER);
-}
-
-QUIC_STATUS
-CxPlatTryAddSocket(
-    _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_RAW* Socket
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    int Result;
-    CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
-    CXPLAT_HASHTABLE_ENTRY* Entry;
-    int Option;
-    QUIC_ADDR MappedAddress = {0};
-    SOCKET TempUdpSocket = INVALID_SOCKET;
-    CxPlatAddressLengthType AssignedLocalAddressLength;
-
-    //
-    // Get (and reserve) a transport layer port from the OS networking stack by
-    // binding an auxiliary (dual stack) socket.
-    //
-
-    if (Socket->UseTcp) {
-        Socket->AuxSocket =
-            socket(
-                AF_INET6,
-                SOCK_STREAM,
-                IPPROTO_TCP);
-        if (Socket->AuxSocket == INVALID_SOCKET) {
-            int WsaError = CxPlatSocketError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "socket");
-            Status = CxPlatQuicErrorFromSocketError(WsaError);
-            goto Error;
-        }
-
-        Option = FALSE;
-        Result =
-            setsockopt(
-                Socket->AuxSocket,
-                IPPROTO_IPV6,
-                IPV6_V6ONLY,
-                (char*)&Option,
-                sizeof(Option));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = CxPlatSocketError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "Set IPV6_V6ONLY");
-            Status = CxPlatQuicErrorFromSocketError(WsaError);
-            goto Error;
-        }
-
-        if (Socket->CibirIdLength) {
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    Socket->AuxSocket,
-                    SOL_SOCKET,
-                    SO_REUSEADDR,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set SO_REUSEADDR");
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-        }
-
-        CxPlatConvertToMappedV6(&Socket->LocalAddress, &MappedAddress);
-#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
-        if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-            MappedAddress.Ipv6.sin6_family = AF_INET6;
-        }
-#endif
-    }
-
-    CxPlatRwLockAcquireExclusive(&Pool->Lock);
-
-    if (Socket->UseTcp) {
-        QUIC_ADDR_STR LocalAddressString = {0};
-        QuicAddrToString(&MappedAddress, &LocalAddressString);
-        QuicTraceLogVerbose(
-            DatapathTcpAuxBinding,
-            "[data][%p] Binding TCP socket to %s",
-            Socket,
-            LocalAddressString.Address);
-        Result =
-            bind(
-                Socket->AuxSocket,
-                (struct sockaddr*)&MappedAddress,
-                sizeof(MappedAddress));
-        if (Result == SOCKET_ERROR) {
-            int WsaError = CxPlatSocketError();
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                WsaError,
-                "bind");
-            CxPlatRwLockReleaseExclusive(&Pool->Lock);
-            Status = CxPlatQuicErrorFromSocketError(WsaError);
-            goto Error;
-        }
-
-        if (Socket->Connected) {
-            CxPlatZeroMemory(&MappedAddress, sizeof(MappedAddress));
-            CxPlatConvertToMappedV6(&Socket->RemoteAddress, &MappedAddress);
-
-#if QUIC_ADDRESS_FAMILY_INET6 != AF_INET6
-            if (MappedAddress.Ipv6.sin6_family == QUIC_ADDRESS_FAMILY_INET6) {
-                MappedAddress.Ipv6.sin6_family = AF_INET6;
-            }
-#endif
-            //
-            // Create a temporary UDP socket bound to a wildcard port
-            // and connect this socket to the remote address.
-            // By doing this, the OS will select a local address for us.
-            //
-            uint16_t LocalPortChosen = 0;
-            QUIC_ADDR TempLocalAddress = {0};
-            AssignedLocalAddressLength = sizeof(TempLocalAddress);
-            Result =
-                getsockname(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&TempLocalAddress,
-                    &AssignedLocalAddressLength);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "getsockname");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-            LocalPortChosen = TempLocalAddress.Ipv4.sin_port;
-            TempUdpSocket = socket(AF_INET6, SOCK_DGRAM, IPPROTO_UDP);
-            if (TempUdpSocket == INVALID_SOCKET) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "temp udp socket");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-
-            Option = FALSE;
-            Result =
-                setsockopt(
-                    TempUdpSocket,
-                    IPPROTO_IPV6,
-                    IPV6_V6ONLY,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_V6ONLY (temp udp socket)");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-
-            CxPlatZeroMemory(&TempLocalAddress, sizeof(TempLocalAddress));
-            CxPlatConvertToMappedV6(&Socket->LocalAddress, &TempLocalAddress);
-            TempLocalAddress.Ipv4.sin_port = 0;
-            Result =
-                bind(
-                    TempUdpSocket,
-                    (struct sockaddr*)&TempLocalAddress,
-                    sizeof(TempLocalAddress));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "bind (temp udp socket)");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-
-            Result =
-                connect(
-                    TempUdpSocket,
-                    (struct sockaddr*)&MappedAddress,
-                    sizeof(MappedAddress));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "connect failed (temp udp socket)");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-
-            AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
-            Result =
-                getsockname(
-                    TempUdpSocket,
-                    (struct sockaddr*)&Socket->LocalAddress,
-                    &AssignedLocalAddressLength);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "getsockname (temp udp socket)");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-            CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
-            Socket->LocalAddress.Ipv4.sin_port = LocalPortChosen;
-            CXPLAT_FRE_ASSERT(Socket->LocalAddress.Ipv4.sin_port != 0);
-        } else {
-            AssignedLocalAddressLength = sizeof(Socket->LocalAddress);
-            Result =
-                getsockname(
-                    Socket->AuxSocket,
-                    (struct sockaddr*)&Socket->LocalAddress,
-                    &AssignedLocalAddressLength);
-            if (Result == SOCKET_ERROR) {
-                int WsaError = CxPlatSocketError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "getsockname");
-                CxPlatRwLockReleaseExclusive(&Pool->Lock);
-                Status = CxPlatQuicErrorFromSocketError(WsaError);
-                goto Error;
-            }
-            CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
-        }
-    }
-
-    Entry = CxPlatHashtableLookup(&Pool->Sockets, Socket->LocalAddress.Ipv4.sin_port, &Context);
-    while (Entry != NULL) {
-        CXPLAT_SOCKET_RAW* Temp = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_SOCKET_RAW, Entry);
-        if (CxPlatSocketCompare(Temp, &Socket->LocalAddress, &Socket->RemoteAddress)) {
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-            break;
-        }
-        Entry = CxPlatHashtableLookupNext(&Pool->Sockets, &Context);
-    }
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatHashtableInsert(&Pool->Sockets, &Socket->Entry, Socket->LocalAddress.Ipv4.sin_port, &Context);
-    }
-
-    CxPlatRwLockReleaseExclusive(&Pool->Lock);
-
-Error:
-
-    if (QUIC_FAILED(Status) && Socket->AuxSocket != INVALID_SOCKET) {
-        CxPlatCloseSocket(Socket->AuxSocket);
-    }
-
-    if (TempUdpSocket != INVALID_SOCKET) {
-        CxPlatCloseSocket(TempUdpSocket);
-    }
-
-    return Status;
+    Buffer->Length += TransportLength + IpHeaderLen + sizeof(RAW_ETHERNET_HEADER);
+    Buffer->Buffer -= TransportLength + IpHeaderLen + sizeof(RAW_ETHERNET_HEADER);
 }

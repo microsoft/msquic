@@ -186,6 +186,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
+          { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "-UseXdp" },
+          { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "winkernel", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
@@ -209,7 +211,7 @@ jobs:
         path: artifacts
     - name: Prepare Machine
       shell: pwsh
-      run: scripts/prepare-machine.ps1 -ForTest -ForKernel
+      run: scripts/prepare-machine.ps1 -ForTest -ForKernel ${{ matrix.vec.xdp }}
     - name: Install ETW Manifest
       shell: pwsh
       run: |
@@ -220,12 +222,12 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 90
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} ${{ matrix.vec.xdp }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       if: failure()
       with:
-        name: BVT-Kernel-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
+        name: BVT-Kernel-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
 
   interop-winlatest:

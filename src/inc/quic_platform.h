@@ -437,20 +437,17 @@ typedef struct CXPLAT_WORKER_POOL {
 
 } CXPLAT_WORKER_POOL;
 
-#ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatWorkerPoolInit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
-#define CxPlatWorkerPoolUninit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
-#else
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
-#endif
 
 //
 // General purpose execution context abstraction layer. Used for driving worker
@@ -525,10 +522,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-#ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
-#define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
-#else
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -536,11 +530,11 @@ CxPlatAddExecutionContext(
     _In_ uint16_t Index // Into the execution config processor array
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
-#endif
 
 //
 // Test Interface for loading a self-signed certificate.
