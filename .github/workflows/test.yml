@@ -7,6 +7,10 @@ on:
         required: false
         default: ''
         type: string
+      logprofile:
+        required: false
+        default: 'Full.Light'
+        type: string
   push:
     branches:
     - main
@@ -158,12 +162,12 @@ jobs:
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ inputs.logprofile || 'Full.Light' }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ inputs.logprofile || 'Full.Light' }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }}
     - name: Fix log permissions for Linux XDP
       if: failure() && matrix.vec.plat == 'linux' # (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp') doesn't work for some reason
       run: |
@@ -216,7 +220,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 90
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ inputs.logprofile || 'Full.Light' }} -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure
       uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
       if: failure()
