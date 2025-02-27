@@ -204,7 +204,6 @@ PerfServer::ConnectionCallback(
             if (PrintStats) {
                 QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
             }
-            MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
