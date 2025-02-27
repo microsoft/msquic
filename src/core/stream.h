@@ -230,20 +230,23 @@ typedef struct QUIC_STREAM {
     //
     uint32_t OutstandingSentMetadata;
 
+    //
+    // Linkage in the stream set
+    //
     union {
         //
-        // The entry in the connection's hashtable of streams.
+        // Link in the hash-table when the stream is open.
         //
         CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
-        // The entry in the connection's list of streams waiting on stream
+        // Link in the waiting list when the stream if waiting for stream
         // id flow control.
         //
-        CXPLAT_LIST_ENTRY WaitingForIdFlowControlLink;
+        CXPLAT_LIST_ENTRY WaitingLink;
 
         //
-        // The entry in the connection's list of closed streams to clean up.
+        // Link in the closed list when closed and waiting for clean up.
         //
         CXPLAT_LIST_ENTRY ClosedLink;
     };
