@@ -283,6 +283,10 @@
 #define _At_(...)
 #endif
 
+#ifndef _At_buffer_
+#define _At_buffer_(...)
+#endif
+
 #ifndef _Check_return_
 #define _Check_return_
 #endif

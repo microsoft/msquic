@@ -1628,6 +1628,10 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
     _In_ QUIC_ADDRESS_FAMILY Family;
     _In_ uint16_t ServerPort;
     _In_ uint16_t NumberOfConnections;
+    _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
+    _Field_size_opt_(NumberOfConnections)
+        uint8_t** CibirIds;                     // Optional
+    _In_ uint8_t CibirIdLength;                 // Optional
     _In_ QUIC_CONNECTION_POOL_FLAGS Flags;
 } QUIC_CONNECTION_POOL_CONFIG;
 

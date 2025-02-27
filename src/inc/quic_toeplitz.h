@@ -46,6 +46,11 @@ typedef enum CXPLAT_TOEPLITZ_INPUT_SIZE {
 #define CXPLAT_TOEPLITZ_KEY_SIZE_MAX              (CXPLAT_TOEPLITZ_INPUT_SIZE_MAX + CXPLAT_TOEPLITZ_OUPUT_SIZE)
 
 //
+// The min size (in bytes) of the key is equal to the size of the input and output.
+//
+#define CXPLAT_TOEPLITZ_KEY_SIZE_MIN              (CXPLAT_TOEPLITZ_INPUT_SIZE_IP + CXPLAT_TOEPLITZ_OUPUT_SIZE)
+
+//
 // Fixed lookup table size.
 //
 #define CXPLAT_TOEPLITZ_LOOKUP_TABLE_SIZE     16

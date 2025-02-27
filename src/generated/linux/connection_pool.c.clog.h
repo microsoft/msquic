@@ -134,17 +134,57 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssNotSupported , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssSecretKeyTooLong
-// [conp] RSS secret key too long, 0x%x
+// Decoder Ring for ConnPoolRssNotConfigured
+// [conp] RSS not configured, 0x%x
 // QuicTraceLogError(
-            ConnPoolRssSecretKeyTooLong,
-            "[conp] RSS secret key too long, 0x%x",
+            ConnPoolRssNotConfigured,
+            "[conp] RSS not configured, 0x%x",
             Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolRssSecretKeyTooLong
-#define _clog_3_ARGS_TRACE_ConnPoolRssSecretKeyTooLong(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong , arg2);\
+#ifndef _clog_3_ARGS_TRACE_ConnPoolRssNotConfigured
+#define _clog_3_ARGS_TRACE_ConnPoolRssNotConfigured(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssNotConfigured , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolRssSecretKeyTooLong
+// [conp] RSS secret key too long (%u bytes), 0x%x
+// QuicTraceLogError(
+            ConnPoolRssSecretKeyTooLong,
+            "[conp] RSS secret key too long (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooLong
+#define _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooLong(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolRssSecretKeyTooShort
+// [conp] RSS secret key too short (%u bytes), 0x%x
+// QuicTraceLogError(
+            ConnPoolRssSecretKeyTooShort,
+            "[conp] RSS secret key too short (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooShort
+#define _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooShort(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooShort , arg2, arg3);\
 
 #endif
 
@@ -165,6 +205,46 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong , arg2);\
 #ifndef _clog_4_ARGS_TRACE_ConnPoolOpenConnection
 #define _clog_4_ARGS_TRACE_ConnPoolOpenConnection(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolOpenConnection , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolSetShareBinding
+// [conp] Failed to set share binding on connection[%u], 0x%x
+// QuicTraceLogError(
+                        ConnPoolSetShareBinding,
+                        "[conp] Failed to set share binding on connection[%u], 0x%x",
+                        i,
+                        Status);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPoolSetShareBinding
+#define _clog_4_ARGS_TRACE_ConnPoolSetShareBinding(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetShareBinding , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolSetCibirId
+// [conp] Failed to set CIBIR ID on connection[%u], 0x%x
+// QuicTraceLogError(
+                        ConnPoolSetCibirId,
+                        "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
+                        i,
+                        Status);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnPoolSetCibirId
+#define _clog_4_ARGS_TRACE_ConnPoolSetCibirId(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetCibirId , arg2, arg3);\
 
 #endif
 

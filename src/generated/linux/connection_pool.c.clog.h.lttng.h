@@ -116,19 +116,65 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssNotSupported,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssSecretKeyTooLong
-// [conp] RSS secret key too long, 0x%x
+// Decoder Ring for ConnPoolRssNotConfigured
+// [conp] RSS not configured, 0x%x
 // QuicTraceLogError(
-            ConnPoolRssSecretKeyTooLong,
-            "[conp] RSS secret key too long, 0x%x",
+            ConnPoolRssNotConfigured,
+            "[conp] RSS not configured, 0x%x",
             Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong,
+TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssNotConfigured,
     TP_ARGS(
         unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolRssSecretKeyTooLong
+// [conp] RSS secret key too long (%u bytes), 0x%x
+// QuicTraceLogError(
+            ConnPoolRssSecretKeyTooLong,
+            "[conp] RSS secret key too long (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolRssSecretKeyTooShort
+// [conp] RSS secret key too short (%u bytes), 0x%x
+// QuicTraceLogError(
+            ConnPoolRssSecretKeyTooShort,
+            "[conp] RSS secret key too short (%u bytes), 0x%x",
+            RssConfig->RssSecretKeyLength,
+            Status);
+// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooShort,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -146,6 +192,52 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong,
 // arg3 = arg3 = Status = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolOpenConnection,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolSetShareBinding
+// [conp] Failed to set share binding on connection[%u], 0x%x
+// QuicTraceLogError(
+                        ConnPoolSetShareBinding,
+                        "[conp] Failed to set share binding on connection[%u], 0x%x",
+                        i,
+                        Status);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolSetShareBinding,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ConnPoolSetCibirId
+// [conp] Failed to set CIBIR ID on connection[%u], 0x%x
+// QuicTraceLogError(
+                        ConnPoolSetCibirId,
+                        "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
+                        i,
+                        Status);
+// arg2 = arg2 = i = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, ConnPoolSetCibirId,
     TP_ARGS(
         unsigned int, arg2,
         unsigned int, arg3), 
