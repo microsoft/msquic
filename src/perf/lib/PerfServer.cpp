@@ -348,8 +348,7 @@ PerfServer::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        MsQuic->StreamClose(StreamHandle);
-        StreamContextAllocator.Free(Context);
+        Context->Release();
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (!Context->BufferedIo &&
@@ -413,6 +412,13 @@ PerfServer::SendDelayedResponse(
 {
     uint16_t WorkerNumber = (uint16_t)CxPlatProcCurrentNumber();
     CXPLAT_DBG_ASSERT(WorkerNumber < ProcCount);
+    Context->AddRef();
+    if (IsTcp) {
+        //
+        // TcpConnection object is separately reference counted
+        //
+        CXPLAT_DBG_ASSERT(((TcpConnection*)Handle)->TryAddRef());
+    }
     DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp);
 }
 
@@ -458,7 +464,7 @@ PerfServer::TcpConnectionContext::~TcpConnectionContext()
             break;
         }
         StreamTable.Remove(&Stream->Entry);
-        Server->StreamContextAllocator.Free(Stream);
+        Stream->Release();
     }
     StreamTable.EnumEnd(&Enum);
 }
@@ -525,7 +531,7 @@ PerfServer::TcpReceiveCallback(
         Stream->RecvShutdown = true;
         if (Stream->SendShutdown) {
             This->StreamTable.Remove(&Stream->Entry);
-            Server->StreamContextAllocator.Free(Stream);
+            Stream->Release();
         }
     }
 }
@@ -551,7 +557,7 @@ PerfServer::TcpSendCompleteCallback(
                 Stream->SendShutdown = true;
                 if (Stream->RecvShutdown) {
                     This->StreamTable.Remove(&Stream->Entry);
-                    Server->StreamContextAllocator.Free(Stream);
+                    Stream->Release();
                 }
             }
         }
@@ -652,6 +658,7 @@ DelayWorker::DelayedWork(
         if (nullptr != WorkItem) {
             This->Server->SimulateDelay();
             This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+            WorkItem->Context->Release();
             delete WorkItem;
         }
     } while (nullptr != NextWorkItem);

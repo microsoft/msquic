@@ -16,28 +16,7 @@ Abstract:
 #include "Tcp.h"
 
 class PerfServer;
-
-struct StreamContext {
-    StreamContext(
-        PerfServer* Server, bool Unidirectional, bool BufferedIo) :
-        Server{ Server }, Unidirectional{ Unidirectional }, BufferedIo{ BufferedIo } {
-        if (BufferedIo) {
-            IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
-        }
-    }
-    CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable
-    PerfServer* Server;
-    const bool Unidirectional;
-    const bool BufferedIo;
-    bool ResponseSizeSet{ false };
-    bool SendShutdown{ false };
-    bool RecvShutdown{ false };
-    uint64_t IdealSendBuffer{ PERF_DEFAULT_SEND_BUFFER_SIZE };
-    uint64_t ResponseSize{ 0 };
-    uint64_t BytesSent{ 0 };
-    uint64_t OutstandingBytes{ 0 };
-    QUIC_BUFFER LastBuffer;
-};
+struct StreamContext;
 
 typedef enum SYNTHETIC_DELAY_TYPE {
     SYNTHETIC_DELAY_FIXED,
@@ -140,6 +119,7 @@ public:
 
     static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
     static void DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
+    CxPlatPoolT<StreamContext> StreamContextAllocator; // TODO - Make this per-CPU
 
 private:
 
@@ -168,7 +148,6 @@ private:
 
     CxPlatPoolT<TcpConnectionContext> TcpConnectionContextAllocator;
 
-    CxPlatPoolT<StreamContext> StreamContextAllocator; // TODO - Make this per-CPU
     CxPlatPoolT<TcpSendData> TcpSendDataAllocator;
 
     QUIC_STATUS
@@ -256,4 +235,47 @@ private:
     static TcpConnectCallback TcpConnectCallback;
     static TcpReceiveCallback TcpReceiveCallback;
     static TcpSendCompleteCallback TcpSendCompleteCallback;
+};
+
+struct StreamContext {
+    StreamContext(
+        PerfServer* Server, bool Unidirectional, bool BufferedIo, void* Handle = nullptr, bool IsTcp = true) :
+        Server{ Server }, Unidirectional{ Unidirectional }, BufferedIo{ BufferedIo }, Handle{ Handle }, IsTcp{ IsTcp }, RefCount{ 1 } {
+        if (BufferedIo) {
+            IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
+        }
+    }
+    ~StreamContext() {
+        CXPLAT_DBG_ASSERT(RefCount == 0);
+        if (Handle != nullptr) {
+            if (IsTcp) {
+                ((TcpConnection*)Handle)->Release();
+            }
+            else {
+                MsQuic->StreamClose((HQUIC)Handle);
+            }
+        }
+    }
+    void AddRef() { CxPlatRefIncrement(&RefCount); }
+    void Release() {
+        if (CxPlatRefDecrement(&RefCount)) {
+            Server->StreamContextAllocator.Free(this);
+        }
+    }
+
+    CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable
+    PerfServer* Server;
+    const bool Unidirectional;
+    const bool BufferedIo;
+    bool ResponseSizeSet{ false };
+    bool SendShutdown{ false };
+    bool RecvShutdown{ false };
+    uint64_t IdealSendBuffer{ PERF_DEFAULT_SEND_BUFFER_SIZE };
+    uint64_t ResponseSize{ 0 };
+    uint64_t BytesSent{ 0 };
+    uint64_t OutstandingBytes{ 0 };
+    QUIC_BUFFER LastBuffer;
+    void* Handle{ nullptr };
+    bool IsTcp{ false };
+    CXPLAT_REF_COUNT RefCount;
 };
