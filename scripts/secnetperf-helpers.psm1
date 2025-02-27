@@ -619,6 +619,11 @@ function Invoke-Secnetperf {
         try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and ($Session -eq "NOT_SUPPORTED")) {
+        NetperfSendCommand "Start_Server_Msquic_Logging;$LogProfile"
+        NetperfWaitServerFinishExecution
+        .\scripts\log.ps1 -Start -Profile $LogProfile
+    }
 
     Write-Host "::group::> secnetperf $clientArgs"
 
@@ -737,6 +742,14 @@ function Invoke-Secnetperf {
             }
             try { Copy-Item -FromSession $Session "$remoteArtifactDir/*" $artifactDir -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
+        }
+
+        # For Azure scenarios, without remote powershell, stop logging on the client / server.
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and $Session -eq "NOT_SUPPORTED") {
+            try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
+            NetperfSendCommand "Stop_Server_Msquic_Logging;$artifactName"
+            NetperfWaitServerFinishExecution
         }
 
         # Grab any crash dumps that were generated.

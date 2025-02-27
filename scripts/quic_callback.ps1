@@ -131,6 +131,12 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
         Write-Host "Listing directory: "
         ls
     }
+} elseif ($Command.Contains("Start_Server_Msquic_Logging")) {
+    $LogProfile = $Command.Split(";")[1]
+    .\scripts\log.ps1 -Start -Profile $LogProfile
+} elseif ($Command.Contains("Stop_Server_Msquic_Logging")) {
+    $artifactName = $Command.Split(";")[1]
+    .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
 } else {
     throw "Invalid command: $Command"
 }
