@@ -120,10 +120,9 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # TODO: android to support ubuntu-24.04
+        # TODO: Fix android on ubuntu-24.04
         - plat: android
           os: 'ubuntu-24.04'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
