@@ -47,10 +47,11 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -70,10 +71,11 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-20.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-12", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp"  },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },

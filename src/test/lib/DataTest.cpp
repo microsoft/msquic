@@ -128,6 +128,7 @@ struct PingConnState
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
+QUIC_API
 PingStreamShutdown(
     _In_ TestStream* Stream
     )
@@ -216,6 +217,7 @@ SendPingBurst(
 _Function_class_(CONN_SHUTDOWN_COMPLETE_CALLBACK)
 static
 void
+QUIC_API
 PingConnectionShutdown(
     _In_ TestConnection* Connection
     )
@@ -234,6 +236,7 @@ PingConnectionShutdown(
 _Function_class_(NEW_STREAM_CALLBACK)
 static
 void
+QUIC_API
 ConnectionAcceptPingStream(
     _In_ TestConnection* Connection,
     _In_ HQUIC StreamHandle,
@@ -253,6 +256,7 @@ ConnectionAcceptPingStream(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptPingConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -641,6 +645,7 @@ QuicTestServerDisconnect(
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
+QUIC_API
 IgnoreStreamShutdown(
     _In_ TestStream* Stream
     )
@@ -651,6 +656,7 @@ IgnoreStreamShutdown(
 _Function_class_(NEW_STREAM_CALLBACK)
 static
 void
+QUIC_API
 ConnectionAcceptAndIgnoreStream(
     _In_ TestConnection* Connection,
     _In_ HQUIC StreamHandle,
@@ -670,6 +676,7 @@ ConnectionAcceptAndIgnoreStream(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnectionAndStreams(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -1400,6 +1407,7 @@ struct CancelOnLossContext
 
 _Function_class_(MsQuicStreamCallback)
 QUIC_STATUS
+QUIC_API
 QuicCancelOnLossStreamHandler(
     _In_ struct MsQuicStream* /* Stream */,
     _In_opt_ void* Context,
@@ -1446,6 +1454,7 @@ QuicCancelOnLossStreamHandler(
 
 _Function_class_(MsQuicConnectionCallback)
 QUIC_STATUS
+QUIC_API
 QuicCancelOnLossConnectionHandler(
     _In_ struct MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
@@ -2479,6 +2488,7 @@ struct AbortRecvTestContext {
 };
 
 QUIC_STATUS
+QUIC_API
 AbortRecvStreamCallback(
     _In_ MsQuicStream* Stream,
     _In_opt_ void* Context,
@@ -2501,6 +2511,7 @@ AbortRecvStreamCallback(
 }
 
 QUIC_STATUS
+QUIC_API
 AbortRecvConnCallback(
     _In_ MsQuicConnection* /* Connection */,
     _In_opt_ void* Context,
@@ -3213,7 +3224,7 @@ struct StreamAbortConnFlowControl {
         return QUIC_STATUS_SUCCESS;
     }
 
-    static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS QUIC_API ServerStreamCallback(_In_ MsQuicStream* Stream, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT* Event) {
         if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
             Event->RECEIVE.TotalBufferLength = 0;
             Stream->Shutdown(0, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE);

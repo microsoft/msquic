@@ -27,9 +27,6 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-20.04", arch: "arm", tls: "openssl" },
-          { config: "Release", os: "ubuntu-20.04", arch: "arm64", tls: "openssl" },
-          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "openssl3" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
@@ -49,7 +46,6 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
         ]
     steps:

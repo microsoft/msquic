@@ -34,7 +34,7 @@ struct PerfClientConnection {
     void OnStreamShutdown();
     void Shutdown();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
     static void TcpConnectCallback(_In_ TcpConnection* Connection, bool IsConnected);
@@ -56,7 +56,7 @@ struct PerfClientStream {
     CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable (must be first)
     PerfClientStream(_In_ PerfClientConnection& Connection);
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
-    static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->QuicStreamCallback(Event);
     }
     PerfClientConnection& Connection;

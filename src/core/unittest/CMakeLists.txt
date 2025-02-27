@@ -32,6 +32,10 @@ endif()
 
 target_link_libraries(msquiccoretest inc gtest warnings logging base_link)
 
+if (WIN32)
+    target_link_libraries(msquiccoretest oldnames)
+endif()
+
 add_test(NAME msquiccoretest
          COMMAND msquiccoretest
          WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})

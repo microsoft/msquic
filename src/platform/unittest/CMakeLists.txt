@@ -25,6 +25,10 @@ endif()
 
 target_link_libraries(msquicplatformtest inc gtest warnings logging base_link)
 
+if (WIN32)
+    target_link_libraries(msquicplatformtest oldnames)
+endif()
+
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest
          WORKING_DIRECTORY ${QUIC_OUTPUT_DIR})

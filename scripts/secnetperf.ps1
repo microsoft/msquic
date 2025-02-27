@@ -14,7 +14,7 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
     The platform (linux or windows) this test is running on.
 
 .PARAMETER os
-    The full OS name and version being tested (i.e., ubuntu-20.04).
+    The full OS name and version being tested (i.e., ubuntu-22.04).
 
 .PARAMETER arch
     The architecture being tested (i.e., x64).
