@@ -1491,6 +1491,7 @@ SocketCreateUdp(
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
     Socket->UseTcp = Datapath->UseTcp; // TODO: If we ever decide to remove the global execution param, this needs to be updated.
+    Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -2625,7 +2626,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp && !Socket->IsServer) {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
     } else {

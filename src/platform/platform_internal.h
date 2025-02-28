@@ -205,6 +205,7 @@ typedef struct CXPLAT_SOCKET {
     };
 
     uint8_t UseTcp : 1; // always false?
+    uint8_t IsServer : 1;
     uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
@@ -635,6 +636,8 @@ typedef struct CXPLAT_SOCKET {
 
     uint8_t UseTcp : 1;                  // Quic over TCP
 
+    uint8_t IsServer : 1;
+
     uint8_t RawSocketAvailable : 1;
 
     //
@@ -918,6 +921,8 @@ typedef struct CXPLAT_SOCKET {
 #endif
 
     uint8_t UseTcp : 1;                  // Quic over TCP
+
+    uint8_t IsServer : 1;
 
     uint8_t RawSocketAvailable : 1;
 

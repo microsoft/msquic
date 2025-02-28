@@ -847,8 +847,7 @@ CxPlatFramingWriteHeaders(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ BOOLEAN IsServer
+    _In_ CXPLAT_SOCKET_RAW* Socket
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -865,7 +864,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->UseTcp || IsServer) {
+    if (Socket->UseTcp || Socket->IsServer) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -935,7 +934,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->UseTcp || IsServer) {
+    if (Socket->UseTcp || Socket->IsServer) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(

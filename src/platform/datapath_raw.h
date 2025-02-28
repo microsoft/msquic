@@ -326,8 +326,7 @@ CxPlatGetSocket(
 QUIC_STATUS
 CxPlatTryAddSocket(
     _In_ CXPLAT_SOCKET_POOL* Pool,
-    _In_ CXPLAT_SOCKET_RAW* Socket,
-    _In_ BOOLEAN IsServer
+    _In_ CXPLAT_SOCKET_RAW* Socket
     );
 
 void
