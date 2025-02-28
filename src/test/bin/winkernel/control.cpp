@@ -529,6 +529,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -570,6 +571,7 @@ typedef union {
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
     BOOLEAN EnableResumption;
+    QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS ConnPoolCreateParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \

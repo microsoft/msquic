@@ -6,6 +6,11 @@ The configuration for creating a connection pool.
 # Syntax
 
 ```C
+typedef enum QUIC_CONNECTION_POOL_FLAGS {
+    QUIC_CONNECTION_POOL_FLAG_NONE =                            0x00000000,
+    QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE =    0x00000001,
+} QUIC_CONNECTION_POOL_FLAGS;
+
 typedef struct QUIC_CONNECTION_POOL_CONFIG {
     _In_ HQUIC Registration;
     _In_ HQUIC Configuration;
@@ -75,6 +80,10 @@ The number of bytes in each CIBIR ID. Not allowed to be zero if `CibirIds` is no
 `Flags`
 
 Flags which affect settings on the connections or how the pool is created.
+| Flag | Effect |
+|------|--------|
+| QUIC_CONNECTION_POOL_FLAG_NONE | Nothing |
+| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to clean up any created *and started* connections in the pool if an error occurrs. **Note:** The application must be able to handle having connections suddenly closed with this flag. Without this flag, the application is expected to clean up remaining connections. |
 
 # See Also
 [ConnectionPoolCreate](ConnectionPoolCreate.md)<br>

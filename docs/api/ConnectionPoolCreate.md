@@ -32,6 +32,9 @@ A pointer to an array that will receive all the connection handles. Must be larg
 
 The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAILED` or `QUIC_SUCCEEDED` to determine if the function failed or succeeded.
 
+Any failure return value could mean the connection pool is partially created.
+If the flag `QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE` is not set, the caller will need to go through the `ConnectionPool` array and `ConnectionClose()` any non-NULL handles.
+
 # Remarks
 
 MsQuic is designed such that a given connection is only processed on a single CPU. Some scenarios need more performance than a single CPU can deliver, and this API is for those scenarios.

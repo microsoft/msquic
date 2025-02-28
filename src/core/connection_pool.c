@@ -98,7 +98,7 @@ MsQuicConnectionPoolCreate(
         HQUIC* ConnectionPool
     )
 {
-    QUIC_CONNECTION** Connections = NULL;
+    QUIC_CONNECTION** Connections = (QUIC_CONNECTION**)ConnectionPool;
     CXPLAT_RSS_CONFIG* RssConfig = NULL;
     uint32_t* RssProcessors = NULL;
     uint32_t* ConnectionCounts = NULL;
@@ -283,20 +283,6 @@ MsQuicConnectionPoolCreate(
     ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_IP;
     CxPlatToeplitzHashInitialize(&ToeplitzHash);
 
-    Connections =
-        (QUIC_CONNECTION**)CXPLAT_ALLOC_PAGED(
-            sizeof(QUIC_CONNECTION*) * Config->NumberOfConnections,
-            QUIC_POOL_TMP_ALLOC);
-    if (Connections == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Temp Connection Pool",
-            sizeof(QUIC_CONNECTION*) * Config->NumberOfConnections);
-        goto Error;
-    }
-
     //
     // Start creating connections and starting them.
     //
@@ -477,17 +463,13 @@ MsQuicConnectionPoolCreate(
         }
     }
 
-    CxPlatCopyMemory(ConnectionPool, Connections, sizeof(HQUIC) * Config->NumberOfConnections);
-
 Error:
-    if (Connections != NULL) {
-        if (QUIC_FAILED(Status)) {
-            for (uint32_t i = 0; i < CreatedConnections; i++) {
-                MsQuicConnectionClose((HQUIC)Connections[i]);
-            }
+    if (QUIC_FAILED(Status) &&
+        (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE) != 0) {
+        for (uint32_t i = 0; i < CreatedConnections; i++) {
+            MsQuicConnectionClose((HQUIC)Connections[i]);
+            Connections[i] = NULL;
         }
-        CXPLAT_FREE(Connections, QUIC_POOL_TMP_ALLOC);
-        Connections = NULL;
     }
     if (ConnectionCounts != NULL) {
         CXPLAT_FREE(ConnectionCounts, QUIC_POOL_TMP_ALLOC);
