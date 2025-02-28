@@ -4033,3 +4033,177 @@ QuicTestHandshakeSpecificLossPatterns(
         Listener.LastConnection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
     }
 }
+
+struct ServerMultiAcceptContext {
+    uint32_t StartedConnectionCount;
+    uint32_t MaxConnections;
+    TestConnection** Connections;
+
+    _Function_class_(NEW_CONNECTION_CALLBACK)
+    static
+    bool
+    ListenerMultiAcceptConnection(
+        _In_ TestListener* Listener,
+        _In_ HQUIC ConnectionHandle
+        )
+    {
+        auto* This = (ServerMultiAcceptContext*)Listener->Context;
+        if (This->StartedConnectionCount > This->MaxConnections) {
+            return false;
+        }
+        This->Connections[This->StartedConnectionCount++] =
+            new(std::nothrow) TestConnection(ConnectionHandle, nullptr);
+        return true;
+    }
+};
+
+
+struct ConnectionPoolConnectionContext {
+    uint16_t IdealProcessor;
+    uint16_t PartitionIndex;
+    bool Connected;
+
+    static QUIC_STATUS ConnCallback(_In_ HQUIC, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto* This = (ConnectionPoolConnectionContext*)Context;
+        switch (Event->Type) {
+            case QUIC_CONNECTION_EVENT_CONNECTED:
+                This->Connected = true;
+                break;
+            case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+                This->IdealProcessor = Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor;
+                This->PartitionIndex = Event->IDEAL_PROCESSOR_CHANGED.PartitionIndex;
+                break;
+            default:
+                break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestConnectionPoolCreate(
+    _In_ int Family,
+    _In_ uint16_t NumberOfConnections,
+    _In_ bool XdpSupported,
+    _In_ bool TestCibirSupport
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 0 };
+    const uint8_t CibirIdLength = sizeof(CibirId);
+
+    MsQuicRegistration Registration;
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(3000);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerAddr(QuicAddrFamily);
+    if (XdpSupported) {
+        QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
+    } else {
+        QuicAddrSetToLoopback(&ServerAddr.SockAddr);
+    }
+    const uint16_t ServerPort = 4433;
+    ServerAddr.SetPort(ServerPort);
+
+    UniquePtrArray<TestConnection*> ServerConnections(new(std::nothrow) TestConnection*[NumberOfConnections]);
+    TEST_NOT_EQUAL(nullptr, ServerConnections);
+
+    UniquePtrArray<HQUIC> Connections(new(std::nothrow) HQUIC[NumberOfConnections]);
+    TEST_NOT_EQUAL(nullptr, Connections);
+
+    UniquePtrArray<ConnectionPoolConnectionContext*> ContextPtrs(new(std::nothrow) ConnectionPoolConnectionContext*[NumberOfConnections]);
+    TEST_NOT_EQUAL(nullptr, ContextPtrs);
+
+    UniquePtrArray<ConnectionPoolConnectionContext> Contexts(new(std::nothrow) ConnectionPoolConnectionContext[NumberOfConnections]);
+    TEST_NOT_EQUAL(nullptr, Contexts);
+
+    for(uint32_t i = 0; i < NumberOfConnections; ++i) {
+        ContextPtrs[i] = &Contexts[i];
+        Contexts[i].Connected = false;
+        Contexts[i].IdealProcessor = 0;
+        Contexts[i].PartitionIndex = 0;
+    }
+
+    {
+        ServerMultiAcceptContext ServerAcceptContext {};
+        ServerAcceptContext.MaxConnections = NumberOfConnections;
+        ServerAcceptContext.Connections = ServerConnections.get();
+        ServerAcceptContext.StartedConnectionCount = 0;
+        TestListener Listener(Registration, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
+        TEST_TRUE(Listener.IsValid());
+        Listener.Context = &ServerAcceptContext;
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerAddr.SockAddr));
+
+        {
+            UniquePtrArray<uint8_t*> CibirIdArray;
+            UniquePtrArray<uint8_t> CibirIdBuffer;
+            QUIC_CONNECTION_POOL_CONFIG PoolConfig{};
+            PoolConfig.Registration = Registration;
+            PoolConfig.Configuration = ClientConfiguration;
+            PoolConfig.Handler = ConnectionPoolConnectionContext::ConnCallback;
+            PoolConfig.ServerName = QUIC_LOCALHOST_FOR_AF(QuicAddrFamily);
+            if (XdpSupported) {
+                PoolConfig.ServerAddress = &ServerAddr.SockAddr;
+            }
+            PoolConfig.ServerPort = ServerPort;
+            PoolConfig.Context = (void**)ContextPtrs.get();
+            PoolConfig.Family = QuicAddrFamily;
+            PoolConfig.NumberOfConnections = NumberOfConnections;
+            PoolConfig.Flags = QUIC_CONNECTION_POOL_FLAG_NONE;
+
+            if (TestCibirSupport) {
+                CibirIdArray = UniquePtrArray<uint8_t*>(new(std::nothrow) uint8_t*[NumberOfConnections]);
+                TEST_NOT_EQUAL(nullptr, CibirIdArray);
+                CibirIdBuffer = UniquePtrArray<uint8_t>(new(std::nothrow) uint8_t[NumberOfConnections * CibirIdLength]);
+                TEST_NOT_EQUAL(nullptr, CibirIdBuffer);
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    CibirId[4]++;
+                    memcpy(&CibirIdBuffer[i * CibirIdLength], CibirId, CibirIdLength);
+                    CibirIdArray[i] = &CibirIdBuffer[i * CibirIdLength];
+                }
+                PoolConfig.CibirIds = CibirIdArray.get();
+                PoolConfig.CibirIdLength = CibirIdLength;
+            }
+
+            QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, Connections.get());
+            if (XdpSupported) {
+                TEST_QUIC_SUCCEEDED(Status);
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    // Verify the server connections are connected. The client connections should also be connected too.
+                    ServerConnections[i]->WaitForConnectionComplete();
+                    TEST_TRUE(ServerConnections[i]->GetIsConnected());
+                    // Verify the client connection is connected.
+                    TEST_TRUE(Contexts[i].Connected);
+                }
+                // Verify each client connection has a unique ideal processor and partition index.
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    for (uint32_t j = i + 1; j < NumberOfConnections; j++) {
+                        TEST_FALSE(Contexts[i].IdealProcessor == Contexts[j].IdealProcessor &&
+                            Contexts[i].PartitionIndex == Contexts[j].PartitionIndex);
+                    }
+                }
+                // Shutdown the client connections
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    MsQuic->ConnectionClose(Connections[i]);
+                }
+
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    ServerConnections[i]->WaitForShutdownComplete();
+                    delete ServerConnections[i];
+                }
+            } else {
+                TEST_EQUAL(QUIC_STATUS_NOT_SUPPORTED, Status);
+            }
+        }
+    }
+}

@@ -1722,6 +1722,29 @@ TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
     }
 }
 
+TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
+#if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    GTEST_SKIP();
+#endif
+
+    TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE, Params));
+    } else {
+        QuicTestConnectionPoolCreate(
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport);
+    }
+}
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {
