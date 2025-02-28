@@ -5416,7 +5416,8 @@ QuicConnRecvDatagramBatch(
             QuicConnRecvPostProcessing(Connection, &Path, Packet);
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
-            if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
+            if (!Connection->State.MultipathNegotiated &&
+                Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
                 Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
