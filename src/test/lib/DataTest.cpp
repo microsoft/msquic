@@ -316,8 +316,8 @@ NewPingConnection(
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
 
     if (SendUdpOverQtip) {
-        // UseQTIP is implicitly true here. We are alternating between QTIP and QUIC to ping the same listener.
-        Connection->SetQtipPreferences(UseQTIP ? 1 : 0);
+        // UseQTIP is implicitly true. We are alternating between QTIP and QUIC to ping the same listener.
+        Connection->SetQtipPreferences(0);
     } else if (UseQTIP) {
         // We hit this case either when we are alternating between QTIP and QUIC to ping the same listener, or SendUdpOverQtip is always false.
         Connection->SetQtipPreferences(1);
