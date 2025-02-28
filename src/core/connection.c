@@ -2038,13 +2038,6 @@ QuicConnStart(
         goto Exit;
     }
 
-    if (Connection->Settings.KeepAliveIntervalMs != 0) {
-        QuicConnTimerSet(
-            Connection,
-            QUIC_CONN_TIMER_KEEP_ALIVE,
-            MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
-    }
-
 Exit:
 
     if (ServerName != NULL) {

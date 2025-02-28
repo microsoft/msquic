@@ -31,6 +31,7 @@ struct StreamWrapper {
 _Function_class_(QUIC_CONNECTION_CALLBACK)
 static
 QUIC_STATUS
+QUIC_API
 OwnershipConnCallback(
     HQUIC,
     void* Context,

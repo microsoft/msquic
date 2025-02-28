@@ -12,8 +12,6 @@ use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_SETTI
 use libc::c_void;
 use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
-use std::convert::TryInto;
-use std::fmt;
 use std::io;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -21,13 +19,13 @@ use std::option::Option;
 use std::ptr;
 use std::result::Result;
 use std::sync::Once;
-#[macro_use]
-extern crate bitfield;
 mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::{ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+mod settings;
+pub use settings::Settings;
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -356,14 +354,6 @@ pub struct TicketKeyConfig {
     pub material_length: u8,
 }
 
-/// A generic wrapper for contiguous buffer.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct Buffer {
-    pub length: u32,
-    pub buffer: *mut u8,
-}
-
 pub type TlsProtocolVersion = u32;
 pub const TLS_PROTOCOL_UNKNOWN: TlsProtocolVersion = 0;
 pub const TLS_PROTOCOL_1_3: TlsProtocolVersion = 12288;
@@ -400,180 +390,6 @@ pub struct HandshakeInfo {
     pub cipher_suite: CipherSuite,
 }
 
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsTiming {
-    pub start: u64,
-    /// Processed all peer's Initial packets
-    pub start_flight_end: u64,
-    /// Processed all peer's Handshake packets
-    pub handshake_fligh_end: u64,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsHandshake {
-    /// Sum of TLS payloads
-    pub client_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub server_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub client_flight_2_bytes: u32,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsSend {
-    /// Current path MTU.
-    pub path_mtu: u16,
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub total_packets: u64,
-    pub retransmittable_packets: u64,
-    pub suspected_lost_packets: u64,
-    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
-    pub spurious_lost_packets: u64,
-    /// Sum of UDP payloads
-    pub total_bytes: u64,
-    /// Sum of stream payloads
-    pub total_stream_bytes: u64,
-    /// Number of congestion events
-    pub congestion_count: u32,
-    /// Number of persistent congestion events
-    pub persistent_congestion_count: u32,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsRecv {
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub total_packets: u64,
-    /// Packets where packet number is less than highest seen.
-    pub reordered_packets: u64,
-    /// Includes DuplicatePackets.
-    pub dropped_packets: u64,
-    pub duplicate_packets: u64,
-    /// Sum of UDP payloads
-    pub total_bytes: u64,
-    /// Sum of stream payloads
-    pub total_stream_bytes: u64,
-    /// Count of packet decryption failures.
-    pub decryption_failures: u64,
-    /// Count of receive ACK frames.
-    pub valid_ack_frames: u64,
-}
-
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsMisc {
-    pub key_update_count: u32,
-}
-
-bitfield! {
-    #[repr(C)]
-    #[derive(Serialize, Deserialize, Clone, Copy)]
-    pub struct QuicStatisticsBitfields(u32);
-    // The fields default to u32
-    version_negotiation, _: 1, 0;
-    stateless_retry, _: 1, 1;
-    resumption_attempted, _: 1, 2;
-    resumption_succeeded, _: 1, 3;
-    grease_bit_negotiated, _: 1, 4;
-}
-
-/// Implementation of Debug for formatting the QuicStatisticsBitfields struct.
-/// This is implemented manually because the derived implementation by the bitfield macro
-/// has been observed to cause panic.
-impl fmt::Debug for QuicStatisticsBitfields {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        f.write_fmt(format_args!("{:#06x}", &self.0))
-    }
-}
-
-/// A helper struct for accessing connection statistics
-#[repr(C)]
-#[derive(Serialize, Deserialize, Copy, Clone)]
-pub struct QuicStatistics {
-    correlation_id: u64,
-    pub flags: QuicStatisticsBitfields,
-    /// In microseconds
-    pub rtt: u32,
-    /// In microseconds
-    pub min_rtt: u32,
-    /// In microseconds
-    pub max_rtt: u32,
-    pub timing: QuicStatisticsTiming,
-    pub handshake: QuicStatisticsHandshake,
-    pub send: QuicStatisticsSend,
-    pub recv: QuicStatisticsRecv,
-    pub misc: QuicStatisticsMisc,
-}
-
-/// A helper struct for accessing connection statistics
-#[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
-pub struct QuicStatisticsV2 {
-    correlation_id: u64,
-    pub flags: QuicStatisticsBitfields,
-    /// In microseconds
-    pub rtt: u32,
-    /// In microseconds
-    pub min_rtt: u32,
-    /// In microseconds
-    pub max_rtt: u32,
-
-    pub timing_start: u64,
-    /// Processed all peer's Initial packets
-    pub timing_start_flight_end: u64,
-    /// Processed all peer's Handshake packets
-    pub timing_handshake_fligh_end: u64,
-
-    /// Sum of TLS payloads
-    pub handshake_client_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub handshake_server_flight_1_bytes: u32,
-    /// Sum of TLS payloads
-    pub handshake_client_flight_2_bytes: u32,
-
-    /// Current path MTU.
-    pub send_path_mtu: u16,
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub send_total_packets: u64,
-    pub send_retransmittable_packets: u64,
-    pub send_suspected_lost_packets: u64,
-    /// Actual lost is (suspected_lost_packets - spurious_lost_packets)
-    pub send_spurious_lost_packets: u64,
-    /// Sum of UDP payloads
-    pub send_total_bytes: u64,
-    /// Sum of stream payloads
-    pub send_total_stream_bytes: u64,
-    /// Number of congestion events
-    pub send_congestion_count: u32,
-    /// Number of persistent congestion events
-    pub send_persistent_congestion_count: u32,
-
-    /// QUIC packets; could be coalesced into fewer UDP datagrams.
-    pub recv_total_packets: u64,
-    /// Packets where packet number is less than highest seen.
-    pub recv_reordered_packets: u64,
-    /// Includes DuplicatePackets.
-    pub recv_dropped_packets: u64,
-    pub recv_duplicate_packets: u64,
-    /// Sum of UDP payloads
-    pub recv_total_bytes: u64,
-    /// Sum of stream payloads
-    pub recv_total_stream_bytes: u64,
-    /// Count of packet decryption failures.
-    pub recv_decryption_failures: u64,
-    /// Count of receive ACK frames.
-    pub recv_valid_ack_frames: u64,
-
-    pub key_update_count: u32,
-
-    pub send_congestion_window: u32,
-    // Number of times the destination CID changed.
-    pub dest_cid_update_count: u32,
-}
-
 /// A helper struct for accessing listener statistics.
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -583,40 +399,45 @@ pub struct QuicListenerStatistics {
     pub binding: u64,
 }
 
-/// A helper struct for accessing performance counters.
-pub struct QuicPerformance {
-    pub counters: [i64; PERF_COUNTER_MAX as usize],
-}
+type QuicPerformanceCountersParam =
+    [i64; crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_MAX as usize];
 
-pub type PerformanceCounter = u32;
-pub const PERF_COUNTER_CONN_CREATED: PerformanceCounter = 0;
-pub const PERF_COUNTER_CONN_HANDSHAKE_FAIL: PerformanceCounter = 1;
-pub const PERF_COUNTER_CONN_APP_REJECT: PerformanceCounter = 2;
-pub const PERF_COUNTER_CONN_RESUMED: PerformanceCounter = 3;
-pub const PERF_COUNTER_CONN_ACTIVE: PerformanceCounter = 4;
-pub const PERF_COUNTER_CONN_CONNECTED: PerformanceCounter = 5;
-pub const PERF_COUNTER_CONN_PROTOCOL_ERRORS: PerformanceCounter = 6;
-pub const PERF_COUNTER_CONN_NO_ALPN: PerformanceCounter = 7;
-pub const PERF_COUNTER_STRM_ACTIVE: PerformanceCounter = 8;
-pub const PERF_COUNTER_PKTS_SUSPECTED_LOST: PerformanceCounter = 9;
-pub const PERF_COUNTER_PKTS_DROPPED: PerformanceCounter = 10;
-pub const PERF_COUNTER_PKTS_DECRYPTION_FAIL: PerformanceCounter = 11;
-pub const PERF_COUNTER_UDP_RECV: PerformanceCounter = 12;
-pub const PERF_COUNTER_UDP_SEND: PerformanceCounter = 13;
-pub const PERF_COUNTER_UDP_RECV_BYTES: PerformanceCounter = 14;
-pub const PERF_COUNTER_UDP_SEND_BYTES: PerformanceCounter = 15;
-pub const PERF_COUNTER_UDP_RECV_EVENTS: PerformanceCounter = 16;
-pub const PERF_COUNTER_UDP_SEND_CALLS: PerformanceCounter = 17;
-pub const PERF_COUNTER_APP_SEND_BYTES: PerformanceCounter = 18;
-pub const PERF_COUNTER_APP_RECV_BYTES: PerformanceCounter = 19;
-pub const PERF_COUNTER_CONN_QUEUE_DEPTH: PerformanceCounter = 20;
-pub const PERF_COUNTER_CONN_OPER_QUEUE_DEPTH: PerformanceCounter = 21;
-pub const PERF_COUNTER_CONN_OPER_QUEUED: PerformanceCounter = 22;
-pub const PERF_COUNTER_CONN_OPER_COMPLETED: PerformanceCounter = 23;
-pub const PERF_COUNTER_WORK_OPER_QUEUE_DEPTH: PerformanceCounter = 24;
-pub const PERF_COUNTER_WORK_OPER_QUEUED: PerformanceCounter = 25;
-pub const PERF_COUNTER_WORK_OPER_COMPLETED: PerformanceCounter = 26;
-pub const PERF_COUNTER_MAX: PerformanceCounter = 27;
+/// A helper struct for accessing performance counters.
+#[derive(Debug)]
+pub struct QuicPerformanceCounters {
+    pub conn_created: i64,
+    pub conn_handshake_fail: i64,
+    pub conn_app_reject: i64,
+    pub conn_resumed: i64,
+    pub conn_active: i64,
+    pub conn_connected: i64,
+    pub conn_protocol_errors: i64,
+    pub conn_no_alpn: i64,
+    pub strm_active: i64,
+    pub pkts_suspected_lost: i64,
+    pub pkts_dropped: i64,
+    pub pkts_decryption_fail: i64,
+    pub udp_recv: i64,
+    pub udp_send: i64,
+    pub udp_recv_bytes: i64,
+    pub udp_send_bytes: i64,
+    pub udp_recv_events: i64,
+    pub udp_send_calls: i64,
+    pub app_send_bytes: i64,
+    pub app_recv_bytes: i64,
+    pub conn_queue_depth: i64,
+    pub conn_oper_queue_depth: i64,
+    pub conn_oper_queued: i64,
+    pub conn_oper_completed: i64,
+    pub work_oper_queue_depth: i64,
+    pub work_oper_queued: i64,
+    pub work_oper_completed: i64,
+    pub path_validated: i64,
+    pub path_failure: i64,
+    pub send_stateless_reset: i64,
+    pub send_stateless_retry: i64,
+    pub conn_load_reject: i64,
+}
 
 pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
 
@@ -631,41 +452,6 @@ pub struct QuicTlsSecrets {
     pub server_handshake_traffic_secret: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
     pub client_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
     pub server_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
-}
-
-#[repr(C)]
-#[derive(Copy, Clone, Default)]
-pub struct Settings {
-    pub is_set_flags: u64,
-    pub max_bytes_per_key: u64,
-    pub handshake_idle_timeout_ms: u64,
-    pub idle_timeout_ms: u64,
-    pub mtu_discovery_search_complete_timeout_us: u64,
-    pub tls_client_max_send_buffer: u32,
-    pub tls_server_max_send_buffer: u32,
-    pub stream_recv_window_default: u32,
-    pub stream_recv_buffer_default: u32,
-    pub conn_flow_control_window: u32,
-    pub max_worker_queue_delay_us: u32,
-    pub max_stateless_operations: u32,
-    pub initial_window_packets: u32,
-    pub send_idle_timeout_ms: u32,
-    pub initiall_rtt_ms: u32,
-    pub max_ack_delay_ms: u32,
-    pub disconnect_timeout_ms: u32,
-    pub keep_alive_interval_ms: u32,
-    pub congestion_control_algorithm: u16,
-    pub peer_bidi_stream_count: u16,
-    pub peer_unidi_stream_count: u16,
-    pub max_binding_stateless_operations: u16,
-    pub stateless_operation_expiration_ms: u16,
-    pub minimum_mtu: u16,
-    pub maximum_mtu: u16,
-    pub other_flags: u8,
-    pub mtu_operations_per_drain: u8,
-    pub mtu_discovery_missing_probe_count: u8,
-    pub dest_cid_update_idle_timeout_ms: u32,
-    pub other2_flags: u64,
 }
 
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
@@ -842,78 +628,84 @@ unsafe impl Send for Stream {}
 /// should not be closed by default.
 pub struct StreamRef(Stream);
 
-impl From<&str> for Buffer {
-    fn from(data: &str) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
+impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
+    fn from(value: QuicPerformanceCountersParam) -> Self {
+        Self {
+            conn_created: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_CREATED as usize],
+            conn_handshake_fail: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_HANDSHAKE_FAIL
+                    as usize],
+            conn_app_reject: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_APP_REJECT as usize],
+            conn_resumed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_RESUMED as usize],
+            conn_active: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_ACTIVE as usize],
+            conn_connected: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_CONNECTED as usize],
+            conn_protocol_errors: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_PROTOCOL_ERRORS
+                    as usize],
+            conn_no_alpn: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_NO_ALPN as usize],
+            strm_active: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_STRM_ACTIVE as usize],
+            pkts_suspected_lost: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST
+                    as usize],
+            pkts_dropped: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_DROPPED as usize],
+            pkts_decryption_fail: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL
+                    as usize],
+            udp_recv: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV as usize],
+            udp_send: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND as usize],
+            udp_recv_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV_BYTES as usize],
+            udp_send_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND_BYTES as usize],
+            udp_recv_events: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_RECV_EVENTS as usize],
+            udp_send_calls: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_UDP_SEND_CALLS as usize],
+            app_send_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_APP_SEND_BYTES as usize],
+            app_recv_bytes: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_APP_RECV_BYTES as usize],
+            conn_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH as usize],
+            conn_oper_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH
+                    as usize],
+            conn_oper_queued: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_QUEUED as usize],
+            conn_oper_completed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_OPER_COMPLETED
+                    as usize],
+            work_oper_queue_depth: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH
+                    as usize],
+            work_oper_queued: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_QUEUED as usize],
+            work_oper_completed: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_WORK_OPER_COMPLETED
+                    as usize],
+            path_validated: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PATH_VALIDATED as usize],
+            path_failure: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_PATH_FAILURE as usize],
+            send_stateless_reset: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_SEND_STATELESS_RESET
+                    as usize],
+            send_stateless_retry: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_SEND_STATELESS_RETRY
+                    as usize],
+            conn_load_reject: value
+                [crate::ffi::QUIC_PERFORMANCE_COUNTERS_QUIC_PERF_COUNTER_CONN_LOAD_REJECT as usize],
         }
-    }
-}
-
-impl From<&Vec<u8>> for Buffer {
-    fn from(data: &Vec<u8>) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
-        }
-    }
-}
-
-impl From<&[u8]> for Buffer {
-    fn from(data: &[u8]) -> Buffer {
-        Buffer {
-            length: data.len() as u32,
-            buffer: data.as_ptr() as *mut u8,
-        }
-    }
-}
-
-impl From<Buffer> for Vec<u8> {
-    fn from(data: Buffer) -> Vec<u8> {
-        let mut vec = vec![0; data.length.try_into().unwrap()];
-        for index in 0..data.length - 1 {
-            vec[index as usize] = unsafe { *data.buffer.offset(index as isize) };
-        }
-        vec
-    }
-}
-
-impl QuicPerformance {
-    pub fn counter(&self, counter: PerformanceCounter) -> i64 {
-        self.counters[counter as usize]
-    }
-}
-
-impl Settings {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x40000;
-        self.peer_bidi_stream_count = value;
-        self
-    }
-    pub fn set_peer_unidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x80000;
-        self.peer_unidi_stream_count = value;
-        self
-    }
-    pub fn set_idle_timeout_ms(&mut self, value: u64) -> &mut Settings {
-        self.is_set_flags |= 0x4;
-        self.idle_timeout_ms = value;
-        self
-    }
-    pub fn set_datagram_receive_enabled(&mut self, value: bool) -> &mut Settings {
-        self.is_set_flags |= 1 << 27;
-        self.other_flags |= (value as u8) << 3;
-        self
-    }
-    #[cfg(feature = "preview-api")]
-    pub fn set_stream_multi_receive_enabled(&mut self, value: bool) -> &mut Settings {
-        self.is_set_flags |= 1 << 42;
-        self.other2_flags |= (value as u64) << 5;
-        self
     }
 }
 
@@ -948,6 +740,16 @@ impl Api {
         Status::ok_from_raw(status)
     }
 
+    /// Auto create param type T
+    /// # Safety
+    /// T needs to be ffi type compatible.
+    pub unsafe fn get_param_auto<T>(handle: HQUIC, param: u32) -> Result<T, Status> {
+        let buffer = std::mem::zeroed::<T>();
+        let len = std::mem::size_of::<T>() as u32;
+        Self::get_param(handle, param, &len, &buffer as *const T as *mut c_void)?;
+        Ok(buffer)
+    }
+
     /// # Safety
     /// buffer needs to be valid.
     pub unsafe fn set_param(
@@ -961,20 +763,32 @@ impl Api {
         Status::ok_from_raw(status)
     }
 
-    pub fn get_perf(&self) -> Result<QuicPerformance, Status> {
-        let mut perf = QuicPerformance {
-            counters: [0; PERF_COUNTER_MAX as usize],
-        };
-        let perf_length = std::mem::size_of::<[i64; PERF_COUNTER_MAX as usize]>() as u32;
+    pub fn get_perf() -> Result<QuicPerformanceCounters, Status> {
         unsafe {
-            Api::get_param(
+            Api::get_param_auto::<QuicPerformanceCountersParam>(
                 std::ptr::null_mut(),
-                PARAM_GLOBAL_PERF_COUNTERS,
-                std::ptr::addr_of!(perf_length),
-                perf.counters.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(perf)
+                crate::ffi::QUIC_PARAM_GLOBAL_PERF_COUNTERS,
+            )
+        }
+        .map(QuicPerformanceCounters::from)
+    }
+
+    pub fn get_retry_memory_percent() -> Result<u16, Status> {
+        unsafe {
+            Api::get_param_auto(
+                std::ptr::null_mut(),
+                crate::ffi::QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            )
+        }
+    }
+
+    pub fn get_tls_provider() -> Result<crate::ffi::QUIC_TLS_PROVIDER, Status> {
+        unsafe {
+            Api::get_param_auto(
+                std::ptr::null_mut(),
+                crate::ffi::QUIC_PARAM_GLOBAL_TLS_PROVIDER,
+            )
+        }
     }
 
     /// # Safety
@@ -1081,22 +895,25 @@ define_quic_handle_impl!(Registration);
 impl Configuration {
     pub fn new(
         registration: &Registration,
-        alpn: &[Buffer],
-        settings: *const Settings,
+        alpn: &[BufferRef],
+        settings: Option<&Settings>,
     ) -> Result<Configuration, Status> {
         let context: *mut c_void = ptr::null_mut();
         let mut new_configuration: HQUIC = ptr::null_mut();
-        let mut settings_size: u32 = 0;
-        if !settings.is_null() {
-            settings_size = ::std::mem::size_of::<Settings>() as u32;
-        }
+        let (settings_ptr, settings_size) = match settings {
+            Some(s) => (
+                s.as_ffi_ref() as *const QUIC_SETTINGS,
+                ::std::mem::size_of::<QUIC_SETTINGS>() as u32,
+            ),
+            None => (std::ptr::null(), 0),
+        };
 
         let status = unsafe {
             Api::ffi_ref().ConfigurationOpen.unwrap()(
                 registration.as_raw(),
                 alpn.as_ptr() as *const QUIC_BUFFER,
                 alpn.len() as u32,
-                settings as *const QUIC_SETTINGS,
+                settings_ptr,
                 settings_size,
                 context,
                 std::ptr::addr_of_mut!(new_configuration),
@@ -1196,34 +1013,14 @@ impl Connection {
         }
     }
 
-    pub fn get_stats(&self) -> Result<QuicStatistics, Status> {
-        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatistics>()] =
-            [0; std::mem::size_of::<QuicStatistics>()];
-        let stat_size_mut = std::mem::size_of::<QuicStatistics>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_STATISTICS,
-                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
-                stat_buffer.as_mut_ptr() as *mut c_void,
-            )
-        }?;
-        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatistics) })
+    /// TODO: provide safe wrapper for ffi
+    pub fn get_stats(&self) -> Result<crate::ffi::QUIC_STATISTICS, Status> {
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_STATISTICS) }
     }
 
-    pub fn get_stats_v2(&self) -> Result<QuicStatisticsV2, Status> {
-        let mut stat_buffer: [u8; std::mem::size_of::<QuicStatisticsV2>()] =
-            [0; std::mem::size_of::<QuicStatisticsV2>()];
-        let stat_size_mut = std::mem::size_of::<QuicStatisticsV2>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_STATISTICS_V2,
-                (&stat_size_mut) as *const usize as *const u32 as *mut u32,
-                stat_buffer.as_mut_ptr() as *mut c_void,
-            )
-        }?;
-        Ok(unsafe { *(stat_buffer.as_ptr() as *const c_void as *const QuicStatisticsV2) })
+    /// TODO: provide safe wrapper for ffi
+    pub fn get_stats_v2(&self) -> Result<crate::ffi::QUIC_STATISTICS_V2, Status> {
+        unsafe { Api::get_param_auto(self.handle, PARAM_CONN_STATISTICS_V2) }
     }
 
     pub fn set_configuration(&self, configuration: &Configuration) -> Result<(), Status> {
@@ -1251,18 +1048,23 @@ impl Connection {
         };
     }
 
-    pub fn datagram_send(
+    /// # Safety
+    /// buffers memory needs to be valid until callback
+    /// [ConnectionEvent::DatagramSendStateChanged]
+    /// is delivered.
+    /// One can optionally pass client_send_context along
+    /// and get it back in the callback.
+    pub unsafe fn datagram_send(
         &self,
-        buffer: &Buffer,
-        buffer_count: u32,
+        buffers: &[BufferRef],
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().DatagramSend.unwrap()(
                 self.handle,
-                buffer as *const Buffer as *const QUIC_BUFFER,
-                buffer_count,
+                buffers.as_ptr() as *const QUIC_BUFFER,
+                buffers.len() as u32,
                 flags as crate::ffi::QuicFlag,
                 client_send_context as *mut c_void,
             )
@@ -1293,31 +1095,11 @@ impl Connection {
     }
 
     pub fn get_local_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_LOCAL_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_LOCAL_ADDRESS) }
     }
 
     pub fn get_remote_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_CONN_REMOTE_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_CONN_REMOTE_ADDRESS) }
     }
 }
 
@@ -1354,7 +1136,7 @@ impl Listener {
         Status::ok_from_raw(status)
     }
 
-    pub fn start(&self, alpn: &[Buffer], local_address: Option<&Addr>) -> Result<(), Status> {
+    pub fn start(&self, alpn: &[BufferRef], local_address: Option<&Addr>) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().ListenerStart.unwrap()(
                 self.handle,
@@ -1375,17 +1157,7 @@ impl Listener {
     }
 
     pub fn get_local_addr(&self) -> Result<Addr, Status> {
-        let mut addr_buffer: [u8; mem::size_of::<Addr>()] = [0; mem::size_of::<Addr>()];
-        let addr_size_mut = mem::size_of::<Addr>();
-        unsafe {
-            Api::get_param(
-                self.handle,
-                PARAM_LISTENER_LOCAL_ADDRESS,
-                (&addr_size_mut) as *const usize as *const u32 as *mut u32,
-                addr_buffer.as_mut_ptr() as *mut c_void,
-            )?
-        };
-        Ok(unsafe { *(addr_buffer.as_ptr() as *const c_void as *const Addr) })
+        unsafe { Api::get_param_auto(self.handle, crate::ffi::QUIC_PARAM_LISTENER_LOCAL_ADDRESS) }
     }
 
     fn close_inner(&self) {
@@ -1457,20 +1229,25 @@ impl Stream {
         }
     }
 
-    pub fn send(
+    /// # Safety
+    /// buffers memory needs to be valid until callback
+    /// [StreamEvent::SendComplete]
+    /// is delivered.
+    /// One can optionally pass client_send_context along
+    /// and get it back in the callback.
+    pub unsafe fn send(
         &self,
-        buffer: &Buffer,
-        buffer_count: u32,
+        buffers: &[BufferRef],
         flags: SendFlags,
         client_send_context: *const c_void,
     ) -> Result<(), Status> {
         let status = unsafe {
             Api::ffi_ref().StreamSend.unwrap()(
                 self.handle,
-                buffer as *const Buffer as *const QUIC_BUFFER,
-                buffer_count,
+                buffers.as_ptr() as *const QUIC_BUFFER,
+                buffers.len() as u32,
                 flags as crate::ffi::QuicFlag,
-                client_send_context as *mut c_void, //(self as *const Stream) as *const c_void,
+                client_send_context as *mut c_void,
             )
         };
         Status::ok_from_raw(status)
@@ -1534,7 +1311,7 @@ mod tests {
 
     use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
-        ffi, Buffer, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
+        ffi, BufferRef, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
         Settings, StatusCode, Stream, StreamEvent,
     };
 
@@ -1671,20 +1448,21 @@ mod tests {
         );
         let registration = res.unwrap();
 
-        let alpn = [Buffer::from("h3")];
-        let res = Configuration::new(
-            &registration,
-            &alpn,
-            #[cfg(feature = "preview-api")]
-            Settings::new()
-                .set_peer_bidi_stream_count(100)
-                .set_peer_unidi_stream_count(3)
-                .set_stream_multi_receive_enabled(true),
-            #[cfg(not(feature = "preview-api"))]
-            Settings::new()
-                .set_peer_bidi_stream_count(100)
-                .set_peer_unidi_stream_count(3),
-        );
+        // check global settings
+        {
+            let retry_memory_percent =
+                crate::Api::get_retry_memory_percent().expect("fail to get retry memory percent");
+            assert!(retry_memory_percent > 0);
+            let _tls_provider = crate::Api::get_tls_provider().expect("fail to get tls provider");
+        }
+
+        let alpn = [BufferRef::from("h3")];
+        let settings = Settings::new()
+            .set_PeerBidiStreamCount(100)
+            .set_PeerUnidiStreamCount(3);
+        #[cfg(feature = "preview-api")]
+        let settings = settings.set_StreamMultiReceiveEnabled();
+        let res = Configuration::new(&registration, &alpn, Some(&settings));
         assert!(
             res.is_ok(),
             "Failed to open configuration: {}",
@@ -1719,7 +1497,37 @@ mod tests {
             res.err().unwrap()
         );
 
+        // check getting addr params are ok.
+        {
+            let local_addr = connection
+                .get_local_addr()
+                .expect("cannot get local addr")
+                .as_socket()
+                .unwrap();
+            let remove_addr = connection
+                .get_remote_addr()
+                .expect("cannot get local addr")
+                .as_socket()
+                .unwrap();
+            println!("Connection local addr {local_addr}, remote addr {remove_addr}");
+        }
+
         let duration = std::time::Duration::from_millis(1000);
         std::thread::sleep(duration);
+
+        // check get stats ok
+        {
+            let stats = connection.get_stats().expect("fail to get stats");
+            assert!(stats.Recv.TotalBytes > 0);
+
+            let stats2 = connection.get_stats_v2().expect("fail to get stats v2");
+            assert!(stats2.RecvTotalBytes > 0);
+        }
+        // check perf counters.
+        {
+            let perf = crate::Api::get_perf().unwrap();
+            assert!(perf.conn_created > 0);
+            assert!(perf.strm_active > 0);
+        }
     }
 }
