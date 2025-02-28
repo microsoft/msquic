@@ -2421,37 +2421,15 @@ QuicLibraryEvaluateSendRetryState(
             LibrarySendRetryStateUpdated,
             "[ lib] New SendRetryEnabled state, %hhu",
             NewSendRetryState);
-        //for each binding registration, for each listener indicate DOS mitigation state change
-        // Notify all listeners about the state change
 
+        // Notify all listeners about the state change
         CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
         for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
             Link != &MsQuicLib.Bindings;
             Link = Link->Flink) {
 
             QUIC_BINDING* Binding = CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
-
-            CxPlatDispatchRwLockAcquireShared(&Binding->RwLock, PrevIrql);
-            for (CXPLAT_LIST_ENTRY* ListenerLink = Binding->Listeners.Flink;
-                ListenerLink != &Binding->Listeners;
-                ListenerLink = ListenerLink->Flink) {
-
-                QUIC_LISTENER* Listener = CXPLAT_CONTAINING_RECORD(ListenerLink, QUIC_LISTENER, Link);
-
-                if (Listener->DosMitigationOptIn == TRUE) {
-                    QUIC_LISTENER_EVENT Event;
-                    Event.Type = QUIC_LISTENER_EVENT_DOS_MODE;
-                    Event.DOS_MITIGATION.DosMitigationState = MsQuicLib.SendRetryEnabled;
-
-                    QuicListenerAttachSilo(Listener);
-
-                    QUIC_STATUS Status = QuicListenerIndicateDispatchEvent(Listener, &Event);
-
-                    QuicListenerDetachSilo();
-                }
-
-            }
-            CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
+            QuicBindingHandleDosModeStateChange(Binding, MsQuicLib.SendRetryEnabled);
         }
         CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
     }

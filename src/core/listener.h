@@ -222,3 +222,10 @@ QuicListenerIndicateDispatchEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event
     );
 
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerHandleDosModeStateChange(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN DosModeStateChange
+    );

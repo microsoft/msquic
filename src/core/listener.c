@@ -423,7 +423,7 @@ QuicListenerIndicateDispatchEvent(
     _Inout_ QUIC_LISTENER_EVENT* Event
     )
 {
-    CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE);
+    CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED);
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
@@ -784,22 +784,18 @@ QuicListenerParamSet(
             Listener->CibirId[1]);
 
         return QUIC_STATUS_SUCCESS;
-    } else if (Param == QUIC_PARAM_DOS_MITIGATION) {
-        if (BufferLength > 1) {
+    } else if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
+        if (BufferLength > sizeof(BOOLEAN)) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         if (BufferLength == 0) {
-            Listener->DosMitigationOptIn = FALSE;
+            //no value provided
             return QUIC_STATUS_SUCCESS;
         }
 
-        if (BufferLength == 1) {
-            if (((uint8_t *)Buffer)[0] != 0) {
-                Listener->DosMitigationOptIn = TRUE;
-            } else {
-                Listener->DosMitigationOptIn = FALSE;
-            }
+        if (BufferLength == sizeof(BOOLEAN)) {
+            Listener->DosMitigationOptIn = *(BOOLEAN*)Buffer;
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -890,10 +886,14 @@ QuicListenerParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_DOS_MITIGATION:
+    case QUIC_PARAM_DOS_MODE_EVENTS:
 
         if (Buffer == NULL) {
             return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (*BufferLength < sizeof(Listener->DosMitigationOptIn)) {
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
         *BufferLength = sizeof(Listener->DosMitigationOptIn);
@@ -907,4 +907,25 @@ QuicListenerParamGet(
     }
 
     return Status;
+}
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerHandleDosModeStateChange(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN DosModeStateChange
+    )
+{
+    if (Listener->DosMitigationOptIn == TRUE) {
+        QUIC_LISTENER_EVENT Event;
+        Event.Type = QUIC_LISTENER_EVENT_DOS_MODE_CHANGED;
+        Event.DOS_MODE.DosModeEnabled = DosModeStateChange;
+
+        QuicListenerAttachSilo(Listener);
+
+        QUIC_STATUS Status = QuicListenerIndicateDispatchEvent(Listener, &Event);
+
+        QuicListenerDetachSilo();
+    }
 }

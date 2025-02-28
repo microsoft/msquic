@@ -894,7 +894,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
 #endif
-#define QUIC_PARAM_DOS_MITIGATION                       0x04000004
+#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004
 
 //
 // Parameters for Connection.
@@ -1084,7 +1084,7 @@ QUIC_STATUS
 typedef enum QUIC_LISTENER_EVENT_TYPE {
     QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
     QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
-    QUIC_LISTENER_EVENT_DOS_MODE = 2,
+    QUIC_LISTENER_EVENT_DOS_MODE_CHANGED    = 2,
 } QUIC_LISTENER_EVENT_TYPE;
 
 typedef struct QUIC_LISTENER_EVENT {
@@ -1099,18 +1099,18 @@ typedef struct QUIC_LISTENER_EVENT {
             BOOLEAN RESERVED            : 7;
         } STOP_COMPLETE;
         struct {
-            BOOLEAN DosMitigationState : 1;
-            BOOLEAN RESERVED           : 7;
-        } DOS_MITIGATION;
+            BOOLEAN DosModeEnabled : 1;
+            BOOLEAN RESERVED       : 7;
+        } DOS_MODE;
     };
 } QUIC_LISTENER_EVENT;
 
 typedef
 _When_(
-    Event->Type != QUIC_LISTENER_EVENT_DOS_MODE,
+    Event->Type != QUIC_LISTENER_EVENT_DOS_MODE_CHANGED,
     _IRQL_requires_max_(PASSIVE_LEVEL))
 _When_(
-    Event->Type == QUIC_LISTENER_EVENT_DOS_MODE,
+    Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED,
     _IRQL_requires_max_(DISPATCH_LEVEL))
 _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS

@@ -1824,3 +1824,21 @@ QuicBindingSend(
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingHandleDosModeStateChange(
+    _In_ QUIC_BINDING* Binding,
+    _In_ BOOLEAN DosModeStateChange 
+    )
+{
+    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock, PrevIrql);
+    for (CXPLAT_LIST_ENTRY* ListenerLink = Binding->Listeners.Flink;
+            ListenerLink != &Binding->Listeners;
+            ListenerLink = ListenerLink->Flink) {
+
+        QUIC_LISTENER* Listener = CXPLAT_CONTAINING_RECORD(ListenerLink, QUIC_LISTENER, Link);
+        QuicListenerHandleDosModeStateChange(Listener, DosModeStateChange);
+    }
+    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
+}

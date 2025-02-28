@@ -3395,10 +3395,10 @@ void QuicTestListenerParam()
     }
 
     //
-    // QUIC_PARAM_DOS_MITIGATION
+    // QUIC_PARAM_DOS_MODE_EVENTS
     //
     {
-        TestScopeLogger LogScope0("QUIC_PARAM_DOS_MITIGATION");
+        TestScopeLogger LogScope0("QUIC_PARAM_DOS_MODE_EVENTS");
         //
         // SetParam
         //
@@ -3406,7 +3406,7 @@ void QuicTestListenerParam()
             TestScopeLogger LogScope1("SetParam");
             MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
             TEST_TRUE(Listener.IsValid());
-            DosMitigationTests(Listener.Handle, QUIC_PARAM_DOS_MITIGATION);
+            DosMitigationTests(Listener.Handle, QUIC_PARAM_DOS_MODE_EVENTS);
         }
 
         //
@@ -3420,7 +3420,7 @@ void QuicTestListenerParam()
             uint8_t buffer[1] = {0};
             TEST_QUIC_SUCCEEDED(
                 Listener.GetParam(
-                    QUIC_PARAM_DOS_MITIGATION,
+                    QUIC_PARAM_DOS_MODE_EVENTS,
                     &Length,
                     &buffer));
             TEST_EQUAL(Length, 1 /*sizeof Listener->DosMitigationOptIn) */);
