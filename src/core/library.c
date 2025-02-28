@@ -1902,7 +1902,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Out_ QUIC_BINDING** NewBinding,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
     QUIC_STATUS Status;
@@ -1996,7 +1998,9 @@ NewBinding:
     Status =
         QuicBindingInitialize(
             UdpConfig,
-            NewBinding);
+            NewBinding,
+            UseQTIP,
+            OverrideGlobalQTIPSettings);
     if (QUIC_FAILED(Status)) {
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
         if (SharedEphemeralWorkAround) {

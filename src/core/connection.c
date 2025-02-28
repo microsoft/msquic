@@ -1850,7 +1850,9 @@ QuicConnStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Path->Binding);
+            &Path->Binding,
+            Connection->State.UseQTIP,
+            Connection->State.AppDidSetQTIP);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
@@ -6227,7 +6229,9 @@ QuicConnParamSet(
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,
-                    &Connection->Paths[0].Binding);
+                    &Connection->Paths[0].Binding,
+                    Connection->State.UseQTIP,
+                    Connection->State.AppDidSetQTIP);
             if (QUIC_FAILED(Status)) {
                 Connection->Paths[0].Binding = OldBinding;
                 break;

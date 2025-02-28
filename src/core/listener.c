@@ -333,7 +333,9 @@ MsQuicListenerStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Listener->Binding);
+            &Listener->Binding,
+            FALSE,
+            FALSE);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,

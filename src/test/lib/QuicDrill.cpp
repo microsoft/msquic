@@ -186,7 +186,9 @@ struct DrillSender {
             CxPlatSocketCreateUdp(
                 Datapath,
                 &UdpConfig,
-                &Binding);
+                &Binding,
+                FALSE,
+                FALSE);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Binding failed: 0x%x", Status);
         }

@@ -634,7 +634,7 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;                  // Quic over TCP
+    uint8_t UseTcp : 1;  // This flag represents the expression (THIS SOCKET IS PART OF A CLIENT CONNECTION) && (THE CLIENT CONNECTION SPECIFIED TO USE QTIP)
 
     uint8_t IsServer : 1;
 
@@ -1049,7 +1049,9 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* DataPath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

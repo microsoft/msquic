@@ -38,10 +38,10 @@ struct LbInterface {
         UdpConfig.CallbackContext = this;
         if (IsPublic) {
             UdpConfig.LocalAddress = Address;
-            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket, FALSE, FALSE);
         } else {
             UdpConfig.RemoteAddress = Address;
-            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket);
+            CxPlatSocketCreateUdp(Datapath, &UdpConfig, &Socket, FALSE, FALSE);
         }
         if (!Socket) {
             printf("CxPlatSocketCreateUdp failed.\n");

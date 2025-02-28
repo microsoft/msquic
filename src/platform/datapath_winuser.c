@@ -1450,7 +1450,9 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
     QUIC_STATUS Status;
@@ -1490,7 +1492,15 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Datapath->UseTcp; // TODO: If we ever decide to remove the global execution param, this needs to be updated.
+    //
+    // Server sockets always inherit global QTIP preferences.
+    //
+    if (IsServerSocket || !OverrideGlobalQTIPSettings) {
+        Socket->UseTcp = Datapath->UseTcp;
+    } else {
+        Socket->UseTcp = UseQTIP;
+    }
+
     Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1501,6 +1511,9 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
+    //
+    // Servers always initialize everything.
+    //
     CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
 
     if (Datapath->UseTcp && !IsServerSocket) {

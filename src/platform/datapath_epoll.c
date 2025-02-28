@@ -1252,9 +1252,13 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewBinding
+    _Out_ CXPLAT_SOCKET** NewBinding,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
+    UNREFERENCED_PARAMETER(UseQTIP);
+    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;

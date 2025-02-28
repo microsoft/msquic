@@ -128,7 +128,9 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -137,7 +139,9 @@ CxPlatSocketCreateUdp(
         SocketCreateUdp(
             Datapath,
             Config,
-            NewSocket);
+            NewSocket,
+            UseQTIP,
+            OverrideGlobalQTIPSettings);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,
@@ -415,11 +419,20 @@ CxPlatResolveRoute(
     )
 {
     if (OverrideGlobalQTIPSettings) {
-        Socket->UseTcp = UseQTIP;
+        //
+        // The current Socket is part of a client Connection,
+        // and that client Connection explicitly set QTIP preferences.
+        //
         Route->UseQTIP = UseQTIP;
         Route->AppDidSetQTIP = TRUE;
+    } else if (!Route->AppDidSetQTIP) {
+        //
+        // The Client Peer did not set QTIP preferences. So we inherit the global server QTIP settings.
+        //
+        Route->UseQTIP = Socket->UseTcp;
     }
-    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+
+    if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);
