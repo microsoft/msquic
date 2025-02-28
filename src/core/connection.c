@@ -6662,6 +6662,7 @@ QuicConnParamSet(
             break;
         }
         Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
+        Connection->State.AppDidSetQTIP = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
