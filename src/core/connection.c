@@ -6649,6 +6649,10 @@ QuicConnParamSet(
     }
 
     case QUIC_PARAM_CONN_QTIP: {
+        if (QuicConnIsServer(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
         if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
@@ -6658,7 +6662,6 @@ QuicConnParamSet(
             break;
         }
         Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
-        Connection->State.AppDidSetQTIP = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
@@ -7300,6 +7303,10 @@ QuicConnParamGet(
         break;
 
     case QUIC_PARAM_CONN_QTIP:
+        if (QuicConnIsServer(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
         if (*BufferLength < sizeof(BOOLEAN)) {
             *BufferLength = sizeof(BOOLEAN);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
