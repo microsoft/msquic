@@ -159,7 +159,7 @@ RawSocketCreateUdp(
 
     CXPLAT_FRE_ASSERT(NewSocket->Wildcard ^ NewSocket->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
-    Status = CxPlatTryAddSocket(&Raw->SocketPool, NewSocket);
+    Status = CxPlatTryAddSocket(&Raw->SocketPool, NewSocket, Config->RemoteAddress == NULL);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

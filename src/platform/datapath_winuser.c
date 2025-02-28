@@ -1502,7 +1502,7 @@ SocketCreateUdp(
     }
     CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
 
-    if (Datapath->UseTcp) {
+    if (Datapath->UseTcp && !IsServerSocket) {
         //
         // Skip normal socket settings to use AuxSocket in raw socket
         //
@@ -2082,7 +2082,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
+    if (!Socket->UseTcp || IsServerSocket) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
