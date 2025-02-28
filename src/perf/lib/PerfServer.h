@@ -251,7 +251,7 @@ struct StreamContext {
     ~StreamContext() {
         CXPLAT_DBG_ASSERT(RefCount == 0);
         if (IsTcp) {
-            if (Handle != nullptr) ((TcpConnection*)Handle)->InactivateAndRelease();
+            if (Handle != nullptr) ((TcpConnection*)Handle)->Release();
         } else {
             if (Handle != nullptr) MsQuic->StreamClose((HQUIC)Handle);
         }

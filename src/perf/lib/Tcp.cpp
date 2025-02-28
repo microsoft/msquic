@@ -801,10 +801,6 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
 
 bool TcpConnection::SendTlsData(const uint8_t* Buffer, uint16_t BufferLength, uint8_t KeyType)
 {
-    if (!IsActive()) {
-        return false;
-    }
-
     auto SendBuffer = NewSendBuffer();
     if (!SendBuffer) {
         //WriteOutput("NewSendBuffer FAILED\n");
@@ -1027,6 +1023,7 @@ bool TcpConnection::ProcessSend()
 
             SendBuffer->Length = sizeof(TcpFrame) + Frame->Length + CXPLAT_ENCRYPTION_OVERHEAD;
             FinalizeSendBuffer(SendBuffer);
+
         } while (!Shutdown && NextSendData->Length > Offset);
 
         NextSendData->Offset = TotalSendOffset;
