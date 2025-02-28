@@ -278,7 +278,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t ClientQTIP : 1; // Not supported. always false
+    uint8_t UseTcp : 1; // Not supported. always false
 
     //
     // Per-processor completion contexts.
@@ -1024,7 +1024,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t ClientQTIP : 1;
+    uint8_t UseTcp : 1;
 
     //
     // The per proc datapath contexts.
