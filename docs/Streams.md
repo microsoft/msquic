@@ -13,7 +13,7 @@ Streams are the primary mechanism apps use to reliably exchange data with their 
 The QUIC protocol allows a maximum number of streams equal to 2 ^ 62. As there are 4 unique stream types, the maximum number of streams is 2 ^ 60, per stream type. No app would likely need to have this many streams open at any point.
 
 For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how many streams it's willing to accept at any point. Instead of a buffer size, it's a stream count.
-
+G
 The protocol for synchronizing the maximum stream count is complicated, but MsQuic simplifies it by requiring the app to specify a number of simultaneous streams to allow the peer to open at any time. MsQuic then takes care of updating the maximum stream count for the peer as old streams get shut down.
 
 The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must call [SetParam](api/SetParam.md) for `QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT` and/or `QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT`. MsQuic currently restricts this count to a maximum of 2 ^ 16.
@@ -74,27 +74,28 @@ If a stream gets canceled because it is in 'cancel on loss' mode, a `QUIC_STREAM
 
 Data is received and delivered to apps via the `QUIC_STREAM_EVENT_RECEIVE` event. The event indicates zero, one or more contiguous buffers up to the application.
 
-Typically, the buffer count is one, which means that most events will include a single buffer containing the received data.
+When using default settings, the buffer count is 1 the majority of the time, which means that most events will include a single buffer containing the received data.
+The application can optimize its processing for that case but should be ready to handle any number of `QUIC_BUFFER`s.
 
 When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.
 
-Currently, the maximum buffer count is 3 in the case of partial receive, where only a portion of the buffer data is consumed (as explained below). However, it is strongly advised not to assume in application code that the upper limit is always 3. This caution is important because future releases may change internal algorithm, leading to potential changes in the buffer count limit.
+## Handling a receive event
 
 The app then may respond to the event in a number of ways:
 
-## Synchronous vs Asynchronous
+### Synchronous vs Asynchronous
 
 The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgments), which can cause protocol issues (dropped connections).
 
 If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](api/StreamReceiveComplete.md).
 
-## Partial Data Acceptance
+### Partial Data Acceptance
 
 Whenever the app gets the `QUIC_STREAM_EVENT_RECEIVE` event, it can partially accept/consume the received data.
 
-For synchronous receives, the app indicates how much of the data it accepted via the **TotalBufferLength** variable in the payload of the `QUIC_STREAM_EVENT_RECEIVE` event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.
+For synchronous receives, the app indicates how much of the data it accepted via the `TotalBufferLength` variable in the payload of the `QUIC_STREAM_EVENT_RECEIVE` event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.
 
-For asynchronous receives, the app indicates how much of the data it accepted via the **BufferLength** parameter passed into the [StreamReceiveComplete](api/StreamReceiveComplete.md) API.
+For asynchronous receives, the app indicates how much of the data it accepted via the `BufferLength` parameter passed into the [StreamReceiveComplete](api/StreamReceiveComplete.md) API.
 
 Any value less than or equal to the initial **TotalBufferLength** value is allowed, including zero.
 
@@ -102,10 +103,71 @@ Whenever a receive isn't fully accepted by the app, additional receive events ar
 
 There are cases where an app may want to partially accept the current data, but still immediately get a callback with the rest of the data. To do this (only works in the synchronous flow) the app must return `QUIC_STATUS_CONTINUE`.
 
-## Multi Receive mode
+## Receive modes
 
-Setting [`StreamMultiReceiveEnabled`](./Settings.md) an app can continue getting indicated by `QUIC_STREAM_EVENT_RECEIVE` without returning `QUIC_STATUS_SUCCESS` nor calling [StreamReceiveComplete](api/StreamReceiveComplete.md).
+Options can be used to alter MsQuic default receive notification behavior:
 
-This changes internal receive buffer more efficient for continuous receiving.
+### Multi-receive mode
 
-The app need to keep track of total `TotalBufferLength` to later call [StreamReceiveComplete](api/StreamReceiveComplete.md) appropriately.
+Multi-receive mode is a connection wide option allowing multiple receive notification to be pending simultaneously.
+It is enabled by setting [`StreamMultiReceiveEnabled`](./Settings.md) in connection parameters.
+
+For streams created when the connection is in Multi-mode receive, MsQuic can keep indicating `QUIC_STREAM_EVENT_RECEIVE` before the application completes the previous one.
+This means that the application must be able to handle a new `QUIC_STREAM_EVENT_RECEIVE` even if it returned `QUIC_STATUS_PENDING` previously and has not called [`StreamReceiveComplete`](api/StreamReceiveComplete.md) yet.
+
+MsQuic will also keep indicating receive notifications when the application accept the data partially. The bytes that have not been accepted by the application won't be indicated again: the application must call [StreamReceiveComplete](api/StreamReceiveComplete.md) in the future to accept them.
+
+To handle multi-receive mode properly, the application must keep of the total number of byte received on the stream (the sum of all `TotalBufferLength`).
+The number of calls to [`StreamReceiveComplete`](api/StreamReceiveComplete.md) does not need to be equal to the number of receive notification, but the total number of bytes received must eventually be equal to the total number of bytes accepted.
+
+Multi-receive mode manages its internal receive buffer differently and is more efficient for continuous receiving with asynchronous processing.
+
+### App-owned buffer mode
+
+App-owned buffer mode is a per-stream option allowing the application to provide its own receive memory buffers.
+Enabling app-owned mode is done differently depending on whether the stream is created locally or from the peer and is discussed below.
+
+When in app-owned mode, the application can call [`StreamProvideReceiveBuffers`](./????.md) to provide a list of memory buffers to MsQuic.
+[`StreamProvideReceiveBuffers`](./????.md) can be called at any time on a valid stream in app-owned mode, potentially inline from a notification handler.
+If called several times, the buffer provided through subsequent calls are added to the list.
+
+MsQuic will fill the provided buffer with received data, in the order they have been provided. Receive notification will be emitted as normal,
+indicating a list of `QUIC_BUFFER` pointing to the application provided buffers.
+Note that up to the number of buffers the application provided can be indicated at once, and that only part of a buffer can be indicated.
+There is no guarantees the `QUIC_BUFFER`s indicated in a receive notification will match the ones the application provided.
+
+The application is responsible for tracking the amount of data received and when a buffer it provided has been fully used.
+The application regains full ownership of a buffer after it get a receive notification for all bytes in the buffer and accept them by calling [`StreamMultiReceiveEnabled`](./Settings.md).
+If the application accepts all the buffer's bytes **inline** from the receive notification, by returning `QUIC_STATUS_SUCCESS` and setting `TotalBufferLength` appropriately,
+it can free or reuse the buffer while in the notification handler.
+
+For an application, providing receive buffers can improve performances by saving a copy: MsQuic places data directly in its final destination.
+However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control:
+an application providing to much or too little buffer space could negatively impact performances.
+Because of this, app-owned mode should be considered an advanced feature and used with caution.
+
+**Note**: As of now, app-owned buffer mode is not compatible with multi-receive mode. If multi-receive mode is enabled for the connection and app-owned mode is enabled on a stream, that specific stream will behave as if multi-receive mode was disabled. This may change in the future.
+
+#### For a stream initiated by the application
+
+To use app-owned buffers on a locally created stream, the flag `QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS` must be provided to the [`StreamOpen`](./api/StreamOpen.md).
+
+Before starting the stream with [`StreamStart`](./api/StreamStart.md), the application should call [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md) to provide some initial buffers.
+
+**Note**: This is only relevant for a bidirectional stream, since a locally created unidirectional stream cannot receive data.
+
+#### For a stream initiated by a peer
+
+To use app-owned buffers on a peer initiated stream, the application should call [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md) inline when handling the `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` notification.
+
+When called inline while handling `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED`, [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md) enables app-owned buffers and provides some initial buffers. This is the only situation where it is allowed to call [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md) on a stream that is not already in app-owned buffers mode. After this initial call, [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md) can be called at any time to provide more buffer space, until the stream is closed.
+
+#### Initial buffer space
+
+As part of the connection establishment, Quic exchanges initial stream flow control limit as part of the transport parameters, defining the amount of data the each peer will be allowed to send on a newly created stream. An application can define these limits through `StreamRecvWindowBidiLocalDefault`, `StreamRecvWindowBidiRemoteDefault` and `StreamRecvWindowUnidiDefault` in [`QUIC_SETTINGS`](./api/QUIC_SETTINGS.md).
+
+When using a stream in app-owned mode, the application should generally provide enough buffer space to fully contain the initial receive window, since a peer could imediately send that amount of data.
+MsQuic does not enforce it, and it is legal for an application to provide less buffer space than the initial receive window if it is confident that the amount of buffer provided is large enough to handle all the data sent by the peer. However, if more data is received than can be stored in the buffers provided by the application, the entire **connection** will be terminated.
+
+After the initial receive window is full, flow control will ensure that the peer does not send more data than there is buffer space available.
+However, the application should still provide enough buffer space to keep flow control from impacting performances.
