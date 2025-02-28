@@ -204,11 +204,13 @@ PerfServer::ConnectionCallback(
             if (PrintStats) {
                 QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
             }
+            MsQuic->ConnectionClose((HQUIC)ConnectionHandle);
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
         bool Unidirectional = Event->PEER_STREAM_STARTED.Flags & QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL;
-        auto Context = StreamContextAllocator.Alloc(this, Unidirectional, false); // TODO - Support buffered IO
+        auto Context = StreamContextAllocator.Alloc(this, Unidirectional, false,
+                                                    (void*)Event->PEER_STREAM_STARTED.Stream, false); // TODO - Support buffered IO
         if (!Context) { return QUIC_STATUS_OUT_OF_MEMORY; }
         QUIC_STREAM_CALLBACK_HANDLER Handler =
             [](HQUIC Stream, void* Context, QUIC_STREAM_EVENT* Event) -> QUIC_STATUS {
@@ -347,7 +349,7 @@ PerfServer::StreamCallback(
         MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
         break;
     case QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE:
-        Context->Release();
+        Context->InactivateAndRelease();
         break;
     case QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE:
         if (!Context->BufferedIo &&
@@ -485,10 +487,11 @@ PerfServer::TcpReceiveCallback(
     auto Server = This->Server;
     StreamContext* Stream;
     if (Open) {
-        if ((Stream = Server->StreamContextAllocator.Alloc(Server, false, false)) != nullptr) {
+        if ((Stream = Server->StreamContextAllocator.Alloc(Server, false, false, (void *)Connection, true)) != nullptr) {
             Stream->Entry.Signature = StreamID;
             Stream->IdealSendBuffer = 1; // TCP uses send buffering, so just set to 1.
             This->StreamTable.Insert(&Stream->Entry);
+            CXPLAT_FRE_ASSERT(Connection->TryAddRef());
         }
     } else {
         auto Entry = This->StreamTable.Lookup(StreamID);
@@ -656,7 +659,9 @@ DelayWorker::DelayedWork(
 
         if (nullptr != WorkItem) {
             This->Server->SimulateDelay();
-            This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+            if (WorkItem->Context->IsActive()) {
+                This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+            }
             WorkItem->Context->Release();
             delete WorkItem;
         }

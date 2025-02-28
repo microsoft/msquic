@@ -239,21 +239,21 @@ private:
 
 struct StreamContext {
     StreamContext(
-        PerfServer* Server, bool Unidirectional, bool BufferedIo, void* Handle = nullptr, bool IsTcp = true) :
-        Server{ Server }, Unidirectional{ Unidirectional }, BufferedIo{ BufferedIo }, Handle{ Handle }, IsTcp{ IsTcp }, RefCount{ 1 } {
+        PerfServer* Server, bool Unidirectional, bool BufferedIo, void* Handle, bool IsTcp) :
+        Server{ Server }, Unidirectional{ Unidirectional }, BufferedIo{ BufferedIo }, Handle{ Handle }, IsTcp{IsTcp} {
+        RefCount = 1;
+        ConnectionClosing = false;
+
         if (BufferedIo) {
             IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
         }
     }
     ~StreamContext() {
         CXPLAT_DBG_ASSERT(RefCount == 0);
-        if (Handle != nullptr) {
-            if (IsTcp) {
-                ((TcpConnection*)Handle)->Release();
-            }
-            else {
-                MsQuic->StreamClose((HQUIC)Handle);
-            }
+        if (IsTcp) {
+            if (Handle != nullptr) ((TcpConnection*)Handle)->InactivateAndRelease();
+        } else {
+            if (Handle != nullptr) MsQuic->StreamClose((HQUIC)Handle);
         }
     }
     void AddRef() { CxPlatRefIncrement(&RefCount); }
@@ -261,6 +261,13 @@ struct StreamContext {
         if (CxPlatRefDecrement(&RefCount)) {
             Server->StreamContextAllocator.Free(this);
         }
+    }
+    void InactivateAndRelease() {
+        ConnectionClosing = true;
+        Release();
+    }
+    bool IsActive() {
+        return (!ConnectionClosing);
     }
 
     CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable
@@ -278,4 +285,5 @@ struct StreamContext {
     void* Handle{ nullptr };
     bool IsTcp{ false };
     CXPLAT_REF_COUNT RefCount;
+    bool ConnectionClosing;
 };

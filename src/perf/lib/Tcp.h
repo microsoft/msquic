@@ -177,6 +177,7 @@ class TcpConnection {
     CXPLAT_LIST_ENTRY EngineEntry{nullptr,nullptr}; // Must be first
     bool IsServer;
     bool Initialized{false};
+    bool ConnectionClosing{false};
     bool Shutdown{false};
     bool ShutdownComplete{false};
     bool ClosedByApp{false};
@@ -290,6 +291,13 @@ public:
     }
     bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
+    void InactivateAndRelease() {
+        ConnectionClosing = true;
+        Release();
+    }
+    bool IsActive() {
+        return (!ConnectionClosing);
+    }
 };
 
 inline
