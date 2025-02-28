@@ -13,7 +13,7 @@ Streams are the primary mechanism apps use to reliably exchange data with their 
 The QUIC protocol allows a maximum number of streams equal to 2 ^ 62. As there are 4 unique stream types, the maximum number of streams is 2 ^ 60, per stream type. No app would likely need to have this many streams open at any point.
 
 For this reason, each app controls the number of streams that the peer is allowed to open. The concept is similar to flow control of the actual data on a stream. The app tells the peer how many streams it's willing to accept at any point. Instead of a buffer size, it's a stream count.
-G
+
 The protocol for synchronizing the maximum stream count is complicated, but MsQuic simplifies it by requiring the app to specify a number of simultaneous streams to allow the peer to open at any time. MsQuic then takes care of updating the maximum stream count for the peer as old streams get shut down.
 
 The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must call [SetParam](api/SetParam.md) for `QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT` and/or `QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT`. MsQuic currently restricts this count to a maximum of 2 ^ 16.
