@@ -204,7 +204,7 @@ PerfServer::ConnectionCallback(
             if (PrintStats) {
                 QuicPrintConnectionStatistics(MsQuic, ConnectionHandle);
             }
-            MsQuic->ConnectionClose((HQUIC)ConnectionHandle);
+            MsQuic->ConnectionClose(ConnectionHandle);
         }
         break;
     case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED: {
@@ -418,7 +418,7 @@ PerfServer::SendDelayedResponse(
         //
         // TcpConnection object is separately reference counted
         //
-        CXPLAT_DBG_ASSERT(((TcpConnection*)Handle)->TryAddRef());
+        CXPLAT_FRE_ASSERT(((TcpConnection*)Handle)->TryAddRef());
     }
     DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp);
 }
@@ -686,6 +686,7 @@ DelayWorker::QueueWork(
     Lock.Acquire();
     *WorkItemsTail = Work;
     WorkItemsTail = &Work->Next;
-    WakeWorkerThread();
     Lock.Release();
+
+    WakeWorkerThread();
 }
