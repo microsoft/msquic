@@ -222,7 +222,7 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (Socket->ClientQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
     }
@@ -286,7 +286,7 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Socket->ClientQTIP || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
@@ -410,16 +410,12 @@ CxPlatResolveRoute(
     _In_ uint8_t PathId,
     _In_ void* Context,
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings
+    _In_ uint8_t UseQTIP
     )
 {
-    if (OverrideGlobalQTIPSettings) {
-        Socket->UseTcp = UseQTIP;
-        Route->UseQTIP = UseQTIP;
-        Route->AppDidSetQTIP = TRUE;
-    }
-    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    Route->UseQTIP = UseQTIP;
+    // TODO: Replace Socket->ClientQTIP with Route->UseQTIP once you remove Datapath->UseTcp.
+    if (Socket->ClientQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);

@@ -118,21 +118,21 @@ RawSocketCreateUdp(
     NewSocket->CibirIdOffsetSrc = Config->CibirIdOffsetSrc;
     NewSocket->CibirIdOffsetDst = Config->CibirIdOffsetDst;
     NewSocket->AuxSocket = INVALID_SOCKET;
-    NewSocket->UseTcp = Raw->UseTcp;
+    NewSocket->ClientQTIP = Raw->UseTcp;
     if (Config->CibirIdLength) {
         memcpy(NewSocket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
 
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ClientQTIP) {
             NewSocket->RemoteAddress = *Config->RemoteAddress;
         }
         NewSocket->Connected = TRUE;
     }
 
     if (Config->LocalAddress) {
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ClientQTIP) {
             NewSocket->LocalAddress = *Config->LocalAddress;
         }
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
@@ -145,7 +145,7 @@ RawSocketCreateUdp(
             goto Error;
         }
     } else {
-        if (NewSocket->UseTcp) {
+        if (NewSocket->ClientQTIP) {
             QuicAddrSetFamily(&NewSocket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
         }
         if (!NewSocket->Connected) {
@@ -159,7 +159,7 @@ RawSocketCreateUdp(
 
     CXPLAT_FRE_ASSERT(NewSocket->Wildcard ^ NewSocket->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
-    Status = CxPlatTryAddSocket(&Raw->SocketPool, NewSocket);
+    Status = CxPlatTryAddSocket(&Raw->SocketPool, NewSocket, Config->RemoteAddress == NULL);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

@@ -1453,6 +1453,7 @@ SocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
+    // TODO: Bubble 'ClientQTIP' from QUIC layer
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
@@ -1490,7 +1491,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Datapath->UseTcp; // TODO: If we ever decide to remove the global execution param, this needs to be updated.
+    Socket->ClientQTIP = Datapath->UseTcp; // TODO: Socket->ClientQTIP = ClientQTIP;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1500,7 +1501,14 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
+
+    BOOLEAN InitUDPSockets = !Socket->ClientQTIP || IsServerSocket;
+    CxPlatRefInitializeEx(&Socket->RefCount, !InitUDPSockets ? 1 : SocketCount);
+
+    if (!InitUDPSockets) {
+        goto Skip;
+    }
+
     Socket->RecvBufLen =
         (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) ?
             MAX_URO_PAYLOAD_LENGTH :
@@ -2060,6 +2068,8 @@ SocketCreateUdp(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
+Skip:
+
     if (Config->RemoteAddress != NULL) {
         Socket->RemoteAddress = *Config->RemoteAddress;
     } else {
@@ -2072,9 +2082,11 @@ SocketCreateUdp(
     //
     *NewSocket = Socket;
 
-    for (uint16_t i = 0; i < SocketCount; i++) {
-        CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
-        Socket->PerProcSockets[i].IoStarted = TRUE;
+    if (InitUDPSockets) {
+        for (uint16_t i = 0; i < SocketCount; i++) {
+            CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
+            Socket->PerProcSockets[i].IoStarted = TRUE;
+        }
     }
 
     Socket = NULL;
@@ -2613,7 +2625,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
+    if (Socket->ClientQTIP) {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
     } else {
