@@ -1501,7 +1501,7 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
 
     if (Datapath->UseTcp && !IsServerSocket) {
         //
