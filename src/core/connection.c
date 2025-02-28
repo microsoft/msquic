@@ -6098,6 +6098,10 @@ QuicConnOpenNewPath(
 {
     CXPLAT_DBG_ASSERT(Connection->State.RemoteAddressSet);
     CXPLAT_DBG_ASSERT(Connection->Configuration != NULL);
+    CXPLAT_DBG_ASSERT(Path != &Connection->Paths[0]);
+
+    QUIC_PATHID *PathID = NULL;
+    QUIC_STATUS Status;
 
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = &Path->Route.LocalAddress;
@@ -6114,9 +6118,9 @@ QuicConnOpenNewPath(
 #endif
 
     QUIC_BINDING* NewBinding = NULL;
-    QUIC_STATUS Status = QuicLibraryGetBinding(&UdpConfig, &NewBinding);
+    Status = QuicLibraryGetBinding(&UdpConfig, &NewBinding);
     if (QUIC_FAILED(Status)) {
-        return Status;
+        goto Error;
     }
 
     Path->Binding = NewBinding;
@@ -6125,36 +6129,41 @@ QuicConnOpenNewPath(
         Path->Binding,
         &Path->Route.LocalAddress);
 
-    if (Path != &Connection->Paths[0]) {
-        CxPlatCopyMemory(&Path->Route.RemoteAddress,
-            &Connection->Paths[0].Route.RemoteAddress,
-            sizeof(QUIC_ADDR));
-        if (Connection->State.MultipathNegotiated) {
-            Path->PathID = QuicPathIDSetGetUnusedPathID(&Connection->PathIDs);
-            if (Path->PathID != NULL) {
-                QuicPathIDAddRef(Path->PathID, QUIC_PATHID_REF_PATH);
-                Path->PathID->Flags.InUse = TRUE;
-                Path->PathID->Path = Path;
-                QuicCongestionControlInitialize(&Path->PathID->CongestionControl, &Connection->Settings);
-                QuicPathIDRelease(Path->PathID, QUIC_PATHID_REF_LOOKUP);
-            }
+    CxPlatCopyMemory(&Path->Route.RemoteAddress,
+        &Connection->Paths[0].Route.RemoteAddress,
+        sizeof(QUIC_ADDR));
+    if (Connection->State.MultipathNegotiated) {
+        PathID = QuicPathIDSetGetUnusedPathID(&Connection->PathIDs);
+        if (PathID != NULL) {
+            QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
+            PathID->Flags.InUse = TRUE;
+            PathID->Path = Path;
+            QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
+            Path->PathID = PathID;
         } else {
-            QuicPathIDAddRef(Connection->Paths[0].PathID, QUIC_PATHID_REF_PATH);
-            Path->PathID = Connection->Paths[0].PathID;
+            QuicLibraryReleaseBinding(Path->Binding);
+            Path->Binding = NULL;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
         }
+    } else {
+        QuicPathIDAddRef(Connection->Paths[0].PathID, QUIC_PATHID_REF_PATH);
+        Path->PathID = Connection->Paths[0].PathID;
     }
 
     if (!Connection->State.ShareBinding) {
         QUIC_CID_SLIST_ENTRY* SourceCid = QuicCidNewNullSource(Path->PathID);
         if (SourceCid == NULL) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
         }
 
         Path->PathID->NextSourceCidSequenceNumber++;
         QuicPathIDAddSourceCID(Path->PathID, SourceCid, FALSE);
 
         if (!QuicBindingAddSourceConnectionID(NewBinding, SourceCid)) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
         }
     } else {
         if (!QuicBindingAddAllSourceConnectionIDs(NewBinding, Connection)) {
@@ -6162,16 +6171,15 @@ QuicConnOpenNewPath(
         }
     }
 
+
     QuicTraceEvent(
         ConnLocalAddrAdded,
         "[conn][%p] New Local IP: %!ADDR!",
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
+    QUIC_CID_LIST_ENTRY* NewDestCid = QuicPathIDGetUnusedDestCid(Path->PathID);
 
-    QUIC_CID_LIST_ENTRY* NewDestCid = Path->PathID != NULL ?
-        QuicPathIDGetUnusedDestCid(Path->PathID) :
-        NULL;
     //
     // If we can't get a unused CID, we defer sending a path challange until we receieve a new CID.
     //
@@ -6188,7 +6196,13 @@ QuicConnOpenNewPath(
         CxPlatRandom(sizeof(Path->Challenge), Path->Challenge);
     }
 
-    return QUIC_STATUS_SUCCESS;
+    Status = QUIC_STATUS_SUCCESS;
+Error:
+    if (PathID != NULL) {
+        QuicPathIDRelease(Path->PathID, QUIC_PATHID_REF_LOOKUP);            
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -6210,6 +6224,7 @@ QuicConnOpenNewPaths(
                     Connection->Paths[i].Binding = NULL;
                 }
                 QuicPathRemove(Connection, i--);
+                break;
             } else {
                 if (Connection->Paths[i].DestCid != NULL) {
                     Assigned = TRUE;
@@ -7649,37 +7664,42 @@ QuicConnParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_CONN_PATH_STATUS:
-        if (*BufferLength < sizeof(QUIC_PATH_STATUS)) {
+    case QUIC_PARAM_CONN_PATH_STATUS: {
+
+        if (*BufferLength < sizeof(QUIC_PATH_STATUS) * Connection->PathsCount) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            *BufferLength = sizeof(QUIC_PATH_STATUS);
+            *BufferLength = sizeof(QUIC_PATH_STATUS) * Connection->PathsCount;
             break;
         }
-        QUIC_PATH_STATUS* PathStatus = (QUIC_PATH_STATUS*)Buffer;
-        QUIC_PATH* Path = NULL;
-        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-            if (QuicAddrCompare(
-                    &PathStatus->LocalAddress,
-                    &Connection->Paths[i].Route.LocalAddress) &&
-                QuicAddrCompare(
-                    &PathStatus->PeerAddress,
-                    &Connection->Paths[i].Route.RemoteAddress) &&
-                PathStatus->PathId == Connection->Paths[i].PathID->ID) {
-                Path = &Connection->Paths[i];
-                break;
-            }
-        }
 
-        if (Path == NULL) {
+        if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        PathStatus->Active = Path->IsActive;
 
-        *BufferLength = sizeof(QUIC_PATH_STATUS);
+        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+            QUIC_PATH_STATUS* PathStatus = &((QUIC_PATH_STATUS*)Buffer)[i];
+
+            CxPlatCopyMemory(
+                &PathStatus->LocalAddress,
+                &Connection->Paths[i].Route.LocalAddress,
+                sizeof(QUIC_ADDR));
+
+            CxPlatCopyMemory(
+                &PathStatus->PeerAddress,
+                &Connection->Paths[i].Route.RemoteAddress,
+                sizeof(QUIC_ADDR));
+    
+            PathStatus->Active = Connection->Paths[i].IsActive;
+
+        }
+
+        *BufferLength = sizeof(QUIC_PATH_STATUS) * Connection->PathsCount;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
