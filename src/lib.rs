@@ -24,6 +24,8 @@ pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
 pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+mod settings;
+pub use settings::Settings;
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -452,41 +454,6 @@ pub struct QuicTlsSecrets {
     pub server_traffic_secret0: [u8; QUIC_TLS_SECRETS_MAX_SECRET_LEN],
 }
 
-#[repr(C)]
-#[derive(Copy, Clone, Default)]
-pub struct Settings {
-    pub is_set_flags: u64,
-    pub max_bytes_per_key: u64,
-    pub handshake_idle_timeout_ms: u64,
-    pub idle_timeout_ms: u64,
-    pub mtu_discovery_search_complete_timeout_us: u64,
-    pub tls_client_max_send_buffer: u32,
-    pub tls_server_max_send_buffer: u32,
-    pub stream_recv_window_default: u32,
-    pub stream_recv_buffer_default: u32,
-    pub conn_flow_control_window: u32,
-    pub max_worker_queue_delay_us: u32,
-    pub max_stateless_operations: u32,
-    pub initial_window_packets: u32,
-    pub send_idle_timeout_ms: u32,
-    pub initiall_rtt_ms: u32,
-    pub max_ack_delay_ms: u32,
-    pub disconnect_timeout_ms: u32,
-    pub keep_alive_interval_ms: u32,
-    pub congestion_control_algorithm: u16,
-    pub peer_bidi_stream_count: u16,
-    pub peer_unidi_stream_count: u16,
-    pub max_binding_stateless_operations: u16,
-    pub stateless_operation_expiration_ms: u16,
-    pub minimum_mtu: u16,
-    pub maximum_mtu: u16,
-    pub other_flags: u8,
-    pub mtu_operations_per_drain: u8,
-    pub mtu_discovery_missing_probe_count: u8,
-    pub dest_cid_update_idle_timeout_ms: u32,
-    pub other2_flags: u64,
-}
-
 pub const PARAM_GLOBAL_RETRY_MEMORY_PERCENT: u32 = 0x01000000;
 pub const PARAM_GLOBAL_SUPPORTED_VERSIONS: u32 = 0x01000001;
 pub const PARAM_GLOBAL_LOAD_BALACING_MODE: u32 = 0x01000002;
@@ -742,38 +709,6 @@ impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     }
 }
 
-impl Settings {
-    pub fn new() -> Self {
-        Self::default()
-    }
-    pub fn set_peer_bidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x40000;
-        self.peer_bidi_stream_count = value;
-        self
-    }
-    pub fn set_peer_unidi_stream_count(&mut self, value: u16) -> &mut Settings {
-        self.is_set_flags |= 0x80000;
-        self.peer_unidi_stream_count = value;
-        self
-    }
-    pub fn set_idle_timeout_ms(&mut self, value: u64) -> &mut Settings {
-        self.is_set_flags |= 0x4;
-        self.idle_timeout_ms = value;
-        self
-    }
-    pub fn set_datagram_receive_enabled(&mut self, value: bool) -> &mut Settings {
-        self.is_set_flags |= 1 << 27;
-        self.other_flags |= (value as u8) << 3;
-        self
-    }
-    #[cfg(feature = "preview-api")]
-    pub fn set_stream_multi_receive_enabled(&mut self, value: bool) -> &mut Settings {
-        self.is_set_flags |= 1 << 42;
-        self.other2_flags |= (value as u64) << 5;
-        self
-    }
-}
-
 impl CredentialConfig {
     pub fn new_client() -> CredentialConfig {
         CredentialConfig {
@@ -961,21 +896,24 @@ impl Configuration {
     pub fn new(
         registration: &Registration,
         alpn: &[BufferRef],
-        settings: *const Settings,
+        settings: Option<&Settings>,
     ) -> Result<Configuration, Status> {
         let context: *mut c_void = ptr::null_mut();
         let mut new_configuration: HQUIC = ptr::null_mut();
-        let mut settings_size: u32 = 0;
-        if !settings.is_null() {
-            settings_size = ::std::mem::size_of::<Settings>() as u32;
-        }
+        let (settings_ptr, settings_size) = match settings {
+            Some(s) => (
+                s.as_ffi_ref() as *const QUIC_SETTINGS,
+                ::std::mem::size_of::<QUIC_SETTINGS>() as u32,
+            ),
+            None => (std::ptr::null(), 0),
+        };
 
         let status = unsafe {
             Api::ffi_ref().ConfigurationOpen.unwrap()(
                 registration.as_raw(),
                 alpn.as_ptr() as *const QUIC_BUFFER,
                 alpn.len() as u32,
-                settings as *const QUIC_SETTINGS,
+                settings_ptr,
                 settings_size,
                 context,
                 std::ptr::addr_of_mut!(new_configuration),
@@ -1519,19 +1457,12 @@ mod tests {
         }
 
         let alpn = [BufferRef::from("h3")];
-        let res = Configuration::new(
-            &registration,
-            &alpn,
-            #[cfg(feature = "preview-api")]
-            Settings::new()
-                .set_peer_bidi_stream_count(100)
-                .set_peer_unidi_stream_count(3)
-                .set_stream_multi_receive_enabled(true),
-            #[cfg(not(feature = "preview-api"))]
-            Settings::new()
-                .set_peer_bidi_stream_count(100)
-                .set_peer_unidi_stream_count(3),
-        );
+        let settings = Settings::new()
+            .set_PeerBidiStreamCount(100)
+            .set_PeerUnidiStreamCount(3);
+        #[cfg(feature = "preview-api")]
+        let settings = settings.set_StreamMultiReceiveEnabled();
+        let res = Configuration::new(&registration, &alpn, Some(&settings));
         assert!(
             res.is_ok(),
             "Failed to open configuration: {}",
