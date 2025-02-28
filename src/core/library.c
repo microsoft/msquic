@@ -2422,7 +2422,9 @@ QuicLibraryEvaluateSendRetryState(
             "[ lib] New SendRetryEnabled state, %hhu",
             NewSendRetryState);
 
-        // Notify all listeners about the state change
+        //
+        // Notify all bindings and listeners about the state change.
+        //
         CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
         for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
             Link != &MsQuicLib.Bindings;

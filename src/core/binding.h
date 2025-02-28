@@ -473,7 +473,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingHandleDosModeStateChange(
     _In_ QUIC_BINDING* Binding,
-    _In_ BOOLEAN DosModeStateChange
+    _In_ BOOLEAN DosModeEnabled
     );
 
 //

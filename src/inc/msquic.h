@@ -894,7 +894,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
 #endif
-#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004
+#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004  // BOOLEAN
 
 //
 // Parameters for Connection.
@@ -1101,7 +1101,7 @@ typedef struct QUIC_LISTENER_EVENT {
         struct {
             BOOLEAN DosModeEnabled : 1;
             BOOLEAN RESERVED       : 7;
-        } DOS_MODE;
+        } DOS_MODE_CHANGED;
     };
 } QUIC_LISTENER_EVENT;
 

@@ -3207,19 +3207,6 @@ void DosMitigationTests(HQUIC Handle, uint32_t Param) {
                     sizeof(buffer),
                     &buffer));
         }
-
-        //
-        // Good without value, length 0
-        //
-        {
-            TestScopeLogger LogScope1("no value, Bufferlength == 0");
-            TEST_QUIC_SUCCEEDED(
-                MsQuic->SetParam(
-                    Handle,
-                    Param,
-                    0,
-                    nullptr));
-        }
     }
 
     //

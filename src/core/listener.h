@@ -37,9 +37,9 @@ typedef struct QUIC_LISTENER {
     BOOLEAN NeedsCleanup;
 
     //
-    // Indicates the listener opted in for DosMitigation event.
+    // Indicates the listener opted in for DoS Mode event.
     //
-    BOOLEAN DosMitigationOptIn;
+    BOOLEAN DosModeEventsEnabled;
 
     //
     // The thread ID that the listener is actively indicating a stop compelete
@@ -228,4 +228,11 @@ void
 QuicListenerHandleDosModeStateChange(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN DosModeStateChange
+    );
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicLibraryEvaluateSendRetryState(
+    void
     );

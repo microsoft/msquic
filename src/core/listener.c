@@ -68,7 +68,7 @@ MsQuicListenerOpen(
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
-    Listener->DosMitigationOptIn = FALSE;
+    Listener->DosModeEventsEnabled = FALSE;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
@@ -785,19 +785,13 @@ QuicListenerParamSet(
 
         return QUIC_STATUS_SUCCESS;
     } else if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
-        if (BufferLength > sizeof(BOOLEAN)) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-
-        if (BufferLength == 0) {
-            //no value provided
+        if (BufferLength == sizeof(BOOLEAN)) {
+            Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
+            if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
+                (void)QuicLibraryEvaluateSendRetryState();
+            }
             return QUIC_STATUS_SUCCESS;
         }
-
-        if (BufferLength == sizeof(BOOLEAN)) {
-            Listener->DosMitigationOptIn = *(BOOLEAN*)Buffer;
-        }
-        return QUIC_STATUS_SUCCESS;
     }
 
     return QUIC_STATUS_INVALID_PARAMETER;
@@ -892,12 +886,12 @@ QuicListenerParamGet(
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        if (*BufferLength < sizeof(Listener->DosMitigationOptIn)) {
+        if (*BufferLength < sizeof(Listener->DosModeEventsEnabled)) {
             return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
-        *BufferLength = sizeof(Listener->DosMitigationOptIn);
-        memcpy(Buffer, &Listener->DosMitigationOptIn, sizeof(Listener->DosMitigationOptIn));
+        *BufferLength = sizeof(Listener->DosModeEventsEnabled);
+        memcpy(Buffer, &Listener->DosModeEventsEnabled, sizeof(Listener->DosModeEventsEnabled));
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -914,17 +908,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerHandleDosModeStateChange(
     _In_ QUIC_LISTENER* Listener,
-    _In_ BOOLEAN DosModeStateChange
+    _In_ BOOLEAN DosModeEnabled
     )
 {
-    if (Listener->DosMitigationOptIn == TRUE) {
+    if (Listener->DosModeEventsEnabled) {
         QUIC_LISTENER_EVENT Event;
         Event.Type = QUIC_LISTENER_EVENT_DOS_MODE_CHANGED;
-        Event.DOS_MODE.DosModeEnabled = DosModeStateChange;
+        Event.DOS_MODE_CHANGED.DosModeEnabled = DosModeEnabled;
 
         QuicListenerAttachSilo(Listener);
 
-        QUIC_STATUS Status = QuicListenerIndicateDispatchEvent(Listener, &Event);
+        (void)QuicListenerIndicateDispatchEvent(Listener, &Event);
 
         QuicListenerDetachSilo();
     }
