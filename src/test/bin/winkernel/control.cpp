@@ -1522,6 +1522,16 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
         break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectionPoolCreate(
+                Params->ConnPoolCreateParams.Family,
+                Params->ConnPoolCreateParams.NumberOfConnections,
+                Params->ConnPoolCreateParams.XdpSupported == TRUE,
+                Params->ConnPoolCreateParams.TestCibirSupport == TRUE));
+        break;
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:

@@ -1722,11 +1722,8 @@ TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
-#if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-    GTEST_SKIP();
-#endif
-
     TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
@@ -1744,6 +1741,7 @@ TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
             GetParam().TestCibirSupport);
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
@@ -2581,6 +2579,13 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs12,
+    testing::ValuesIn(HandshakeArgs12::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,

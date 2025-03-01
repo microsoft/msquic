@@ -4080,6 +4080,7 @@ struct ConnectionPoolConnectionContext {
     }
 };
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestConnectionPoolCreate(
     _In_ int Family,
@@ -4207,3 +4208,4 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
