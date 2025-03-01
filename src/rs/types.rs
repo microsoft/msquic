@@ -103,6 +103,10 @@ pub enum ConnectionEvent<'a> {
     PeerAddressChanged {
         address: &'a crate::Addr,
     },
+    /// Stream ownership and cleanup is on user app.
+    /// App needs to set the stream callback handler before
+    /// returning from connection callback.
+    // TODO: may need to change StreamRef to Stream for better safety.
     PeerStreamStarted {
         stream: crate::StreamRef,
         // TODO: provide safe wrapper.
