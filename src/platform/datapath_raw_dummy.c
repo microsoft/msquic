@@ -126,10 +126,12 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(UseQTIP);
     return 1500;
 }
 

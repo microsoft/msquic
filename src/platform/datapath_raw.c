@@ -202,11 +202,12 @@ RawSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_SOCKET_RAW* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     // Reserve space for TCP header.
-    return Socket->UseTcp ? 1488 : 1500;
+    return UseQTIP ? 1488 : 1500;
 
 }
 
@@ -234,12 +235,8 @@ CxPlatDpRawRxEthernet(
 
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                //
-                // If we have UseTcp enabled, we should still support UDP type of packets.
-                //
-                // uint8_t SocketType = (Socket->UseTcp && PacketChain->Reserved == L4_TYPE_TCP) ? L4_TYPE_TCP : L4_TYPE_UDP;
 
-                uint8_t SocketType = (Socket->UseTcp) ? L4_TYPE_TCP : L4_TYPE_UDP; // This is the old code
+                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
 
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
@@ -354,7 +351,7 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Socket->UseTcp &&
+    if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
         Socket->PausedTcpSend = SendData;

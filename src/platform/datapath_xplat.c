@@ -222,13 +222,14 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket), UseQTIP);
     }
     return Socket->Mtu;
 }
@@ -290,7 +291,7 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Config->Route->UseQTIP || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
