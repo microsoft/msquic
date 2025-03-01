@@ -206,9 +206,9 @@ RawSocketGetLocalMtu(
     _In_ BOOLEAN UseQTIP
     )
 {
+    UNREFERENCED_PARAMETER(Socket);
     // Reserve space for TCP header.
     return UseQTIP ? 1488 : 1500;
-
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
