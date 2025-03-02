@@ -279,9 +279,6 @@ void
 PerfServer::SimulateDelay()
 {
     if (DelayMicroseconds == 0) {
-        //
-        // no delay introduced
-        //
         return;
     }
 
@@ -334,8 +331,10 @@ PerfServer::StreamCallback(
                 // TODO - Not supported right now
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
             } else {
+                CXPLAT_FRE_ASSERT(Context->Handle == (void*)StreamHandle);
+                CXPLAT_FRE_ASSERT(!Context->IsTcp);
                 if (DelayWorkers) {
-                    SendDelayedResponse(Context, StreamHandle, false);
+                    SendDelayedResponse(Context);
                 } else {
                     SendResponse(Context, StreamHandle, false);
                 }
@@ -405,22 +404,18 @@ PerfServer::SendResponse(
 }
 
 void
-PerfServer::SendDelayedResponse(
-    _In_ StreamContext* Context,
-    _In_ void* Handle,
-    _In_ bool IsTcp
-    )
+PerfServer::SendDelayedResponse(_In_ StreamContext* Context)
 {
     uint16_t WorkerNumber = (uint16_t)CxPlatProcCurrentNumber();
     CXPLAT_DBG_ASSERT(WorkerNumber < ProcCount);
     Context->AddRef();
-    if (IsTcp) {
+    if (Context->IsTcp) {
         //
         // TcpConnection object is separately reference counted
         //
-        CXPLAT_FRE_ASSERT(((TcpConnection*)Handle)->TryAddRef());
+        CXPLAT_FRE_ASSERT(((TcpConnection*)Context->Handle)->TryAddRef());
     }
-    DelayWorkers[WorkerNumber].QueueWork(Context, Handle, IsTcp);
+    DelayWorkers[WorkerNumber].QueueWork(Context);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -516,8 +511,10 @@ PerfServer::TcpReceiveCallback(
 
     } else if (Fin) {
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
+            CXPLAT_FRE_ASSERT(Stream->Handle == (void*)Connection);
+            CXPLAT_FRE_ASSERT(Stream->IsTcp);
             if (Server->DelayWorkers) {
-                Server->SendDelayedResponse(Stream, Connection, true);
+                Server->SendDelayedResponse(Stream);
             } else {
                 Server->SendResponse(Stream, Connection, true);
             }
@@ -613,13 +610,9 @@ void DelayWorker::Shutdown()
     }
 }
 
-void DelayWorker::WakeWorkerThread() {
-    WakeEvent.Set();
-}
-
-CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Context)
+CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Worker)
 {
-    DelayWorker* This = (DelayWorker*)Context;
+    DelayWorker* This = (DelayWorker*)Worker;
     while (DelayedWork(This)) {
         This->WakeEvent.WaitForever();
     }
@@ -627,11 +620,9 @@ CXPLAT_THREAD_CALLBACK(DelayWorker::WorkerThread, Context)
 }
 
 BOOLEAN
-DelayWorker::DelayedWork(
-    _Inout_ void* Context
-    )
+DelayWorker::DelayedWork(_Inout_ void* Worker)
 {
-    DelayWorker* This = (DelayWorker*)Context;
+    DelayWorker* This = (DelayWorker*)Worker;
     DelayedWorkContext* WorkItem;
     DelayedWorkContext* NextWorkItem;
 
@@ -660,7 +651,7 @@ DelayWorker::DelayedWork(
         if (nullptr != WorkItem) {
             This->Server->SimulateDelay();
             if (WorkItem->Context->IsActive()) {
-                This->Server->SendResponse(WorkItem->Context, WorkItem->Handle, WorkItem->IsTcp);
+                This->Server->SendResponse(WorkItem->Context, WorkItem->Context->Handle, WorkItem->Context->IsTcp);
             }
             WorkItem->Context->Release();
             delete WorkItem;
@@ -671,17 +662,10 @@ DelayWorker::DelayedWork(
 }
 
 void
-DelayWorker::QueueWork(
-    _In_ StreamContext* Context,
-    _In_ void* Handle,
-    _In_ bool IsTcp
-    )
+DelayWorker::QueueWork(_In_ StreamContext* Context)
 {
     DelayedWorkContext* Work = new (std::nothrow) DelayedWorkContext();
-
     Work->Context = Context;
-    Work->Handle = Handle;
-    Work->IsTcp = IsTcp;
 
     Lock.Acquire();
     *WorkItemsTail = Work;

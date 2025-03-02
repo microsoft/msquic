@@ -26,45 +26,37 @@ typedef enum SYNTHETIC_DELAY_TYPE {
 
 struct DelayedWorkContext {
     StreamContext* Context;
-    void* Handle;
-    bool IsTcp;
     DelayedWorkContext* Next;
 };
 
 class DelayWorker {
 public:
-    PerfServer* Server {nullptr};
-    bool Initialized {false};
-    CxPlatThread Thread;
-    CxPlatEvent WakeEvent;
-    CxPlatEvent DoneEvent;
+    PerfServer* Server{ nullptr };
+    bool Initialized{ false };
+    CxPlatThread Thread{ true };
+    CxPlatEvent WakeEvent{ false };
+    CxPlatEvent DoneEvent{ true };
     CxPlatLock Lock;
     DelayedWorkContext* WorkItems {nullptr};
     DelayedWorkContext** WorkItemsTail {&WorkItems};
     bool Shuttingdown {false};
 
-    DelayWorker() : Thread(true), WakeEvent(false), DoneEvent(true), Lock()
-    {
-    }
+    DelayWorker() {}
 
-    ~DelayWorker()
-    {
+    ~DelayWorker() {
         CXPLAT_FRE_ASSERT(!WorkItems);
         CXPLAT_FRE_ASSERT(!Initialized);
     }
 
+    void WakeWorkerThread() {
+        WakeEvent.Set();
+    }
+
     bool Initialize(PerfServer* GivenServer, uint16_t PartitionIndex);
     void Shutdown();
-    void WakeWorkerThread();
-    static CXPLAT_THREAD_CALLBACK(WorkerThread, Context);
-    void QueueWork(
-        _In_ StreamContext* Context,
-        _In_ void* Handle,
-        _In_ bool IsTcp
-        );
-    static BOOLEAN DelayedWork(
-        _Inout_ void* Context
-        );
+    void QueueWork(_In_ StreamContext* Context);
+    static CXPLAT_THREAD_CALLBACK(WorkerThread, Worker);
+    static BOOLEAN DelayedWork(_Inout_ void* Worker);
 };
 
 class PerfServer {
@@ -111,11 +103,7 @@ public:
         _In_ bool IsTcp
         );
     void
-    SendDelayedResponse(
-        _In_ StreamContext* Context,
-        _In_ void* StreamHandle,
-        _In_ bool IsTcp
-        );
+    SendDelayedResponse(_In_ StreamContext* Context);
 
     static CXPLAT_DATAPATH_RECEIVE_CALLBACK DatapathReceive;
     static void DatapathUnreachable(_In_ CXPLAT_SOCKET*, _In_ void*, _In_ const QUIC_ADDR*) { }
