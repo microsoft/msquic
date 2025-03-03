@@ -384,9 +384,9 @@ function Wait-Executable($Exe) {
         }
         # Wait up to 30 seconds for files to appear in $LogDir if $AZP is set.
         if ($AZP) {
-            $Timeout = 30
             $Elapsed = 0
-            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $LogDir).Count -eq 0) {
+            $Timeout = 30
+            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $LogDir | Measure-Object).Count -eq 0) {
                 Start-Sleep -Seconds 1
                 $Elapsed++
             }
@@ -472,7 +472,7 @@ function Wait-Executable($Exe) {
             }
 
             Log "Output available at $LogDir"
-            if ($AZP) { dir }
+            if ($AZP) { dir $LogDir }
 
         } else {
             if ($LogProfile -ne "None") {
