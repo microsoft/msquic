@@ -227,8 +227,13 @@ if (WIN32)
         endif()
     endif()
 
-    # Configure linker to only load from the system directory.
-    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
+    if (QUIC_ENABLE_SANITIZERS)
+        message(STATUS "Allowing non-system32 DLLs to be loaded for ASAN")
+    else()
+        # Configure linker to only load from the system directory.
+        message(STATUS "Configuring linker to only load from the system directory")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
+    endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
