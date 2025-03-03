@@ -1007,10 +1007,16 @@ impl Default for Connection {
     }
 }
 
+// Remarks on Rust callback in general:
+// Callback function or closure is set to msquic handle context of type `*mut Box<TCallback>>`.
+// We cannot use type `*mut TCallback` because dyn trait cannot be converted to a pointer directly.
+// In the ffi function passed to msquic, the TCallback is extracted from msquic callback context
+// and invoked.
+// The context is cleaned up when connection is dropped or when new callback is set.
+// TCallback type is either Fn or FnMut type, so user can capture variables in them without worrying
+// about lifetime and how to set or cleanup msquic callback context.
+
 /// Connection callback type.
-/// Callback function or closure is set to connection msquic context of type `*mut Box<ConnectionCallback>>`.
-/// We cannot use type `*mut ConnectionCallback` because dyn trait cannot be converted to a pointer directly.
-/// The context is cleaned up when connection is dropped or when new callback is set.
 /// msquic never invokes the connection callback in parallel, so use FnMut to allow mutation.
 type ConnectionCallback = dyn FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static;
 
@@ -1199,7 +1205,7 @@ impl Default for Listener {
 }
 
 /// Listener callback.
-/// msquic may execute listener callback on the same stream in parallel,
+/// msquic may execute listener callback in parallel,
 /// so Fn is used for immutability.
 pub type ListenerCallback = dyn Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static;
 
