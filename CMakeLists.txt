@@ -19,7 +19,7 @@ message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_VS_GLOBALS "UseInternalMSUniCrtPackage=true")
- 
+
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -57,7 +57,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.4.7)
+set(QUIC_FULL_VERSION 2.4.8)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -227,6 +227,14 @@ if (WIN32)
         if(NOT HAS_SPECTRE AND NOT QUIC_ENABLE_SANITIZERS AND NOT QUIC_UWP_BUILD)
             message(FATAL_ERROR "/Qspectre must exist for CI builds")
         endif()
+    endif()
+
+    if (QUIC_ENABLE_SANITIZERS)
+        message(STATUS "Allowing non-system32 DLLs to be loaded for ASAN")
+    else()
+        # Configure linker to only load from the system directory.
+        message(STATUS "Configuring linker to only load from the system directory")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
     endif()
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
