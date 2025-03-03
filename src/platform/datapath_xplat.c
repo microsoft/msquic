@@ -419,6 +419,20 @@ CxPlatResolveRoute(
     _In_ uint8_t OverrideGlobalQTIPSettings
     )
 {
+    if (Socket->IsServer) {
+        QuicTraceLogVerbose(
+            LogResolveRouteServer,
+            "[sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+            Route->UseQTIP,
+            OverrideGlobalQTIPSettings);
+    } else {
+         QuicTraceLogVerbose(
+            LogResolveRouteClient,
+            "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+            UseQTIP,
+            OverrideGlobalQTIPSettings);
+    }
+
     if (OverrideGlobalQTIPSettings) {
         //
         // The current Socket is part of a client Connection,

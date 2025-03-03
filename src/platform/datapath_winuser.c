@@ -1539,7 +1539,11 @@ SocketCreateUdp(
     }
 
     for (uint16_t i = 0; i < SocketCount; i++) {
-
+        QuicTraceEvent(
+                SocketAllocEvent,
+                "[data][%p] Allocating Per Proc Socket... %u",
+                Socket,
+                i);
         CXPLAT_SOCKET_PROC* SocketProc = &Socket->PerProcSockets[i];
         const uint16_t PartitionIndex =
             Config->RemoteAddress ?
