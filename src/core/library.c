@@ -829,6 +829,11 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
         MsQuicLib.Settings.IsSet.RetryMemoryLimit = TRUE;
+
+        MsQuicLib.HandshakeMemoryLimit =
+            (MsQuicLib.Settings.RetryMemoryLimit * CxPlatTotalMemory) / UINT16_MAX;
+        QuicLibraryEvaluateSendRetryState();
+
         QuicTraceLogInfo(
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
@@ -2412,8 +2417,6 @@ QuicLibraryEvaluateSendRetryState(
     void
     )
 {
-    MsQuicLib.HandshakeMemoryLimit =
-            (MsQuicLib.Settings.RetryMemoryLimit * CxPlatTotalMemory) / UINT16_MAX;
     BOOLEAN NewSendRetryState =
         MsQuicLib.CurrentHandshakeMemoryUsage >= MsQuicLib.HandshakeMemoryLimit;
 

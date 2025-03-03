@@ -3446,7 +3446,6 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
-
 void
 QuicTestRetryMemoryLimitConnect(
     _In_ int Family
@@ -3464,11 +3463,11 @@ QuicTestRetryMemoryLimitConnect(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                NULL,
-                QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-                sizeof(RetryMemoryLimit),
-                &RetryMemoryLimit));
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -3486,6 +3485,18 @@ QuicTestRetryMemoryLimitConnect(
                 QUIC_PARAM_DOS_MODE_EVENTS,
                 sizeof(buffer),
                 &buffer));
+
+
+    uint32_t Length = 65535;
+    buffer[0] = {0};
+    TEST_QUIC_SUCCEEDED(
+        Listener.GetParam(
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            &Length,
+            &buffer));
+    TEST_EQUAL(Length, 1 /*sizeof Listener->DosMitigationOptIn) */);
+    TEST_EQUAL(buffer[0], 1);
+
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
@@ -3505,7 +3516,6 @@ QuicTestRetryMemoryLimitConnect(
     Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
-
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void

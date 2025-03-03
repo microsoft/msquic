@@ -788,7 +788,7 @@ QuicListenerParamSet(
         if (BufferLength == sizeof(BOOLEAN)) {
             Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
             if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
-                (void)QuicLibraryEvaluateSendRetryState();
+                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
             }
             return QUIC_STATUS_SUCCESS;
         }
@@ -882,12 +882,13 @@ QuicListenerParamGet(
 
     case QUIC_PARAM_DOS_MODE_EVENTS:
 
-        if (Buffer == NULL) {
-            return QUIC_STATUS_INVALID_PARAMETER;
+        if (*BufferLength < sizeof(Listener->DosModeEventsEnabled)) {
+            *BufferLength = sizeof(Listener->DosModeEventsEnabled);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
 
-        if (*BufferLength < sizeof(Listener->DosModeEventsEnabled)) {
-            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
 
         *BufferLength = sizeof(Listener->DosModeEventsEnabled);

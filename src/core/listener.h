@@ -212,27 +212,13 @@ QuicListenerParamGet(
         void* Buffer
     );
 
-//
-// Indicate event to Listener.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QuicListenerIndicateDispatchEvent(
-    _In_ QUIC_LISTENER* Listener,
-    _Inout_ QUIC_LISTENER_EVENT* Event
-    );
 
-
+//
+// Indicate listener about DoS mode change.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerHandleDosModeStateChange(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN DosModeStateChange
-    );
-
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicLibraryEvaluateSendRetryState(
-    void
     );
