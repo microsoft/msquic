@@ -9,6 +9,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -69,12 +73,12 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@f551dafcc94572adc179bbddbb409b3ada8f8ff5
+      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -86,6 +90,13 @@ jobs:
       if: inputs.build == '-Test'
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} -DisablePerf -DynamicCRT ${{ inputs.sanitize }}
+    - name: Build External Platform Test
+      if: inputs.build == '-Test'
+      shell: pwsh
+      run: |
+        cmake --install build\${{ inputs.plat }}\${{ inputs.arch }}_${{ inputs.tls }} --config ${{ inputs.config }}
+        cmake src/platform/unittest/external -G "Visual Studio 17 2022" -A ${{ inputs.arch }} -B build_external "-DCMAKE_INSTALL_PREFIX:PATH=C:/Program Files/msquic"
+        cmake --build build_external --config ${{ inputs.config }}
     - name: Build For Perf
       if: inputs.build == '-Perf'
       shell: pwsh
@@ -101,7 +112,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
         path: artifacts

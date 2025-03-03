@@ -99,6 +99,7 @@ Environment:
 #define QUIC_STATUS_INVALID_STATE           E_NOT_VALID_STATE                               // 0x8007139f
 #define QUIC_STATUS_NOT_SUPPORTED           E_NOINTERFACE                                   // 0x80004002
 #define QUIC_STATUS_NOT_FOUND               HRESULT_FROM_WIN32(ERROR_NOT_FOUND)             // 0x80070490
+#define QUIC_STATUS_FILE_NOT_FOUND          HRESULT_FROM_WIN32(ERROR_FILE_NOT_FOUND)        // 0x80070002
 #define QUIC_STATUS_BUFFER_TOO_SMALL        E_NOT_SUFFICIENT_BUFFER                         // 0x8007007a
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ERROR_QUIC_HANDSHAKE_FAILURE                    // 0x80410000
 #define QUIC_STATUS_ABORTED                 E_ABORT                                         // 0x80004004
@@ -259,9 +260,11 @@ QuicAddrSetToLoopback(
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        Addr->Ipv4.sin_addr.s_addr = 0UL;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
+        memset(&Addr->Ipv6.sin6_addr, 0, sizeof(Addr->Ipv6.sin6_addr));
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
 }

@@ -30,6 +30,12 @@ TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
 QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
+//
+// To determine the OS version, we are going to use RtlGetVersion API
+// since GetVersion call can be shimmed on Win8.1+.
+//
+typedef LONG (WINAPI *FuncRtlGetVersion)(RTL_OSVERSIONINFOW *);
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSystemLoad(
@@ -147,6 +153,9 @@ CxPlatProcessorInfoInit(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CxPlatZeroMemory(
+        CxPlatProcessorInfo,
+        ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
     CxPlatProcessorGroupInfo =
@@ -176,14 +185,18 @@ CxPlatProcessorInfoInit(
             if (Proc >= CxPlatProcessorGroupInfo[Group].Offset &&
                 Proc < CxPlatProcessorGroupInfo[Group].Offset + Info->Group.GroupInfo[Group].ActiveProcessorCount) {
                 CxPlatProcessorInfo[Proc].Group = Group;
-                CxPlatProcessorInfo[Proc].Index = (Proc - CxPlatProcessorGroupInfo[Group].Offset);
+                CXPLAT_DBG_ASSERT(Proc - CxPlatProcessorGroupInfo[Group].Offset <= UINT8_MAX);
+                CxPlatProcessorInfo[Proc].Index = (uint8_t)(Proc - CxPlatProcessorGroupInfo[Group].Offset);
+#pragma warning(push)
+#pragma warning(disable:6385) // Reading invalid data from 'CxPlatProcessorInfo' (FALSE POSITIVE)
                 QuicTraceLogInfo(
-                    ProcessorInfoV2,
-                    "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
+                    ProcessorInfoV3,
+                    "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu",
                     Proc,
                     (uint16_t)Group,
                     CxPlatProcessorInfo[Proc].Index,
                     (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
+#pragma warning(pop)
                 break;
             }
         }
@@ -241,6 +254,22 @@ CxPlatInitialize(
         goto Error;
     }
 
+    BOOLEAN SuccessfullySetVersion = FALSE;
+    HMODULE NtDllHandle = LoadLibraryA("ntdll.dll");
+    if (NtDllHandle) {
+        FuncRtlGetVersion VersionFunc = (FuncRtlGetVersion)GetProcAddress(NtDllHandle, "RtlGetVersion");
+        if (VersionFunc) {
+            RTL_OSVERSIONINFOW VersionInfo = {0};
+            VersionInfo.dwOSVersionInfoSize = sizeof(VersionInfo);
+            if ((*VersionFunc)(&VersionInfo) == 0) {
+                CxPlatform.dwBuildNumber = VersionInfo.dwBuildNumber;
+                SuccessfullySetVersion = TRUE;
+            }
+        }
+        FreeLibrary(NtDllHandle);
+    }
+    CXPLAT_DBG_ASSERT(SuccessfullySetVersion); // TODO: Is the assert here enough or is there an appropriate QUIC_STATUS we return?
+
     if (QUIC_FAILED(Status = CxPlatProcessorInfoInit())) {
         QuicTraceEvent(
             LibraryError,
@@ -294,8 +323,6 @@ CxPlatInitialize(
     }
     CryptoInitialized = TRUE;
 
-    CxPlatWorkersInit();
-
 #ifdef TIMERR_NOERROR
     QuicTraceLogInfo(
         WindowsUserInitialized2,
@@ -334,7 +361,6 @@ CxPlatUninitialize(
     void
     )
 {
-    CxPlatWorkersUninit();
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
@@ -584,17 +610,6 @@ CxPlatGetProcessorGroupInfo(
     return QUIC_STATUS_SUCCESS;
 }
 
-void
-CxPlatDatapathSqeInitialize(
-    _Out_ DATAPATH_SQE* DatapathSqe,
-    _In_ uint32_t CqeType
-    )
-{
-    RtlZeroMemory(DatapathSqe, sizeof(*DatapathSqe));
-    DatapathSqe->CqeType = CqeType;
-    DatapathSqe->Sqe.UserData = DatapathSqe;
-}
-
 #ifdef DEBUG
 void
 CxPlatSetAllocFailDenominator(
@@ -611,6 +626,118 @@ CxPlatGetAllocFailDenominator(
     return CxPlatform.AllocFailDenominator;
 }
 #endif
+
+QUIC_STATUS
+CxPlatThreadCreate(
+    _In_ CXPLAT_THREAD_CONFIG* Config,
+    _Out_ CXPLAT_THREAD* Thread
+    )
+{
+#ifdef CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+    CXPLAT_THREAD_CUSTOM_CONTEXT* CustomContext =
+        CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT), QUIC_POOL_CUSTOM_THREAD);
+    if (CustomContext == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Custom thread context",
+            sizeof(CXPLAT_THREAD_CUSTOM_CONTEXT));
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+    CustomContext->Callback = Config->Callback;
+    CustomContext->Context = Config->Context;
+    *Thread =
+        CreateThread(
+            NULL,
+            0,
+            CxPlatThreadCustomStart,
+            CustomContext,
+            0,
+            NULL);
+    if (*Thread == NULL) {
+        CXPLAT_FREE(CustomContext, QUIC_POOL_CUSTOM_THREAD);
+        DWORD Error = GetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "CreateThread");
+        return Error;
+    }
+#else // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+    *Thread =
+        CreateThread(
+            NULL,
+            0,
+            Config->Callback,
+            Config->Context,
+            0,
+            NULL);
+    if (*Thread == NULL) {
+        DWORD Error = GetLastError();
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Error,
+            "CreateThread");
+        return Error;
+    }
+#endif // CXPLAT_USE_CUSTOM_THREAD_CONTEXT
+    CXPLAT_DBG_ASSERT(Config->IdealProcessor < CxPlatProcCount());
+    const CXPLAT_PROCESSOR_INFO* ProcInfo = &CxPlatProcessorInfo[Config->IdealProcessor];
+    GROUP_AFFINITY Group = {0};
+    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_AFFINITIZE) {
+        Group.Mask = (KAFFINITY)(1ull << ProcInfo->Index);          // Fixed processor
+    } else {
+        Group.Mask = CxPlatProcessorGroupInfo[ProcInfo->Group].Mask;
+    }
+    Group.Group = ProcInfo->Group;
+    if (!SetThreadGroupAffinity(*Thread, &Group, NULL)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "SetThreadGroupAffinity");
+    }
+    if (Config->Flags & CXPLAT_THREAD_FLAG_SET_IDEAL_PROC &&
+        !SetThreadIdealProcessorEx(*Thread, (PROCESSOR_NUMBER*)ProcInfo, NULL)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "SetThreadIdealProcessorEx");
+    }
+    if (Config->Flags & CXPLAT_THREAD_FLAG_HIGH_PRIORITY &&
+        !SetThreadPriority(*Thread, THREAD_PRIORITY_HIGHEST)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            GetLastError(),
+            "SetThreadPriority");
+    }
+    if (Config->Name) {
+        WCHAR WideName[64] = L"";
+        size_t WideNameLength;
+        mbstowcs_s(
+            &WideNameLength,
+            WideName,
+            ARRAYSIZE(WideName) - 1,
+            Config->Name,
+            _TRUNCATE);
+#if defined(QUIC_RESTRICTED_BUILD)
+        SetThreadDescription(*Thread, WideName);
+#else
+        THREAD_NAME_INFORMATION_PRIVATE ThreadNameInfo;
+        RtlInitUnicodeString(&ThreadNameInfo.ThreadName, WideName);
+        NtSetInformationThread(
+            *Thread,
+            ThreadNameInformationPrivate,
+            &ThreadNameInfo,
+            sizeof(ThreadNameInfo));
+#endif
+    }
+    return QUIC_STATUS_SUCCESS;
+}
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 _IRQL_requires_max_(PASSIVE_LEVEL)

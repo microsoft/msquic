@@ -24,6 +24,12 @@ extern "C" {
 #include "quic_datapath.h"
 }
 
+#ifndef _KERNEL_MODE
+extern CXPLAT_WORKER_POOL WorkerPool;
+#else
+static CXPLAT_WORKER_POOL WorkerPool;
+#endif
+
 void
 QuicDrillTestVarIntEncoder(
     )
@@ -75,6 +81,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 QuicDrillConnectionCallbackHandler(
     _In_ TestListener* /* Listener */,
     _In_ HQUIC /* ConnectionHandle */
@@ -140,6 +147,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
+                &WorkerPool,
                 NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
@@ -191,7 +199,6 @@ struct DrillSender {
         _In_ const DrillBuffer& PacketBuffer
         )
     {
-        QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
         CXPLAT_FRE_ASSERT(PacketBuffer.size() <= UINT16_MAX);
         const uint16_t DatagramLength = (uint16_t) PacketBuffer.size();
 
@@ -199,7 +206,7 @@ struct DrillSender {
         CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
         Route.RemoteAddress = ServerAddress;
 
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
 
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
 
@@ -208,8 +215,7 @@ struct DrillSender {
 
         if (SendBuffer == nullptr) {
             TEST_FAILURE("Buffer null");
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            return Status;
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
 
         //
@@ -217,13 +223,12 @@ struct DrillSender {
         //
         memcpy(SendBuffer->Buffer, PacketBuffer.data(), DatagramLength);
 
-        Status =
-            CxPlatSocketSend(
-                Binding,
-                &Route,
-                SendData);
+        CxPlatSocketSend(
+            Binding,
+            &Route,
+            SendData);
 
-        return Status;
+        return QUIC_STATUS_SUCCESS;
     }
 };
 

@@ -31,6 +31,7 @@
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
+static CXPLAT_WORKER_POOL WorkerPool;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -172,7 +173,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
             continue;
         }
 
-        CXPLAT_SEND_CONFIG SendConfig = {&Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = {&Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
         if (SendData == nullptr) {
             continue;
@@ -287,7 +288,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             continue;
         }
 
-        CXPLAT_SEND_CONFIG SendConfig = {&Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = {&Route, DatagramLength, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding, &SendConfig);
         if (SendData == nullptr) {
             continue;
@@ -463,9 +464,11 @@ main(
         };
         CxPlatSystemLoad();
         CxPlatInitialize();
+        CxPlatWorkerPoolInit(&WorkerPool);
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
+            NULL,
             NULL,
             &DatapathFlags,
             &Datapath);
@@ -510,6 +513,7 @@ main(
 
         Error:
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolUninit(&WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

@@ -626,7 +626,7 @@ BbrCongestionControlGetSendAllowance(
         !TimeSinceLastSendValid ||
         !Connection->Settings.PacingEnabled ||
         Bbr->MinRtt == UINT32_MAX ||
-        Bbr->MinRtt < MS_TO_US(QUIC_SEND_PACING_INTERVAL)) {
+        Bbr->MinRtt < QUIC_SEND_PACING_INTERVAL) {
         //
         // We're not in the necessary state to pace.
         //

@@ -85,6 +85,7 @@ QuicWorkerInitialize(
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
     CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
+    CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_APP_BUFFER_CHUNK, &Worker->AppBufferChunkPool);
 
     QUIC_STATUS Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
@@ -99,13 +100,33 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&Worker->ExecutionContext, PartitionIndex);
+        CxPlatAddExecutionContext(&MsQuicLib.WorkerPool, &Worker->ExecutionContext, PartitionIndex);
     } else
 #endif // _KERNEL_MODE
     {
-        const uint16_t ThreadFlags =
-            ExecProfile == QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME ?
-                CXPLAT_THREAD_FLAG_SET_AFFINITIZE : CXPLAT_THREAD_FLAG_NONE;
+        uint16_t ThreadFlags;
+        switch (ExecProfile) {
+        default:
+        case QUIC_EXECUTION_PROFILE_LOW_LATENCY:
+        case QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_SCAVENGER:
+            ThreadFlags = CXPLAT_THREAD_FLAG_NONE;
+            break;
+        case QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME:
+            ThreadFlags = CXPLAT_THREAD_FLAG_SET_AFFINITIZE | CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+            break;
+        }
+
+        if (MsQuicLib.ExecutionConfig) {
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+                ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
+            }
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+                ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
+            }
+        }
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
@@ -180,6 +201,7 @@ QuicWorkerUninitialize(
     CxPlatPoolUninitialize(&Worker->ApiContextPool);
     CxPlatPoolUninitialize(&Worker->StatelessContextPool);
     CxPlatPoolUninitialize(&Worker->OperPool);
+    CxPlatPoolUninitialize(&Worker->AppBufferChunkPool);
     CxPlatDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 
@@ -773,7 +795,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_CONTEXT* EC = &Worker->ExecutionContext;
 
     CXPLAT_EXECUTION_STATE State = {
-        0, CxPlatTimeUs64(), UINT32_MAX, 0, CxPlatCurThreadID()
+        0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
 
     QuicTraceEvent(

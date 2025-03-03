@@ -107,6 +107,7 @@ QuicTestPrimeResumption(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -316,6 +317,13 @@ QuicTestConnect(
                     return;
                 }
                 TEST_TRUE(Client.GetIsConnected());
+
+                // After handshake, check and see if we have cached the TTL of the handshake packet.
+                if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_TTL)) {
+                    TEST_TRUE(Client.GetStatistics().HandshakeHopLimitTTL > 0);
+                } else {
+                    TEST_EQUAL(Client.GetStatistics().HandshakeHopLimitTTL, 0);
+                }
 
                 TEST_NOT_EQUAL(nullptr, Server);
                 Server->SetSslKeyLogFilePath();
@@ -2291,6 +2299,7 @@ QuicTestConnectBadSni(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerRejectConnection(
     _In_ TestListener* /*  Listener */,
     _In_ HQUIC ConnectionHandle
@@ -3754,6 +3763,7 @@ QuicTestChangeAlpn(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnectionTestTP(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle

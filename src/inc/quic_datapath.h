@@ -54,9 +54,36 @@ typedef enum CXPLAT_ECN_TYPE {
 } CXPLAT_ECN_TYPE;
 
 //
+// Different DiffServ Code Points
+//
+typedef enum CXPLAT_DSCP_TYPE {
+
+    CXPLAT_DSCP_CS0 = 0,
+    CXPLAT_DSCP_LE  = 1,
+    CXPLAT_DSCP_CS1 = 8,
+    CXPLAT_DSCP_CS2 = 16,
+    CXPLAT_DSCP_CS3 = 24,
+    CXPLAT_DSCP_CS4 = 32,
+    CXPLAT_DSCP_CS5 = 40,
+    CXPLAT_DSCP_EF  = 46,
+
+} CXPLAT_DSCP_TYPE;
+
+//
 // Helper to get the ECN type from the Type of Service field of received data.
 //
 #define CXPLAT_ECN_FROM_TOS(ToS) (CXPLAT_ECN_TYPE)((ToS) & 0x3)
+
+//
+// Helper to get the DSCP value from the Type of Service field of received data.
+//
+#define CXPLAT_DSCP_FROM_TOS(ToS) (uint8_t)((ToS) >> 2)
+
+//
+// Define the maximum type of service value allowed.
+// Note: this is without the ECN bits included
+//
+#define CXPLAT_MAX_DSCP 63
 
 //
 // The maximum IP MTU this implementation supports for QUIC.
@@ -223,6 +250,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint8_t TypeOfService;
 
     //
+    // TTL Hoplimit field of the IP header of the received packet on handshake.
+    //
+    uint8_t HopLimitTTL;
+
+    //
     // Flags.
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.
@@ -282,11 +314,14 @@ typedef struct CXPLAT_QEO_CONNECTION {
 
 //
 // Function pointer type for datapath TCP accept callbacks.
+// Any QUIC_FAILED status will reject the connection.
+// Do not call CxPlatSocketDelete from this callback, it will
+// crash.
 //
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-void
+QUIC_STATUS
 (CXPLAT_DATAPATH_ACCEPT_CALLBACK)(
     _In_ CXPLAT_SOCKET* ListenerSocket,
     _In_ void* ListenerContext,
@@ -404,6 +439,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
@@ -434,6 +470,8 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
 #define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
+#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
+#define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
 
 //
 // Queries the currently supported features of the datapath.
@@ -665,6 +703,7 @@ typedef struct CXPLAT_SEND_CONFIG {
     uint16_t MaxPacketSize;
     uint8_t ECN; // CXPLAT_ECN_TYPE
     uint8_t Flags; // CXPLAT_SEND_FLAGS
+    uint8_t DSCP; // CXPLAT_DSCP_TYPE
 } CXPLAT_SEND_CONFIG;
 
 //
@@ -722,7 +761,7 @@ CxPlatSendDataIsFull(
 // Sends the data over the socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,

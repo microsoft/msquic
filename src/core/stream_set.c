@@ -706,7 +706,10 @@ QuicStreamSetGetStreamForPeer(
                 "Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]",
                 Event.PEER_STREAM_STARTED.Stream,
                 Event.PEER_STREAM_STARTED.Flags);
+
+            Stream->Flags.PeerStreamStartEventActive = TRUE;
             Status = QuicConnIndicateEvent(Connection, &Event);
+            Stream->Flags.PeerStreamStartEventActive = FALSE;
 
             if (QUIC_FAILED(Status)) {
                 QuicTraceLogStreamWarning(

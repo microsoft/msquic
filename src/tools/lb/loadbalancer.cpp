@@ -20,6 +20,7 @@ Abstract:
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
+CXPLAT_WORKER_POOL WorkerPool;
 struct LbInterface* PublicInterface;
 std::vector<QUIC_ADDR> PrivateAddrs;
 
@@ -65,7 +66,7 @@ struct LbInterface {
         Route.LocalAddress = LocalAddress;
         Route.RemoteAddress = *PeerAddress;
         CXPLAT_SEND_DATA* Send = nullptr;
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, MAX_UDP_PAYLOAD_LENGTH, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         while (RecvDataChain) {
             if (!Send) {
                 Send = CxPlatSendDataAlloc(Socket, &SendConfig);
@@ -212,9 +213,10 @@ main(int argc, char **argv)
 
     CxPlatSystemLoad();
     CxPlatInitialize();
+    CxPlatWorkerPoolInit(&WorkerPool);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, nullptr, &Datapath);
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, &WorkerPool, nullptr, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
@@ -222,6 +224,7 @@ main(int argc, char **argv)
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolUninit(&WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

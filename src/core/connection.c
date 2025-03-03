@@ -118,6 +118,8 @@ QuicConnAlloc(
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
     Connection->PacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
     Connection->PeerPacketTolerance = QUIC_MIN_ACK_SEND_NUMBER;
+    Connection->ReorderingThreshold = QUIC_MIN_REORDERING_THRESHOLD;
+    Connection->PeerReorderingThreshold = QUIC_MIN_REORDERING_THRESHOLD;
     Connection->PeerTransportParams.AckDelayExponent = QUIC_TP_ACK_DELAY_EXPONENT_DEFAULT;
     Connection->ReceiveQueueTail = &Connection->ReceiveQueue;
     QuicSettingsCopy(&Connection->Settings, &MsQuicLib.Settings);
@@ -664,6 +666,7 @@ QuicConnIndicateEvent(
     _Inout_ QUIC_CONNECTION_EVENT* Event
     )
 {
+    CXPLAT_PASSIVE_CODE();
     QUIC_STATUS Status;
     if (Connection->ClientCallbackHandler != NULL) {
         //
@@ -1914,13 +1917,6 @@ QuicConnStart(
     Status = QuicConnSetConfiguration(Connection, Configuration);
     if (QUIC_FAILED(Status)) {
         goto Exit;
-    }
-
-    if (Connection->Settings.KeepAliveIntervalMs != 0) {
-        QuicConnTimerSet(
-            Connection,
-            QUIC_CONN_TIMER_KEEP_ALIVE,
-            MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
     }
 
 Exit:
@@ -5210,12 +5206,12 @@ QuicConnRecvFrames(
                 return FALSE;
             }
 
-            if (Frame.UpdateMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
+            if (Frame.RequestedMaxAckDelay < MS_TO_US(MsQuicLib.TimerResolutionMs)) {
                 QuicTraceEvent(
                     ConnError,
                     "[conn][%p] ERROR, %s.",
                     Connection,
-                    "UpdateMaxAckDelay is less than TimerResolution");
+                    "RequestedMaxAckDelay is less than TimerResolution");
                 QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
                 return FALSE;
             }
@@ -5230,19 +5226,23 @@ QuicConnRecvFrames(
             }
 
             Connection->NextRecvAckFreqSeqNum = Frame.SequenceNumber + 1;
-            Connection->State.IgnoreReordering = Frame.IgnoreOrder;
-            if (Frame.UpdateMaxAckDelay == 0) {
+            if (Frame.RequestedMaxAckDelay == 0) {
                 Connection->Settings.MaxAckDelayMs = 0;
-            } else if (Frame.UpdateMaxAckDelay < 1000) {
+            } else if (Frame.RequestedMaxAckDelay < 1000) {
                 Connection->Settings.MaxAckDelayMs = 1;
             } else {
-                CXPLAT_DBG_ASSERT(US_TO_MS(Frame.UpdateMaxAckDelay) <= UINT32_MAX);
-                Connection->Settings.MaxAckDelayMs = (uint32_t)US_TO_MS(Frame.UpdateMaxAckDelay);
+                CXPLAT_DBG_ASSERT(US_TO_MS(Frame.RequestedMaxAckDelay) <= UINT32_MAX);
+                Connection->Settings.MaxAckDelayMs = (uint32_t)US_TO_MS(Frame.RequestedMaxAckDelay);
             }
-            if (Frame.PacketTolerance < UINT8_MAX) {
-                Connection->PacketTolerance = (uint8_t)Frame.PacketTolerance;
+            if (Frame.AckElicitingThreshold < UINT8_MAX) {
+                Connection->PacketTolerance = (uint8_t)Frame.AckElicitingThreshold;
             } else {
                 Connection->PacketTolerance = UINT8_MAX; // Cap to 0xFF for space savings.
+            }
+            if (Frame.ReorderingThreshold < UINT8_MAX) {
+                Connection->ReorderingThreshold = (uint8_t)Frame.ReorderingThreshold;
+            } else {
+                Connection->ReorderingThreshold = UINT8_MAX; // Cap to 0xFF for space savings.
             }
             QuicTraceLogConnInfo(
                 UpdatePacketTolerance,
@@ -5637,6 +5637,9 @@ QuicConnRecvDatagrams(
 
         if (!IsDeferred) {
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
+            if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
+                Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HopLimitTTL;
+            }
             QuicConnLogInFlowStats(Connection);
 
             if (!CurrentPath->IsPeerValidated) {
@@ -6613,6 +6616,31 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    case QUIC_PARAM_CONN_SEND_DSCP: {
+        if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint8_t DSCP = *(uint8_t*)Buffer;
+
+        if (DSCP > CXPLAT_MAX_DSCP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->DSCP = DSCP;
+
+        QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     //
     // Private
     //
@@ -6820,6 +6848,10 @@ QuicConnGetV2Statistics(
     }
     if (STATISTICS_HAS_FIELD(*StatsLength, SendEcnCongestionCount)) {
         Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
+    }
+
+    if (STATISTICS_HAS_FIELD(*StatsLength, HandshakeHopLimitTTL)) {
+        Stats->HandshakeHopLimitTTL = Connection->Stats.Handshake.HandshakeHopLimitTTL;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));
@@ -7193,27 +7225,55 @@ QuicConnParamGet(
     }
 
     case QUIC_PARAM_CONN_ORIG_DEST_CID:
+
         if (Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
             break;
         }
+
         if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+
         CxPlatCopyMemory(
             Buffer,
             Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
+
         //
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+     case QUIC_PARAM_CONN_SEND_DSCP:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = sizeof(uint8_t);
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            &Connection->DSCP,
+            sizeof(Connection->DSCP));
+
+        *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -7492,6 +7552,25 @@ QuicConnProcessApiOperation(
             QuicStreamRecvSetEnabledState(
                 ApiCtx->STRM_RECV_SET_ENABLED.Stream,
                 ApiCtx->STRM_RECV_SET_ENABLED.IsEnabled);
+        break;
+
+    case QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS:
+        Status =
+            QuicStreamProvideRecvBuffers(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream,
+                &ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            //
+            // If we cannot accept the app provided buffers at this point, we need to abort
+            // the connection: otherwise, we break the contract with the app about writting
+            // data to the provided buffers in order.
+            //
+            QuicConnFatalError(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream->Connection,
+                Status,
+                "Failed to accept app provided receive buffers");
+        }
         break;
 
     case QUIC_API_TYPE_SET_PARAM:

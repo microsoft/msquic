@@ -21,6 +21,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
+CXPLAT_WORKER_POOL WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
@@ -44,6 +45,7 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
+        CxPlatWorkerPoolInit(&WorkerPool);
         watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
@@ -61,6 +63,7 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
+        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
@@ -86,8 +89,14 @@ public:
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseDuoNic) {
+                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            }
+#endif
             QUIC_TEST_CONFIGURATION_PARAMS Params {
                 UseDuoNic,
+                Config,
             };
 
 #ifdef _WIN32
@@ -102,7 +111,6 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
             if (UseQTIP) {
                 Config.PollingIdleTimeoutUs = 10000;
                 Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
@@ -145,6 +153,7 @@ public:
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
+        CxPlatWorkerPoolUninit(&WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;
@@ -292,6 +301,17 @@ TEST(ParameterValidation, ValidateTlsParam) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_PARAM));
     } else {
         QuicTestTlsParam();
+    }
+}
+
+TEST_P(WithBool, ValidateTlsHandshakeInfo) {
+    TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
+    if (TestingKernelMode) {
+        if (IsWindows2022() || IsWindows2019()) GTEST_SKIP(); // Not supported on WS2019 or WS2022
+        uint8_t EnableResumption = (uint8_t)GetParam();
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO, EnableResumption));
+    } else {
+        QuicTestTlsHandshakeInfo(GetParam());
     }
 }
 
@@ -679,6 +699,16 @@ TEST_P(WithFamilyArgs, BindConnectionExplicit) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT, GetParam().Family));
     } else {
         QuicTestBindConnectionExplicit(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, TestAddrFunctions) {
+    TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
+    }
+    else {
+        QuicTestAddrFunctions(GetParam().Family);
     }
 }
 
@@ -2224,6 +2254,24 @@ TEST(Misc, StreamMultiReceive) {
         QuicTestStreamMultiReceive();
     }
 }
+
+TEST(Misc, StreamAppProvidedBuffers) {
+    TestLogger Logger("StreamAppProvidedBuffers");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+    } else {
+        QuicTestStreamAppProvidedBuffers();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
+    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+    } else {
+        QuicTestStreamAppProvidedBuffersZeroWindow();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
@@ -2338,6 +2386,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
     } else {
         QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramDrop) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+    } else {
+        QuicTestDatagramDrop(GetParam().Family);
     }
 }
 

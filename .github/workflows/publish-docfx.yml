@@ -29,9 +29,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Dotnet Setup
-      uses: actions/setup-dotnet@6bd8b7f7774af54e05809fcc5431931b3eb1ddee
+      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
       with:
         dotnet-version: 7.x
 

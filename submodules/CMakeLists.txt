@@ -62,7 +62,7 @@ if (WIN32)
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "arm")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
-        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32")
+        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32" OR ${SYSTEM_PROCESSOR} STREQUAL "x86")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ONECORE")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "x64" OR ${SYSTEM_PROCESSOR} STREQUAL "amd64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A-ONECORE")
@@ -75,7 +75,7 @@ if (WIN32)
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64-ARM")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "arm")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32-ARM")
-        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32")
+        elseif (${SYSTEM_PROCESSOR} STREQUAL "win32" OR ${SYSTEM_PROCESSOR} STREQUAL "x86")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN32")
         elseif (${SYSTEM_PROCESSOR} STREQUAL "x64" OR ${SYSTEM_PROCESSOR} STREQUAL "amd64")
             set(QUIC_OPENSSL_WIN_ARCH "VC-WIN64A")
@@ -157,8 +157,9 @@ if (WIN32)
     target_include_directories(
         OpenSSLQuic
         INTERFACE
-        $<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
-        $<$<NOT:$<CONFIG:Debug>>:${OPENSSL_DIR}/release/include>
+        $<BUILD_INTERFACE:$<$<CONFIG:Debug>:${OPENSSL_DIR}/debug/include>
+        $<$<NOT:$<CONFIG:Debug>>:${OPENSSL_DIR}/release/include>>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
     target_link_libraries(
         OpenSSLQuic
@@ -327,7 +328,8 @@ else()
     target_include_directories(
         OpenSSLQuic
         INTERFACE
-        ${OPENSSL_DIR}/include
+        $<BUILD_INTERFACE:${OPENSSL_DIR}/include>
+        $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
     )
 
     target_link_libraries(

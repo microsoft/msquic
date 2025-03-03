@@ -34,7 +34,7 @@ struct PerfClientConnection {
     void OnStreamShutdown();
     void Shutdown();
     QUIC_STATUS ConnectionCallback(_Inout_ QUIC_CONNECTION_EVENT* Event);
-    static QUIC_STATUS s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_ConnectionCallback(HQUIC, void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         return ((PerfClientConnection*)Context)->ConnectionCallback(Event);
     }
     static void TcpConnectCallback(_In_ TcpConnection* Connection, bool IsConnected);
@@ -56,7 +56,7 @@ struct PerfClientStream {
     CXPLAT_HASHTABLE_ENTRY Entry; // To TCP StreamTable (must be first)
     PerfClientStream(_In_ PerfClientConnection& Connection);
     ~PerfClientStream() { if (Handle) { MsQuic->StreamClose(Handle); } }
-    static QUIC_STATUS s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
+    static QUIC_STATUS QUIC_API s_StreamCallback(HQUIC, void* Context, QUIC_STREAM_EVENT* Event) {
         return ((PerfClientStream*)Context)->QuicStreamCallback(Event);
     }
     PerfClientConnection& Connection;
@@ -139,7 +139,7 @@ struct PerfClient {
         _In_reads_(argc) _Null_terminated_ char* argv[],
         _In_z_ const char* target);
     QUIC_STATUS Start(_In_ CXPLAT_EVENT* StopEvent);
-    void Wait(_In_ int Timeout);
+    QUIC_STATUS Wait(_In_ int Timeout);
     uint32_t GetExtraDataLength();
     void GetExtraData(_Out_writes_bytes_(Length) uint8_t* Data, _In_ uint32_t Length);
 
@@ -179,7 +179,6 @@ struct PerfClient {
     uint8_t IncrementTarget {TRUE};
     // Local execution parameters
     uint32_t WorkerCount;
-    uint8_t AffinitizeWorkers {FALSE};
     uint8_t SpecificLocalAddresses {FALSE};
 #ifdef QUIC_COMPARTMENT_ID
     uint16_t CompartmentId {UINT16_MAX};

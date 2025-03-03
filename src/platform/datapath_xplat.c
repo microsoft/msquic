@@ -21,6 +21,7 @@ CxPlatDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
@@ -36,6 +37,7 @@ CxPlatDataPathInitialize(
             ClientRecvContextLength,
             UdpCallbacks,
             TcpCallbacks,
+            WorkerPool,
             Config,
             NewDataPath);
     if (QUIC_FAILED(Status)) {
@@ -51,6 +53,7 @@ CxPlatDataPathInitialize(
                 ClientRecvContextLength,
                 Config,
                 (*NewDataPath),
+                WorkerPool,
                 &((*NewDataPath)->RawDataPath));
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
@@ -113,10 +116,10 @@ CxPlatDataPathIsPaddingPreferred(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
             DataPathIsPaddingPreferred(Datapath) : RawDataPathIsPaddingPreferred(Datapath);
 }
 
@@ -267,9 +270,9 @@ CxPlatRecvDataReturn(
         return;
     }
     CXPLAT_DBG_ASSERT(
-        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ||
+        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ||
         RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_RAW);
-    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_USER ?
+    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ?
         RecvDataReturn(RecvDataChain) : RawRecvDataReturn(RecvDataChain);
 }
 
@@ -300,9 +303,9 @@ CxPlatSendDataFree(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
     SendDataFree(SendData) : RawSendDataFree(SendData);
 }
 
@@ -315,10 +318,10 @@ CxPlatSendDataAllocBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
         SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);
 }
 
@@ -330,9 +333,9 @@ CxPlatSendDataFreeBuffer(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
     SendDataFreeBuffer(SendData, Buffer) : RawSendDataFreeBuffer(SendData, Buffer);
 }
 
@@ -343,25 +346,26 @@ CxPlatSendDataIsFull(
     )
 {
     CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
+    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
         SendDataIsFull(SendData) : RawSendDataIsFull(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 CxPlatSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_USER ?
-        SocketSend(Socket, Route, SendData) : RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL) {
+        SocketSend(Socket, Route, SendData);
+     } else {
+        CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
+        RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+     }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -374,7 +378,7 @@ QuicCopyRouteInfo(
     if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_RAW) {
         CxPlatCopyMemory(DstRoute, SrcRoute, (uint8_t*)&SrcRoute->State - (uint8_t*)SrcRoute);
         CxPlatUpdateRoute(DstRoute, SrcRoute);
-    } else if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_USER) {
+    } else if (SrcRoute->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL) {
         *DstRoute = *SrcRoute;
     } else {
         CXPLAT_DBG_ASSERT(FALSE);
@@ -389,7 +393,7 @@ CxPlatResolveRouteComplete(
     _In_ uint8_t PathId
     )
 {
-    CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_USER);
+    CXPLAT_DBG_ASSERT(Route->DatapathType != CXPLAT_DATAPATH_TYPE_NORMAL);
     if (Route->State != RouteResolved) {
         RawResolveRouteComplete(Context, Route, PhysicalAddress, PathId);
     }

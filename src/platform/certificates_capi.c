@@ -90,6 +90,9 @@ CxPlatCertVerifyRawCertificate(
     if (CredFlags & QUIC_CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY) {
         CertFlags |= CERT_CHAIN_REVOCATION_CHECK_CACHE_ONLY;
     }
+    if (CredFlags & QUIC_CREDENTIAL_FLAG_DISABLE_AIA) {
+        CertFlags |= CERT_CHAIN_DISABLE_AIA;
+    }
 
     Result =
         CxPlatCertValidateChain(

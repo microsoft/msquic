@@ -148,6 +148,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 #define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
+#define QUIC_POOL_APP_BUFFER_CHUNK          'D4cQ' // Qc4D - QUIC receive chunk for app buffers
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -422,6 +423,36 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
+// Worker pool API used for driving execution contexts
+//
+
+typedef struct CXPLAT_WORKER CXPLAT_WORKER;
+
+typedef struct CXPLAT_WORKER_POOL {
+
+    CXPLAT_WORKER* Workers;
+    CXPLAT_LOCK WorkerLock;
+    CXPLAT_RUNDOWN_REF Rundown;
+    uint32_t WorkerCount;
+
+} CXPLAT_WORKER_POOL;
+
+#ifdef _KERNEL_MODE // Not supported on kernel mode
+#define CxPlatWorkerPoolInit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
+#define CxPlatWorkerPoolUninit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
+#else
+void
+CxPlatWorkerPoolInit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+void
+CxPlatWorkerPoolUninit(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+#endif
+
+//
 // General purpose execution context abstraction layer. Used for driving worker
 // loops.
 //
@@ -431,12 +462,39 @@ typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
-    uint64_t TimeNow;           // in microseconds
-    uint64_t LastWorkTime;      // in microseconds
+    uint64_t TimeNow;               // in microseconds
+    uint64_t LastWorkTime;          // in microseconds
+    uint64_t LastPoolProcessTime;   // in microseconds
     uint32_t WaitTime;
     uint32_t NoWorkCount;
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
+
+#ifndef _KERNEL_MODE // Not supported on kernel mode
+
+//
+// Supports more dynamic operations, but must be submitted to the platform worker
+// to manage.
+//
+typedef struct CXPLAT_POOL_EX {
+    CXPLAT_POOL Base;
+    CXPLAT_LIST_ENTRY Link;
+    void* Owner;
+} CXPLAT_POOL_EX;
+
+void
+CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_POOL_EX* Pool,
+    _In_ uint16_t Index // Into the execution config processor array
+    );
+
+void
+CxPlatRemoveDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    );
+
+#endif
 
 //
 // Returns FALSE when it's time to cleanup.
@@ -468,11 +526,12 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 } CXPLAT_EXECUTION_CONTEXT;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
+#define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
 #define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
 #else
 void
 CxPlatAddExecutionContext(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
     _In_ uint16_t Index // Into the execution config processor array
     );
@@ -482,18 +541,6 @@ CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
 #endif
-
-//
-// The "type" of the completion queue event is stored as the first uint32_t of
-// the user data. Everything after that in the user data is type-specific.
-//
-#define CxPlatCqeType(cqe) (*(uint32_t*)CxPlatCqeUserData(cqe))
-
-//
-// All QUIC (and lower layer) completion queue events have a type starting with
-// 0x8000.
-//
-#define CXPLAT_CQE_TYPE_QUIC_BASE                 0x8000 // to 0xFFFF
 
 //
 // Test Interface for loading a self-signed certificate.

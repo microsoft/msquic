@@ -9,6 +9,10 @@ on:
         required: false
         default: ''
         type: string
+      repo:
+        required: false
+        default: microsoft/msquic
+        type: string
       config:
         required: false
         default: 'Release'
@@ -28,12 +32,11 @@ on:
       os:
         required: false
         type: string
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-22.04'
         # options:
-        #   - ubuntu-20.04
         #   - ubuntu-22.04
         #   - ubuntu-24.04
-        #   - macos-12
+        #   - macos-13
       arch:
         required: false
         default: 'x64'
@@ -89,9 +92,9 @@ jobs:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        repository: microsoft/msquic
+        repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Set ownership
       if: inputs.plat == 'linux'
@@ -114,7 +117,7 @@ jobs:
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} -OneBranch
     - name: Upload build artifacts
-      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts

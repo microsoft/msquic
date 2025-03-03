@@ -155,7 +155,7 @@ class TcpServer {
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
-    void
+    QUIC_STATUS
     AcceptCallback(
         _In_ CXPLAT_SOCKET* ListenerSocket,
         _In_ void* ListenerContext,
@@ -268,7 +268,7 @@ class TcpConnection {
     bool EncryptFrame(TcpFrame* Frame);
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
-    bool FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
+    void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
     bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:

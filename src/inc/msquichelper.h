@@ -257,7 +257,7 @@ DecodeHexBuffer(
     return HexBufferLen;
 }
 
-#if defined(__GNUC__) && (__GNUC__ >= 13)
+#if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic push
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
@@ -277,7 +277,7 @@ EncodeHexBuffer(
     }
 }
 
-#if defined(__GNUC__) && (__GNUC__ >= 13)
+#if defined(__GNUC__) && (__GNUC__ >= 12)
 #pragma GCC diagnostic pop
 #endif
 
@@ -304,7 +304,7 @@ IsValue(
     _In_z_ const char* toTestAgainst
     )
 {
-    return _strnicmp(name, toTestAgainst, CXPLAT_MIN(strlen(name), strlen(toTestAgainst))) == 0;
+    return _strnicmp(name, toTestAgainst, strlen(toTestAgainst)) == 0;
 }
 
 inline

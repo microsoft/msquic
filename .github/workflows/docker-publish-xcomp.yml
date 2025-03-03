@@ -5,14 +5,12 @@ on:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
     - .docker/ubuntu-24.04/*
   pull_request:
     branches: [ main ]
     paths:
     - .github/workflows/docker-publish-xcomp.yml
-    - .docker/ubuntu-20.04/*
     - .docker/ubuntu-22.04/*
     - .docker/ubuntu-24.04/*
 
@@ -29,7 +27,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        version: ['20.04', '22.04', '24.04']
+        version: ['22.04', '24.04']
         target: ['cross']
 
     name: Build
@@ -40,12 +38,12 @@ jobs:
 
     steps:
       - name: Harden Runner
-        uses: step-security/harden-runner@5c7944e73c4c2a096b17a9cb74d65b6c2bbafbde
+        uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
         with:
           egress-policy: audit
 
       - name: Checkout repository
-        uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
 
       # Login against a Docker registry except on PR
       # https://github.com/docker/login-action
@@ -61,14 +59,14 @@ jobs:
       # https://github.com/docker/metadata-action
       - name: Extract Docker metadata
         id: meta
-        uses: docker/metadata-action@8e5442c4ef9f78752691e2d8f8d19755c6f78e81
+        uses: docker/metadata-action@369eb591f429131d6889c46b94e711f089e6ca96
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
 
       # Build and push Docker image with Buildx (don't push on PR)
       # https://github.com/docker/build-push-action
       - name: Build and push Docker image
-        uses: docker/build-push-action@5cd11c3a4ced054e52742c5fd54dca954e0edd85
+        uses: docker/build-push-action@0adf9959216b96bec444f325f1e493d4aa344497
         with:
           context: .docker/ubuntu-${{ matrix.version }}
           file: .docker/ubuntu-${{ matrix.version }}/Dockerfile

@@ -15,6 +15,7 @@ Abstract:
 #include "Tcp.h"
 
 const MsQuicApi* MsQuic;
+CXPLAT_WORKER_POOL WorkerPool;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
 PerfServer* Server;
@@ -26,10 +27,42 @@ TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LAT
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
+uint8_t PerfDefaultHighPriority = false;
+uint8_t PerfDefaultAffinitizeThreads = false;
 
 #ifdef _KERNEL_MODE
 volatile int BufferCurrent;
 char Buffer[BufferLength];
+static inline LONG _strtol(const CHAR* nptr, CHAR** endptr, int base) {
+    UNREFERENCED_PARAMETER(base);
+    ULONG temp;
+    RtlCharToInteger(nptr, base, &temp);
+    if (endptr != NULL) {
+        const CHAR* ptr = nptr;
+        while (*ptr >= '0' && *ptr <= '9') {
+            ptr++;
+        }
+        *endptr = (CHAR*)ptr;
+    }
+    return (LONG)temp;
+}
+
+static inline ULONG _strtoul(const CHAR* nptr, CHAR** endptr, int base) {
+    UNREFERENCED_PARAMETER(base);
+    ULONG temp;
+    RtlCharToInteger(nptr, base, &temp);
+    if (endptr != NULL) {
+        const CHAR* ptr = nptr;
+        while (*ptr >= '0' && *ptr <= '9') {
+            ptr++;
+        }
+        *endptr = (CHAR*)ptr;
+    }
+    return temp;
+}
+#else
+#define _strtol strtol
+#define _strtoul strtoul
 #endif
 
 static
@@ -75,6 +108,8 @@ PrintHelp(
         "  -platency<0/1>           Print latency statistics. (def:0)\n"
         "\n"
         "  Scenario options:\n"
+        "  -scenario:<profile>      Scenario profile to use.\n"
+        "                            - {upload, download, hps, rps, rps-multi, latency}.\n"
         "  -conns:<####>            The number of connections to use. (def:1)\n"
         "  -streams:<####>          The number of streams to send on at a time. (def:0)\n"
         "  -upload:<####>[unit]     The length of bytes to send on each stream, with an optional (time or length) unit. (def:0)\n"
@@ -93,12 +128,16 @@ PrintHelp(
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
+#ifdef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
         "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
-#ifndef _KERNEL_MODE
+#else
+        "  -io:<mode>               Configures a requested network IO model to be used.\n"
+        "                            - {xdp}\n"
+#endif // _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
-#endif // _KERNEL_MODE
+        "  -highpri:<0/1>           Configures MsQuic to run threads at high priority. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_PORT
@@ -136,12 +175,11 @@ QuicMainStart(
 
     uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
-    Config->PollingIdleTimeoutUs = UINT32_MAX; // Default to no sleep.
+    Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
-
-#ifndef _KERNEL_MODE
     const char* IoMode = GetValue(argc, argv, "io");
 
+#ifndef _KERNEL_MODE
     if (IoMode && IsValue(IoMode, "qtip")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
         SetConfig = true;
@@ -152,6 +190,8 @@ QuicMainStart(
         SetConfig = true;
     }
 
+#endif // _KERNEL_MODE
+
     if (IoMode && IsValue(IoMode, "xdp")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
         SetConfig = true;
@@ -160,7 +200,7 @@ QuicMainStart(
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
-        if (strtol(CpuStr, nullptr, 10) == -1) {
+        if (_strtol(CpuStr, nullptr, 10) == -1) {
             for (uint32_t i = 0; i < CxPlatProcCount() && Config->ProcessorCount < 256; ++i) {
                 Config->ProcessorList[Config->ProcessorCount++] = (uint16_t)i;
             }
@@ -168,11 +208,22 @@ QuicMainStart(
             do {
                 if (*CpuStr == ',') CpuStr++;
                 Config->ProcessorList[Config->ProcessorCount++] =
-                    (uint16_t)strtoul(CpuStr, (char**)&CpuStr, 10);
+                    (uint16_t)_strtoul(CpuStr, (char**)&CpuStr, 10);
             } while (*CpuStr && Config->ProcessorCount < 256);
         }
     }
-#endif // _KERNEL_MODE
+
+    TryGetValue(argc, argv, "highpri", &PerfDefaultHighPriority);
+    if (PerfDefaultHighPriority) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY;
+        SetConfig = true;
+    }
+
+    TryGetValue(argc, argv, "affinitize", &PerfDefaultAffinitizeThreads);
+    if (PerfDefaultHighPriority) {
+        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE;
+        SetConfig = true;
+    }
 
     if (TryGetValue(argc, argv, "pollidle", &Config->PollingIdleTimeoutUs)) {
         SetConfig = true;
@@ -190,6 +241,25 @@ QuicMainStart(
         return Status;
     }
 
+    const char* ScenarioStr = GetValue(argc, argv, "scenario");
+    if (ScenarioStr != nullptr) {
+        if (IsValue(ScenarioStr, "upload") ||
+            IsValue(ScenarioStr, "download") ||
+            IsValue(ScenarioStr, "hps")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_MAX_THROUGHPUT;
+        } else if (
+            IsValue(ScenarioStr, "rps") ||
+            IsValue(ScenarioStr, "rps-multi") ||
+            IsValue(ScenarioStr, "latency")) {
+            PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_LOW_LATENCY;
+            TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LATENCY;
+        } else {
+            WriteOutput("Failed to parse scenario profile[%s]!\n", ScenarioStr);
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+    }
+
     const char* ExecStr = GetValue(argc, argv, "exec");
     if (ExecStr != nullptr) {
         if (IsValue(ExecStr, "lowlat")) {
@@ -203,7 +273,8 @@ QuicMainStart(
         } else if (IsValue(ExecStr, "realtime")) {
             PerfDefaultExecutionProfile = QUIC_EXECUTION_PROFILE_TYPE_REAL_TIME;
         } else {
-            WriteOutput("Failed to parse execution profile[%s], use lowlat as default for QUIC, lowlat as default for TCP.\n", ExecStr);
+            WriteOutput("Failed to parse execution profile[%s]!\n", ExecStr);
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
 
@@ -226,12 +297,15 @@ QuicMainStart(
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
+    CxPlatWorkerPoolInit(&WorkerPool);
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
+        CxPlatWorkerPoolUninit(&WorkerPool);
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -256,10 +330,10 @@ QuicMainStart(
     return Status; // QuicMainFree is called on failure
 }
 
-void
+QUIC_STATUS
 QuicMainWaitForCompletion(
     ) {
-    Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
+    return Client ? Client->Wait((int)MaxRuntime) : Server->Wait((int)MaxRuntime);
 }
 
 void
@@ -275,6 +349,7 @@ QuicMainFree(
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolUninit(&WorkerPool);
         Datapath = nullptr;
     }
 

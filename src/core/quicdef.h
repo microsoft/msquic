@@ -104,6 +104,12 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MIN_ACK_SEND_NUMBER                2
 
 //
+// The value for Reordering threshold when no ACK_FREQUENCY frame is received.
+// This means that the receiver will immediately acknowledge any out-of-order packets.
+//
+#define QUIC_MIN_REORDERING_THRESHOLD           1
+
+//
 // The size of the stateless reset token.
 //
 #define QUIC_STATELESS_RESET_TOKEN_LENGTH       16
@@ -240,10 +246,10 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MAX_RANGE_ACK_PACKETS              0x800       // 2048
 #define QUIC_MAX_RANGE_DECODE_ACKS              0x1000      // 4096
 
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), L"Must be power of two");
-CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), L"Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ALLOC_SIZE), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DUPLICATE_PACKETS), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_ACK_PACKETS), "Must be power of two");
+CXPLAT_STATIC_ASSERT(IS_POWER_OF_TWO(QUIC_MAX_RANGE_DECODE_ACKS), "Must be power of two");
 
 //
 // Minimum MTU allowed to be configured. Must be able to fit a
@@ -300,7 +306,7 @@ CXPLAT_STATIC_ASSERT(QUIC_INITIAL_PACKET_LENGTH >= QUIC_MIN_INITIAL_PACKET_LENGT
 
 CXPLAT_STATIC_ASSERT(
     QUIC_DEFAULT_DISCONNECT_TIMEOUT <= QUIC_MAX_DISCONNECT_TIMEOUT,
-    L"Default disconnect timeout should always be less than max");
+    "Default disconnect timeout should always be less than max");
 
 //
 // The default connection idle timeout (in milliseconds).

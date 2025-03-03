@@ -16,10 +16,10 @@ on:
       os:
         required: false
         type: string
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-22.04'
         # options:
-        #   - ubuntu-20.04
         #   - ubuntu-22.04
+        #   - ubuntu-24.04
       arch:
         required: false
         default: 'x64'
@@ -75,6 +75,7 @@ jobs:
       clang: ${{ inputs.clang }}
       build: ${{ inputs.build }}
       xdp: ${{ inputs.xdp }}
+      repo: ${{ github.repository }}
 
   package:
     name: Package
@@ -82,7 +83,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
     - name: Prepare Machine
@@ -102,7 +103,7 @@ jobs:
       shell: pwsh
       run: scripts/package-distribution.ps1 ${{ inputs.time64 }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@834a144ee995460fba8ed112a2fc961b36a5ec5a
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts/dist

@@ -257,7 +257,7 @@ QuicBindingTraceRundown(
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
         CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
 
-    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
+    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock, PrevIrql);
 
     for (CXPLAT_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
@@ -266,7 +266,7 @@ QuicBindingTraceRundown(
             CXPLAT_CONTAINING_RECORD(Link, QUIC_LISTENER, Link));
     }
 
-    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
+    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -327,7 +327,7 @@ QuicBindingRegisterListener(
     const BOOLEAN NewWildCard = NewListener->WildCard;
     const QUIC_ADDRESS_FAMILY NewFamily = QuicAddrGetFamily(NewAddr);
 
-    CxPlatDispatchRwLockAcquireExclusive(&Binding->RwLock);
+    CxPlatDispatchRwLockAcquireExclusive(&Binding->RwLock, PrevIrql);
 
     //
     // For a single binding, listeners are saved in a linked list, sorted by
@@ -397,7 +397,7 @@ QuicBindingRegisterListener(
         }
     }
 
-    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock);
+    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock, PrevIrql);
 
     if (MaximizeLookup &&
         !QuicLookupMaximizePartitioning(&Binding->Lookup)) {
@@ -426,7 +426,7 @@ QuicBindingGetListener(
     BOOLEAN FailedAlpnMatch = FALSE;
     BOOLEAN FailedAddrMatch = TRUE;
 
-    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock);
+    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock, PrevIrql);
 
     for (CXPLAT_LIST_ENTRY* Link = Binding->Listeners.Flink;
         Link != &Binding->Listeners;
@@ -460,7 +460,7 @@ QuicBindingGetListener(
 
 Done:
 
-    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock);
+    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
 
     if (FailedAddrMatch) {
         QuicTraceEvent(
@@ -487,9 +487,9 @@ QuicBindingUnregisterListener(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    CxPlatDispatchRwLockAcquireExclusive(&Binding->RwLock);
+    CxPlatDispatchRwLockAcquireExclusive(&Binding->RwLock, PrevIrql);
     CxPlatListEntryRemove(&Listener->Link);
-    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock);
+    CxPlatDispatchRwLockReleaseExclusive(&Binding->RwLock, PrevIrql);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -803,7 +803,7 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(
@@ -1134,7 +1134,9 @@ QuicBindingPreprocessPacket(
     _Out_ BOOLEAN* ReleaseDatagram
     )
 {
-    CxPlatZeroMemory(&Packet->PacketNumber, sizeof(QUIC_RX_PACKET) - sizeof(uint64_t));
+    CxPlatZeroMemory(   // Zero out everything from PacketNumber forward
+        &Packet->PacketNumber,
+        sizeof(QUIC_RX_PACKET) - offsetof(QUIC_RX_PACKET, PacketNumber));
     Packet->AvailBuffer = Packet->Buffer;
     Packet->AvailBufferLength = Packet->BufferLength;
 
@@ -1781,7 +1783,7 @@ QuicBindingUnreachable(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const CXPLAT_ROUTE* Route,
@@ -1790,8 +1792,6 @@ QuicBindingSend(
     _In_ uint32_t DatagramsToSend
     )
 {
-    QUIC_STATUS Status;
-
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     QUIC_TEST_DATAPATH_HOOKS* Hooks = MsQuicLib.TestDatapathHooks;
     if (Hooks != NULL) {
@@ -1810,35 +1810,12 @@ QuicBindingSend(
                 "[bind][%p] Test dropped packet",
                 Binding);
             CxPlatSendDataFree(SendData);
-            Status = QUIC_STATUS_SUCCESS;
         } else {
-            Status =
-                CxPlatSocketSend(
-                    Binding->Socket,
-                    &RouteCopy,
-                    SendData);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogWarning(
-                    BindingSendFailed,
-                    "[bind][%p] Send failed, 0x%x",
-                    Binding,
-                    Status);
-            }
+            CxPlatSocketSend(Binding->Socket, &RouteCopy, SendData);
         }
     } else {
 #endif
-        Status =
-            CxPlatSocketSend(
-                Binding->Socket,
-                Route,
-                SendData);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                BindingSendFailed,
-                "[bind][%p] Send failed, 0x%x",
-                Binding,
-                Status);
-        }
+        CxPlatSocketSend(Binding->Socket, Route, SendData);
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
     }
 #endif
@@ -1846,6 +1823,4 @@ QuicBindingSend(
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
     QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
-
-    return Status;
 }

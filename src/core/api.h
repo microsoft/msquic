@@ -219,6 +219,15 @@ MsQuicStreamReceiveComplete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicStreamProvideReceiveBuffers(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ uint32_t BufferCount,
+    _In_reads_(BufferCount) const QUIC_BUFFER *Buffers
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicStreamReceiveSetEnabled(
     _In_ _Pre_defensive_ HQUIC Stream,
     _In_ BOOLEAN IsEnabled

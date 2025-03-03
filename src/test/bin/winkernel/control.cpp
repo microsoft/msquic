@@ -523,6 +523,11 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(BOOLEAN),
+    sizeof(INT32),
+    sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -563,6 +568,7 @@ typedef union {
     QUIC_RUN_FEATURE_NEGOTIATION FeatureNegotiationParams;
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
+    BOOLEAN EnableResumption;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -688,6 +694,19 @@ QuicTestCtlEvtIoDeviceControl(
                 nullptr,
                 nullptr,
                 STRSAFE_NULL_ON_FAILURE);
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
+        if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
+            Status =
+                MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
+                    sizeof(Config),
+                    &Config);
+        }
+#endif
+
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
@@ -756,6 +775,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_BIND_CONNECTION_EXPLICIT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestBindConnectionExplicit(Params->Family));
+        break;
+    case IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestAddrFunctions(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_CONNECT:
@@ -937,6 +960,13 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_DROP:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestDatagramDrop(
                 Params->Family));
         break;
 
@@ -1475,6 +1505,21 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_CONNECTION_PRIORITY:
         QuicTestCtlRun(QuicTestConnectionPriority());
         break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
+        break;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+        break;
+#endif
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;

@@ -87,16 +87,6 @@ struct CxPlatLockDispatch {
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
-
-struct CxPlatRwLockDispatch {
-    CXPLAT_DISPATCH_RW_LOCK Handle;
-    CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockInitialize(&Handle); }
-    ~CxPlatRwLockDispatch() noexcept { CxPlatDispatchRwLockUninitialize(&Handle); }
-    void AcquireShared() noexcept { CxPlatDispatchRwLockAcquireShared(&Handle); }
-    void AcquireExclusive() noexcept { CxPlatDispatchRwLockAcquireExclusive(&Handle); }
-    void ReleaseShared() noexcept { CxPlatDispatchRwLockReleaseShared(&Handle); }
-    void ReleaseExclusive() noexcept { CxPlatDispatchRwLockReleaseExclusive(&Handle); }
-};
 #pragma warning(pop)
 
 struct CxPlatPool {
@@ -840,7 +830,7 @@ enum MsQuicCleanUpMode {
     CleanUpAutoDelete,
 };
 
-typedef QUIC_STATUS MsQuicListenerCallback(
+typedef QUIC_STATUS QUIC_API MsQuicListenerCallback(
     _In_ struct MsQuicListener* Listener,
     _In_opt_ void* Context,
     _Inout_ QUIC_LISTENER_EVENT* Event
@@ -972,7 +962,7 @@ private:
     }
 };
 
-typedef QUIC_STATUS MsQuicConnectionCallback(
+typedef QUIC_STATUS QUIC_API MsQuicConnectionCallback(
     _In_ struct MsQuicConnection* Connection,
     _In_opt_ void* Context,
     _Inout_ QUIC_CONNECTION_EVENT* Event
@@ -1411,7 +1401,7 @@ private:
     }
 };
 
-typedef QUIC_STATUS MsQuicStreamCallback(
+typedef QUIC_STATUS QUIC_API MsQuicStreamCallback(
     _In_ struct MsQuicStream* Stream,
     _In_opt_ void* Context,
     _Inout_ QUIC_STREAM_EVENT* Event
@@ -1605,6 +1595,14 @@ struct MsQuicStream {
                 QUIC_PARAM_STREAM_RELIABLE_OFFSET,
                 &Size,
                 Offset);
+    }
+
+    QUIC_STATUS
+    ProvideReceiveBuffers(
+        _In_ uint32_t BufferCount,
+        _In_reads_(BufferCount) const QUIC_BUFFER* Buffers
+        ) const noexcept {
+        return MsQuic->StreamProvideReceiveBuffers(Handle, BufferCount, Buffers);
     }
 
     QUIC_STATUS

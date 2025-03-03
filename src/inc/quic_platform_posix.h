@@ -417,13 +417,13 @@ typedef CXPLAT_RW_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #define CxPlatDispatchRwLockUninitialize CxPlatRwLockUninitialize
 
-#define CxPlatDispatchRwLockAcquireShared CxPlatRwLockAcquireShared
+#define CxPlatDispatchRwLockAcquireShared(Lock, PrevIrql) CxPlatRwLockAcquireShared(Lock)
 
-#define CxPlatDispatchRwLockAcquireExclusive CxPlatRwLockAcquireExclusive
+#define CxPlatDispatchRwLockAcquireExclusive(Lock, PrevIrql) CxPlatRwLockAcquireExclusive(Lock)
 
-#define CxPlatDispatchRwLockReleaseShared CxPlatRwLockReleaseShared
+#define CxPlatDispatchRwLockReleaseShared(Lock, PrevIrql) CxPlatRwLockReleaseShared(Lock)
 
-#define CxPlatDispatchRwLockReleaseExclusive CxPlatRwLockReleaseExclusive
+#define CxPlatDispatchRwLockReleaseExclusive(Lock, PrevIrql) CxPlatRwLockReleaseExclusive(Lock)
 
 //
 // Represents a QUIC memory pool used for fixed sized allocations.
@@ -478,7 +478,11 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
+#ifndef DISABLE_CXPLAT_POOL
 #define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
+#else
+#define CXPLAT_POOL_MAXIMUM_DEPTH   0   // TODO - Optimize this scenario better
+#endif
 
 #if DEBUG
 typedef struct CXPLAT_POOL_ENTRY {
@@ -583,6 +587,26 @@ CxPlatPoolFree(
         Pool->ListDepth++;
         CxPlatLockRelease(&Pool->Lock);
     }
+}
+
+inline
+BOOLEAN
+CxPlatPoolPrune(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CxPlatLockAcquire(&Pool->Lock);
+    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
+    if (Entry != NULL) {
+        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        Pool->ListDepth--;
+    }
+    CxPlatLockRelease(&Pool->Lock);
+    if (Entry == NULL) {
+        return FALSE;
+    }
+    CxPlatFree(Entry, Pool->Tag);
+    return TRUE;
 }
 
 //
@@ -935,6 +959,16 @@ Exit:
 #include <liburing.h>
 typedef struct io_uring CXPLAT_EVENTQ;
 typedef struct io_uring_cqe* CXPLAT_CQE;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+typedef struct CXPLAT_SQE {
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -956,20 +990,18 @@ CxPlatEventQCleanup(
 
 inline
 BOOLEAN
-_CxPlatEventQEnqueue(
+CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     )
 {
     struct io_uring_sqe *io_sqe = io_uring_get_sqe(queue);
     if (io_sqe == NULL) return FALSE; // OOM
     io_uring_prep_nop(io_sqe);
-    io_uring_sqe_set_data(io_sqe, user_data);
+    io_uring_sqe_set_data(io_sqe, sqe);
     io_uring_submit(queue); // TODO - Extract to separate function?
     return TRUE;
 }
-
-#define CxPlatEventQEnqueue(queue, sqe, user_data) _CxPlatEventQEnqueue(queue, user_data)
 
 inline
 uint32_t
@@ -1004,12 +1036,36 @@ CxPlatEventQReturn(
 }
 
 inline
-void*
-CxPlatCqeUserData(
+BOOLEAN
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Completion = completion;
+    return TRUE;
+}
+
+inline
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    UNREFERENCED_PARAMETER(sqe);
+}
+
+inline
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (void*)(uintptr_t)cqe->user_data;
+    return (CXPLAT_SQE*)(uintptr_t)cqe->user_data;
 }
 
 #else // epoll
@@ -1018,9 +1074,17 @@ CxPlatCqeUserData(
 #include <sys/eventfd.h>
 
 typedef int CXPLAT_EVENTQ;
-#define CXPLAT_SQE int
-#define CXPLAT_SQE_DEFAULT 0
 typedef struct epoll_event CXPLAT_CQE;
+typedef
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+typedef struct CXPLAT_SQE {
+    int fd;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -1044,13 +1108,11 @@ inline
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     )
 {
     UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(user_data);
-    return eventfd_write(*sqe, 1) == 0;
+    return eventfd_write(sqe->fd, 1) == 0;
 }
 
 inline
@@ -1081,19 +1143,18 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-#define CXPLAT_SQE_INIT 1
-
 inline
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_SQE* sqe,
-    _In_ void* user_data
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
     )
 {
-    struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = user_data } };
-    if ((*sqe = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
-    if (epoll_ctl(*queue, EPOLL_CTL_ADD, *sqe, &event) != 0) { close(*sqe); return FALSE; }
+    struct epoll_event event = { .events = EPOLLIN | EPOLLET, .data = { .ptr = sqe } };
+    sqe->Completion = completion;
+    if ((sqe->fd = eventfd(0, EFD_CLOEXEC)) == -1) return FALSE;
+    if (epoll_ctl(*queue, EPOLL_CTL_ADD, sqe->fd, &event) != 0) { close(sqe->fd); return FALSE; }
     return TRUE;
 }
 
@@ -1104,17 +1165,17 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
-    epoll_ctl(*queue, EPOLL_CTL_DEL, *sqe, NULL);
-    close(*sqe);
+    epoll_ctl(*queue, EPOLL_CTL_DEL, sqe->fd, NULL);
+    close(sqe->fd);
 }
 
 inline
-void*
-CxPlatCqeUserData(
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (void*)cqe->data.ptr;
+    return (CXPLAT_SQE*)cqe->data.ptr;
 }
 
 #endif
@@ -1125,9 +1186,17 @@ CxPlatCqeUserData(
 #include <fcntl.h>
 
 typedef int CXPLAT_EVENTQ;
-#define CXPLAT_SQE int
-#define CXPLAT_SQE_DEFAULT 0
 typedef struct kevent CXPLAT_CQE;
+typedef
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+typedef struct CXPLAT_SQE {
+    uintptr_t Handle;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
 
 inline
 BOOLEAN
@@ -1151,11 +1220,24 @@ inline
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_opt_ void* user_data
+    _In_ CXPLAT_SQE* sqe
     )
 {
-    struct kevent event = {.ident = *sqe, .filter = EVFILT_USER, .flags = EV_ADD | EV_ONESHOT, .fflags = NOTE_TRIGGER, .data = 0, .udata = user_data};
+    // TODO - Should ident simply use the pointer value of sqe?
+    struct kevent event = {.ident = sqe->Handle, .filter = EVFILT_USER, .flags = EV_ADD | EV_ONESHOT, .fflags = NOTE_TRIGGER, .data = 0, .udata = sqe};
+    return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
+}
+
+inline
+BOOLEAN
+CxPlatEventQEnqueueEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe,
+    _In_ short filter,
+    _In_ unsigned short flags
+    )
+{
+    struct kevent event = {.ident = sqe->Handle, .filter = filter, .flags = flags, .fflags = 0, .data = 0, .udata = sqe};
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
@@ -1191,22 +1273,34 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-#define CXPLAT_SQE_INIT 1
-
-extern long CxPlatCurrentSqe;
+extern uintptr_t CxPlatCurrentSqe;
 
 inline
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe,
-    _In_ void* user_data
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
     )
 {
     UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(user_data);
-    *sqe = (CXPLAT_SQE)InterlockedIncrement(&CxPlatCurrentSqe);
+    sqe->Handle = __sync_add_and_fetch(&CxPlatCurrentSqe, 1);
+    sqe->Completion = completion;
     return TRUE;
+}
+
+inline
+void
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ uintptr_t handle,
+    _In_ CXPLAT_EVENT_COMPLETION completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
+    sqe->Handle = handle;
+    sqe->Completion = completion;
 }
 
 inline
@@ -1221,12 +1315,12 @@ CxPlatSqeCleanup(
 }
 
 inline
-void*
-CxPlatCqeUserData(
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (void*)cqe->udata;
+    return (CXPLAT_SQE*)cqe->udata;
 }
 
 #else

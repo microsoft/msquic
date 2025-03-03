@@ -56,12 +56,14 @@ RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** DataPath
     )
 {
     UNREFERENCED_PARAMETER(ClientRecvContextLength);
     UNREFERENCED_PARAMETER(Config);
     UNREFERENCED_PARAMETER(ParentDataPath);
+    UNREFERENCED_PARAMETER(WorkerPool);
     UNREFERENCED_PARAMETER(DataPath);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
@@ -240,14 +242,6 @@ RawResolveRoute(
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
     return QUIC_STATUS_NOT_SUPPORTED;
-}
-
-void
-RawDataPathProcessCqe(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    UNREFERENCED_PARAMETER(Cqe);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

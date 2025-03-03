@@ -456,7 +456,7 @@ QuicBindingReleaseStatelessOperation(
 // the duration of the send operation.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
+void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
     _In_ const CXPLAT_ROUTE* Route,

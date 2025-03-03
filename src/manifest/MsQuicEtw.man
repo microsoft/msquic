@@ -500,6 +500,10 @@
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.COMPLETE_CERTIFICATE_VALIDATION)"
                 value="27"
                 />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS)"
+                value="28"
+                />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
             <map
@@ -4872,6 +4876,10 @@
             value="COMPLETE_CERTIFICATE_VALIDATION"
             />
         <string
+            id="Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS"
+            value="STREAM_PROVIDE_RECEIVE_BUFFERS"
+            />
+        <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"
             value="CONNECTION_FLAGS"
             />
@@ -4993,7 +5001,7 @@
             />
         <string
             id="Etw.ConnStatsV2"
-            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%8"
+            value="[conn][%1] STATS: SRtt=%2 CongestionCount=%3 PersistentCongestionCount=%4 SendTotalBytes=%5 RecvTotalBytes=%6 CongestionWindow=%7 Cc=%8 EcnCongestionCount=%9"
             />
         <string
             id="Etw.DatapathSendTcpControl"

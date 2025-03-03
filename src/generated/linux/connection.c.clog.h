@@ -839,6 +839,26 @@ tracepoint(CLOG_CONNECTION_C, CibirIdSet , arg1, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnDscpSet
+// [conn][%p] Connection DSCP set to %hhu
+// QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->DSCP = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnDscpSet
+#define _clog_4_ARGS_TRACE_ConnDscpSet(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnDscpSet , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApplySettings
 // [conn][%p] Applying new settings
 // QuicTraceLogConnInfo(

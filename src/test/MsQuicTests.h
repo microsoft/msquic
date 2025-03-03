@@ -51,6 +51,7 @@ void QuicTestConfigurationParam();
 void QuicTestListenerParam();
 void QuicTestConnectionParam();
 void QuicTestTlsParam();
+void QuicTestTlsHandshakeInfo(_In_ bool EnableResumption);
 void QuicTestStreamParam();
 void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
@@ -96,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -601,6 +603,12 @@ QuicTestEcn(
     _In_ int Family
     );
 
+void QuicTestStreamAppProvidedBuffers(
+    );
+
+void QuicTestStreamAppProvidedBuffersZeroWindow(
+    );
+
 //
 // QuicDrill tests
 //
@@ -643,6 +651,11 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
+    _In_ int Family
+    );
+
+void
+QuicTestDatagramDrop(
     _In_ int Family
     );
 
@@ -716,6 +729,7 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 typedef struct {
     BOOLEAN UseDuoNic;
+    QUIC_EXECUTION_CONFIG Config;
     char CurrentDirectory[MAX_PATH];
 } QUIC_TEST_CONFIGURATION_PARAMS;
 
@@ -1330,4 +1344,22 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_MULTI_RECEIVE \
     QUIC_CTL_CODE(124, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 124
+#define IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO \
+    QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // BOOLEAN - EnableResumption
+
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+    QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 129

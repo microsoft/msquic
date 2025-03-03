@@ -214,6 +214,42 @@ tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathQueryRecvMaxCoalescedSizeFailedAsy
 
 
 /*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailed
+// [data] Test setting IPV6_TCLASS failed, 0x%x
+// QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailed,
+                "[data] Test setting IPV6_TCLASS failed, 0x%x",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailed
+#define _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailed(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathTestSetIpv6TrafficClassFailed , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DatapathTestSetIpv6TrafficClassFailedAsync
+// [data] Test setting IPV6_TCLASS failed (async), 0x%x
+// QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailedAsync,
+                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+                Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailedAsync
+#define _clog_3_ARGS_TRACE_DatapathTestSetIpv6TrafficClassFailedAsync(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_WINKERNEL_C, DatapathTestSetIpv6TrafficClassFailedAsync , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathDropEmptyMdl
 // [%p] Dropping datagram with empty mdl.
 // QuicTraceLogWarning(
