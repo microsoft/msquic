@@ -528,6 +528,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
     0,
     0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
