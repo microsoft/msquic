@@ -528,6 +528,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
     0,
     0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1520,6 +1521,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
         break;
 #endif
+
+    case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
+        break;
 
     default:
         Status = STATUS_NOT_IMPLEMENTED;
