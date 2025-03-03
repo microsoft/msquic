@@ -279,42 +279,44 @@ DrillInitialPacketDescriptor::encrypt(
     const StrBuffer InitialSalt("38762cf7f55934b34d179ae6a4c80cadccbb7f0a");
 
     QUIC_PACKET_KEY* WriteKey;
-    QuicPacketKeyCreateInitial(
-        FALSE,
-        &HkdfLabels,
-        InitialSalt.Data,
-        (uint8_t)DestCid.size(),
-        DestCid.data(),
-        nullptr,
-        &WriteKey);
+    if(QUIC_SUCCEEDED(
+        QuicPacketKeyCreateInitial(
+            FALSE,
+            &HkdfLabels,
+            InitialSalt.Data,
+            (uint8_t)DestCid.size(),
+            DestCid.data(),
+            nullptr,
+            &WriteKey))) {
 
-    uint8_t Iv[CXPLAT_IV_LENGTH];
-    uint64_t FullPacketNumber = PacketNumber;
-    QuicCryptoCombineIvAndPacketNumber(
-        WriteKey->Iv, (uint8_t*)&FullPacketNumber, Iv);
+        uint8_t Iv[CXPLAT_IV_LENGTH];
+        uint64_t FullPacketNumber = PacketNumber;
+        QuicCryptoCombineIvAndPacketNumber(
+            WriteKey->Iv, (uint8_t*)&FullPacketNumber, Iv);
 
-    CxPlatEncrypt(
-        WriteKey->PacketKey,
-        Iv,
-        HeaderLength,
-        PacketBuffer.data(),
-        (uint16_t)PacketBuffer.size() - HeaderLength,
-        PacketBuffer.data() + HeaderLength);
+        CxPlatEncrypt(
+            WriteKey->PacketKey,
+            Iv,
+            HeaderLength,
+            PacketBuffer.data(),
+            (uint16_t)PacketBuffer.size() - HeaderLength,
+            PacketBuffer.data() + HeaderLength);
 
-    uint8_t HpMask[16];
-    CxPlatHpComputeMask(
-        WriteKey->HeaderKey,
-        1,
-        PacketBuffer.data() + HeaderLength,
-        HpMask);
+        uint8_t HpMask[16];
+        CxPlatHpComputeMask(
+            WriteKey->HeaderKey,
+            1,
+            PacketBuffer.data() + HeaderLength,
+            HpMask);
 
-    uint16_t PacketNumberOffset = HeaderLength - PacketNumberLength;
-    PacketBuffer[0] ^= HpMask[0] & 0x0F;
-    for (uint8_t i = 0; i < PacketNumberLength; ++i) {
-        PacketBuffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+        uint16_t PacketNumberOffset = HeaderLength - PacketNumberLength;
+        PacketBuffer[0] ^= HpMask[0] & 0x0F;
+        for (uint8_t i = 0; i < PacketNumberLength; ++i) {
+            PacketBuffer[PacketNumberOffset + i] ^= HpMask[i + 1];
+        }
+
+        QuicPacketKeyFree(WriteKey);
     }
-
-    QuicPacketKeyFree(WriteKey);
 }
 
 union QuicShortHeader {
