@@ -7036,6 +7036,38 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "LogResolveRouteClient": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+      "UniqueId": "LogResolveRouteClient",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "LogResolveRouteServer": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+      "UniqueId": "LogResolveRouteServer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "LookupCidFound": {
       "ModuleProperites": {},
       "TraceString": "[look][%p] Lookup Hash=%u found %p",
@@ -15495,6 +15527,16 @@
         "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
         "TraceID": "LogPacketVersionNegotiationVersion",
         "EncodingString": "[%c][%cX][-]   Ver:0x%x"
+      },
+      {
+        "UniquenessHash": "1bc24af7-c2b2-0df4-6a8a-0f6a12b94980",
+        "TraceID": "LogResolveRouteClient",
+        "EncodingString": "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d"
+      },
+      {
+        "UniquenessHash": "f17914d3-00f7-c54f-53b1-4196f98875a9",
+        "TraceID": "LogResolveRouteServer",
+        "EncodingString": "[sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d"
       },
       {
         "UniquenessHash": "cbfa374b-8626-eaf8-52f1-dae0df48749f",

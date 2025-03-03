@@ -89,6 +89,46 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, RawSockCreateFail , arg2);\
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for LogResolveRouteServer
+// [sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d
+// QuicTraceLogVerbose(
+            LogResolveRouteServer,
+            "[sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+            Route->UseQTIP,
+            OverrideGlobalQTIPSettings);
+// arg2 = arg2 = Route->UseQTIP = arg2
+// arg3 = arg3 = OverrideGlobalQTIPSettings = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LogResolveRouteServer
+#define _clog_4_ARGS_TRACE_LogResolveRouteServer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, LogResolveRouteServer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LogResolveRouteClient
+// [sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d
+// QuicTraceLogVerbose(
+            LogResolveRouteClient,
+            "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
+            UseQTIP,
+            OverrideGlobalQTIPSettings);
+// arg2 = arg2 = UseQTIP = arg2
+// arg3 = arg3 = OverrideGlobalQTIPSettings = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LogResolveRouteClient
+#define _clog_4_ARGS_TRACE_LogResolveRouteClient(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_XPLAT_C, LogResolveRouteClient , arg2, arg3);\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif
