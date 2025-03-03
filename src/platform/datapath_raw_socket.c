@@ -127,6 +127,8 @@ RawUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
+    DstRoute->UseQTIP = SrcRoute->UseQTIP;
+    DstRoute->AppDidSetQTIP = SrcRoute->AppDidSetQTIP;
     if (!DstRoute->TcpState.Syncd) {
         DstRoute->TcpState.Syncd = TRUE;
         //
