@@ -380,13 +380,6 @@ QuicStreamSetInitializeTransportParameters(
 
         CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
 
-        if (StreamIndex >= BidiStreamCount && StreamIndex >= UnidiStreamCount) {
-            //
-            // All streams left in the (ordered) list are not allowed yet
-            //
-            break;
-        }
-
         uint8_t FlowBlockedFlagsToRemove = 0;
         if (StreamIndex < Info->MaxTotalStreamCount) {
             FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
