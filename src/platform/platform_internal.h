@@ -131,6 +131,8 @@ typedef enum CXPLAT_SOCKET_TYPE {
 
 #ifdef _KERNEL_MODE
 
+#include <winerror.h>
+
 #define CXPLAT_BASE_REG_PATH L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\"
 
 #define SOCKET PWSK_SOCKET
@@ -183,6 +185,9 @@ typedef struct CXPLAT_SOCKET {
     //
     BOOLEAN PcpBinding : 1;
 
+    BOOLEAN UseTcp : 1; // Not supported. always FALSE
+    BOOLEAN RawSocketAvailable : 1;
+
     //
     // UDP socket used for sending/receiving datagrams.
     //
@@ -203,9 +208,6 @@ typedef struct CXPLAT_SOCKET {
         IRP Irp;
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
-
-    uint8_t UseTcp : 1; // always false?
-    uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
 
@@ -287,8 +289,20 @@ typedef struct CXPLAT_DATAPATH {
 
 } CXPLAT_DATAPATH;
 
+#ifndef htons
+#define htons _byteswap_ushort
+#endif
+
+#ifndef ntohs
+#define ntohs _byteswap_ushort
+#endif
+
 #ifndef htonl
 #define htonl _byteswap_ulong
+#endif
+
+#ifndef ntohl
+#define ntohl _byteswap_ulong
 #endif
 
 #elif _WIN32
@@ -764,6 +778,7 @@ CxPlatCryptUninitialize(
 // Platform Worker APIs
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -1035,7 +1050,7 @@ typedef struct CXPLAT_DATAPATH {
 
 #endif // CX_PLATFORM_LINUX
 
-#if defined(CX_PLATFORM_LINUX) || _WIN32
+#if defined(CX_PLATFORM_LINUX) || _WIN32 || defined(_KERNEL_MODE)
 
 typedef struct CXPLAT_SOCKET_RAW CXPLAT_SOCKET_RAW;
 

@@ -121,6 +121,7 @@ WakeCompletion(
     UNREFERENCED_PARAMETER(Cqe);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
@@ -136,6 +137,7 @@ UpdatePollCompletion(
     CxPlatUpdateExecutionContexts(Worker);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolInit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
@@ -149,6 +151,7 @@ CxPlatWorkerPoolInit(
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
+_IRQL_requires_max_(PASSIVE_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolLazyStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -173,7 +176,7 @@ CxPlatWorkerPoolLazyStart(
     CXPLAT_DBG_ASSERT(WorkerPool->WorkerCount > 0 && WorkerPool->WorkerCount <= UINT16_MAX);
 
     const size_t WorkersSize = sizeof(CXPLAT_WORKER) * WorkerPool->WorkerCount;
-    WorkerPool->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
+    WorkerPool->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_NONPAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
     if (WorkerPool->Workers == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -302,6 +305,7 @@ Error:
 }
 #pragma warning(pop)
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
@@ -338,6 +342,8 @@ CxPlatWorkerPoolUninit(
 
     CxPlatLockUninitialize(&WorkerPool->WorkerLock);
 }
+
+#ifndef _KERNEL_MODE // Not supported on kernel mode
 
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
 #define DYNAMIC_POOL_PRUNE_COUNT        8
@@ -401,6 +407,8 @@ CxPlatProcessDynamicPoolAllocators(
     CxPlatLockRelease(&Worker->ECLock);
 }
 
+#endif // _KERNEL_MODE
+
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ const CXPLAT_WORKER_POOL* WorkerPool,
@@ -412,6 +420,7 @@ CxPlatWorkerPoolGetEventQ(
     return &WorkerPool->Workers[Index].EventQ;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -435,6 +444,7 @@ CxPlatAddExecutionContext(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
@@ -446,6 +456,7 @@ CxPlatWakeExecutionContext(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
@@ -467,6 +478,7 @@ CxPlatUpdateExecutionContexts(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatRunExecutionContexts(
     _In_ CXPLAT_WORKER* Worker,
@@ -524,13 +536,14 @@ CxPlatRunExecutionContexts(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatProcessEvents(
     _In_ CXPLAT_WORKER* Worker,
     _Inout_ CXPLAT_EXECUTION_STATE* State
     )
 {
-    CXPLAT_CQE Cqes[16];
+    CXPLAT_CQE Cqes[CXPLAT_EVENTQ_DEQUEUE_MAX];
     uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
     InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
@@ -591,10 +604,12 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             State.NoWorkCount = 0;
         }
 
+#ifndef _KERNEL_MODE // Unnecessary on kernel mode
         if (State.TimeNow - State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
             CxPlatProcessDynamicPoolAllocators(Worker);
             State.LastPoolProcessTime = State.TimeNow;
         }
+#endif // _KERNEL_MODE
     }
 
     Worker->Running = FALSE;

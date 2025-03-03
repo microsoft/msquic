@@ -688,7 +688,6 @@ DataPathInitialize(
     _Out_ CXPLAT_DATAPATH* *NewDataPath
     )
 {
-    UNREFERENCED_PARAMETER(WorkerPool);
     QUIC_STATUS Status;
     WSK_CLIENT_NPI WskClientNpi = { NULL, &WskAppDispatch };
     uint32_t DatapathLength;
@@ -716,6 +715,19 @@ DataPathInitialize(
             goto Exit;
         }
     }
+    if (WorkerPool == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
@@ -736,9 +748,11 @@ DataPathInitialize(
     if (UdpCallbacks) {
         Datapath->UdpHandlers = *UdpCallbacks;
     }
+    Datapath->WorkerPool = WorkerPool;
     Datapath->ClientRecvDataLength = ClientRecvDataLength;
     Datapath->ProcCount = (uint32_t)CxPlatProcCount();
     Datapath->WskDispatch.WskReceiveFromEvent = CxPlatDataPathSocketReceive;
+    Datapath->UseTcp = FALSE;
     Datapath->DatagramStride =
         ALIGN_UP(
             sizeof(DATAPATH_RX_PACKET) +
@@ -1279,8 +1293,8 @@ SocketCreateUdp(
     )
 {
     QUIC_STATUS Status = STATUS_SUCCESS;
-    size_t BindingSize;
-    CXPLAT_SOCKET* Binding = NULL;
+    size_t RawBindingSize;
+    CXPLAT_SOCKET_RAW* RawBinding = NULL;
     uint32_t Option;
 
     if (Datapath == NULL || NewBinding == NULL) {
@@ -1288,20 +1302,21 @@ SocketCreateUdp(
         goto Error;
     }
 
-    BindingSize =
-        sizeof(CXPLAT_SOCKET) +
+    RawBindingSize =
+        CxPlatGetRawSocketSize() +
         CxPlatProcCount() * sizeof(CXPLAT_RUNDOWN_REF);
 
-    Binding = (CXPLAT_SOCKET*)CXPLAT_ALLOC_NONPAGED(BindingSize, QUIC_POOL_SOCKET);
-    if (Binding == NULL) {
+    RawBinding = (CXPLAT_SOCKET_RAW*)CXPLAT_ALLOC_NONPAGED(RawBindingSize, QUIC_POOL_SOCKET);
+    if (RawBinding == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
-            BindingSize);
+            RawBindingSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CXPLAT_SOCKET* Binding = CxPlatRawToSocket(RawBinding);
 
     //
     // Must set output pointer first thing, as the receive path will try to
@@ -1316,10 +1331,11 @@ SocketCreateUdp(
         CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
         CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
 
-    RtlZeroMemory(Binding, BindingSize);
+    RtlZeroMemory(RawBinding, RawBindingSize);
     Binding->Datapath = Datapath;
     Binding->ClientContext = Config->CallbackContext;
     Binding->Connected = (Config->RemoteAddress != NULL);
+    Binding->UseTcp = FALSE;
     if (Config->LocalAddress != NULL) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Binding->LocalAddress);
     } else {
@@ -1783,11 +1799,14 @@ SocketCreateUdp(
         Binding->RemoteAddress.Ipv4.sin_port = 0;
     }
 
+    RawBinding = NULL;
+    Binding = NULL;
+
 Error:
 
     if (QUIC_FAILED(Status)) {
-        if (Binding != NULL) {
-            CxPlatSocketDelete(Binding);
+        if (RawBinding != NULL) {
+            SocketDelete(CxPlatRawToSocket(RawBinding));
         }
     }
 
@@ -1838,7 +1857,7 @@ CxPlatSocketDeleteComplete(
     for (uint32_t i = 0; i < CxPlatProcCount(); ++i) {
         CxPlatRundownUninitialize(&Binding->Rundown[i]);
     }
-    CXPLAT_FREE(Binding, QUIC_POOL_SOCKET);
+    CXPLAT_FREE(CxPlatSocketToRaw(Binding), QUIC_POOL_SOCKET);
 }
 
 IO_COMPLETION_ROUTINE CxPlatDataPathCloseSocketIoCompletion;

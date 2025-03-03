@@ -259,8 +259,21 @@ InterlockedFetchAndSetBoolean(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 void
-CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
+CxPlatCloseHandle(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
     CloseHandle(Handle);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+inline
+void
+CxPlatCancelIo(
+    _Pre_notnull_ HANDLE Handle
+    )
+{
+    CancelIoEx(Handle, NULL);
 }
 
 //
@@ -776,11 +789,13 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
+
 inline
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
+    _Out_writes_to_(count, return) CXPLAT_CQE* events,
     _In_ uint32_t count,
     _In_ uint32_t wait_time // milliseconds
     )

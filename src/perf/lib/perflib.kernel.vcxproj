@@ -68,7 +68,13 @@
   </PropertyGroup>
   <ItemDefinitionGroup>
     <ClCompile>
-      <AdditionalIncludeDirectories>..\;..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>
+        ..\;
+        ..\..\inc;
+        $(SolutionDir)submodules\xdp-for-windows\published\external;
+        $(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(IntDir);
+        %(AdditionalIncludeDirectories)
+      </AdditionalIncludeDirectories>
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalOptions Condition="'$(Platform)'!='x64'">/Gw /kernel /ZH:SHA_256</AdditionalOptions>
