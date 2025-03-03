@@ -386,7 +386,7 @@ function Wait-Executable($Exe) {
         if ($AZP) {
             $Timeout = 30
             $Elapsed = 0
-            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $directoryPath).Count -eq 0) {
+            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $LogDir).Count -eq 0) {
                 Start-Sleep -Seconds 1
                 $Elapsed++
             }
