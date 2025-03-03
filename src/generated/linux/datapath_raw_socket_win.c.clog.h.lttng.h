@@ -2,6 +2,25 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LogRawResolveRoute
+// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d
+// QuicTraceLogVerbose(
+        LogRawResolveRoute,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
+        Route->UseQTIP);
+// arg2 = arg2 = Route->UseQTIP = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRoute,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for RouteResolutionStart
 // [conn][%p] Starting to look up neighbor on Path[%hhu] with status %u
 // QuicTraceLogConnInfo(

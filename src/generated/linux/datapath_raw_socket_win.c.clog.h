@@ -14,6 +14,10 @@
 #include "datapath_raw_socket_win.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
+#ifndef _clog_MACRO_QuicTraceLogVerbose
+#define _clog_MACRO_QuicTraceLogVerbose  1
+#define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceLogConnInfo
 #define _clog_MACRO_QuicTraceLogConnInfo  1
 #define QuicTraceLogConnInfo(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -25,6 +29,24 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+/*----------------------------------------------------------
+// Decoder Ring for LogRawResolveRoute
+// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d
+// QuicTraceLogVerbose(
+        LogRawResolveRoute,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
+        Route->UseQTIP);
+// arg2 = arg2 = Route->UseQTIP = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LogRawResolveRoute
+#define _clog_3_ARGS_TRACE_LogRawResolveRoute(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRoute , arg2);\
+
+#endif
+
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for RouteResolutionStart
 // [conn][%p] Starting to look up neighbor on Path[%hhu] with status %u

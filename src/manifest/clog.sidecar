@@ -7036,6 +7036,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "LogRawResolveRoute": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
+      "UniqueId": "LogRawResolveRoute",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "LogResolveRouteClient": {
       "ModuleProperites": {},
       "TraceString": "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
@@ -15527,6 +15539,11 @@
         "UniquenessHash": "afa9276d-cc3c-6cb1-4df9-e4d2fdc0e66d",
         "TraceID": "LogPacketVersionNegotiationVersion",
         "EncodingString": "[%c][%cX][-]   Ver:0x%x"
+      },
+      {
+        "UniquenessHash": "3d929940-b439-5281-2ac2-1ce0034a259a",
+        "TraceID": "LogRawResolveRoute",
+        "EncodingString": "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d"
       },
       {
         "UniquenessHash": "1bc24af7-c2b2-0df4-6a8a-0f6a12b94980",

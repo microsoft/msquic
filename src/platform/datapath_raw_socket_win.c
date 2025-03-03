@@ -214,6 +214,11 @@ Done:
         Callback(Context, NULL, PathId, FALSE);
     }
 
+    QuicTraceLogVerbose(
+        LogRawResolveRoute,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
+        Route->UseQTIP);
+
     if (Status == ERROR_IO_PENDING) {
         return QUIC_STATUS_PENDING;
     } else {
