@@ -587,7 +587,7 @@ QuicDrillTestKeyUpdateDuringHandshake(
     OneRttPacketBuffer.Payload.push_back(1); // Ping frame
     for (uint16_t i = 0; i < 80; ++i) { OneRttPacketBuffer.Payload.push_back(0); } // Padding frames
 
-    TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.write(true)));
+    TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.writeEx(true)));
     TEST_QUIC_SUCCEEDED(Sender.Send(OneRttPacketBuffer.write()));
 
     CxPlatSleep(500);

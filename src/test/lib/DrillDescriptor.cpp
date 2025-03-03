@@ -172,7 +172,7 @@ DrillInitialPacketDescriptor::DrillInitialPacketDescriptor(uint8_t SrcCidLength)
 }
 
 DrillBuffer
-DrillInitialPacketDescriptor::write(
+DrillInitialPacketDescriptor::writeEx(
     bool EncryptPayload
     ) const
 {

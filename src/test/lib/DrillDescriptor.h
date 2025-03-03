@@ -130,7 +130,8 @@ struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
     //
     // Write this descriptor to a byte array to send on the wire.
     //
-    virtual DrillBuffer write(bool EncryptPayload = false) const;
+    DrillBuffer writeEx(bool EncryptPayload) const;
+    virtual DrillBuffer write() const { return writeEx(false); }
 
 private:
 
