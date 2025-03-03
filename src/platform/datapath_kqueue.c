@@ -1381,9 +1381,13 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewBinding
+    _Out_ CXPLAT_SOCKET** NewBinding,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
+    UNREFERENCED_PARAMETER(UseQTIP);
+    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
 
@@ -2156,13 +2160,17 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
+    _In_ uint8_t UseQTIP,
+    _In_ uint8_t OverrideGlobalQTIPSettings
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
+    UNREFERENCED_PARAMETER(UseQTIP);
+    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }

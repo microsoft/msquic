@@ -864,7 +864,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp || Socket->IsServer) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -934,7 +934,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp || Socket->IsServer) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(
