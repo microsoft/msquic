@@ -923,6 +923,19 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
     }
 }
 
+TEST_P(WithFamilyArgs, RetryMemoryLimitConnect) {
+    TestLoggerT<ParamType> Logger("QuicTestRetryMemoryLimitConnect", GetParam());
+    if (UseDuoNic) {
+        GTEST_SKIP_("DuoNIC is not supported");
+    }
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT, GetParam().Family));
+    } else {
+        QuicTestRetryMemoryLimitConnect(GetParam().Family);
+    }
+}
+
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST_P(WithHandshakeArgs2, OldVersion) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-OldVersion", GetParam());

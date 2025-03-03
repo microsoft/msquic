@@ -3446,6 +3446,67 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
+
+void
+QuicTestRetryMemoryLimitConnect(
+    _In_ int Family
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint32_t LoopbackInterfaceIndex = UINT32_MAX;
+    uint32_t OtherInterfaceIndex = UINT32_MAX;
+    const uint16_t RetryMemoryLimit = 0;
+    if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {
+        return; // Not supported
+    }
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                NULL,
+                QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+                sizeof(RetryMemoryLimit),
+                &RetryMemoryLimit));
+
+    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+
+    uint8_t buffer[1] = {1};
+    TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Listener.Handle,
+                QUIC_PARAM_DOS_MODE_EVENTS,
+                sizeof(buffer),
+                &buffer));
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicConnection Connection1(Registration);
+    TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection1.SetLocalInterface(LoopbackInterfaceIndex));
+    TEST_QUIC_SUCCEEDED(Connection1.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Connection1.HandshakeComplete);
+
+    MsQuicConnection Connection2(Registration);
+    TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection2.SetLocalInterface(OtherInterfaceIndex));
+    TEST_QUIC_SUCCEEDED(Connection2.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
+    TEST_TRUE(!Connection2.HandshakeComplete);
+}
+
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(

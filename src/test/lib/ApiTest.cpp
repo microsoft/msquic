@@ -3176,12 +3176,12 @@ void DosMitigationTests(HQUIC Handle, uint32_t Param) {
     // buffer length test
     //
     {
-        TestScopeLogger LogScope0("Buffer length test");
+        TestScopeLogger LogScope0("DoS param Buffer length test");
         //
         // Buffer is bigger than 1 byte
         //
         {
-            TestScopeLogger LogScope1("Buffer is bigger than 1 byte");
+            TestScopeLogger LogScope1("DoS param Buffer is bigger than 1 byte");
             uint8_t buffer[2] = {0};
             TEST_QUIC_STATUS(
                 QUIC_STATUS_INVALID_PARAMETER,
@@ -3196,7 +3196,7 @@ void DosMitigationTests(HQUIC Handle, uint32_t Param) {
         // BufferLength == 1
         //
         {
-            TestScopeLogger LogScope1("BufferLength == 1");
+            TestScopeLogger LogScope1("DoS param BufferLength == 1");
             uint8_t buffer[1] = {0};
 
             TEST_QUIC_STATUS(
@@ -3213,7 +3213,7 @@ void DosMitigationTests(HQUIC Handle, uint32_t Param) {
     // Test with value of 1
     //
     {
-        TestScopeLogger LogScope0("Buffer starts from non-zero is not supported");
+        TestScopeLogger LogScope0("DoS param Buffer starts from non-zero is not supported");
         uint8_t buffer[1] = {1};
         TEST_QUIC_STATUS(
             QUIC_STATUS_SUCCESS,

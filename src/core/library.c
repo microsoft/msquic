@@ -2412,6 +2412,8 @@ QuicLibraryEvaluateSendRetryState(
     void
     )
 {
+    MsQuicLib.HandshakeMemoryLimit =
+            (MsQuicLib.Settings.RetryMemoryLimit * CxPlatTotalMemory) / UINT16_MAX;
     BOOLEAN NewSendRetryState =
         MsQuicLib.CurrentHandshakeMemoryUsage >= MsQuicLib.HandshakeMemoryLimit;
 

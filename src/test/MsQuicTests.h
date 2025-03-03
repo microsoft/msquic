@@ -256,6 +256,11 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+void
+QuicTestRetryMemoryLimitConnect(
+    _In_ int Family
+    );
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
@@ -1357,4 +1362,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
     QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 129
+#define IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT \
+    QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 130
