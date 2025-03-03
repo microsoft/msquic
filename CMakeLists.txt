@@ -19,7 +19,7 @@ message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_VS_GLOBALS "UseInternalMSUniCrtPackage=true")
- 
+
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -226,6 +226,9 @@ if (WIN32)
             message(FATAL_ERROR "/Qspectre must exist for CI builds")
         endif()
     endif()
+
+    # Configure linker to only load from the system directory.
+    set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
 
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
