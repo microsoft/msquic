@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "2.3.8-beta"
+version = "2.3.9-beta"
 edition = "2018"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
