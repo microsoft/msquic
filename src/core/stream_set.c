@@ -13,10 +13,10 @@ Design:
 
     The stream set store streams in 3 containers: a hash-table `StreamTable`for
     open streams (need frequent lookup by ID), a sorted list `WaitingStreams`
-    for streams waiting to be allowed by stream id flow control (they will be
+    for streams waiting to be allowed by stream ID flow control (they will be
     inserted in order in `StreamTable` once allowed), and a list `ClosedStreams`
     for closed streams waiting for deletion.
-    Each stream should be in one and only one container at a time.
+    Each stream must be in one and only one container at a time.
 
     The `Types` array keeps track of the number of streams opened and allowed
     for each stream types.
@@ -54,7 +54,7 @@ QuicStreamSetValidate(
     for (CXPLAT_LIST_ENTRY* Link = StreamSet->WaitingStreams.Flink;
          Link != &StreamSet->WaitingStreams;
          Link = Link->Flink) {
-        QUIC_STREAM* Stream =
+        const QUIC_STREAM* Stream =
             CXPLAT_CONTAINING_RECORD(Link, QUIC_STREAM, WaitingLink);
         CXPLAT_DBG_ASSERT(Stream->Type == QUIC_HANDLE_TYPE_STREAM);
         CXPLAT_DBG_ASSERT(Stream->Connection == Connection);
@@ -380,20 +380,27 @@ QuicStreamSetInitializeTransportParameters(
 
         CXPLAT_DBG_ASSERT(Stream->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL);
 
+        if (StreamIndex >= BidiStreamCount && StreamIndex >= UnidiStreamCount) {
+            //
+            // All streams left in the (ordered) list are not allowed yet
+            //
+            break;
+        }
+
         uint8_t FlowBlockedFlagsToRemove = 0;
         if (StreamIndex < Info->MaxTotalStreamCount) {
             FlowBlockedFlagsToRemove |= QUIC_FLOW_BLOCKED_STREAM_ID_FLOW_CONTROL;
             CxPlatListEntryRemove(&Stream->WaitingLink);
             Stream->Flags.InWaitingList = FALSE;
 
+            //
+            // The stream hash-table should have been initialized
+            // already when inserting stream in `WaitingStreams`
+            //
             CXPLAT_DBG_ASSERT(StreamSet->StreamTable != NULL);
-            if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
-                //
-                // The stream hash-table should have been initialized
-                // already when inserting stream in `WaitingStreams`
-                //
-                CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
-            }
+            CXPLAT_FRE_ASSERTMSG(
+                QuicStreamSetInsertStream(StreamSet, Stream),
+                "Steam table lazy intialization failed");
 
             QuicStreamIndicatePeerAccepted(Stream);
         } else {
@@ -496,7 +503,7 @@ QuicStreamSetUpdateMaxStreams(
             }
 
             //
-            // Any stream in the waiting list was blocked by the previous peer id flow control.
+            // Any stream in the waiting list was blocked by the previous stream ID flow control.
             //
             CXPLAT_DBG_ASSERT(Index >= Info->MaxTotalStreamCount);
             if (!QuicStreamRemoveOutFlowBlockedReason(
@@ -505,14 +512,14 @@ QuicStreamSetUpdateMaxStreams(
             }
             CxPlatListEntryRemove(&Stream->WaitingLink);
             Stream->Flags.InWaitingList = FALSE;
+            //
+            // The stream hash-table should have been initialized
+            // already when inserting stream in `WaitingStreams`
+            //
             CXPLAT_DBG_ASSERT(StreamSet->StreamTable != NULL);
-            if (!QuicStreamSetInsertStream(StreamSet, Stream)) {
-                //
-                // The stream hash-table should have been initialized
-                // already when inserting stream in `WaitingStreams`
-                //
-                CXPLAT_FRE_ASSERTMSG(FALSE, "Steam table lazy intialization failed");
-            }
+            CXPLAT_FRE_ASSERTMSG(
+                QuicStreamSetInsertStream(StreamSet, Stream),
+                "Steam table lazy intialization failed");
             QuicStreamIndicatePeerAccepted(Stream);
             FlushSend = TRUE;
         }
