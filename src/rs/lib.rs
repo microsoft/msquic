@@ -1099,11 +1099,14 @@ impl Connection {
     fn close_inner(&self) {
         if !self.handle.is_null() {
             // get the context and drop it after handle close.
-            let _ = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
                 self.set_context(std::ptr::null_mut());
             }
+            // Drop call here is required to prevent compiler drop it early.
+            // During handle close the ctx might still be used.
+            std::mem::drop(ctx);
         }
     }
 
@@ -1294,11 +1297,12 @@ impl Listener {
     fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let _ = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
                 self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 }
@@ -1389,11 +1393,12 @@ impl Stream {
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let _ = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
                 self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 
