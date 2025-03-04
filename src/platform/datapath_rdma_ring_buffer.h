@@ -75,7 +75,7 @@ RdmaRecvRingBufferInitialize(
 // UnInitialize a new RDMA Ring Buffer
 //
 QUIC_STATUS
-RdmaSendRingBufferUnInitialize(
+RdmaRecvRingBufferUnInitialize(
     _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer
     );
 
@@ -105,7 +105,7 @@ RdmaSendRingBufferRelease(
 //
 QUIC_STATUS
 RdmaRemoteRecvRingBufferReserve(
-    _In_ PRDMA_SEND_RING_BUFFER SendRingBuffer,
+    _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer,
     _In_ size_t Length,
     _Out_ uint8_t** Buffer,
     _Out_ size_t* AllocLength
@@ -116,7 +116,7 @@ RdmaRemoteRecvRingBufferReserve(
 //
 QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
-    _In_ PRDMA_SEND_RING_BUFFER SendRingBuffer,
+    _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer,
     _In_ uint8_t* Buffer,
     _In_ size_t Length
     );

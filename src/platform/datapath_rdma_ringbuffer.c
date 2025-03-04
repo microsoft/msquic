@@ -135,7 +135,7 @@ Exit:
 // UnInitialize a new RDMA Ring Buffer
 //
 QUIC_STATUS
-RdmaSendRingBufferUnInitialize(
+RdmaRecvRingBufferUnInitialize(
     _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer
     )
 {
@@ -168,7 +168,7 @@ RdmaSendRingBufferReserve(
     }
 
     *Buffer = NULL;
-    *AllocLength = NULL;
+    *AllocLength = 0;
 
     if (Length > SendRingBuffer->Capacity)
     {
@@ -235,8 +235,8 @@ RdmaSendRingBufferRelease(
 {
     if (SendRingBuffer == NULL ||
         Length == 0 ||
-        Buffer == NULL ||
-        Buffer + Length > SendRingBuffer->Capacity)
+        Length > SendRingBuffer->Capacity ||
+        Buffer == NULL)
     {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -277,7 +277,7 @@ RdmaRemoteRecvRingBufferReserve(
     }
 
     *Buffer = NULL;
-    *AllocLength = NULL;
+    *AllocLength = 0;
 
     if (Length > RecvRingBuffer->Capacity)
     {
@@ -344,7 +344,7 @@ RdmaLocalReceiveRingBufferRelease(
     if (RecvRingBuffer == NULL ||
         Buffer == NULL ||
         Length == 0 ||
-        Buffer + Length > RecvRingBuffer->Capacity)
+        Length > RecvRingBuffer->Capacity)
     {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
