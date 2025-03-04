@@ -30,17 +30,21 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for LogRawResolveRoute
-// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d
+// Decoder Ring for LogRawResolveRouteVerbose
+// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d, IsServer=%d, Socket->UseTcp=%d
 // QuicTraceLogVerbose(
-        LogRawResolveRoute,
-        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
-        Route->UseQTIP);
+        LogRawResolveRouteVerbose,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d, IsServer=%d, Socket->UseTcp=%d",
+        Route->UseQTIP,
+        Socket->IsServer,
+        Socket->UseTcp);
 // arg2 = arg2 = Route->UseQTIP = arg2
+// arg3 = arg3 = Socket->IsServer = arg3
+// arg4 = arg4 = Socket->UseTcp = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LogRawResolveRoute
-#define _clog_3_ARGS_TRACE_LogRawResolveRoute(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRoute , arg2);\
+#ifndef _clog_5_ARGS_TRACE_LogRawResolveRouteVerbose
+#define _clog_5_ARGS_TRACE_LogRawResolveRouteVerbose(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRouteVerbose , arg2, arg3, arg4);\
 
 #endif
 

@@ -215,9 +215,11 @@ Done:
     }
 
     QuicTraceLogVerbose(
-        LogRawResolveRoute,
-        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
-        Route->UseQTIP);
+        LogRawResolveRouteVerbose,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d, IsServer=%d, Socket->UseTcp=%d",
+        Route->UseQTIP,
+        Socket->IsServer,
+        Socket->UseTcp);
 
     if (Status == ERROR_IO_PENDING) {
         return QUIC_STATUS_PENDING;

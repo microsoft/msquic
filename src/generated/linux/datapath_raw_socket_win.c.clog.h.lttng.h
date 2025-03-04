@@ -2,19 +2,27 @@
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LogRawResolveRoute
-// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d
+// Decoder Ring for LogRawResolveRouteVerbose
+// [sock] Resolving route for RAW Socket, Route->UseQTIP=%d, IsServer=%d, Socket->UseTcp=%d
 // QuicTraceLogVerbose(
-        LogRawResolveRoute,
-        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d",
-        Route->UseQTIP);
+        LogRawResolveRouteVerbose,
+        "[sock] Resolving route for RAW Socket, Route->UseQTIP=%d, IsServer=%d, Socket->UseTcp=%d",
+        Route->UseQTIP,
+        Socket->IsServer,
+        Socket->UseTcp);
 // arg2 = arg2 = Route->UseQTIP = arg2
+// arg3 = arg3 = Socket->IsServer = arg3
+// arg4 = arg4 = Socket->UseTcp = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRoute,
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_SOCKET_WIN_C, LogRawResolveRouteVerbose,
     TP_ARGS(
-        int, arg2), 
+        int, arg2,
+        int, arg3,
+        int, arg4), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+        ctf_integer(int, arg4, arg4)
     )
 )
 
