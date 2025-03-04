@@ -414,36 +414,18 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->IsServer) {
-        QuicTraceLogVerbose(
-            LogResolveRouteServer,
-            "[sock] Resolving route for Server socket, Route->UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
-            Route->UseQTIP,
-            OverrideGlobalQTIPSettings);
-    } else {
-         QuicTraceLogVerbose(
-            LogResolveRouteClient,
-            "[sock] Resolving route for Client Socket, UseQTIP=%d, OverrideGlobalQTIPSettings=%d",
-            UseQTIP,
-            OverrideGlobalQTIPSettings);
-    }
-
-    if (OverrideGlobalQTIPSettings) {
-        //
-        // The current Socket is part of a client Connection,
-        // and that client Connection explicitly set QTIP preferences.
-        //
-        Route->UseQTIP = UseQTIP;
-        Route->AppDidSetQTIP = TRUE;
-    } else if (!Route->AppDidSetQTIP) {
-        //
-        // The Client Peer did not set QTIP preferences. So we inherit the global server QTIP settings.
-        //
+    //
+    // The state of Socket->UseTcp does not matter for server sockets, as they will always initialize everything.
+    // Server sockets will multiplex QTIP/QUIC packets based on Route->UseQTIP, which is set in the receive path,
+    // not here. For client sockets, the state Socket->UseTcp does matter as it can only initilize either UDP or
+    // TCP sockets from the OS networking stack, not both. And Socket->UseTcp is set in stone for clients when
+    // the socket is first created. We set Route->UseQTIP = Socket->UseTcp because everywhere in our send path
+    // we reference Route->UseQTIP instead of Socket->UseTcp.
+    //
+    if (!Socket->IsServer) {
         Route->UseQTIP = Socket->UseTcp;
     }
 

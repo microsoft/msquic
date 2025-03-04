@@ -233,9 +233,11 @@ CxPlatDpRawRxEthernet(
                     &PacketChain->Route->RemoteAddress);
         }
 
-        PacketChain->Route->UseQTIP = PacketChain->Reserved == L4_TYPE_TCP ||
-                                      PacketChain->Reserved == L4_TYPE_TCP_SYN ||
-                                      PacketChain->Reserved == L4_TYPE_TCP_SYNACK;
+        if (PacketChain->Reserved == L4_TYPE_TCP ||
+            PacketChain->Reserved == L4_TYPE_TCP_SYN ||
+            PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
+            PacketChain->Route->UseQTIP = TRUE;
+        }
 
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {

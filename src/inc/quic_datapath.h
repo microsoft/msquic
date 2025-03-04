@@ -203,8 +203,6 @@ typedef struct CXPLAT_ROUTE {
 
     uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
     uint8_t UseQTIP : 1;   // TRUE if the route is using QTIP
-    uint8_t AppDidSetQTIP : 1; // TRUE if the client connection explicitly set QTIP flag
-
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
     //
@@ -851,9 +849,7 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

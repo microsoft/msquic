@@ -571,7 +571,7 @@ struct CxPlatSocket {
                 // This is a connected socket and its route must be resolved
                 // to be able to send traffic.
                 //
-                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete, FALSE, FALSE);
+                InitStatus = CxPlatResolveRoute(Socket, &Route, 0, &Route, ResolveRouteComplete);
                 //
                 // Duonic sets up static neighbor entries, so CxPlatResolveRoute should
                 // complete synchronously. If this changes, we will need to add code to

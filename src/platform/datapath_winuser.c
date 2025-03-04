@@ -1492,15 +1492,11 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    //
-    // Server sockets always inherit global QTIP preferences.
-    //
     if (IsServerSocket || !OverrideGlobalQTIPSettings) {
         Socket->UseTcp = Datapath->UseTcp;
     } else {
         Socket->UseTcp = UseQTIP;
     }
-
     Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
