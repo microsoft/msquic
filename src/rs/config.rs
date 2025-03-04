@@ -14,7 +14,7 @@ pub struct RegistrationConfig {
 impl RegistrationConfig {
     /// # Safety
     /// ffi type returned needs to have the lifetime of self.
-    pub unsafe fn as_ffi(&self) -> QUIC_REGISTRATION_CONFIG {
+    pub(crate) unsafe fn as_ffi(&self) -> QUIC_REGISTRATION_CONFIG {
         QUIC_REGISTRATION_CONFIG {
             AppName: self
                 .app_name
@@ -118,7 +118,7 @@ impl CredentialConfig {
 
     /// # Safety
     /// ffi type returned needs to have the lifetime of self.
-    pub unsafe fn as_ffi(&self) -> QUIC_CREDENTIAL_CONFIG {
+    pub(crate) unsafe fn as_ffi(&self) -> QUIC_CREDENTIAL_CONFIG {
         let mut ffi_cfg = unsafe { std::mem::zeroed::<QUIC_CREDENTIAL_CONFIG>() };
         ffi_cfg.Flags = self.credential_flags.bits();
         match &self.credential {
@@ -176,7 +176,7 @@ impl CredentialConfig {
 }
 
 #[derive(Debug)]
-pub struct CertificateHash(pub crate::ffi::QUIC_CERTIFICATE_HASH);
+pub struct CertificateHash(crate::ffi::QUIC_CERTIFICATE_HASH);
 impl CertificateHash {
     pub fn new(hash: [u8; 20usize]) -> Self {
         Self(crate::ffi::QUIC_CERTIFICATE_HASH { ShaHash: hash })
@@ -221,7 +221,7 @@ impl CertificateHash {
 
 // QUIC_CERTIFICATE_HASH_STORE
 #[derive(Debug)]
-pub struct CertificateHashStore(pub crate::ffi::QUIC_CERTIFICATE_HASH_STORE);
+pub struct CertificateHashStore(crate::ffi::QUIC_CERTIFICATE_HASH_STORE);
 
 impl CertificateHashStore {
     pub fn new(flags: CertificatHashStoreFlags, hash: [u8; 20], store_name: String) -> Self {
