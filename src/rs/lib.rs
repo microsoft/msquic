@@ -871,14 +871,21 @@ macro_rules! define_quic_handle_ctx_fn {
                 unsafe { Api::ffi_ref().SetContext.unwrap()(self.handle, ctx) }
             }
 
-            /// Consume ctx and return it if present.
+            /// Consume ctx by dropping it.
             /// Set msquic ctx to null.
-            fn consume_ctx(&self) -> Option<Box<Box<$callback_type>>> {
-                // Clean up context only if handle is present. (it is not a handle ref.)
-                // If there is a ctx, drop it.
+            fn consume_callback_ctx(&self) {
+                let res = unsafe { self.get_callback_ctx() };
+                if res.is_some() {
+                    unsafe { self.set_context(std::ptr::null_mut()) };
+                }
+            }
+
+            /// # Safety
+            /// Caller is responsible for clearing the context if needed.
+            /// This does not clear the ctx.
+            unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 let ctx = self.get_context();
                 if !ctx.is_null() {
-                    unsafe { self.set_context(std::ptr::null_mut()) };
                     Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
                 } else {
                     None
@@ -1055,7 +1062,7 @@ impl Connection {
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        std::mem::drop(self.consume_ctx());
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
@@ -1091,10 +1098,11 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
-            // consume the context and drop it after handle close.
-            let _ = self.consume_ctx();
+            // get the context and drop it after handle close.
+            let _ = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
         }
     }
@@ -1133,7 +1141,7 @@ impl Connection {
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         // clear previous ctx before setting it.
-        std::mem::drop(self.consume_ctx());
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
@@ -1245,7 +1253,7 @@ impl Listener {
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        std::mem::drop(self.consume_ctx());
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
@@ -1286,9 +1294,10 @@ impl Listener {
     fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let _ = self.consume_ctx();
+            let _ = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
         }
     }
@@ -1344,7 +1353,7 @@ impl Stream {
     {
         let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        std::mem::drop(self.consume_ctx());
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
@@ -1380,9 +1389,10 @@ impl Stream {
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let _ = self.consume_ctx();
+            let _ = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
         }
     }
@@ -1418,7 +1428,7 @@ impl Stream {
         let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         // clear previous ctx before setting it.
-        std::mem::drop(self.consume_ctx());
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
