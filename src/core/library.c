@@ -829,10 +829,15 @@ QuicLibrarySetGlobalParam(
 
         MsQuicLib.Settings.RetryMemoryLimit = *(uint16_t*)Buffer;
         MsQuicLib.Settings.IsSet.RetryMemoryLimit = TRUE;
+
         QuicTraceLogInfo(
             LibraryRetryMemoryLimitSet,
             "[ lib] Updated retry memory limit = %hu",
             MsQuicLib.Settings.RetryMemoryLimit);
+
+        MsQuicLib.HandshakeMemoryLimit =
+            (MsQuicLib.Settings.RetryMemoryLimit * CxPlatTotalMemory) / UINT16_MAX;
+        QuicLibraryEvaluateSendRetryState();
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -2421,6 +2426,19 @@ QuicLibraryEvaluateSendRetryState(
             LibrarySendRetryStateUpdated,
             "[ lib] New SendRetryEnabled state, %hhu",
             NewSendRetryState);
+
+        //
+        // Notify all bindings and listeners about the state change.
+        //
+        CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
+        for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
+            Link != &MsQuicLib.Bindings;
+            Link = Link->Flink) {
+
+            QUIC_BINDING* Binding = CXPLAT_CONTAINING_RECORD(Link, QUIC_BINDING, Link);
+            QuicBindingHandleDosModeStateChange(Binding, MsQuicLib.SendRetryEnabled);
+        }
+        CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
     }
 }
 

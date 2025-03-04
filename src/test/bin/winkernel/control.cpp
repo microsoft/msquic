@@ -1527,6 +1527,11 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
         break;
 
+    case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
+        break;
+
     default:
         Status = STATUS_NOT_IMPLEMENTED;
         break;
