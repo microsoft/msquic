@@ -871,14 +871,17 @@ macro_rules! define_quic_handle_ctx_fn {
                 unsafe { Api::ffi_ref().SetContext.unwrap()(self.handle, ctx) }
             }
 
-            /// clear ctx if it is present.
-            fn clear_ctx_if_present(&self) {
+            /// Consume ctx and return it if present.
+            /// Set msquic ctx to null.
+            fn consume_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 // Clean up context only if handle is present. (it is not a handle ref.)
                 // If there is a ctx, drop it.
                 let ctx = self.get_context();
                 if !ctx.is_null() {
                     unsafe { self.set_context(std::ptr::null_mut()) };
-                    let _ = unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) };
+                    Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
+                } else {
+                    None
                 }
             }
         }
@@ -908,7 +911,7 @@ macro_rules! define_quic_handle_ref {
             }
         }
 
-        /// Make inner handle accessile
+        /// Make inner handle accessible
         impl std::ops::Deref for $handle_ref_name {
             type Target = $handle_name;
 
@@ -1052,7 +1055,7 @@ impl Connection {
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.clear_ctx_if_present();
+        std::mem::drop(self.consume_ctx());
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
@@ -1088,10 +1091,11 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let _ = self.consume_ctx();
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
             }
-            self.clear_ctx_if_present();
         }
     }
 
@@ -1129,7 +1133,7 @@ impl Connection {
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         // clear previous ctx before setting it.
-        self.clear_ctx_if_present();
+        std::mem::drop(self.consume_ctx());
         unsafe {
             Api::set_callback_handler(
                 self.handle,
@@ -1241,7 +1245,7 @@ impl Listener {
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.clear_ctx_if_present();
+        std::mem::drop(self.consume_ctx());
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
@@ -1281,10 +1285,11 @@ impl Listener {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let _ = self.consume_ctx();
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
             }
-            self.clear_ctx_if_present();
         }
     }
 }
@@ -1339,7 +1344,7 @@ impl Stream {
     {
         let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.clear_ctx_if_present();
+        std::mem::drop(self.consume_ctx());
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
@@ -1374,10 +1379,11 @@ impl Stream {
 
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let _ = self.consume_ctx();
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
             }
-            self.clear_ctx_if_present();
         }
     }
 
@@ -1412,7 +1418,7 @@ impl Stream {
         let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
         // clear previous ctx before setting it.
-        self.clear_ctx_if_present();
+        std::mem::drop(self.consume_ctx());
         unsafe {
             Api::set_callback_handler(
                 self.handle,
