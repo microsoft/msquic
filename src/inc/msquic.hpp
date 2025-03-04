@@ -1335,6 +1335,7 @@ private:
 struct MsQuicAutoAcceptListener : public MsQuicListener {
     const MsQuicConfiguration* Configuration;
     MsQuicConnectionCallback* ConnectionHandler;
+    MsQuicListenerCallback *CallbackHandler {nullptr};
     MsQuicConnection* LastConnection {nullptr};
     void* ConnectionContext;
 #ifdef CX_PLATFORM_TYPE
@@ -1364,6 +1365,18 @@ struct MsQuicAutoAcceptListener : public MsQuicListener {
         ConnectionContext(_ConnectionContext)
     { }
 
+    MsQuicAutoAcceptListener(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ const MsQuicConfiguration& Config,
+        _In_ MsQuicListenerCallback *_CallbackHandler,
+        _In_opt_ void* _ConnectionContext = nullptr
+        ) noexcept :
+        MsQuicListener(Registration, CleanUpManual, _CallbackHandler, _ConnectionContext ? _ConnectionContext : this),
+        Configuration(&Config),
+        ConnectionHandler(nullptr),
+        CallbackHandler(_CallbackHandler),
+        ConnectionContext(_ConnectionContext)
+    { }
 private:
 
     static

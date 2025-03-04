@@ -212,7 +212,6 @@ QuicListenerParamGet(
         void* Buffer
     );
 
-
 //
 // Indicate listener about DoS mode change.
 //

@@ -3446,11 +3446,26 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
+struct ListenerContext {
+    bool DosModeChangeEventReceived {false};
+    CxPlatEvent DosModeChanged;
+    static QUIC_STATUS ListenerCallback(_In_ MsQuicListener *Listener, _In_opt_ void* Context, _Inout_ QUIC_LISTENER_EVENT* Event) {
+        UNREFERENCED_PARAMETER(Listener);
+        auto This = static_cast<ListenerContext *>(Context);
+        if (Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED) {
+            This->DosModeChanged.Set();
+            This->DosModeChangeEventReceived = true;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
 void
 QuicTestRetryMemoryLimitConnect(
     _In_ int Family
     )
 {
+    ListenerContext Context;
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
     uint32_t LoopbackInterfaceIndex = UINT32_MAX;
     uint32_t OtherInterfaceIndex = UINT32_MAX;
@@ -3461,13 +3476,7 @@ QuicTestRetryMemoryLimitConnect(
 
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
-
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->SetParam(
-            NULL,
-            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
-            sizeof(RetryMemoryLimit),
-            &RetryMemoryLimit));
+    TEST_TRUE(Registration.IsValid());
 
     MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -3476,16 +3485,22 @@ QuicTestRetryMemoryLimitConnect(
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
     QuicAddr ServerLocalAddr(QuicAddrFamily);
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ListenerContext::ListenerCallback, &Context);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
 
     uint8_t buffer[1] = {1};
     TEST_QUIC_SUCCEEDED(
-            MsQuic->SetParam(
-                Listener.Handle,
-                QUIC_PARAM_DOS_MODE_EVENTS,
-                sizeof(buffer),
-                &buffer));
-
+        MsQuic->SetParam(
+            Listener.Handle,
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            sizeof(buffer),
+            &buffer));
 
     uint32_t Length = 65535;
     buffer[0] = {0};
@@ -3494,27 +3509,14 @@ QuicTestRetryMemoryLimitConnect(
             QUIC_PARAM_DOS_MODE_EVENTS,
             &Length,
             &buffer));
-    TEST_EQUAL(Length, 1 /*sizeof Listener->DosMitigationOptIn) */);
+    TEST_EQUAL(Length, 1 /*sizeof Listener->DosModeEventsEnabled) */);
     TEST_EQUAL(buffer[0], 1);
-
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-    MsQuicConnection Connection1(Registration);
-    TEST_QUIC_SUCCEEDED(Connection1.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection1.SetLocalInterface(LoopbackInterfaceIndex));
-    TEST_QUIC_SUCCEEDED(Connection1.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    TEST_TRUE(Connection1.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
-    TEST_TRUE(Connection1.HandshakeComplete);
-
-    MsQuicConnection Connection2(Registration);
-    TEST_QUIC_SUCCEEDED(Connection2.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection2.SetLocalInterface(OtherInterfaceIndex));
-    TEST_QUIC_SUCCEEDED(Connection2.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
-    Connection2.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
-    TEST_TRUE(!Connection2.HandshakeComplete);
+    TEST_TRUE(Context.DosModeChanged.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.DosModeChangeEventReceived);
 }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

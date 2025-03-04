@@ -3410,7 +3410,7 @@ void QuicTestListenerParam()
                     QUIC_PARAM_DOS_MODE_EVENTS,
                     &Length,
                     &buffer));
-            TEST_EQUAL(Length, 1 /*sizeof Listener->DosMitigationOptIn) */);
+            TEST_EQUAL(Length, 1 /*sizeof Listener->DosModeEventsEnabled) */);
         }
     }
 
