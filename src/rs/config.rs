@@ -30,7 +30,7 @@ impl RegistrationConfig {
     }
 
     pub fn set_app_name(mut self, value: String) -> Self {
-        self.app_name = Some(CString::new(value.as_bytes()).unwrap());
+        self.app_name = Some(CString::new(value).unwrap());
         self
     }
 
@@ -78,7 +78,7 @@ impl From<ExecutionProfile> for crate::ffi::QUIC_EXECUTION_PROFILE {
 pub struct CredentialConfig {
     credential_flags: CredentialFlags,
     credential: Credential,
-    principle: Option<CString>, // TODO: support async handler.
+    principal: Option<CString>, // TODO: support async handler.
     allowed_cipher_suites: AllowedCipherSuiteFlags,
     ca_certificate_file: Option<CString>,
 }
@@ -99,8 +99,8 @@ impl CredentialConfig {
         self
     }
 
-    pub fn set_principle(mut self, value: String) -> Self {
-        self.principle = Some(CString::new(value.as_bytes()).unwrap());
+    pub fn set_principal(mut self, value: String) -> Self {
+        self.principal = Some(CString::new(value).unwrap());
         self
     }
 
@@ -112,7 +112,7 @@ impl CredentialConfig {
 
     pub fn set_ca_certificate_file(mut self, value: String) -> Self {
         self.credential_flags |= CredentialFlags::SET_CA_CERTIFICATE_FILE;
-        self.ca_certificate_file = Some(CString::new(value.as_bytes()).unwrap());
+        self.ca_certificate_file = Some(CString::new(value).unwrap());
         self
     }
 
@@ -155,7 +155,7 @@ impl CredentialConfig {
             }
         }
         ffi_cfg.Principal = self
-            .principle
+            .principal
             .as_ref()
             .map(|s| s.as_ptr())
             .unwrap_or(std::ptr::null());
@@ -260,8 +260,8 @@ pub struct CertificateFile {
 
 impl CertificateFile {
     pub fn new(private_key_file: String, certificate_file: String) -> Self {
-        let key = CString::new(private_key_file.as_bytes()).unwrap();
-        let cert = CString::new(certificate_file.as_bytes()).unwrap();
+        let key = CString::new(private_key_file).unwrap();
+        let cert = CString::new(certificate_file).unwrap();
         Self {
             raw: crate::ffi::QUIC_CERTIFICATE_FILE {
                 PrivateKeyFile: key.as_ptr(),
@@ -291,9 +291,9 @@ impl CertificateFileProtected {
         certificate_file: String,
         private_key_password: String,
     ) -> Self {
-        let key = CString::new(private_key_file.as_bytes()).unwrap();
-        let cert = CString::new(certificate_file.as_bytes()).unwrap();
-        let pwd = CString::new(private_key_password.as_bytes()).unwrap();
+        let key = CString::new(private_key_file).unwrap();
+        let cert = CString::new(certificate_file).unwrap();
+        let pwd = CString::new(private_key_password).unwrap();
         Self {
             raw: crate::ffi::QUIC_CERTIFICATE_FILE_PROTECTED {
                 PrivateKeyFile: key.as_ptr(),
@@ -421,7 +421,7 @@ impl Default for AllowedCipherSuiteFlags {
 }
 
 // Disable macos because the ffi bindings is using linux
-// for macos and it as error code mismatch.
+// for macos and it has error code mismatch.
 #[cfg(not(target_os = "macos"))]
 #[cfg(test)]
 mod tests {
