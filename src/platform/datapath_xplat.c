@@ -291,6 +291,8 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
+    // TODO: Remove this assert eventually when we introduce QUIC and QTIP connections pinging the same socket.
+    CXPLAT_DBG_ASSERT(Socket->UseTcp == Config->Route->UseQTIP);
     if (Config->Route->UseQTIP || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
@@ -417,15 +419,24 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    //
-    // The state of Socket->UseTcp does not matter for server sockets, as they will always initialize everything.
-    // Server sockets will multiplex QTIP/QUIC packets based on Route->UseQTIP, which is set in the receive path,
-    // not here. For client sockets, the state Socket->UseTcp does matter as it can only initilize either UDP or
-    // TCP sockets from the OS networking stack, not both. And Socket->UseTcp is set in stone for clients when
-    // the socket is first created. We set Route->UseQTIP = Socket->UseTcp because everywhere in our send path
-    // we reference Route->UseQTIP instead of Socket->UseTcp.
-    //
     if (!Socket->IsServer) {
+        //
+        // For clients,
+        // The flag Socket->UseTcp determines what resources to instantiate as clients cannot
+        // allocate a TCP and UDP socket from the OS at the same time whereas servers can.
+        // So we need to set Route->UseQTIP here for clients.
+        //
+        // For servers,
+        // We always initialize everything. The flag Route->UseQTIP will be set on the receive side.
+        //
+        // For clients, it must be true that Route->UseQTIP == Socket->UseTcp as only 1 set of resources is
+        // allocated.
+        //
+        // For servers, it could be the case that Route->UseQTIP != Socket->UseTcp as servers do not rely
+        // on Socket->UseTcp to initialize resources. For testing purposes though, if we always set
+        // Socket->UseTcp to true in the QTIP scenarios, then both client and servers must have
+        // Route->UseQTIP == Socket->UseTcp.
+        //
         Route->UseQTIP = Socket->UseTcp;
     }
 

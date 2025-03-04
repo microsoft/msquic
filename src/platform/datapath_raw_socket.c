@@ -127,7 +127,6 @@ RawUpdateRoute(
     _In_ CXPLAT_ROUTE* SrcRoute
     )
 {
-    DstRoute->UseQTIP = SrcRoute->UseQTIP;
     if (!DstRoute->TcpState.Syncd) {
         DstRoute->TcpState.Syncd = TRUE;
         //
@@ -306,8 +305,10 @@ CxPlatDpRawParseIPv4(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
@@ -375,8 +376,10 @@ CxPlatDpRawParseIPv6(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else if (IP->NextHeader == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = TRUE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(

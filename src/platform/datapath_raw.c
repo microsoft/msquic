@@ -206,7 +206,8 @@ RawSocketGetLocalMtu(
     _In_ BOOLEAN UseQTIP
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
+    // TODO: Remove this assert eventually when we introduce QUIC and QTIP connections pinging the same socket.
+    CXPLAT_DBG_ASSERT(Socket->UseTcp == UseQTIP);
     // Reserve space for TCP header.
     return UseQTIP ? 1488 : 1500;
 }
@@ -233,18 +234,12 @@ CxPlatDpRawRxEthernet(
                     &PacketChain->Route->RemoteAddress);
         }
 
-        if (PacketChain->Reserved == L4_TYPE_TCP ||
-            PacketChain->Reserved == L4_TYPE_TCP_SYN ||
-            PacketChain->Reserved == L4_TYPE_TCP_SYNACK) {
-            PacketChain->Route->UseQTIP = TRUE;
-        }
-
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                uint8_t SocketType = L4_TYPE_UDP;
-                if (PacketChain->Reserved == L4_TYPE_TCP) {
-                    SocketType = L4_TYPE_TCP;
-                }
+                // TODO: Remove this assert eventually when we introduce QUIC and QTIP connections pinging the same socket.
+                CXPLAT_DBG_ASSERT(Socket->UseTcp == PacketChain->Route->UseQTIP);
+                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
+
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
@@ -358,6 +353,8 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    // TODO: Remove this assert eventually when we introduce QUIC and QTIP connections pinging the same socket.
+    CXPLAT_DBG_ASSERT(Socket->UseTcp == Route->UseQTIP);
     if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
