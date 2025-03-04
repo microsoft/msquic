@@ -241,7 +241,10 @@ CxPlatDpRawRxEthernet(
 
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                uint8_t SocketType = PacketChain->Reserved;
+                uint8_t SocketType = L4_TYPE_UDP;
+                if (PacketChain->Reserved == L4_TYPE_TCP) {
+                    SocketType = L4_TYPE_TCP;
+                }
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
