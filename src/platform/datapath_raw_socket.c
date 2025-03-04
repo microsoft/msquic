@@ -722,7 +722,7 @@ CxPlatFramingWriteHeaders(
         Socket->UseTcp == Route->UseQTIP
     );
 
-    if (Socket->UseTcp) {
+    if (Route->UseQTIP) {
         //
         // Fill TCP header.
         //
@@ -776,7 +776,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Socket->UseTcp) {
+            if (Route->UseQTIP) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv4->Source, IPv4->Destination,
@@ -823,7 +823,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Socket->UseTcp) {
+            if (Route->UseQTIP) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv6->Source, IPv6->Destination,

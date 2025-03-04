@@ -233,6 +233,8 @@ CxPlatDpRawRxEthernet(
         }
 
         if (Socket) {
+            // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
+            CXPLAT_DBG_ASSERT(Socket->UseTcp == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
                 //
                 // If we have UseTcp enabled, we should still support UDP type of packets.
