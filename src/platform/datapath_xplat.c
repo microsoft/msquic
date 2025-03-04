@@ -413,21 +413,26 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (OverrideGlobalQTIPSettings) {
+    if (!Socket->IsServer) {
         //
-        // The current Socket is part of a client Connection,
-        // and that client Connection explicitly set QTIP preferences.
+        // For clients,
+        // The flag Socket->UseTcp determines what resources to instantiate as clients cannot
+        // allocate a TCP and UDP socket from the OS at the same time whereas servers can.
+        // So we need to set Route->UseQTIP here for clients.
         //
-        Route->UseQTIP = UseQTIP;
-        Route->AppDidSetQTIP = TRUE;
-    } else if (!Route->AppDidSetQTIP) {
+        // For servers,
+        // We always initialize everything. The flag Route->UseQTIP will be set on the receive side.
         //
-        // The Client Peer did not set QTIP preferences. So we inherit the global server QTIP settings.
+        // For clients, it must be true that Route->UseQTIP == Socket->UseTcp as only 1 set of resources is
+        // allocated.
+        //
+        // For servers, it could be the case that Route->UseQTIP != Socket->UseTcp as servers do not rely
+        // on Socket->UseTcp to initialize resources. For testing purposes though, if we always set
+        // Socket->UseTcp to true in the QTIP scenarios, then both client and servers must have
+        // Route->UseQTIP == Socket->UseTcp.
         //
         Route->UseQTIP = Socket->UseTcp;
     }

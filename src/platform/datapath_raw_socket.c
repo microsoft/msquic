@@ -305,8 +305,10 @@ CxPlatDpRawParseIPv4(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = TRUE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
@@ -374,8 +376,10 @@ CxPlatDpRawParseIPv6(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else if (IP->NextHeader == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = TRUE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
@@ -712,6 +716,11 @@ CxPlatFramingWriteHeaders(
 
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
+
+    // TODO: Remove this once we modify tests to spawn QUIC/QTIP clients to ping the same listener.
+    CXPLAT_DBG_ASSERT(
+        Socket->UseTcp == Route->UseQTIP
+    );
 
     if (Socket->UseTcp) {
         //

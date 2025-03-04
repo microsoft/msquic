@@ -221,9 +221,9 @@ jobs:
       shell: pwsh
       timeout-minutes: 90
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
-    - name: Upload on Failure
+    - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
-      if: failure()
+      if: ${{ failure() || cancelled() }}
       with:
         name: BVT-Kernel-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
         path: artifacts
