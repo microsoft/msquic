@@ -233,11 +233,13 @@ CxPlatDpRawRxEthernet(
                     &PacketChain->Route->RemoteAddress);
         }
 
+        PacketChain->Route->UseQTIP = PacketChain->Reserved == L4_TYPE_TCP ||
+                                      PacketChain->Reserved == L4_TYPE_TCP_SYN ||
+                                      PacketChain->Reserved == L4_TYPE_TCP_SYNACK;
+
         if (Socket) {
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-
-                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
-
+                uint8_t SocketType = PacketChain->Reserved;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
