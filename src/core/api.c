@@ -1027,15 +1027,16 @@ MsQuicStreamSend(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
-    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
-
     Connection = Stream->Connection;
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
+    if (Stream->Flags.HandleClosed ||
+        Stream->Flags.Freed ||
+        Connection->State.Freed ||
+        (Connection->State.HandleClosed && (Connection->WorkerThreadID != CxPlatCurThreadID())))
+    {
+        Status = QUIC_STATUS_INVALID_STATE;
+        goto Exit;
+    }
 
     if (Connection->State.ClosedRemotely) {
         Status = QUIC_STATUS_ABORTED;

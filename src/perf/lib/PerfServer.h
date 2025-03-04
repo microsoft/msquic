@@ -24,11 +24,6 @@ typedef enum SYNTHETIC_DELAY_TYPE {
 } SYNTHETIC_DELAY_TYPE;
 
 
-struct DelayedWorkContext {
-    StreamContext* Context;
-    DelayedWorkContext* Next;
-};
-
 class DelayWorker {
 public:
     PerfServer* Server{ nullptr };
@@ -37,8 +32,8 @@ public:
     CxPlatEvent WakeEvent{ false };
     CxPlatEvent DoneEvent{ true };
     CxPlatLock Lock;
-    DelayedWorkContext* WorkItems {nullptr};
-    DelayedWorkContext** WorkItemsTail {&WorkItems};
+    StreamContext* WorkItems{ nullptr };
+    StreamContext** WorkItemsTail{ &WorkItems };
     bool Shuttingdown {false};
 
     DelayWorker() {}
@@ -229,8 +224,7 @@ struct StreamContext {
     StreamContext(
         PerfServer* Server, bool Unidirectional, bool BufferedIo, void* Handle, bool IsTcp) :
         Server{ Server }, Unidirectional{ Unidirectional }, BufferedIo{ BufferedIo }, Handle{ Handle }, IsTcp{IsTcp} {
-        RefCount = 1;
-        ConnectionClosing = false;
+        CxPlatRefInitialize(&RefCount);
 
         if (BufferedIo) {
             IdealSendBuffer = 1; // Hack to get just do 1 send at a time.
@@ -273,5 +267,6 @@ struct StreamContext {
     void* Handle{ nullptr };
     bool IsTcp{ false };
     CXPLAT_REF_COUNT RefCount;
-    bool ConnectionClosing;
+    bool ConnectionClosing{ false };
+    StreamContext* DelayNext{ nullptr }; // For use in the Delay worker queue
 };

@@ -594,15 +594,15 @@ void DelayWorker::Shutdown()
         // delete any pending work items
         //
         Lock.Acquire();
-        DelayedWorkContext* CurrentWorkItem = WorkItems;
+        StreamContext* CurrentWorkItem = WorkItems;
         while (nullptr != CurrentWorkItem) {
-            DelayedWorkContext* NextWorkItem;
-            if (WorkItemsTail == &CurrentWorkItem->Next) {
+            StreamContext* NextWorkItem;
+            if (WorkItemsTail == &CurrentWorkItem->DelayNext) {
                 NextWorkItem = nullptr;
             } else {
-                NextWorkItem = CurrentWorkItem->Next;
+                NextWorkItem = CurrentWorkItem->DelayNext;
             }
-            delete CurrentWorkItem;
+            CurrentWorkItem->Release();
             CurrentWorkItem = NextWorkItem;
         }
         WorkItems = nullptr;
@@ -623,8 +623,8 @@ BOOLEAN
 DelayWorker::DelayedWork(_Inout_ void* Worker)
 {
     DelayWorker* This = (DelayWorker*)Worker;
-    DelayedWorkContext* WorkItem;
-    DelayedWorkContext* NextWorkItem;
+    StreamContext* WorkItem;
+    StreamContext* NextWorkItem;
 
     do {
         if (This->Shuttingdown) {
@@ -639,22 +639,21 @@ DelayWorker::DelayedWork(_Inout_ void* Worker)
         if (nullptr != This->WorkItems) {
             WorkItem = This->WorkItems;
             if (nullptr != WorkItem) {
-                NextWorkItem = This->WorkItems = WorkItem->Next;
-                if (This->WorkItemsTail == &WorkItem->Next) {
+                NextWorkItem = This->WorkItems = WorkItem->DelayNext;
+                if (This->WorkItemsTail == &WorkItem->DelayNext) {
                     This->WorkItemsTail = &This->WorkItems;
                 }
-                WorkItem->Next = nullptr;
+                WorkItem->DelayNext = nullptr;
             }
         }
         This->Lock.Release();
 
         if (nullptr != WorkItem) {
             This->Server->SimulateDelay();
-            if (WorkItem->Context->IsActive()) {
-                This->Server->SendResponse(WorkItem->Context, WorkItem->Context->Handle, WorkItem->Context->IsTcp);
+            if (WorkItem->IsActive()) {
+                This->Server->SendResponse(WorkItem, WorkItem->Handle, WorkItem->IsTcp);
             }
-            WorkItem->Context->Release();
-            delete WorkItem;
+            WorkItem->Release();
         }
     } while (nullptr != NextWorkItem);
 
@@ -664,12 +663,9 @@ DelayWorker::DelayedWork(_Inout_ void* Worker)
 void
 DelayWorker::QueueWork(_In_ StreamContext* Context)
 {
-    DelayedWorkContext* Work = new (std::nothrow) DelayedWorkContext();
-    Work->Context = Context;
-
     Lock.Acquire();
-    *WorkItemsTail = Work;
-    WorkItemsTail = &Work->Next;
+    *WorkItemsTail = Context;
+    WorkItemsTail = &Context->DelayNext;
     Lock.Release();
 
     WakeWorkerThread();
