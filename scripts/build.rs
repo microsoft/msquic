@@ -22,7 +22,9 @@ fn main() {
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
-    if cfg!(feature = "schannel") {
+
+    // By default enable schannel on windows, unless openssl feature is selected.
+    if cfg!(windows) && !cfg!(feature = "openssl") {
         config.define("QUIC_TLS", "schannel");
     } else {
         config.define("QUIC_TLS", "openssl");
