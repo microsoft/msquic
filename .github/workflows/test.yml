@@ -132,13 +132,13 @@ jobs:
       with:
         ref: ${{ inputs.ref || '' }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -198,12 +198,12 @@ jobs:
       with:
         ref: ${{ inputs.ref || '' }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Build Artifacts for Testing From WinUser
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       with: # note we always use binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-windows-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
@@ -247,7 +247,7 @@ jobs:
       with:
         fetch-depth: 0
         ref: ${{ inputs.ref || '' }}
-    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+    - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
