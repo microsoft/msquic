@@ -224,11 +224,6 @@ MsQuicConnectionShutdown(
         goto Error;
     }
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         if (InterlockedCompareExchange16(
@@ -1027,16 +1022,10 @@ MsQuicStreamSend(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Stream = (QUIC_STREAM*)Handle;
 
-    Connection = Stream->Connection;
+    CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
+    CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
-    if (Stream->Flags.HandleClosed ||
-        Stream->Flags.Freed ||
-        Connection->State.Freed ||
-        (Connection->State.HandleClosed && (Connection->WorkerThreadID != CxPlatCurThreadID())))
-    {
-        Status = QUIC_STATUS_INVALID_STATE;
-        goto Exit;
-    }
+    Connection = Stream->Connection;
 
     if (Connection->State.ClosedRemotely) {
         Status = QUIC_STATUS_ABORTED;
@@ -1235,11 +1224,6 @@ MsQuicStreamReceiveSetEnabled(
 
     Connection = Stream->Connection;
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1306,11 +1290,6 @@ MsQuicStreamReceiveComplete(
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
 
     QUIC_CONN_VERIFY(Connection,
         (Stream->RecvPendingLength == 0) || // Stream might have been shutdown already

@@ -331,8 +331,8 @@ PerfServer::StreamCallback(
                 // TODO - Not supported right now
                 MsQuic->StreamShutdown(StreamHandle, QUIC_STREAM_SHUTDOWN_FLAG_ABORT, 0);
             } else {
-                CXPLAT_FRE_ASSERT(Context->Handle == (void*)StreamHandle);
-                CXPLAT_FRE_ASSERT(!Context->IsTcp);
+                CXPLAT_DBG_ASSERT(Context->Handle == (void*)StreamHandle);
+                CXPLAT_DBG_ASSERT(!Context->IsTcp);
                 if (DelayWorkers) {
                     SendDelayedResponse(Context);
                 } else {
@@ -511,8 +511,8 @@ PerfServer::TcpReceiveCallback(
 
     } else if (Fin) {
         if (Stream->ResponseSizeSet && Stream->ResponseSize != 0) {
-            CXPLAT_FRE_ASSERT(Stream->Handle == (void*)Connection);
-            CXPLAT_FRE_ASSERT(Stream->IsTcp);
+            CXPLAT_DBG_ASSERT(Stream->Handle == (void*)Connection);
+            CXPLAT_DBG_ASSERT(Stream->IsTcp);
             if (Server->DelayWorkers) {
                 Server->SendDelayedResponse(Stream);
             } else {
