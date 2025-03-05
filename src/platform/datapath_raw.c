@@ -350,8 +350,8 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(Route->UseQTIP == Socket->UseTcp); // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
-    if (Socket->UseTcp &&
+    // CXPLAT_DBG_ASSERT(Route->UseQTIP == Socket->UseTcp); // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
+    if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
         Socket->PausedTcpSend = SendData;
