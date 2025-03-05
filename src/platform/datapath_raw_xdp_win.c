@@ -1608,7 +1608,6 @@ CxPlatDpRawTxAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
     QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(Queue != NULL);
@@ -1616,7 +1615,7 @@ CxPlatDpRawTxAlloc(
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     if (Packet) {
-        // CXPLAT_DBG_ASSERT(Config->Route->UseQTIP == Socket->UseTcp); // TODO: Remove this once we modify tests to ping listener with both QTIP and QUIC traffic.
+        CXPLAT_DBG_ASSERT(Socket != NULL); // TODO: Remove this once we modify tests to ping listener with both QTIP and QUIC traffic.
         HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseQTIP); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
