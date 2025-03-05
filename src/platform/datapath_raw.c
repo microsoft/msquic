@@ -236,13 +236,7 @@ CxPlatDpRawRxEthernet(
             // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
             CXPLAT_DBG_ASSERT(Socket->UseTcp == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                //
-                // If we have UseTcp enabled, we should still support UDP type of packets.
-                //
-                // uint8_t SocketType = (Socket->UseTcp && PacketChain->Reserved == L4_TYPE_TCP) ? L4_TYPE_TCP : L4_TYPE_UDP;
-
-                uint8_t SocketType = (Socket->UseTcp) ? L4_TYPE_TCP : L4_TYPE_UDP; // This is the old code
-
+                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
@@ -356,6 +350,7 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CXPLAT_DBG_ASSERT(Route->UseQTIP == Socket->UseTcp); // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
     if (Socket->UseTcp &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {

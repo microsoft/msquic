@@ -289,6 +289,7 @@ CxPlatSendDataAlloc(
     )
 {
     CXPLAT_SEND_DATA* SendData = NULL;
+    CXPLAT_DBG_ASSERT(Socket->UseTcp == Config->Route->UseQTIP); // TODO: remove this assert once we modify tests to ping listener with both QTIP and QUIC traffic.
     // TODO: fallback?
     if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&

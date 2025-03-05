@@ -539,9 +539,9 @@ CxPlatDpRawSocketAckFin(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
+    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
@@ -578,9 +578,9 @@ CxPlatDpRawSocketAckSyn(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
+    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
@@ -663,7 +663,8 @@ CxPlatDpRawSocketSyn(
     _In_ const CXPLAT_ROUTE* Route
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
+    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
