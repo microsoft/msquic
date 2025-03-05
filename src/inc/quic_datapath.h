@@ -911,6 +911,7 @@ CxPlatUpdateRoute(
 
 #define CXPLAT_RDMA_FLAG_SHARE      0x00000001   // Forces sharing of the address and port
 #define CXPLAT_RDMA_SERVER_OWNED    0x00000002   // Indicates handle is an RDMA Listener handle
+#define CXPLAT_RDMA_SHARE_MR        0x00000004   // Forces sharing of the Memory Region
 
 typedef struct CXPLAT_RDMA_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
@@ -921,8 +922,8 @@ typedef struct CXPLAT_RDMA_CONFIG {
     void* CallbackContext;              // optional
 
     // Memory related configuration
-    uint32_t SendRingBufferMemory;      // Send Memory Buffer
-    uint32_t RecvRingBufferMemory;      // Receive Memory Buffer
+    uint32_t SendRingBufferSize;      // Send Memory Buffer Size
+    uint32_t RecvRingBufferSize;      // Receive Memory Buffer Size
 
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional
@@ -945,7 +946,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _In_ const CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** Socket
     );
 

@@ -9,8 +9,6 @@
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
-#include "platform_internal.h"
-
 #define DEFAULT_RING_BUFFER_SIZE 0x8000     // 64 KB
 #define MIN_RING_BUFFER_SIZE 0x1000         // 4 KB
 #define MAX_RING_BUFFER_SIZE 0x100000000    // 4 GB
@@ -27,7 +25,6 @@ typedef struct _RDMA_NDSPI_SEND_RING_BUFFER
     size_t Size;
     size_t Head;
     size_t Tail;
-    
 } RDMA_SEND_RING_BUFFER, *PRDMA_SEND_RING_BUFFER;
 
 typedef struct _RDMA_NDSPI_RECV_RING_BUFFER

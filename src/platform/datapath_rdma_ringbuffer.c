@@ -9,7 +9,6 @@ Abstract:
     single threaded operation
 
 --*/
-
 #include "platform_internal.h"
 #include  "datapath_rdma_ring_buffer.h"
 

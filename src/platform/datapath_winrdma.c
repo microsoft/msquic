@@ -20,7 +20,20 @@ Abstract:
 
 #pragma warning(disable:4116) // unnamed type definition in parentheses
 
+//
+// Maximum number of ND2_SGE objects in the pool per connection
+//
+#define MAX_SGE_POOL_SIZE 8192
 
+//
+// Maximum number of ND2_MANA_RESULT objects in the pool per connection
+//
+#define MAX_MANA_RESULT_POOL_SIZE 8192
+
+//
+// Maximum number of RDMA_CONNECTION objects in the pool per Adapter
+//
+#define MAX_RDMA_CONNECTION_POOL_SIZE 1024
 
 typedef struct _RDMA_ADAPTER_INFO {
     UINT32 VendorId;
@@ -50,6 +63,7 @@ typedef struct _RDMA_NDSPI_ADAPTER
     IND2Adapter*        Adapter;
     HANDLE              OverlappedFile;
     IND2MemoryRegion*   MemoryRegion;
+    CXPLAT_POOL         ConnectionPool;
     OVERLAPPED          Ov;
 } RDMA_NDSPI_ADAPTER, *PRDMA_NDSPI_ADAPTER;
 
@@ -79,6 +93,8 @@ typedef struct _RDMA_NDSPI_CONNECTION {
     OVERLAPPED                  Ov;
     CXPLAT_SOCKET*              Socket; // Socket associated with this connection
     ULONG                       Flags;
+    CXPLAT_POOL                 SgePool;        
+    CXPLAT_POOL                 ManaResultPool;
 } RDMA_CONNECTION, *PRDMA_CONNECTION;
 
 
@@ -659,7 +675,7 @@ NdspiInvalidateMemoryWindow(
     _In_ IND2ManaQueuePair* QueuePair,
     _In_ IND2MemoryWindow *MemoryWindow,
     _In_ void *Context,
-    _In_ ULONG flags
+    _In_ ULONG Flags
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -677,7 +693,7 @@ NdspiInvalidateMemoryWindow(
         QueuePair,
         Context,
         (IUnknown *)MemoryWindow,
-        flags);
+        Flags);
 
     return Status;
 }
@@ -685,17 +701,17 @@ NdspiInvalidateMemoryWindow(
 //
 // Perform a complete connect on a connector
 //
-HRESULT
+QUIC_STATUS
 CxPlatRdmaCompleteConnectConnector(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext
+    _Inout_ PRDMA_CONNECTION rdmaConnection
     );
 
 //
 // Perform an accept on a connector
 //
-HRESULT
+QUIC_STATUS
 CxPlatRdmaAcceptConnector(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext,
+    _Inout_ PRDMA_CONNECTION rdmaConnection,
     _In_ ULONG inboundReadLimit,
     _In_ ULONG outboundReadLimit,
     __in_bcount_opt(cbPrivateData) const VOID* pPrivateData,
@@ -706,59 +722,245 @@ CxPlatRdmaAcceptConnector(
 //
 // Release a connector
 //
-HRESULT
+QUIC_STATUS
 CxPlatRdmaReleaseConnector(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext
+    _Inout_ PRDMA_CONNECTION rdmaConnection
     );
 
 //
 // Get Result from a completion queue
 //
-HRESULT
+QUIC_STATUS
 CxPlatRdmaGetCompletionQueueResults(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext,
+    _Inout_ PRDMA_CONNECTION rdmaConnection,
     _In_ BOOL wait
     );
 
 //
 // RDMA Write
 //
-HRESULT
-CxPlatRdmaWrite(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext,
-    __in_ecount_opt(nSge) const void *sge,
-    _In_ ULONG nSge,
-    _In_ UINT64 remoteAddress,
-    _In_ UINT32 remoteToken,
-    _In_ ULONG flags
-    );
+QUIC_STATUS
+NdspiWrite(
+    _Inout_ PRDMA_CONNECTION RdmaConnection,
+    __in_ecount_opt(SgeSize) const void *Sge,
+    _In_ ULONG SgeSize,
+    _In_ UINT64 RemoteAddress,
+    _In_ UINT32 RemoteToken,
+    _In_ ULONG Flags
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!RdmaConnection ||
+        !RdmaConnection->QueuePair ||
+        !Sge ||
+        !SgeSize ||
+        !RemoteAddress || !RemoteToken)
+    {
+        QuicTraceEvent(
+            NdspiWriteFailed,
+            "Ndspi Write Failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = RdmaConnection->QueuePair->lpVtbl->Write(
+        RdmaConnection->QueuePair,
+        RdmaConnection,
+        Sge,
+        SgeSize,
+        RemoteAddress,
+        RemoteToken,
+        Flags);
+
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            NDSPIWriteFailed,
+            "NDSPI Write failed, status:%d", Status);
+    }
+
+    return Status;
+}
 
 //
 // RDMA Write with immediate
 //
-HRESULT
-CxPlatRdmaWriteWithImmediate(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext,
-    __in_ecount_opt(nSge) const void *sge,
-    _In_ ULONG nSge,
-    _In_ UINT64 remoteAddress,
-    _In_ UINT32 remoteToken,
-    _In_ ULONG flags,
-    _In_ UINT32 immediateData
-    );
+QUIC_STATUS
+NdspiWriteWithImmediate(
+    _Inout_ PRDMA_CONNECTION RdmaConnection,
+    __in_ecount_opt(SgeSize) const void *Sge,
+    _In_ ULONG SgeSize,
+    _In_ UINT64 RemoteAddress,
+    _In_ UINT32 RemoteToken,
+    _In_ ULONG Flags,
+    _In_ UINT32 ImmediateData
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!RdmaConnection ||
+        !RdmaConnection->QueuePair ||
+        !Sge ||
+        !SgeSize ||
+        !RemoteAddress ||
+        !RemoteToken ||
+        !ImmediateData)
+    {
+        QuicTraceEvent(
+            NdspiWriteWithImmediateFailed,
+            "Ndspi WriteWithImmediate Failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = RdmaConnection->QueuePair->lpVtbl->WriteWithImmediate(
+        RdmaConnection->QueuePair,
+        RdmaConnection,
+        Sge,
+        SgeSize,
+        RemoteAddress,
+        RemoteToken,
+        Flags,
+        ImmediateData);
+
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            NDSPIWriteWithImmediateFailed,
+            "NDSPI WriteWithImmediate failed, status:%d", Status);
+    }
+
+    return Status;
+}
 
 //
 // RDMA Read
 //
-HRESULT
-CxPlatRdmaRead(
-    _Inout_ PRDMA_CONNECTION pRdmaConnContext,
-    __in_ecount_opt(nSge) const void *sge,
-    _In_ ULONG nSge,
-    _In_ UINT64 remoteAddress,
-    _In_ UINT32 remoteToken,
-    _In_ ULONG flags
-    );
+QUIC_STATUS
+NdspiRead(
+    _Inout_ PRDMA_CONNECTION RdmaConnection,
+    __in_ecount_opt(SgeSize) const void *Sge,
+    _In_ ULONG SgeSize,
+    _In_ UINT64 RemoteAddress,
+    _In_ UINT32 RemoteToken,
+    _In_ ULONG Flags,
+    _In_ UINT32 ImmediateData
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!RdmaConnection ||
+        !RdmaConnection->QueuePair ||
+        !Sge ||
+        !SgeSize ||
+        !RemoteAddress ||
+        !RemoteToken ||
+        !ImmediateData)
+    {
+        QuicTraceEvent(
+            NdspiReadFailed,
+            "Ndspi Read Failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = RdmaConnection->QueuePair->lpVtbl->Read(
+        RdmaConnection->QueuePair,
+        RdmaConnection,
+        Sge,
+        SgeSize,
+        RemoteAddress,
+        RemoteToken,
+        Flags);
+
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            NDSPIReadFailed,
+            "NDSPI Read failed, status:%d", Status);
+    }
+
+    return Status;
+}
+
+//
+// RDMA Send
+//
+QUIC_STATUS
+NdspiSend(
+    _Inout_ PRDMA_CONNECTION RdmaConnection,
+    __in_ecount_opt(SgeSize) const void *Sge,
+    _In_ ULONG SgeSize,
+    _In_ ULONG Flags
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!RdmaConnection ||
+        !RdmaConnection->QueuePair ||
+        !Sge ||
+        !SgeSize)
+    {
+        QuicTraceEvent(
+            NdspiSendFailed,
+            "Ndspi Send Failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = RdmaConnection->QueuePair->lpVtbl->Send(
+        RdmaConnection->QueuePair,
+        RdmaConnection,
+        Sge,
+        SgeSize,
+        Flags);
+
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            NDSPIReadFailed,
+            "NDSPI Send failed, status:%d", Status);
+    }
+
+    return Status;
+}
+
+
+//
+// Post RDMA Receive
+//
+QUIC_STATUS
+NdspiPostReceive(
+    _Inout_ PRDMA_CONNECTION RdmaConnection,
+    __in_ecount_opt(SgeSize) const void *Sge,
+    _In_ ULONG SgeSize
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!RdmaConnection ||
+        !RdmaConnection->QueuePair ||
+        !Sge ||
+        !SgeSize)
+    {
+        QuicTraceEvent(
+            NdspiPostReceiveFailed,
+            "Ndspi PostReceive Failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = RdmaConnection->QueuePair->lpVtbl->Receive(
+        RdmaConnection->QueuePair,
+        RdmaConnection,
+        Sge,
+        SgeSize);
+
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            NDSPIPostReceiveFailed,
+            "NDSPI PostReceive failed, status:%d", Status);
+    }
+
+    return Status;
+}
 
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -849,9 +1051,7 @@ CxPlatRdmaAdapterInitialize(
 
 {
     *Adapter = NULL;
-    UNREFERENCED_PARAMETER(LocalAddress);
-    UNREFERENCED_PARAMETER(*Adapter);
-    /*
+
     SOCKADDR sockAddr = {0};
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
@@ -869,35 +1069,60 @@ CxPlatRdmaAdapterInitialize(
         memcpy(&sockAddr, sockAddrIn6, sizeof(SOCKADDR_IN6));
     }
 
-    RdmaAdapter = (PRDMA_NDSPI_ADAPTER)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
+    RdmaAdapter = (PRDMA_NDSPI_ADAPTER)CXPLAT_ALLOC_PAGED(sizeof(RDMA_NDSPI_ADAPTER), QUIC_POOL_DATAPATH);
     if (RdmaAdapter == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
-            DatapathLength);
+            sizeof(RDMA_NDSPI_ADAPTER));
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
+        goto ErrorExit;
     }
-
-    void *Adapter = NULL;
-
 
     Status = NdOpenAdapter(
         &IID_IND2Adapter,
         &sockAddr,
         sizeof(sockAddr),
-        &adapter);
+        &RdmaAdapter->Adapter);
 
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             NdOpenAdapterFailed,
             "NdOpenAdapter failed, status:%d", Status);
-        goto Error;
+        goto ErrorExit;
     }
-    */
 
-    return S_OK;
+    Status = NdspiCreateOverlappedFile(RdmaAdapter->Adapter, &RdmaAdapter->OverlappedFile);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            CreateOverlappedFileFailed,
+            "CreateOverlappedFile failed, status:%d", Status);
+        goto ErrorExit;
+    }
+
+    Status = NdspiCreateMemoryRegion(RdmaAdapter, &RdmaAdapter->MemoryRegion);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            CreateMemoryRegionFailed,
+            "CreateMemoryRegion failed, status:%d", Status);
+        goto ErrorExit;
+    }
+
+    CxPlatPoolInitializeEx(
+        FALSE,
+        sizeof(RDMA_CONNECTION),
+        QUIC_POOL_SOCKET,
+        MAX_RDMA_CONNECTION_POOL_SIZE,
+        NULL,
+        NULL,
+        &RdmaAdapter->ConnectionPool);
+
+ErrorExit:
+
+    CxPlatRdmaAdapterRelease(RdmaAdapter);
+
+    return Status;
 }
 
 //
@@ -909,8 +1134,26 @@ CxPlatRdmaAdapterRelease(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    PRDMA_ADAPTER_INFO NdAdapter = (PRDMA_ADAPTER_INFO) Adapter;
-    if (NdAdapter) {
+    PRDMA_NDSPI_ADAPTER NdAdapter = (PRDMA_NDSPI_ADAPTER) Adapter;
+    if (NdAdapter)
+    {
+        if (NdAdapter->Adapter)
+        {
+            NdAdapter->Adapter->lpVtbl->Release(NdAdapter->Adapter);
+        }
+
+        if (NdAdapter->OverlappedFile)
+        {
+            CloseHandle(NdAdapter->OverlappedFile);
+        }
+
+        if (NdAdapter->MemoryRegion)
+        {
+            NdAdapter->MemoryRegion->lpVtbl->Release(NdAdapter->MemoryRegion);
+        }
+
+        CxPlatPoolUninitialize(&NdAdapter->ConnectionPool);
+
         CXPLAT_FREE(NdAdapter, QUIC_POOL_DATAPATH);
     }
 
