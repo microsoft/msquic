@@ -224,6 +224,11 @@ MsQuicConnectionShutdown(
         goto Error;
     }
 
+    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
+    QUIC_CONN_VERIFY(Connection,
+        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
+        !Connection->State.HandleClosed);
+
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         if (InterlockedCompareExchange16(
