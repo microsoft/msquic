@@ -784,7 +784,9 @@ QuicListenerParamSet(
             Listener->CibirId[1]);
 
         return QUIC_STATUS_SUCCESS;
-    } else if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
+    }
+
+    if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
         if (BufferLength == sizeof(BOOLEAN)) {
             Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
             if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
