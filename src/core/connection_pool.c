@@ -18,6 +18,27 @@ Abstract:
 
 #define MAX_CONNECTION_POOL_RETRY_MULTIPLIER 2
 
+const char*
+QuicConnPoolAllocServerNameCopy(
+    _In_ const char* ServerName,
+    _In_ size_t ServerNameLength
+    )
+{
+    char* ServerNameCopy = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_SERVERNAME);
+        if (ServerNameCopy == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
+        } else {
+            CxPlatCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
+            ServerNameCopy[ServerNameLength] = 0;
+        }
+
+    return ServerNameCopy;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
@@ -102,19 +123,36 @@ MsQuicConnectionPoolCreate(
     CXPLAT_RSS_CONFIG* RssConfig = NULL;
     uint32_t* RssProcessors = NULL;
     uint32_t* ConnectionCounts = NULL;
+    const char* ServerNameCopy = NULL;
     CXPLAT_TOEPLITZ_HASH ToeplitzHash;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t CreatedConnections = 0;
 
-    if (Config == NULL || Config->NumberOfConnections == 0 || Config->Handler == NULL ||
-        Config->ServerName == NULL || Config->ServerPort == 0 || ConnectionPool == NULL ||
-        (Config->CibirIds != NULL && Config->CibirIdLength == 0)) {
+    if (Config == NULL || ConnectionPool == NULL || Config->Registration == NULL ||
+        Config->Configuration == NULL|| Config->NumberOfConnections == 0 ||
+        Config->Handler == NULL || Config->ServerName == NULL || Config->ServerPort == 0 ||
+        (Config->Family != QUIC_ADDRESS_FAMILY_UNSPEC &&
+            Config->Family != QUIC_ADDRESS_FAMILY_INET &&
+            Config->Family != QUIC_ADDRESS_FAMILY_INET6) ||
+        (((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL) ||
+        (Config->CibirIds != NULL && Config->CibirIdLength == 0) ||
+        (Config->CibirIds == NULL && Config->CibirIdLength != 0)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceLogError(
             ConnPoolInvalidParam,
             "[conp] Invalid parameter, 0x%x",
             Status);
-        goto Error;
+        return Status;
+    }
+
+    const size_t ServerNameLength = strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
+    if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceLogError(
+            ConnPoolServerNameTooLong,
+            "[conp] ServerName too long (%llu bytes)",
+            ServerNameLength);
+        return Status;
     }
 
     QuicTraceEvent(
@@ -173,22 +211,6 @@ MsQuicConnectionPoolCreate(
         QuicTraceLogError(
             ConnPoolGetRssConfig,
             "[conp] Failed to get RSS config, 0x%x",
-            Status);
-        goto Error;
-    }
-
-    if ((QuicAddrGetFamily(&LocalAddress) == QUIC_ADDRESS_FAMILY_INET &&
-            (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV4) == 0) ||
-        (QuicAddrGetFamily(&LocalAddress) == QUIC_ADDRESS_FAMILY_INET6 &&
-            (RssConfig->HashTypes & CXPLAT_RSS_HASH_TYPE_UDP_IPV6) == 0)) {
-        //
-        // This RSS implementation doesn't support hashing UDP ports, which
-        // means the connection pool can't spread connections across CPUs.
-        //
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        QuicTraceLogError(
-            ConnPoolRssNotSupported,
-            "[conp] RSS not supported for UDP, 0x%x",
             Status);
         goto Error;
     }
@@ -293,6 +315,15 @@ MsQuicConnectionPoolCreate(
         const uint32_t MaxCreationRetries = RssProcessorCount * MAX_CONNECTION_POOL_RETRY_MULTIPLIER;
         uint32_t RetryCount = 0;
         uint32_t RssProcIndex;
+        ServerNameCopy =
+            QuicConnPoolAllocServerNameCopy(
+                Config->ServerName,
+                ServerNameLength);
+        if (ServerNameCopy == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+
         for (; RetryCount < MaxCreationRetries; RetryCount++) {
 
             uint32_t NewPort = QuicAddrGetPort(&LocalAddress) + 1;
@@ -428,7 +459,7 @@ MsQuicConnectionPoolCreate(
                 Connections[i],
                 (QUIC_CONFIGURATION*)Config->Configuration,
                 Config->Family,
-                Config->ServerName,
+                ServerNameCopy,
                 Config->ServerPort,
                 QUIC_CONN_START_FLAG_FAIL_SILENTLY);
             if (QUIC_FAILED(Status)) {
@@ -438,6 +469,13 @@ MsQuicConnectionPoolCreate(
                     i,
                     Status);
                 QuicConnRelease(Connections[i], QUIC_CONN_REF_HANDLE_OWNER);
+                //
+                // ServerNameCopy was freed when the above failed, so it must be recreated
+                //
+                ServerNameCopy =
+                    QuicConnPoolAllocServerNameCopy(
+                        Config->ServerName,
+                        ServerNameLength);
                 Connections[i] = NULL;
                 CreatedConnections--;
                 continue;
@@ -447,6 +485,7 @@ MsQuicConnectionPoolCreate(
             // The connection was created successfully, add it to the count for this processor.
             //
             ConnectionCounts[RssProcIndex]++;
+            ServerNameCopy = NULL;
             break;
         }
 
@@ -464,6 +503,9 @@ MsQuicConnectionPoolCreate(
     }
 
 Error:
+    if (ServerNameCopy != NULL) {
+        CXPLAT_FREE(ServerNameCopy, QUIC_POOL_SERVERNAME);
+    }
     if (QUIC_FAILED(Status) &&
         (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE) != 0) {
         for (uint32_t i = 0; i < CreatedConnections; i++) {

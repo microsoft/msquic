@@ -6309,4 +6309,187 @@ QuicTestVersionStorage()
     TEST_EQUAL(Settings.OfferedVersions, nullptr);
     TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 }
+
+void
+QuicTestValidateConnectionPoolCreate()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_TRUE(Configuration.IsValid());
+
+    {
+        TestScopeLogger logScope("All parameters NULL");
+        TEST_QUIC_STATUS(QUIC_STATUS_INVALID_PARAMETER, MsQuic->ConnectionPoolCreate(NULL, NULL));
+    }
+
+    {
+        TestScopeLogger logScope("Config NULL");
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                nullptr,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("ConnectionPool NULL");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                nullptr));
+    }
+
+    {
+        TestScopeLogger logScope("No Registration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = nullptr;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("No Configuration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = nullptr;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Zero Connections");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Missing Connection Callback");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = nullptr;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Address Family");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = (QUIC_ADDRESS_FAMILY)3;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Server port");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 0;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Non-Null CIBIR, zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = (uint8_t**)0x1;
+        Config.CibirIdLength = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Null CIBIR, non-zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = nullptr;
+        Config.CibirIdLength = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

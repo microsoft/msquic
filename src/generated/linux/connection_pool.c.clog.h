@@ -62,6 +62,24 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolInvalidParam , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnPoolServerNameTooLong
+// [conp] ServerName too long (%llu bytes)
+// QuicTraceLogError(
+            ConnPoolServerNameTooLong,
+            "[conp] ServerName too long (%llu bytes)",
+            ServerNameLength);
+// arg2 = arg2 = ServerNameLength = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ConnPoolServerNameTooLong
+#define _clog_3_ARGS_TRACE_ConnPoolServerNameTooLong(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolServerNameTooLong , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnPoolResolveAddress
 // [conp] Failed to resolve address, 0x%x
 // QuicTraceLogError(
@@ -109,24 +127,6 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetLocalAddress , arg2);\
 #ifndef _clog_3_ARGS_TRACE_ConnPoolGetRssConfig
 #define _clog_3_ARGS_TRACE_ConnPoolGetRssConfig(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetRssConfig , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssNotSupported
-// [conp] RSS not supported for UDP, 0x%x
-// QuicTraceLogError(
-            ConnPoolRssNotSupported,
-            "[conp] RSS not supported for UDP, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolRssNotSupported
-#define _clog_3_ARGS_TRACE_ConnPoolRssNotSupported(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssNotSupported , arg2);\
 
 #endif
 
@@ -336,6 +336,26 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolMaxRetries , arg2, arg3, arg4, arg5);
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Server name",
+                ServerNameLength + 1);
+// arg2 = arg2 = "Server name" = arg2
+// arg3 = arg3 = ServerNameLength + 1 = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_AllocFailure
+#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApiEnter
 // [ api] Enter %u (%p).
 // QuicTraceEvent(
@@ -349,26 +369,6 @@ tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolMaxRetries , arg2, arg3, arg4, arg5);
 #ifndef _clog_4_ARGS_TRACE_ApiEnter
 #define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_POOL_C, ApiEnter , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RSS Processor List",
-            RssConfig->RssIndirectionTableLength);
-// arg2 = arg2 = "RSS Processor List" = arg2
-// arg3 = arg3 = RssConfig->RssIndirectionTableLength = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, AllocFailure , arg2, arg3);\
 
 #endif
 

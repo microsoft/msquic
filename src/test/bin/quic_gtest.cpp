@@ -363,6 +363,15 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+TEST(ParameterValidation, ValidateConnectionPoolCreate) {
+    TestLogger Logger("QuicTestValidateConnectionPoolCreate");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION));
+    } else {
+        QuicTestValidateConnectionPoolCreate();
+    }
+}
+
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
     if (TestingKernelMode) {

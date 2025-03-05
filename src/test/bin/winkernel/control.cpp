@@ -530,6 +530,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1531,6 +1532,10 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->ConnPoolCreateParams.NumberOfConnections,
                 Params->ConnPoolCreateParams.XdpSupported == TRUE,
                 Params->ConnPoolCreateParams.TestCibirSupport == TRUE));
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
+        QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
         break;
 #endif
 

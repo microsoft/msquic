@@ -2017,12 +2017,16 @@
     },
     "ConnPoolRssNotSupported": {
       "ModuleProperites": {},
-      "TraceString": "[conp] RSS not supported for UDP, 0x%x",
+      "TraceString": "[conp] RSS not supported for UDP, 0x%x. RssHashTypes 0x%x",
       "UniqueId": "ConnPoolRssNotSupported",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogError"
@@ -2055,6 +2059,18 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnPoolServerNameTooLong": {
+      "ModuleProperites": {},
+      "TraceString": "[conp] ServerName too long (%llu bytes)",
+      "UniqueId": "ConnPoolServerNameTooLong",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg2"
         }
       ],
       "macroName": "QuicTraceLogError"
@@ -14388,9 +14404,9 @@
         "EncodingString": "[conp] RSS not configured, 0x%x"
       },
       {
-        "UniquenessHash": "b30e8087-8bd3-3ec5-5531-5c4409721a62",
+        "UniquenessHash": "d627fb5b-c7f9-0a4f-4a74-eae0d6793911",
         "TraceID": "ConnPoolRssNotSupported",
-        "EncodingString": "[conp] RSS not supported for UDP, 0x%x"
+        "EncodingString": "[conp] RSS not supported for UDP, 0x%x. RssHashTypes 0x%x"
       },
       {
         "UniquenessHash": "0f1cace5-9a63-5f7c-fc34-b34d3139e2e0",
@@ -14401,6 +14417,11 @@
         "UniquenessHash": "33ae3aed-4b8f-97b5-c6ea-bd70a3911635",
         "TraceID": "ConnPoolRssSecretKeyTooShort",
         "EncodingString": "[conp] RSS secret key too short (%u bytes), 0x%x"
+      },
+      {
+        "UniquenessHash": "81b1615f-0fa3-850f-6636-b04a5258a184",
+        "TraceID": "ConnPoolServerNameTooLong",
+        "EncodingString": "[conp] ServerName too long (%llu bytes)"
       },
       {
         "UniquenessHash": "783dface-e5d4-81d2-213a-a40abc4b00d9",

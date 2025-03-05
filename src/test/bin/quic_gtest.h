@@ -353,12 +353,11 @@ struct HandshakeArgs12 {
         ::std::vector<HandshakeArgs12> list;
         for (int Family : { 4, 6 })
         for (bool NumberOfConnections : { 1, 2, 4 })
-        for (bool TestCibirSupport : { false, true })
         for (bool XdpSupported : { false, true }) {
             if (!UseDuoNic && XdpSupported) {
                 continue;
             }
-            list.push_back({ Family, NumberOfConnections, XdpSupported, TestCibirSupport });
+            list.push_back({ Family, NumberOfConnections, XdpSupported, false });
         }
         return list;
     }

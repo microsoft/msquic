@@ -258,6 +258,9 @@ function Install-DuoNic {
         $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
         if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
         Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+        $RssSeedPath = (Join-Path $SetupPath tcprssseed.exe)
+        if (!(Test-Path $RssSeedPath)) { Write-Error "Missing file: $RssSeedPath" }
+        Invoke-Expression "$RssSeedPath set aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55"
     } elseif ($IsLinux) {
         Write-Host "Creating DuoNic endpoints"
         $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"

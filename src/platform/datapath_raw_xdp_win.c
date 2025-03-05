@@ -1915,7 +1915,7 @@ CxPlatDataPathRssConfigGet(
     }
 
     Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
-    if (Result != HRESULT_FROM_WIN32(ERROR_BUFFER_OVERFLOW)) {
+    if (Result != HRESULT_FROM_WIN32(ERROR_MORE_DATA)) {
         QuicTraceLogError(
             XdpGetRssConfigSizeFailed,
             "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",

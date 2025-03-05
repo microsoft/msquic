@@ -57,6 +57,7 @@ void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+void QuicTestValidateConnectionPoolCreate();
 
 //
 // Ownership tests
@@ -1385,4 +1386,7 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
     QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 131
+#define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE \
+QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 132
