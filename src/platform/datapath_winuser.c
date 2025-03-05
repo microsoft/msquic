@@ -2096,7 +2096,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp || IsServerSocket) {
+    if (!Socket->UseTcp) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
