@@ -1616,7 +1616,11 @@ CxPlatDpRawTxAlloc(
 
     if (Packet) {
         CXPLAT_DBG_ASSERT(Socket->IsServer || Socket->UseTcp == Config->Route->UseQTIP); // if (client) then QTIP == TCP
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseQTIP); // TODO - Cache in Route?
+        BOOLEAN UseTcp = Config->Route->UseQTIP;
+        if (!Socket->IsServer) {
+            UseTcp = Socket->UseTcp;
+        }
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, UseTcp); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

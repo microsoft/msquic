@@ -6665,6 +6665,10 @@ QuicConnParamSet(
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
+        // XDP and QTIP modes need to be set.
+        // TODO: Verify that XDP mode is running before we can set this variable.
+
         Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
         Connection->State.AppDidSetQTIP = TRUE;
         Status = QUIC_STATUS_SUCCESS;
