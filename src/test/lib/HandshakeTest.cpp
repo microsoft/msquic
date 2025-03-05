@@ -3449,8 +3449,7 @@ QuicTestInterfaceBinding(
 struct ListenerContext {
     bool DosModeChangeEventReceived {false};
     CxPlatEvent DosModeChanged;
-    static QUIC_STATUS ListenerCallback(_In_ MsQuicListener *Listener, _In_opt_ void* Context, _Inout_ QUIC_LISTENER_EVENT* Event) {
-        UNREFERENCED_PARAMETER(Listener);
+    static QUIC_STATUS ListenerCallback(_In_ MsQuicListener *, _In_opt_ void* Context, _Inout_ QUIC_LISTENER_EVENT* Event) {
         auto This = static_cast<ListenerContext *>(Context);
         if (Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED) {
             This->DosModeChanged.Set();
@@ -3478,14 +3477,8 @@ QuicTestRetryMemoryLimitConnect(
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicConfiguration ServerConfiguration(Registration, "MsQuicTest", ServerSelfSignedCredConfig);
-    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
-
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", MsQuicCredentialConfig());
-    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
-
     QuicAddr ServerLocalAddr(QuicAddrFamily);
-    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, ListenerContext::ListenerCallback, &Context);
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerContext::ListenerCallback, &Context);
 
     TEST_QUIC_SUCCEEDED(
         MsQuic->SetParam(
@@ -3509,7 +3502,7 @@ QuicTestRetryMemoryLimitConnect(
             QUIC_PARAM_DOS_MODE_EVENTS,
             &Length,
             &buffer));
-    TEST_EQUAL(Length, 1 /*sizeof Listener->DosModeEventsEnabled) */);
+    TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
     TEST_EQUAL(buffer[0], 1);
 
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));

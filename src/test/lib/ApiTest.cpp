@@ -3410,12 +3410,11 @@ void QuicTestListenerParam()
                     QUIC_PARAM_DOS_MODE_EVENTS,
                     &Length,
                     &buffer));
-            TEST_EQUAL(Length, 1 /*sizeof Listener->DosModeEventsEnabled) */);
+            TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
         }
     }
-
-
 #endif
+
 }
 
 void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
