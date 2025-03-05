@@ -539,7 +539,7 @@ CxPlatDpRawSocketAckFin(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
@@ -578,7 +578,7 @@ CxPlatDpRawSocketAckSyn(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
     CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
@@ -663,7 +663,7 @@ CxPlatDpRawSocketSyn(
     _In_ const CXPLAT_ROUTE* Route
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
@@ -719,9 +719,9 @@ CxPlatFramingWriteHeaders(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
 
     // TODO: Remove this once we modify tests to spawn QUIC/QTIP clients to ping the same listener.
-    CXPLAT_DBG_ASSERT(
-        Socket->UseTcp == Route->UseQTIP
-    );
+    // CXPLAT_DBG_ASSERT(
+    //     Socket->UseTcp == Route->UseQTIP
+    // );
 
     if (Route->UseQTIP) {
         //
