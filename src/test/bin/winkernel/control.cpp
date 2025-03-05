@@ -529,6 +529,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(INT32),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1525,6 +1526,11 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
         break;
 
     default:
