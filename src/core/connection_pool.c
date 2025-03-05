@@ -50,14 +50,9 @@ QuicConnPoolGetStartingLocalAddress(
     CXPLAT_UDP_CONFIG UdpConfig = { .RemoteAddress = RemoteAddress, };
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
-
-    CxPlatSocketGetLocalAddress(Socket, LocalAddress);
-
-Error:
-    if (Socket != NULL) {
+    if (QUIC_SUCCEEDED(Status)) {
+        CXPLAT_DBG_ASSERT(Socket != NULL);
+        CxPlatSocketGetLocalAddress(Socket, LocalAddress);
         CxPlatSocketDelete(Socket);
     }
 
@@ -81,29 +76,23 @@ QuicConnPoolGetInterfaceIndexForLocalAddress(
             MsQuicLib.Datapath,
             &Addresses,
             &AddressesCount);
-    if (QUIC_FAILED(Status)) {
-        goto Error;
-    }
+    if (QUIC_SUCCEEDED(Status)) {
 
-    for (uint32_t i = 0; i < AddressesCount; i++) {
-        if (QuicAddrCompareIp(LocalAddress, &Addresses[i].Address)) {
-            *InterfaceIndex = Addresses[i].InterfaceIndex;
-            break;
+        for (uint32_t i = 0; i < AddressesCount; i++) {
+            if (QuicAddrCompareIp(LocalAddress, &Addresses[i].Address)) {
+                *InterfaceIndex = Addresses[i].InterfaceIndex;
+                break;
+            }
         }
-    }
 
-    if (InterfaceIndex == 0) {
-        Status = QUIC_STATUS_NOT_FOUND;
-        QuicTraceLogError(
-            ConnPoolLocalAddressNotFound,
-            "[conp] Failed to find local address, 0x%x",
-            Status);
-        goto Error;
-    }
+        if (*InterfaceIndex == 0) {
+            Status = QUIC_STATUS_NOT_FOUND;
+            QuicTraceLogError(
+                ConnPoolLocalAddressNotFound,
+                "[conp] Failed to find local address, 0x%x",
+                Status);
+        }
 
-Error:
-
-    if (Addresses != NULL) {
         CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
     }
 
