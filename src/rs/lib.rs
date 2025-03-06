@@ -493,11 +493,6 @@ pub struct Stream {
 unsafe impl Sync for Stream {}
 unsafe impl Send for Stream {}
 
-/// Same as Stream but does not own the handle.
-/// Only used in callback wrapping where handle
-/// should not be closed by default.
-pub struct StreamRef(Stream);
-
 impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     fn from(value: QuicPerformanceCountersParam) -> Self {
         Self {
@@ -716,6 +711,78 @@ macro_rules! define_quic_handle_impl {
     };
 }
 
+/// defines the common code for the handle to manage handle context
+macro_rules! define_quic_handle_ctx_fn {
+    ($handle_name:ident, $callback_type:ident) => {
+        impl $handle_name {
+            pub fn get_context(&self) -> *mut c_void {
+                unsafe { Api::ffi_ref().GetContext.unwrap()(self.handle) }
+            }
+
+            /// # Safety
+            /// Previous context needs to be cleaned up before set a new one.
+            pub unsafe fn set_context(&self, ctx: *mut c_void) {
+                unsafe { Api::ffi_ref().SetContext.unwrap()(self.handle, ctx) }
+            }
+
+            /// Consume ctx by dropping it.
+            /// Set msquic ctx to null.
+            fn consume_callback_ctx(&self) {
+                let res = unsafe { self.get_callback_ctx() };
+                if res.is_some() {
+                    unsafe { self.set_context(std::ptr::null_mut()) };
+                }
+            }
+
+            /// # Safety
+            /// Caller is responsible for clearing the context if needed.
+            /// This does not clear the ctx.
+            unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
+                let ctx = self.get_context();
+                if !ctx.is_null() {
+                    Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
+                } else {
+                    None
+                }
+            }
+        }
+    };
+}
+
+/// Defines the Ref type for the handle that does not cleanup
+/// the handle on drop.
+macro_rules! define_quic_handle_ref {
+    ($handle_name:ident, $handle_ref_name:ident) => {
+        /// Same as the owned type but does not own the handle.
+        /// Only used in callback wrapping where handle
+        /// should not be closed by default.
+        pub struct $handle_ref_name($handle_name);
+
+        impl $handle_ref_name {
+            /// For internal use only.
+            pub(crate) unsafe fn from_raw(handle: HQUIC) -> Self {
+                Self($handle_name { handle })
+            }
+        }
+
+        impl Drop for $handle_ref_name {
+            fn drop(&mut self) {
+                // clear the handle to prevent auto close.
+                self.0.handle = std::ptr::null_mut()
+            }
+        }
+
+        /// Make inner handle accessible
+        impl std::ops::Deref for $handle_ref_name {
+            type Target = $handle_name;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+    };
+}
+
 impl Registration {
     pub fn new(config: &RegistrationConfig) -> Result<Registration, Status> {
         // Initialize the global api table.
@@ -804,6 +871,37 @@ impl Default for Connection {
     }
 }
 
+// Remarks on Rust callback in general:
+// Callback function or closure is set to msquic handle context of type `*mut Box<TCallback>>`.
+// We cannot use type `*mut TCallback` because dyn trait cannot be converted to a pointer directly.
+// In the ffi function passed to msquic, the TCallback is extracted from msquic callback context
+// and invoked.
+// The context is cleaned up when connection is dropped or when new callback is set.
+// TCallback type is either Fn or FnMut type, so user can capture variables in them without worrying
+// about lifetime and how to set or cleanup msquic callback context.
+
+/// Connection callback type.
+/// msquic never invokes the connection callback in parallel, so use FnMut to allow mutation.
+type ConnectionCallback = dyn FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_conn_callback(
+    connection: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_CONNECTION_EVENT,
+) -> QUIC_STATUS {
+    let conn = unsafe { ConnectionRef::from_raw(connection) };
+    let f = unsafe {
+        (context as *mut Box<ConnectionCallback>)
+            .as_mut() // allow mutation
+            .expect("cannot get ConnectionCallback from ctx")
+    };
+    let event = ConnectionEvent::from(unsafe { event.as_ref().unwrap() });
+    match f(conn, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
+    }
+}
+
 impl Connection {
     pub fn new() -> Connection {
         Connection {
@@ -811,23 +909,26 @@ impl Connection {
         }
     }
 
-    /// TODO: The handler type should eventually be changed to Fn type.
-    /// ffi type and the context ptr makes this function unsafe.
-    pub fn open(
-        &mut self,
-        registration: &Registration,
-        handler: ffi::QUIC_CONNECTION_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
+        // double boxing to allow Box dyn fat pointer
+        let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
-                handler,
-                context as *mut c_void,
+                Some(raw_conn_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            // attach memory back on failure
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(
@@ -851,9 +952,15 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // get the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            // Drop call here is required to prevent compiler drop it early.
+            // During handle close the ctx might still be used.
+            std::mem::drop(ctx);
         }
     }
 
@@ -884,22 +991,21 @@ impl Connection {
         Status::ok_from_raw(status)
     }
 
-    /// # Safety
-    /// handler and context must be valid
-    pub unsafe fn set_callback_handler(
-        &self,
-        handler: ffi::QUIC_CONNECTION_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) {
+    pub fn set_callback_handler<F>(&self, handler: F)
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        // clear previous ctx before setting it.
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
-                std::mem::transmute::<ffi::QUIC_CONNECTION_CALLBACK_HANDLER, *const c_void>(
-                    handler,
-                ),
-                context,
+                raw_conn_callback as *const c_void,
+                ctx as *mut c_void,
             )
-        };
+        }
     }
 
     /// # Safety
@@ -958,10 +1064,35 @@ impl Connection {
 }
 
 define_quic_handle_impl!(Connection);
+define_quic_handle_ref!(Connection, ConnectionRef);
+define_quic_handle_ctx_fn!(Connection, ConnectionCallback);
 
 impl Default for Listener {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Listener callback.
+/// msquic may execute listener callback in parallel,
+/// so Fn is used for immutability.
+pub type ListenerCallback = dyn Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_listener_callback(
+    listener: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_LISTENER_EVENT,
+) -> QUIC_STATUS {
+    let listner_ref = unsafe { ListenerRef::from_raw(listener) };
+    let event = ListenerEvent::from(unsafe { event.as_ref().expect("fail to get listener event") });
+    let f = unsafe {
+        (context as *mut Box<ListenerCallback>)
+            .as_ref() // allow mutation
+            .expect("cannot get ListenerCallback from ctx")
+    };
+    match f(listner_ref, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -972,22 +1103,25 @@ impl Listener {
         }
     }
 
-    /// TODO: handler should be changed to Fn type.
-    pub fn open(
-        &mut self,
-        registration: &Registration,
-        handler: ffi::QUIC_LISTENER_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    where
+        F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
+    {
+        // double boxing to allow Box dyn fat pointer
+        let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
-                handler,
-                context as *mut c_void,
+                Some(raw_listener_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(&self, alpn: &[BufferRef], local_address: Option<&Addr>) -> Result<(), Status> {
@@ -1016,18 +1150,46 @@ impl Listener {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 }
 
 define_quic_handle_impl!(Listener);
+define_quic_handle_ref!(Listener, ListenerRef);
+define_quic_handle_ctx_fn!(Listener, ListenerCallback);
 
 impl Default for Stream {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Stream callback.
+/// msquic never executes stream callback on the same stream in parallel.
+pub type StreamCallback = dyn FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_stream_callback(
+    stream: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_STREAM_EVENT,
+) -> QUIC_STATUS {
+    let f = unsafe {
+        (context as *mut Box<StreamCallback>)
+            .as_mut() // allow mutation
+            .expect("cannot get ConnectionCallback from ctx")
+    };
+    let stream_ref = unsafe { StreamRef::from_raw(stream) };
+    let event = StreamEvent::from(unsafe { event.as_mut().expect("cannot get event ref") });
+    match f(stream_ref, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -1038,23 +1200,30 @@ impl Stream {
         }
     }
 
-    pub fn open(
+    pub fn open<F>(
         &mut self,
         connection: &Connection,
         flags: StreamOpenFlags,
-        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+        handler: F,
+    ) -> Result<(), Status>
+    where
+        F: FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
                 flags as crate::ffi::QuicFlag,
-                handler,
-                context as *mut c_void,
+                Some(raw_stream_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Status> {
@@ -1077,9 +1246,13 @@ impl Stream {
 
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 
@@ -1107,18 +1280,19 @@ impl Stream {
         Status::ok_from_raw(status)
     }
 
-    /// # Safety
-    /// handler and context must be valid.
-    pub unsafe fn set_callback_handler(
-        &self,
-        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) {
+    pub fn set_callback_handler<F>(&self, handler: F)
+    where
+        F: FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        // clear previous ctx before setting it.
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
-                std::mem::transmute::<ffi::QUIC_STREAM_CALLBACK_HANDLER, *const c_void>(handler),
-                context,
+                raw_stream_callback as *const c_void,
+                ctx as *mut c_void,
             )
         };
     }
@@ -1129,29 +1303,8 @@ impl Stream {
 }
 
 define_quic_handle_impl!(Stream);
-
-impl StreamRef {
-    /// For internal use only.
-    pub(crate) unsafe fn from_raw(handle: HQUIC) -> Self {
-        Self(Stream { handle })
-    }
-}
-
-impl Drop for StreamRef {
-    fn drop(&mut self) {
-        // clear the handle to prevent auto close.
-        self.0.handle = std::ptr::null_mut()
-    }
-}
-
-/// Make inner stream accessile
-impl std::ops::Deref for StreamRef {
-    type Target = Stream;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+define_quic_handle_ref!(Stream, StreamRef);
+define_quic_handle_ctx_fn!(Stream, StreamCallback);
 
 #[cfg(test)]
 mod tests {
@@ -1160,22 +1313,12 @@ mod tests {
     // The following defines some simple test code.
     //
 
-    use std::ffi::c_void;
-
-    use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
-        ffi, BufferRef, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
-        RegistrationConfig, Settings, StatusCode, Stream, StreamEvent,
+        BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
+        Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
     };
 
-    extern "C" fn test_conn_callback(
-        _connection: HQUIC,
-        context: *mut c_void,
-        event: *mut ffi::QUIC_CONNECTION_EVENT,
-    ) -> QUIC_STATUS {
-        let connection = unsafe { &*(context as *const Connection) };
-        let ev_ref = unsafe { event.as_ref().unwrap() };
-        let event = ConnectionEvent::from(ev_ref);
+    fn test_conn_callback(connection: ConnectionRef, event: ConnectionEvent) -> Result<(), Status> {
         match event {
             ConnectionEvent::Connected {
                 session_resumed,
@@ -1207,7 +1350,7 @@ mod tests {
             }
             ConnectionEvent::PeerStreamStarted { stream, flags } => {
                 println!("Peer stream started: flags: {flags}");
-                unsafe { stream.set_callback_handler(Some(test_stream_callback), context) };
+                stream.set_callback_handler(test_stream_callback)
             }
             ConnectionEvent::StreamsAvailable {
                 bidirectional_count,
@@ -1220,18 +1363,12 @@ mod tests {
             ConnectionEvent::PeerNeedsStreams { bidirectional } => {
                 println!("Peer needs streams: bi: {bidirectional}");
             }
-            _ => println!("Connection other callback {}", ev_ref.Type),
+            _ => println!("Connection other callback ?",),
         }
-        StatusCode::QUIC_STATUS_SUCCESS.into()
+        Ok(())
     }
 
-    extern "C" fn test_stream_callback(
-        stream: HQUIC,
-        _context: *mut c_void,
-        event: *mut ffi::QUIC_STREAM_EVENT,
-    ) -> QUIC_STATUS {
-        let event_ref = unsafe { event.as_mut().unwrap() };
-        let event = StreamEvent::from(event_ref);
+    fn test_stream_callback(stream: StreamRef, event: StreamEvent) -> Result<(), Status> {
         match event {
             StreamEvent::StartComplete {
                 status,
@@ -1276,7 +1413,7 @@ mod tests {
             } => {
                 println!("Stream shutdown complete: {connection_shutdown} {app_close_in_progress} {connection_shutdown_by_app} {connection_closed_remotely} {connection_error_code} {connection_close_status}");
                 // Attach to stream for auto close handle.
-                unsafe { Stream::from_raw(stream) };
+                unsafe { Stream::from_raw(stream.as_raw()) };
             }
             StreamEvent::IdealSendBufferSize { byte_count } => {
                 println!("Stream ideal send buffer size: {byte_count}");
@@ -1288,7 +1425,7 @@ mod tests {
                 println!("Stream cancel on loss: {error_code}");
             }
         }
-        StatusCode::QUIC_STATUS_SUCCESS.into()
+        Ok(())
     }
 
     #[test]
@@ -1332,11 +1469,7 @@ mod tests {
         );
 
         let mut connection = Connection::new();
-        let res = connection.open(
-            &registration,
-            Some(test_conn_callback),
-            &connection as *const Connection as *const c_void,
-        );
+        let res = connection.open(&registration, test_conn_callback);
         assert!(
             res.is_ok(),
             "Failed to open connection: {}",
