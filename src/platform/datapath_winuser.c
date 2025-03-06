@@ -2645,7 +2645,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->OverrideUseTcp || !Socket->IsServer);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->OverrideUseTcp || (Socket->UseTcp && !Socket->IsServer)) {
+    if (Socket->UseTcp && !Socket->IsServer) {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
     } else {
