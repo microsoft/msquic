@@ -726,12 +726,19 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     int64_t HandshakePacketCount = 0;
     int64_t TotalByteCount = 0;
     uint8_t mode;
-    uint64_t StartTimeMs = CxPlatTimeMs64();
+    uint64_t StartTimeMs = CxPlatTimeMs64(), LastPrintTimeMs = StartTimeMs, CurrentTimeMs;
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
     bool handshakeComplete = FALSE;
     TlsContext HandshakeClientContext;
-    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
+    while (CxPlatTimeDiff64(StartTimeMs, (CurrentTimeMs = CxPlatTimeMs64())) < RunTimeMs) {
+        if (CxPlatTimeDiff64(LastPrintTimeMs, CurrentTimeMs) > S_TO_MS(60)) {
+            LastPrintTimeMs = CurrentTimeMs;
+            printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
+            printf("Total Handshake Packets sent: %lld\n", (long long)HandshakePacketCount);
+            printf("Total Bytes sent: %lld\n\n", (long long)TotalByteCount);
+        }
+
         mode = (uint8_t)GetRandom(10);
         if (mode < 1) {
             PacketParams InitialPacketParams = {
