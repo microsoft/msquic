@@ -500,6 +500,10 @@
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.COMPLETE_CERTIFICATE_VALIDATION)"
                 value="27"
                 />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS)"
+                value="28"
+                />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
             <map
@@ -4870,6 +4874,10 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.COMPLETE_CERTIFICATE_VALIDATION"
             value="COMPLETE_CERTIFICATE_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS"
+            value="STREAM_PROVIDE_RECEIVE_BUFFERS"
             />
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"

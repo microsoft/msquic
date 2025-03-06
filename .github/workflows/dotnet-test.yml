@@ -87,11 +87,11 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       with:
         name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
-    - uses: actions/setup-dotnet@3e891b0cb619bf60e2c25674b222b8940e2c1c25
+    - uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
       with:
         dotnet-version: 6.0.x
     - name: Run Lang Interop

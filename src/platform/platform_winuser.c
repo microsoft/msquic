@@ -153,6 +153,9 @@ CxPlatProcessorInfoInit(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    CxPlatZeroMemory(
+        CxPlatProcessorInfo,
+        ActiveProcessorCount * sizeof(CXPLAT_PROCESSOR_INFO));
 
     CXPLAT_DBG_ASSERT(CxPlatProcessorGroupInfo == NULL);
     CxPlatProcessorGroupInfo =
@@ -184,6 +187,8 @@ CxPlatProcessorInfoInit(
                 CxPlatProcessorInfo[Proc].Group = Group;
                 CXPLAT_DBG_ASSERT(Proc - CxPlatProcessorGroupInfo[Group].Offset <= UINT8_MAX);
                 CxPlatProcessorInfo[Proc].Index = (uint8_t)(Proc - CxPlatProcessorGroupInfo[Group].Offset);
+#pragma warning(push)
+#pragma warning(disable:6385) // Reading invalid data from 'CxPlatProcessorInfo' (FALSE POSITIVE)
                 QuicTraceLogInfo(
                     ProcessorInfoV3,
                     "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu",
@@ -191,6 +196,7 @@ CxPlatProcessorInfoInit(
                     (uint16_t)Group,
                     CxPlatProcessorInfo[Proc].Index,
                     (uint8_t)!!(CxPlatProcessorGroupInfo[Group].Mask & (1ULL << CxPlatProcessorInfo[Proc].Index)));
+#pragma warning(pop)
                 break;
             }
         }

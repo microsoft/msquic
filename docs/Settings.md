@@ -145,6 +145,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
 | `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
+| `QUIC_PARAM_DOS_MODE_EVENTS`<br> 2        | BOOLEAN                   | Both      | The Listener opted in for DoS Mode event.                 |
 
 ## Connection Parameters
 

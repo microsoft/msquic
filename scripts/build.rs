@@ -22,7 +22,9 @@ fn main() {
     config
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
-    if cfg!(feature = "schannel") {
+
+    // By default enable schannel on windows, unless openssl feature is selected.
+    if cfg!(windows) && !cfg!(feature = "openssl") {
         config.define("QUIC_TLS", "schannel");
     } else {
         config.define("QUIC_TLS", "openssl");
@@ -83,7 +85,7 @@ fn overwrite_bindgen() {
     let bindings = bindgen::Builder::default()
         // The input header we would like to generate
         // bindings for.
-        .header(root_dir.join("src/ffi/wrapper.hpp").to_str().unwrap())
+        .header(root_dir.join("src/rs/ffi/wrapper.hpp").to_str().unwrap())
         .clang_arg(format!("-I{}", inc_dir.to_string_lossy()))
         .allowlist_recursively(false)
         .allowlist_item("QUIC.*|BOOLEAN|BYTE|HQUIC|HRESULT")
@@ -97,7 +99,7 @@ fn overwrite_bindgen() {
         .expect("Unable to generate bindings");
 
     // Write bindings to the sys mod.
-    let out_path = root_dir.join("src/ffi");
+    let out_path = root_dir.join("src/rs/ffi");
     #[cfg(target_os = "windows")]
     let binding_file = "win_bindings.rs";
     #[cfg(target_os = "linux")]
