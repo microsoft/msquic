@@ -511,7 +511,7 @@ QuicTestConnectAndPing(
 
                     if (i != 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                        && !UseQTIP
+                        && (!UseQTIP || SendUdpToQtipListener)
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
@@ -526,7 +526,7 @@ QuicTestConnectAndPing(
 
                     if (i == 0
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-                        && !UseQTIP
+                        && (!UseQTIP || SendUdpToQtipListener)
 #endif
                     ) {
                         Connections.get()[i]->GetLocalAddr(LocalAddr);
