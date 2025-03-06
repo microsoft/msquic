@@ -317,7 +317,7 @@ NewPingConnection(
 
     if (SendUdpOverQtip) {
         if (UseQTIP) {
-            Connection->SetQtipPreferences(0);
+            Connection->SetQtipPreferences(1);
         }
     }
 
