@@ -1516,7 +1516,7 @@ SocketCreateUdp(
     //
     CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Datapath->UseTcp && !IsServerSocket) {
+    if (Socket->UseTcp && !IsServerSocket) {
         //
         // Skip normal socket settings to use AuxSocket in raw socket
         //

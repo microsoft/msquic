@@ -234,7 +234,7 @@ CxPlatDpRawRxEthernet(
 
         if (Socket) {
             // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
-            // CXPLAT_DBG_ASSERT(Socket->UseTcp == PacketChain->Route->UseQTIP);
+            CXPLAT_DBG_ASSERT(Socket->IsServer || Socket->UseTcp == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
                 uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
@@ -350,7 +350,7 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    // CXPLAT_DBG_ASSERT(Route->UseQTIP == Socket->UseTcp); // TODO: Remove this assert once you add tests to exercise QUIC/QTIP pinging the same listener.
+    CXPLAT_DBG_ASSERT(Socket->IsServer || Route->UseQTIP == Socket->UseTcp);
     if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
