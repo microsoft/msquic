@@ -1492,6 +1492,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
+    Socket->OverrideUseTcp = OverrideGlobalQTIPSettings;
     //
     // Server sockets always inherit global QTIP preferences.
     //
@@ -2637,9 +2638,14 @@ SocketDelete(
         Socket);
 
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
+
+    //
+    // OverrideUseTcp MUST be false if Socket is a server.
+    //
+    CXPLAT_DBG_ASSERT(!Socket->OverrideUseTcp || !Socket->IsServer);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp && !Socket->IsServer) {
+    if (Socket->OverrideUseTcp || (Socket->UseTcp && !Socket->IsServer)) {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
     } else {
