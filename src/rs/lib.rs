@@ -26,6 +26,8 @@ mod types;
 pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
 mod settings;
 pub use settings::Settings;
+mod config;
+pub use config::{CredentialConfig, ExecutionProfile, RegistrationConfig};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -121,13 +123,6 @@ pub type TlsProvider = u32;
 pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
 pub const TLS_PROVIDER_OPENSSL: TlsProvider = 1;
 
-/// Configures how to process a registration's workload.
-pub type ExecutionProfile = u32;
-pub const EXECUTION_PROFILE_LOW_LATENCY: ExecutionProfile = 0;
-pub const EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT: ExecutionProfile = 1;
-pub const EXECUTION_PROFILE_TYPE_SCAVENGER: ExecutionProfile = 2;
-pub const EXECUTION_PROFILE_TYPE_REAL_TIME: ExecutionProfile = 3;
-
 /// Represents how load balancing is performed.
 pub type LoadBalancingMode = u32;
 pub const LOAD_BALANCING_DISABLED: LoadBalancingMode = 0;
@@ -149,46 +144,6 @@ pub const TLS_ALERT_CODE_INSUFFICIENT_SECURITY: TlsAlertCode = 71;
 pub const TLS_ALERT_CODE_INTERNAL_ERROR: TlsAlertCode = 80;
 pub const TLS_ALERT_CODE_USER_CANCELED: TlsAlertCode = 90;
 pub const TLS_ALERT_CODE_CERTIFICATE_REQUIRED: TlsAlertCode = 116;
-
-/// Type of credentials used for a connection.
-pub type CredentialType = u32;
-pub const CREDENTIAL_TYPE_NONE: CredentialType = 0;
-pub const CREDENTIAL_TYPE_CERTIFICATE_HASH: CredentialType = 1;
-pub const CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE: CredentialType = 2;
-pub const CREDENTIAL_TYPE_CERTIFICATE_CONTEXT: CredentialType = 3;
-pub const CREDENTIAL_TYPE_CERTIFICATE_FILE: CredentialType = 4;
-pub const CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED: CredentialType = 5;
-pub const CREDENTIAL_TYPE_CERTIFICATE_PKCS12: CredentialType = 6;
-
-/// Modifies the default credential configuration.
-pub type CredentialFlags = u32;
-pub const CREDENTIAL_FLAG_NONE: CredentialFlags = 0;
-pub const CREDENTIAL_FLAG_CLIENT: CredentialFlags = 1;
-pub const CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS: CredentialFlags = 2;
-pub const CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION: CredentialFlags = 4;
-pub const CREDENTIAL_FLAG_ENABLE_OCSP: CredentialFlags = 8;
-pub const CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED: CredentialFlags = 16;
-pub const CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION: CredentialFlags = 32;
-pub const CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION: CredentialFlags = 64;
-pub const CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION: CredentialFlags = 128;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT: CredentialFlags = 256;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN: CredentialFlags = 512;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT: CredentialFlags = 1024;
-pub const CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK: CredentialFlags = 2048;
-pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
-pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
-pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
-pub const CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS: CredentialFlags = 32768;
-pub const CREDENTIAL_FLAG_USE_SYSTEM_MAPPER: CredentialFlags = 65536;
-pub const CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL: CredentialFlags = 131072;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY: CredentialFlags = 262144;
-
-/// Set of allowed TLS cipher suites.
-pub type AllowedCipherSuiteFlags = u32;
-pub const ALLOWED_CIPHER_SUITE_NONE: AllowedCipherSuiteFlags = 0;
-pub const ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256: AllowedCipherSuiteFlags = 1;
-pub const ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384: AllowedCipherSuiteFlags = 2;
-pub const ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256: AllowedCipherSuiteFlags = 4;
 
 /// Modifies the default certificate hash store configuration.
 pub type CertificateHashStoreFlags = u32;
@@ -259,91 +214,6 @@ pub const DATAGRAM_SEND_LOST_DISCARDED: DatagramSendState = 2;
 pub const DATAGRAM_SEND_ACKNOWLEDGED: DatagramSendState = 3;
 pub const DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS: DatagramSendState = 4;
 pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
-
-/// Specifies the configuration for a new registration.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct RegistrationConfig {
-    pub app_name: *const i8,
-    pub execution_profile: ExecutionProfile,
-}
-
-/// Completion callback for a async creation of a new credential.
-pub type CredentialLoadComplete =
-    extern "C" fn(configuration: HQUIC, context: *const c_void, status: u64);
-
-/// The 20-byte hash/thumbprint of a certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateHash {
-    pub sha_hash: [u8; 20usize],
-}
-
-/// The 20-byte hash/thumbprint and store name of a certificate.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct CertificateHashStore {
-    pub flags: CertificateHashStoreFlags,
-    pub sha_hash: [u8; 20usize],
-    pub store_name: [i8; 128usize],
-}
-
-/// The file paths of a certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateFile {
-    pub private_key_file: *const i8,
-    pub certificate_file: *const i8,
-}
-
-/// The file paths of a protected certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateFileProtected {
-    pub private_key_file: *const i8,
-    pub certificate_file: *const i8,
-    pub private_key_password: *const i8,
-}
-
-/// The binary blobs of a PKCS#12 certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificatePkcs12 {
-    pub ans1_blob: *const u8,
-    pub ans1_blob_length: u32,
-    pub private_key_password: *const i8,
-}
-
-/// Generic interface for a certificate.
-pub type Certificate = c_void;
-
-/// Generic interface for a certificate chain.
-pub type CertificateChain = c_void;
-
-/// Wrapper for all certificate types.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union CertificateUnion {
-    pub hash: *const CertificateHash,
-    pub hash_store: *const CertificateHashStore,
-    pub context: *const Certificate,
-    pub file: *const CertificateFile,
-    pub file_protected: *const CertificateFileProtected,
-    pub pkcs12: *const CertificatePkcs12,
-}
-
-/// Specifies the configuration for a new credential.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct CredentialConfig {
-    pub cred_type: CredentialType,
-    pub cred_flags: CredentialFlags,
-    pub certificate: CertificateUnion,
-    pub principle: *const i8,
-    pub reserved: *const c_void,
-    pub async_handler: Option<CredentialLoadComplete>,
-    pub allowed_cipher_suites: AllowedCipherSuiteFlags,
-}
 
 /// Key information for TLS session ticket encryption.
 #[repr(C)]
@@ -709,22 +579,6 @@ impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     }
 }
 
-impl CredentialConfig {
-    pub fn new_client() -> CredentialConfig {
-        CredentialConfig {
-            cred_type: CREDENTIAL_FLAG_NONE,
-            cred_flags: CREDENTIAL_FLAG_CLIENT,
-            certificate: CertificateUnion {
-                context: ptr::null(),
-            },
-            principle: ptr::null(),
-            reserved: ptr::null(),
-            async_handler: None,
-            allowed_cipher_suites: 0,
-        }
-    }
-}
-
 impl Api {
     /// # Safety
     /// Buffer needs to be valid
@@ -863,14 +717,14 @@ macro_rules! define_quic_handle_impl {
 }
 
 impl Registration {
-    pub fn new(config: *const RegistrationConfig) -> Result<Registration, Status> {
+    pub fn new(config: &RegistrationConfig) -> Result<Registration, Status> {
         // Initialize the global api table.
         // Registration is the first created in all msquic apps.
         let api = Api::get_ffi();
         let mut h = std::ptr::null_mut();
         let status = unsafe {
             api.RegistrationOpen.unwrap()(
-                config as *const crate::ffi::QUIC_REGISTRATION_CONFIG,
+                &config.as_ffi() as *const crate::ffi::QUIC_REGISTRATION_CONFIG,
                 std::ptr::addr_of_mut!(h),
             )
         };
@@ -929,7 +783,7 @@ impl Configuration {
         let status = unsafe {
             Api::ffi_ref().ConfigurationLoadCredential.unwrap()(
                 self.handle,
-                cred_config as *const CredentialConfig as *const QUIC_CREDENTIAL_CONFIG,
+                &cred_config.as_ffi() as *const QUIC_CREDENTIAL_CONFIG,
             )
         };
         Status::ok_from_raw(status)
@@ -1307,12 +1161,11 @@ mod tests {
     //
 
     use std::ffi::c_void;
-    use std::ptr;
 
     use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
         ffi, BufferRef, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
-        Settings, StatusCode, Stream, StreamEvent,
+        RegistrationConfig, Settings, StatusCode, Stream, StreamEvent,
     };
 
     extern "C" fn test_conn_callback(
@@ -1440,7 +1293,7 @@ mod tests {
 
     #[test]
     fn test_module() {
-        let res = Registration::new(ptr::null());
+        let res = Registration::new(&RegistrationConfig::default());
         assert!(
             res.is_ok(),
             "Failed to open registration: {}",
