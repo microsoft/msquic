@@ -1517,7 +1517,7 @@ SocketCreateUdp(
     //
     CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Datapath->UseTcp && !IsServerSocket) {
+    if ((Datapath->UseTcp && !IsServerSocket) || OverrideGlobalQTIPSettings) {
         //
         // Skip normal socket settings to use AuxSocket in raw socket
         //
