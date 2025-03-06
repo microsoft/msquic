@@ -110,7 +110,7 @@ Options can be used to alter MsQuic default receive notification behavior:
 ### Multi-Receive Mode
 
 Multi-receive mode is a connection wide option allowing multiple receive notification to be pending simultaneously.
-It is enabled by setting [`StreamMultiReceiveEnabled`](./Settings.md) in connection parameters.
+It is enabled by setting [`StreamMultiReceiveEnabled`](./api/QUIC_SETTINGS.md) in connection parameters.
 
 For streams created when the connection is in Multi-mode receive, MsQuic can keep indicating `QUIC_STREAM_EVENT_RECEIVE` before the application completes the previous one.
 This means that the application must be able to handle a new `QUIC_STREAM_EVENT_RECEIVE` even if it returned `QUIC_STATUS_PENDING` previously and has not called [`StreamReceiveComplete`](api/StreamReceiveComplete.md) yet.
