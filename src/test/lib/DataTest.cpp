@@ -317,7 +317,7 @@ NewPingConnection(
 
     if (SendUdpOverQtip) {
         if (UseQTIP) {
-            Connection->SetQtipPreferences(1);
+            Connection->SetQtipPreferences(0);
         }
     }
 
@@ -478,7 +478,7 @@ QuicTestConnectAndPing(
                     Registration,
                     &ClientStats,
                     UseSendBuffer,
-                    SendUdpToQtipListener && (i % 2 == 1)); // Every other connection, we alternate the QTIP preferences (if UseQTIP is true AND SendUdpToQtipListener is true).
+                    SendUdpToQtipListener); // Every other connection, we alternate the QTIP preferences (if UseQTIP is true AND SendUdpToQtipListener is true).
             if (Connections.get()[i] == nullptr) {
                 return;
             }
