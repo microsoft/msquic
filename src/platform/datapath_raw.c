@@ -202,11 +202,11 @@ RawSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ BOOLEAN UseQTIP
     )
 {
     // Reserve space for TCP header.
-    return Socket->UseTcp ? 1488 : 1500;
+    return UseQTIP ? 1488 : 1500;
 
 }
 

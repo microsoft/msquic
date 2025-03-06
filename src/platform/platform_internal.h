@@ -1238,7 +1238,7 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ BOOLEAN UseQTIP
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

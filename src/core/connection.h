@@ -1658,7 +1658,7 @@ QuicConnGetMaxMtuForPath(
     //
     uint16_t LocalMtu = Path->LocalMtu;
     if (LocalMtu == 0) {
-        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket, Path->Route.UseQTIP);
         Path->LocalMtu = LocalMtu;
     }
     uint16_t RemoteMtu = 0xFFFF;

@@ -2110,9 +2110,11 @@ CxPlatSocketSend(
 
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
+    UNREFERENCED_PARAMETER(UseQTIP);
     CXPLAT_DBG_ASSERT(Socket != NULL);
     return Socket->Mtu;
 }
@@ -2160,17 +2162,13 @@ CxPlatResolveRoute(
     _Inout_ CXPLAT_ROUTE* Route,
     _In_ uint8_t PathId,
     _In_ void* Context,
-    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback,
-    _In_ uint8_t UseQTIP,
-    _In_ uint8_t OverrideGlobalQTIPSettings
+    _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
     UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(PathId);
     UNREFERENCED_PARAMETER(Context);
     UNREFERENCED_PARAMETER(Callback);
-    UNREFERENCED_PARAMETER(UseQTIP);
-    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }

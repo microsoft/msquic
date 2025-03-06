@@ -222,13 +222,14 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        return RawSocketGetLocalMtu(UseQTIP);
     }
     return Socket->Mtu;
 }
