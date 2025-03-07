@@ -372,7 +372,7 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { RandomReservedVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -387,7 +387,7 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t SupportedVersions[] = { InitialVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
+            uint32_t SupportedVersions[] = { InitialVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -791,10 +791,12 @@ RunInteropTest(
                 &VersionSettings));
     }
 
-    VERIFY_QUIC_SUCCESS(
+    if (QUIC_FAILED(
         MsQuic->ConfigurationLoadCredential(
             Configuration,
-            &CredConfig));
+            &CredConfig))) {
+        goto Error; // Can fail if we try to use features that are unsupported (like ChaCha20).
+    }
 
     switch (Feature) {
     case VersionNegotiation: {
@@ -974,6 +976,8 @@ RunInteropTest(
 
     MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
+Error:
+
     if (CustomUrlPath && !Success) {
         //
         // Delete any file we might have downloaded, because the test didn't
@@ -1090,6 +1094,10 @@ PrintTestResults(
         printf("%12s  %s  0x%08X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
             ResultCodes, TestResults[Endpoint].QuicVersion,
             TestResults[Endpoint].Alpn);
+    }
+
+    if (TestResults[Endpoint].Alpn != nullptr) {
+        free((void*)TestResults[Endpoint].Alpn);
     }
 }
 
