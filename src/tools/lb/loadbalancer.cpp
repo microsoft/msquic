@@ -220,7 +220,7 @@ main(int argc, char **argv)
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
-    getchar();
+    UNUSED_RESULT(getchar());
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
