@@ -1335,7 +1335,7 @@ CxPlatDpRawPlumbRulesOnSocket(
     _In_ BOOLEAN IsCreated
     )
 {
-    BOOLEAN UseQTIP = TRUE;
+    BOOLEAN UseQTIP = Socket->UseTcp;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
@@ -1378,14 +1378,14 @@ CxPlatDpRawPlumbRulesOnSocket(
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[2].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[3].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
- 
+
             Rules[4].Match = XDP_MATCH_TCP_CONTROL_DST;
             Rules[4].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
             Rules[4].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[4].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[4].Redirect.Target = NULL;
             RulesSize = 5;
-            
+
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
             Rules[0].Match = XDP_MATCH_TCP_DST;
