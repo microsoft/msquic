@@ -35,6 +35,7 @@ on:
         # options:
         #   - windows-2019
         #   - windows-2022
+        #   - windows-2025
       arch:
         required: false
         default: 'x64'
