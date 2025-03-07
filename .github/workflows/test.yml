@@ -269,7 +269,7 @@ jobs:
       uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       if: matrix.vec.plat == 'linux'
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto-Sanitize${{ matrix.vec.build }}
         path: artifacts
     - name: Fix permissions for Unix
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
