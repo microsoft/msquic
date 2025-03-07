@@ -5,10 +5,10 @@
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "recv_buffer",
-                sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "recv_buffer",
+                    sizeof(QUIC_RECV_CHUNK) + AllocBufferLength);
 // arg2 = arg2 = "recv_buffer" = arg2
 // arg3 = arg3 = sizeof(QUIC_RECV_CHUNK) + AllocBufferLength = arg3
 ----------------------------------------------------------*/

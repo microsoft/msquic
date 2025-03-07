@@ -89,6 +89,12 @@ CxPlatListInsertTail(
     _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
     );
 
+void
+CxPlatListInsertAfter(
+    _Inout_ CXPLAT_LIST_ENTRY* ListEntry,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* NewEntry
+    );
+
 CXPLAT_LIST_ENTRY*
 CxPlatListRemoveHead(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead
