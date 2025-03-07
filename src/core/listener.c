@@ -334,7 +334,9 @@ MsQuicListenerStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Listener->Binding);
+            &Listener->Binding,
+            FALSE,
+            FALSE);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
@@ -757,45 +759,60 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    if (Param == QUIC_PARAM_LISTENER_CIBIR_ID) {
-        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-        if (BufferLength == 0) {
-            CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
-            return QUIC_STATUS_SUCCESS;
-        }
-        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
-            return QUIC_STATUS_INVALID_PARAMETER;
-        }
-
-        if (((uint8_t*)Buffer)[0] != 0) {
-            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
-        }
-
-        Listener->CibirId[0] = (uint8_t)BufferLength - 1;
-        memcpy(Listener->CibirId + 1, Buffer, BufferLength);
-
-        QuicTraceLogVerbose(
-            ListenerCibirIdSet,
-            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
-            Listener,
-            Listener->CibirId[0],
-            Listener->CibirId[1]);
-
-        return QUIC_STATUS_SUCCESS;
-    }
-
-    if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
-        if (BufferLength == sizeof(BOOLEAN)) {
-            Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
-            if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
-                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
+    switch (Param) {
+        case QUIC_PARAM_LISTENER_CIBIR_ID: {
+            if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+                return QUIC_STATUS_INVALID_PARAMETER;
             }
+            if (BufferLength == 0) {
+                CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
+                return QUIC_STATUS_SUCCESS;
+            }
+            if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+
+            if (((uint8_t*)Buffer)[0] != 0) {
+                return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+            }
+
+            Listener->CibirId[0] = (uint8_t)BufferLength - 1;
+            memcpy(Listener->CibirId + 1, Buffer, BufferLength);
+
+            QuicTraceLogVerbose(
+                ListenerCibirIdSet,
+                "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+                Listener,
+                Listener->CibirId[0],
+                Listener->CibirId[1]);
+
             return QUIC_STATUS_SUCCESS;
         }
-    }
+        case QUIC_PARAM_LISTENER_QTIP: {
+            if (BufferLength > sizeof(uint8_t)) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            if (Buffer == NULL) {
+                return QUIC_STATUS_INVALID_PARAMETER;
+            }
+            Listener->UseQTIP = *(uint8_t*)Buffer;
+            return QUIC_STATUS_SUCCESS;
+        }
+        
+        case QUIC_PARAM_DOS_MODE_EVENTS: {
+            if (BufferLength == sizeof(BOOLEAN)) {
+                Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
+                if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
+                    QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
+                }
+                return QUIC_STATUS_SUCCESS;
+            }
+            break;
+        }
 
+        default:
+            break;
+    }
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
@@ -879,6 +896,24 @@ QuicListenerParamGet(
         *BufferLength = Listener->CibirId[0] + 1;
         memcpy(Buffer, Listener->CibirId + 1, Listener->CibirId[0]);
 
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_LISTENER_QTIP:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            *BufferLength = sizeof(uint8_t);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(uint8_t);
+        *(uint8_t*)Buffer = Listener->UseQTIP;
         Status = QUIC_STATUS_SUCCESS;
         break;
 
