@@ -974,9 +974,9 @@ RunInteropTest(
     }
     }
 
-    MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
-
 Error:
+
+    MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
         //
