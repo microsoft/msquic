@@ -182,7 +182,7 @@ RunServer(
     }
 
     printf("Press Enter to exit.\n\n");
-    UNUSED_RESULT(getchar());
+    (void)getchar();
 
 Error:
 

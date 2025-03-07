@@ -38,12 +38,6 @@ Supported Platforms:
 #error "Unsupported Platform"
 #endif
 
-#if defined(_MSC_VER)
-#define UNUSED_RESULT(x) (void)(x)
-#else
-#define UNUSED_RESULT(x) do { int unused __attribute__((unused)) = (x); } while (0)
-#endif
-
 #if defined(__cplusplus)
 extern "C" {
 #endif
