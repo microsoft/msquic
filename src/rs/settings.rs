@@ -1,7 +1,29 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-
 use crate::ffi::QUIC_SETTINGS;
+
+/// Type of resumption behavior on the server side.
+pub enum ServerResumptionLevel {
+    NoResume,
+    ResumeOnly,
+    ResumeAndZerortt,
+}
+
+impl From<ServerResumptionLevel> for crate::ffi::QUIC_SERVER_RESUMPTION_LEVEL {
+    fn from(value: ServerResumptionLevel) -> Self {
+        match value {
+            ServerResumptionLevel::NoResume => {
+                crate::ffi::QUIC_SERVER_RESUMPTION_LEVEL_QUIC_SERVER_NO_RESUME
+            }
+            ServerResumptionLevel::ResumeOnly => {
+                crate::ffi::QUIC_SERVER_RESUMPTION_LEVEL_QUIC_SERVER_RESUME_ONLY
+            }
+            ServerResumptionLevel::ResumeAndZerortt => {
+                crate::ffi::QUIC_SERVER_RESUMPTION_LEVEL_QUIC_SERVER_RESUME_AND_ZERORTT
+            }
+        }
+    }
+}
 
 /// Settings for MsQuic
 /// Wrapping QUIC_SETTINGS ffi type.
@@ -112,7 +134,19 @@ impl Settings {
     define_settings_entry_bitflag!(set_PacingEnabled);
     define_settings_entry_bitflag!(set_MigrationEnabled);
     define_settings_entry_bitflag!(set_DatagramReceiveEnabled);
-    define_settings_entry_bitflag!(set_ServerResumptionLevel);
+
+    pub fn set_ServerResumptionLevel(mut self, value: ServerResumptionLevel) -> Self {
+        unsafe {
+            self.inner
+                .__bindgen_anon_1
+                .IsSet
+                .set_ServerResumptionLevel(1)
+        };
+        self.inner
+            .set_ServerResumptionLevel(crate::ffi::QUIC_SERVER_RESUMPTION_LEVEL::from(value) as u8);
+        self
+    }
+
     define_settings_entry!(set_MaxOperationsPerDrain, MaxOperationsPerDrain, u8);
     define_settings_entry!(
         set_MtuDiscoveryMissingProbeCount,
