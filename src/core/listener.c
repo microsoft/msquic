@@ -68,6 +68,7 @@ MsQuicListenerOpen(
     Listener->ClientCallbackHandler = Handler;
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
+    Listener->DosModeEventsEnabled = FALSE;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
@@ -409,6 +410,22 @@ QuicListenerIndicateEvent(
     )
 {
     CXPLAT_PASSIVE_CODE();
+    CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
+    return
+        Listener->ClientCallbackHandler(
+            (HQUIC)Listener,
+            Listener->ClientContext,
+            Event);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicListenerIndicateDispatchEvent(
+    _In_ QUIC_LISTENER* Listener,
+    _Inout_ QUIC_LISTENER_EVENT* Event
+    )
+{
+    CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED);
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
@@ -785,6 +802,15 @@ QuicListenerParamSet(
         default:
             break;
     }
+    if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
+        if (BufferLength == sizeof(BOOLEAN)) {
+            Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
+            if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
+                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+    }
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
@@ -886,7 +912,22 @@ QuicListenerParamGet(
 
         *BufferLength = sizeof(uint8_t);
         *(uint8_t*)Buffer = Listener->UseQTIP;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
 
+    case QUIC_PARAM_DOS_MODE_EVENTS:
+
+        if (*BufferLength < sizeof(Listener->DosModeEventsEnabled)) {
+            *BufferLength = sizeof(Listener->DosModeEventsEnabled);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        *BufferLength = sizeof(Listener->DosModeEventsEnabled);
+        memcpy(Buffer, &Listener->DosModeEventsEnabled, sizeof(Listener->DosModeEventsEnabled));
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -896,4 +937,25 @@ QuicListenerParamGet(
     }
 
     return Status;
+}
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerHandleDosModeStateChange(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN DosModeEnabled
+    )
+{
+    if (Listener->DosModeEventsEnabled) {
+        QUIC_LISTENER_EVENT Event;
+        Event.Type = QUIC_LISTENER_EVENT_DOS_MODE_CHANGED;
+        Event.DOS_MODE_CHANGED.DosModeEnabled = DosModeEnabled;
+
+        QuicListenerAttachSilo(Listener);
+
+        (void)QuicListenerIndicateDispatchEvent(Listener, &Event);
+
+        QuicListenerDetachSilo();
+    }
 }

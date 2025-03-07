@@ -18,6 +18,8 @@ class DrillBuffer : public Rtl::KArray<uint8_t>
         CXPLAT_FRE_ASSERT(append(value));
     }
 
+    uint8_t* data() { return &(*this)[0]; }
+
     const uint8_t* data() const { return &(*this)[0]; }
 
     size_t size() const { return count(); }
@@ -123,13 +125,35 @@ struct DrillInitialPacketDescriptor : DrillPacketDescriptor {
 
     DrillBuffer Payload;
 
-
-    DrillInitialPacketDescriptor();
+    DrillInitialPacketDescriptor(uint8_t SrcCidLength = 9);
 
     //
     // Write this descriptor to a byte array to send on the wire.
     //
-    virtual DrillBuffer write() const;
+    DrillBuffer writeEx(bool EncryptPayload) const;
+    virtual DrillBuffer write() const { return writeEx(false); }
+
+private:
+
+    void encrypt(DrillBuffer& PacketBuffer, uint16_t HeaderLength, uint8_t PacketNumberLength) const;
+};
+
+struct Drill1RttPacketDescriptor {
+
+    DrillBuffer DestCid;
+
+    uint8_t KeyPhase {0};
+
+    uint32_t PacketNumber {0};
+
+    DrillBuffer Payload;
+
+    Drill1RttPacketDescriptor() {}
+
+    //
+    // Write this descriptor to a byte array to send on the wire.
+    //
+    DrillBuffer write() const;
 };
 
 enum DrillVarIntSize {

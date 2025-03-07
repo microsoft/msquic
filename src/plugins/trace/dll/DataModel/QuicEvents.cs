@@ -39,6 +39,7 @@ namespace QuicTrace.DataModel
         StreamSend,
         StreamReceiveComplete,
         StreamReceiveSetEnabled,
+        StreamProvideReceiveBuffers,
         StreamDatagramSend,
         ConnectionCompleteResumptionTicketValidation,
         ConnectionCompleteCertificateValidation

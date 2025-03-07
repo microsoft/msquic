@@ -28,7 +28,6 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    uint32_t InitialRecvBufferLength;
     QUIC_WORKER* Worker = Connection->Worker;
 
     Stream = CxPlatPoolAlloc(&Worker->StreamPool);
@@ -66,7 +65,15 @@ QuicStreamInitialize(
     Stream->Flags.Allocated = TRUE;
     Stream->Flags.SendEnabled = TRUE;
     Stream->Flags.ReceiveEnabled = TRUE;
-    Stream->Flags.ReceiveMultiple = Connection->Settings.StreamMultiReceiveEnabled;
+    Stream->Flags.UseAppOwnedRecvBuffers = !!(Flags & QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS);
+    //
+    // A stream doesn't support ReceiveMultiple and AppOwnedRecvBuffer simultaneously.
+    // AppOwnedRecvBuffer is stream specific and takes precedence of the
+    // connection-wide ReceiveMultiple setting.
+    //
+    Stream->Flags.ReceiveMultiple =
+        Connection->Settings.StreamMultiReceiveEnabled &&
+        !Stream->Flags.UseAppOwnedRecvBuffers;
     Stream->RecvMaxLength = UINT64_MAX;
     Stream->RefCount = 1;
     Stream->SendRequestsTail = &Stream->SendRequests;
@@ -112,13 +119,27 @@ QuicStreamInitialize(
         }
     }
 
-    InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
-    if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE) {
+    const uint32_t InitialRecvBufferLength = Connection->Settings.StreamRecvBufferDefault;
+
+    QUIC_RECV_BUF_MODE RecvBufferMode = QUIC_RECV_BUF_MODE_CIRCULAR;
+    if (Stream->Flags.UseAppOwnedRecvBuffers) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_APP_OWNED;
+    } else if (Stream->Flags.ReceiveMultiple) {
+        RecvBufferMode = QUIC_RECV_BUF_MODE_MULTIPLE;
+    }
+
+    if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
+        RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
         }
+        QuicRecvChunkInitialize(
+            PreallocatedRecvChunk,
+            InitialRecvBufferLength,
+            (uint8_t *)(PreallocatedRecvChunk + 1),
+            FALSE);
     }
 
     const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
@@ -132,8 +153,8 @@ QuicStreamInitialize(
             &Stream->RecvBuffer,
             InitialRecvBufferLength,
             FlowControlWindowSize,
-            Stream->Flags.ReceiveMultiple ?
-                QUIC_RECV_BUF_MODE_MULTIPLE : QUIC_RECV_BUF_MODE_CIRCULAR,
+            RecvBufferMode,
+            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -183,6 +204,7 @@ QuicStreamFree(
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.HandleClosed);
     CXPLAT_DBG_ASSERT(!Stream->Flags.InStreamTable);
+    CXPLAT_DBG_ASSERT(!Stream->Flags.InWaitingList);
     CXPLAT_DBG_ASSERT(Stream->ClosedLink.Flink == NULL);
     CXPLAT_DBG_ASSERT(Stream->SendLink.Flink == NULL);
 
@@ -955,5 +977,60 @@ QuicStreamParamGet(
         break;
     }
 
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamSwitchToAppOwnedBuffers(
+    _In_ QUIC_STREAM* Stream
+    )
+{
+    //
+    // Reset the current receive buffer and preallocated chunk.
+    //
+    QUIC_WORKER* Worker = Stream->Connection->Worker;
+    QuicRecvBufferUninitialize(&Stream->RecvBuffer);
+    if (Stream->RecvBuffer.PreallocatedChunk) {
+        CxPlatPoolFree(
+            &Worker->DefaultReceiveBufferPool,
+            Stream->RecvBuffer.PreallocatedChunk);
+        Stream->RecvBuffer.PreallocatedChunk = NULL;
+    }
+
+    //
+    // Can't fail when initializing in app-owned mode.
+    //
+    (void)QuicRecvBufferInitialize(
+        &Stream->RecvBuffer,
+        0,
+        0,
+        QUIC_RECV_BUF_MODE_APP_OWNED,
+        &Worker->AppBufferChunkPool,
+        NULL);
+    Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QuicStreamProvideRecvBuffers(
+    _In_ QUIC_STREAM* Stream,
+    _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
+    )
+{
+    QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
+    if (Status == QUIC_STATUS_SUCCESS) {
+        //
+        // Update the maximum allowed received size to take into account the new
+        // capacity.
+        //
+        Stream->MaxAllowedRecvOffset =
+            Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+        QuicSendSetStreamSendFlag(
+            &Stream->Connection->Send,
+            Stream,
+            QUIC_STREAM_SEND_FLAG_MAX_DATA,
+            FALSE);
+    }
     return Status;
 }

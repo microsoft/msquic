@@ -79,6 +79,10 @@ PrintHelp(
         "  -port:<####>             The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
         "  -serverid:<####>         The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
+        "  -delay:<####>[unit]      Delay, with an optional unit (def unit is us), to be introduced before the server responds to a request.\n"
+        "  -delayType:<fixed/variable>    Optional delay type can be specified in conjunction with the 'delay' argument.\n"
+        "                                 'fixed' - introduce the specified delay for each request (default).\n"
+        "                                 'variable'- introduce a statistical variability to the specified delay (user mode only).\n"
         "\n"
         "Client: secnetperf -target:<hostname/ip> [options]\n"
         "\n"
@@ -370,3 +374,109 @@ QuicMainGetExtraData(
     CXPLAT_FRE_ASSERT(Client);
     Client->GetExtraData(Data, Length);
 }
+
+const char* TimeUnits[] = { "m", "ms", "us", "s" };
+const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000, 1, 1000 * 1000 };
+const char* SizeUnits[] = { "gb", "mb", "kb", "b" };
+const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
+const char* CountUnits[] = { "cpu" };
+uint64_t CountMult[] = { 1 };
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed
+    )
+{
+    if (isTimed) *isTimed = false; // Default
+
+    // Search for the first matching name.
+    char* value = nullptr;
+    while (*names && (value = (char*)GetValue(argc, argv, *names)) == nullptr) {
+        names++;
+    }
+    if (!value) { return false; }
+
+    // Search to see if the value has a time unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(TimeUnits); ++i) {
+        size_t len = strlen(TimeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, TimeUnits[i], len) == 0) {
+            if (isTimed) *isTimed = true;
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * TimeMult[i]);
+            return true;
+        }
+    }
+
+    // Search to see if the value has a size unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(SizeUnits); ++i) {
+        size_t len = strlen(SizeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, SizeUnits[i], len) == 0) {
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * SizeMult[i]);
+            return true;
+        }
+    }
+
+    // Search to see if the value has a count unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(CountUnits); ++i) {
+        size_t len = strlen(CountUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, CountUnits[i], len) == 0) {
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * CountMult[i]);
+            return true;
+        }
+    }
+
+    // Default to bytes if no unit is specified.
+    *pValue = (T)atoi(value);
+    return true;
+}
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed
+    )
+{
+    const char* names[] = { name, nullptr };
+    return TryGetVariableUnitValue(argc, argv, names, pValue, isTimed);
+}
+
+/// <summary>
+/// Explicit template instantiation
+/// </summary>
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint32_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t * pValue,
+    _Out_opt_ bool* isTimed
+    );
+
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint64_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ uint64_t * pValue,
+    _Out_opt_ bool* isTimed
+    );
