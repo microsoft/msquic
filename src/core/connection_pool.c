@@ -393,7 +393,7 @@ MsQuicConnectionPoolCreate(
         return Status;
     }
 
-    if ((((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL)) {
+    if (((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceEvent(
             LibraryErrorStatus,
