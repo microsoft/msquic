@@ -7,6 +7,7 @@ set(SOURCES
     DataPathTest.cpp
     PlatformTest.cpp
     # StorageTest.cpp
+    ToeplitzTest.cpp
     TlsTest.cpp
 )
 

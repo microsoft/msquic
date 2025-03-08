@@ -1003,6 +1003,7 @@ QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
     _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const QUIC_RX_PACKET* Packet,
+    _In_opt_ const uint16_t* DesiredPartitionIndex,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
         QUIC_CONNECTION** NewConnection
     );
@@ -1187,6 +1188,25 @@ void
 QuicConnQueueHighestPriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
+    );
+
+typedef enum QUIC_CONN_START_FLAGS {
+    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
+    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
+} QUIC_CONN_START_FLAGS;
+
+//
+// Starts the connection. Shouldn't be called directly in most instances.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnStart(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_opt_z_ const char* ServerName,
+    _In_ uint16_t ServerPort, // Host byte order
+    _In_ QUIC_CONN_START_FLAGS StartFlags
     );
 
 //

@@ -407,6 +407,15 @@ CxPlatToeplitzHashComputeAddr(
     _Out_ uint32_t* Offset
     );
 
+void
+CxPlatToeplitzHashComputeRss(
+    _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
+    _In_ const QUIC_ADDR* SrcAddr,
+    _In_ const QUIC_ADDR* DestAddr,
+    _Inout_ uint32_t* Key,
+    _Out_ uint32_t* Offset
+    );
+
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue

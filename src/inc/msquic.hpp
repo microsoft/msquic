@@ -404,6 +404,8 @@ public:
     operator bool() const { return ptr != nullptr; }
     bool operator == (T* _ptr) const { return ptr == _ptr; }
     bool operator != (T* _ptr) const { return ptr != _ptr; }
+    T& operator[](size_t i) { return ptr[i]; }
+    const T& operator[](size_t i) const { return ptr[i]; }
 };
 
 class MsQuicApi : public QUIC_API_TABLE {
