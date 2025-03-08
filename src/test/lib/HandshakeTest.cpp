@@ -4115,7 +4115,7 @@ struct ServerMultiAcceptContext {
         )
     {
         auto* This = (ServerMultiAcceptContext*)Listener->Context;
-        auto NewCount = InterlockedIncrement(&This->StartedConnectionCount);
+        uint32_t NewCount = (uint32_t)InterlockedIncrement((long*)&This->StartedConnectionCount);
         if (NewCount > This->MaxConnections) {
             TEST_FAILURE("Too many connections started!");
             return false;
