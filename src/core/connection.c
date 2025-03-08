@@ -69,9 +69,9 @@ QuicConnAlloc(
     QUIC_STATUS Status;
 
     //
-    // For client, the datapath partitioning info is not known yet, so just use
-    // the current processor for now. Once the connection receives a packet the
-    // partition can be updated accordingly.
+    // If the datapath partition is not known yet, just use the current partition
+    // for now. Once the connection receives a packet the partition can be
+    // updated accordingly.
     //
     const uint16_t PartitionIndex =
         DesiredPartitionIndex != NULL ?

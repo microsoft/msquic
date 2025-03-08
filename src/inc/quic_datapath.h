@@ -884,10 +884,10 @@ DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_RSS_HASH_TYPE)
 typedef struct CXPLAT_RSS_CONFIG {
     CXPLAT_RSS_HASH_TYPE HashTypes;
     uint32_t RssSecretKeyLength;
-    uint32_t RssIndirectionTableLength;
+    uint32_t RssIndirectionTableCount;
     _Field_size_bytes_(RssSecretKeyLength)
     uint8_t* RssSecretKey;
-    _Field_size_bytes_(RssIndirectionTableLength)
+    _Field_size_(RssIndirectionTableCount)
     uint32_t* RssIndirectionTable;      // Converted to processor indices from platform-specific representation.
 } CXPLAT_RSS_CONFIG;
 

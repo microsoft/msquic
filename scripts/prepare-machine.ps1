@@ -258,6 +258,8 @@ function Install-DuoNic {
         $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
         if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
         Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+        # For RSS to work on DuoNic, the RSS seed needs to be an identical 16-bit pattern
+        # on both adapters. This forces the hash to be the same for send and receive.
         $RssSeedPath = (Join-Path $SetupPath tcprssseed.exe)
         if (!(Test-Path $RssSeedPath)) { Write-Error "Missing file: $RssSeedPath" }
         Invoke-Expression "$RssSeedPath set aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55"

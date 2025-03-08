@@ -4115,10 +4115,12 @@ struct ServerMultiAcceptContext {
         )
     {
         auto* This = (ServerMultiAcceptContext*)Listener->Context;
-        if (This->StartedConnectionCount > This->MaxConnections) {
+        auto NewCount = InterlockedIncrement(&This->StartedConnectionCount);
+        if (NewCount > This->MaxConnections) {
+            TEST_FAILURE("Too many connections started!");
             return false;
         }
-        This->Connections[This->StartedConnectionCount++] =
+        This->Connections[NewCount - 1] =
             new(std::nothrow) TestConnection(ConnectionHandle, nullptr);
         if (This->StartedConnectionCount == This->MaxConnections) {
             This->StartedEvent.Set();

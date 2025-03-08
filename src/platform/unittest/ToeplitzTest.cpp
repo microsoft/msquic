@@ -40,6 +40,8 @@ struct ToeplitzTest : public ::testing::Test
 
         QuicBuffer(const QuicBuffer&) = delete;
         QuicBuffer(QuicBuffer&&) = delete;
+        QuicBuffer& operator=(const QuicBuffer&) = delete;
+        QuicBuffer& operator=(QuicBuffer&&) = delete;
 
         ~QuicBuffer()
         {
@@ -49,58 +51,54 @@ struct ToeplitzTest : public ::testing::Test
 
     struct QuicTestAddress {
         QUIC_ADDR Addr;
+        QuicTestAddress() : Addr{} {}
+        QuicTestAddress(const QUIC_ADDR& Address) : Addr(Address) {}
         QuicTestAddress(const char* AddrStr, uint16_t Port) {
             EXPECT_TRUE(QuicAddrFromString(AddrStr, Port, &Addr));
+        }
+        operator QUIC_ADDR*() { return &Addr; }
+        QuicTestAddress& operator=(const QuicTestAddress& Address) {
+            Addr = Address.Addr;
+            return *this;
         }
     };
 
     static
     auto
     ValidateRssToeplitzHash(
-        _In_ const char** ExpectedHashes,
-        _In_ const char** SourceAddresses,
-        _In_ const uint16_t* SourcePorts,
-        _In_ const char** DestinationAddresses,
-        _In_ const uint16_t* DestinationPorts,
-        _In_ uint32_t TestCaseCount,
+        _In_ const char* ExpectedHash,
+        _In_ const QUIC_ADDR* SourceAddress,
+        _In_ const QUIC_ADDR* DestinationAddress,
         _In_ QUIC_ADDRESS_FAMILY Family
         )
     {
-        const QuicBuffer KeyBuffer(HashKey);
+        static const QuicBuffer KeyBuffer(HashKey);
 
         CXPLAT_TOEPLITZ_HASH ToeplitzHash{};
         CxPlatCopyMemory(ToeplitzHash.HashKey, KeyBuffer.Data, KeyBuffer.Length);
         ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_IP;
         CxPlatToeplitzHashInitialize(&ToeplitzHash);
 
-        for (uint32_t i = 0; i < TestCaseCount; i++) {
-            printf("Testing Iteration %d...\n", i + 1);
+        QuicBuffer ExpectedHashBuf(ExpectedHash);
 
-            QuicBuffer ExpectedHash(ExpectedHashes[i]);
+        ASSERT_EQ(QuicAddrGetFamily(SourceAddress), Family);
 
-            QUIC_ADDR SrcAddr;
-            ASSERT_TRUE(QuicAddrFromString(SourceAddresses[i], SourcePorts[i], &SrcAddr));
-            ASSERT_EQ(QuicAddrGetFamily(&SrcAddr), Family);
+        ASSERT_EQ(QuicAddrGetFamily(DestinationAddress), Family);
 
-            QUIC_ADDR DestAddr;
-            ASSERT_TRUE(QuicAddrFromString(DestinationAddresses[i], DestinationPorts[i], &DestAddr));
-            ASSERT_EQ(QuicAddrGetFamily(&DestAddr), Family);
+        uint32_t Key = 0, Offset = 0;
+        CxPlatToeplitzHashComputeRss(&ToeplitzHash, SourceAddress, DestinationAddress, &Key, &Offset);
 
-            uint32_t Key = 0, Offset = 0;
-            CxPlatToeplitzHashComputeRss(&ToeplitzHash, &SrcAddr, &DestAddr, &Key, &Offset);
+        // Flip the key around to match the expected hash array
+        Key = CxPlatByteSwapUint32(Key);
 
-            // Flip the key around to match the expected hash array
-            Key = CxPlatByteSwapUint32(Key);
-
-            if (memcmp(ExpectedHash.Data, &Key, 4)) {
-                QUIC_ADDR_STR PrintBuf{};
-                printf("Expected Hash: %s, Actual Hash: %x\n", ExpectedHashes[i], CxPlatByteSwapUint32(Key));
-                QuicAddrToString(&SrcAddr, &PrintBuf);
-                printf("Source Address: %s\n", PrintBuf.Address);
-                QuicAddrToString(&DestAddr, &PrintBuf);
-                printf("Destination Address: %s\n", PrintBuf.Address);
-                ASSERT_TRUE(FALSE);
-            }
+        if (memcmp(ExpectedHashBuf.Data, &Key, 4)) {
+            QUIC_ADDR_STR PrintBuf{};
+            printf("Expected Hash: %s, Actual Hash: %x\n", ExpectedHash, CxPlatByteSwapUint32(Key));
+            QuicAddrToString(SourceAddress, &PrintBuf);
+            printf("Source Address: %s\n", PrintBuf.Address);
+            QuicAddrToString(DestinationAddress, &PrintBuf);
+            printf("Destination Address: %s\n", PrintBuf.Address);
+            ASSERT_TRUE(FALSE);
         }
     }
 
@@ -117,43 +115,30 @@ TEST_F(ToeplitzTest, IPv4WithTcp)
         "afc7327f",
         "10e828a2"
     };
-    const char* SourceAddresses[] = {
-        "66.9.149.187",
-        "199.92.111.2",
-        "24.19.198.95",
-        "38.27.205.30",
-        "153.39.163.191"
+    const QuicTestAddress DestinationAddresses[] = {
+        {"161.142.100.80", 1766},
+        {"65.69.140.83",   4739},
+        {"12.22.207.184", 38024},
+        {"209.142.163.6",  2217},
+        {"202.188.127.2",  1303},
     };
-    const uint16_t SourcePorts[] = {
-        2794,
-        14230,
-        12898,
-        48228,
-        44251
-    };
-    const char* DestinationAddresses[] = {
-        "161.142.100.80",
-        "65.69.140.83",
-        "12.22.207.184",
-        "209.142.163.6",
-        "202.188.127.2"
-    };
-    const uint16_t DestinationPorts[] = {
-        1766,
-        4739,
-        38024,
-        2217,
-        1303
+    const QuicTestAddress SourceAddresses[] = {
+        {"66.9.149.187",    2794},
+        {"199.92.111.2",   14230},
+        {"24.19.198.95",   12898},
+        {"38.27.205.30",   48228},
+        {"153.39.163.191", 44251},
     };
 
-    ValidateRssToeplitzHash(
-        ExpectedHashes,
-        SourceAddresses,
-        SourcePorts,
-        DestinationAddresses,
-        DestinationPorts,
-        5,
-        QUIC_ADDRESS_FAMILY_INET);
+    for(uint32_t i = 0; i < ARRAYSIZE(ExpectedHashes); i++) {
+        printf("Testing Iteration %d...\n", i + 1);
+
+        ValidateRssToeplitzHash(
+            ExpectedHashes[i],
+            &SourceAddresses[i].Addr,
+            &DestinationAddresses[i].Addr,
+            QUIC_ADDRESS_FAMILY_INET);
+    }
 }
 
 TEST_F(ToeplitzTest, IPv6WithTcp)
@@ -163,32 +148,24 @@ TEST_F(ToeplitzTest, IPv6WithTcp)
         "dde51bbf",
         "02d1feef"
     };
-    const char* SourceAddresses[] = {
-        "3ffe:2501:200:1fff::7",
-        "3ffe:501:8::260:97ff:fe40:efab",
-        "3ffe:1900:4545:3:200:f8ff:fe21:67cf"
+    const QuicTestAddress SourceAddresses[] = {
+        {"3ffe:2501:200:1fff::7",                2794},
+        {"3ffe:501:8::260:97ff:fe40:efab",      14230},
+        {"3ffe:1900:4545:3:200:f8ff:fe21:67cf", 44251}
     };
-    const uint16_t SourcePorts[] = {
-        2794,
-        14230,
-        44251
-    };
-    const char* DestinationAddresses[] = {
-        "3ffe:2501:200:3::1",
-        "ff02::1",
-        "fe80::200:f8ff:fe21:67cf"
-    };
-    const uint16_t DestinationPorts[] = {
-        1766,
-        4739,
-        38024
+    const QuicTestAddress DestinationAddresses[] = {
+        {"3ffe:2501:200:3::1",        1766},
+        {"ff02::1",                   4739},
+        {"fe80::200:f8ff:fe21:67cf", 38024},
     };
 
-    ValidateRssToeplitzHash(
-        ExpectedHashes,
-        SourceAddresses,SourcePorts,
-        DestinationAddresses,
-        DestinationPorts,
-        3,
-        QUIC_ADDRESS_FAMILY_INET6);
+    for(uint32_t i = 0; i < ARRAYSIZE(ExpectedHashes); i++) {
+        printf("Testing Iteration %d...\n", i + 1);
+
+        ValidateRssToeplitzHash(
+            ExpectedHashes[i],
+            &SourceAddresses[i].Addr,
+            &DestinationAddresses[i].Addr,
+            QUIC_ADDRESS_FAMILY_INET6);
+    }
 }

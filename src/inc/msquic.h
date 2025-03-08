@@ -1630,21 +1630,21 @@ typedef enum QUIC_CONNECTION_POOL_FLAGS {
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_POOL_FLAGS);
 
 typedef struct QUIC_CONNECTION_POOL_CONFIG {
-    _In_ HQUIC Registration;
-    _In_ HQUIC Configuration;
-    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler;
+    HQUIC Registration;
+    HQUIC Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER Handler;
     _Field_size_opt_(NumberOfConnections)
         void** Context;                         // Optional
-    _In_ const char* ServerName;
-    _In_opt_ const QUIC_ADDR* ServerAddress;    // Optional
-    _In_ QUIC_ADDRESS_FAMILY Family;
-    _In_ uint16_t ServerPort;
-    _In_ uint16_t NumberOfConnections;
+    _Field_z_ const char* ServerName;
+    const QUIC_ADDR* ServerAddress;             // Optional
+    QUIC_ADDRESS_FAMILY Family;
+    uint16_t ServerPort;
+    uint16_t NumberOfConnections;
     _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
     _Field_size_opt_(NumberOfConnections)
         uint8_t** CibirIds;                     // Optional
-    _In_ uint8_t CibirIdLength;                 // Optional
-    _In_ QUIC_CONNECTION_POOL_FLAGS Flags;
+    uint8_t CibirIdLength;                      // Optional
+    QUIC_CONNECTION_POOL_FLAGS Flags;
 } QUIC_CONNECTION_POOL_CONFIG;
 
 //

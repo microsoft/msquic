@@ -1895,34 +1895,29 @@ CxPlatDataPathRssConfigGet(
     uint32_t RssConfigSize = 0;
     XDP_RSS_CONFIGURATION *RawRssConfig = NULL;
 
-    if (RssConfig == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Error;
-    }
+    CXPLAT_DBG_ASSERT(RssConfig != NULL);
 
     *RssConfig = NULL;
 
     HANDLE InterfaceHandle = NULL;
     HRESULT Result = XdpInterfaceOpen(InterfaceIndex, &InterfaceHandle);
     if (FAILED(Result)) {
-        QuicTraceLogError(
-            XdpGetRssConfigInterfaceOpenFailed,
-            "[ xdp] Failed to open Xdp interface for index %u. Error %d",
-            InterfaceIndex,
-            Result);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpInterfaceOpen");
         Status = Result;
         goto Error;
     }
 
     Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
     if (Result != HRESULT_FROM_WIN32(ERROR_MORE_DATA)) {
-        QuicTraceLogError(
-            XdpGetRssConfigSizeFailed,
-            "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
-            InterfaceHandle,
-            InterfaceIndex,
-            RssConfigSize,
-            Result);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet size");
         Status = FAILED(Result) ? Result : QUIC_STATUS_INTERNAL_ERROR;
         goto Error;
     }
@@ -1940,13 +1935,11 @@ CxPlatDataPathRssConfigGet(
 
     Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
     if (FAILED(Result)) {
-        QuicTraceLogError(
-            XdpGetRssConfigFailed,
-            "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d",
-            InterfaceHandle,
-            InterfaceIndex,
-            RssConfigSize,
-            Result);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet");
         Status = Result;
         goto Error;
     }
@@ -1980,16 +1973,17 @@ CxPlatDataPathRssConfigGet(
 
     NewRssConfig->RssIndirectionTable =
         (uint32_t*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
-    NewRssConfig->RssIndirectionTableLength = RawRssConfig->IndirectionTableSize;
+    NewRssConfig->RssIndirectionTableCount = RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER);
+
+    CXPLAT_DBG_ASSERT(
+        RawRssConfig->IndirectionTableSize ==
+        NewRssConfig->RssIndirectionTableCount * sizeof(PROCESSOR_NUMBER));
 
     PROCESSOR_NUMBER* IndirectionTable =
         (PROCESSOR_NUMBER*)RTL_PTR_ADD(
             RawRssConfig,
             RawRssConfig->IndirectionTableOffset);
 
-    CXPLAT_DBG_ASSERT(
-        RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER) ==
-        NewRssConfig->RssIndirectionTableLength / sizeof(uint32_t));
     for (uint32_t i = 0; i < RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER); i++) {
         NewRssConfig->RssIndirectionTable[i] = CxPlatProcNumberToIndex(&IndirectionTable[i]);
     }

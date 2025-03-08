@@ -18,6 +18,118 @@ Abstract:
 
 #define MAX_CONNECTION_POOL_RETRY_MULTIPLIER 2
 
+typedef struct QUIC_CONN_POOL_RSS_PROC_INFO {
+
+    //
+    // The CPU index, converted into MsQuic's CPU index abstraction
+    //
+    uint32_t ProcIndex;
+
+    //
+    // The number of connections assigned to this CPU.
+    //
+    uint32_t ConnectionCount;
+} QUIC_CONN_POOL_RSS_PROC_INFO;
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnPoolAllocUniqueRssProcInfo(
+    _In_ const CXPLAT_RSS_CONFIG* RssConfig,
+    _Outptr_ _At_(*RssProcInfo, __drv_allocatesMem(Mem))
+        QUIC_CONN_POOL_RSS_PROC_INFO** RssProcInfo,
+    _Out_ uint32_t* RssProcCount
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    //
+    // Prepare array of unique RSS processors.
+    // We allocate the maximum number of RSS processors here, because we don't
+    // know how many are unique yet (and potentially they all are unique).
+    //
+    QUIC_CONN_POOL_RSS_PROC_INFO* RssProcessors =
+        (QUIC_CONN_POOL_RSS_PROC_INFO*)CXPLAT_ALLOC_PAGED(
+            RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO),
+            QUIC_POOL_TMP_ALLOC);
+    if (RssProcessors == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RSS Processor List",
+            RssConfig->RssIndirectionTableCount);
+        return Status;
+    }
+
+    uint32_t RssProcessorCount = 0;
+    for (uint32_t i = 0; i < RssConfig->RssIndirectionTableCount; i++) {
+        uint32_t j;
+        for (j = 0; j < RssProcessorCount; j++) {
+            if (RssProcessors[j].ProcIndex == RssConfig->RssIndirectionTable[i]) {
+                break;
+            }
+        }
+        //
+        // This is safe because the RssProcessor array is the same count as the indirection table.
+        //
+        if (j == RssProcessorCount) {
+            CXPLAT_DBG_ASSERT(RssProcessorCount < RssConfig->RssIndirectionTableCount);
+            RssProcessors[RssProcessorCount].ConnectionCount = 0;
+            RssProcessors[RssProcessorCount++].ProcIndex = RssConfig->RssIndirectionTable[i];
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(RssProcessorCount > 0);
+    CXPLAT_DBG_ASSERT(RssProcessorCount <= RssConfig->RssIndirectionTableCount);
+
+    *RssProcInfo = RssProcessors;
+    *RssProcCount = RssProcessorCount;
+    return Status;
+}
+
+static
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_CONN_POOL_RSS_PROC_INFO*
+QuicConnPoolGetRssProcForTuple(
+    _In_ const CXPLAT_TOEPLITZ_HASH* ToeplitzHash,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ QUIC_CONN_POOL_RSS_PROC_INFO* RssProcessors,
+    _In_ uint32_t RssProcessorCount,
+    _In_reads_(RssIndirectionTableCount)
+        uint32_t* RssIndirectionTable,
+    _In_ uint32_t RssIndirectionTableCount
+    )
+{
+    //
+    // Calculate the Toeplitz Hash as if receiving packets from
+    // RemoteAddress to find the RSS processor.
+    //
+    uint32_t RssHash = 0, Offset;
+    CxPlatToeplitzHashComputeRss(
+        ToeplitzHash,
+        RemoteAddress,
+        LocalAddress,
+        &RssHash,
+        &Offset);
+
+    const uint32_t Mask = RssIndirectionTableCount - 1;
+
+    CXPLAT_DBG_ASSERT((RssHash & Mask) < RssIndirectionTableCount);
+
+    uint32_t Index = 0;
+    for (; Index < RssProcessorCount; Index++) {
+        if (RssProcessors[Index].ProcIndex == RssIndirectionTable[RssHash & Mask]) {
+            break;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(Index < RssProcessorCount);
+    return &RssProcessors[Index];
+}
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
 const char*
 QuicConnPoolAllocServerNameCopy(
     _In_ const char* ServerName,
@@ -25,20 +137,21 @@ QuicConnPoolAllocServerNameCopy(
     )
 {
     char* ServerNameCopy = CXPLAT_ALLOC_NONPAGED(ServerNameLength + 1, QUIC_POOL_SERVERNAME);
-        if (ServerNameCopy == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Server name",
-                ServerNameLength + 1);
-        } else {
-            CxPlatCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
-            ServerNameCopy[ServerNameLength] = 0;
-        }
+    if (ServerNameCopy == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Server name",
+            ServerNameLength + 1);
+    } else {
+        CxPlatCopyMemory(ServerNameCopy, ServerName, ServerNameLength);
+        ServerNameCopy[ServerNameLength] = 0;
+    }
 
     return ServerNameCopy;
 }
 
+static
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
@@ -59,6 +172,7 @@ QuicConnPoolGetStartingLocalAddress(
     return Status;
 }
 
+static
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolGetInterfaceIndexForLocalAddress(
@@ -87,10 +201,11 @@ QuicConnPoolGetInterfaceIndexForLocalAddress(
 
         if (*InterfaceIndex == 0) {
             Status = QUIC_STATUS_NOT_FOUND;
-            QuicTraceLogError(
-                ConnPoolLocalAddressNotFound,
-                "[conp] Failed to find local address, 0x%x",
-                Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Connection Pool Local Address Interface");
         }
 
         CXPLAT_FREE(Addresses, QUIC_POOL_DATAPATH_ADDRESSES);
@@ -98,6 +213,136 @@ QuicConnPoolGetInterfaceIndexForLocalAddress(
 
     return Status;
 }
+
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnPoolTryCreateConnection(
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ const uint16_t* PartitionIndex,
+    _In_ const QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _In_ QUIC_ADDR* RemoteAddress,
+    _In_ QUIC_ADDR* LocalAddress,
+    _In_z_ const char* ServerName,
+    _In_ uint16_t ServerPort,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_ uint16_t CibirIdLength,
+    _In_reads_bytes_opt_(CibirIdLength)
+        const uint8_t* CibirId,
+    _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem))
+        QUIC_CONNECTION** Connection
+    )
+{
+    QUIC_STATUS Status =
+        QuicConnAlloc(
+            Registration,
+            NULL,
+            NULL,
+            PartitionIndex,
+            Connection);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+    (*Connection)->ClientCallbackHandler = Handler;
+    if (Context != NULL) {
+        (*Connection)->ClientContext = Context;
+    }
+
+    //
+    // Set the calculated remote address and local address to get the desired
+    // RSS CPU.
+    //
+    Status =
+        QuicConnParamSet(
+            *Connection,
+            QUIC_PARAM_CONN_REMOTE_ADDRESS,
+            sizeof(*RemoteAddress),
+            RemoteAddress);
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool set Remote Address");
+        goto Error;
+    }
+
+    Status =
+        QuicConnParamSet(
+            *Connection,
+            QUIC_PARAM_CONN_LOCAL_ADDRESS,
+            sizeof(LocalAddress),
+            &LocalAddress);
+    CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool set Local Address");
+        goto Error;
+    }
+
+    if (CibirId) {
+        uint8_t True = TRUE;
+        Status =
+            QuicConnParamSet(
+                *Connection,
+                QUIC_PARAM_CONN_SHARE_UDP_BINDING,
+                sizeof(True),
+                &True);
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QUIC_FAILED(Status)) {
+            goto Error;
+        }
+
+        Status =
+            QuicConnParamSet(
+                *Connection,
+                QUIC_PARAM_CONN_CIBIR_ID,
+                CibirIdLength,
+                CibirId);
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Connection Pool set CIBIR ID");
+            goto Error;
+        }
+    }
+
+    Status = QuicConnStart(
+        *Connection,
+        Configuration,
+        Family,
+        ServerName,
+        ServerPort,
+        QUIC_CONN_START_FLAG_FAIL_SILENTLY);
+    if (QUIC_FAILED(Status)) {
+        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        *Connection = NULL;
+        // no goto on purpose.
+    }
+
+    ServerName = NULL; // The connection now owns the ServerName.
+
+Error:
+    //
+    // In the success case, the connection owns ServerName now.
+    // In the failure cases, we need to free ServerName.
+    //
+    if (ServerName != NULL) {
+        CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
+    }
+
+    return Status;
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -110,45 +355,75 @@ MsQuicConnectionPoolCreate(
 {
     QUIC_CONNECTION** Connections = (QUIC_CONNECTION**)ConnectionPool;
     CXPLAT_RSS_CONFIG* RssConfig = NULL;
-    uint32_t* RssProcessors = NULL;
-    uint32_t* ConnectionCounts = NULL;
+    QUIC_CONN_POOL_RSS_PROC_INFO* RssProcessors = NULL;
     const char* ServerNameCopy = NULL;
     CXPLAT_TOEPLITZ_HASH ToeplitzHash;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t CreatedConnections = 0;
 
-    if (Config == NULL || ConnectionPool == NULL || Config->Registration == NULL ||
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_CONNECTION_POOL_CREATE,
+        NULL);
+
+
+    if (Config == NULL || ConnectionPool == NULL) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool Parameter");
+        return Status;
+    }
+
+    if (Config->Registration == NULL ||
         Config->Configuration == NULL|| Config->NumberOfConnections == 0 ||
         Config->Handler == NULL || Config->ServerName == NULL || Config->ServerPort == 0 ||
         (Config->Family != QUIC_ADDRESS_FAMILY_UNSPEC &&
             Config->Family != QUIC_ADDRESS_FAMILY_INET &&
-            Config->Family != QUIC_ADDRESS_FAMILY_INET6) ||
-        (((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL) ||
-        (Config->CibirIds != NULL && Config->CibirIdLength == 0) ||
+            Config->Family != QUIC_ADDRESS_FAMILY_INET6)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool Config");
+        return Status;
+    }
+
+    if ((((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL)) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool SecurityConfig");
+        return Status;
+    }
+
+    if ((Config->CibirIds != NULL && Config->CibirIdLength == 0) ||
         (Config->CibirIds == NULL && Config->CibirIdLength != 0)) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceLogError(
-            ConnPoolInvalidParam,
-            "[conp] Invalid parameter, 0x%x",
-            Status);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "Connection Pool CIBIR config");
         return Status;
     }
 
     const size_t ServerNameLength = strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
     if (ServerNameLength == QUIC_MAX_SNI_LENGTH + 1) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
-        QuicTraceLogError(
-            ConnPoolServerNameTooLong,
-            "[conp] ServerName too long (%llu bytes)",
-            ServerNameLength);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            (uint32_t)ServerNameLength,
+            "Connection Pool ServerName too long");
         return Status;
     }
-
-    QuicTraceEvent(
-        ApiEnter,
-        "[ api] Enter %u (%p).",
-        QUIC_TRACE_API_CONNECTION_POOL_CREATE,
-        Config->Registration);
 
     CxPlatZeroMemory(ConnectionPool, sizeof(HQUIC) * Config->NumberOfConnections);
 
@@ -166,10 +441,6 @@ MsQuicConnectionPoolCreate(
                 Config->ServerName,
                 &ResolvedRemoteAddress);
         if (QUIC_FAILED(Status)) {
-            QuicTraceLogError(
-                ConnPoolResolveAddress,
-                "[conp] Failed to resolve address, 0x%x",
-                Status);
             goto Error;
         }
     }
@@ -182,10 +453,6 @@ MsQuicConnectionPoolCreate(
     QUIC_ADDR LocalAddress;
     Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(
-            ConnPoolGetLocalAddress,
-            "[conp] Failed to get local address, 0x%x",
-            Status);
         goto Error;
     }
 
@@ -197,95 +464,52 @@ MsQuicConnectionPoolCreate(
 
     Status = CxPlatDataPathRssConfigGet(InterfaceIndex, &RssConfig);
     if (QUIC_FAILED(Status)) {
-        QuicTraceLogError(
-            ConnPoolGetRssConfig,
-            "[conp] Failed to get RSS config, 0x%x",
-            Status);
         goto Error;
     }
 
-    if (RssConfig->RssIndirectionTableLength < sizeof(uint32_t)) {
+    if (RssConfig->RssIndirectionTableCount == 0) {
         //
         // No RSS cores configured.
         //
-        Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogError(
-            ConnPoolRssNotConfigured,
-            "[conp] RSS not configured, 0x%x",
-            Status);
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            RssConfig->RssIndirectionTableCount,
+            "Connection Pool RssIndirectionTable too small");
         goto Error;
     }
 
     if (RssConfig->RssSecretKeyLength > CXPLAT_TOEPLITZ_KEY_SIZE_MAX) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
-        QuicTraceLogError(
-            ConnPoolRssSecretKeyTooLong,
-            "[conp] RSS secret key too long (%u bytes), 0x%x",
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
             RssConfig->RssSecretKeyLength,
-            Status);
+            "Connection pool RSS secret key too long");
         goto Error;
     } else if (RssConfig->RssSecretKeyLength < CXPLAT_TOEPLITZ_KEY_SIZE_MIN) {
-        Status = QUIC_STATUS_INVALID_STATE;
-        QuicTraceLogError(
-            ConnPoolRssSecretKeyTooShort,
-            "[conp] RSS secret key too short (%u bytes), 0x%x",
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
             RssConfig->RssSecretKeyLength,
-            Status);
+            "Connection Pool RSS secret key too short");
         goto Error;
     }
 
     //
-    // Prepare array of unique RSS processors.
+    // Get unique RSS processors.
     //
-    RssProcessors =
-        (uint32_t*)CXPLAT_ALLOC_PAGED(
-            RssConfig->RssIndirectionTableLength,
-            QUIC_POOL_TMP_ALLOC);
-    if (RssProcessors == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RSS Processor List",
-            RssConfig->RssIndirectionTableLength);
-        goto Error;
-    }
-
     uint32_t RssProcessorCount = 0;
-    for (uint32_t i = 0; i < RssConfig->RssIndirectionTableLength / sizeof(uint32_t); i++) {
-        uint32_t j;
-        for (j = 0; j < RssProcessorCount; j++) {
-            if (RssProcessors[j] == RssConfig->RssIndirectionTable[i]) {
-                break;
-            }
-        }
-        //
-        // This is safe because the RssProcessor array is the same size as the indirection table.
-        //
-        if (j == RssProcessorCount) {
-            CXPLAT_DBG_ASSERT(RssProcessorCount < RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
-            RssProcessors[RssProcessorCount++] = RssConfig->RssIndirectionTable[i];
-        }
-    }
-
-    CXPLAT_DBG_ASSERT(RssProcessorCount > 0);
-    CXPLAT_DBG_ASSERT(RssProcessorCount <= RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
-
-    ConnectionCounts =
-        (uint32_t*)CXPLAT_ALLOC_PAGED(
-            sizeof(uint32_t) * RssProcessorCount,
-            QUIC_POOL_TMP_ALLOC);
-    if (ConnectionCounts == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RSS Connection Counts",
-            sizeof(uint32_t) * RssProcessorCount);
+    Status =
+        QuicConnPoolAllocUniqueRssProcInfo(
+            RssConfig,
+            &RssProcessors,
+            &RssProcessorCount);
+    if (QUIC_FAILED(Status)) {
         goto Error;
     }
-
-    CxPlatZeroMemory(ConnectionCounts, sizeof(uint32_t) * RssProcessorCount);
 
     //
     // Initialize the Toeplitz hash.
@@ -294,16 +518,22 @@ MsQuicConnectionPoolCreate(
     ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_IP;
     CxPlatToeplitzHashInitialize(&ToeplitzHash);
 
-    //
-    // Start creating connections and starting them.
-    //
+    const uint32_t ConnectionsPerProc =
+        Config->NumberOfConnections % RssProcessorCount != 0 ?
+            (Config->NumberOfConnections / RssProcessorCount) + 1:
+            (Config->NumberOfConnections / RssProcessorCount);
 
-    const uint32_t ConnectionsPerProc = (Config->NumberOfConnections / RssProcessorCount) + 1;
-
+    //
+    // Begin creating and starting connections.
+    //
     for (uint32_t i = 0; i < Config->NumberOfConnections; i++) {
         const uint32_t MaxCreationRetries = RssProcessorCount * MAX_CONNECTION_POOL_RETRY_MULTIPLIER;
         uint32_t RetryCount = 0;
-        uint32_t RssProcIndex;
+
+        //
+        // The connection takes ownership of the ServerName parameter, so we must
+        // allocate a copy of it for each connection (attempt).
+        //
         ServerNameCopy =
             QuicConnPoolAllocServerNameCopy(
                 Config->ServerName,
@@ -321,29 +551,17 @@ MsQuicConnectionPoolCreate(
             }
             QuicAddrSetPort(&LocalAddress, (uint16_t)NewPort);
 
-            uint32_t RssHash = 0, Offset;
-            //
-            // Calculate the Toeplitz Hash as if receiving packets from the
-            // ResolvedRemoteAddress to find the RSS processor.
-            //
-            CxPlatToeplitzHashComputeRss(
-                &ToeplitzHash,
-                &ResolvedRemoteAddress,
-                &LocalAddress,
-                &RssHash,
-                &Offset);
-            uint32_t Mask = (RssConfig->RssIndirectionTableLength / sizeof(uint32_t)) - 1;
-            RssProcIndex = RssProcessorCount;
-            CXPLAT_DBG_ASSERT((RssHash & Mask) < RssConfig->RssIndirectionTableLength / sizeof(uint32_t));
-            uint32_t RssProc = RssConfig->RssIndirectionTable[RssHash & Mask];
-            for (uint32_t j = 0; j < RssProcessorCount; j++) {
-                if (RssProcessors[j] == RssProc) {
-                    RssProcIndex = j;
-                    break;
-                }
-            }
-            CXPLAT_DBG_ASSERT(RssProcIndex < RssProcessorCount);
-            if (ConnectionCounts[RssProcIndex] >= ConnectionsPerProc) {
+            QUIC_CONN_POOL_RSS_PROC_INFO* CurrentProc =
+                QuicConnPoolGetRssProcForTuple(
+                    &ToeplitzHash,
+                    &ResolvedRemoteAddress,
+                    &LocalAddress,
+                    RssProcessors,
+                    RssProcessorCount,
+                    RssConfig->RssIndirectionTable,
+                    RssConfig->RssIndirectionTableCount);
+
+            if (CurrentProc->ConnectionCount >= ConnectionsPerProc) {
                 //
                 // This processor already has enough connections on it, so try another port number.
                 //
@@ -351,142 +569,42 @@ MsQuicConnectionPoolCreate(
             }
 
             uint16_t PartitionIndex =
-                QuicLibraryGetPartitionFromProcessorIndex(RssProcessors[RssProcIndex]);
+                QuicLibraryGetPartitionFromProcessorIndex(CurrentProc->ProcIndex);
 
             Status =
-                QuicConnAlloc(
+                QuicConnPoolTryCreateConnection(
                     (QUIC_REGISTRATION*)Config->Registration,
-                    NULL,
-                    NULL,
+                    (QUIC_CONFIGURATION*)Config->Configuration,
                     &PartitionIndex,
+                    Config->Handler,
+                    Config->Context ? Config->Context[i] : NULL,
+                    &ResolvedRemoteAddress,
+                    &LocalAddress,
+                    ServerNameCopy,
+                    Config->ServerPort,
+                    Config->Family,
+                    Config->CibirIdLength,
+                    Config->CibirIds ? Config->CibirIds[i] : NULL,
                     &Connections[i]);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogError(
-                    ConnPoolOpenConnection,
-                    "[conp] Failed to open connection[%u], 0x%x",
-                    i,
-                    Status);
-                goto Error;
-            }
-            CreatedConnections++;
-            Connections[i]->ClientCallbackHandler = Config->Handler;
-            if (Config->Context != NULL) {
-                Connections[i]->ClientContext = Config->Context[i];
-            }
-
-            //
-            // Set parameters on the connections before starting them.
-            //
-            if (Config->CibirIds) {
-                uint8_t True = TRUE;
-                Status =
-                    QuicConnParamSet(
-                        Connections[i],
-                        QUIC_PARAM_CONN_SHARE_UDP_BINDING,
-                        sizeof(True),
-                        &True);
-                CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
                 if (QUIC_FAILED(Status)) {
-                    QuicTraceLogError(
-                        ConnPoolSetShareBinding,
-                        "[conp] Failed to set share binding on connection[%u], 0x%x",
-                        i,
-                        Status);
-                    goto Error;
+                    continue;
                 }
-
-                Status =
-                    QuicConnParamSet(
-                        Connections[i],
-                        QUIC_PARAM_CONN_CIBIR_ID,
-                        Config->CibirIdLength,
-                        Config->CibirIds[i]);
-                CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-                if (QUIC_FAILED(Status)) {
-                    QuicTraceLogError(
-                        ConnPoolSetCibirId,
-                        "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
-                        i,
-                        Status);
-                    goto Error;
-                }
-            }
-
-            Status =
-                QuicConnParamSet(
-                    Connections[i],
-                    QUIC_PARAM_CONN_REMOTE_ADDRESS,
-                    sizeof(ResolvedRemoteAddress),
-                    &ResolvedRemoteAddress);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogError(
-                    ConnPoolSetRemoteAddress,
-                    "[conp] Failed to set remote address on connection[%u], 0x%x",
-                    i,
-                    Status);
-                goto Error;
-            }
-
-            Status =
-                QuicConnParamSet(
-                    Connections[i],
-                    QUIC_PARAM_CONN_LOCAL_ADDRESS,
-                    sizeof(LocalAddress),
-                    &LocalAddress);
-            CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogError(
-                    ConnPoolSetLocalAddress,
-                    "[conp] Failed to set local address on connection[%u], 0x%x",
-                    i,
-                    Status);
-                goto Error;
-            }
-
-            Status = QuicConnStart(
-                Connections[i],
-                (QUIC_CONFIGURATION*)Config->Configuration,
-                Config->Family,
-                ServerNameCopy,
-                Config->ServerPort,
-                QUIC_CONN_START_FLAG_FAIL_SILENTLY);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogError(
-                    ConnPoolStartConnection,
-                    "[conp] Failed to start connection[%u], 0x%x",
-                    i,
-                    Status);
-                QuicConnRelease(Connections[i], QUIC_CONN_REF_HANDLE_OWNER);
-                //
-                // ServerNameCopy was freed when the above failed, so it must be recreated
-                //
-                ServerNameCopy =
-                    QuicConnPoolAllocServerNameCopy(
-                        Config->ServerName,
-                        ServerNameLength);
-                Connections[i] = NULL;
-                CreatedConnections--;
-                continue;
-            }
 
             //
             // The connection was created successfully, add it to the count for this processor.
             //
-            ConnectionCounts[RssProcIndex]++;
-            ServerNameCopy = NULL;
+            CurrentProc->ConnectionCount++;
+            CreatedConnections++;
             break;
         }
 
         if (RetryCount == MaxCreationRetries) {
             Status = QUIC_STATUS_ADDRESS_IN_USE;
-            QuicTraceLogError(
-                ConnPoolMaxRetries,
-                "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x",
-                MaxCreationRetries,
-                i,
-                QuicAddrGetPort(&LocalAddress),
-                Status);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                RetryCount,
+                "Connection Pool out of retries");
             goto Error;
         }
     }
@@ -501,9 +619,6 @@ Error:
             MsQuicConnectionClose((HQUIC)Connections[i]);
             Connections[i] = NULL;
         }
-    }
-    if (ConnectionCounts != NULL) {
-        CXPLAT_FREE(ConnectionCounts, QUIC_POOL_TMP_ALLOC);
     }
     if (RssProcessors != NULL) {
         CXPLAT_FREE(RssProcessors, QUIC_POOL_TMP_ALLOC);

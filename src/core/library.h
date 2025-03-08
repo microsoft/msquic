@@ -329,7 +329,7 @@ QuicLibraryGetCurrentPartition(
     void
     )
 {
-    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
+    const uint32_t CurrentProc = CxPlatProcCurrentNumber();
     return QuicLibraryGetPartitionFromProcessorIndex(CurrentProc);
 }
 

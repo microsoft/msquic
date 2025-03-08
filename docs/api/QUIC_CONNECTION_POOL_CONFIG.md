@@ -71,7 +71,7 @@ If this number is greater than the number of RSS CPUs configured on the system, 
 
 `CibirIds`
 
-An optional pointer to an array of pointers to `uint8_t`s specifying the CIBIR ID to use for each connection. All CIBIR IDs must be the same length.
+An optional pointer to an array of pointers to `uint8_t`s specifying the [CIBIR ID](https://datatracker.ietf.org/doc/html/draft-banks-quic-cibir) to use for each connection. All CIBIR IDs must be the same length.  Not allowed to be non-NULL if `CibirIdLength` is zero.
 
 `CibirIdLength`
 

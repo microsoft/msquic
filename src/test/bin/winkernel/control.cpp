@@ -1531,8 +1531,8 @@ QuicTestCtlEvtIoDeviceControl(
             QuicTestConnectionPoolCreate(
                 Params->ConnPoolCreateParams.Family,
                 Params->ConnPoolCreateParams.NumberOfConnections,
-                Params->ConnPoolCreateParams.XdpSupported == TRUE,
-                Params->ConnPoolCreateParams.TestCibirSupport == TRUE));
+                Params->ConnPoolCreateParams.XdpSupported,
+                Params->ConnPoolCreateParams.TestCibirSupport));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
