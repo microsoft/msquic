@@ -1003,6 +1003,8 @@ CxPlatEventQEnqueue(
     return TRUE;
 }
 
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
+
 inline
 uint32_t
 CxPlatEventQDequeue(
@@ -1114,6 +1116,8 @@ CxPlatEventQEnqueue(
     UNREFERENCED_PARAMETER(queue);
     return eventfd_write(sqe->fd, 1) == 0;
 }
+
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
 inline
 uint32_t
@@ -1240,6 +1244,8 @@ CxPlatEventQEnqueueEx(
     struct kevent event = {.ident = sqe->Handle, .filter = filter, .flags = flags, .fflags = 0, .data = 0, .udata = sqe};
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
+
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
 inline
 uint32_t
