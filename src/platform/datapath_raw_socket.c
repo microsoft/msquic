@@ -305,8 +305,10 @@ CxPlatDpRawParseIPv4(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv4.sin_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->Protocol == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else if (IP->Protocol == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = TRUE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPTotalLength - sizeof(IPV4_HEADER));
     } else {
         QuicTraceEvent(
@@ -374,8 +376,10 @@ CxPlatDpRawParseIPv6(
     CxPlatCopyMemory(&Packet->Route->LocalAddress.Ipv6.sin6_addr, IP->Destination, sizeof(IP->Destination));
 
     if (IP->NextHeader == IPPROTO_UDP) {
+        Packet->Route->UseQTIP = FALSE;
         CxPlatDpRawParseUdp(Datapath, Packet, (UDP_HEADER*)IP->Data, IPPayloadLength);
     } else if (IP->NextHeader == IPPROTO_TCP) {
+        Packet->Route->UseQTIP = TRUE;
         CxPlatDpRawParseTcp(Datapath, Packet, (TCP_HEADER*)IP->Data, IPPayloadLength);
     } else {
         QuicTraceEvent(
@@ -535,9 +539,9 @@ CxPlatDpRawSocketAckFin(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
@@ -574,9 +578,9 @@ CxPlatDpRawSocketAckSyn(
     _In_ CXPLAT_RECV_DATA* Packet
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
-
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
     CXPLAT_ROUTE* Route = Packet->Route;
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
@@ -659,7 +663,8 @@ CxPlatDpRawSocketSyn(
     _In_ const CXPLAT_ROUTE* Route
     )
 {
-    CXPLAT_DBG_ASSERT(Socket->UseTcp);
+    // CXPLAT_DBG_ASSERT(Socket->UseTcp); // TODO: Remove this once you modify tests to ping listener with both QTIP and QUIC traffic.
+    CXPLAT_DBG_ASSERT(Route->UseQTIP);
     CXPLAT_SEND_CONFIG SendConfig = { (CXPLAT_ROUTE*)Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA *SendData = CxPlatSendDataAlloc(CxPlatRawToSocket(Socket), &SendConfig);
     if (SendData == NULL) {
@@ -713,7 +718,12 @@ CxPlatFramingWriteHeaders(
     CXPLAT_DBG_ASSERT(
         Family == QUIC_ADDRESS_FAMILY_INET || Family == QUIC_ADDRESS_FAMILY_INET6);
 
-    if (Socket->UseTcp) {
+    // TODO: Remove this once we modify tests to spawn QUIC/QTIP clients to ping the same listener.
+    // CXPLAT_DBG_ASSERT(
+    //     Socket->UseTcp == Route->UseQTIP
+    // );
+
+    if (Route->UseQTIP) {
         //
         // Fill TCP header.
         //
@@ -767,7 +777,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Socket->UseTcp) {
+            if (Route->UseQTIP) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv4->Source, IPv4->Destination,
@@ -814,7 +824,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
         if (!SkipTransportLayerXsum) {
-            if (Socket->UseTcp) {
+            if (Route->UseQTIP) {
                 TCP->Checksum =
                     CxPlatFramingTransportChecksum(
                         IPv6->Source, IPv6->Destination,
@@ -864,7 +874,7 @@ CxPlatTryAddSocket(
     // binding an auxiliary (dual stack) socket.
     //
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp || Socket->IsServer) {
         Socket->AuxSocket =
             socket(
                 AF_INET6,
@@ -934,7 +944,7 @@ CxPlatTryAddSocket(
 
     CxPlatRwLockAcquireExclusive(&Pool->Lock);
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp || Socket->IsServer) {
         QUIC_ADDR_STR LocalAddressString = {0};
         QuicAddrToString(&MappedAddress, &LocalAddressString);
         QuicTraceLogVerbose(
