@@ -2310,6 +2310,7 @@ namespace Microsoft.Quic
     {
         NEW_CONNECTION = 0,
         STOP_COMPLETE = 1,
+        DOS_MODE_CHANGED = 2,
     }
 
     internal partial struct QUIC_LISTENER_EVENT
@@ -2335,6 +2336,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._DOS_MODE_CHANGED_e__Struct DOS_MODE_CHANGED
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.DOS_MODE_CHANGED, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -2345,6 +2354,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _STOP_COMPLETE_e__Struct STOP_COMPLETE;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _DOS_MODE_CHANGED_e__Struct DOS_MODE_CHANGED;
 
             internal unsafe partial struct _NEW_CONNECTION_e__Struct
             {
@@ -2361,6 +2374,39 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("BOOLEAN : 1")]
                 internal byte AppCloseInProgress
+                {
+                    get
+                    {
+                        return (byte)(_bitfield & 0x1u);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~0x1u) | (value & 0x1u));
+                    }
+                }
+
+                [NativeTypeName("BOOLEAN : 7")]
+                internal byte RESERVED
+                {
+                    get
+                    {
+                        return (byte)((_bitfield >> 1) & 0x7Fu);
+                    }
+
+                    set
+                    {
+                        _bitfield = (byte)((_bitfield & ~(0x7Fu << 1)) | ((value & 0x7Fu) << 1));
+                    }
+                }
+            }
+
+            internal partial struct _DOS_MODE_CHANGED_e__Struct
+            {
+                internal byte _bitfield;
+
+                [NativeTypeName("BOOLEAN : 1")]
+                internal byte DosModeEnabled
                 {
                     get
                     {
@@ -3422,6 +3468,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
         internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
+
+        [NativeTypeName("#define QUIC_PARAM_DOS_MODE_EVENTS 0x04000004")]
+        internal const uint QUIC_PARAM_DOS_MODE_EVENTS = 0x04000004;
 
         [NativeTypeName("#define QUIC_PARAM_CONN_QUIC_VERSION 0x05000000")]
         internal const uint QUIC_PARAM_CONN_QUIC_VERSION = 0x05000000;

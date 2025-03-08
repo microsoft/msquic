@@ -49,7 +49,9 @@ path = "src/rs/lib.rs"
 
 [features]
 default = []
-schannel = []
+# Windows uses schannel, and linux uses openssl by default. 
+# This feature enables openssl on windows, and has no effect on linux.
+openssl = []
 static = []
 preview-api = []
 # Overwrite generated binding by reruning the bindgen
@@ -60,6 +62,7 @@ cmake = "0.1"
 bindgen = { version = "0.71", optional = true }
 
 [dependencies]
+bitflags = "2.8"
 libc = "0.2.0"
 c-types = "4.0.0"
 serde = { version = "1.0.117", features = ["derive"] }

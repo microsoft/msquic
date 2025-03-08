@@ -3446,6 +3446,72 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
+struct ListenerContext {
+    bool DosModeChangeEventReceived {false};
+    CxPlatEvent DosModeChanged;
+    static QUIC_STATUS ListenerCallback(_In_ MsQuicListener *, _In_opt_ void* Context, _Inout_ QUIC_LISTENER_EVENT* Event) {
+        auto This = static_cast<ListenerContext *>(Context);
+        if (Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED) {
+            This->DosModeChanged.Set();
+            This->DosModeChangeEventReceived = true;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestRetryMemoryLimitConnect(
+    _In_ int Family
+    )
+{
+    ListenerContext Context;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint32_t LoopbackInterfaceIndex = UINT32_MAX;
+    uint32_t OtherInterfaceIndex = UINT32_MAX;
+    const uint16_t RetryMemoryLimit = 0;
+    if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {
+        return; // Not supported
+    }
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    TEST_TRUE(Registration.IsValid());
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerContext::ListenerCallback, &Context);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
+
+    uint8_t buffer[1] = {1};
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Listener.Handle,
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            sizeof(buffer),
+            &buffer));
+
+    uint32_t Length = 65535;
+    buffer[0] = {0};
+    TEST_QUIC_SUCCEEDED(
+        Listener.GetParam(
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            &Length,
+            &buffer));
+    TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
+    TEST_EQUAL(buffer[0], 1);
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    TEST_TRUE(Context.DosModeChanged.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.DosModeChangeEventReceived);
+}
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(

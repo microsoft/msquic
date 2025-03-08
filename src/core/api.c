@@ -1033,11 +1033,6 @@ MsQuicStreamSend(
 
     Connection = Stream->Connection;
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
-
     if (Connection->State.ClosedRemotely) {
         Status = QUIC_STATUS_ABORTED;
         goto Exit;
@@ -1235,11 +1230,6 @@ MsQuicStreamReceiveSetEnabled(
 
     Connection = Stream->Connection;
 
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
-
     Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -1306,11 +1296,6 @@ MsQuicStreamReceiveComplete(
     CXPLAT_TEL_ASSERT(!Stream->Flags.Freed);
 
     Connection = Stream->Connection;
-
-    QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
-    QUIC_CONN_VERIFY(Connection,
-        (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
-        !Connection->State.HandleClosed);
 
     QUIC_CONN_VERIFY(Connection,
         (Stream->RecvPendingLength == 0) || // Stream might have been shutdown already

@@ -181,6 +181,7 @@ pub const QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W: u32 = 503316
 pub const QUIC_PARAM_LISTENER_LOCAL_ADDRESS: u32 = 67108864;
 pub const QUIC_PARAM_LISTENER_STATS: u32 = 67108865;
 pub const QUIC_PARAM_LISTENER_CIBIR_ID: u32 = 67108866;
+pub const QUIC_PARAM_DOS_MODE_EVENTS: u32 = 67108868;
 pub const QUIC_PARAM_CONN_QUIC_VERSION: u32 = 83886080;
 pub const QUIC_PARAM_CONN_LOCAL_ADDRESS: u32 = 83886081;
 pub const QUIC_PARAM_CONN_REMOTE_ADDRESS: u32 = 83886082;
@@ -4645,6 +4646,8 @@ pub type QUIC_CONFIGURATION_LOAD_CREDENTIAL_FN = ::std::option::Option<
 >;
 pub const QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_NEW_CONNECTION: QUIC_LISTENER_EVENT_TYPE = 0;
 pub const QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_STOP_COMPLETE: QUIC_LISTENER_EVENT_TYPE = 1;
+pub const QUIC_LISTENER_EVENT_TYPE_QUIC_LISTENER_EVENT_DOS_MODE_CHANGED: QUIC_LISTENER_EVENT_TYPE =
+    2;
 pub type QUIC_LISTENER_EVENT_TYPE = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -4657,6 +4660,7 @@ pub struct QUIC_LISTENER_EVENT {
 pub union QUIC_LISTENER_EVENT__bindgen_ty_1 {
     pub NEW_CONNECTION: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_1,
     pub STOP_COMPLETE: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2,
+    pub DOS_MODE_CHANGED: QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -4774,6 +4778,103 @@ impl QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_2 {
         __bindgen_bitfield_unit
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3 {
+    pub _bitfield_align_1: [u8; 0],
+    pub _bitfield_1: __BindgenBitfieldUnit<[u8; 1usize]>,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
+        [::std::mem::size_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3>() - 1usize];
+    ["Alignment of QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3"]
+        [::std::mem::align_of::<QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3>() - 1usize];
+};
+impl QUIC_LISTENER_EVENT__bindgen_ty_1__bindgen_ty_3 {
+    #[inline]
+    pub fn DosModeEnabled(&self) -> BOOLEAN {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(0usize, 1u8) as u8) }
+    }
+    #[inline]
+    pub fn set_DosModeEnabled(&mut self, val: BOOLEAN) {
+        unsafe {
+            let val: u8 = ::std::mem::transmute(val);
+            self._bitfield_1.set(0usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn DosModeEnabled_raw(this: *const Self) -> BOOLEAN {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 1usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                0usize,
+                1u8,
+            ) as u8)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_DosModeEnabled_raw(this: *mut Self, val: BOOLEAN) {
+        unsafe {
+            let val: u8 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 1usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                0usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
+    pub fn RESERVED(&self) -> BOOLEAN {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(1usize, 7u8) as u8) }
+    }
+    #[inline]
+    pub fn set_RESERVED(&mut self, val: BOOLEAN) {
+        unsafe {
+            let val: u8 = ::std::mem::transmute(val);
+            self._bitfield_1.set(1usize, 7u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn RESERVED_raw(this: *const Self) -> BOOLEAN {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 1usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                1usize,
+                7u8,
+            ) as u8)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_RESERVED_raw(this: *mut Self, val: BOOLEAN) {
+        unsafe {
+            let val: u8 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 1usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                1usize,
+                7u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
+    pub fn new_bitfield_1(
+        DosModeEnabled: BOOLEAN,
+        RESERVED: BOOLEAN,
+    ) -> __BindgenBitfieldUnit<[u8; 1usize]> {
+        let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 1usize]> = Default::default();
+        __bindgen_bitfield_unit.set(0usize, 1u8, {
+            let DosModeEnabled: u8 = unsafe { ::std::mem::transmute(DosModeEnabled) };
+            DosModeEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(1usize, 7u8, {
+            let RESERVED: u8 = unsafe { ::std::mem::transmute(RESERVED) };
+            RESERVED as u64
+        });
+        __bindgen_bitfield_unit
+    }
+}
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_LISTENER_EVENT__bindgen_ty_1"]
@@ -4784,6 +4885,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, NEW_CONNECTION) - 0usize];
     ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::STOP_COMPLETE"]
         [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, STOP_COMPLETE) - 0usize];
+    ["Offset of field: QUIC_LISTENER_EVENT__bindgen_ty_1::DOS_MODE_CHANGED"]
+        [::std::mem::offset_of!(QUIC_LISTENER_EVENT__bindgen_ty_1, DOS_MODE_CHANGED) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
