@@ -203,8 +203,6 @@ typedef struct CXPLAT_ROUTE {
 
     uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
     uint8_t UseQTIP : 1;   // TRUE if the route is using QTIP
-    uint8_t AppDidSetQTIP : 1; // TRUE if the client connection explicitly set QTIP flag
-
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
     //
