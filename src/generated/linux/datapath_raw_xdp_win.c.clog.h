@@ -22,10 +22,6 @@
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
-#ifndef _clog_MACRO_QuicTraceLogError
-#define _clog_MACRO_QuicTraceLogError  1
-#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -311,74 +307,6 @@ tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpQueueAsyncIoTxComplete , arg2);\
 #ifndef _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete
 #define _clog_3_ARGS_TRACE_XdpPartitionShutdownComplete(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpPartitionShutdownComplete , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpGetRssConfigInterfaceOpenFailed
-// [ xdp] Failed to open Xdp interface for index %u. Error %d
-// QuicTraceLogError(
-            XdpGetRssConfigInterfaceOpenFailed,
-            "[ xdp] Failed to open Xdp interface for index %u. Error %d",
-            InterfaceIndex,
-            Result);
-// arg2 = arg2 = InterfaceIndex = arg2
-// arg3 = arg3 = Result = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_XdpGetRssConfigInterfaceOpenFailed
-#define _clog_4_ARGS_TRACE_XdpGetRssConfigInterfaceOpenFailed(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigInterfaceOpenFailed , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpGetRssConfigSizeFailed
-// [ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d
-// QuicTraceLogError(
-            XdpGetRssConfigSizeFailed,
-            "[ xdp][%p] Failed to get RSS configuration size on IfIndex %u, RssConfigSize %u, Result %d",
-            InterfaceHandle,
-            InterfaceIndex,
-            RssConfigSize,
-            Result);
-// arg2 = arg2 = InterfaceHandle = arg2
-// arg3 = arg3 = InterfaceIndex = arg3
-// arg4 = arg4 = RssConfigSize = arg4
-// arg5 = arg5 = Result = arg5
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_XdpGetRssConfigSizeFailed
-#define _clog_6_ARGS_TRACE_XdpGetRssConfigSizeFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigSizeFailed , arg2, arg3, arg4, arg5);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for XdpGetRssConfigFailed
-// [ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d
-// QuicTraceLogError(
-            XdpGetRssConfigFailed,
-            "[ xdp][%p] Failed to get RSS configuration on IfIndex %u, RssConfigSize %u, Result %d",
-            InterfaceHandle,
-            InterfaceIndex,
-            RssConfigSize,
-            Result);
-// arg2 = arg2 = InterfaceHandle = arg2
-// arg3 = arg3 = InterfaceIndex = arg3
-// arg4 = arg4 = RssConfigSize = arg4
-// arg5 = arg5 = Result = arg5
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_XdpGetRssConfigFailed
-#define _clog_6_ARGS_TRACE_XdpGetRssConfigFailed(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_DATAPATH_RAW_XDP_WIN_C, XdpGetRssConfigFailed , arg2, arg3, arg4, arg5);\
 
 #endif
 

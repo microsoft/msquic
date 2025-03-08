@@ -14,10 +14,6 @@
 #include "connection_pool.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
-#ifndef _clog_MACRO_QuicTraceLogError
-#define _clog_MACRO_QuicTraceLogError  1
-#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -26,329 +22,39 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
-// Decoder Ring for ConnPoolLocalAddressNotFound
-// [conp] Failed to find local address, 0x%x
-// QuicTraceLogError(
-            ConnPoolLocalAddressNotFound,
-            "[conp] Failed to find local address, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound
-#define _clog_3_ARGS_TRACE_ConnPoolLocalAddressNotFound(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolLocalAddressNotFound , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolInvalidParam
-// [conp] Invalid parameter, 0x%x
-// QuicTraceLogError(
-            ConnPoolInvalidParam,
-            "[conp] Invalid parameter, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolInvalidParam
-#define _clog_3_ARGS_TRACE_ConnPoolInvalidParam(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolInvalidParam , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolServerNameTooLong
-// [conp] ServerName too long (%llu bytes)
-// QuicTraceLogError(
-            ConnPoolServerNameTooLong,
-            "[conp] ServerName too long (%llu bytes)",
-            ServerNameLength);
-// arg2 = arg2 = ServerNameLength = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolServerNameTooLong
-#define _clog_3_ARGS_TRACE_ConnPoolServerNameTooLong(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolServerNameTooLong , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolResolveAddress
-// [conp] Failed to resolve address, 0x%x
-// QuicTraceLogError(
-                ConnPoolResolveAddress,
-                "[conp] Failed to resolve address, 0x%x",
-                Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolResolveAddress
-#define _clog_3_ARGS_TRACE_ConnPoolResolveAddress(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolResolveAddress , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolGetLocalAddress
-// [conp] Failed to get local address, 0x%x
-// QuicTraceLogError(
-            ConnPoolGetLocalAddress,
-            "[conp] Failed to get local address, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolGetLocalAddress
-#define _clog_3_ARGS_TRACE_ConnPoolGetLocalAddress(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetLocalAddress , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolGetRssConfig
-// [conp] Failed to get RSS config, 0x%x
-// QuicTraceLogError(
-            ConnPoolGetRssConfig,
-            "[conp] Failed to get RSS config, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolGetRssConfig
-#define _clog_3_ARGS_TRACE_ConnPoolGetRssConfig(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolGetRssConfig , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssNotConfigured
-// [conp] RSS not configured, 0x%x
-// QuicTraceLogError(
-            ConnPoolRssNotConfigured,
-            "[conp] RSS not configured, 0x%x",
-            Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ConnPoolRssNotConfigured
-#define _clog_3_ARGS_TRACE_ConnPoolRssNotConfigured(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssNotConfigured , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssSecretKeyTooLong
-// [conp] RSS secret key too long (%u bytes), 0x%x
-// QuicTraceLogError(
-            ConnPoolRssSecretKeyTooLong,
-            "[conp] RSS secret key too long (%u bytes), 0x%x",
-            RssConfig->RssSecretKeyLength,
-            Status);
-// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooLong
-#define _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooLong(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooLong , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolRssSecretKeyTooShort
-// [conp] RSS secret key too short (%u bytes), 0x%x
-// QuicTraceLogError(
-            ConnPoolRssSecretKeyTooShort,
-            "[conp] RSS secret key too short (%u bytes), 0x%x",
-            RssConfig->RssSecretKeyLength,
-            Status);
-// arg2 = arg2 = RssConfig->RssSecretKeyLength = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooShort
-#define _clog_4_ARGS_TRACE_ConnPoolRssSecretKeyTooShort(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolRssSecretKeyTooShort , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolOpenConnection
-// [conp] Failed to open connection[%u], 0x%x
-// QuicTraceLogError(
-                    ConnPoolOpenConnection,
-                    "[conp] Failed to open connection[%u], 0x%x",
-                    i,
-                    Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolOpenConnection
-#define _clog_4_ARGS_TRACE_ConnPoolOpenConnection(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolOpenConnection , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolSetShareBinding
-// [conp] Failed to set share binding on connection[%u], 0x%x
-// QuicTraceLogError(
-                        ConnPoolSetShareBinding,
-                        "[conp] Failed to set share binding on connection[%u], 0x%x",
-                        i,
-                        Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolSetShareBinding
-#define _clog_4_ARGS_TRACE_ConnPoolSetShareBinding(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetShareBinding , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolSetCibirId
-// [conp] Failed to set CIBIR ID on connection[%u], 0x%x
-// QuicTraceLogError(
-                        ConnPoolSetCibirId,
-                        "[conp] Failed to set CIBIR ID on connection[%u], 0x%x",
-                        i,
-                        Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolSetCibirId
-#define _clog_4_ARGS_TRACE_ConnPoolSetCibirId(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetCibirId , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolSetRemoteAddress
-// [conp] Failed to set remote address on connection[%u], 0x%x
-// QuicTraceLogError(
-                    ConnPoolSetRemoteAddress,
-                    "[conp] Failed to set remote address on connection[%u], 0x%x",
-                    i,
-                    Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolSetRemoteAddress
-#define _clog_4_ARGS_TRACE_ConnPoolSetRemoteAddress(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetRemoteAddress , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolSetLocalAddress
-// [conp] Failed to set local address on connection[%u], 0x%x
-// QuicTraceLogError(
-                    ConnPoolSetLocalAddress,
-                    "[conp] Failed to set local address on connection[%u], 0x%x",
-                    i,
-                    Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolSetLocalAddress
-#define _clog_4_ARGS_TRACE_ConnPoolSetLocalAddress(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolSetLocalAddress , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolStartConnection
-// [conp] Failed to start connection[%u], 0x%x
-// QuicTraceLogError(
-                    ConnPoolStartConnection,
-                    "[conp] Failed to start connection[%u], 0x%x",
-                    i,
-                    Status);
-// arg2 = arg2 = i = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnPoolStartConnection
-#define _clog_4_ARGS_TRACE_ConnPoolStartConnection(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolStartConnection , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnPoolMaxRetries
-// [conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x
-// QuicTraceLogError(
-                ConnPoolMaxRetries,
-                "[conp] Ran out of retries. MaxRetries %u, Iteration %u, Port %u, 0x%x",
-                MaxCreationRetries,
-                i,
-                QuicAddrGetPort(&LocalAddress),
-                Status);
-// arg2 = arg2 = MaxCreationRetries = arg2
-// arg3 = arg3 = i = arg3
-// arg4 = arg4 = QuicAddrGetPort(&LocalAddress) = arg4
-// arg5 = arg5 = Status = arg5
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ConnPoolMaxRetries
-#define _clog_6_ARGS_TRACE_ConnPoolMaxRetries(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
-tracepoint(CLOG_CONNECTION_POOL_C, ConnPoolMaxRetries , arg2, arg3, arg4, arg5);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Server name",
-                ServerNameLength + 1);
-// arg2 = arg2 = "Server name" = arg2
-// arg3 = arg3 = ServerNameLength + 1 = arg3
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RSS Processor List",
+            RssConfig->RssIndirectionTableCount);
+// arg2 = arg2 = "RSS Processor List" = arg2
+// arg3 = arg3 = RssConfig->RssIndirectionTableCount = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_CONNECTION_POOL_C, AllocFailure , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryErrorStatus
+// [ lib] ERROR, %u, %s.
+// QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "Connection Pool Local Address Interface");
+// arg2 = arg2 = Status = arg2
+// arg3 = arg3 = "Connection Pool Local Address Interface" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
+#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_POOL_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -362,9 +68,9 @@ tracepoint(CLOG_CONNECTION_POOL_C, AllocFailure , arg2, arg3);\
         ApiEnter,
         "[ api] Enter %u (%p).",
         QUIC_TRACE_API_CONNECTION_POOL_CREATE,
-        Config->Registration);
+        NULL);
 // arg2 = arg2 = QUIC_TRACE_API_CONNECTION_POOL_CREATE = arg2
-// arg3 = arg3 = Config->Registration = arg3
+// arg3 = arg3 = NULL = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_ApiEnter
 #define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
