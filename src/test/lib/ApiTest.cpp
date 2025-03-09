@@ -4705,6 +4705,158 @@ void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
     }
 }
 
+struct QtipContext {
+    QUIC_STATUS TryGetParamOnServerConn;
+    QUIC_STATUS TrySetParamOnServerConn;
+    CxPlatEvent ShutdownEvent;
+}
+
+QUIC_STATUS 
+QtipListenerCallback(
+    _In_ MsQuicListener* /*Listener*/,
+    _In_opt_ void* ListenerContext,
+    _Inout_ QUIC_LISTENER_EVENT* Event)
+{
+    QtipContext* Context = (QtipContext*)ListenerContext;
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        uint8_t Dummy = 1;
+        uint32_t Size = sizeof(Dummy);
+        Context->TrySetParamOnServerConn = 
+            MsQuic->SetParam(
+                Event.NEW_CONNECTION.Connection,
+                QUIC_PARAM_CONN_QTIP,
+                sizeof(Dummy),
+                &Dummy
+            );
+        Context->TryGetParamOnServerConn = 
+            MsQuic->GetParam(
+                Event.NEW_CONNECTION.Connection,
+                QUIC_PARAM_CONN_QTIP,
+                &Size,
+                &Dummy
+            );
+        
+        MsQuic->ConnectionClose(Event->NEW_CONNECTION.Connection);
+        Context->ShutdownEvent.set();
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+void QuicTest_QUIC_PARAM_CONN_QTIP(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration) {
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_QTIP");
+    {
+        TestScopeLogger LogScope1("SetParam null buffer");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QTIP,
+                sizeof(Dummy),
+                nullptr));
+    }
+
+    {
+        TestScopeLogger LogScope1("SetParam invalid length");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QTIP,
+                0,
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam null buffer");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint32_t Size = sizeof(uint8_t);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_QTIP,
+                &Size,
+                nullptr));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam invalid length");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        uint32_t Size = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_QTIP,
+                &Size,
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam after connection started");
+        QuicAddr ServerAddr(QUIC_ADDRESS_FAMILY_INET);
+        MsQuicAlpn Alpn("MsQuicTest");
+        struct QtipContext Context;
+        Context.TrySetParamOnServerConn = QUIC_STATUS_SUCCESS;
+        Context.TryGetParamOnServerConn = QUIC_STATUS_SUCCESS;
+        MsQuicListener Listener(
+            Registration, 
+            CleanUpManual,
+            QtipListenerCallback,
+            &Context
+        );
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.Start(
+            ClientConfiguration,
+            ServerAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerAddr.GetFamily()),
+            ServerAddr.GetPort()
+        ));
+        uint8_t Dummy = 1;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_STATE,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QTIP,
+                sizeof(Dummy),
+                &Dummy
+            ));
+        TEST_TRUE(Context.ShutdownEvent.WaitTimeout(TestWaitTimeout));
+        TEST_EQUAL(Context.TrySetParamOnServerConn, QUIC_STATUS_INVALID_STATE); 
+        TEST_EQUAL(Context.TryGetParamOnServerConn, QUIC_STATUS_INVALID_STATE);
+    }
+
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam valid QTIP");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 1;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_QTIP,
+                sizeof(Dummy),
+                &Dummy));
+        uint8_t Dummy2 = 0;
+        uint32_t Size = sizeof(Dummy2);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_QTIP,
+                &Size, 
+                &Dummy2
+            ));
+        TEST_TRUE(Dummy == Dummy2);
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4739,6 +4891,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
+    QuicTest_QUIC_PARAM_CONN_QTIP(Registration);
 }
 
 //
