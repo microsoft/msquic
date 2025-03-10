@@ -128,7 +128,9 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -137,7 +139,9 @@ CxPlatSocketCreateUdp(
         SocketCreateUdp(
             Datapath,
             Config,
-            NewSocket);
+            NewSocket,
+            UseQTIP,
+            OverrideGlobalQTIPSettings);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,
@@ -218,13 +222,14 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        return RawSocketGetLocalMtu(UseQTIP);
     }
     return Socket->Mtu;
 }
@@ -286,7 +291,7 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
@@ -412,7 +417,28 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (!Socket->IsServer) {
+        //
+        // For clients,
+        // The flag Socket->UseTcp determines what resources to instantiate as clients cannot
+        // allocate a TCP and UDP socket from the OS at the same time whereas servers can.
+        // So we need to set Route->UseQTIP here for clients.
+        //
+        // For servers,
+        // We always initialize everything. The flag Route->UseQTIP will be set on the receive side.
+        //
+        // For clients, it must be true that Route->UseQTIP == Socket->UseTcp as only 1 set of resources is
+        // allocated.
+        //
+        // For servers, it could be the case that Route->UseQTIP != Socket->UseTcp as servers do not rely
+        // on Socket->UseTcp to initialize resources. For testing purposes though, if we always set
+        // Socket->UseTcp to true in the QTIP scenarios, then both client and servers must have
+        // Route->UseQTIP == Socket->UseTcp.
+        //
+        Route->UseQTIP = Socket->UseTcp;
+    }
+
+    if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);

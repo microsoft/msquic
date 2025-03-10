@@ -202,14 +202,13 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
 
     uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
-
+    uint8_t UseQTIP : 1;   // TRUE if the route is using QTIP
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
     //
 
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
-
 } CXPLAT_ROUTE;
 
 //
@@ -590,7 +589,9 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** Socket
+    _Out_ CXPLAT_SOCKET** Socket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     );
 
 //
@@ -650,7 +651,8 @@ CxPlatSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     );
 
 //
