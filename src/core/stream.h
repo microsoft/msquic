@@ -419,9 +419,9 @@ typedef struct QUIC_STREAM {
     volatile uint64_t RecvCompletionLength;
 
     //
-    // This flag indicates the app called the receive complete API inline.
+    // This RW lock protects `Flags.ReceiveCallActive`.
     //
-    uint16_t RecvCompletionInlineCalled;
+    CXPLAT_RW_LOCK ReceiveCompleteInlineLock;
 
     //
     // The error code for why the receive path was shutdown.

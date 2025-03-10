@@ -1321,12 +1321,13 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
+    CxPlatRwLockAcquireShared(&Stream->ReceiveCompleteInlineLock);
+    BOOLEAN ReceiveCompleteInline = Stream->Flags.ReceiveCallActive;
     InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
+    CxPlatRwLockReleaseShared(&Stream->ReceiveCompleteInlineLock);
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
-        Stream->Flags.ReceiveCallActive) {
-        InterlockedCompareExchange16((short*)&Stream->RecvCompletionInlineCalled, 1, 0);
+    if (ReceiveCompleteInline) {
         goto Exit; // No need to queue a completion operation when run inline
     }
 

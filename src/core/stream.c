@@ -76,6 +76,7 @@ QuicStreamInitialize(
     QuicRangeInitialize(
         QUIC_MAX_RANGE_ALLOC_SIZE,
         &Stream->SparseAckRanges);
+    CxPlatRwLockInitialize(&Stream->ReceiveCompleteInlineLock);
     Stream->ReceiveCompleteOperation = &Stream->ReceiveCompleteOperationStorage;
     Stream->ReceiveCompleteOperationStorage.API_CALL.Context = &Stream->ReceiveCompleteApiCtxStorage;
     Stream->ReceiveCompleteOperation->Type = QUIC_OPER_TYPE_API_CALL;
@@ -159,6 +160,7 @@ Exit:
 #endif
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
+        CxPlatRwLockUninitialize(&Stream->ReceiveCompleteInlineLock);
         Stream->Flags.Freed = TRUE;
         CxPlatPoolFree(&Worker->StreamPool, Stream);
     }
@@ -201,6 +203,7 @@ QuicStreamFree(
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
+    CxPlatRwLockUninitialize(&Stream->ReceiveCompleteInlineLock);
     CxPlatRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedChunk) {
