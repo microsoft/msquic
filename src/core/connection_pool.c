@@ -36,12 +36,13 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolAllocUniqueRssProcInfo(
     _In_ const CXPLAT_RSS_CONFIG* RssConfig,
-    _Outptr_ _At_(*RssProcInfo, __drv_allocatesMem(Mem))
+    _Outptr_result_buffer_(*RssProcCount) _At_(*RssProcInfo, __drv_allocatesMem(Mem))
         QUIC_CONN_POOL_RSS_PROC_INFO** RssProcInfo,
     _Out_ uint32_t* RssProcCount
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    CXPLAT_DBG_ASSERT(RssConfig->RssIndirectionTableCount > 0);
     //
     // Prepare array of unique RSS processors.
     // We allocate the maximum number of RSS processors here, because we don't
@@ -274,7 +275,7 @@ QuicConnPoolTryCreateConnection(
         QuicConnParamSet(
             *Connection,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
-            sizeof(LocalAddress),
+            sizeof(*LocalAddress),
             &LocalAddress);
     CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
