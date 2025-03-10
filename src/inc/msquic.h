@@ -893,9 +893,8 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
-#define QUIC_PARAM_LISTENER_QTIP                        0x04000004  // uint8_t (BOOLEAN)
 #endif
-#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000008  // BOOLEAN
+#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004  // BOOLEAN
 
 //
 // Parameters for Connection.
