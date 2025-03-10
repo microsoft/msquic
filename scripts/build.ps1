@@ -507,7 +507,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
     if ($Platform -eq "android") {
-        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '27.2.12479018' # Temporary work around. Use RegEx to replace newer version.
+        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '28.0.13004108' # Temporary work around. Use RegEx to replace any version.
         $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
@@ -520,6 +520,7 @@ function CMake-Generate {
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
+        $Arguments += " -DANDROID_TOOLCHAIN=clang"
     }
 
     $Arguments += " -DQUIC_LIBRARY_NAME=$LibraryName"
