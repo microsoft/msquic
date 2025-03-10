@@ -218,7 +218,8 @@ else()
         endif()
         set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure
             ${OPENSSL_BUILD_TYPE}
-            -D__ANDROID_API__=29)
+            -D__ANDROID_API__=29
+            -DANDROID_TOOLCHAIN=clang)
     elseif (CX_PLATFORM STREQUAL "linux")
         if(CMAKE_SYSTEM_PROCESSOR STREQUAL arm)
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure
