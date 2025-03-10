@@ -507,8 +507,14 @@ function CMake-Generate {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
     if ($Platform -eq "android") {
-        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '28.0.13004108' # Temporary work around. Use RegEx to replace any version.
-        $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        #$NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '28.0.13004108' # Temporary work around. Use RegEx to replace any version.
+        #$env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $NDK = "/usr/local/lib/android/sdk/ndk/28.0.13004108"
+        $env:ANDROID_NDK_HOME = "/usr/local/lib/android/sdk/ndk/28.0.13004108"
+        $env:PATH = "$env:ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin;" + $env:PATH
+        $env:CC = "clang"
+        $env:CXX = "clang++"
+
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
