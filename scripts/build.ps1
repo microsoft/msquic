@@ -523,7 +523,6 @@ function CMake-Generate {
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
         Write-Host "Arch: $Arch"
-        Write-Host "PATH = $PATH"
         Write-Host "check clang"
         ls /usr/local/lib/android/sdk/ndk/28.0.13004108/toolchains/llvm/prebuilt/linux-x86_64/bin/clang
         ls /usr/local/lib/android/sdk/ndk/28.0.13004108/toolchains/llvm/prebuilt/linux-x86_64/bin/clang++
