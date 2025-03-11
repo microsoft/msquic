@@ -222,7 +222,7 @@ QuicConnPoolTryCreateConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONFIGURATION* Configuration,
     _In_ const uint16_t* PartitionIndex,
-    _In_ const QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _In_ QUIC_ADDR* RemoteAddress,
     _In_ QUIC_ADDR* LocalAddress,
@@ -278,7 +278,7 @@ QuicConnPoolTryCreateConnection(
             *Connection,
             QUIC_PARAM_CONN_LOCAL_ADDRESS,
             sizeof(*LocalAddress),
-            &LocalAddress);
+            LocalAddress);
     CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(

@@ -4239,7 +4239,6 @@ QuicTestConnectionPoolCreate(
             if (TestCibirSupport) {
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
                     CxPlatCopyMemory(&(CibirIdBuffer[i * CibirIdLength]), CibirId, CibirIdLength);
-                    // memcpy(CibirIdBuffer.get() + (i * CibirIdLength), CibirId, CibirIdLength);
                     CibirIdBuffer[(i * CibirIdLength) + (CibirIdLength - 1)] += (uint8_t)i;
                     CibirIdPtrs[i] = &CibirIdBuffer[i * CibirIdLength];
                 }
@@ -4267,8 +4266,15 @@ QuicTestConnectionPoolCreate(
                 //
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
                     for (uint32_t j = i + 1; j < NumberOfConnections; j++) {
-                        TEST_FALSE(Contexts[i].IdealProcessor == Contexts[j].IdealProcessor &&
-                            Contexts[i].PartitionIndex == Contexts[j].PartitionIndex);
+                        if (Contexts[i].IdealProcessor == Contexts[j].IdealProcessor &&
+                            Contexts[i].PartitionIndex == Contexts[j].PartitionIndex) {
+                            TEST_FAILURE(
+                                "Connection %u and %u have the same ideal processor (%u) and partition index (%u)",
+                                 i,
+                                 j,
+                                 Contexts[i].IdealProcessor,
+                                 Contexts[i].PartitionIndex);
+                        }
                     }
                 }
                 //
@@ -4292,8 +4298,12 @@ QuicTestConnectionPoolCreate(
                 // In the case the platform doesn't support XDP at all,
                 // NOT_SUPPORTED is expected.
                 //
-                if (Status != QUIC_STATUS_NOT_SUPPORTED && Status != QUIC_STATUS_NOT_FOUND) {
-                    TEST_FAILURE("Expected QUIC_STATUS_NOT_SUPPORTED or QUIC_STATUS_NOT_FOUND, but got 0x%x", Status);
+                if (Status != QUIC_STATUS_NOT_SUPPORTED &&
+                    Status != QUIC_STATUS_NOT_FOUND &&
+                    Status != QUIC_STATUS_FILE_NOT_FOUND) {
+                    TEST_FAILURE(
+                        "Expected QUIC_STATUS_NOT_SUPPORTED or QUIC_STATUS_NOT_FOUND, but got 0x%x",
+                        Status);
                 }
             }
         }

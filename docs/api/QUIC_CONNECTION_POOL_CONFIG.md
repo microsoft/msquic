@@ -3,6 +3,9 @@ QUIC_CONNECTION_POOL_CONFIG structure
 
 The configuration for creating a connection pool.
 
+> [!WARNING]
+> This API is still in preview and may change in the future!
+
 # Syntax
 
 ```C
@@ -83,7 +86,7 @@ Flags which affect settings on the connections or how the pool is created.
 | Flag | Effect |
 |------|--------|
 | QUIC_CONNECTION_POOL_FLAG_NONE | Nothing |
-| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to clean up any created *and started* connections in the pool if an error occurrs. **Note:** The application must be able to handle having connections suddenly closed with this flag. Without this flag, the application is expected to clean up remaining connections. |
+| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to close all *started* connections in the pool if an error occurrs while creating the pool. **Note:** The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned. |
 
 # See Also
 [ConnectionPoolCreate](ConnectionPoolCreate.md)<br>

@@ -344,6 +344,8 @@ class WithHandshakeArgs11 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs11> {
 };
 
+#if QUIC_TEST_CONNECTION_POOL
+
 struct HandshakeArgs12 {
     int Family;
     uint16_t NumberOfConnections;
@@ -352,12 +354,12 @@ struct HandshakeArgs12 {
     static ::std::vector<HandshakeArgs12> Generate() {
         ::std::vector<HandshakeArgs12> list;
         for (int Family : { 4, 6 })
-        for (bool NumberOfConnections : { 1, 2, 4 })
+        for (uint16_t NumberOfConnections : { 1, 2, 4 })
         for (bool XdpSupported : { false, true }) {
             if (!UseDuoNic && XdpSupported) {
                 continue;
             }
-            list.push_back({ Family, NumberOfConnections, XdpSupported, false });
+            list.push_back({ Family, NumberOfConnections, XdpSupported, false /*Don't test CIBIR*/ });
         }
         return list;
     }
@@ -368,12 +370,14 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs12& args) {
         (args.Family == 4 ? "v4" : "v6") << "/" <<
         args.NumberOfConnections << "/" <<
         (args.XdpSupported ? "XDP" : "NoXDP") << "/" <<
-        (args.TestCibirSupport ? "TestCibir" : "NoTestCibir");
+        (args.TestCibirSupport ? "TestCibir" : "NoCibir");
 }
 
 class WithHandshakeArgs12 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs12> {
 };
+
+#endif // QUIC_TEST_CONNECTION_POOL
 
 struct FeatureSupportArgs {
     int Family;

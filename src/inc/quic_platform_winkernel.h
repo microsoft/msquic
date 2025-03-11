@@ -233,6 +233,12 @@ CxPlatLogAssert(
 #define CxPlatDebuggerPresent() KD_DEBUGGER_ENABLED
 
 //
+// Enable Supported Tests
+//
+
+#define QUIC_TEST_CONNECTION_POOL 1
+
+//
 // Interrupt ReQuest Level
 //
 

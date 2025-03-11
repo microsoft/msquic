@@ -223,6 +223,12 @@ GetModuleHandleW(
 #define CXPLAT_AT_DISPATCH() FALSE
 
 //
+// Enable Supported Tests
+//
+
+#define QUIC_TEST_CONNECTION_POOL 1
+
+//
 // Wrapper functions
 //
 
