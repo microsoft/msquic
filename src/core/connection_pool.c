@@ -236,6 +236,8 @@ QuicConnPoolTryCreateConnection(
         QUIC_CONNECTION** Connection
     )
 {
+    *Connection = NULL;
+
     QUIC_STATUS Status =
         QuicConnAlloc(
             Registration,
@@ -324,21 +326,21 @@ QuicConnPoolTryCreateConnection(
         ServerName,
         ServerPort,
         QUIC_CONN_START_FLAG_FAIL_SILENTLY);
-    if (QUIC_FAILED(Status)) {
-        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
-        *Connection = NULL;
-        // no goto on purpose.
-    }
 
     ServerName = NULL; // The connection now owns the ServerName.
 
 Error:
     //
-    // In the success case, the connection owns ServerName now.
+    // If QuicConnStart has been called, the connection owns ServerName now.
     // In the failure cases, we need to free ServerName.
     //
     if (ServerName != NULL) {
         CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
+    }
+
+    if (QUIC_FAILED(Status) && *Connection != NULL) {
+        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        *Connection = NULL;
     }
 
     return Status;
@@ -531,20 +533,22 @@ MsQuicConnectionPoolCreate(
         const uint32_t MaxCreationRetries = RssProcessorCount * MAX_CONNECTION_POOL_RETRY_MULTIPLIER;
         uint32_t RetryCount = 0;
 
-        //
-        // The connection takes ownership of the ServerName parameter, so we must
-        // allocate a copy of it for each connection (attempt).
-        //
-        ServerNameCopy =
-            QuicConnPoolAllocServerNameCopy(
-                Config->ServerName,
-                ServerNameLength);
-        if (ServerNameCopy == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
-        }
-
         for (; RetryCount < MaxCreationRetries; RetryCount++) {
+
+            //
+            // The connection takes ownership of the ServerName parameter, so we must
+            // allocate a copy of it for each connection (attempt).
+            //
+            if (ServerNameCopy == NULL) {
+                ServerNameCopy =
+                    QuicConnPoolAllocServerNameCopy(
+                        Config->ServerName,
+                        ServerNameLength);
+                if (ServerNameCopy == NULL) {
+                    Status = QUIC_STATUS_OUT_OF_MEMORY;
+                    goto Error;
+                }
+            }
 
             uint32_t NewPort = QuicAddrGetPort(&LocalAddress) + 1;
             if (NewPort > QUIC_ADDR_EPHEMERAL_PORT_MAX) {
@@ -587,9 +591,19 @@ MsQuicConnectionPoolCreate(
                     Config->CibirIdLength,
                     Config->CibirIds ? Config->CibirIds[i] : NULL,
                     &Connections[i]);
-                if (QUIC_FAILED(Status)) {
-                    continue;
-                }
+
+            //
+            // The connection either owns the ServerNameCopy, or it was freed.
+            //
+            ServerNameCopy = NULL;
+            if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
+                //
+                // No reason to retry this error, just fail.
+                //
+                goto Error;
+            } else if (QUIC_FAILED(Status)) {
+                continue;
+            }
 
             //
             // The connection was created successfully, add it to the count for this processor.
