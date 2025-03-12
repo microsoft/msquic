@@ -116,9 +116,6 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     $artifactName = $Command.Split(";")[1]
     # if artifacts don't exist, make it
     New-Item -ItemType Directory "artifacts/logs/$artifactName/server" -ErrorAction Ignore | Out-Null
-    ls
-    Write-Host "inspecting artifacts/logs"
-    ls artifacts/logs
     .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
 } else {
     throw "Invalid command: $Command"
