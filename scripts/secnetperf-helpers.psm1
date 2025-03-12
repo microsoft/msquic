@@ -15,7 +15,6 @@ if ($psVersion.Major -lt 7) {
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
-$env:linux_perf_prefix = ""
 
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
@@ -337,7 +336,7 @@ function Wait-StartRemoteServerPassive {
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo ""
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -351,8 +350,7 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo, $LinuxPerfPrefix)
-    Write-Host "Starting Localtest with LinuxPerfPrefix: $LinuxPerfPrefix"
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($isWindows) {
         $pinfo.FileName = $FullPath
@@ -360,7 +358,7 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $LinuxPerfPrefix$FullPath $FullArgs && echo ''"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
             $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
@@ -637,31 +635,10 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
-        if ($env:collect_cpu_traces) {
-            if ($IsWindows) {
-                wpr -start CPU
-            } else {
-                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
-            }
-            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
-            NetperfWaitServerFinishExecution
-        }
         NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
-
     } else {
-        if ($env:collect_cpu_traces) {
-            if ($IsWindows) {
-                wpr -start CPU
-                Invoke-Command -Session $Session -ScriptBlock { wpr -start CPU }
-                $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-            } else {
-                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
-                $job = Start-RemoteServer $Session "perf record -o server-cpu-traces-$scenario-$io-istcp-$tcp.data -- $RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-            }
-        } else {
-            $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-        }
+        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -672,8 +649,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            Write-Host "About to start localtest with linux_perf_prefix: $env:linux_perf_prefix"
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo $env:linux_perf_prefix
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
@@ -712,24 +688,8 @@ function Invoke-Secnetperf {
                 $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
                 Write-Host "Sent special UDP packet to tell the server to die."
             }
-            if ($env:collect_cpu_traces) {
-                if ($IsWindows) {
-                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
-                }
-                NetperfSendCommand "Stop_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.etl"
-                NetperfWaitServerFinishExecution
-            }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
-            if ($env:collect_cpu_traces) {
-                if ($IsWindows) {
-                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
-                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$Using:scenario-$Using:io-istcp-$Using:tcp.etl" }
-                    Copy-Item -FromSession $Session "C:\Users\Administrator\Documents\server-cpu-traces-$scenario-$io-istcp-$tcp.etl" .
-                } else {
-                    Copy-Item -FromSession $Session "/home/secnetperf/server-cpu-traces-$scenario-$io-istcp-$tcp.data" .
-                }
-            }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
