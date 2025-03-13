@@ -520,8 +520,6 @@ function CMake-Generate {
             "arm"   { $Arguments += " -DANDROID_ABI=armeabi-v7a" }
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
-        $env:CC = "x86_64-linux-android29-clang"
-        $env:CXX = "x86_64-linux-android29-clang++"
         $Arguments += " -DANDROID_PLATFORM=android-29"
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
