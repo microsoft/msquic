@@ -842,10 +842,6 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        Datapath->UseTcp = TRUE;
-    }
-
     Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
@@ -1492,14 +1488,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    //
-    // Server sockets always inherit global QTIP preferences.
-    //
-    if (IsServerSocket || !OverrideGlobalQTIPSettings) {
-        Socket->UseTcp = Datapath->UseTcp;
-    } else {
-        Socket->UseTcp = UseQTIP;
-    }
+    Socket->UseTcp = UseQTIP;
 
     Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
