@@ -511,6 +511,10 @@ function CMake-Generate {
         $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
         $env:ANDROID_NDK_HOME = $NDK
         $env:ANDROID_NDK_ROOT = $NDK  # Set ANDROID_NDK_ROOT to ensure consistency
+        # Print the values of ANDROID_NDK_HOME and ANDROID_NDK_ROOT immediately after setting them
+        Write-Host "Set ANDROID_NDK_HOME: $env:ANDROID_NDK_HOME"
+        Write-Host "Set ANDROID_NDK_ROOT: $env:ANDROID_NDK_ROOT"
+
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -530,8 +534,8 @@ function CMake-Generate {
 
     Write-Host "Executing: $Arguments"
     if ($Platform -eq "android") {
-        Write-Host "ANDROID_NDK_HOME: $ANDROID_NDK_HOME"
-        Write-Host "ANDROID_NDK_ROOT: $ANDROID_NDK_ROOT"
+        Write-Host "Before CMake-Execute ANDROID_NDK_HOME: $env:ANDROID_NDK_HOME"
+        Write-Host "Before CMake-Execute ANDROID_NDK_ROOT: $env:ANDROID_NDK_ROOT"
     }
     CMake-Execute $Arguments
 }
