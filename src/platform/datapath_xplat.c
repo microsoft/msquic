@@ -161,7 +161,7 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
-            if ((*NewSocket)->IsServer || (*NewSocket)->UseTcp) {
+            if ((*NewSocket)->UseTcp) {
                 CxPlatSocketDelete(*NewSocket);
                 goto Error;
             }
