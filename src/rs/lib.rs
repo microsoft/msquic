@@ -879,12 +879,20 @@ impl Default for Connection {
 
 // Remarks on Rust callback in general:
 // Callback function or closure is set to msquic handle context of type `*mut Box<TCallback>>`.
-// We cannot use type `*mut TCallback` because dyn trait cannot be converted to a pointer directly.
+// We cannot use type `*mut TCallback` because dyn trait is a "fat pointer" so it cannot be
+// converted to a pointer directly.
 // In the ffi function passed to msquic, the TCallback is extracted from msquic callback context
 // and invoked.
 // The context is cleaned up when connection is dropped or when new callback is set.
 // TCallback type is either Fn or FnMut type, so user can capture variables in them without worrying
 // about lifetime and how to set or cleanup msquic callback context.
+//
+// Note: It is unsafe to drop (thus close) the handle with a callback ctx inside the callback
+// StopComplete event, which is typical practice in C code. This is because the callback closure
+// is still executing, and drop/close the handle will cause callback to be dropped, and therefore
+// you have a undefined behavior that closure is still running but it is already dropped.
+// So it is best to not drop the handle inside the callback. If doing so is necessary, it is essential
+// that after handle drop, no heap memory should be accessed.
 
 /// Connection callback type.
 /// msquic never invokes the connection callback in parallel, so use FnMut to allow mutation.
