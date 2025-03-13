@@ -430,7 +430,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _In_ const CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {

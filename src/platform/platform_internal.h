@@ -655,14 +655,14 @@ typedef struct CXPLAT_SOCKET {
     uint8_t RawSocketAvailable : 1;
 
     //
+    // RDMA connection context
+    //
+    void* RdmaConnection;
+
+    //
     // Per-processor socket contexts.
     //
     CXPLAT_SOCKET_PROC PerProcSockets[0];
-
-    //
-    // RDMA connection paramters for the socket.
-    //
-
 } CXPLAT_SOCKET;
 
 #elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
@@ -1337,7 +1337,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_UDP_CONFIG* Config,
+    _In_ const CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     );
 
@@ -1348,6 +1348,18 @@ SocketCreateRdmaListener(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* RecvCallbackContext,
     _Out_ CXPLAT_SOCKET** NewSocket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketStartRdmaListener(
+    _Out_ CXPLAT_SOCKET* Socket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+SocketConnectRdma(
+    _Out_ CXPLAT_SOCKET* Socket
     );
 
 #endif // CX_PLATFORM_LINUX || _WIN32

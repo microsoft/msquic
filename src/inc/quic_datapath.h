@@ -908,10 +908,11 @@ CxPlatUpdateRoute(
 //
 // The following APIs are specific for RDMA Implementation
 //
+#define CXPLAT_RDMA_FLAG_SERVER_OWNED   0x00000001   // Indicates handle is an RDMA Listener handle
+#define CXPLAT_RDMA_FLAG_SHARE_ENDPOINT 0x00000002   // Forces sharing of the address and port
+#define CXPLAT_RDMA_FLAG_SHARE_MR       0x00000004   // Forces sharing of the Memory Region
+#define CXPLAT_RDMA_FLAG_SHARE_CQ       0x00000008   // Indicates sharing of the Completion Queue
 
-#define CXPLAT_RDMA_FLAG_SHARE      0x00000001   // Forces sharing of the address and port
-#define CXPLAT_RDMA_SERVER_OWNED    0x00000002   // Indicates handle is an RDMA Listener handle
-#define CXPLAT_RDMA_SHARE_MR        0x00000004   // Forces sharing of the Memory Region
 
 typedef struct CXPLAT_RDMA_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
@@ -921,9 +922,17 @@ typedef struct CXPLAT_RDMA_CONFIG {
     uint16_t PartitionIndex;            // Client-only
     void* CallbackContext;              // optional
 
+    //
     // Memory related configuration
-    uint32_t SendRingBufferSize;      // Send Memory Buffer Size
-    uint32_t RecvRingBufferSize;      // Receive Memory Buffer Size
+    //
+    size_t SendRingBufferSize;        // Send Memory Buffer Size
+    size_t RecvRingBufferSize;        // Receive Memory Buffer Size
+
+    //
+    // Completion Queue related configuration
+    //
+    unsigned short ProcessorGroup;      // Processor group number for the requested affinity
+    uint64_t Affinity;                 // A bitmap that specifies the processor affinity on which notifications should be processed
 
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional
@@ -936,11 +945,9 @@ typedef struct CXPLAT_RDMA_CONFIG {
     uint8_t CibirId[6];                 // CIBIR ID data
 } CXPLAT_RDMA_CONFIG;
 
-
 //
 // Creates a RDMA socket for the given (optional) local address and (required)
-// remote address. This function immediately registers for upcalls from the
-// layer below.
+// remote address.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -972,6 +979,9 @@ CxPlatRdmaAdapterInitialize(
     _In_ const QUIC_ADDR*           LocalAddress,
     _Out_ void**                    Adapter           
     );
+
+
+
 
 //
 // Cleanup an RDMA context

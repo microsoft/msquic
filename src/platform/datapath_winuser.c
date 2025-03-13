@@ -875,8 +875,16 @@ DataPathInitialize(
     //
     // Initialize RDMA adapter
     //
-    if (RdmaCallbacks && Config || Config->RdmaAdapterAddress)
+    Datapath->UseRdma = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RDMA);
+    if (Datapath->UseRdma)
     {
+
+        if (!Config || !Config->RdmaAdapterAddress)
+        {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            goto Error;
+        }
+
         Status = CxPlatRdmaAdapterInitialize(Config->RdmaAdapterAddress, &Datapath->RdmaAdapter);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(

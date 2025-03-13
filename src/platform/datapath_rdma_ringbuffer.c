@@ -26,7 +26,7 @@ QUIC_STATUS
 RdmaSendRingBufferInitialize(
     _In_ uint8_t* Buffer,
     _In_ size_t Capacity,
-    _Deref_out_ PRDMA_SEND_RING_BUFFER* SendRingBuffer
+    _Inout_ RDMA_SEND_RING_BUFFER** SendRingBuffer
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -38,16 +38,19 @@ RdmaSendRingBufferInitialize(
         goto Exit;
     }
 
-    *SendRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_SEND_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
     if (*SendRingBuffer == NULL)
     {
-        QuicTraceEvent(
-            SendRingBufferAllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RDMA_SEND_RING_BUFFER",
-            sizeof(RDMA_SEND_RING_BUFFER));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+        *SendRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_SEND_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
+        if (*SendRingBuffer == NULL)
+        {
+            QuicTraceEvent(
+                SendRingBufferAllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "RDMA_SEND_RING_BUFFER",
+                sizeof(RDMA_SEND_RING_BUFFER));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
     }
 
     (*SendRingBuffer)->Buffer = Buffer;
@@ -67,7 +70,7 @@ Exit:
 //
 QUIC_STATUS
 RdmaSendRingBufferUnInitialize(
-    _In_ PRDMA_SEND_RING_BUFFER SendRingBuffer
+    _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer
     )
 {
     if (SendRingBuffer == NULL)
@@ -87,32 +90,33 @@ QUIC_STATUS
 RdmaRecvRingBufferInitialize(
     _In_ uint8_t*  Buffer,
     _In_ size_t Capacity,
-    _In_ uint8_t* OffsetBuffer,
+    _In_opt_ uint8_t* OffsetBuffer,
     _In_ size_t  OffsetBufferSize,
-    _Deref_out_ PRDMA_RECV_RING_BUFFER* RecvRingBuffer
+    _Inout_ RDMA_RECV_RING_BUFFER** RecvRingBuffer
     )
 
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (Buffer == NULL ||
-        Capacity == 0 ||
-        OffsetBuffer == NULL ||
-        OffsetBufferSize == 0)
+        Capacity == 0)
     {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    *RecvRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_RECV_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
-    if (*RecvRingBuffer == NULL) {
-        QuicTraceEvent(
-            RecvRingBufferAllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "RDMA_RECV_RING_BUFFER",
-            sizeof(RDMA_RECV_RING_BUFFER));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+    if (*RecvRingBuffer == NULL)
+    {
+        *RecvRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_RECV_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
+        if (*RecvRingBuffer == NULL) {
+            QuicTraceEvent(
+                RecvRingBufferAllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "RDMA_RECV_RING_BUFFER",
+                sizeof(RDMA_RECV_RING_BUFFER));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
     }
 
     (*RecvRingBuffer)->Buffer = Buffer;
@@ -122,7 +126,6 @@ RdmaRecvRingBufferInitialize(
     (*RecvRingBuffer)->OffsetBufferSize = OffsetBufferSize;
     (*RecvRingBuffer)->Head = 0;
     (*RecvRingBuffer)->Tail = 0;
-
 
     memset((*RecvRingBuffer)->Buffer, 0, Capacity);
 
@@ -135,7 +138,7 @@ Exit:
 //
 QUIC_STATUS
 RdmaRecvRingBufferUnInitialize(
-    _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer
+    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer
     )
 {
     if (RecvRingBuffer == NULL)
@@ -153,7 +156,7 @@ RdmaRecvRingBufferUnInitialize(
 //
 QUIC_STATUS
 RdmaSendRingBufferReserve(
-    _In_ PRDMA_SEND_RING_BUFFER SendRingBuffer,
+    _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ size_t Length,
     _Out_ uint8_t** Buffer,
     _Out_ size_t *AllocLength
@@ -227,7 +230,7 @@ RdmaSendRingBufferReserve(
 //
 QUIC_STATUS
 RdmaSendRingBufferRelease(
-    _In_ PRDMA_SEND_RING_BUFFER SendRingBuffer,
+    _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ size_t Length,
     _In_ uint8_t* Buffer
     )
@@ -262,7 +265,7 @@ RdmaSendRingBufferRelease(
 //
 QUIC_STATUS
 RdmaRemoteRecvRingBufferReserve(
-    _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer,
+    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ size_t Length,
     _Out_ uint8_t** Buffer,
     _Out_ size_t* AllocLength
@@ -335,7 +338,7 @@ RdmaRemoteRecvRingBufferReserve(
 //
 QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
-    _In_ PRDMA_RECV_RING_BUFFER RecvRingBuffer,
+    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t* Buffer,
     _In_ size_t Length
     )
