@@ -120,9 +120,6 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # TODO: Fix android on ubuntu-24.04
-        - plat: android
-          os: 'ubuntu-24.04'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
@@ -211,7 +208,13 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@v4
+      with:
+        submodules: true
+        fetch-depth: 0
+    - name: Initialize OpenSSL Submodule
+      run: git submodule update --init submodules/openssl3
+
     - name: Download Build Artifacts
       uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
