@@ -509,6 +509,7 @@ function CMake-Generate {
     if ($Platform -eq "android") {
         $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '28.0.13004108' # Temporary work around. Use RegEx to replace newer version
         $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $env:ANDROID_NDK_HOME = $NDK
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -518,7 +519,6 @@ function CMake-Generate {
         $env:CC = "x86_64-linux-android29-clang"
         $env:CXX = "x86_64-linux-android29-clang++"
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $env:ANDROID_NDK_HOME = $NDK
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""
