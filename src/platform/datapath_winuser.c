@@ -1450,7 +1450,9 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket
+    _Out_ CXPLAT_SOCKET** NewSocket,
+    _In_ BOOLEAN UseQTIP,
+    _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
     QUIC_STATUS Status;
@@ -1490,7 +1492,16 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Datapath->UseTcp;
+    //
+    // Server sockets always inherit global QTIP preferences.
+    //
+    if (IsServerSocket || !OverrideGlobalQTIPSettings) {
+        Socket->UseTcp = Datapath->UseTcp;
+    } else {
+        Socket->UseTcp = UseQTIP;
+    }
+
+    Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1500,9 +1511,12 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
+    //
+    // Servers always initialize everything.
+    //
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Datapath->UseTcp) {
+    if (Socket->UseTcp && !IsServerSocket) {
         //
         // Skip normal socket settings to use AuxSocket in raw socket
         //
@@ -2625,7 +2639,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
+    if (Socket->UseTcp && !Socket->IsServer) {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
     } else {
