@@ -1451,6 +1451,7 @@ SocketCreateUdp(
     _In_ BOOLEAN OverrideGlobalQTIPSettings
     )
 {
+    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
