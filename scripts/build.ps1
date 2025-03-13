@@ -533,10 +533,6 @@ function CMake-Generate {
     $Arguments += " ../../.."
 
     Write-Host "Executing: $Arguments"
-    if ($Platform -eq "android") {
-        Write-Host "Before CMake-Execute ANDROID_NDK_HOME: $env:ANDROID_NDK_HOME"
-        Write-Host "Before CMake-Execute ANDROID_NDK_ROOT: $env:ANDROID_NDK_ROOT"
-    }
     CMake-Execute $Arguments
 }
 
