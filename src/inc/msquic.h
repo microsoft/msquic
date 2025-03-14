@@ -1624,7 +1624,7 @@ QUIC_STATUS
 
 typedef enum QUIC_CONNECTION_POOL_FLAGS {
     QUIC_CONNECTION_POOL_FLAG_NONE =                            0x00000000,
-    QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE =    0x00000001,
+    QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE =                0x00000001,
 } QUIC_CONNECTION_POOL_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_POOL_FLAGS);
@@ -1643,7 +1643,7 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
     _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
     _Field_size_opt_(NumberOfConnections)
         uint8_t** CibirIds;                     // Optional
-    uint8_t CibirIdLength;                      // Optional
+    uint8_t CibirIdLength;                      // Zero if not using CIBIR
     QUIC_CONNECTION_POOL_FLAGS Flags;
 } QUIC_CONNECTION_POOL_CONFIG;
 
@@ -1656,7 +1656,6 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Check_return_
 QUIC_STATUS
 (QUIC_API * QUIC_CONN_POOL_CREATE_FN)(
     _In_ QUIC_CONNECTION_POOL_CONFIG* Config,

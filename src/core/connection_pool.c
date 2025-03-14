@@ -58,7 +58,7 @@ QuicConnPoolAllocUniqueRssProcInfo(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "RSS Processor List",
-            RssConfig->RssIndirectionTableCount);
+            RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO));
         return Status;
     }
 
@@ -161,7 +161,9 @@ QuicConnPoolGetStartingLocalAddress(
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
-    CXPLAT_UDP_CONFIG UdpConfig = { .RemoteAddress = RemoteAddress, };
+    CXPLAT_UDP_CONFIG UdpConfig;
+    CxPlatZeroMemory(&UdpConfig, sizeof(UdpConfig));
+    UdpConfig.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
     if (QUIC_SUCCEEDED(Status)) {
@@ -249,9 +251,7 @@ QuicConnPoolTryCreateConnection(
         goto Error;
     }
     (*Connection)->ClientCallbackHandler = Handler;
-    if (Context != NULL) {
-        (*Connection)->ClientContext = Context;
-    }
+    (*Connection)->ClientContext = Context;
 
     //
     // Set the calculated remote address and local address to get the desired
@@ -339,7 +339,12 @@ Error:
     }
 
     if (QUIC_FAILED(Status) && *Connection != NULL) {
-        QuicConnRelease(*Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        //
+        // This connection has never left MsQuic back to the application,
+        // so don't send any notifications to the application on close.
+        //
+        (*Connection)->State.ExternalOwner = FALSE;
+        MsQuicConnectionClose((HQUIC)*Connection);
         *Connection = NULL;
     }
 
@@ -370,7 +375,6 @@ MsQuicConnectionPoolCreate(
         QUIC_TRACE_API_CONNECTION_POOL_CREATE,
         NULL);
 
-
     if (Config == NULL || ConnectionPool == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         QuicTraceEvent(
@@ -378,7 +382,7 @@ MsQuicConnectionPoolCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Connection Pool Parameter");
-        return Status;
+        goto Error;
     }
 
     if (Config->Registration == NULL ||
@@ -393,7 +397,7 @@ MsQuicConnectionPoolCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Connection Pool Config");
-        return Status;
+        goto Error;
     }
 
     if (((QUIC_CONFIGURATION*)Config->Configuration)->SecurityConfig == NULL) {
@@ -403,7 +407,7 @@ MsQuicConnectionPoolCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Connection Pool SecurityConfig");
-        return Status;
+        goto Error;
     }
 
     if ((Config->CibirIds != NULL && Config->CibirIdLength == 0) ||
@@ -414,7 +418,7 @@ MsQuicConnectionPoolCreate(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Connection Pool CIBIR config");
-        return Status;
+        goto Error;
     }
 
     const size_t ServerNameLength = strnlen(Config->ServerName, QUIC_MAX_SNI_LENGTH + 1);
@@ -425,7 +429,7 @@ MsQuicConnectionPoolCreate(
             "[ lib] ERROR, %u, %s.",
             (uint32_t)ServerNameLength,
             "Connection Pool ServerName too long");
-        return Status;
+        goto Error;
     }
 
     CxPlatZeroMemory(ConnectionPool, sizeof(HQUIC) * Config->NumberOfConnections);
@@ -596,12 +600,7 @@ MsQuicConnectionPoolCreate(
             // The connection either owns the ServerNameCopy, or it was freed.
             //
             ServerNameCopy = NULL;
-            if (Status == QUIC_STATUS_OUT_OF_MEMORY) {
-                //
-                // No reason to retry this error, just fail.
-                //
-                goto Error;
-            } else if (QUIC_FAILED(Status)) {
+            if (QUIC_FAILED(Status)) {
                 continue;
             }
 
@@ -629,7 +628,7 @@ Error:
         CXPLAT_FREE(ServerNameCopy, QUIC_POOL_SERVERNAME);
     }
     if (QUIC_FAILED(Status) &&
-        (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE) != 0) {
+        (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE) != 0) {
         for (uint32_t i = 0; i < CreatedConnections; i++) {
             MsQuicConnectionClose((HQUIC)Connections[i]);
             Connections[i] = NULL;

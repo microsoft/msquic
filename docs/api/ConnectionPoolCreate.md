@@ -60,4 +60,11 @@ An application that can't use this API can perform the same steps as above and a
 
 # See Also
 
+[ConnectionOpen](ConnectionOpen.md)<br>
+[ConnectionStart](ConnectionStart.md)<br>
+[ConnectionShutdown](ConnectionShutdown.md)<br>
+[ConnectionClose](ConnectionClose.md)<br>
+[QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
+[QUIC_CONNECTION_EVENT](QUIC_CONNECTION_EVENT.md)<br>
+[QUIC_SETTINGS](QUIC_SETTINGS.md)<br>
 [QUIC_CONNECTION_POOL_CONFIG](QUIC_CONNECTION_POOL_CONFIG.md)<br>

@@ -15,21 +15,21 @@ typedef enum QUIC_CONNECTION_POOL_FLAGS {
 } QUIC_CONNECTION_POOL_FLAGS;
 
 typedef struct QUIC_CONNECTION_POOL_CONFIG {
-    _In_ HQUIC Registration;
-    _In_ HQUIC Configuration;
-    _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler;
+    HQUIC Registration;
+    HQUIC Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER Handler;
     _Field_size_opt_(NumberOfConnections)
         void** Context;                         // Optional
-    _In_ const char* ServerName;
-    _In_opt_ const QUIC_ADDR* ServerAddress;    // Optional
-    _In_ QUIC_ADDRESS_FAMILY Family;
-    _In_ uint16_t ServerPort;
-    _In_ uint16_t NumberOfConnections;
+    _Field_z_ const char* ServerName;
+    const QUIC_ADDR* ServerAddress;             // Optional
+    QUIC_ADDRESS_FAMILY Family;
+    uint16_t ServerPort;
+    uint16_t NumberOfConnections;
     _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
     _Field_size_opt_(NumberOfConnections)
         uint8_t** CibirIds;                     // Optional
-    _In_ uint8_t CibirIdLength;                 // Optional
-    _In_ QUIC_CONNECTION_POOL_FLAGS Flags;
+    uint8_t CibirIdLength;                      // Zero if not using CIBIR
+    QUIC_CONNECTION_POOL_FLAGS Flags;
 } QUIC_CONNECTION_POOL_CONFIG;
 ```
 
@@ -37,23 +37,23 @@ typedef struct QUIC_CONNECTION_POOL_CONFIG {
 
 `Registration`
 
-An opened Registration for creating the connection in.
+The valid handle to an open registration object.
 
 `Configuration`
 
-An opened Configuration that provides the settings used to create each connection in the pool.
+The valid handle to an open and loaded configuration object that is used to create each connection in the pool.
 
 `Handler`
 
-The connection callback handler to set on each connection in the pool.
+A pointer to the app's callback handler to be invoked for all connection events.
 
 `Context`
 
-An optional array of context pointers. The first is used with the first connection created, the second with the second connection, etc.
+The array of app context pointers (possibly null). The first is associated with the first connection created, the second with the second connection, etc.
 
 `ServerName`
 
-The server name to connect each connection to.
+The name of the server to connect to. It may also be an IP literal.
 
 `ServerAddress`
 
@@ -61,11 +61,17 @@ An optional pointer to a `QUIC_ADDR` specifying the specific IP address to conne
 
 `Family`
 
-The `QUIC_ADDRESS_FAMILY` to use for the connections.
+The address family to use for resolving the IP address of the *ServerName* parameter. Supported values definitions are supported (The values are platform specific):
+
+Value | Meaning
+--- | ---
+**QUIC_ADDRESS_FAMILY_UNSPEC**<br> |Unspecified address family.
+**QUIC_ADDRESS_FAMILY_INET**<br> | Version 4 IP address family.
+**QUIC_ADDRESS_FAMILY_INET6**<br> | Version 6 IP address family.
 
 `ServerPort`
 
-The UDP port on the server to connect to, in host byte order.
+The UDP port, in host byte order, to connect to on the server.
 
 `NumberOfConnections`
 
@@ -86,8 +92,15 @@ Flags which affect settings on the connections or how the pool is created.
 | Flag | Effect |
 |------|--------|
 | QUIC_CONNECTION_POOL_FLAG_NONE | Nothing |
-| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to close all *started* connections in the pool if an error occurrs while creating the pool. **Note:** The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned. |
+| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to close all *started* connections in the pool if an error occurrs while creating the pool. **Note:** The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned from `ConnectionPoolCreate`. |
 
 # See Also
+
 [ConnectionPoolCreate](ConnectionPoolCreate.md)<br>
+[ConnectionOpen](ConnectionOpen.md)<br>
+[ConnectionStart](ConnectionStart.md)<br>
+[ConnectionShutdown](ConnectionShutdown.md)<br>
+[ConnectionClose](ConnectionClose.md)<br>
+[QUIC_CONNECTION_CALLBACK](QUIC_CONNECTION_CALLBACK.md)<br>
+[QUIC_CONNECTION_EVENT](QUIC_CONNECTION_EVENT.md)<br>
 [QUIC_SETTINGS](QUIC_SETTINGS.md)<br>
