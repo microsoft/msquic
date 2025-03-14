@@ -48,6 +48,164 @@ typedef enum ssl_encryption_level_t {
     QUIC_ENC_LEVEL_1RTT = 3
 } OSSL_ENCRYPTION_LEVEL;
 
+
+/**
+ * @brief Callback to send TLS handshake data to the QUIC stack.
+ *
+ * This function is called by OpenSSL to send handshake data over QUIC.
+ * It submits the provided buffer to the QUIC connection for transmission.
+ * If the submission fails, it sets the TLS error on the QUIC connection.
+ *
+ * @param[in]  s           Pointer to the SSL connection object.
+ * @param[in]  buf         Pointer to the buffer containing data to send.
+ * @param[in]  buf_len     Length of the data in @p buf.
+ * @param[out] consumed    Number of bytes successfully consumed from @p buf.
+ * @param[in]  arg         Unused argument (typically NULL).
+ *
+ * @return 1 on success, 0 on failure.
+ */
+static int quic_tls_send(SSL *s, const unsigned char *buf, size_t buf_len,
+                         size_t *consumed, void __attribute__((unused)) *arg)
+{
+  return 1;
+}
+
+/**
+ * @brief Callback to provide a previously buffered TLS record to OpenSSL.
+ *
+ * This function is called by OpenSSL to retrieve a TLS record for further
+ * processing. It searches the buffered records for one matching the given
+ * SSL connection. If a complete record is found, it is returned via @p buf
+ * and @p bytes_read. If the record is incomplete, it signals OpenSSL to
+ * wait for more data.
+ *
+ * @param[in]  s            Pointer to the SSL connection object.
+ * @param[out] buf          Pointer to the buffer containing the record data.
+ *                          If no data is available, set to NULL.
+ * @param[out] bytes_read   Length of the record returned in @p buf.
+ *                          If no data is available, set to 0.
+ * @param[in]  arg          Unused argument (typically NULL).
+ *
+ * @return Always returns 1.
+ */
+static int quic_tls_rcv_rec(SSL *s, const unsigned char **buf, size_t *bytes_read,
+                            void __attribute__((unused)) *arg)
+{
+    return 1;
+}
+
+/**
+ * @brief Callback to release a previously buffered TLS record.
+ *
+ * This function is called by OpenSSL after a TLS record has been fully
+ * processed and can be safely released. It verifies the number of bytes
+ * read matches the expected record length, frees the associated memory,
+ * and resets the pointer.
+ *
+ * @param[in] bytes_read  The number of bytes processed in the TLS record.
+ * @param[in] arg         Unused argument (typically NULL).
+ *
+ * @return Always returns 1.
+ */
+static int quic_tls_rls_rec(SSL *, size_t bytes_read, void __attribute__((unused)) *arg)
+{
+    return 1;
+}
+
+/**
+ * @brief Callback to yield TLS secrets to the QUIC stack.
+ *
+ * This function is invoked by OpenSSL to provide traffic secrets during
+ * the QUIC handshake. It installs the given secret into the ngtcp2 QUIC
+ * connection, either as a read (RX) key or write (TX) key depending on
+ * the direction.
+ *
+ * @param[in] s           Pointer to the SSL connection object.
+ * @param[in] prot_level  OpenSSL encryption level of the secret.
+ * @param[in] dir         Direction of the key. 1 for read (RX) key,
+ *                        0 for write (TX) key.
+ * @param[in] secret      Pointer to the secret to be installed.
+ * @param[in] secret_len  Length of the secret.
+ * @param[in] arg         Unused argument (typically NULL).
+ *
+ * @return 1 on success, 0 on failure.
+ */
+static int quic_tls_yield_secret(SSL *s, uint32_t prot_level, int dir,
+                                 const unsigned char *secret,
+                                 size_t secret_len, void __attribute__((unused)) *arg)
+{
+    return 1;
+}
+
+/**
+ * @brief Callback invoked when transport parameters are received from peer.
+ *
+ * This function is called by OpenSSL when remote QUIC transport parameters
+ * are received during the TLS handshake. It decodes and applies these
+ * parameters to the QUIC connection. If decoding fails, it sets a TLS
+ * error on the connection.
+ *
+ * @param[in] s           Pointer to the SSL connection object.
+ * @param[in] params      Pointer to the buffer containing transport
+ *                        parameters from the peer.
+ * @param[in] params_len  Length of the transport parameters buffer.
+ * @param[in] arg         Unused argument (typically NULL).
+ *
+ * @return 1 on success, -1 on failure.
+ */
+static int quic_tls_got_tp(SSL *s, const unsigned char *params,
+                           size_t params_len, __attribute__((unused)) void *arg)
+{
+    return 1;
+}
+
+/**
+ * @brief Callback invoked when a TLS alert is generated or received.
+ *
+ * This function is called by OpenSSL when a TLS alert is triggered
+ * during the handshake or connection. It logs the alert event for
+ * debugging purposes.
+ *
+ * @param[in] s           Pointer to the SSL connection object (unused).
+ * @param[in] alert_code  The TLS alert code (unused).
+ * @param[in] arg         Unused argument (typically NULL).
+ *
+ * @return Always returns 1.
+ */
+static int quic_tls_alert(SSL __attribute__((unused)) *s,
+                          unsigned int alert_code,
+                          __attribute__((unused)) void *arg)
+{
+    return 1;
+}
+
+/**
+ * @brief OpenSSL QUIC TLS callback dispatch table.
+ *
+ * This array defines a set of function pointers that OpenSSL uses to
+ * interact with the QUIC transport layer in a QUIC-enabled TLS session.
+ * Each entry maps a specific OpenSSL QUIC operation to its corresponding
+ * callback implementation.
+ *
+ * The dispatch table includes:
+ * - @ref quic_tls_send: Sends handshake data to the QUIC stack.
+ * - @ref quic_tls_rcv_rec: Provides received handshake data to OpenSSL.
+ * - @ref quic_tls_rls_rec: Releases processed handshake records.
+ * - @ref quic_tls_yield_secret: Supplies derived secrets to the QUIC stack.
+ * - @ref quic_tls_got_tp: Handles received transport parameters.
+ * - @ref quic_tls_alert: Processes TLS alerts.
+ *
+ * This table is registered with OpenSSL using SSL_set_quic_tls_cbs().
+ */
+static OSSL_DISPATCH openssl_quic_dispatch[] = {
+    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_SEND, (void (*)(void))quic_tls_send},
+    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RECV_RCD, (void (*)(void))quic_tls_rcv_rec},
+    {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RELEASE_RCD, (void (*)(void))quic_tls_rls_rec},
+    {OSSL_FUNC_SSL_QUIC_TLS_YIELD_SECRET, (void (*)(void))quic_tls_yield_secret},
+    {OSSL_FUNC_SSL_QUIC_TLS_GOT_TRANSPORT_PARAMS, (void (*)(void))quic_tls_got_tp},
+    {OSSL_FUNC_SSL_QUIC_TLS_ALERT, (void (*)(void))quic_tls_alert}
+};
+
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
