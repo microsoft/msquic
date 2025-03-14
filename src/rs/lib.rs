@@ -10,7 +10,6 @@ use c_types::AF_UNSPEC;
 use c_types::{sa_family_t, sockaddr_in, sockaddr_in6, socklen_t};
 use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_SETTINGS, QUIC_STATUS};
 use libc::c_void;
-use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
 use std::fmt::Debug;
 use std::io;
@@ -250,7 +249,7 @@ pub const CIPHER_SUITE_TLS_AES_256_GCM_SHA384: CipherSuite = 4866;
 pub const CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: CipherSuite = 4867;
 
 #[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct HandshakeInfo {
     pub tls_protocol_version: TlsProtocolVersion,
     pub cipher_algorithm: CipherAlgorithm,
