@@ -41,6 +41,13 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
+typedef enum ssl_encryption_level_t {
+    QUIC_ENC_LEVEL_INITIAL = 0,
+    QUIC_ENC_LEVEL_0RTT = 1,
+    QUIC_ENC_LEVEL_HANDSHAKE = 2,
+    QUIC_ENC_LEVEL_1RTT = 3
+} OSSL_ENCRYPTION_LEVEL;
+
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
@@ -381,10 +388,10 @@ CxPlatTlsCertificateVerifyCallback(
     return status;
 }
 
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)QUIC_ENC_LEVEL_INITIAL == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)QUIC_ENC_LEVEL_0RTT == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)QUIC_ENC_LEVEL_HANDSHAKE == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)QUIC_ENC_LEVEL_1RTT == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 void
 CxPlatTlsNegotiatedCiphers(
@@ -917,12 +924,14 @@ CxPlatTlsOnServerSessionTicketDecrypted(
     return Result;
 }
 
+#if 0
 SSL_QUIC_METHOD OpenSslQuicCallbacks = {
     CxPlatTlsSetEncryptionSecretsCallback,
     CxPlatTlsAddHandshakeDataCallback,
     CxPlatTlsFlushFlightCallback,
     CxPlatTlsSendAlertCallback
 };
+#endif
 
 CXPLAT_STATIC_ASSERT(
     FIELD_OFFSET(QUIC_CERTIFICATE_FILE, PrivateKeyFile) == FIELD_OFFSET(QUIC_CERTIFICATE_FILE_PROTECTED, PrivateKeyFile),
@@ -1227,6 +1236,7 @@ CxPlatTlsSecConfigCreate(
         }
     }
 
+#if 0
     Ret = SSL_CTX_set_quic_method(SecurityConfig->SSLCtx, &OpenSslQuicCallbacks);
     if (Ret != 1) {
         QuicTraceEvent(
@@ -1237,6 +1247,7 @@ CxPlatTlsSecConfigCreate(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
+#endif
 
     if ((CredConfigFlags & QUIC_CREDENTIAL_FLAG_CLIENT) &&
         !(TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION)) {
@@ -1802,15 +1813,17 @@ CxPlatTlsInitialize(
         }
 
         if (Config->IsServer || (Config->ResumptionTicketLength != 0)) {
-            SSL_set_quic_early_data_enabled(TlsContext->Ssl, 1);
+            SSL_set_quic_tls_early_data_enabled(TlsContext->Ssl, 1);
         }
     }
 
+#if 0
     SSL_set_quic_use_legacy_codepoint(
         TlsContext->Ssl,
         TlsContext->QuicTpExtType == TLS_EXTENSION_TYPE_QUIC_TRANSPORT_PARAMETERS_DRAFT);
+#endif
 
-    if (SSL_set_quic_transport_params(
+    if (SSL_set_quic_tls_transport_params(
             TlsContext->Ssl,
             Config->LocalTPBuffer,
             Config->LocalTPLength) != 1) {
@@ -1952,7 +1965,7 @@ CxPlatTlsProcessData(
             TlsContext->Connection,
             "Processing %u received bytes",
             *BufferLength);
-
+#if 0
         if (SSL_provide_quic_data(
                 TlsContext->Ssl,
                 (OSSL_ENCRYPTION_LEVEL)TlsContext->State->ReadKey,
@@ -1967,6 +1980,7 @@ CxPlatTlsProcessData(
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
+#endif
     }
 
     if (!State->HandshakeComplete) {
@@ -1976,6 +1990,7 @@ CxPlatTlsProcessData(
             switch (Err) {
             case SSL_ERROR_WANT_READ:
             case SSL_ERROR_WANT_WRITE:
+#if 0
                 //
                 // Best effort to get the server's transport params as early as possible.
                 //
@@ -1995,6 +2010,7 @@ CxPlatTlsProcessData(
                         }
                     }
                 }
+#endif
                 goto Exit;
 
             case SSL_ERROR_SSL: {
@@ -2117,6 +2133,7 @@ CxPlatTlsProcessData(
             TlsContext->State->ReadKey = QUIC_PACKET_KEY_1_RTT;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         } else if (!TlsContext->PeerTPReceived) {
+#if 0
             //
             // Last chance to get the server's transport params.
             //
@@ -2140,9 +2157,11 @@ CxPlatTlsProcessData(
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 goto Exit;
             }
+#endif
         }
 
     } else {
+#if 0
         if (SSL_process_quic_post_handshake(TlsContext->Ssl) != 1) {
             QuicTraceEvent(
                 TlsErrorStatus,
@@ -2153,6 +2172,7 @@ CxPlatTlsProcessData(
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
+#endif
     }
 
 Exit:
