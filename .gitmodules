@@ -16,3 +16,7 @@
 	path = submodules/xdp-for-windows
 	url = https://github.com/microsoft/xdp-for-windows.git
 	branch = release/1.1
+[submodule "openssl35"]
+	path = submodules/openssl35
+	url = https://github.com/openssl/openssl
+	branch = master
