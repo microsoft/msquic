@@ -223,6 +223,12 @@ GetModuleHandleW(
 #define CXPLAT_AT_DISPATCH() FALSE
 
 //
+// Enable Supported Tests
+//
+
+#define QUIC_TEST_CONNECTION_POOL 1
+
+//
 // Wrapper functions
 //
 
@@ -1055,13 +1061,23 @@ extern uint32_t CxPlatProcessorCount;
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint32_t
+CxPlatProcNumberToIndex(
+    PROCESSOR_NUMBER* ProcNumber
+    )
+{
+    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber->Group];
+    return Group->Offset + (ProcNumber->Number % Group->Count);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint32_t
 CxPlatProcCurrentNumber(
     void
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
-    return Group->Offset + (ProcNumber.Number % Group->Count);
+    return CxPlatProcNumberToIndex(&ProcNumber);
 }
 
 
