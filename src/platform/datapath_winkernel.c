@@ -1275,13 +1275,9 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewBinding,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
-    UNREFERENCED_PARAMETER(UseQTIP);
-    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     QUIC_STATUS Status = STATUS_SUCCESS;
     size_t BindingSize;
     CXPLAT_SOCKET* Binding = NULL;

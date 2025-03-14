@@ -1446,9 +1446,7 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
@@ -1489,7 +1487,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = UseQTIP;
+    Socket->UseTcp = Config->UseQTIP;
 
     Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {

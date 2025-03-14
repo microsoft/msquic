@@ -124,7 +124,7 @@ PerfServer::Init(
     UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();
 #endif
 
-    QUIC_STATUS Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &TeardownBinding, FALSE, FALSE);
+    QUIC_STATUS Status = CxPlatSocketCreateUdp(Datapath, &UdpConfig, &TeardownBinding);
     if (QUIC_FAILED(Status)) {
         TeardownBinding = nullptr;
         WriteOutput("Failed to initialize teardown binding: %d\n", Status);

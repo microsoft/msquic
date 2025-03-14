@@ -577,6 +577,9 @@ typedef struct CXPLAT_UDP_CONFIG {
     uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
     uint8_t CibirId[6];                 // CIBIR ID data
+
+    uint8_t UseQTIP;
+    uint8_t OverrideGlobalQTIPSettings;
 } CXPLAT_UDP_CONFIG;
 
 //
@@ -589,9 +592,7 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** Socket,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** Socket
     );
 
 //

@@ -1043,9 +1043,7 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* DataPath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** NewSocket
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
