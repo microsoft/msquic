@@ -113,7 +113,12 @@ QuicConnAlloc(
     Connection->State.Allocated = TRUE;
     Connection->State.ShareBinding = IsServer;
     Connection->State.FixedBit = TRUE;
-    Connection->State.UseQTIP = (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0 ? FALSE : TRUE;
+    if (MsQuicLib.ExecutionConfig != NULL) {
+        Connection->State.UseQTIP =
+        (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP) == 0 ? FALSE : TRUE;
+    } else {
+        Connection->State.UseQTIP = FALSE;
+    }
     Connection->Stats.Timing.Start = CxPlatTimeUs64();
     Connection->SourceCidLimit = QUIC_ACTIVE_CONNECTION_ID_LIMIT;
     Connection->AckDelayExponent = QUIC_ACK_DELAY_EXPONENT;
