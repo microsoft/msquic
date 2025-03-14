@@ -1449,7 +1449,6 @@ SocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    UNREFERENCED_PARAMETER(OverrideGlobalQTIPSettings);
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
