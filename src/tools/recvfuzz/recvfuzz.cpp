@@ -983,9 +983,7 @@ void start() {
         CxPlatSocketCreateUdp(
             Datapath,
             &UdpConfig,
-            &Binding,
-            FALSE,
-            FALSE);
+            &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
         return;

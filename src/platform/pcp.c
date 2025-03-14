@@ -193,9 +193,7 @@ CxPlatPcpInitialize(
             CxPlatSocketCreateUdp(
                 Datapath,
                 &UdpConfig,
-                &PcpContext->GatewaySockets[i],
-                FALSE,
-                FALSE);
+                &PcpContext->GatewaySockets[i]);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }

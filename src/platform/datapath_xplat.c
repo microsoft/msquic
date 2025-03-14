@@ -128,9 +128,7 @@ QUIC_STATUS
 CxPlatSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -139,9 +137,8 @@ CxPlatSocketCreateUdp(
         SocketCreateUdp(
             Datapath,
             Config,
-            NewSocket,
-            UseQTIP,
-            OverrideGlobalQTIPSettings);
+            NewSocket
+        );
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,
@@ -161,7 +158,7 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
-            if (Datapath->UseTcp) {
+            if ((*NewSocket)->UseTcp) {
                 CxPlatSocketDelete(*NewSocket);
                 goto Error;
             }

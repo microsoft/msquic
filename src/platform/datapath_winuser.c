@@ -1450,9 +1450,7 @@ QUIC_STATUS
 SocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket,
-    _In_ BOOLEAN UseQTIP,
-    _In_ BOOLEAN OverrideGlobalQTIPSettings
+    _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     QUIC_STATUS Status;
@@ -1495,10 +1493,10 @@ SocketCreateUdp(
     //
     // Server sockets always inherit global QTIP preferences.
     //
-    if (IsServerSocket || !OverrideGlobalQTIPSettings) {
+    if (IsServerSocket || !Config->OverrideGlobalQTIPSettings) {
         Socket->UseTcp = Datapath->UseTcp;
     } else {
-        Socket->UseTcp = UseQTIP;
+        Socket->UseTcp = Config->UseQTIP;
     }
 
     Socket->IsServer = IsServerSocket;

@@ -115,11 +115,6 @@ typedef struct QUIC_LISTENER {
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
-    //
-    // Whether or not this listener accepts QTIP traffic (BOOLEAN)
-    //
-    BOOLEAN UseQTIP : 1;
-
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO

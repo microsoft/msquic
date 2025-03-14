@@ -370,9 +370,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
         CxPlatSocketCreateUdp(
             Datapath,
             &UdpConfig,
-            &Binding,
-            FALSE,
-            FALSE);
+            &Binding);
     if (QUIC_FAILED(Status)) {
         printf("CxPlatSocketCreateUdp failed, 0x%x\n", Status);
         CXPLAT_THREAD_RETURN(Status);
