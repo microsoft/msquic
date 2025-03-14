@@ -8,8 +8,6 @@ use crate::{
     config::{CertificateHash, Credential, CredentialFlags},
     Addr, BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
     Listener, Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
-    CONNECTION_SHUTDOWN_FLAG_NONE, SEND_FLAG_FIN, STREAM_OPEN_FLAG_NONE,
-    STREAM_SHUTDOWN_FLAG_ABORT, STREAM_START_FLAG_NONE,
 };
 
 fn buffers_to_string(buffers: &[BufferRef]) -> String {
@@ -80,13 +78,13 @@ fn test_server_client() {
                 if unsafe {
                     stream.send(
                         ctx.1.as_ref(),
-                        SEND_FLAG_FIN,
+                        crate::SendFlags::FIN,
                         ctx.as_ref() as *const _ as *const c_void,
                     )
                 }
                 .is_err()
                 {
-                    let _ = stream.shutdown(STREAM_SHUTDOWN_FLAG_ABORT, 0);
+                    let _ = stream.shutdown(crate::StreamShutdownFlags::ABORT, 0);
                 } else {
                     // detach buffer
                     let _ = Box::into_raw(ctx);
@@ -189,8 +187,8 @@ fn test_server_client() {
                     // open stream and send
                     let f_send = || {
                         let mut s = Stream::new();
-                        s.open(&conn, STREAM_OPEN_FLAG_NONE, stream_handler.clone())?;
-                        s.start(STREAM_START_FLAG_NONE)?;
+                        s.open(&conn, crate::StreamOpenFlags::NONE, stream_handler.clone())?;
+                        s.start(crate::StreamStartFlags::NONE)?;
                         // BufferRef needs to be heap allocated
                         let b = "hello from client".as_bytes().to_vec();
                         let b_ref = Box::new([BufferRef::from((*b).as_ref())]);
@@ -198,7 +196,7 @@ fn test_server_client() {
                         unsafe {
                             s.send(
                                 ctx.1.as_slice(),
-                                SEND_FLAG_FIN,
+                                crate::SendFlags::FIN,
                                 ctx.as_ref() as *const _ as *const c_void,
                             )
                         }?;
@@ -210,7 +208,7 @@ fn test_server_client() {
                     };
                     if f_send().is_err() {
                         println!("Client send failed");
-                        conn.shutdown(CONNECTION_SHUTDOWN_FLAG_NONE, 0);
+                        conn.shutdown(crate::ConnectionShutdownFlags::NONE, 0);
                     }
                 }
                 ConnectionEvent::ShutdownComplete { .. } => {
