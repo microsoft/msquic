@@ -304,7 +304,7 @@ public:
 
     QUIC_STATUS SetResumptionTicket(const QUIC_BUFFER* ResumptionTicket) const;
 
-    QUIC_STATUS SetQtipPreferences(const uint8_t OnOrOff) const;
+    QUIC_STATUS SetQtipPreferences(uint8_t OnOrOff) const;
 
     QUIC_STATUS SetCustomValidationResult(bool AcceptCert, QUIC_TLS_ALERT_CODES TlsAlert = QUIC_TLS_ALERT_CODE_BAD_CERTIFICATE);
 

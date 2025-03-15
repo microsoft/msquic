@@ -1752,7 +1752,7 @@ TEST_P(WithSendArgs1, Send) {
             (uint8_t)GetParam().UnidirectionalStreams,
             (uint8_t)GetParam().ServerInitiatedStreams,
             0,   // FifoScheduling
-            0,   // SendUdpToQtipListener
+            0    // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {

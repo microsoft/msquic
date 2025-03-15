@@ -804,7 +804,7 @@ TestConnection::SetQtipPreferences(
         MsQuic->SetParam(
             QuicConnection,
             QUIC_PARAM_CONN_QTIP,
-            sizeof(uint8_t),
+            sizeof(OnOrOff),
             &OnOrOff);
 }
 
