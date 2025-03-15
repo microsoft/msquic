@@ -100,6 +100,8 @@ while :; do
             TLS=$1
             case $TLS in
                 'quictls')
+                    ;;
+                'openssl')
                     TLSVERSION=3
                     ;;
                 *)

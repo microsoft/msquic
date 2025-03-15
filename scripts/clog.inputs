@@ -1,4 +1,4 @@
-../src/platform/selfsign_openssl.c
+../src/platform/selfsign_quictls.c
 ../src/platform/datapath_kqueue.c
 ../src/platform/crypt.c
 ../src/platform/datapath_winkernel.c
