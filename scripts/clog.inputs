@@ -1,4 +1,4 @@
-../src/platform/selfsign_openssl.c
+../src/platform/selfsign_quictls.c
 ../src/platform/datapath_kqueue.c
 ../src/platform/crypt.c
 ../src/platform/datapath_winkernel.c
@@ -31,7 +31,7 @@
 ../src/platform/pcp.c
 ../src/platform/storage_winuser.c
 ../src/platform/storage_posix.c
-../src/platform/crypt_openssl.c
+../src/platform/crypt_quictls.c
 ../src/platform/inline.c
 ../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
