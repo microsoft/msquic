@@ -177,9 +177,9 @@ foreach ($Build in $AllBuilds) {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
-        $Tls = "openssl"
-        if ($BuildBaseName -like "*openssl3*") {
-            $Tls = "openssl3"
+        $Tls = "quictls"
+        if ($BuildBaseName -like "*quictls3*") {
+            $Tls = "quictls3"
         }
 
         if ($BuildBaseName -like "*arm64_*") {

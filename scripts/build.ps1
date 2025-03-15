@@ -132,7 +132,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "quictls3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -268,8 +268,8 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
-        Write-Error "Arm64EC does not support openssl"
+    if ($Tls -eq "quictls" -Or $Tls -eq "quictls3") {
+        Write-Error "Arm64EC does not support quictls"
     }
 }
 
@@ -331,7 +331,7 @@ if ($Clang) {
     $env:CXX = 'clang++'
 }
 
-# Workaround for perl openssl build warnings.
+# Workaround for perl quictls build warnings.
 $env:TERM='ansi'
 
 function Log($msg) {
