@@ -33,6 +33,7 @@ on:
         type: string
         # options:
         #   - quictls
+        #   - openssl 
       static:
         required: false
         default: ''

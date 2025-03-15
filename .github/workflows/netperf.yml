@@ -18,6 +18,7 @@ on:
     - src/platform/**
     - src/perf/**
     - submodules/quictls/**
+    - submodules/openssl/**
     - submodules/xdp-for-windows/**
   pull_request:
     branches:
@@ -35,6 +36,7 @@ on:
     - src/platform/**
     - src/perf/**
     - submodules/quictls/**
+    - submodules/openssl/**
     - submodules/xdp-for-windows/**
 
 concurrency:
