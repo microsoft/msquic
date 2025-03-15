@@ -30,12 +30,16 @@ jobs:
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2022']
         arch: [x86, x64, arm64]
-        tls: [schannel, quictls]
+        tls: [schannel, quictls, openssl]
         static: ['', '-Static']
         exclude:
         # OpenSSL/quictls doesn't support arm64
         - tls: quictls
           arch: arm64
+        - tls: openssl
+          arch: arm64
+        - plat: uwp
+          tls: openssl
         # TODO: FIX: OpenSSL/quictls build fails with UWP
         - plat: uwp
           tls: quictls
@@ -99,7 +103,7 @@ jobs:
         plat: [linux]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
-        tls: [quictls]
+        tls: [quictls, openssl]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -121,7 +125,7 @@ jobs:
         plat: [linux, android]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
-        tls: [quictls]
+        tls: [quictls, openssl]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
@@ -139,7 +143,7 @@ jobs:
           os: 'ubuntu-22.04'
           tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on ubuntu-24.04
+        # No quictls system crypto on ubuntu-24.04
         - plat: linux
           os: 'ubuntu-24.04'
           tls: 'quictls'
@@ -196,7 +200,7 @@ jobs:
         plat: [macos, ios]
         os: ['macos-13']
         arch: [x64, arm64]
-        tls: [quictls]
+        tls: [quictls, openssl]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -215,8 +219,10 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          #{ plat: "uwp",  tls: "quictls", arg: "-UWP" }, # TODO: Fix build first
+          { plat: "uwp",  tls: "quictls", arg: "-UWP" },
+          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
           { plat: "windows",  tls: "quictls" },
+          { plat: "windows",  tls: "openssl" },
           { plat: "windows",  tls: "schannel" },
         ]
     runs-on: windows-2022
