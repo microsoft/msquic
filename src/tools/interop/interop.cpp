@@ -678,6 +678,9 @@ private:
             }
             break;
         case QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED:
+            if (pThis->ResumptionTicket) {
+                break; // Ignore any additional tickets
+            }
             pThis->ResumptionTicketLength = Event->RESUMPTION_TICKET_RECEIVED.ResumptionTicketLength;
             pThis->ResumptionTicket = new uint8_t[pThis->ResumptionTicketLength];
             memcpy(
