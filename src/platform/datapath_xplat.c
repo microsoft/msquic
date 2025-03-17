@@ -291,7 +291,7 @@ CxPlatSendDataAlloc(
     if (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
-        SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
+        SendData = RawSendDataAlloc(Config);
     } else {
         SendData = SendDataAlloc(Socket, Config);
     }

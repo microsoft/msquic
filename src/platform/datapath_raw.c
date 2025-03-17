@@ -289,11 +289,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket, Config);
+    return CxPlatDpRawTxAlloc(Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
