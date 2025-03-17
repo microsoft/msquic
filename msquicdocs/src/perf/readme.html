@@ -136,6 +136,16 @@
 <td><code>-stats:&lt;0,1&gt;</code></td>
 <td>Prints out statistics at the end of each connection.</td>
 </tr>
+<tr>
+<td>delay</td>
+<td><code>[-delay:&lt;value&gt;[units]]</code></td>
+<td>Delay, with an optional unit (def unit is us), to be introduced before the server responds to a request.</td>
+</tr>
+<tr>
+<td>delayType</td>
+<td><code>[-delayType:&lt;fixed,variable&gt;]</code></td>
+<td>Optional delay type can be specified in conjunction with the 'delay' argument. 'fixed' introduces the specified delay for each request (default). 'variable' introduces a statistical variability to the specified delay (user mode only).</td>
+</tr>
 </tbody>
 </table>
 <h1 id="client">Client</h1>

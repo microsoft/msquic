@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>Receive Buffer Architecture </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="Receive Buffer Architecture ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/ReceiveBuffer.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="receive-buffer-architecture">Receive Buffer Architecture</h1>
+
+<p>The receive buffer, <code>QUIC_RECV_BUFFER</code> in <a href="https://github.com/microsoft/msquic/tree/main/src/core/recv_buffer.c">recv_buffer.c</a>, manages the buffering and reassembly
+of the crypto or stream data received from a peer. It abstracts the buffer memory management and the data reassembly logic.
+Since this is core to much of the data path for QUIC, the receive buffer is highly optimized for performance, often at the price of more complexity.</p>
+<h2 id="interface">Interface</h2>
+<p>The <code>QUIC_RECV_BUFFER</code> provides a fairly simple interface to callers, in <a href="https://github.com/microsoft/msquic/tree/main/src/core/recv_buffer.h">recv_buffer.h</a>.
+It uses 3 main verbs:</p>
+<ul>
+<li><strong>Write</strong>, <code>QuicRecvBufferWrite</code> - Writes received data to the receive buffer.</li>
+<li><strong>Read</strong>, <code>QuicRecvBufferRead</code> - Reads the available data from the front of the receive buffer.</li>
+<li><strong>Drain</strong>, <code>QuicRecvBufferDrain</code> - Drains a length of data from the front of the receive buffer.</li>
+</ul>
+<p>Initialization, cleanup and various helper functions complete the interface, but are mainly supporting the three actions above.</p>
+<h3 id="general-usage">General Usage</h3>
+<p>A caller first 'writes' received data to the receive buffer, which <strong>copies</strong> the data locally.
+Internally, the receive buffer manages the memory dynamically to ensure the appropriate amount of space is available to store the data (up to its virtual size, more on this below).
+The receive buffer also manages the reassembly logic, tracking which offsets and lengths have been received.
+As an output of the 'write', the receive buffer indicates if data can be read from the front of the buffer.
+The caller may make multiple writes before any call to read (which improves performances by allowing several 'writes' to be batched into a single 'read').</p>
+<p>The caller then 'reads' data. The receive buffer reads as much contiguous data as possible starting from its current reading head position.
+It will populate the array of <code>QUIC_BUFFER</code> provided by the caller with pointers and length, as a <strong>view of its internal buffers</strong>.</p>
+<p>Finally, the caller 'drains' data from the receive buffer. The receive buffer discards the drained data, moving its reading head by the number of drained bytes.
+The receive buffer ensures that the <code>QUIC_BUFFER</code>s provided for a 'read' are valid until the data is drained (more details on this when discussing the buffer modes).
+The caller doesn't necessarily drain all the data indicated by a 'read'.</p>
+<p>Throughout the lifetime of the receive buffer, the cycle of write, read, drain calls continues until the caller is done with the receive buffer.</p>
+<h3 id="different-modes-of-operation">Different Modes of Operation</h3>
+<p>Different modes of operation are supported by the receive buffer.</p>
+<ul>
+<li><strong>Single</strong>, <code>QUIC_RECV_BUF_MODE_SINGLE</code> - Ensures a 'reads' always indicates a single contiguous buffer;</li>
+<li><strong>Circular</strong>, <code>QUIC_RECV_BUF_MODE_CIRCULAR</code> - Default receive buffer mode, balances performances and ease of use;</li>
+<li><strong>Multiple</strong>, <code>QUIC_RECV_BUF_MODE_MULTIPLE</code> - Allows multiple independent pending reads;</li>
+<li><strong>AppOwned</strong>, <code>QUIC_RECV_BUF_MODE_APP_OWNED</code> - Uses memory buffers provided by the caller to write data;</li>
+</ul>
+<p>The 'write' operation is similar for all modes, but the behavior of 'read' and 'drain' operations change.</p>
+<h4 id="contiguous-data-buffering">Contiguous data buffering</h4>
+<p>The Single mode guarantees that all data indicated on a 'read' is contiguous in memory: it always returns a single <code>QUIC_BUFFER</code>.
+However, Single mode needs additional data copy to implement this behavior and is less performant.
+This mode is used because the TLS libraries do not support 'gather' semantics and expect to operate on single, contiguous buffers.</p>
+<p>Other modes can indicate multiple <code>QUIC_BUFFER</code> pointing to non-continuous memory:
+the number of <code>QUIC_BUFFER</code> reported on a 'read' is not fixed and is subject to change (the caller should not assume an upper bound).
+In practice, Circular mode can currently use up to 2 buffers, Multiple mode up to 3 and AppOwned mode up to the number of buffers provided by the application.</p>
+<h4 id="number-of-pending-read">Number of pending 'read'</h4>
+<p>For Single, Circular and AppOwned modes, only a single 'read' can be pending at a time.
+Each 'read' must be paired with a 'drain' (for up to the size of the 'read', but potentially less),
+before another 'read' can be done.</p>
+<p>For the Multiple mode, multiple 'reads' can be pending simultaneously.
+The number of 'drains' can differ from the number of 'read' (higher or smaller)
+as long as the total number of bytes drained stays lower than the total number of bytes read at all time.</p>
+<h4 id="partial-drain">Partial 'drain'</h4>
+<p>For Single, Circular and AppOwned modes, the data indicated during a 'read' that is not drained will be
+indicated again in the next 'read'.</p>
+<p>For the Multiple mode, each byte of data is only indicated once.
+A 'read' will always indicate data starting from the end of the previous 'read'.</p>
+<h4 id="memory-ownership">Memory ownership</h4>
+<p>For Single, Circular and Multiple modes, the receive buffer owns the memory buffers
+and gives out pointer to its internal buffers on a 'read'.</p>
+<p>A pre-allocated buffer can be provided by the caller to optimize the receive buffer initialization,
+this pre-allocated buffer is owned by the caller.</p>
+<p>For the AppOwned mode, buffers are owned by the application and provided to the receive buffer.
+The caller must ensure buffers stay valid until they are fully drained or the receive buffer is deinitialized
+(more precisely, a buffer can be released by the caller as soon as all its bytes have been 'read' as long as
+the matching 'drain' drains all the buffer bytes - the receive buffer ).
+This allows to avoid a copy but increases the application memory management complexity.</p>
+<h2 id="internal-design">Internal Design</h2>
+<p>In very few words, the receive buffers does the following:</p>
+<ul>
+<li>It tracks all bytes written during the lifetime of the buffer, from byte index 0.</li>
+<li>It maintains a reading head pointing to the first byte that has not been drained yet,
+and the offset of that byte in the stream.</li>
+<li>It manages buffer allocations to store bytes written to the buffer
+<ul>
+<li>It grows the allocated buffer space as needed</li>
+<li>It copies bytes to the appropriate buffer index based on their stream offset to re-order them.</li>
+</ul>
+</li>
+<li>It references buffers while they are shared with the client to ensure they aren't freed.</li>
+</ul>
+<h3 id="data-structures">Data structures</h3>
+<p><code>QUIC_RECV_BUFFER</code> store information in two main data structures, with other variables helping to manage them.</p>
+<ul>
+<li>A <code>WrittenRanges</code>, a <code>QUIC_RANGE</code> which stores which byte numbers that have been written to the receive buffer.
+It maps directly to the byte offsets from the Quic stream and stores the offsets for all bytes written to the buffer since its creation (not only the one currently stored).</li>
+<li>A list of <code>Chunks</code>. <code>QUIC_RECV_CHUNK</code>s are essentially memory buffers associated with control
+variables (size, list link, ...). They contain the memory allocated in the receive buffer.
+Data is read and written there.</li>
+</ul>
+<p>The logic surrounding <code>WrittenRanges</code> is pretty straightforward: when data is written to the receive buffer,
+the new byte offsets are inserted in <code>WrittenRanges</code>. At any time, the first contiguous segment of <code>WrittenRanges</code> is the data that has been, or can be read by the client.</p>
+<p>The interesting logic is largely about managing the list of <code>Chunks</code>.</p>
+<h3 id="active-and-retired-chunks">Active and retired chunks</h3>
+<p>Chunks can be &quot;active&quot; or &quot;retired&quot;. An active chunk data can be used by a new 'read' or 'write' operation.
+A retired chunk is a chunk that is waiting to be deleted but is currently referenced by the application.
+All its data has either been drained or has been copied to an active chunk, it will be deleted as soon as it isn't referenced anymore.</p>
+<p>Currently, the single and circular can have up to one retired chunk and one active chunk.
+The multiple and app-owned modes do not use retired chunks and can have multiple active chunks.</p>
+<h3 id="a-special-chunk-the-first-active-chunk">A special chunk: the first active chunk</h3>
+<p>'Read' and 'write' operations are generally performed linearly on chunks, starting from the buffer start,
+progressing through it linearly and, if more data needs to be read / written, continuing on the next chunk.</p>
+<p>However, the first <strong>active</strong> chunk has a special behavior:</p>
+<ul>
+<li>it is treated as a circular buffer, starting from the reading head position (see <code>ReadStart</code> below).</li>
+<li>it can be shrunk, reducing the amount of buffer space that can be used (see <code>Capacity</code> below).</li>
+</ul>
+<p>Once the index <code>(ReadStart + Capacity) % FirstChunkLength</code> is reached, wrapping around if needed,
+the processing continues with the next chunk and progress linerarly from there.</p>
+<p>This circular behavior allows the receive buffer to minimize copy and re-allocations.</p>
+<h3 id="control-variables-and-invariants">Control variables and invariants</h3>
+<p><code>BaseOffset</code>
+: The stream byte index of the byte at the reading head position.</p>
+<p><code>VirtualBufferLength</code>
+: The size of the receive buffer as indicated to the client code. It doesn't necessarily correspond to the amount of memory currently allocated in the receive buffer.</p>
+<p><strong>Invariant</strong>:</p>
+<ul>
+<li><code>BaseOffset</code> and <code>BaseOffset + VirtualBufferLength</code> must only increase through time. However, <code>VirtualBufferLength</code> can decrease.</li>
+</ul>
+<p><strong>Invariant</strong>: A 'write' operation must only write bytes with offset lower than <code>BaseOffset</code> + <code>VirtualBufferLength</code>. Bytes offset lower than <code>BaseOffset</code> are ignored.</p>
+<p><code>ReadPendingLength</code>
+: The number of bytes that have been indicated to the client through a 'read' and not released by 'drain' yet.</p>
+<p><strong>Invariant</strong>:</p>
+<ul>
+<li><code>BaseOffset + ReadPendingLength</code> is smaller than the size of the first range in <code>WrittenRanges</code>.</li>
+<li>For modes other than &quot;Multiple&quot;, a 'read' is allowed if and only if <code>ReadPendingLength == 0</code> and a drain reset <code>ReadPendingLength</code> to 0.</li>
+</ul>
+<p>The variables below are tracking properties of the first <em>active</em> chunk in the <code>Chunks</code> list to handle its special behavior.</p>
+<p><code>ReadStart</code>
+: The offset of the reading head in the first active chunk.</p>
+<p><strong>Invariant</strong>: For Single mode, <code>ReadStart == 0</code>.</p>
+<p><code>Capacity</code>
+: The usable size of the first active chunk. Only bytes in <code>[ReadStart, ReadStart + Capacity)</code> (seen in a circular way) should be accessed.
+It is used to progressively shrink the size of the first active chunk when data is 'read' and the buffer space should not be re-used (App-owned and Multiple modes).</p>
+<p><strong>Invariant</strong>: For Single and AppOwned modes, <code>ReadStart + Capacity</code> is smaller than the first active chunk size.
+This implies that the chunk will never be used in a circular fashion in these modes.</p>
+<p><code>ReadLength</code>
+: The number of bytes that can be 'read' from the first active chunk.</p>
+<p><strong>Invariant</strong>:</p>
+<ul>
+<li><code>ReadLength</code> is the minimum between <code>Capacity</code> and <code>FirstRangeSize - BaseOffset</code> (where <code>FirstRangeSize</code> is the size of the first range in <code>WrittenRanges</code>).</li>
+</ul>
+<h3 id="memory-management">Memory Management</h3>
+<p>As mentioned above, the receive buffer generally manages memory itself and doesn't follow the common socket <code>recv</code> model of requiring the app the pre-post a buffer.
+The AppOwned mode is the exception, with memory being managed by the caller.</p>
+<p>Internally, the receive buffer tries to minimize total memory usage, both in terms of bytes and number of unique buffers to keep at once.
+It generally prefers one large chunk over multiple smaller chunks, even if this means data must be copied from one buffer to another (larger) one.
+This aims to reduce the complexity of both the internal implementation and the caller implementation.</p>
+<p>Since the receive buffer gives out pointers to its internal buffers, it must keep track of these external references and
+extend the lifetimes of chunks so that they are not deleted from underneath the caller.
+This means the receive buffer might keep a &quot;retired&quot; buffer for some time, or decide to have multiple active chunks for a while.</p>
+<p>Another aspect of memory management is balancing the amount of memory we advertised to the peer we are willing to allocate and how much we actually allocate.
+The caller controls both the advertised, maximum allocation size, as well as the initial buffer size to allocate.
+The caller can dynamically increase the maximum size as necessary.</p>
+<p>The receive buffer takes these values and dynamically allocates memory (doubling in size as necessary) up to the maximum
+size - except in AppOwned mode, where the application must provide memory to match the maximum size advertised to the peer.</p>
+<h3 id="less-words-more-ascii-art">Less words, more ASCII art!!</h3>
+<ul>
+<li><code>x</code>, <code>+</code>: A 'write' put data here</li>
+<li><code>.</code>: No data here yet</li>
+<li><code> </code>: Bytes that should no longer be accessed</li>
+</ul>
+<p>A very generic view of the receive buffer could be:</p>
+<pre><code>   Retired                                         Chunk 1                            Chunk 2              Chunk 3       
+┌──────────────┐   ┌───────────────────────────────────────────────────────────┐   ┌────────────────┐   ┌──────────────┐ 
+│              │   │xxx.......xxxxxxxx                   xxxxxxxxxxxxxxxxxxxxxx├──►│xxxxxxxx........├──►│xxxxxxxxxxx...│ 
+└──────────────┘   └───▲──────────────▲──────────────────▲───────────────▲─────┘   └────────────────┘   └──────────────┘ 
+                       │              │                  │               │                                               
+                   ReadStart +      ReadStart +       ReadStart       ReadStart +                                        
+                    ReadLength       Capacity                          ReadPendingLength                                 
+</code></pre>
+<p>This receive buffer has 1 retired chunk and 3 active chunks.
+<code>WrittenRanges</code> contains 3 data segments:</p>
+<ul>
+<li><code>[0, ReadStart + ReadLength]</code>, cycling through the end of Chunk 1;</li>
+<li>The second segment goes over the end of Chunk 1 and the start of Chunk 2;</li>
+<li>The third segment is at the start of chunk3</li>
+</ul>
+<p>However, the state of the receive buffer presented above is so generic it will actually never happen:
+For instance, single and circular modes would only have a single active chunk at a time.
+Multiple and app-owned would not have a retired chunk.</p>
+<p>Still, this is the model to keep in mind for code that must be compatible with all modes.</p>
+<h4 id="circular-mode">Circular mode</h4>
+<pre><code>                                Chunk 1                              
+┌───────────────────────────────────────────────────────────┐        
+│xxx.......xxxxxxxx...................xxxxxxxxxxxxxxxxxxxxxx│        
+└───▲─────────────────────────────────▲───────────────▲─────┘        
+    │                                 │               │              
+ReadStart +                        ReadStart       ReadStart +       
+ ReadLength                           │             ReadPendingLength
+                                      │                              
+                                  ReadStart +                        
+                                   Capacity                          
+</code></pre>
+<p>In circular mode, the data can wrap around the end. There is always a single active chunk
+and the capacity is always the full buffer size. A &quot;retired&quot; chunk can be present in a similar way
+as in the Single mode exemple below.</p>
+<h4 id="single-mode">Single mode</h4>
+<pre><code>   Retired                                         Chunk 1                            
+┌──────────────┐   ┌───────────────────────────────────────────────────────────┐      
+│xxxxxxxxxx....│   │xxxxxxxxxx+++++++...++++...................................│      
+└──────────────┘   └▲─────────▲──────▲─────────────────────────────────────────▲      
+                    │         │      │                                         │      
+                 ReadStart    │  ReadStart +                               ReadStart +
+                              │   ReadLength                                Capacity  
+                              │                                                       
+                          ReadStart +                                                 
+                           ReadPendingLength                                          
+</code></pre>
+<p>In single mode, <code>ReadStart</code> is always at the front of the buffer.
+A 'read' was pending and data <code>+</code> could not fit in the initial chunk: the old chunk had to be retired
+until it isn't referenced anymore and data <code>x</code> was copied to the new chunk front.</p>
+<h4 id="multiple-mode">Multiple mode</h4>
+<pre><code>                                Chunk 1                            Chunk 2       
+┌───────────────────────────────────────────────────────────┐   ┌────────────────┐
+│xxx.......xxxxxxxx                   ++++++++++++++++xxxxxx├──►│xxxxxxxx........│
+└───▲──────────────▲──────────────────▲───────────────▲─────┘   └────────────────┘
+    │              │                  │               │                           
+ReadStart +      ReadStart +       ReadStart       ReadStart +                    
+ ReadLength       Capacity                          ReadPendingLength             
+</code></pre>
+<p>In multiple mode, several chunks can be active at the same time.
+It took several steps to arrive to the situation above:</p>
+<ul>
+<li>Data <code>+</code> was written to the buffer</li>
+<li>A 'read' was performed for all the data <code>+</code></li>
+<li>More data <code>x</code> was written to the buffer, causing the creation of Chunk 2 once Chunk 1 was full
+<ul>
+<li>Note that if a read was not pending on Chunk 1, data would have been copied instead to Chunk 2.</li>
+</ul>
+</li>
+<li>A 'drain' was performed for part of the data <code>+</code>
+<ul>
+<li>Since a second chunk is present, the <code>Capacity</code> was shrunk as part of the drain</li>
+</ul>
+</li>
+</ul>
+<h4 id="app-owned-mode">App-owned mode</h4>
+<pre><code>                                Chunk 1                            Chunk 2              Chunk 3      
+┌───────────────────────────────────────────────────────────┐   ┌────────────────┐   ┌──────────────┐
+│                     xxxxxxxxxxxxxxxxxxxxxxxx..............├──►│xxxxxxxx........├──►│....xxxxxxx...│
+└─────────────────────▲───────────────────────▲─────────────▲   └────────────────┘   └──────────────┘
+                      │                       │             │                                        
+                   ReadStart              ReadStart +     ReadStart +                                
+                                           ReadLength      Capacity                                  
+</code></pre>
+<p>In app-owned mode, <code>ReadStart + Capacity</code> always point to the end of the first chunk, no wrap around ever happen.
+Bytes from the start of the first chunk up to <code>ReadStart</code> should no longer be accessed:
+we need to write in the provided buffer only once and in order.
+Many active chunks can be present at the same time.</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/ReceiveBuffer.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

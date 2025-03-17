@@ -146,6 +146,10 @@ QUIC_STATUS
 <td><strong>QUIC_SEND_FLAG_CANCEL_ON_LOSS</strong><br>32</td>
 <td>Informs MsQuic to irreversibly mark the associated stream to be canceled when packet loss has been detected on it. I.e., all sends on a given stream are subject to this behavior from the moment the flag has been supplied for the first time.</td>
 </tr>
+<tr>
+<td><strong>QUIC_SEND_FLAG_CANCEL_ON_BLOCKED</strong><br>64</td>
+<td><strong>Unused and ignored</strong> for <code>StreamSend</code> for now</td>
+</tr>
 </tbody>
 </table>
 <p><code>ClientSendContext</code></p>

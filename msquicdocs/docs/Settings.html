@@ -646,6 +646,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Both</td>
 <td>The CIBIR well-known idenfitier.</td>
 </tr>
+<tr>
+<td><code>QUIC_PARAM_DOS_MODE_EVENTS</code><br> 2</td>
+<td>BOOLEAN</td>
+<td>Both</td>
+<td>The Listener opted in for DoS Mode event.</td>
+</tr>
 </tbody>
 </table>
 <h2 id="connection-parameters">Connection Parameters</h2>
@@ -810,6 +816,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Get-only</td>
 <td>The original destination connection ID used by the client to connect to the server.</td>
 </tr>
+<tr>
+<td><code>QUIC_PARAM_CONN_SEND_DSCP</code> <br> 25</td>
+<td>uint8_t</td>
+<td>Both</td>
+<td>The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection.</td>
+</tr>
 </tbody>
 </table>
 <h3 id="quic_param_conn_statistics_v2">QUIC_PARAM_CONN_STATISTICS_V2</h3>
@@ -908,7 +920,7 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td><code>QUIC_PARAM_STREAM_PRIORITY</code> <br> 3</td>
 <td>uint16_t</td>
 <td>Get/Set</td>
-<td>Stream priority.</td>
+<td>A value from 0x0 to 0xFFFF that indicates the Stream priority. 0xFFFF is highest priority. Data on higher priority stream get sent first. All streams start with priority 0x7FFF by default.</td>
 </tr>
 <tr>
 <td><code>QUIC_PARAM_STREAM_STATISTICS</code> <br> 4</td>

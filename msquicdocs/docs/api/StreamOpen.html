@@ -130,6 +130,10 @@ QUIC_STATUS
 <td><strong>QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES</strong><br>4</td>
 <td>Indicates stream ID flow control limit updates for the connection should be delayed to StreamClose.</td>
 </tr>
+<tr>
+<td><strong>QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS</strong><br>5</td>
+<td>Receive buffers are owned by the app and will be provided using StreamProvideReceiveBuffers. MsQuic won't allocate any buffers for the stream.</td>
+</tr>
 </tbody>
 </table>
 <p><code>Handler</code></p>

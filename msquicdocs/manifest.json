@@ -152,6 +152,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/ReceiveBuffer.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/ReceiveBuffer.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/Release.md",
       "output": {
         ".html": {
@@ -626,6 +636,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/api/StreamOpen.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/StreamProvideReceiveBuffers.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/StreamProvideReceiveBuffers.html"
         }
       },
       "version": ""

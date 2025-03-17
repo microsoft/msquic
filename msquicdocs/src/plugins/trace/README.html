@@ -117,7 +117,9 @@
 <p>One of the built-in capabilities of WPA is the ability to analyze CPU trace information to see the CPU usage of the various call stacks in the code. For instance, in the above Flame Graph you can easily see that the most expensive function (58% of total CPU usage!) is <code>CxPlatEncrypt</code>.</p>
 <h3 id="linux">Linux</h3>
 <p>Linux perf command is one of the way to collect such information.</p>
-<pre><code class="lang-sh"># on Linux
+<pre><code class="lang-sh"># on Linux (kernel &gt; 5.10)
+sudo apt-get install -y linux-perf
+# on Linux (kernel &lt;= 5.10)
 sudo apt-get install -y linux-tools-`uname -r`
 # use your own options
 perf record -a -g -F 10 -o out.perf.data
