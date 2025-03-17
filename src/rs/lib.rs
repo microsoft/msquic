@@ -23,11 +23,19 @@ mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+pub use types::{
+    BufferRef, ConnectionEvent, ConnectionShutdownFlags, DatagramSendState, ListenerEvent,
+    NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent, StreamOpenFlags, StreamShutdownFlags,
+    StreamStartFlags, TlsProvider,
+};
 mod settings;
 pub use settings::{ServerResumptionLevel, Settings};
 mod config;
-pub use config::{CredentialConfig, ExecutionProfile, RegistrationConfig};
+pub use config::{
+    AllowedCipherSuiteFlags, CertificateFile, CertificateFileProtected, CertificateHash,
+    CertificateHashStore, CertificateHashStoreFlags, CertificatePkcs12, Credential,
+    CredentialConfig, CredentialFlags, ExecutionProfile, RegistrationConfig,
+};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -125,11 +133,6 @@ impl From<SocketAddrV6> for Addr {
     }
 }
 
-/// The different possible TLS providers used by MsQuic.
-pub type TlsProvider = u32;
-pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
-pub const TLS_PROVIDER_OPENSSL: TlsProvider = 1;
-
 /// Represents how load balancing is performed.
 pub type LoadBalancingMode = u32;
 pub const LOAD_BALANCING_DISABLED: LoadBalancingMode = 0;
@@ -152,16 +155,6 @@ pub const TLS_ALERT_CODE_INTERNAL_ERROR: TlsAlertCode = 80;
 pub const TLS_ALERT_CODE_USER_CANCELED: TlsAlertCode = 90;
 pub const TLS_ALERT_CODE_CERTIFICATE_REQUIRED: TlsAlertCode = 116;
 
-/// Modifies the default certificate hash store configuration.
-pub type CertificateHashStoreFlags = u32;
-pub const CERTIFICATE_HASH_STORE_FLAG_NONE: CertificateHashStoreFlags = 0;
-pub const CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE: CertificateHashStoreFlags = 1;
-
-/// Controls connection shutdown behavior.
-pub type ConnectionShutdownFlags = u32;
-pub const CONNECTION_SHUTDOWN_FLAG_NONE: ConnectionShutdownFlags = 0;
-pub const CONNECTION_SHUTDOWN_FLAG_SILENT: ConnectionShutdownFlags = 1;
-
 /// Modifies the behavior when sending resumption data.
 pub type SendResumptionFlags = u32;
 pub const SEND_RESUMPTION_FLAG_NONE: SendResumptionFlags = 0;
@@ -172,49 +165,6 @@ pub type StreamSchedulingScheme = u32;
 pub const STREAM_SCHEDULING_SCHEME_FIFO: StreamSchedulingScheme = 0;
 pub const STREAM_SCHEDULING_SCHEME_ROUND_ROBIN: StreamSchedulingScheme = 1;
 pub const STREAM_SCHEDULING_SCHEME_COUNT: StreamSchedulingScheme = 2;
-
-pub type StreamOpenFlags = u32;
-pub const STREAM_OPEN_FLAG_NONE: StreamOpenFlags = 0;
-pub const STREAM_OPEN_FLAG_UNIDIRECTIONAL: StreamOpenFlags = 1;
-pub const STREAM_OPEN_FLAG_0_RTT: StreamOpenFlags = 2;
-
-pub type StreamStartFlags = u32;
-pub const STREAM_START_FLAG_NONE: StreamStartFlags = 0;
-pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 1;
-pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 2;
-pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 4;
-pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 8;
-
-/// Controls stream shutdown behavior.
-pub type StreamShutdownFlags = u32;
-pub const STREAM_SHUTDOWN_FLAG_NONE: StreamShutdownFlags = 0;
-pub const STREAM_SHUTDOWN_FLAG_GRACEFUL: StreamShutdownFlags = 1;
-pub const STREAM_SHUTDOWN_FLAG_ABORT_SEND: StreamShutdownFlags = 2;
-pub const STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE: StreamShutdownFlags = 4;
-pub const STREAM_SHUTDOWN_FLAG_ABORT: StreamShutdownFlags = 6;
-pub const STREAM_SHUTDOWN_FLAG_IMMEDIATE: StreamShutdownFlags = 8;
-
-pub type ReceiveFlags = u32;
-pub const RECEIVE_FLAG_NONE: ReceiveFlags = 0;
-pub const RECEIVE_FLAG_0_RTT: ReceiveFlags = 1;
-pub const RECEIVE_FLAG_FIN: ReceiveFlags = 2;
-
-/// Controls stream and datagram send behavior.
-pub type SendFlags = u32;
-pub const SEND_FLAG_NONE: SendFlags = 0;
-pub const SEND_FLAG_ALLOW_0_RTT: SendFlags = 1;
-pub const SEND_FLAG_START: SendFlags = 2;
-pub const SEND_FLAG_FIN: SendFlags = 4;
-pub const SEND_FLAG_DGRAM_PRIORITY: SendFlags = 8;
-pub const SEND_FLAG_DELAY_SEND: SendFlags = 16;
-
-pub type DatagramSendState = u32;
-pub const DATAGRAM_SEND_SENT: DatagramSendState = 0;
-pub const DATAGRAM_SEND_LOST_SUSPECT: DatagramSendState = 1;
-pub const DATAGRAM_SEND_LOST_DISCARDED: DatagramSendState = 2;
-pub const DATAGRAM_SEND_ACKNOWLEDGED: DatagramSendState = 3;
-pub const DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS: DatagramSendState = 4;
-pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
 
 /// Key information for TLS session ticket encryption.
 #[repr(C)]
@@ -335,7 +285,6 @@ pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
 pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
 pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
 pub const PARAM_GLOBAL_DATAPATH_PROCESSORS: u32 = 0x01000009;
-pub const PARAM_GLOBAL_TLS_PROVIDER: u32 = 0x0100000A;
 
 pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
@@ -635,13 +584,14 @@ impl Api {
         }
     }
 
-    pub fn get_tls_provider() -> Result<crate::ffi::QUIC_TLS_PROVIDER, Status> {
-        unsafe {
+    pub fn get_tls_provider() -> Result<crate::TlsProvider, Status> {
+        let prov: crate::ffi::QUIC_TLS_PROVIDER = unsafe {
             Api::get_param_auto(
                 std::ptr::null_mut(),
                 crate::ffi::QUIC_PARAM_GLOBAL_TLS_PROVIDER,
             )
-        }
+        }?;
+        Ok(prov.into())
     }
 
     /// # Safety
@@ -979,11 +929,7 @@ impl Connection {
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
         unsafe {
-            Api::ffi_ref().ConnectionShutdown.unwrap()(
-                self.handle,
-                flags as crate::ffi::QuicFlag,
-                error_code,
-            );
+            Api::ffi_ref().ConnectionShutdown.unwrap()(self.handle, flags.bits(), error_code);
         }
     }
 
@@ -1038,7 +984,7 @@ impl Connection {
                 self.handle,
                 buffers.as_ptr() as *const QUIC_BUFFER,
                 buffers.len() as u32,
-                flags as crate::ffi::QuicFlag,
+                flags.bits(),
                 client_send_context as *mut c_void,
             )
         };
@@ -1228,7 +1174,7 @@ impl Stream {
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
-                flags as crate::ffi::QuicFlag,
+                flags.bits(),
                 Some(raw_stream_callback),
                 ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
@@ -1240,19 +1186,13 @@ impl Stream {
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Status> {
-        let status = unsafe {
-            Api::ffi_ref().StreamStart.unwrap()(self.handle, flags as crate::ffi::QuicFlag)
-        };
+        let status = unsafe { Api::ffi_ref().StreamStart.unwrap()(self.handle, flags.bits()) };
         Status::ok_from_raw(status)
     }
 
     pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Status> {
         let status = unsafe {
-            Api::ffi_ref().StreamShutdown.unwrap()(
-                self.handle,
-                flags as crate::ffi::QuicFlag,
-                error_code,
-            )
+            Api::ffi_ref().StreamShutdown.unwrap()(self.handle, flags.bits(), error_code)
         };
         Status::ok_from_raw(status)
     }
@@ -1286,7 +1226,7 @@ impl Stream {
                 self.handle,
                 buffers.as_ptr() as *const QUIC_BUFFER,
                 buffers.len() as u32,
-                flags as crate::ffi::QuicFlag,
+                flags.bits(),
                 client_send_context as *mut c_void,
             )
         };
@@ -1362,7 +1302,7 @@ mod tests {
                 println!("Peer address changed: {:?}", address.as_socket().unwrap())
             }
             ConnectionEvent::PeerStreamStarted { stream, flags } => {
-                println!("Peer stream started: flags: {flags}");
+                println!("Peer stream started: flags: {flags:?}");
                 stream.set_callback_handler(test_stream_callback)
             }
             ConnectionEvent::StreamsAvailable {
