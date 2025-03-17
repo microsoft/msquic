@@ -130,8 +130,8 @@ typedef enum CXPLAT_SOCKET_TYPE {
     CXPLAT_SOCKET_TCP_LISTENER    = 1,
     CXPLAT_SOCKET_TCP             = 2,
     CXPLAT_SOCKET_TCP_SERVER      = 3,
-    CXPLAT_SOCKET_RDMA            = 4,
-    CXPLAT_SOCKET_RDMA_LISTENER   = 5,
+    CXPLAT_SOCKET_RDMA_LISTENER   = 4,
+    CXPLAT_SOCKET_RDMA            = 5,
     CXPLAT_SOCKET_RDMA_SERVER     = 6,
 } CXPLAT_SOCKET_TYPE;
 
@@ -455,6 +455,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     SOCKET Socket;
 
     //
+    // Overlapped File Handle for RDMA connection
+    //
+    HANDLE RdmaHandle;
+
+    //
     // Rundown for synchronizing upcalls to the app and downcalls on the Socket.
     //
     CXPLAT_RUNDOWN_REF RundownRef;
@@ -655,9 +660,11 @@ typedef struct CXPLAT_SOCKET {
     uint8_t RawSocketAvailable : 1;
 
     //
-    // RDMA connection context
+    // RDMA Context
+    // For a client or server endpoint, this would point to RDMA_CONNECTION
+    // For a listener endpoint, this would point to RDMA_LISTENER
     //
-    void* RdmaConnection;
+    void* RdmaContext;
 
     //
     // Per-processor socket contexts.
@@ -764,6 +771,39 @@ CxPlatConvertFromMappedV6(
                                IN4_IS_ADDR_LOOPBACK(&Address.Ipv4.sin_addr)) ||                \
                               (Address.si_family == QUIC_ADDRESS_FAMILY_INET6 &&               \
                                IN6_IS_ADDR_LOOPBACK(&Address.Ipv6.sin6_addr)))
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatStartDatapathIo(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _Inout_ CXPLAT_SQE* Sqe,
+    _In_ CXPLAT_EVENT_COMPLETION Completion
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatCancelDatapathIo(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatSocketEnqueueSqe(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ CXPLAT_SQE* Sqe,
+    _In_ uint32_t NumBytes
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSocketContextRelease(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    );
+
+void
+CxPlatDataPathStartReceiveAsync(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    );
 
 #endif // _WIN32
 
@@ -1345,8 +1385,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdmaListener(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_opt_ void* RecvCallbackContext,
+    _In_ const CXPLAT_RDMA_CONFIG * Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     );
 

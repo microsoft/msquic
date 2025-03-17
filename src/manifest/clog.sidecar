@@ -9122,6 +9122,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "RdmaAdapterInitFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
+      "UniqueId": "RdmaAdapterInitFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "Receive": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Received %hu bytes, offset=%llu Ready=%hhu",
@@ -16180,6 +16196,11 @@
         "UniquenessHash": "4f370688-5822-225a-8c7e-ec4200d38f0a",
         "TraceID": "RawSockCreateFail",
         "EncodingString": "[sock] Failed to create raw socket, status:%d"
+      },
+      {
+        "UniquenessHash": "9d1fff3d-5e54-15a2-01d2-6bee46f255ea",
+        "TraceID": "RdmaAdapterInitFailed",
+        "EncodingString": "[Datapath][%p] RdmaAdapterInitFailed, 0x%x"
       },
       {
         "UniquenessHash": "84eb0d5c-ea47-1349-64a1-66146e94d06e",

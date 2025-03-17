@@ -908,10 +908,9 @@ CxPlatUpdateRoute(
 //
 // The following APIs are specific for RDMA Implementation
 //
-#define CXPLAT_RDMA_FLAG_SERVER_OWNED   0x00000001   // Indicates handle is an RDMA Listener handle
-#define CXPLAT_RDMA_FLAG_SHARE_ENDPOINT 0x00000002   // Forces sharing of the address and port
-#define CXPLAT_RDMA_FLAG_SHARE_MR       0x00000004   // Forces sharing of the Memory Region
-#define CXPLAT_RDMA_FLAG_SHARE_CQ       0x00000008   // Indicates sharing of the Completion Queue
+#define CXPLAT_RDMA_FLAG_SHARE_ENDPOINT 0x00000001   // Forces sharing of the address and port
+#define CXPLAT_RDMA_FLAG_SHARE_MR       0x00000002   // Forces sharing of the Memory Region
+#define CXPLAT_RDMA_FLAG_SHARE_CQ       0x00000004   // Indicates sharing of the Completion Queue
 
 
 typedef struct CXPLAT_RDMA_CONFIG {
