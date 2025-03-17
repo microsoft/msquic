@@ -75,25 +75,25 @@ struct QuicPublicEndpoint {
 
 QuicPublicEndpoint PublicEndpoints[] = {
     { "aioquic",        "quic.aiortc.org" },
-    //{ "akamaiquic",     "ietf.akaquic.com" },
-    //{ "applequic",      "71.202.41.169" },
-    //{ "ats",            "quic.ogre.com" },
-    //{ "f5",             "f5quic.com" },
-    //{ "gquic",          "quic.rocks" },
+    { "akamaiquic",     "ietf.akaquic.com" },
+    { "applequic",      "71.202.41.169" },
+    { "ats",            "quic.ogre.com" },
+    { "f5",             "f5quic.com" },
+    { "gquic",          "quic.rocks" },
     { "haskell",        "mew.org" },
-    //{ "lsquic",         "http3-test.litespeedtech.com" },
-    //{ "mvfst",          "fb.mvfst.net" },
-    //{ "msquic",         "msquic.net" },
+    { "lsquic",         "http3-test.litespeedtech.com" },
+    { "mvfst",          "fb.mvfst.net" },
+    { "msquic",         "msquic.net" },
     { "ngtcp2",         "nghttp2.org" },
     { "ngx_quic",       "cloudflare-quic.com" },
-    //{ "Pandora",        "pandora.cm.in.tum.de" },
+    { "Pandora",        "pandora.cm.in.tum.de" },
     { "picoquic",       "test.privateoctopus.com" },
-    //{ "quant",          "quant.eggert.org" },
-    //{ "quinn",          "h3.stammw.eu" },
-    //{ "quic-go",        "quic.seemann.io" },
+    { "quant",          "quant.eggert.org" },
+    { "quinn",          "h3.stammw.eu" },
+    { "quic-go",        "quic.seemann.io" },
     { "quiche",         "quic.tech" },
-   // { "quicker",        "quicker.edm.uhasselt.be" },
-    //{ "quicly-quic",    "quic.examp1e.net" },
+    { "quicker",        "quicker.edm.uhasselt.be" },
+    { "quicly-quic",    "quic.examp1e.net" },
     { "quicly-h20",     "h2o.examp1e.net" },
     { nullptr,          nullptr },              // Used for -custom cmd arg
 };
@@ -372,7 +372,7 @@ public:
                 this,
                 &Connection));
         if (VerNeg) {
-            uint32_t SupportedVersions[] = { RandomReservedVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
+            uint32_t SupportedVersions[] = { RandomReservedVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -387,7 +387,7 @@ public:
                     sizeof(Settings),
                     &Settings));
         } else if (InitialVersion != 0) {
-            uint32_t SupportedVersions[] = { InitialVersion, QUIC_VERSION_2_H, QUIC_VERSION_1_H, QUIC_VERSION_DRAFT_29_H };
+            uint32_t SupportedVersions[] = { InitialVersion, 0x709a50c4U, 0x00000001U, 0xff00001dU };
             QUIC_VERSION_SETTINGS Settings = { 0 };
             Settings.AcceptableVersions = SupportedVersions;
             Settings.AcceptableVersionsLength = ARRAYSIZE(SupportedVersions);
@@ -791,12 +791,10 @@ RunInteropTest(
                 &VersionSettings));
     }
 
-    if (QUIC_FAILED(
+    VERIFY_QUIC_SUCCESS(
         MsQuic->ConfigurationLoadCredential(
             Configuration,
-            &CredConfig))) {
-        goto Error; // Can fail if we try to use features that are unsupported (like ChaCha20).
-    }
+            &CredConfig));
 
     switch (Feature) {
     case VersionNegotiation: {
@@ -974,8 +972,6 @@ RunInteropTest(
     }
     }
 
-Error:
-
     MsQuic->ConfigurationClose(Configuration); // TODO - Wait on connection
 
     if (CustomUrlPath && !Success) {
@@ -1094,10 +1090,6 @@ PrintTestResults(
         printf("%12s  %s  0x%08X  %s\n", PublicEndpoints[Endpoint].ImplementationName,
             ResultCodes, TestResults[Endpoint].QuicVersion,
             TestResults[Endpoint].Alpn);
-    }
-
-    if (TestResults[Endpoint].Alpn != nullptr) {
-        free((void*)TestResults[Endpoint].Alpn);
     }
 }
 
