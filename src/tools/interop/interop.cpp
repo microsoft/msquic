@@ -104,7 +104,7 @@ struct QuicTestResults {
     const char* Alpn {nullptr};
     uint32_t QuicVersion {0};
     uint32_t Features {0};
-    ~QuicTestResults() { free((void*)Alpn); }
+    ~QuicTestResults() { delete [] Alpn; }
 };
 
 QuicTestResults TestResults[ARRAYSIZE(PublicEndpoints)];
@@ -601,7 +601,9 @@ public:
     }
     bool GetNegotiatedAlpn(const char* &Alpn) {
         if (NegotiatedAlpn == nullptr) return false;
-        Alpn = strdup(NegotiatedAlpn);
+        auto NegotiatedAlpnLength = strlen(NegotiatedAlpn) + 1;
+        Alpn = new char[NegotiatedAlpnLength];
+        memcpy((char*)Alpn, NegotiatedAlpn, NegotiatedAlpnLength);
         return true;
     }
     bool GetStatistics(QUIC_STATISTICS_V2& Stats) {
@@ -1046,7 +1048,7 @@ CXPLAT_THREAD_CALLBACK(InteropTestCallback, Context)
         Alpn,
         ThisTestFailed ? "false" : "true");
 
-    free((void*)Alpn);
+    delete [] Alpn;
     delete TestContext;
 
     CXPLAT_THREAD_RETURN(0);
