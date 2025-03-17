@@ -159,7 +159,7 @@ Obtain the peer certificate using a faster in-process API call. Only available o
 
 `QUIC_CREDENTIAL_FLAG_SET_CA_CERTIFICATE_FILE`
 
-Enable CA certificate file provided in the `CaCertificateFile` member.
+Enable CA certificate file provided in the `CaCertificateFile` member. `QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION` must be set.
 
 `QUIC_CREDENTIAL_FLAG_DISABLE_AIA`
 
