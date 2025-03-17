@@ -524,6 +524,12 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     sizeof(BOOLEAN),
+    sizeof(INT32),
+    sizeof(INT32),                           // IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS
+    0,
+    0,
+    sizeof(INT32),
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -772,6 +778,10 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestBindConnectionExplicit(Params->Family));
         break;
+    case IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestAddrFunctions(Params->Family));
+        break;
 
     case IOCTL_QUIC_RUN_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
@@ -952,6 +962,13 @@ QuicTestCtlEvtIoDeviceControl(
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
             QuicTestDatagramSend(
+                Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_DATAGRAM_DROP:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestDatagramDrop(
                 Params->Family));
         break;
 
@@ -1494,6 +1511,26 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestTlsHandshakeInfo(Params->EnableResumption != 0));
+        break;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
+        break;
+
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+        break;
+#endif
+
+    case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDrillTestKeyUpdateDuringHandshake(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
         break;
 
     default:

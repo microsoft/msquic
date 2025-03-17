@@ -99,6 +99,11 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // The DSCP value to use for this send.
+    //
+    uint8_t DSCP;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
@@ -137,6 +142,11 @@ typedef struct CX_PLATFORM {
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -304,6 +314,11 @@ typedef struct CX_PLATFORM {
     // Heap used for all allocations.
     //
     HANDLE Heap;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -747,7 +762,7 @@ CxPlatCryptUninitialize(
 
 //
 // Platform Worker APIs
-// 
+//
 
 BOOLEAN
 CxPlatWorkerPoolLazyStart(

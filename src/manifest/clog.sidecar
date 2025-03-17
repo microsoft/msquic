@@ -1251,6 +1251,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnDscpSet": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Connection DSCP set to %hhu",
+      "UniqueId": "ConnDscpSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "ConnEcnCapable": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Ecn: IsCapable=%hu",
@@ -2695,6 +2711,18 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathOpenUdpv6SocketFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[data] UDPv6 helper socket failed to open, 0x%x",
+      "UniqueId": "DatapathOpenUdpv6SocketFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathQueryRecvMaxCoalescedSizeFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x",
@@ -3026,6 +3054,30 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "DatapathTestSetIpv6TrafficClassFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Test setting IPV6_TCLASS failed, 0x%x",
+      "UniqueId": "DatapathTestSetIpv6TrafficClassFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
+    "DatapathTestSetIpv6TrafficClassFailedAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+      "UniqueId": "DatapathTestSetIpv6TrafficClassFailedAsync",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
     },
     "DatapathTooLarge": {
       "ModuleProperites": {},
@@ -13785,6 +13837,11 @@
         "EncodingString": "[conn][%p] DROP packet Value=%llu Dst=%!ADDR! Src=%!ADDR! Reason=%s."
       },
       {
+        "UniquenessHash": "c753358e-985b-ee38-30e0-cc6cebbe5526",
+        "TraceID": "ConnDscpSet",
+        "EncodingString": "[conn][%p] Connection DSCP set to %hhu"
+      },
+      {
         "UniquenessHash": "9c10f710-84bf-766d-0da5-9e31796cf450",
         "TraceID": "ConnEcnCapable",
         "EncodingString": "[conn][%p] Ecn: IsCapable=%hu"
@@ -14200,6 +14257,11 @@
         "EncodingString": "[data] UDP send segmentation helper socket failed to open (async), 0x%x"
       },
       {
+        "UniquenessHash": "9af95ba3-6d62-261f-fb94-75465f7084ff",
+        "TraceID": "DatapathOpenUdpv6SocketFailed",
+        "EncodingString": "[data] UDPv6 helper socket failed to open, 0x%x"
+      },
+      {
         "UniquenessHash": "1ba702fe-3407-9bab-a2bf-4f694b478ac0",
         "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailed",
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed, 0x%x"
@@ -14293,6 +14355,16 @@
         "UniquenessHash": "3a4da7bb-462a-a423-bd9e-bcc366e59258",
         "TraceID": "DatapathTcpAuxBinding",
         "EncodingString": "[data][%p] Binding TCP socket to %s"
+      },
+      {
+        "UniquenessHash": "576dad43-cdc4-7cbc-817e-f8831afa4980",
+        "TraceID": "DatapathTestSetIpv6TrafficClassFailed",
+        "EncodingString": "[data] Test setting IPV6_TCLASS failed, 0x%x"
+      },
+      {
+        "UniquenessHash": "bac8baf4-caa7-65ff-f815-8e27065cc9ed",
+        "TraceID": "DatapathTestSetIpv6TrafficClassFailedAsync",
+        "EncodingString": "[data] Test setting IPV6_TCLASS failed (async), 0x%x"
       },
       {
         "UniquenessHash": "a07c9538-e6d7-3c41-1367-ce58f2df4d9e",

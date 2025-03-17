@@ -702,6 +702,16 @@ TEST_P(WithFamilyArgs, BindConnectionExplicit) {
     }
 }
 
+TEST_P(WithFamilyArgs, TestAddrFunctions) {
+    TestLoggerT<ParamType> Logger("QuicTestAddrFunctions", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS, GetParam().Family));
+    }
+    else {
+        QuicTestAddrFunctions(GetParam().Family);
+    }
+}
+
 TEST_P(WithHandshakeArgs1, Connect) {
     TestLoggerT<ParamType> Logger("QuicTestConnect-Connect", GetParam());
     if (TestingKernelMode) {
@@ -910,6 +920,18 @@ TEST_P(WithFamilyArgs, InterfaceBinding) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_INTERFACE_BINDING, GetParam().Family));
     } else {
         QuicTestInterfaceBinding(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, RetryMemoryLimitConnect) {
+    TestLoggerT<ParamType> Logger("QuicTestRetryMemoryLimitConnect", GetParam());
+    if (UseDuoNic) {
+        GTEST_SKIP_("DuoNIC is not supported");
+    }
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT, GetParam().Family));
+    } else {
+        QuicTestRetryMemoryLimitConnect(GetParam().Family);
     }
 }
 
@@ -2244,6 +2266,24 @@ TEST(Misc, StreamMultiReceive) {
         QuicTestStreamMultiReceive();
     }
 }
+
+TEST(Misc, StreamAppProvidedBuffers) {
+    TestLogger Logger("StreamAppProvidedBuffers");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+    } else {
+        QuicTestStreamAppProvidedBuffers();
+    }
+}
+
+TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
+    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+    } else {
+        QuicTestStreamAppProvidedBuffersZeroWindow();
+    }
+}
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(Misc, StreamBlockUnblockUnidiConnFlowControl) {
@@ -2330,6 +2370,15 @@ TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestServerVNPacket) {
     }
 }
 
+TEST_P(WithDrillInitialPacketTokenArgs, QuicDrillTestKeyUpdateDuringHandshake) {
+    TestLoggerT<ParamType> Logger("QuicDrillTestKeyUpdateDuringHandshake", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE, GetParam().Family));
+    } else {
+        QuicDrillTestKeyUpdateDuringHandshake(GetParam().Family);
+    }
+}
+
 TEST_P(WithDatagramNegotiationArgs, DatagramNegotiation) {
     TestLoggerT<ParamType> Logger("QuicTestDatagramNegotiation", GetParam());
     if (TestingKernelMode) {
@@ -2349,6 +2398,15 @@ TEST_P(WithFamilyArgs, DatagramSend) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_SEND, GetParam().Family));
     } else {
         QuicTestDatagramSend(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, DatagramDrop) {
+    TestLoggerT<ParamType> Logger("QuicTestDatagramDrop", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DATAGRAM_DROP, GetParam().Family));
+    } else {
+        QuicTestDatagramDrop(GetParam().Family);
     }
 }
 

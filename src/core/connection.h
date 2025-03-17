@@ -463,6 +463,12 @@ typedef struct QUIC_CONNECTION {
     uint8_t PeerReorderingThreshold;
 
     //
+    // DSCP value to set on all sends from this connection.
+    // Default value of 0.
+    //
+    uint8_t DSCP;
+
+    //
     // The ACK frequency sequence number we are currently using to send.
     //
     uint64_t SendAckFreqSeqNum;

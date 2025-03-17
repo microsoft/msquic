@@ -83,7 +83,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
         tls: [openssl, openssl3]
         static: ['', '-Static']
@@ -105,7 +105,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
         tls: [openssl, openssl3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
@@ -120,14 +120,9 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # TODO: android to support ubuntu-24.04
+        # TODO: Fix android on ubuntu-24.04
         - plat: android
           os: 'ubuntu-24.04'
-        # No openssl3 system crypto on ubuntu-20.04
-        - plat: linux
-          os: 'ubuntu-20.04'
-          tls: 'openssl3'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
@@ -140,8 +135,6 @@ jobs:
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu24.04 only for now
         - plat: android
-          xdp: "-UseXdp"
-        - os: 'ubuntu-20.04'
           xdp: "-UseXdp"
         - os: 'ubuntu-22.04'
           xdp: "-UseXdp"
@@ -220,19 +213,19 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
@@ -241,7 +234,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg

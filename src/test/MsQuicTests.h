@@ -97,6 +97,7 @@ void QuicTestCreateConnection();
 void QuicTestBindConnectionImplicit(_In_ int Family);
 void QuicTestBindConnectionExplicit(_In_ int Family);
 void QuicTestConnectionCloseFromCallback();
+void QuicTestAddrFunctions(_In_ int Family);
 
 //
 // MTU tests
@@ -252,6 +253,11 @@ QuicTestClientSharedLocalPort(
 
 void
 QuicTestInterfaceBinding(
+    _In_ int Family
+    );
+
+void
+QuicTestRetryMemoryLimitConnect(
     _In_ int Family
     );
 
@@ -602,6 +608,12 @@ QuicTestEcn(
     _In_ int Family
     );
 
+void QuicTestStreamAppProvidedBuffers(
+    );
+
+void QuicTestStreamAppProvidedBuffersZeroWindow(
+    );
+
 //
 // QuicDrill tests
 //
@@ -628,6 +640,11 @@ QuicDrillTestServerVNPacket(
     _In_ int Family
     );
 
+void
+QuicDrillTestKeyUpdateDuringHandshake(
+    _In_ int Family
+    );
+
 //
 // Datagram tests
 //
@@ -639,6 +656,11 @@ QuicTestDatagramNegotiation(
 
 void
 QuicTestDatagramSend(
+    _In_ int Family
+    );
+
+void
+QuicTestDatagramDrop(
     _In_ int Family
     );
 
@@ -1331,4 +1353,26 @@ typedef struct {
     QUIC_CTL_CODE(125, METHOD_BUFFERED, FILE_WRITE_DATA)
     // BOOLEAN - EnableResumption
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 125
+#define IOCTL_QUIC_RUN_DATAGRAM_DROP \
+    QUIC_CTL_CODE(126, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_TEST_ADDR_FUNCTIONS \
+    QUIC_CTL_CODE(127, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
+    QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+    QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE \
+    QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+    
+#define IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT \
+    QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
+    //int - Family
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 131

@@ -148,6 +148,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_ROUTE_RESOLUTION_WORKER   'A4cQ' // Qc4A - QUIC route resolution worker
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 #define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
+#define QUIC_POOL_APP_BUFFER_CHUNK          'D4cQ' // Qc4D - QUIC receive chunk for app buffers
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -298,6 +299,21 @@ CxPlatListInsertTail(
     Entry->Blink = Blink;
     Blink->Flink = Entry;
     ListHead->Blink = Entry;
+}
+
+FORCEINLINE
+void
+CxPlatListInsertAfter(
+    _Inout_ CXPLAT_LIST_ENTRY* ListEntry,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* NewEntry
+    )
+{
+    QuicListEntryValidate(ListEntry);
+    CXPLAT_LIST_ENTRY* Flink = ListEntry->Flink;
+    ListEntry->Flink = NewEntry;
+    NewEntry->Flink = Flink;
+    NewEntry->Blink = ListEntry;
+    Flink->Blink = NewEntry;
 }
 
 FORCEINLINE

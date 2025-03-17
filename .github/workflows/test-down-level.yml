@@ -25,19 +25,16 @@ jobs:
       matrix:
         vec: [
           # v2.2
-          { release: "2.2.6",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { release: "2.2.6",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "schannel" },
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl" },
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl3" },
           # v2.3
-          { release: "2.3.8",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
           { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "schannel" },
           { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl" },
           { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl3" },
           # v2.4
-          { release: "2.4.7",  os: "ubuntu-20.04", arch: "x64", tls: "openssl" },
           { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
           { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "schannel" },
           { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl" },
@@ -50,7 +47,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@98dfedee230bcf1ee68d5b021931fc8d63f2016e
+      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
       with:
         perl-version: '5.34'
     - name: Install NASM

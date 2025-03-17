@@ -199,6 +199,10 @@ typedef enum QUIC_STREAM_OPEN_FLAGS {
     QUIC_STREAM_OPEN_FLAG_0_RTT             = 0x0002,   // The stream was opened via a 0-RTT packet.
     QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES = 0x0004, // Indicates stream ID flow control limit updates for the
                                                         // connection should be delayed to StreamClose.
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_OPEN_FLAG_APP_OWNED_BUFFERS = 0x0008,   // No buffer will be allocated for the stream, the app must
+                                                        // provide buffers (see StreamProvideReceiveBuffers)
+#endif
 } QUIC_STREAM_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_STREAM_OPEN_FLAGS)
@@ -244,6 +248,7 @@ typedef enum QUIC_SEND_FLAGS {
     QUIC_SEND_FLAG_DELAY_SEND               = 0x0010,   // Indicates the send should be delayed because more will be queued soon.
     QUIC_SEND_FLAG_CANCEL_ON_LOSS           = 0x0020,   // Indicates that a stream is to be cancelled when packet loss is detected.
     QUIC_SEND_FLAG_PRIORITY_WORK            = 0x0040,   // Higher priority than other connection work.
+    QUIC_SEND_FLAG_CANCEL_ON_BLOCKED        = 0x0080,   // Indicates that a frame should be dropped when it can't be sent immediately.
 } QUIC_SEND_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(QUIC_SEND_FLAGS)
@@ -958,6 +963,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
 #endif
+#define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004  // BOOLEAN
 
 //
 // Parameters for Connection.
@@ -991,6 +997,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2                   0x05000016  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
+#define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 
 //
 // Parameters for TLS.
@@ -1146,6 +1153,7 @@ QUIC_STATUS
 typedef enum QUIC_LISTENER_EVENT_TYPE {
     QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
     QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
+    QUIC_LISTENER_EVENT_DOS_MODE_CHANGED    = 2,
 } QUIC_LISTENER_EVENT_TYPE;
 
 typedef struct QUIC_LISTENER_EVENT {
@@ -1159,11 +1167,20 @@ typedef struct QUIC_LISTENER_EVENT {
             BOOLEAN AppCloseInProgress  : 1;
             BOOLEAN RESERVED            : 7;
         } STOP_COMPLETE;
+        struct {
+            BOOLEAN DosModeEnabled : 1;
+            BOOLEAN RESERVED       : 7;
+        } DOS_MODE_CHANGED;
     };
 } QUIC_LISTENER_EVENT;
 
 typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_When_(
+    Event->Type != QUIC_LISTENER_EVENT_DOS_MODE_CHANGED,
+    _IRQL_requires_max_(PASSIVE_LEVEL))
+_When_(
+    Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED,
+    _IRQL_requires_max_(DISPATCH_LEVEL))
 _Function_class_(QUIC_LISTENER_CALLBACK)
 QUIC_STATUS
 (QUIC_API QUIC_LISTENER_CALLBACK)(
@@ -1631,6 +1648,23 @@ QUIC_STATUS
     _In_ BOOLEAN IsEnabled
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//
+// Provides receive buffers to the stream.
+// The buffers are owned by the caller and must remain valid until a receive
+// indication for all bytes in the buffer, or the stream is closed.
+//
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN)(
+    _In_ _Pre_defensive_ HQUIC Stream,
+    _In_ uint32_t BufferCount,
+    _In_reads_(BufferCount) const QUIC_BUFFER* Buffers
+    );
+
+#endif
+
 //
 // Datagrams
 //
@@ -1700,12 +1734,14 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
+                                        StreamProvideReceiveBuffers; // Available from v2.5
 #ifndef _KERNEL_MODE
     QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
-#endif
-#endif
+#endif // _KERNEL_MODE
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
 

@@ -597,6 +597,7 @@ ResumptionFailConnectionCallback(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerFailSendResumeCallback(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -1092,6 +1093,7 @@ void QuicTestValidateConnection()
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestStreamShutdown(
     _In_ TestStream* Stream
     )
@@ -1102,6 +1104,7 @@ ServerApiTestStreamShutdown(
 _Function_class_(NEW_STREAM_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestNewStream(
     _In_ TestConnection* /* Connection */,
     _In_ HQUIC StreamHandle,
@@ -1118,6 +1121,7 @@ ServerApiTestNewStream(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -3165,6 +3169,75 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     }
 }
 
+
+// Used by Listener
+void DosMitigationTests(HQUIC Handle, uint32_t Param) {
+    //
+    // buffer length test
+    //
+    {
+        TestScopeLogger LogScope0("DoS param Buffer length test");
+        //
+        // Buffer is bigger than 1 byte
+        //
+        {
+            TestScopeLogger LogScope1("DoS param Buffer is bigger than 1 byte");
+            uint8_t buffer[2] = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+
+        //
+        // BufferLength == 1
+        //
+        {
+            TestScopeLogger LogScope1("DoS param BufferLength == 1");
+            uint8_t buffer[1] = {0};
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_SUCCESS,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+    }
+
+    //
+    // Test with value of 1
+    //
+    {
+        TestScopeLogger LogScope0("DoS param Buffer starts from non-zero is not supported");
+        uint8_t buffer[1] = {1};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+
+    //
+    // Test with value of 0
+    //
+    {
+        uint8_t buffer[1] = {0};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+}
+
 void QuicTestListenerParam()
 {
     MsQuicRegistration Registration;
@@ -3307,7 +3380,41 @@ void QuicTestListenerParam()
             // TODO: Stateful test once Listener->CibrId is filled
         }
     }
+
+    //
+    // QUIC_PARAM_DOS_MODE_EVENTS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_DOS_MODE_EVENTS");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
+            TEST_TRUE(Listener.IsValid());
+            DosMitigationTests(Listener.Handle, QUIC_PARAM_DOS_MODE_EVENTS);
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            uint32_t Length = 65535;
+            uint8_t buffer[1] = {0};
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_DOS_MODE_EVENTS,
+                    &Length,
+                    &buffer));
+            TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
+        }
+    }
 #endif
+
 }
 
 void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
@@ -4521,6 +4628,83 @@ void QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(MsQuicRegistration& Registration, Ms
     }
 }
 
+void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_SEND_DSCP");
+    {
+        TestScopeLogger LogScope1("SetParam null buffer");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                nullptr));
+    }
+    {
+        TestScopeLogger LogScope1("SetParam zero length");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                0,
+                &Dummy));
+    }
+    {
+        TestScopeLogger LogScope1("SetParam non-DSCP number");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dummy = 64;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                &Dummy));
+        Dummy = 255;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dummy),
+                &Dummy));
+    }
+    {
+        TestScopeLogger LogScope1("GetParam Default");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dscp = 0;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_SEND_DSCP, sizeof(Dscp), &Dscp);
+    }
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam Valid DSCP");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t Dscp = CXPLAT_DSCP_LE;
+        uint8_t GetValue = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(Dscp),
+                &Dscp));
+        uint32_t BufferSize = sizeof(GetValue);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_SEND_DSCP,
+                &BufferSize,
+                &GetValue));
+        TEST_EQUAL(BufferSize, sizeof(GetValue));
+        TEST_EQUAL(GetValue, Dscp);
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4554,6 +4738,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2(Registration);
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
+    QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
 }
 
 //

@@ -465,6 +465,17 @@ QuicBindingSend(
     _In_ uint32_t DatagramsToSend
     );
 
+
+//
+// Indicates Dos mode state change for each listener
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingHandleDosModeStateChange(
+    _In_ QUIC_BINDING* Binding,
+    _In_ BOOLEAN DosModeEnabled
+    );
+
 //
 // Decrypts the retry token.
 //

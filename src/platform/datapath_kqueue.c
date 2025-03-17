@@ -376,7 +376,7 @@ typedef struct CXPLAT_DATAPATH {
     CXPLAT_DATAPATH_PARTITION Partitions[];
 
 } CXPLAT_DATAPATH;
-    
+
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextIoEventComplete;
 
@@ -567,9 +567,6 @@ CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     )
 {
-    //
-    // Intentionally not enabling Feature_TTL on MacOS for now.
-    //
     return Datapath->Features;
 }
 
@@ -1629,6 +1626,7 @@ CxPlatSendDataAlloc(
         CxPlatZeroMemory(SendData, sizeof(*SendData));
         SendData->Owner = SocketContext->DatapathPartition;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->SegmentSize =
             (Socket->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION)
                 ? Config->MaxPacketSize : 0;
@@ -1984,7 +1982,7 @@ CxPlatSocketSendInternal(
     CMsg->cmsg_level = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IPPROTO_IP : IPPROTO_IPV6;
     CMsg->cmsg_type = RemoteAddress->Ip.sa_family == QUIC_ADDRESS_FAMILY_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
-    *(int *)CMSG_DATA(CMsg) = SendData->ECN;
+    *(int *)CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
 
     if (!SocketContext->Binding->Connected) {
         Mhdr.msg_name = &MappedRemoteAddress;

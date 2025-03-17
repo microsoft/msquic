@@ -279,7 +279,7 @@ CxPlatSendBufferPoolAlloc(
         0, \
         Size, \
         Tag, \
-        0)
+        1024)
 
 IO_COMPLETION_ROUTINE CxPlatDataPathIoCompletion;
 
@@ -471,7 +471,7 @@ CxPlatDataPathQuerySockoptSupport(
         Datapath->WskProviderNpi.Dispatch->
         WskSocket(
             Datapath->WskProviderNpi.Client,
-            AF_INET,
+            AF_INET6,
             SOCK_DGRAM,
             IPPROTO_UDP,
             WSK_FLAG_BASIC_SOCKET,
@@ -601,23 +601,59 @@ CxPlatDataPathQuerySockoptSupport(
     } while (FALSE);
 
     do {
-        RTL_OSVERSIONINFOW osInfo;
-        RtlZeroMemory(&osInfo, sizeof(osInfo));
-        osInfo.dwOSVersionInfoSize = sizeof(osInfo);
-        NTSTATUS status = RtlGetVersion(&osInfo);
-        if (NT_SUCCESS(status)) {
-            DWORD BuildNumber = osInfo.dwBuildNumber;
-            //
-            // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
-            //
-            if (BuildNumber == 20348) {
-                break;
-            }
-        } else {
+        DWORD TypeOfService = 1; // Lower Effort
+
+        IoReuseIrp(Irp, STATUS_SUCCESS);
+        IoSetCompletionRoutine(
+            Irp,
+            CxPlatDataPathIoCompletion,
+            &CompletionEvent,
+            TRUE,
+            TRUE,
+            TRUE);
+        CxPlatEventReset(CompletionEvent);
+
+        Status =
+            Dispatch->WskControlSocket(
+                UdpSocket,
+                WskSetOption,
+                IPV6_TCLASS,
+                IPPROTO_IPV6,
+                sizeof(TypeOfService),
+                &TypeOfService,
+                0,
+                NULL,
+                &OutputSizeReturned,
+                Irp);
+        if (Status == STATUS_PENDING) {
+            CxPlatEventWaitForever(CompletionEvent);
+        } else if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailed,
+                "[data] Test setting IPV6_TCLASS failed, 0x%x",
+                Status);
             break;
         }
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+
+        Status = Irp->IoStatus.Status;
+        if (QUIC_FAILED(Status)) {
+            QuicTraceLogWarning(
+                DatapathTestSetIpv6TrafficClassFailedAsync,
+                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+                Status);
+            break;
+        }
+
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+
     } while (FALSE);
+
+    //
+    // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+    //
+    if (CxPlatform.dwBuildNumber != 20348) {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+    }
 
 Error:
 
@@ -2451,6 +2487,7 @@ SendDataAlloc(
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
         SendData->ECN = Config->ECN;
+        SendData->DSCP = Config->DSCP;
         SendData->WskBufs = NULL;
         SendData->TailBuf = NULL;
         SendData->TotalSize = 0;
@@ -2892,7 +2929,7 @@ SocketSend(
     //
     BYTE CMsgBuffer[
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN or IP_TOS
         WSA_CMSG_SPACE(sizeof(*SegmentSize))    // UDP_SEND_MSG_SIZE
         ];
     PWSACMSGHDR CMsg = (PWSACMSGHDR)CMsgBuffer;
@@ -2923,16 +2960,33 @@ SocketSend(
         }
     }
 
-    if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
-        CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
-        CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
-        CMsg->cmsg_level =
-            Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
-                IPPROTO_IP : IPPROTO_IPV6;
-        CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
-        CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+    if (Binding->Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_DSCP) {
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT || SendData->DSCP != CXPLAT_DSCP_CS0) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            if (Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
+                CMsg->cmsg_level = IPPROTO_IP;
+                CMsg->cmsg_type = IP_TOS;
+            } else {
+                CMsg->cmsg_level = IPPROTO_IPV6;
+                CMsg->cmsg_type = IPV6_TCLASS;
+            }
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
 
-        *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN | (SendData->DSCP << 2);
+        }
+    } else {
+        if (SendData->ECN != CXPLAT_ECN_NON_ECT) {
+            CMsg = (PWSACMSGHDR)&CMsgBuffer[CMsgLen];
+            CMsgLen += WSA_CMSG_SPACE(sizeof(INT));
+            CMsg->cmsg_level =
+                Route->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET ?
+                    IPPROTO_IP : IPPROTO_IPV6;
+            CMsg->cmsg_type = IP_ECN; // == IPV6_ECN
+            CMsg->cmsg_len = WSA_CMSG_LEN(sizeof(INT));
+
+            *(PINT)WSA_CMSG_DATA(CMsg) = SendData->ECN;
+        }
     }
 
     if (SendData->SegmentSize > 0) {

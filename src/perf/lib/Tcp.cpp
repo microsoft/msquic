@@ -1088,7 +1088,7 @@ QUIC_BUFFER* TcpConnection::NewSendBuffer()
         return nullptr;
     }
     if (!BatchedSendData) {
-        CXPLAT_SEND_CONFIG SendConfig = { &Route, TLS_BLOCK_SIZE, CXPLAT_ECN_NON_ECT, 0 };
+        CXPLAT_SEND_CONFIG SendConfig = { &Route, TLS_BLOCK_SIZE, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
         BatchedSendData = CxPlatSendDataAlloc(Socket, &SendConfig);
         if (!BatchedSendData) { return nullptr; }
     }

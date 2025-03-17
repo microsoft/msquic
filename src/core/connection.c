@@ -1919,13 +1919,6 @@ QuicConnStart(
         goto Exit;
     }
 
-    if (Connection->Settings.KeepAliveIntervalMs != 0) {
-        QuicConnTimerSet(
-            Connection,
-            QUIC_CONN_TIMER_KEEP_ALIVE,
-            MS_TO_US(Connection->Settings.KeepAliveIntervalMs));
-    }
-
 Exit:
 
     if (ServerName != NULL) {
@@ -6623,6 +6616,31 @@ QuicConnParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
+    case QUIC_PARAM_CONN_SEND_DSCP: {
+        if (BufferLength != sizeof(uint8_t) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        uint8_t DSCP = *(uint8_t*)Buffer;
+
+        if (DSCP > CXPLAT_MAX_DSCP) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        Connection->DSCP = DSCP;
+
+        QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     //
     // Private
     //
@@ -7207,27 +7225,55 @@ QuicConnParamGet(
     }
 
     case QUIC_PARAM_CONN_ORIG_DEST_CID:
+
         if (Connection->OrigDestCID == NULL) {
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
+
         if (*BufferLength < Connection->OrigDestCID->Length) {
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
             *BufferLength = Connection->OrigDestCID->Length;
             break;
         }
+
         if (Buffer == NULL) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
+
         CxPlatCopyMemory(
             Buffer,
             Connection->OrigDestCID->Data,
             Connection->OrigDestCID->Length);
+
         //
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+     case QUIC_PARAM_CONN_SEND_DSCP:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = sizeof(uint8_t);
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            &Connection->DSCP,
+            sizeof(Connection->DSCP));
+
+        *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
@@ -7506,6 +7552,25 @@ QuicConnProcessApiOperation(
             QuicStreamRecvSetEnabledState(
                 ApiCtx->STRM_RECV_SET_ENABLED.Stream,
                 ApiCtx->STRM_RECV_SET_ENABLED.IsEnabled);
+        break;
+
+    case QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS:
+        Status =
+            QuicStreamProvideRecvBuffers(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream,
+                &ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks);
+
+        if (Status != QUIC_STATUS_SUCCESS) {
+            //
+            // If we cannot accept the app provided buffers at this point, we need to abort
+            // the connection: otherwise, we break the contract with the app about writting
+            // data to the provided buffers in order.
+            //
+            QuicConnFatalError(
+                ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream->Connection,
+                Status,
+                "Failed to accept app provided receive buffers");
+        }
         break;
 
     case QUIC_API_TYPE_SET_PARAM:
