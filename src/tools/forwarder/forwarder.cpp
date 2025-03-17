@@ -234,6 +234,6 @@ int QUIC_MAIN_EXPORT main(int argc, char **argv) {
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Listener.Start(Alpn, QuicAddr(QUIC_ADDRESS_FAMILY_UNSPEC, FrontEndPort))));
 
     printf("Press Enter to exit.\n\n");
-    getchar();
+    (void)getchar();
     return 0;
 }
