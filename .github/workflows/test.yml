@@ -34,9 +34,9 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        vec: [ # Note that GitHub windows-2025 doesn't have the necessary bits to build kernel drivers currently.
-          { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" }
+        vec: [
+          { config: "Debug", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Release", plat: "winkernel", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
         ]
     uses: ./.github/workflows/build-reuse-winkernel.yml
     with:
@@ -212,8 +212,8 @@ jobs:
         ref: ${{ inputs.ref || '' }}
     - name: Download Kernel Build Artifacts
       uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
-      with: # note we always use kernel binaries built on windows-2022.
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
+      with: # note we always use kernel binaries built on windows-2025.
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Usermode Build Artifacts
       uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
