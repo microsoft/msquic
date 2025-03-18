@@ -28,6 +28,7 @@
     <ClCompile Include="hashtable.c" />
     <ClCompile Include="pcp.c" />
     <ClCompile Include="platform_winkernel.c" />
+    <ClCompile Include="platform_worker.c" />
     <ClCompile Include="storage_winkernel.c" />
     <ClCompile Include="tls_schannel.c" />
     <ClCompile Include="toeplitz.c" />
