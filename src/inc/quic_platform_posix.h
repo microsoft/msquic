@@ -574,7 +574,7 @@ CxPlatPoolAlloc(
 inline
 void
 CxPlatPoolFree(
-    _In_ void* Entry
+    _In_ void* Memory
     )
 {
     CXPLAT_POOL_OBJECT* Entry =
