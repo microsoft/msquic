@@ -10,8 +10,8 @@ use c_types::AF_UNSPEC;
 use c_types::{sa_family_t, sockaddr_in, sockaddr_in6, socklen_t};
 use ffi::{HQUIC, QUIC_API_TABLE, QUIC_BUFFER, QUIC_CREDENTIAL_CONFIG, QUIC_SETTINGS, QUIC_STATUS};
 use libc::c_void;
-use serde::{Deserialize, Serialize};
 use socket2::SockAddr;
+use std::fmt::Debug;
 use std::io;
 use std::mem;
 use std::net::{SocketAddr, SocketAddrV4, SocketAddrV6};
@@ -23,9 +23,19 @@ mod error;
 pub mod ffi;
 pub use error::{Status, StatusCode};
 mod types;
-pub use types::{BufferRef, ConnectionEvent, ListenerEvent, NewConnectionInfo, StreamEvent};
+pub use types::{
+    BufferRef, ConnectionEvent, ConnectionShutdownFlags, DatagramSendState, ListenerEvent,
+    NewConnectionInfo, ReceiveFlags, SendFlags, StreamEvent, StreamOpenFlags, StreamShutdownFlags,
+    StreamStartFlags, TlsProvider,
+};
 mod settings;
-pub use settings::Settings;
+pub use settings::{ServerResumptionLevel, Settings};
+mod config;
+pub use config::{
+    AllowedCipherSuiteFlags, CertificateFile, CertificateFileProtected, CertificateHash,
+    CertificateHashStore, CertificateHashStoreFlags, CertificatePkcs12, Credential,
+    CredentialConfig, CredentialFlags, ExecutionProfile, RegistrationConfig,
+};
 
 //
 // The following starts the C interop layer of MsQuic API.
@@ -53,6 +63,13 @@ pub const ADDRESS_FAMILY_INET6: AddressFamily = c_types::AF_INET6 as u16;
 pub union Addr {
     pub ipv4: sockaddr_in,
     pub ipv6: sockaddr_in6,
+}
+
+impl Debug for Addr {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        // TODO: implement Addr content debug string
+        write!(f, "Addr{{..}}")
+    }
 }
 
 impl Addr {
@@ -116,18 +133,6 @@ impl From<SocketAddrV6> for Addr {
     }
 }
 
-/// The different possible TLS providers used by MsQuic.
-pub type TlsProvider = u32;
-pub const TLS_PROVIDER_SCHANNEL: TlsProvider = 0;
-pub const TLS_PROVIDER_OPENSSL: TlsProvider = 1;
-
-/// Configures how to process a registration's workload.
-pub type ExecutionProfile = u32;
-pub const EXECUTION_PROFILE_LOW_LATENCY: ExecutionProfile = 0;
-pub const EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT: ExecutionProfile = 1;
-pub const EXECUTION_PROFILE_TYPE_SCAVENGER: ExecutionProfile = 2;
-pub const EXECUTION_PROFILE_TYPE_REAL_TIME: ExecutionProfile = 3;
-
 /// Represents how load balancing is performed.
 pub type LoadBalancingMode = u32;
 pub const LOAD_BALANCING_DISABLED: LoadBalancingMode = 0;
@@ -150,62 +155,6 @@ pub const TLS_ALERT_CODE_INTERNAL_ERROR: TlsAlertCode = 80;
 pub const TLS_ALERT_CODE_USER_CANCELED: TlsAlertCode = 90;
 pub const TLS_ALERT_CODE_CERTIFICATE_REQUIRED: TlsAlertCode = 116;
 
-/// Type of credentials used for a connection.
-pub type CredentialType = u32;
-pub const CREDENTIAL_TYPE_NONE: CredentialType = 0;
-pub const CREDENTIAL_TYPE_CERTIFICATE_HASH: CredentialType = 1;
-pub const CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE: CredentialType = 2;
-pub const CREDENTIAL_TYPE_CERTIFICATE_CONTEXT: CredentialType = 3;
-pub const CREDENTIAL_TYPE_CERTIFICATE_FILE: CredentialType = 4;
-pub const CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED: CredentialType = 5;
-pub const CREDENTIAL_TYPE_CERTIFICATE_PKCS12: CredentialType = 6;
-
-/// Modifies the default credential configuration.
-pub type CredentialFlags = u32;
-pub const CREDENTIAL_FLAG_NONE: CredentialFlags = 0;
-pub const CREDENTIAL_FLAG_CLIENT: CredentialFlags = 1;
-pub const CREDENTIAL_FLAG_LOAD_ASYNCHRONOUS: CredentialFlags = 2;
-pub const CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION: CredentialFlags = 4;
-pub const CREDENTIAL_FLAG_ENABLE_OCSP: CredentialFlags = 8;
-pub const CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED: CredentialFlags = 16;
-pub const CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION: CredentialFlags = 32;
-pub const CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION: CredentialFlags = 64;
-pub const CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION: CredentialFlags = 128;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_END_CERT: CredentialFlags = 256;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN: CredentialFlags = 512;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CHAIN_EXCLUDE_ROOT: CredentialFlags = 1024;
-pub const CREDENTIAL_FLAG_IGNORE_NO_REVOCATION_CHECK: CredentialFlags = 2048;
-pub const CREDENTIAL_FLAG_IGNORE_REVOCATION_OFFLINE: CredentialFlags = 4096;
-pub const CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES: CredentialFlags = 8192;
-pub const CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES: CredentialFlags = 16384;
-pub const CREDENTIAL_FLAG_USE_SUPPLIED_CREDENTIALS: CredentialFlags = 32768;
-pub const CREDENTIAL_FLAG_USE_SYSTEM_MAPPER: CredentialFlags = 65536;
-pub const CREDENTIAL_FLAG_CACHE_ONLY_URL_RETRIEVAL: CredentialFlags = 131072;
-pub const CREDENTIAL_FLAG_REVOCATION_CHECK_CACHE_ONLY: CredentialFlags = 262144;
-
-/// Set of allowed TLS cipher suites.
-pub type AllowedCipherSuiteFlags = u32;
-pub const ALLOWED_CIPHER_SUITE_NONE: AllowedCipherSuiteFlags = 0;
-pub const ALLOWED_CIPHER_SUITE_AES_128_GCM_SHA256: AllowedCipherSuiteFlags = 1;
-pub const ALLOWED_CIPHER_SUITE_AES_256_GCM_SHA384: AllowedCipherSuiteFlags = 2;
-pub const ALLOWED_CIPHER_SUITE_CHACHA20_POLY1305_SHA256: AllowedCipherSuiteFlags = 4;
-
-/// Modifies the default certificate hash store configuration.
-pub type CertificateHashStoreFlags = u32;
-pub const CERTIFICATE_HASH_STORE_FLAG_NONE: CertificateHashStoreFlags = 0;
-pub const CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE: CertificateHashStoreFlags = 1;
-
-/// Controls connection shutdown behavior.
-pub type ConnectionShutdownFlags = u32;
-pub const CONNECTION_SHUTDOWN_FLAG_NONE: ConnectionShutdownFlags = 0;
-pub const CONNECTION_SHUTDOWN_FLAG_SILENT: ConnectionShutdownFlags = 1;
-
-/// Type of resumption behavior on the server side.
-pub type ServerResumptionLevel = u32;
-pub const SERVER_NO_RESUME: ServerResumptionLevel = 0;
-pub const SERVER_RESUME_ONLY: ServerResumptionLevel = 1;
-pub const SERVER_RESUME_AND_ZERORTT: ServerResumptionLevel = 2;
-
 /// Modifies the behavior when sending resumption data.
 pub type SendResumptionFlags = u32;
 pub const SEND_RESUMPTION_FLAG_NONE: SendResumptionFlags = 0;
@@ -216,134 +165,6 @@ pub type StreamSchedulingScheme = u32;
 pub const STREAM_SCHEDULING_SCHEME_FIFO: StreamSchedulingScheme = 0;
 pub const STREAM_SCHEDULING_SCHEME_ROUND_ROBIN: StreamSchedulingScheme = 1;
 pub const STREAM_SCHEDULING_SCHEME_COUNT: StreamSchedulingScheme = 2;
-
-pub type StreamOpenFlags = u32;
-pub const STREAM_OPEN_FLAG_NONE: StreamOpenFlags = 0;
-pub const STREAM_OPEN_FLAG_UNIDIRECTIONAL: StreamOpenFlags = 1;
-pub const STREAM_OPEN_FLAG_0_RTT: StreamOpenFlags = 2;
-
-pub type StreamStartFlags = u32;
-pub const STREAM_START_FLAG_NONE: StreamStartFlags = 0;
-pub const STREAM_START_FLAG_IMMEDIATE: StreamStartFlags = 1;
-pub const STREAM_START_FLAG_FAIL_BLOCKED: StreamStartFlags = 2;
-pub const STREAM_START_FLAG_SHUTDOWN_ON_FAIL: StreamStartFlags = 4;
-pub const STREAM_START_FLAG_INDICATE_PEER_ACCEPT: StreamStartFlags = 8;
-
-/// Controls stream shutdown behavior.
-pub type StreamShutdownFlags = u32;
-pub const STREAM_SHUTDOWN_FLAG_NONE: StreamShutdownFlags = 0;
-pub const STREAM_SHUTDOWN_FLAG_GRACEFUL: StreamShutdownFlags = 1;
-pub const STREAM_SHUTDOWN_FLAG_ABORT_SEND: StreamShutdownFlags = 2;
-pub const STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE: StreamShutdownFlags = 4;
-pub const STREAM_SHUTDOWN_FLAG_ABORT: StreamShutdownFlags = 6;
-pub const STREAM_SHUTDOWN_FLAG_IMMEDIATE: StreamShutdownFlags = 8;
-
-pub type ReceiveFlags = u32;
-pub const RECEIVE_FLAG_NONE: ReceiveFlags = 0;
-pub const RECEIVE_FLAG_0_RTT: ReceiveFlags = 1;
-pub const RECEIVE_FLAG_FIN: ReceiveFlags = 2;
-
-/// Controls stream and datagram send behavior.
-pub type SendFlags = u32;
-pub const SEND_FLAG_NONE: SendFlags = 0;
-pub const SEND_FLAG_ALLOW_0_RTT: SendFlags = 1;
-pub const SEND_FLAG_START: SendFlags = 2;
-pub const SEND_FLAG_FIN: SendFlags = 4;
-pub const SEND_FLAG_DGRAM_PRIORITY: SendFlags = 8;
-pub const SEND_FLAG_DELAY_SEND: SendFlags = 16;
-
-pub type DatagramSendState = u32;
-pub const DATAGRAM_SEND_SENT: DatagramSendState = 0;
-pub const DATAGRAM_SEND_LOST_SUSPECT: DatagramSendState = 1;
-pub const DATAGRAM_SEND_LOST_DISCARDED: DatagramSendState = 2;
-pub const DATAGRAM_SEND_ACKNOWLEDGED: DatagramSendState = 3;
-pub const DATAGRAM_SEND_ACKNOWLEDGED_SPURIOUS: DatagramSendState = 4;
-pub const DATAGRAM_SEND_CANCELED: DatagramSendState = 5;
-
-/// Specifies the configuration for a new registration.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct RegistrationConfig {
-    pub app_name: *const i8,
-    pub execution_profile: ExecutionProfile,
-}
-
-/// Completion callback for a async creation of a new credential.
-pub type CredentialLoadComplete =
-    extern "C" fn(configuration: HQUIC, context: *const c_void, status: u64);
-
-/// The 20-byte hash/thumbprint of a certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateHash {
-    pub sha_hash: [u8; 20usize],
-}
-
-/// The 20-byte hash/thumbprint and store name of a certificate.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct CertificateHashStore {
-    pub flags: CertificateHashStoreFlags,
-    pub sha_hash: [u8; 20usize],
-    pub store_name: [i8; 128usize],
-}
-
-/// The file paths of a certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateFile {
-    pub private_key_file: *const i8,
-    pub certificate_file: *const i8,
-}
-
-/// The file paths of a protected certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificateFileProtected {
-    pub private_key_file: *const i8,
-    pub certificate_file: *const i8,
-    pub private_key_password: *const i8,
-}
-
-/// The binary blobs of a PKCS#12 certificate.
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct CertificatePkcs12 {
-    pub ans1_blob: *const u8,
-    pub ans1_blob_length: u32,
-    pub private_key_password: *const i8,
-}
-
-/// Generic interface for a certificate.
-pub type Certificate = c_void;
-
-/// Generic interface for a certificate chain.
-pub type CertificateChain = c_void;
-
-/// Wrapper for all certificate types.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub union CertificateUnion {
-    pub hash: *const CertificateHash,
-    pub hash_store: *const CertificateHashStore,
-    pub context: *const Certificate,
-    pub file: *const CertificateFile,
-    pub file_protected: *const CertificateFileProtected,
-    pub pkcs12: *const CertificatePkcs12,
-}
-
-/// Specifies the configuration for a new credential.
-#[repr(C)]
-#[derive(Copy, Clone)]
-pub struct CredentialConfig {
-    pub cred_type: CredentialType,
-    pub cred_flags: CredentialFlags,
-    pub certificate: CertificateUnion,
-    pub principle: *const i8,
-    pub reserved: *const c_void,
-    pub async_handler: Option<CredentialLoadComplete>,
-    pub allowed_cipher_suites: AllowedCipherSuiteFlags,
-}
 
 /// Key information for TLS session ticket encryption.
 #[repr(C)]
@@ -378,7 +199,7 @@ pub const CIPHER_SUITE_TLS_AES_256_GCM_SHA384: CipherSuite = 4866;
 pub const CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: CipherSuite = 4867;
 
 #[repr(C)]
-#[derive(Serialize, Deserialize, Debug, Copy, Clone)]
+#[derive(Debug, Copy, Clone)]
 pub struct HandshakeInfo {
     pub tls_protocol_version: TlsProtocolVersion,
     pub cipher_algorithm: CipherAlgorithm,
@@ -464,7 +285,6 @@ pub const PARAM_GLOBAL_GLOBAL_SETTINGS: u32 = 0x01000006;
 pub const PARAM_GLOBAL_VERSION_SETTINGS: u32 = 0x01000007;
 pub const PARAM_GLOBAL_LIBRARY_GIT_HASH: u32 = 0x01000008;
 pub const PARAM_GLOBAL_DATAPATH_PROCESSORS: u32 = 0x01000009;
-pub const PARAM_GLOBAL_TLS_PROVIDER: u32 = 0x0100000A;
 
 pub const PARAM_CONFIGURATION_SETTINGS: u32 = 0x03000000;
 pub const PARAM_CONFIGURATION_TICKET_KEYS: u32 = 0x03000001;
@@ -603,6 +423,7 @@ unsafe impl Sync for Configuration {}
 unsafe impl Send for Configuration {}
 
 /// A single QUIC connection.
+#[derive(Debug)]
 pub struct Connection {
     handle: HQUIC,
 }
@@ -610,6 +431,7 @@ unsafe impl Sync for Connection {}
 unsafe impl Send for Connection {}
 
 /// A single server listener
+#[derive(Debug)]
 pub struct Listener {
     handle: HQUIC,
 }
@@ -617,16 +439,12 @@ unsafe impl Sync for Listener {}
 unsafe impl Send for Listener {}
 
 /// A single QUIC stream on a parent connection.
+#[derive(Debug)]
 pub struct Stream {
     handle: HQUIC,
 }
 unsafe impl Sync for Stream {}
 unsafe impl Send for Stream {}
-
-/// Same as Stream but does not own the handle.
-/// Only used in callback wrapping where handle
-/// should not be closed by default.
-pub struct StreamRef(Stream);
 
 impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     fn from(value: QuicPerformanceCountersParam) -> Self {
@@ -709,22 +527,6 @@ impl From<QuicPerformanceCountersParam> for QuicPerformanceCounters {
     }
 }
 
-impl CredentialConfig {
-    pub fn new_client() -> CredentialConfig {
-        CredentialConfig {
-            cred_type: CREDENTIAL_FLAG_NONE,
-            cred_flags: CREDENTIAL_FLAG_CLIENT,
-            certificate: CertificateUnion {
-                context: ptr::null(),
-            },
-            principle: ptr::null(),
-            reserved: ptr::null(),
-            async_handler: None,
-            allowed_cipher_suites: 0,
-        }
-    }
-}
-
 impl Api {
     /// # Safety
     /// Buffer needs to be valid
@@ -782,13 +584,14 @@ impl Api {
         }
     }
 
-    pub fn get_tls_provider() -> Result<crate::ffi::QUIC_TLS_PROVIDER, Status> {
-        unsafe {
+    pub fn get_tls_provider() -> Result<crate::TlsProvider, Status> {
+        let prov: crate::ffi::QUIC_TLS_PROVIDER = unsafe {
             Api::get_param_auto(
                 std::ptr::null_mut(),
                 crate::ffi::QUIC_PARAM_GLOBAL_TLS_PROVIDER,
             )
-        }
+        }?;
+        Ok(prov.into())
     }
 
     /// # Safety
@@ -862,15 +665,88 @@ macro_rules! define_quic_handle_impl {
     };
 }
 
+/// defines the common code for the handle to manage handle context
+macro_rules! define_quic_handle_ctx_fn {
+    ($handle_name:ident, $callback_type:ident) => {
+        impl $handle_name {
+            pub fn get_context(&self) -> *mut c_void {
+                unsafe { Api::ffi_ref().GetContext.unwrap()(self.handle) }
+            }
+
+            /// # Safety
+            /// Previous context needs to be cleaned up before set a new one.
+            pub unsafe fn set_context(&self, ctx: *mut c_void) {
+                unsafe { Api::ffi_ref().SetContext.unwrap()(self.handle, ctx) }
+            }
+
+            /// Consume ctx by dropping it.
+            /// Set msquic ctx to null.
+            fn consume_callback_ctx(&self) {
+                let res = unsafe { self.get_callback_ctx() };
+                if res.is_some() {
+                    unsafe { self.set_context(std::ptr::null_mut()) };
+                }
+            }
+
+            /// # Safety
+            /// Caller is responsible for clearing the context if needed.
+            /// This does not clear the ctx.
+            unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
+                let ctx = self.get_context();
+                if !ctx.is_null() {
+                    Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
+                } else {
+                    None
+                }
+            }
+        }
+    };
+}
+
+/// Defines the Ref type for the handle that does not cleanup
+/// the handle on drop.
+macro_rules! define_quic_handle_ref {
+    ($handle_name:ident, $handle_ref_name:ident) => {
+        /// Same as the owned type but does not own the handle.
+        /// Only used in callback wrapping where handle
+        /// should not be closed by default.
+        #[derive(Debug)]
+        pub struct $handle_ref_name($handle_name);
+
+        impl $handle_ref_name {
+            /// For internal use only.
+            pub(crate) unsafe fn from_raw(handle: HQUIC) -> Self {
+                Self($handle_name { handle })
+            }
+        }
+
+        impl Drop for $handle_ref_name {
+            fn drop(&mut self) {
+                // clear the handle to prevent auto close.
+                self.0.handle = std::ptr::null_mut()
+            }
+        }
+
+        /// Make inner handle accessible
+        impl std::ops::Deref for $handle_ref_name {
+            type Target = $handle_name;
+
+            fn deref(&self) -> &Self::Target {
+                &self.0
+            }
+        }
+    };
+}
+
 impl Registration {
-    pub fn new(config: *const RegistrationConfig) -> Result<Registration, Status> {
+    pub fn new(config: &RegistrationConfig) -> Result<Registration, Status> {
         // Initialize the global api table.
         // Registration is the first created in all msquic apps.
         let api = Api::get_ffi();
         let mut h = std::ptr::null_mut();
         let status = unsafe {
             api.RegistrationOpen.unwrap()(
-                config as *const crate::ffi::QUIC_REGISTRATION_CONFIG,
+                &config.as_ffi() as *const crate::ffi::QUIC_REGISTRATION_CONFIG,
                 std::ptr::addr_of_mut!(h),
             )
         };
@@ -929,7 +805,7 @@ impl Configuration {
         let status = unsafe {
             Api::ffi_ref().ConfigurationLoadCredential.unwrap()(
                 self.handle,
-                cred_config as *const CredentialConfig as *const QUIC_CREDENTIAL_CONFIG,
+                &cred_config.as_ffi() as *const QUIC_CREDENTIAL_CONFIG,
             )
         };
         Status::ok_from_raw(status)
@@ -950,6 +826,45 @@ impl Default for Connection {
     }
 }
 
+// Remarks on Rust callback in general:
+// Callback function or closure is set to msquic handle context of type `*mut Box<TCallback>>`.
+// We cannot use type `*mut TCallback` because dyn trait is a "fat pointer" so it cannot be
+// converted to a pointer directly.
+// In the ffi function passed to msquic, the TCallback is extracted from msquic callback context
+// and invoked.
+// The context is cleaned up when connection is dropped or when new callback is set.
+// TCallback type is either Fn or FnMut type, so user can capture variables in them without worrying
+// about lifetime and how to set or cleanup msquic callback context.
+//
+// Note: It is unsafe to drop (thus close) the handle with a callback ctx inside the callback
+// StopComplete event, which is typical practice in C code. This is because the callback closure
+// is still executing, and drop/close the handle will cause callback to be dropped, and therefore
+// you have a undefined behavior that closure is still running but it is already dropped.
+// So it is best to not drop the handle inside the callback. If doing so is necessary, it is essential
+// that after handle drop, no heap memory should be accessed.
+
+/// Connection callback type.
+/// msquic never invokes the connection callback in parallel, so use FnMut to allow mutation.
+type ConnectionCallback = dyn FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_conn_callback(
+    connection: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_CONNECTION_EVENT,
+) -> QUIC_STATUS {
+    let conn = unsafe { ConnectionRef::from_raw(connection) };
+    let f = unsafe {
+        (context as *mut Box<ConnectionCallback>)
+            .as_mut() // allow mutation
+            .expect("cannot get ConnectionCallback from ctx")
+    };
+    let event = ConnectionEvent::from(unsafe { event.as_ref().unwrap() });
+    match f(conn, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
+    }
+}
+
 impl Connection {
     pub fn new() -> Connection {
         Connection {
@@ -957,23 +872,26 @@ impl Connection {
         }
     }
 
-    /// TODO: The handler type should eventually be changed to Fn type.
-    /// ffi type and the context ptr makes this function unsafe.
-    pub fn open(
-        &mut self,
-        registration: &Registration,
-        handler: ffi::QUIC_CONNECTION_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
+        // double boxing to allow Box dyn fat pointer
+        let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
-                handler,
-                context as *mut c_void,
+                Some(raw_conn_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            // attach memory back on failure
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(
@@ -997,19 +915,21 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // get the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            // Drop call here is required to prevent compiler drop it early.
+            // During handle close the ctx might still be used.
+            std::mem::drop(ctx);
         }
     }
 
     pub fn shutdown(&self, flags: ConnectionShutdownFlags, error_code: u62) {
         unsafe {
-            Api::ffi_ref().ConnectionShutdown.unwrap()(
-                self.handle,
-                flags as crate::ffi::QuicFlag,
-                error_code,
-            );
+            Api::ffi_ref().ConnectionShutdown.unwrap()(self.handle, flags.bits(), error_code);
         }
     }
 
@@ -1030,22 +950,21 @@ impl Connection {
         Status::ok_from_raw(status)
     }
 
-    /// # Safety
-    /// handler and context must be valid
-    pub unsafe fn set_callback_handler(
-        &self,
-        handler: ffi::QUIC_CONNECTION_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) {
+    pub fn set_callback_handler<F>(&self, handler: F)
+    where
+        F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        // clear previous ctx before setting it.
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
-                std::mem::transmute::<ffi::QUIC_CONNECTION_CALLBACK_HANDLER, *const c_void>(
-                    handler,
-                ),
-                context,
+                raw_conn_callback as *const c_void,
+                ctx as *mut c_void,
             )
-        };
+        }
     }
 
     /// # Safety
@@ -1065,7 +984,7 @@ impl Connection {
                 self.handle,
                 buffers.as_ptr() as *const QUIC_BUFFER,
                 buffers.len() as u32,
-                flags as crate::ffi::QuicFlag,
+                flags.bits(),
                 client_send_context as *mut c_void,
             )
         };
@@ -1104,10 +1023,35 @@ impl Connection {
 }
 
 define_quic_handle_impl!(Connection);
+define_quic_handle_ref!(Connection, ConnectionRef);
+define_quic_handle_ctx_fn!(Connection, ConnectionCallback);
 
 impl Default for Listener {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Listener callback.
+/// msquic may execute listener callback in parallel,
+/// so Fn is used for immutability.
+pub type ListenerCallback = dyn Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_listener_callback(
+    listener: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_LISTENER_EVENT,
+) -> QUIC_STATUS {
+    let listner_ref = unsafe { ListenerRef::from_raw(listener) };
+    let event = ListenerEvent::from(unsafe { event.as_ref().expect("fail to get listener event") });
+    let f = unsafe {
+        (context as *mut Box<ListenerCallback>)
+            .as_ref() // allow mutation
+            .expect("cannot get ListenerCallback from ctx")
+    };
+    match f(listner_ref, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -1118,22 +1062,25 @@ impl Listener {
         }
     }
 
-    /// TODO: handler should be changed to Fn type.
-    pub fn open(
-        &mut self,
-        registration: &Registration,
-        handler: ffi::QUIC_LISTENER_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    where
+        F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
+    {
+        // double boxing to allow Box dyn fat pointer
+        let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
-                handler,
-                context as *mut c_void,
+                Some(raw_listener_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(&self, alpn: &[BufferRef], local_address: Option<&Addr>) -> Result<(), Status> {
@@ -1162,18 +1109,46 @@ impl Listener {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 }
 
 define_quic_handle_impl!(Listener);
+define_quic_handle_ref!(Listener, ListenerRef);
+define_quic_handle_ctx_fn!(Listener, ListenerCallback);
 
 impl Default for Stream {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+/// Stream callback.
+/// msquic never executes stream callback on the same stream in parallel.
+pub type StreamCallback = dyn FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static;
+
+extern "C" fn raw_stream_callback(
+    stream: HQUIC,
+    context: *mut c_void,
+    event: *mut ffi::QUIC_STREAM_EVENT,
+) -> QUIC_STATUS {
+    let f = unsafe {
+        (context as *mut Box<StreamCallback>)
+            .as_mut() // allow mutation
+            .expect("cannot get ConnectionCallback from ctx")
+    };
+    let stream_ref = unsafe { StreamRef::from_raw(stream) };
+    let event = StreamEvent::from(unsafe { event.as_mut().expect("cannot get event ref") });
+    match f(stream_ref, event) {
+        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+        Err(e) => e.0,
     }
 }
 
@@ -1184,48 +1159,53 @@ impl Stream {
         }
     }
 
-    pub fn open(
+    pub fn open<F>(
         &mut self,
         connection: &Connection,
         flags: StreamOpenFlags,
-        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) -> Result<(), Status> {
+        handler: F,
+    ) -> Result<(), Status>
+    where
+        F: FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
-                flags as crate::ffi::QuicFlag,
-                handler,
-                context as *mut c_void,
+                flags.bits(),
+                Some(raw_stream_callback),
+                ctx as *mut c_void,
                 std::ptr::addr_of_mut!(self.handle),
             )
         };
-        Status::ok_from_raw(status)
+        Status::ok_from_raw(status).inspect_err(|_| {
+            let _ = unsafe { Box::from_raw(ctx) };
+        })
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Status> {
-        let status = unsafe {
-            Api::ffi_ref().StreamStart.unwrap()(self.handle, flags as crate::ffi::QuicFlag)
-        };
+        let status = unsafe { Api::ffi_ref().StreamStart.unwrap()(self.handle, flags.bits()) };
         Status::ok_from_raw(status)
     }
 
     pub fn shutdown(&self, flags: StreamShutdownFlags, error_code: u62) -> Result<(), Status> {
         let status = unsafe {
-            Api::ffi_ref().StreamShutdown.unwrap()(
-                self.handle,
-                flags as crate::ffi::QuicFlag,
-                error_code,
-            )
+            Api::ffi_ref().StreamShutdown.unwrap()(self.handle, flags.bits(), error_code)
         };
         Status::ok_from_raw(status)
     }
 
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
+            // consume the context and drop it after handle close.
+            let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
+                self.set_context(std::ptr::null_mut());
             }
+            std::mem::drop(ctx);
         }
     }
 
@@ -1246,25 +1226,26 @@ impl Stream {
                 self.handle,
                 buffers.as_ptr() as *const QUIC_BUFFER,
                 buffers.len() as u32,
-                flags as crate::ffi::QuicFlag,
+                flags.bits(),
                 client_send_context as *mut c_void,
             )
         };
         Status::ok_from_raw(status)
     }
 
-    /// # Safety
-    /// handler and context must be valid.
-    pub unsafe fn set_callback_handler(
-        &self,
-        handler: ffi::QUIC_STREAM_CALLBACK_HANDLER,
-        context: *const c_void,
-    ) {
+    pub fn set_callback_handler<F>(&self, handler: F)
+    where
+        F: FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static,
+    {
+        let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
+        let ctx = Box::into_raw(b);
+        // clear previous ctx before setting it.
+        self.consume_callback_ctx();
         unsafe {
             Api::set_callback_handler(
                 self.handle,
-                std::mem::transmute::<ffi::QUIC_STREAM_CALLBACK_HANDLER, *const c_void>(handler),
-                context,
+                raw_stream_callback as *const c_void,
+                ctx as *mut c_void,
             )
         };
     }
@@ -1275,29 +1256,8 @@ impl Stream {
 }
 
 define_quic_handle_impl!(Stream);
-
-impl StreamRef {
-    /// For internal use only.
-    pub(crate) unsafe fn from_raw(handle: HQUIC) -> Self {
-        Self(Stream { handle })
-    }
-}
-
-impl Drop for StreamRef {
-    fn drop(&mut self) {
-        // clear the handle to prevent auto close.
-        self.0.handle = std::ptr::null_mut()
-    }
-}
-
-/// Make inner stream accessile
-impl std::ops::Deref for StreamRef {
-    type Target = Stream;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+define_quic_handle_ref!(Stream, StreamRef);
+define_quic_handle_ctx_fn!(Stream, StreamCallback);
 
 #[cfg(test)]
 mod tests {
@@ -1306,23 +1266,12 @@ mod tests {
     // The following defines some simple test code.
     //
 
-    use std::ffi::c_void;
-    use std::ptr;
-
-    use crate::ffi::{HQUIC, QUIC_STATUS};
     use crate::{
-        ffi, BufferRef, Configuration, Connection, ConnectionEvent, CredentialConfig, Registration,
-        Settings, StatusCode, Stream, StreamEvent,
+        BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
+        Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
     };
 
-    extern "C" fn test_conn_callback(
-        _connection: HQUIC,
-        context: *mut c_void,
-        event: *mut ffi::QUIC_CONNECTION_EVENT,
-    ) -> QUIC_STATUS {
-        let connection = unsafe { &*(context as *const Connection) };
-        let ev_ref = unsafe { event.as_ref().unwrap() };
-        let event = ConnectionEvent::from(ev_ref);
+    fn test_conn_callback(connection: ConnectionRef, event: ConnectionEvent) -> Result<(), Status> {
         match event {
             ConnectionEvent::Connected {
                 session_resumed,
@@ -1353,8 +1302,8 @@ mod tests {
                 println!("Peer address changed: {:?}", address.as_socket().unwrap())
             }
             ConnectionEvent::PeerStreamStarted { stream, flags } => {
-                println!("Peer stream started: flags: {flags}");
-                unsafe { stream.set_callback_handler(Some(test_stream_callback), context) };
+                println!("Peer stream started: flags: {flags:?}");
+                stream.set_callback_handler(test_stream_callback)
             }
             ConnectionEvent::StreamsAvailable {
                 bidirectional_count,
@@ -1367,18 +1316,12 @@ mod tests {
             ConnectionEvent::PeerNeedsStreams { bidirectional } => {
                 println!("Peer needs streams: bi: {bidirectional}");
             }
-            _ => println!("Connection other callback {}", ev_ref.Type),
+            _ => println!("Connection other callback ?",),
         }
-        StatusCode::QUIC_STATUS_SUCCESS.into()
+        Ok(())
     }
 
-    extern "C" fn test_stream_callback(
-        stream: HQUIC,
-        _context: *mut c_void,
-        event: *mut ffi::QUIC_STREAM_EVENT,
-    ) -> QUIC_STATUS {
-        let event_ref = unsafe { event.as_mut().unwrap() };
-        let event = StreamEvent::from(event_ref);
+    fn test_stream_callback(stream: StreamRef, event: StreamEvent) -> Result<(), Status> {
         match event {
             StreamEvent::StartComplete {
                 status,
@@ -1423,7 +1366,7 @@ mod tests {
             } => {
                 println!("Stream shutdown complete: {connection_shutdown} {app_close_in_progress} {connection_shutdown_by_app} {connection_closed_remotely} {connection_error_code} {connection_close_status}");
                 // Attach to stream for auto close handle.
-                unsafe { Stream::from_raw(stream) };
+                unsafe { Stream::from_raw(stream.as_raw()) };
             }
             StreamEvent::IdealSendBufferSize { byte_count } => {
                 println!("Stream ideal send buffer size: {byte_count}");
@@ -1435,12 +1378,12 @@ mod tests {
                 println!("Stream cancel on loss: {error_code}");
             }
         }
-        StatusCode::QUIC_STATUS_SUCCESS.into()
+        Ok(())
     }
 
     #[test]
     fn test_module() {
-        let res = Registration::new(ptr::null());
+        let res = Registration::new(&RegistrationConfig::default());
         assert!(
             res.is_ok(),
             "Failed to open registration: {}",
@@ -1479,11 +1422,7 @@ mod tests {
         );
 
         let mut connection = Connection::new();
-        let res = connection.open(
-            &registration,
-            Some(test_conn_callback),
-            &connection as *const Connection as *const c_void,
-        );
+        let res = connection.open(&registration, test_conn_callback);
         assert!(
             res.is_ok(),
             "Failed to open connection: {}",
@@ -1531,3 +1470,8 @@ mod tests {
         }
     }
 }
+
+// test certs are only installed on windows
+#[cfg(target_os = "windows")]
+#[cfg(test)]
+mod server_client_test;

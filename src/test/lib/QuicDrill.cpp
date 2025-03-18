@@ -543,3 +543,52 @@ QuicDrillTestServerVNPacket(
 
     CxPlatSleep(500);
 }
+
+void
+QuicDrillTestKeyUpdateDuringHandshake(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+
+    if (QuitTestIsFeatureSupported(CXPLAT_DATAPATH_FEATURE_RAW)) {
+        return;
+    }
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+
+    MsQuicAutoAcceptListener Listener(Registration, MsQuicConnection::NoOpCallback);
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    DrillSender Sender;
+    TEST_QUIC_SUCCEEDED(
+        Sender.Initialize(
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            QuicAddrFamily,
+            (QuicAddrFamily == QUIC_ADDRESS_FAMILY_INET) ?
+                ServerLocalAddr.SockAddr.Ipv4.sin_port :
+                ServerLocalAddr.SockAddr.Ipv6.sin6_port));
+
+    DrillInitialPacketDescriptor InitialPacketBuffer(0);
+    InitialPacketBuffer.Header.PacketNumLen = 3;
+    InitialPacketBuffer.Payload.push_back(1); // Ping frame
+    for (uint16_t i = 0; i < 1199; ++i) { InitialPacketBuffer.Payload.push_back(0); } // Padding frames
+
+    Drill1RttPacketDescriptor OneRttPacketBuffer;
+    OneRttPacketBuffer.DestCid.insert(
+        OneRttPacketBuffer.DestCid.end(),
+        InitialPacketBuffer.DestCid.begin(),
+        InitialPacketBuffer.DestCid.end());
+    OneRttPacketBuffer.KeyPhase = 1;
+    OneRttPacketBuffer.Payload.push_back(1); // Ping frame
+    for (uint16_t i = 0; i < 80; ++i) { OneRttPacketBuffer.Payload.push_back(0); } // Padding frames
+
+    TEST_QUIC_SUCCEEDED(Sender.Send(InitialPacketBuffer.writeEx(true)));
+    TEST_QUIC_SUCCEEDED(Sender.Send(OneRttPacketBuffer.write()));
+
+    CxPlatSleep(500);
+}
