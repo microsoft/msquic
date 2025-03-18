@@ -352,7 +352,7 @@ QuicConnFree(
     QuicConnUnregister(Connection);
     if (Connection->Worker != NULL) {
         QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-        QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+        QuicOperationQueueClear(&Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {
         QUIC_RX_PACKET* Packet = Connection->ReceiveQueue;
@@ -7768,7 +7768,7 @@ QuicConnDrainOperations(
         QuicConnValidate(Connection);
 
         if (FreeOper) {
-            QuicOperationFree(Connection->Worker, Oper);
+            QuicOperationFree(Oper);
         }
 
         Connection->Stats.Schedule.OperationCount++;

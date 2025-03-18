@@ -339,7 +339,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -408,6 +407,5 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_QUEUE* OperQ
     );

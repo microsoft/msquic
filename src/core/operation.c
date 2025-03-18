@@ -84,7 +84,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -239,7 +238,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
@@ -282,7 +280,7 @@ QuicOperationQueueClear(
                         0);
                 }
             }
-            QuicOperationFree(Worker, Oper);
+            QuicOperationFree(Oper);
         } else {
             CXPLAT_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
