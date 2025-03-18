@@ -198,7 +198,6 @@ QuicStreamFree(
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
     QUIC_CONNECTION* Connection = Stream->Connection;
-    QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);

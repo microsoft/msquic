@@ -136,7 +136,6 @@ typedef struct DATAPATH_RX_IO_BLOCK {
 
     int32_t DataIndicationSize;
 
-    uint8_t DatagramPoolIndex   : 1;
     uint8_t BufferPoolIndex     : 1;
     uint8_t IsCopiedBuffer      : 1;
 } DATAPATH_RX_IO_BLOCK;
@@ -1974,7 +1973,6 @@ CxPlatSocketAllocRxIoBlock(
 
     if (IoBlock != NULL) {
         IoBlock->Route.State = RouteResolved;
-        IoBlock->DatagramPoolIndex = IsUro;
         IoBlock->ProcContext = &Datapath->ProcContexts[ProcIndex];
         IoBlock->DataBufferStart = NULL;
     }
