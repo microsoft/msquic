@@ -509,9 +509,6 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
     Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT*); // Add space the object header
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
