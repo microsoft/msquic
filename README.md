@@ -15,6 +15,10 @@
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both Rust and C#.
 
+> [!TIP]
+> You are using MsQuic? Let us know! Knowing our users lets us prioritize work and keep improving MsQuic in the best possible direction.
+> Start a [Discussion](https://github.com/microsoft/msquic/discussions) to say hello, or give us a wave on [Discord](https://discord.gg/YGAtCwTSsc)!
+
 ## Protocol Features
 
 [![](https://img.shields.io/static/v1?label=RFC&message=9000&color=brightgreen)](https://tools.ietf.org/html/rfc9000)
