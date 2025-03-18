@@ -45,6 +45,8 @@ Environment:
 #include "msquic_winkernel.h"
 #pragma warning(pop)
 
+#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
+
 #if defined(__cplusplus)
 extern "C" {
 #endif
@@ -280,13 +282,9 @@ CxPlatPoolAlloc(
     )
 {
     CXPLAT_POOL_OBJECT* Entry = ExAllocateFromLookasideListEx(Pool);
-    if (Entry == NULL) {
-        Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
-        if (Entry == NULL) {
-            return NULL;
-        }
+    if (Entry != NULL) {
+        Entry->Owner = Pool;
     }
-    Entry->Owner = Pool;
     return Entry->Memory;
 }
 inline
