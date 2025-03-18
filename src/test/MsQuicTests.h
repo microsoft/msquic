@@ -256,6 +256,11 @@ QuicTestInterfaceBinding(
     _In_ int Family
     );
 
+void
+QuicTestRetryMemoryLimitConnect(
+    _In_ int Family
+    );
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
@@ -666,6 +671,11 @@ QuicDrillTestInitialToken(
 
 void
 QuicDrillTestServerVNPacket(
+    _In_ int Family
+    );
+
+void
+QuicDrillTestKeyUpdateDuringHandshake(
     _In_ int Family
     );
 
@@ -1391,6 +1401,14 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
     QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
 
+#define IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE \
+    QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+    
+#define IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT \
+    QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
+    //int - Family
+
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
@@ -1399,7 +1417,7 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
@@ -1409,7 +1427,7 @@ typedef struct {
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(133, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION
 
 typedef struct {
@@ -1417,6 +1435,6 @@ typedef struct {
 } QUIC_RUN_MULTIPATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_MULTIPATH \
-    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(134, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MULTIPATH
-#define QUIC_MAX_IOCTL_FUNC_CODE 132
+#define QUIC_MAX_IOCTL_FUNC_CODE 134

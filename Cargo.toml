@@ -1,7 +1,7 @@
 [package]
 name = "msquic"
 version = "2.5.0-beta"
-edition = "2018"
+edition = "2021"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
 readme = "README.md"
@@ -44,9 +44,14 @@ include = [
     "/THIRD-PARTY-NOTICES",
 ]
 
+[lib]
+path = "src/rs/lib.rs"
+
 [features]
 default = []
-schannel = []
+# Windows uses schannel, and linux uses openssl by default. 
+# This feature enables openssl on windows, and has no effect on linux.
+openssl = []
 static = []
 preview-api = []
 # Overwrite generated binding by reruning the bindgen
@@ -57,9 +62,8 @@ cmake = "0.1"
 bindgen = { version = "0.71", optional = true }
 
 [dependencies]
-bitfield = "0.18.1"
-libc = "0.2.0"
-c-types = "4.0.0"
-serde = { version = "1.0.117", features = ["derive"] }
-ctor = "0.3.3"
-socket2 = "0.5.8"
+bitflags = "2.9"
+libc = "0.2"
+c-types = "4.0"
+ctor = "0.4"
+socket2 = "0.5"

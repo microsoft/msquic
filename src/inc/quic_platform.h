@@ -304,6 +304,21 @@ CxPlatListInsertTail(
 }
 
 FORCEINLINE
+void
+CxPlatListInsertAfter(
+    _Inout_ CXPLAT_LIST_ENTRY* ListEntry,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* NewEntry
+    )
+{
+    QuicListEntryValidate(ListEntry);
+    CXPLAT_LIST_ENTRY* Flink = ListEntry->Flink;
+    ListEntry->Flink = NewEntry;
+    NewEntry->Flink = Flink;
+    NewEntry->Blink = ListEntry;
+    Flink->Blink = NewEntry;
+}
+
+FORCEINLINE
 CXPLAT_LIST_ENTRY*
 CxPlatListRemoveHead(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead

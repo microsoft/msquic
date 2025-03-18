@@ -31,8 +31,16 @@ uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
 CxPlatEvent RecvPacketEvent(true);
-std::list<QUIC_RX_PACKET*> PacketQueue;
+QUIC_RX_PACKET* PacketQueue;
+QUIC_RX_PACKET** PacketQueueTail = &PacketQueue;
+CxPlatLock PacketQueueLock;
 uint64_t CurrSrcCid = 0;
+
+struct PacketScope {
+    QUIC_RX_PACKET* Packet;
+    PacketScope(QUIC_RX_PACKET* Packet) : Packet(Packet) { }
+    ~PacketScope() { CXPLAT_FREE(Packet, QUIC_POOL_TOOL); }
+};
 
 static const char* Alpn = "fuzz";
 static uint32_t Version = QUIC_VERSION_1;
@@ -184,13 +192,18 @@ UdpRecvCallback(
                 memcpy((void *)PacketCopy->DestCid, Packet.DestCid, Packet.DestCidLen);
                 PacketCopy->SourceCid = PacketCopy->DestCid + Packet.DestCidLen;
                 memcpy((void *)PacketCopy->SourceCid, Packet.SourceCid, Packet.SourceCidLen);
-                PacketQueue.push_back(PacketCopy);
+                PacketCopy->_.Next = nullptr;
+
+                PacketQueueLock.Acquire();
+                *PacketQueueTail = PacketCopy;
+                PacketQueueTail = (QUIC_RX_PACKET**)&PacketCopy->_.Next;
+                PacketQueueLock.Release();
             }
             Packet.AvailBuffer += Packet.AvailBufferLength;
         } while (Packet.AvailBuffer - Datagram->Buffer < Datagram->BufferLength);
         Datagram = Datagram->Next;
     }
-    if (!PacketQueue.empty()) {
+    if (PacketQueue != nullptr) {
         RecvPacketEvent.Set();
     }
     CxPlatRecvDataReturn(RecvBufferChain);
@@ -715,12 +728,19 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
     int64_t HandshakePacketCount = 0;
     int64_t TotalByteCount = 0;
     uint8_t mode;
-    uint64_t StartTimeMs = CxPlatTimeMs64();
+    uint64_t StartTimeMs = CxPlatTimeMs64(), LastPrintTimeMs = StartTimeMs, CurrentTimeMs;
     uint8_t recvBuffer[8192];
     uint32_t bufferoffset = 0;
     bool handshakeComplete = FALSE;
     TlsContext HandshakeClientContext;
-    while (CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs) {
+    while (CxPlatTimeDiff64(StartTimeMs, (CurrentTimeMs = CxPlatTimeMs64())) < RunTimeMs) {
+        if (CxPlatTimeDiff64(LastPrintTimeMs, CurrentTimeMs) > S_TO_MS(60)) {
+            LastPrintTimeMs = CurrentTimeMs;
+            printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
+            printf("Total Handshake Packets sent: %lld\n", (long long)HandshakePacketCount);
+            printf("Total Bytes sent: %lld\n\n", (long long)TotalByteCount);
+        }
+
         mode = (uint8_t)GetRandom(10);
         if (mode < 1) {
             PacketParams InitialPacketParams = {
@@ -759,13 +779,20 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                 FirstPacket = FALSE;
             } while (!RecvPacketEvent.WaitTimeout(400) && CxPlatTimeDiff64(StartTimeMs, CxPlatTimeMs64()) < RunTimeMs);
 
-            while (!PacketQueue.empty()) {
-                QUIC_RX_PACKET* packet = PacketQueue.front();
+            while (PacketQueue != nullptr) {
+                QUIC_RX_PACKET* packet = PacketQueue;
+                PacketScope packetScope(packet);
+
+                PacketQueueLock.Acquire();
+                if (packet->_.Next == nullptr) {
+                    PacketQueueTail = &PacketQueue;
+                }
+                PacketQueue = (QUIC_RX_PACKET*)packet->_.Next;
+                PacketQueueLock.Release();
+
                 if (!packet->DestCidLen ||
                         !packet->DestCid || packet->PayloadLength < 4 + CXPLAT_HP_SAMPLE_LENGTH ||
                         (memcmp(packet->DestCid, &CurrSrcCid, sizeof(uint64_t)) != 0)) {
-                    CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-                    PacketQueue.pop_front();
                     continue;
                 }
                 if (packet->LH->Type == QUIC_INITIAL_V1) {
@@ -781,8 +808,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
 
                 QUIC_PACKET_KEY_TYPE KeyType = packet->KeyType;
                 if (HandshakeClientContext.State.ReadKeys[KeyType] == nullptr) {
-                    CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-                    PacketQueue.pop_front();
                     continue;
                 }
                 if (QUIC_FAILED(
@@ -829,8 +854,6 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                         packet->PayloadLength,  // BufferLength
                         (uint8_t*)Payload))) {  // Buffer
                     printf("CxPlatDecrypt failed\n");
-                    CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-                    PacketQueue.pop_front();
                     continue;
                 }
                 packet->PayloadLength -= CXPLAT_ENCRYPTION_OVERHEAD;
@@ -899,12 +922,8 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
                     HandshakePacketParams.NumPackets = (uint8_t)GetRandom(3) + 1;
                     sendPacket(Binding, Route, &HandshakePacketCount, &TotalByteCount, &HandshakePacketParams, true, &HandshakeClientContext);
                     handshakeComplete = FALSE;
-                    CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-                    PacketQueue.pop_front();
                     break;
                 }
-                CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-                PacketQueue.pop_front();
             }
 
             for (uint8_t i = 0; i < QUIC_PACKET_KEY_COUNT; ++i) {
@@ -919,11 +938,7 @@ void fuzz(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE Route) {
             }
         }
     }
-    while (!PacketQueue.empty()) {
-        QUIC_RX_PACKET* packet = PacketQueue.front();
-        CXPLAT_FREE(packet, QUIC_POOL_TOOL);
-        PacketQueue.pop_front();
-    }
+
     printf("Total Initial Packets sent: %lld\n", (long long)InitialPacketCount);
     printf("Total Handshake Packets sent: %lld\n", (long long)HandshakePacketCount);
     printf("Total Bytes sent: %lld\n", (long long)TotalByteCount);
@@ -937,13 +952,14 @@ void start() {
     };
     MsQuic = new MsQuicApi();
     CxPlatWorkerPoolInit(&WorkerPool);
-    QUIC_STATUS Status = CxPlatDataPathInitialize(
-        0,
-        &DatapathCallbacks,
-        NULL,
-        &WorkerPool,
-        NULL,
-        &Datapath);
+    QUIC_STATUS Status =
+        CxPlatDataPathInitialize(
+            0,
+            &DatapathCallbacks,
+            NULL,
+            &WorkerPool,
+            NULL,
+            &Datapath);
     if (QUIC_FAILED(Status)) {
         printf("Datapath init failed 0x%x", Status);
         return;
@@ -952,28 +968,32 @@ void start() {
     auto value = GetRandom(2);
     QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : QUIC_ADDRESS_FAMILY_INET; // fuzz
     QuicAddrSetFamily(&sockAddr, Family);
-    Status = CxPlatDataPathResolveAddress(
-                    Datapath,
-                    Sni,
-                    &sockAddr);
+    Status =
+        CxPlatDataPathResolveAddress(
+            Datapath,
+            Sni,
+            &sockAddr);
     if (QUIC_FAILED(Status)) {
         printf("Address Resolution Failed 0x%x", Status);
         return;
     }
     QuicAddrSetPort(&sockAddr, 9999);
-    // make a server
+
+    //
+    // Set up a QUIC server
+    //
     MsQuicRegistration Registration(true);
     QUIC_SUCCEEDED(Registration.GetInitStatus());
-
     auto CredConfig = CxPlatGetSelfSignedCert(CXPLAT_SELF_SIGN_CERT_USER, FALSE, NULL);
-
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, *CredConfig);
-
     QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
     MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
     QUIC_SUCCEEDED(Listener.Start(Alpn, &sockAddr));
     QUIC_SUCCEEDED(Listener.GetInitStatus());
 
+    //
+    // Create a client socket to send fuzzed packets to the server
+    //
     CXPLAT_SOCKET* Binding;
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
@@ -994,8 +1014,17 @@ void start() {
     CXPLAT_ROUTE Route = {0};
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
-    // Fuzzing
+
     fuzz(Binding, Route);
+
+    CxPlatSocketDelete(Binding);
+    CxPlatDataPathUninitialize(Datapath);
+
+    while (PacketQueue != nullptr) {
+        QUIC_RX_PACKET* packet = PacketQueue;
+        PacketQueue = (QUIC_RX_PACKET*)packet->_.Next;
+        CXPLAT_FREE(packet, QUIC_POOL_TOOL);
+    }
 }
 
 #ifdef FUZZING

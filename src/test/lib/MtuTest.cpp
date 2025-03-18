@@ -20,11 +20,11 @@ static bool UseQTIP = false;
 extern bool UseQTIP;
 #endif
 
-static QUIC_STATUS MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
+static QUIC_STATUS QUIC_API MtuStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
     return QUIC_STATUS_SUCCESS;
 }
 
-static QUIC_STATUS MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+static QUIC_STATUS QUIC_API MtuSettingsCallback(_In_ MsQuicConnection*, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
     if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
         new(std::nothrow) MsQuicStream(Event->PEER_STREAM_STARTED.Stream, CleanUpAutoDelete, MtuStreamCallback, nullptr);
     }

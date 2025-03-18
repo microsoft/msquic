@@ -34,7 +34,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        vec: [
+        vec: [ # Note that GitHub windows-2025 doesn't have the necessary bits to build kernel drivers currently.
           { config: "Debug", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "winkernel", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" }
         ]
@@ -55,11 +55,11 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" }
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -82,7 +82,9 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
@@ -122,6 +124,15 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
@@ -130,15 +141,16 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
+        fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+    - name: Download Windows Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       if: matrix.vec.plat == 'windows'
-      with: # note we always use binaries built on windows-2022.
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
+      with: # note we always use binaries built on windows-2025.
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+    - name: Download Linux Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -173,7 +185,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Upload on Failure
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
       if: failure()
       with:
         name: BVT-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.qtip }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}
@@ -196,16 +208,17 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
+        fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
-    - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-      with: # note we always use binaries built on windows-2022.
+    - name: Download Kernel Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      with: # note we always use kernel binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
-    - name: Download Build Artifacts for Testing From WinUser
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-      with: # note we always use binaries built on windows-2022.
-        name: ${{ matrix.vec.config }}-windows-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
+    - name: Download Usermode Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      with: # note we always use binaries built on windows-2025.
+        name: ${{ matrix.vec.config }}-windows-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
       shell: pwsh
@@ -221,36 +234,49 @@ jobs:
       shell: pwsh
       timeout-minutes: 90
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
-    - name: Upload on Failure
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
-      if: failure()
+    - name: Upload on Failure or Cancellation
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      if: failure() || cancelled()
       with:
         name: BVT-Kernel-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}
         path: artifacts
 
-  interop-winlatest:
-    name: Interop WinPrerelease
-    needs: [build-windows]
+  interop:
+    name: Interop
+    needs: [build-windows, build-unix]
     strategy:
       fail-fast: false
       matrix:
         vec: [
+          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
-    runs-on:
-    - self-hosted
-    - "1ES.Pool=1es-msquic-pool"
-    - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
+    runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
-        fetch-depth: 0
+        fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
-    - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
-      with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
+    - name: Download Windows Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      if: matrix.vec.plat == 'windows'
+      with: # note we always use binaries built on windows-2025.
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
+    - name: Download Linux Build Artifacts
+      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      if: matrix.vec.plat == 'linux'
+      with:
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto-Sanitize${{ matrix.vec.build }}
+        path: artifacts
+    - name: Fix permissions for Unix
+      if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
+      run: |
+        sudo chmod -R 777 artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
@@ -258,7 +284,20 @@ jobs:
       shell: pwsh
       run: scripts/interop.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -GenerateXmlResults
     - name: Upload results
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      if: failure() || cancelled()
       with:
         name: InteropWinlatest-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
+
+  Complete:
+    name: BVT Complete
+    if: always()
+    needs: [bvt, bvt-kernel, interop]
+    runs-on: ubuntu-latest
+    permissions: {} # No need for any permissions.
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      with:
+        jobs: ${{ toJSON(needs) }}

@@ -1,6 +1,7 @@
 name: Cargo
 
 on:
+  workflow_dispatch:
   push:
     branches:
     - main
@@ -18,31 +19,18 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features schannel", "--features schannel,static", "--features overwrite"]
-        exclude:
-          - os: ubuntu-latest
-            features: "--features schannel"
-          - os: ubuntu-latest
-            features: "--features schannel,static"
-          - os: macos-latest
-            features: "--features schannel"
-          - os: macos-latest
-            features: "--features schannel,static"
-          - os: macos-latest-xlarge
-            features: "--features schannel"
-          - os: macos-latest-xlarge
-            features: "--features schannel,static"
+        features: ["", "--features static", "--features openssl", "--features openssl,static", "--features overwrite"]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@cb605e52c26070c328afc4562f0b4ada7618a84e
+      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
       with:
         egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
+      run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
@@ -51,7 +39,7 @@ jobs:
         perl-version: '5.34'
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Install Cargo
       if: runner.os == 'Linux'
       run: curl https://sh.rustup.rs -sSf | sh -s -- -y
