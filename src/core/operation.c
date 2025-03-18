@@ -70,7 +70,7 @@ QuicOperationAlloc(
             Oper->API_CALL.Context =
                 (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Worker->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
-                CxPlatPoolFree(&Worker->OperPool, Oper);
+                CxPlatPoolFree(Oper);
                 Oper = NULL;
             } else {
                 Oper->API_CALL.Context->Status = NULL;
@@ -130,7 +130,7 @@ QuicOperationFree(
             }
             QuicStreamRelease(ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream, QUIC_STREAM_REF_OPERATION);
         }
-        CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
+        CxPlatPoolFree(ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
         QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
@@ -138,7 +138,7 @@ QuicOperationFree(
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
         }
     }
-    CxPlatPoolFree(&Worker->OperPool, Oper);
+    CxPlatPoolFree(Oper);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

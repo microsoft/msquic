@@ -2031,7 +2031,7 @@ CxPlatSocketReceiveCoalesced(
 Exit:
 
     if (IoBlock) {
-        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -2108,7 +2108,7 @@ Exit:
 
     for (uint32_t i = 0; i < CXPLAT_MAX_IO_BATCH_SIZE; ++i) {
         if (IoBlocks[i]) {
-            CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlocks[i]);
+            CxPlatPoolFree(IoBlocks[i]);
         }
     }
 }
@@ -2192,7 +2192,7 @@ CxPlatSocketReceiveTcpData(
 
 Exit:
     if (IoBlock) {
-        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -2223,7 +2223,7 @@ RecvDataReturn(
         DATAPATH_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
         if (InterlockedDecrement(&Packet->IoBlock->RefCount) == 0) {
-            CxPlatPoolFree(Packet->IoBlock->OwningPool, Packet->IoBlock);
+            CxPlatPoolFree(Packet->IoBlock);
         }
     }
 }
@@ -2283,7 +2283,7 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CxPlatPoolFree(&SendData->SocketContext->DatapathPartition->SendBlockPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 static

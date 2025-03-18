@@ -287,8 +287,9 @@ struct RecvBuffer {
 
     void FreeChunkList(CXPLAT_LIST_ENTRY& ChunkList) {
         while (!CxPlatListIsEmpty(&ChunkList)) {
-            QUIC_RECV_CHUNK *Chunk = CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link);
-            CxPlatPoolFree(&AppBufferChunkPool, Chunk);
+            CxPlatPoolFree(
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         }
     }
 };

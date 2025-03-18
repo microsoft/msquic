@@ -121,11 +121,6 @@ typedef struct DATAPATH_RX_IO_BLOCK {
     RIO_IO_TYPE IoType;
 
     //
-    // The owning datagram pool.
-    //
-    CXPLAT_POOL* OwningPool;
-
-    //
     // The owning per-processor socket.
     //
     CXPLAT_SOCKET_PROC* SocketProc;
@@ -226,11 +221,6 @@ typedef struct CXPLAT_SEND_DATA {
     // The owning processor context.
     //
     CXPLAT_DATAPATH_PARTITION* Owner;
-
-    //
-    // The pool for this send data.
-    //
-    CXPLAT_POOL* SendDataPool;
 
     //
     // The pool for send buffers within this send data.
@@ -401,7 +391,7 @@ CxPlatSocketContextUninitialize(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
-void*
+CXPLAT_POOL_OBJECT*
 RioRecvBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -410,12 +400,12 @@ RioRecvBufferAllocate(
 
 void
 RioRecvBufferFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendDataAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -424,19 +414,19 @@ RioSendDataAllocate(
 
 void
 RioSendDataFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendLargeBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -445,7 +435,7 @@ RioSendLargeBufferAllocate(
 
 void
 RioSendBufferFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
@@ -2780,47 +2770,48 @@ CxPlatSocketContextUninitialize(
     CxPlatSocketContextRelease(SocketProc);
 }
 
-void*
+CXPLAT_POOL_OBJECT*
 RioRecvBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_DATAPATH_PARTITION* DatapathProc =
-        CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PARTITION, RioRecvPool);
-    CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
+    CXPLAT_POOL_OBJECT* Object = CxPlatLargeAlloc(Size, Tag);
 
-    DATAPATH_RX_IO_BLOCK* IoBlock = CxPlatLargeAlloc(Size, Tag);
+    if (Object != NULL) {
+        DATAPATH_RX_IO_BLOCK* IoBlock = (DATAPATH_RX_IO_BLOCK*)Object->Memory;
+        CXPLAT_DATAPATH_PARTITION* DatapathProc =
+            CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PARTITION, RioRecvPool);
+        CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
 
-    if (IoBlock != NULL) {
         IoBlock->RioBufferId =
             Datapath->RioDispatch.RIORegisterBuffer((char*)IoBlock, Size);
 
         if (IoBlock->RioBufferId == RIO_INVALID_BUFFERID) {
-            CxPlatLargeFree(IoBlock, Tag);
-            IoBlock = NULL;
+            CxPlatLargeFree(Object, Tag);
+            Object = NULL;
         }
     }
 
-    return IoBlock;
+    return Object;
 }
 
 void
 RioRecvBufferFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    DATAPATH_RX_IO_BLOCK* IoBlock = Entry;
+    DATAPATH_RX_IO_BLOCK* IoBlock = (DATAPATH_RX_IO_BLOCK*)Entry->Memory;
     CXPLAT_DATAPATH_PARTITION* DatapathProc =
         CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PARTITION, RioRecvPool);
     CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
 
     CXPLAT_DBG_ASSERT(IoBlock->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(IoBlock->RioBufferId);
-    CxPlatLargeFree(IoBlock, Tag);
+    CxPlatLargeFree(Entry, Tag);
 }
 
 DATAPATH_RX_IO_BLOCK*
@@ -2830,19 +2821,15 @@ CxPlatSocketAllocRxIoBlock(
 {
     CXPLAT_DATAPATH_PARTITION* DatapathProc = SocketProc->DatapathProc;
     DATAPATH_RX_IO_BLOCK* IoBlock;
-    CXPLAT_POOL* OwningPool;
 
     if (SocketProc->Parent->UseRio) {
-        OwningPool = &DatapathProc->RioRecvPool;
+        IoBlock = CxPlatPoolAlloc(&DatapathProc->RioRecvPool);
     } else {
-        OwningPool = &DatapathProc->RecvDatagramPool.Base;
+        IoBlock = CxPlatPoolAlloc(&DatapathProc->RecvDatagramPool.Base);
     }
-
-    IoBlock = CxPlatPoolAlloc(OwningPool);
 
     if (IoBlock != NULL) {
         IoBlock->Route.State = RouteResolved;
-        IoBlock->OwningPool = OwningPool;
         IoBlock->ReferenceCount = 0;
         IoBlock->SocketProc = SocketProc;
     }
@@ -2855,7 +2842,7 @@ CxPlatSocketFreeRxIoBlock(
     _In_ DATAPATH_RX_IO_BLOCK* IoBlock
     )
 {
-    CxPlatPoolFree(IoBlock->OwningPool, IoBlock);
+    CxPlatPoolFree(IoBlock);
 }
 
 QUIC_STATUS
@@ -3857,7 +3844,7 @@ CxPlatFreeRxIoBlock(
     )
 {
     CXPLAT_DBG_ASSERT(IoBlock->ReferenceCount == 0);
-    CxPlatPoolFree(IoBlock->OwningPool, IoBlock);
+    CxPlatPoolFree(IoBlock);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -3974,46 +3961,46 @@ CxPlatDataPathSocketProcessReceive(
     CxPlatRundownRelease(&SocketProc->RundownRef);
 }
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendDataAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_DATAPATH_PARTITION* DatapathProc =
-        CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PARTITION, RioSendDataPool);
-    CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
-    CXPLAT_SEND_DATA* SendData;
+    CXPLAT_POOL_OBJECT* Object = CxPlatLargeAlloc(Size, Tag);
 
-    SendData = CxPlatLargeAlloc(Size, Tag);
+    if (Object != NULL) {
+        CXPLAT_SEND_DATA* SendData = (CXPLAT_SEND_DATA*)Object->Memory;
+        CXPLAT_DATAPATH_PARTITION* DatapathProc =
+            CXPLAT_CONTAINING_RECORD(Pool, CXPLAT_DATAPATH_PARTITION, RioSendDataPool);
+        CXPLAT_DATAPATH* Datapath = DatapathProc->Datapath;
 
-    if (SendData != NULL) {
         SendData->RioBufferId =
             Datapath->RioDispatch.RIORegisterBuffer((char*)SendData, Size);
         if (SendData->RioBufferId == RIO_INVALID_BUFFERID) {
-            CxPlatLargeFree(SendData, Tag);
-            SendData = NULL;
+            CxPlatLargeFree(Object, Tag);
+            Object = NULL;
         }
     }
 
-    return SendData;
+    return Object;
 }
 
 void
 RioSendDataFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_SEND_DATA* SendData = Entry;
+    CXPLAT_SEND_DATA* SendData = (CXPLAT_SEND_DATA*)Entry->Memory;
     CXPLAT_DATAPATH* Datapath = SendData->Owner->Datapath;
     UNREFERENCED_PARAMETER(Pool);
 
     CXPLAT_DBG_ASSERT(SendData->RioBufferId != RIO_INVALID_BUFFERID);
     Datapath->RioDispatch.RIODeregisterBuffer(SendData->RioBufferId);
-    CxPlatLargeFree(SendData, Tag);
+    CxPlatLargeFree(Entry, Tag);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -4032,14 +4019,15 @@ SendDataAlloc(
 
     CXPLAT_SOCKET_PROC* SocketProc = Config->Route->Queue;
     CXPLAT_DATAPATH_PARTITION* DatapathProc = SocketProc->DatapathProc;
-    CXPLAT_POOL* SendDataPool =
-        Socket->UseRio ? &DatapathProc->RioSendDataPool : &DatapathProc->SendDataPool;
 
-    CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(SendDataPool);
+    CXPLAT_SEND_DATA* SendData =
+        CxPlatPoolAlloc(
+            Socket->UseRio ?
+                &DatapathProc->RioSendDataPool :
+                &DatapathProc->SendDataPool);
 
     if (SendData != NULL) {
         SendData->Owner = DatapathProc;
-        SendData->SendDataPool = SendDataPool;
         SendData->ECN = Config->ECN;
         SendData->DSCP = Config->DSCP;
         SendData->SendFlags = Config->Flags;
@@ -4076,10 +4064,18 @@ SendDataFree(
     )
 {
     for (UINT8 i = 0; i < SendData->WsaBufferCount; ++i) {
-        CxPlatPoolFree(SendData->BufferPool, SendData->WsaBuffers[i].buf);
+        CxPlatPoolFree(SendData->WsaBuffers[i].buf);
     }
 
-    CxPlatPoolFree(SendData->SendDataPool, SendData);
+    CxPlatPoolFree(SendData);
+}
+
+CXPLAT_RIO_SEND_BUFFER_HEADER*
+RioSendBufferHeaderFromPoolObject(
+    _In_ CXPLAT_POOL_OBJECT* Object
+    )
+{
+    return ((CXPLAT_RIO_SEND_BUFFER_HEADER*)Object) - 1;
 }
 
 CXPLAT_RIO_SEND_BUFFER_HEADER*
@@ -4087,38 +4083,40 @@ RioSendBufferHeaderFromBuffer(
     _In_ char* Buffer
     )
 {
-    return ((CXPLAT_RIO_SEND_BUFFER_HEADER*)Buffer) - 1;
+    return
+        RioSendBufferHeaderFromPoolObject(
+            CONTAINING_RECORD(Buffer, CXPLAT_POOL_OBJECT, Memory));
 }
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendBufferAllocateInternal(
-    CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t Size,
     _In_ uint32_t Tag
     )
 {
-    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader;
-    void* Buffer = NULL;
+    CXPLAT_POOL_OBJECT* Object = NULL;
 
+    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader;
     CXPLAT_DBG_ASSERT(Size + (uint32_t)sizeof(*RioHeader) > Size);
     RioHeader = CxPlatLargeAlloc(Size + sizeof(*RioHeader), Tag);
 
     if (RioHeader != NULL) {
-        Buffer = RioHeader + 1;
+        Object = (CXPLAT_POOL_OBJECT*)(RioHeader + 1);
+        void* Buffer = Object->Memory;
 
         RioHeader->Datapath = Datapath;
         RioHeader->RioBufferId = Datapath->RioDispatch.RIORegisterBuffer(Buffer, Size);
         if (RioHeader->RioBufferId == RIO_INVALID_BUFFERID) {
             CxPlatLargeFree(RioHeader, Tag);
-            RioHeader = NULL;
-            Buffer = NULL;
+            Object = NULL;
         }
     }
 
-    return Buffer;
+    return Object;
 }
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -4132,7 +4130,7 @@ RioSendBufferAllocate(
     return RioSendBufferAllocateInternal(Datapath, Size, Tag);
 }
 
-void*
+CXPLAT_POOL_OBJECT*
 RioSendLargeBufferAllocate(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -4148,12 +4146,12 @@ RioSendLargeBufferAllocate(
 
 void
 RioSendBufferFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_OBJECT* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader = RioSendBufferHeaderFromBuffer(Entry);
+    CXPLAT_RIO_SEND_BUFFER_HEADER* RioHeader = RioSendBufferHeaderFromPoolObject(Entry);
     CXPLAT_DATAPATH* Datapath = RioHeader->Datapath;
 
     UNREFERENCED_PARAMETER(Pool);
@@ -4347,14 +4345,14 @@ SendDataFreeBuffer(
     if (SendData->SegmentSize == 0) {
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
-        CxPlatPoolFree(SendData->BufferPool, Buffer->Buffer);
+        CxPlatPoolFree(Buffer->Buffer);
         --SendData->WsaBufferCount;
     } else {
         TailBuffer += SendData->WsaBuffers[SendData->WsaBufferCount - 1].len;
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 
         if (SendData->WsaBuffers[SendData->WsaBufferCount - 1].len == 0) {
-            CxPlatPoolFree(SendData->BufferPool, Buffer->Buffer);
+            CxPlatPoolFree(Buffer->Buffer);
             --SendData->WsaBufferCount;
         }
 

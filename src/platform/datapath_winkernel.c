@@ -1992,9 +1992,7 @@ CxPlatDataPathFreeRxIoBlock(
     PWSK_DATAGRAM_INDICATION DataIndication = NULL;
     if (IoBlock->DataBufferStart != NULL) {
         if (IoBlock->IsCopiedBuffer) {
-            CxPlatPoolFree(
-                &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex],
-                IoBlock->DataBufferStart);
+            CxPlatPoolFree(IoBlock->DataBufferStart);
         } else {
             DataIndication = IoBlock->DataIndication;
             InterlockedAdd64(
@@ -2003,9 +2001,7 @@ CxPlatDataPathFreeRxIoBlock(
         }
     }
 
-    CxPlatPoolFree(
-        &IoBlock->ProcContext->RecvDatagramPools[IoBlock->DatagramPoolIndex],
-        IoBlock);
+    CxPlatPoolFree(IoBlock);
     return DataIndication;
 }
 
@@ -2509,12 +2505,6 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
-
-    CXPLAT_POOL* BufferPool =
-        SendData->SegmentSize > 0 ?
-            &ProcContext->LargeSendBufferPool : &ProcContext->SendBufferPool;
-
     while (SendData->WskBufs != NULL) {
         PWSK_BUF_LIST WskBufList = SendData->WskBufs;
         SendData->WskBufs = SendData->WskBufs->Next;
@@ -2523,10 +2513,10 @@ SendDataFree(
         CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
             CONTAINING_RECORD(WskBufList, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
-        CxPlatPoolFree(BufferPool, SendBuffer);
+        CxPlatPoolFree(SendBuffer);
     }
 
-    CxPlatPoolFree(&ProcContext->SendDataPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2769,7 +2759,6 @@ static
 void
 CxPlatSendDataFreeSendBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ CXPLAT_POOL* BufferPool,
     _In_ CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer
     )
 {
@@ -2790,7 +2779,7 @@ CxPlatSendDataFreeSendBuffer(
         SendData->TailBuf = CONTAINING_RECORD(TailBuf, CXPLAT_DATAPATH_SEND_BUFFER, Link);
     }
 
-    CxPlatPoolFree(BufferPool, SendBuffer);
+    CxPlatPoolFree(SendBuffer);
     --SendData->WskBufferCount;
 }
 
@@ -2801,7 +2790,6 @@ SendDataFreeBuffer(
     _In_ QUIC_BUFFER* Buffer
     )
 {
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = SendData->Owner;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer =
         CONTAINING_RECORD(&SendData->TailBuf->Link, CXPLAT_DATAPATH_SEND_BUFFER, Link);
 
@@ -2814,10 +2802,10 @@ SendDataFreeBuffer(
     CXPLAT_DBG_ASSERT(Buffer->Buffer == SendData->ClientBuffer.Buffer);
 
     if (SendData->SegmentSize == 0) {
-        CxPlatSendDataFreeSendBuffer(SendData, &ProcContext->SendBufferPool, SendBuffer);
+        CxPlatSendDataFreeSendBuffer(SendData, SendBuffer);
     } else {
         if (SendData->TailBuf->Link.Buffer.Length == 0) {
-            CxPlatSendDataFreeSendBuffer(SendData, &ProcContext->LargeSendBufferPool, SendBuffer);
+            CxPlatSendDataFreeSendBuffer(SendData, SendBuffer);
         }
     }
 

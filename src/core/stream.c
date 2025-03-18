@@ -181,10 +181,10 @@ Exit:
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        CxPlatPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(Stream);
     }
     if (PreallocatedRecvChunk) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
+        CxPlatPoolFree(PreallocatedRecvChunk);
     }
 
     return Status;
@@ -226,13 +226,11 @@ QuicStreamFree(
     CxPlatRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
     }
 
     Stream->Flags.Freed = TRUE;
-    CxPlatPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(Stream);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -992,9 +990,7 @@ QuicStreamSwitchToAppOwnedBuffers(
     QUIC_WORKER* Worker = Stream->Connection->Worker;
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
         Stream->RecvBuffer.PreallocatedChunk = NULL;
     }
 

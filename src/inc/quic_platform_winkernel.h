@@ -256,6 +256,11 @@ extern uint64_t CxPlatTotalMemory;
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
+typedef struct CXPLAT_POOL_OBJECT {
+    CXPLAT_POOL* Owner;
+    uint8_t Memory[0];
+} CXPLAT_POOL_OBJECT;
+
 #define CxPlatPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
@@ -263,14 +268,38 @@ typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
         NULL, \
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
-        Size, \
+        (Size + sizeof(CXPLAT_POOL*)), \
         Tag, \
         1024)
 
 #define CxPlatPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
-#define CxPlatPoolAlloc(Pool) ExAllocateFromLookasideListEx(Pool)
-#define CxPlatPoolFree(Pool, Entry) ExFreeToLookasideListEx(Pool, Entry)
-
+inline
+void*
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_OBJECT* Entry = ExAllocateFromLookasideListEx(Pool);
+    if (Entry == NULL) {
+        Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        if (Entry == NULL) {
+            return NULL;
+        }
+    }
+    Entry->Owner = Pool;
+    return Entry->Memory;
+}
+inline
+void
+CxPlatPoolFree(
+    _In_ void* Memory
+    )
+{
+    CXPLAT_POOL_OBJECT* Entry =
+        CXPLAT_CONTAINING_RECORD(Memory, CXPLAT_POOL_OBJECT, Memory);
+    CXPLAT_POOL* Pool = Entry->Owner;
+    ExFreeToLookasideListEx(Pool, Entry);
+}
 #define CxPlatZeroMemory RtlZeroMemory
 #define CxPlatCopyMemory RtlCopyMemory
 #define CxPlatMoveMemory RtlMoveMemory

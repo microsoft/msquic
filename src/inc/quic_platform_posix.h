@@ -478,6 +478,16 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
+typedef struct CXPLAT_POOL_OBJECT {
+    CXPLAT_POOL* Owner;
+#if DEBUG
+    uint64_t SpecialFlag;
+#endif
+    uint8_t Memory[0];
+} CXPLAT_POOL_OBJECT;
+
+#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAui64
+
 #ifndef DISABLE_CXPLAT_POOL
 #define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 #else
@@ -485,12 +495,6 @@ typedef struct CXPLAT_POOL {
 #endif
 
 #if DEBUG
-typedef struct CXPLAT_POOL_ENTRY {
-    CXPLAT_SLIST_ENTRY ListHead;
-    uint64_t SpecialFlag;
-} CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
-
 int32_t
 CxPlatGetAllocFailDenominator(
     );
@@ -508,7 +512,7 @@ CxPlatPoolInitialize(
 #if DEBUG
     CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
 #endif
-    Pool->Size = Size;
+    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT*); // Add space the object header
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
@@ -547,37 +551,42 @@ CxPlatPoolAlloc(
     }
 #endif
     CxPlatLockAcquire(&Pool->Lock);
-    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
+    CXPLAT_POOL_OBJECT* Entry =
+        (CXPLAT_POOL_OBJECT*)CxPlatListPopEntry(&Pool->ListHead);
     if (Entry != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_DBG_ASSERT(Pool->ListDepth > 0);
         Pool->ListDepth--;
     }
     CxPlatLockRelease(&Pool->Lock);
     if (Entry == NULL) {
         Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+        if (Entry == NULL) {
+            return NULL;
+        }
     }
 #if DEBUG
-    if (Entry != NULL) {
-        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
-    }
+    Entry->SpecialFlag = 0;
 #endif
-    return Entry;
+    Entry->Owner = Pool;
+    return Entry->Memory;
 }
 
 inline
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
     )
 {
+    CXPLAT_POOL_OBJECT* Entry =
+        CXPLAT_CONTAINING_RECORD(Memory, CXPLAT_POOL_OBJECT, Memory);
+    CXPLAT_POOL* Pool = Entry->Owner;
 #if DEBUG
     if (CxPlatGetAllocFailDenominator()) {
         CxPlatFree(Entry, Pool->Tag);
         return;
     }
-    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    CXPLAT_DBG_ASSERT(Entry->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
+    Entry->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
 #endif
     if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
         CxPlatFree(Entry, Pool->Tag);

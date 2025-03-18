@@ -1602,7 +1602,7 @@ CxPlatRecvDataReturn(
         RecvDataChain = RecvDataChain->Next;
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_IO_BLOCK, RecvPacket);
-        CxPlatPoolFree(IoBlock->OwningPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -1647,10 +1647,10 @@ CxPlatSendDataFree(
             &DatapathPartition->LargeSendBufferPool : &DatapathPartition->SendBufferPool;
 
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
-        CxPlatPoolFree(BufferPool, SendData->Buffers[i].Buffer);
+        CxPlatPoolFree(SendData->Buffers[i].Buffer);
     }
 
-    CxPlatPoolFree(&DatapathPartition->SendDataPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 static
@@ -1845,7 +1845,7 @@ CxPlatSendDataFreeBuffer(
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 #endif
 
-        CxPlatPoolFree(&DatapathPartition->SendBufferPool, Buffer->Buffer);
+        CxPlatPoolFree(Buffer->Buffer);
         --SendData->BufferCount;
     } else {
 #ifdef DEBUG
@@ -1854,7 +1854,7 @@ CxPlatSendDataFreeBuffer(
 #endif
 
         if (SendData->Buffers[SendData->BufferCount - 1].Length == 0) {
-            CxPlatPoolFree(&DatapathPartition->LargeSendBufferPool, Buffer->Buffer);
+            CxPlatPoolFree(Buffer->Buffer);
             --SendData->BufferCount;
         }
 

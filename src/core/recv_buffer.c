@@ -74,7 +74,7 @@ QuicRecvChunkFree(
     }
 
     if (Chunk->AppOwnedBuffer) {
-        CxPlatPoolFree(RecvBuffer->AppBufferChunkPool, Chunk);
+        CxPlatPoolFree(Chunk);
     } else {
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
     }
@@ -1163,7 +1163,7 @@ QuicRecvBufferFullDrain(
     //
     // We have more chunks and just drained this one completely: we are never
     // going to re-use this one. Free it.
-    // 
+    //
     CxPlatListEntryRemove(&Chunk->Link);
     QuicRecvChunkFree(RecvBuffer, Chunk);
 
