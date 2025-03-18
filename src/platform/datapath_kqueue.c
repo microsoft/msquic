@@ -1641,11 +1641,6 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->Owner;
-    CXPLAT_POOL* BufferPool =
-        SendData->SegmentSize > 0 ?
-            &DatapathPartition->LargeSendBufferPool : &DatapathPartition->SendBufferPool;
-
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
         CxPlatPoolFree(SendData->Buffers[i].Buffer);
     }
@@ -1835,7 +1830,6 @@ CxPlatSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->Owner;
 #ifdef DEBUG
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
 #endif

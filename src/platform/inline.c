@@ -51,7 +51,6 @@ CxPlatPoolAlloc(
 
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
     _In_ void* Entry
     );
 
