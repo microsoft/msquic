@@ -556,7 +556,7 @@ CxPlatPoolAlloc(
     }
     CxPlatLockRelease(&Pool->Lock);
     if (Entry == NULL) {
-        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+        Entry = (CXPLAT_POOL_OBJECT*)CxPlatAlloc(Pool->Size, Pool->Tag);
         if (Entry == NULL) {
             return NULL;
         }
