@@ -51,11 +51,6 @@ const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
 //
 typedef struct DATAPATH_RX_IO_BLOCK {
     //
-    // The pool owning this recv block.
-    //
-    CXPLAT_POOL* OwningPool;
-
-    //
     // Represents the network route.
     //
     CXPLAT_ROUTE Route;
@@ -1990,7 +1985,6 @@ CxPlatSocketReceiveCoalesced(
             goto Exit;
         }
 
-        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
         IoBlock->Route.State = RouteResolved;
 
         struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
@@ -2065,7 +2059,6 @@ CxPlatSocketReceiveMessages(
             }
 
             IoBlocks[i] = IoBlock;
-            IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
             IoBlock->Route.State = RouteResolved;
 
             struct msghdr* MsgHdr = &RecvMsgHdr[i].msg_hdr;
@@ -2139,7 +2132,6 @@ CxPlatSocketReceiveTcpData(
             goto Exit;
         }
 
-        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
         IoBlock->Route.State = RouteResolved;
         IoBlock->Route.Queue = SocketContext;
         IoBlock->RefCount = 0;

@@ -526,7 +526,7 @@ CxPlatPoolUninitialize(
 {
     CXPLAT_POOL_OBJECT* Entry;
     while ((Entry = (CXPLAT_POOL_OBJECT*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
         CxPlatFree(Entry, Pool->Tag);
     }
     CxPlatLockUninitialize(&Pool->Lock);
