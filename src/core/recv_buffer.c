@@ -87,7 +87,6 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ QUIC_RECV_BUF_MODE RecvMode,
-    _In_ CXPLAT_POOL* AppBufferChunkPool,
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
@@ -102,7 +101,6 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
-    RecvBuffer->AppBufferChunkPool = AppBufferChunkPool;
     RecvBuffer->PreallocatedChunk = PreallocatedChunk;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);

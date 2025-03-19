@@ -299,7 +299,8 @@ typedef struct CXPLAT_POOL_OBJECT {
     uint8_t Memory[0];
 } CXPLAT_POOL_OBJECT;
 
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAui64
+#define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAui64
+#define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ui64
 
 typedef
 CXPLAT_POOL_OBJECT*
@@ -394,7 +395,7 @@ CxPlatPoolInitializeEx(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT*); // Add space the object header
+    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT); // Add space for the object header
     Pool->Tag = Tag;
     Pool->Allocate = Allocate ? Allocate : CxPlatPoolGenericAlloc;
     Pool->Free = Free ? Free : CxPlatPoolGenericFree;
@@ -440,9 +441,9 @@ CxPlatPoolAlloc(
     }
 #if DEBUG
     else {
-        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_SPECIAL_FLAG);
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
     }
-    Entry->SpecialFlag = 0;
+    Entry->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
     Entry->Owner = Pool;
     return Entry->Memory;
@@ -462,8 +463,8 @@ CxPlatPoolFree(
         Pool->Free(Entry, Pool->Tag, Pool);
         return;
     }
-    CXPLAT_DBG_ASSERT(Entry->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    Entry->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
+    Entry->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= Pool->MaxDepth) {
         Pool->Free(Entry, Pool->Tag, Pool);

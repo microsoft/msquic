@@ -154,7 +154,6 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
-            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -1001,7 +1000,6 @@ QuicStreamSwitchToAppOwnedBuffers(
         0,
         0,
         QUIC_RECV_BUF_MODE_APP_OWNED,
-        &Worker->AppBufferChunkPool,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }

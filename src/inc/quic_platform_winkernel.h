@@ -270,7 +270,7 @@ typedef struct CXPLAT_POOL_OBJECT {
         NULL, \
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
-        (Size + sizeof(CXPLAT_POOL*)), \
+        (Size + sizeof(CXPLAT_POOL_OBJECT)), \
         Tag, \
         1024)
 
@@ -282,9 +282,10 @@ CxPlatPoolAlloc(
     )
 {
     CXPLAT_POOL_OBJECT* Entry = ExAllocateFromLookasideListEx(Pool);
-    if (Entry != NULL) {
-        Entry->Owner = Pool;
+    if (Entry == NULL) {
+        return NULL;
     }
+    Entry->Owner = Pool;
     return Entry->Memory;
 }
 inline
