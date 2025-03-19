@@ -4767,6 +4767,17 @@ QuicConnRecvFrames(
                 PathID->Path->LocalClose = TRUE;
                 PathID->Path->SendAbandon = TRUE;
                 QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_ABANDON);
+
+                QUIC_CONNECTION_EVENT Event;
+                Event.Type = QUIC_CONNECTION_EVENT_PATH_REMOVED;
+                Event.PATH_ADDED.PeerAddress = &PathID->Path->Route.RemoteAddress;
+                Event.PATH_ADDED.LocalAddress = &PathID->Path->Route.LocalAddress;
+                Event.PATH_ADDED.PathId = PathID->ID;
+                QuicTraceLogConnVerbose(
+                    IndicatePathRemoved,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+                (void)QuicConnIndicateEvent(Connection, &Event);
             }
 
             if (PathID->Path->LocalCloseAcked) {
@@ -6426,6 +6437,17 @@ QuicConnRemoveLocalAddress(
         Path->LocalClose = TRUE;
         Path->SendAbandon = TRUE;
         QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_ABANDON);
+
+        QUIC_CONNECTION_EVENT Event;
+        Event.Type = QUIC_CONNECTION_EVENT_PATH_REMOVED;
+        Event.PATH_ADDED.PeerAddress = &Path->Route.RemoteAddress;
+        Event.PATH_ADDED.LocalAddress = &Path->Route.LocalAddress;
+        Event.PATH_ADDED.PathId = Path->PathID->ID;
+        QuicTraceLogConnVerbose(
+            IndicatePathRemoved,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+        (void)QuicConnIndicateEvent(Connection, &Event);
     }
 
     return QUIC_STATUS_SUCCESS;

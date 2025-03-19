@@ -1403,6 +1403,24 @@ tracepoint(CLOG_CONNECTION_C, UdpRecvDeferred , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePathRemoved
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED
+// QuicTraceLogConnVerbose(
+            IndicatePathRemoved,
+            Connection,
+            "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathRemoved
+#define _clog_3_ARGS_TRACE_IndicatePathRemoved(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathRemoved , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatagramReceiveEnableUpdated
 // [conn][%p] Updated datagram receive enabled to %hhu
 // QuicTraceLogConnVerbose(
