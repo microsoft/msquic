@@ -10990,6 +10990,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingQTIPEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] QTIPEnabled            = %hhu",
+      "UniqueId": "SettingQTIPEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingReliableResetEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
@@ -16810,6 +16822,11 @@
         "UniquenessHash": "9ede3ef3-06f4-9d8a-7335-f95b1c93cfa9",
         "TraceID": "SettingOneWayDelayEnabled",
         "EncodingString": "[sett] OneWayDelayEnabled     = %hhu"
+      },
+      {
+        "UniquenessHash": "4b7db079-533f-22a0-d0d1-a19436940ebb",
+        "TraceID": "SettingQTIPEnabled",
+        "EncodingString": "[sett] QTIPEnabled            = %hhu"
       },
       {
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
