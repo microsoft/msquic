@@ -1290,6 +1290,48 @@ RdmaListenerFree(
 }
 
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSocketRdmaRelease(
+    _In_ CXPLAT_SOCKET* Socket
+    )
+{
+    if (!Socket)
+    {
+        return;
+    }
+
+    if (CxPlatRefDecrement(&Socket->RefCount))
+    {
+
+        if (Socket->RdmaContext)
+        {
+            switch (Socket->Type)
+            {
+                case CXPLAT_SOCKET_RDMA:
+                case CXPLAT_SOCKET_RDMA_SERVER:
+                    RdmaConnectionFree((RDMA_CONNECTION*)Socket->RdmaContext);
+                    break;
+                case CXPLAT_SOCKET_RDMA_LISTENER:
+                    RdmaListenerFree((RDMA_NDSPI_LISTENER*)Socket->RdmaContext);
+                    break;
+                default:
+                    CXPLAT_DBG_ASSERT(FALSE);
+                    break;
+            }
+        }
+
+        QuicTraceLogVerbose(
+            DatapathShutDownComplete,
+            "[data][%p] Shut down (complete)",
+            Socket);
+        CXPLAT_DBG_ASSERT(!Socket->Freed);
+        CXPLAT_DBG_ASSERT(Socket->Uninitialized);
+        Socket->Freed = TRUE;
+        CXPLAT_FREE(CxPlatSocketToRaw(Socket), QUIC_POOL_SOCKET);
+    }
+}
+
 //
 // Create an RDMA connection and associate a socket
 //

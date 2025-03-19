@@ -2671,10 +2671,17 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp || Socket->UseRdma) {
+    if (Socket->UseTcp)
+    {
         // QTIP did not initialize PerProcSockets
         CxPlatSocketRelease(Socket);
-    } else {
+    }
+    else if (Socket->UseRdma)
+    {
+        CxPlatSocketRdmaRelease(Socket);
+    }
+    else
+    {
         const uint16_t SocketCount =
             Socket->NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
         for (uint16_t i = 0; i < SocketCount; ++i) {
@@ -3978,6 +3985,7 @@ CxPlatDataPathRecvComplete(
 }
 
 void
+
 CxPlatDataPathSocketProcessReceive(
     _In_ DATAPATH_RX_IO_BLOCK* IoBlock,
     _In_ uint16_t BytesTransferred,

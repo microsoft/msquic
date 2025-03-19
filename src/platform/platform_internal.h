@@ -1406,4 +1406,9 @@ SocketConnectRdma(
     _Out_ CXPLAT_SOCKET* Socket
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSocketRdmaRelease(
+    _In_ CXPLAT_SOCKET* Socket
+    );
 #endif // CX_PLATFORM_LINUX || _WIN32
