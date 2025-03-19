@@ -258,7 +258,7 @@ extern uint64_t CxPlatTotalMemory;
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
-typedef struct CXPLAT_POOL_OBJECT {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_OBJECT {
     CXPLAT_POOL* Owner;
     uint8_t Memory[0];
 } CXPLAT_POOL_OBJECT;

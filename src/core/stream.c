@@ -985,7 +985,6 @@ QuicStreamSwitchToAppOwnedBuffers(
     //
     // Reset the current receive buffer and preallocated chunk.
     //
-    QUIC_WORKER* Worker = Stream->Connection->Worker;
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
         CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);

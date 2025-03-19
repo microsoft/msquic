@@ -291,7 +291,7 @@ CxPlatFree(
 
 typedef struct CXPLAT_POOL CXPLAT_POOL;
 
-typedef struct CXPLAT_POOL_OBJECT {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_OBJECT {
     CXPLAT_POOL* Owner;
 #if DEBUG
     uint64_t SpecialFlag;
@@ -416,7 +416,9 @@ CxPlatPoolUninitialize(
 {
     CXPLAT_POOL_OBJECT* Entry;
     while ((Entry = (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
+#if DEBUG
         CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+#endif
         Pool->Free(Entry, Pool->Tag, Pool);
     }
 }
@@ -427,7 +429,6 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-
     CXPLAT_POOL_OBJECT* Entry =
 #if DEBUG
         CxPlatGetAllocFailDenominator() ? NULL :
@@ -484,7 +485,9 @@ CxPlatPoolPrune(
     if (Entry == NULL) {
         return FALSE;
     }
+#if DEBUG
     CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+#endif
     Pool->Free(Entry, Pool->Tag, Pool);
     return TRUE;
 }
