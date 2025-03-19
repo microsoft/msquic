@@ -6220,7 +6220,7 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
-            UdpConfig.UseQTIP = Connection->State.UseQTIP;
+            UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,
