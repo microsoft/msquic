@@ -374,7 +374,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT*); // Add space the object header
+    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT); // Add space for the object header
     Pool->Tag = Tag;
     Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
     Pool->Allocate = CxPlatPoolGenericAlloc;
@@ -414,9 +414,10 @@ CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry;
-    while ((Entry = InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
-        Pool->Free((CXPLAT_POOL_OBJECT*)Entry, Pool->Tag, Pool);
+    CXPLAT_POOL_OBJECT* Entry;
+    while ((Entry = (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+        Pool->Free(Entry, Pool->Tag, Pool);
     }
 }
 
@@ -426,12 +427,11 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    if (CxPlatGetAllocFailDenominator()) {
-        return Pool->Allocate(Pool->Size, Pool->Tag, Pool);
-    }
-#endif
+
     CXPLAT_POOL_OBJECT* Entry =
+#if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL :
+#endif
         (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
@@ -459,11 +459,11 @@ CxPlatPoolFree(
         CXPLAT_CONTAINING_RECORD(Memory, CXPLAT_POOL_OBJECT, Memory);
     CXPLAT_POOL* Pool = Entry->Owner;
 #if DEBUG
+    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
         Pool->Free(Entry, Pool->Tag, Pool);
         return;
     }
-    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     Entry->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= Pool->MaxDepth) {
@@ -484,6 +484,7 @@ CxPlatPoolPrune(
     if (Entry == NULL) {
         return FALSE;
     }
+    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
     Pool->Free(Entry, Pool->Tag, Pool);
     return TRUE;
 }

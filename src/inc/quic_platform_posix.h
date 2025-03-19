@@ -524,16 +524,11 @@ CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry;
-    CxPlatLockAcquire(&Pool->Lock);
-    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
-        Pool->ListDepth--;
-        CxPlatLockRelease(&Pool->Lock);
+    CXPLAT_POOL_OBJECT* Entry;
+    while ((Entry = (CXPLAT_POOL_OBJECT*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
         CxPlatFree(Entry, Pool->Tag);
-        CxPlatLockAcquire(&Pool->Lock);
     }
-    CxPlatLockRelease(&Pool->Lock);
     CxPlatLockUninitialize(&Pool->Lock);
 }
 
@@ -543,13 +538,11 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    if (CxPlatGetAllocFailDenominator()) {
-        return CxPlatAlloc(Pool->Size, Pool->Tag);
-    }
-#endif
     CxPlatLockAcquire(&Pool->Lock);
     CXPLAT_POOL_OBJECT* Entry =
+    #if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL :
+    #endif
         (CXPLAT_POOL_OBJECT*)CxPlatListPopEntry(&Pool->ListHead);
     if (Entry != NULL) {
         CXPLAT_DBG_ASSERT(Pool->ListDepth > 0);
