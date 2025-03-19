@@ -51,7 +51,7 @@ CxPlatPoolAlloc(
 
 void
 CxPlatPoolFree(
-    _In_ void* Entry
+    _In_ void* Memory
     );
 
 BOOLEAN
