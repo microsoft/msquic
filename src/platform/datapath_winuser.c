@@ -1490,14 +1490,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    //
-    // Server sockets always inherit global QTIP preferences.
-    //
-    if (IsServerSocket || !Config->OverrideGlobalQTIPSettings) {
-        Socket->UseTcp = Datapath->UseTcp;
-    } else {
-        Socket->UseTcp = Config->UseQTIP;
-    }
+    Socket->UseTcp = Config->UseQTIP;
 
     Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {

@@ -1843,8 +1843,8 @@ QuicConnStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
-    UdpConfig.UseQTIP = Connection->State.UseQTIP;
-    UdpConfig.OverrideGlobalQTIPSettings = Connection->State.AppDidSetQTIP;
+    UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
+
     //
     // Get the binding for the current local & remote addresses.
     //
@@ -6221,7 +6221,6 @@ QuicConnParamSet(
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
             UdpConfig.UseQTIP = Connection->State.UseQTIP;
-            UdpConfig.OverrideGlobalQTIPSettings = Connection->State.AppDidSetQTIP;
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,

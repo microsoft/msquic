@@ -524,6 +524,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_RELIABLE_RESET_ENABLED          FALSE
 
 //
+// The default settings for allowing QTIP support
+//
+#define QUIC_DEFAULT_QTIP_ENABLED                    FALSE
+
+//
 // The default settings for allowing One-Way Delay support.
 //
 #define QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED           FALSE
@@ -642,6 +647,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_HYSTART_ENABLED                "HyStartEnabled"
 #define QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED     "EncryptionOffloadAllowed"
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
+#define QUIC_SETTING_QTIP_ENABLED                   "QTIPEnabled"
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 #define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"

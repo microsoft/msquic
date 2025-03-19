@@ -114,6 +114,9 @@ public:
             if (UseQTIP) {
                 Config.PollingIdleTimeoutUs = 10000;
                 Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+                MsQuicSettings Settings;
+                Settings.SetQtipEnabled(TRUE);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
             Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
             if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
