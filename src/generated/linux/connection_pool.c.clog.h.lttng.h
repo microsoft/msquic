@@ -8,9 +8,9 @@
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "RSS Processor List",
-            RssConfig->RssIndirectionTableCount);
+            RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO));
 // arg2 = arg2 = "RSS Processor List" = arg2
-// arg3 = arg3 = RssConfig->RssIndirectionTableCount = arg3
+// arg3 = arg3 = RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_POOL_C, AllocFailure,
     TP_ARGS(

@@ -550,7 +550,7 @@ MsQuicConnectionPoolCreate(
                         ServerNameLength);
                 if (ServerNameCopy == NULL) {
                     Status = QUIC_STATUS_OUT_OF_MEMORY;
-                    goto Error;
+                    goto CleanUpConnections;
                 }
             }
 
@@ -619,20 +619,22 @@ MsQuicConnectionPoolCreate(
                 "[ lib] ERROR, %u, %s.",
                 RetryCount,
                 "Connection Pool out of retries");
-            goto Error;
+            goto CleanUpConnections;
         }
     }
+
+CleanUpConnections:
+if (QUIC_FAILED(Status) &&
+    (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE) != 0) {
+    for (uint32_t i = 0; i < CreatedConnections; i++) {
+        MsQuicConnectionClose((HQUIC)Connections[i]);
+        Connections[i] = NULL;
+    }
+}
 
 Error:
     if (ServerNameCopy != NULL) {
         CXPLAT_FREE(ServerNameCopy, QUIC_POOL_SERVERNAME);
-    }
-    if (QUIC_FAILED(Status) &&
-        (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE) != 0) {
-        for (uint32_t i = 0; i < CreatedConnections; i++) {
-            MsQuicConnectionClose((HQUIC)Connections[i]);
-            Connections[i] = NULL;
-        }
     }
     if (RssProcessors != NULL) {
         CXPLAT_FREE(RssProcessors, QUIC_POOL_TMP_ALLOC);

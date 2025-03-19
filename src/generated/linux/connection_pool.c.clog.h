@@ -28,9 +28,9 @@ extern "C" {
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "RSS Processor List",
-            RssConfig->RssIndirectionTableCount);
+            RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO));
 // arg2 = arg2 = "RSS Processor List" = arg2
-// arg3 = arg3 = RssConfig->RssIndirectionTableCount = arg3
+// arg3 = arg3 = RssConfig->RssIndirectionTableCount * sizeof(QUIC_CONN_POOL_RSS_PROC_INFO) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
