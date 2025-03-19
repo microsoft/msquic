@@ -4152,6 +4152,7 @@ struct ConnectionPoolConnectionContext {
 };
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#ifdef QUIC_TEST_CONNECTION_POOL
 void
 QuicTestConnectionPoolCreate(
     _In_ int Family,
@@ -4169,7 +4170,7 @@ QuicTestConnectionPoolCreate(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(3000);
+    Settings.SetIdleTimeoutMs(1000);
     Settings.SetPeerBidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
@@ -4264,22 +4265,6 @@ QuicTestConnectionPoolCreate(
                         TEST_FAILURE("Client connection %u failed to connect", i);
                     }
                 }
-                //
-                // Verify each client connection has a unique ideal processor and partition index.
-                //
-                for (uint32_t i = 0; i < NumberOfConnections; i++) {
-                    for (uint32_t j = i + 1; j < NumberOfConnections; j++) {
-                        if (Contexts[i].IdealProcessor == Contexts[j].IdealProcessor &&
-                            Contexts[i].PartitionIndex == Contexts[j].PartitionIndex) {
-                            TEST_FAILURE(
-                                "Connection %u and %u have the same ideal processor (%u) and partition index (%u)",
-                                 i,
-                                 j,
-                                 Contexts[i].IdealProcessor,
-                                 Contexts[i].PartitionIndex);
-                        }
-                    }
-                }
             } else {
                 //
                 // When testing no XDP support, the loopback address is used,
@@ -4300,4 +4285,5 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
+#endif
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

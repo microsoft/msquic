@@ -38,6 +38,8 @@ Abstract:
 
 #define _CRT_SECURE_NO_WARNINGS 1
 
+#define QUIC_API_ENABLE_PREVIEW_FEATURES 1
+
 #ifdef _WIN32
 //
 // The conformant preprocessor along with the newest SDK throws this warning for
@@ -863,6 +865,13 @@ ClientConnectionCallback(
         }
         printf("\n");
         break;
+    case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+        printf(
+            "[conn][%p] Ideal Processor is: %u, Partition Index %u\n",
+            Connection,
+            Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor,
+            Event->IDEAL_PROCESSOR_CHANGED.PartitionIndex);
+        break;
     default:
         break;
     }
@@ -994,6 +1003,90 @@ Error:
     }
 }
 
+
+//
+// Runs the multi client side of the protocol.
+//
+void
+RunMultiClient(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[]
+    )
+{
+    //
+    // Load the client configuration based on the "unsecure" command line option.
+    //
+    if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"))) {
+        return;
+    }
+    QUIC_STATUS Status;
+    uint32_t NumberOfConnections = 0;
+    HQUIC* Connections = NULL;
+
+    //
+    // Get the target / server name or IP from the command line.
+    //
+    const char* Target;
+    if ((Target = GetValue(argc, argv, "target")) == NULL) {
+        printf("Must specify '-target' argument!\n");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    const char* NumberOfConnectionsString;
+    if ((NumberOfConnectionsString = GetValue(argc, argv, "count")) == NULL) {
+        printf("Must specify '-count' argument with -multiclient!\n");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    NumberOfConnections = strtoul(NumberOfConnectionsString, NULL, 10);
+    if (NumberOfConnections > UINT16_MAX) {
+        printf("'-count' parameter %s > 65535!\n", NumberOfConnectionsString);
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Error;
+    }
+
+    Connections = (HQUIC*)malloc(sizeof(HQUIC) * NumberOfConnections);
+
+    QUIC_CONNECTION_POOL_CONFIG PoolConfig = { 0 };
+    PoolConfig.Registration = Registration;
+    PoolConfig.Configuration = Configuration;
+    PoolConfig.Handler = ClientConnectionCallback;
+    PoolConfig.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+    PoolConfig.ServerName = Target;
+    PoolConfig.ServerPort = UdpPort;
+    PoolConfig.NumberOfConnections = (uint16_t)NumberOfConnections;
+
+    printf("Connection Pool Connecting...\n");
+
+    //
+    // Start the connections to the server.
+    //
+    if (QUIC_FAILED(Status = MsQuic->ConnectionPoolCreate(&PoolConfig, Connections))) {
+        printf("ConnectionPoolCreate failed, 0x%x!\n", Status);
+        goto Error;
+    }
+
+Error:
+
+    if (Connections != NULL) {
+        if (QUIC_FAILED(Status)) {
+            for (uint16_t i = 0; i < NumberOfConnections; i++) {
+                HQUIC Connection = Connections[i];
+                if (Connection != NULL) {
+                    MsQuic->ConnectionClose(Connection);
+                }
+            }
+        }
+        //
+        // This is safe to free here because the connections clean themselves
+        // up at shutdown.
+        //
+        free(Connections);
+    }
+}
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -1023,6 +1116,8 @@ main(
         PrintUsage();
     } else if (GetFlag(argc, argv, "client")) {
         RunClient(argc, argv);
+    } else if (GetFlag(argc, argv, "multiclient")) {
+        RunMultiClient(argc, argv);
     } else if (GetFlag(argc, argv, "server")) {
         RunServer(argc, argv);
     } else {

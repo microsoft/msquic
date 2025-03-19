@@ -16,7 +16,7 @@ Abstract:
 #include "connection_pool.c.clog.h"
 #endif
 
-#define MAX_CONNECTION_POOL_RETRY_MULTIPLIER 2
+#define MAX_CONNECTION_POOL_RETRY_MULTIPLIER 8
 
 typedef struct QUIC_CONN_POOL_RSS_PROC_INFO {
 
