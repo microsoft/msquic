@@ -70,6 +70,7 @@ typedef struct _RDMA_NDSPI_LISTENER
     IND2Listener*       Listener;
     OVERLAPPED          Ov;
     CXPLAT_SOCKET*      ListenerSocket; // Socket associated with the listener
+    CXPLAT_RDMA_CONFIG* Config;
 } RDMA_NDSPI_LISTENER;
 
 //
@@ -135,8 +136,7 @@ CXPLAT_EVENT_COMPLETION CxPlatIoRdmaAcceptEventComplete;
 
 QUIC_STATUS
 CxPlatRdmaStartAccept(
-    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
-    _In_ const CXPLAT_RDMA_CONFIG* Config
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc
     );
 
 //
@@ -214,7 +214,7 @@ QUIC_STATUS
 NdspiRegisterMemory(
     _In_ IND2MemoryRegion* MemoryRegion,
     _In_ void *Buffer,
-    _In_ DWORD BufferLength,
+    _In_ SIZE_T BufferLength,
     _In_ ULONG Flags,
     _In_ OVERLAPPED* Overlapped
     )
@@ -551,21 +551,6 @@ NdspiAccept(
         PrivateDataSize,
         &Ov);
 
-    if (Status == ND_PENDING)
-    {
-        Status = Connector->lpVtbl->GetOverlappedResult(
-            Connector,
-            &Ov,
-            TRUE);
-    }
-
-    if (QUIC_FAILED(Status))
-    {
-        QuicTraceEvent(
-            AcceptFailed,
-            "Accept failed, status:%d", Status);
-    }
-
     return Status;
 }
 
@@ -709,20 +694,6 @@ NdspiConnect(
         PrivateData,
         PrivateDataSize,
         &Ov);
-    if (Status == ND_PENDING)
-    {
-        Status = Connector->lpVtbl->GetOverlappedResult(
-            Connector,
-            &Ov,
-            TRUE);
-    }
-
-    if (QUIC_FAILED(Status))
-    {
-        QuicTraceEvent(
-            ConnectFailed,
-            "Connect failed, status:%d", Status);
-    }
 
     return Status;
 }
@@ -1307,58 +1278,17 @@ RdmaListenerFree(
         CloseHandle(RdmaListener->OverlappedListenerFile);
     }
 
-    CXPLAT_FREE(RdmaListener, QUIC_POOL_DATAPATH);
-}
-
-//
-// Free Child Objects allocated within an RDMA_CONNECTION object
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-CxPlatRdmaStartAccept(
-    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
-    _In_ const CXPLAT_RDMA_CONFIG* Config
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
-    if (!ListenerSocketProc ||
-        !ListenerSocketProc->Parent ||
-        !ListenerSocketProc->Parent->Datapath ||
-        !ListenerSocketProc->Parent->RdmaContext ||
-        !Config)
+    if (RdmaListener->Config)
     {
-        QuicTraceEvent(
-            StartAcceptFailed,
-            "StartAccept failed, invalid parameters");
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
-    RDMA_NDSPI_LISTENER *RdmaListener = (RDMA_NDSPI_LISTENER *)ListenerSocketProc->Parent->RdmaContext;
-
-
-    if (ListenerSocketProc->AcceptSocket == NULL) 
-    {
-        Status = SocketCreateRdmaInternal(
-            Datapath,
-            CXPLAT_SOCKET_RDMA_SERVER,
-            Config,
-            (CXPLAT_SOCKET**)&ListenerSocketProc->AcceptSocket);
-        if (QUIC_FAILED(Status)) {
-            goto ErrorExit;
+        if (CxPlatRefDecrement(&RdmaListener->Config->RefCount))
+        {
+            CXPLAT_FREE(RdmaListener->Config, QUIC_POOL_DATAPATH);
         }
     }
 
-    CxPlatStartDatapathIo(
-        ListenerSocketProc,
-        &ListenerSocketProc->IoSqe,
-        CxPlatIoRdmaGetConnectionRequestEventComplete);
-
-ErrorExit:
-
-    return Status;
+    CXPLAT_FREE(RdmaListener, QUIC_POOL_DATAPATH);
 }
+
 
 //
 // Create an RDMA connection and associate a socket
@@ -1368,6 +1298,9 @@ QUIC_STATUS
 SocketCreateRdmaInternal(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_SOCKET_TYPE Type,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
     _In_ const CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
@@ -1419,24 +1352,24 @@ SocketCreateRdmaInternal(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
-        CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress));
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
+        CASTED_CLOG_BYTEARRAY(RemoteAddress ? sizeof(*RemoteAddress) : 0, RemoteAddress));
 
     ZeroMemory(RawSocket, RawSocketLength);
     Socket->Datapath = Datapath;
-    Socket->ClientContext = Config->CallbackContext;
+    Socket->ClientContext = CallbackContext;
     Socket->HasFixedRemoteAddress = TRUE;
     Socket->RdmaContext = NULL;
     Socket->Type = Type;
     Socket->UseRdma = TRUE;
 
-    if (Config->LocalAddress) {
-        CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
+    if (LocalAddress) {
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
     } else {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
     PartitionIndex =
-    Config->RemoteAddress ?
+        RemoteAddress ?
             ((uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount)) : 0;
     Socket->Mtu = CXPLAT_MAX_MTU;
     Socket->RecvBufLen =
@@ -1837,10 +1770,10 @@ SocketCreateRdmaInternal(
             goto ErrorExit;
         }
 
-        if (Config->RemoteAddress != NULL)
+        if (RemoteAddress != NULL)
         {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
-            CxPlatConvertToMappedV6(Config->RemoteAddress, &MappedRemoteAddress);
+            CxPlatConvertToMappedV6(RemoteAddress, &MappedRemoteAddress);
             
             CxPlatStartDatapathIo(
                 SocketProc,
@@ -1906,15 +1839,15 @@ SocketCreateRdmaInternal(
             goto ErrorExit;
         }
 
-        if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-            CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+        if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+            CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
         }
     }
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    if (Config->RemoteAddress != NULL) {
-        Socket->RemoteAddress = *Config->RemoteAddress;
+    if (RemoteAddress != NULL) {
+        Socket->RemoteAddress = *RemoteAddress;
     } else {
         Socket->RemoteAddress.Ipv4.sin_port = 0;
     }
@@ -1954,13 +1887,19 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     return SocketCreateRdmaInternal(
         Datapath,
         CXPLAT_SOCKET_RDMA,
+        LocalAddress,
+        RemoteAddress,
+        CallbackContext, 
         Config,
         NewSocket);
 }
@@ -1969,13 +1908,27 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdmaListener(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
-    _Out_ CXPLAT_SOCKET** NewSocket   
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
+    _Out_ CXPLAT_SOCKET** NewSocket 
 )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     RDMA_NDSPI_LISTENER* RdmaListener = NULL;
     RDMA_NDSPI_ADAPTER* NdAdapter = NULL;
+
+    if (!Datapath ||
+        !LocalAddress ||
+        !Datapath->RdmaAdapter ||
+        !Config)
+    {
+        QuicTraceEvent(
+            CreateRdmaSocketFailed,
+            "CreateRdmaSocket failed, invalid address family");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     CXPLAT_DBG_ASSERT(Datapath->RdmaHandlers.Receive != NULL);
 
     CXPLAT_SOCKET_PROC* SocketProc = NULL;
@@ -1996,26 +1949,29 @@ SocketCreateRdmaListener(
         DatapathCreated,
         "[data][%p] Created, local=%!ADDR!, remote=%!ADDR!",
         Socket,
-        CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress),
+        CASTED_CLOG_BYTEARRAY(LocalAddress ? sizeof(*LocalAddress) : 0, LocalAddress),
         CASTED_CLOG_BYTEARRAY(0, NULL));
 
     ZeroMemory(RawSocket, RawSocketLength);
     Socket->Datapath = Datapath;
-    Socket->ClientContext = Config->CallbackContext;
+    Socket->ClientContext = RecvCallbackContext;
     Socket->HasFixedRemoteAddress = FALSE;
     Socket->RdmaContext = NULL;
     Socket->Type = CXPLAT_SOCKET_RDMA_LISTENER;
     Socket->UseRdma = TRUE;
 
-    if (Config->LocalAddress) {
-        CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
+    if (LocalAddress) {
+        CxPlatConvertToMappedV6(LocalAddress, &Socket->LocalAddress);
         if (Socket->LocalAddress.si_family == AF_UNSPEC)
         {
             Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
         }
-    } else {
+    }
+    else
+    {
         Socket->LocalAddress.si_family = QUIC_ADDRESS_FAMILY_INET6;
     }
+
     Socket->Mtu = CXPLAT_MAX_MTU;
     CxPlatRefInitializeEx(&Socket->RefCount, 1);
 
@@ -2027,7 +1983,7 @@ SocketCreateRdmaListener(
     SocketProc->RioCq = RIO_INVALID_CQ;
     SocketProc->RioRq = RIO_INVALID_RQ;
 
-        //
+    //
     // Create a new RDMA connection object
     //
     NdAdapter = (RDMA_NDSPI_ADAPTER*) Datapath->RdmaAdapter;
@@ -2111,6 +2067,8 @@ SocketCreateRdmaListener(
     Socket->RdmaContext = RdmaListener;
     RdmaListener->ListenerSocket = Socket;
     RdmaListener->Adapter = NdAdapter;
+    RdmaListener->Config = Config;
+    CxPlatRefIncrement(&RdmaListener->Config->RefCount);
 
     SocketProc->DatapathProc = &Datapath->Partitions[0]; // TODO - Something better?
     CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
@@ -2165,8 +2123,8 @@ SocketCreateRdmaListener(
         goto ErrorExit;
     }
 
-    if (Config->LocalAddress && Config->LocalAddress->Ipv4.sin_port != 0) {
-        CXPLAT_DBG_ASSERT(Config->LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0) {
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
     }
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
@@ -2183,7 +2141,7 @@ SocketCreateRdmaListener(
         goto ErrorExit;
     }
 
-    Status = CxPlatRdmaStartAccept(SocketProc, Config);
+    Status = CxPlatRdmaStartAccept(SocketProc);
     if (QUIC_FAILED(Status)) {
         goto ErrorExit;
     }
@@ -2209,6 +2167,89 @@ ErrorExit:
     return Status;
 }
 
+//
+// Free Child Objects allocated within an RDMA_CONNECTION object
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatRdmaStartAccept(
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!ListenerSocketProc ||
+        !ListenerSocketProc->Parent ||
+        !ListenerSocketProc->Parent->Datapath ||
+        !ListenerSocketProc->Parent->RdmaContext)
+    {
+        QuicTraceEvent(
+            StartAcceptFailed,
+            "StartAccept failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
+    RDMA_NDSPI_LISTENER *RdmaListener = (RDMA_NDSPI_LISTENER *)ListenerSocketProc->Parent->RdmaContext;
+    RDMA_CONNECTION *RdmaConnection = NULL;
+    DWORD BytesRecv = 0;
+
+    if (ListenerSocketProc->AcceptSocket == NULL) 
+    {
+        Status = SocketCreateRdmaInternal(
+            Datapath,
+            CXPLAT_SOCKET_RDMA,
+            NULL,
+            NULL,
+            NULL,
+            RdmaListener->Config,
+            &ListenerSocketProc->AcceptSocket);
+        if (QUIC_FAILED(Status))
+        {
+            goto ErrorExit;
+        }
+    }
+
+    CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket->RdmaContext != NULL);
+
+    CxPlatStartDatapathIo(
+        ListenerSocketProc,
+        &ListenerSocketProc->IoSqe,
+        CxPlatIoRdmaGetConnectionRequestEventComplete);
+
+    RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+
+    Status = RdmaListener->Listener->lpVtbl->GetConnectionRequest(
+        RdmaListener->Listener,
+        (IUnknown *)RdmaConnection->Connector,
+        &ListenerSocketProc->IoSqe.Overlapped);
+    if (QUIC_FAILED(Status))
+    {
+        if (Status != ND_PENDING)
+        {
+            QuicTraceEvent(
+                GetConnectionRequestFailed,
+                "GetConnectionRequest failed, status:%d", Status);
+            CxPlatCancelDatapathIo(ListenerSocketProc);
+            goto ErrorExit;
+        }
+    }
+    else
+    {
+        //
+        // Manually post IO completion if accept completed synchronously.
+        //
+        Status = CxPlatSocketEnqueueSqe(ListenerSocketProc, &ListenerSocketProc->IoSqe, BytesRecv);
+        if (QUIC_FAILED(Status)) {
+            CxPlatCancelDatapathIo(ListenerSocketProc);
+            goto ErrorExit;
+        }
+    }
+
+ErrorExit:
+
+    return Status;
+}
 
 void
 CxPlatDataPathRdmaProcessConnectCompletion(
@@ -2217,7 +2258,7 @@ CxPlatDataPathRdmaProcessConnectCompletion(
     )
 
 {
-    if (IoResult == WSAENOTSOCK || IoResult == WSA_OPERATION_ABORTED) {
+    if (IoResult == WSA_OPERATION_ABORTED) {
         //
         // Error from shutdown, silently ignore. Return immediately so the
         // receive doesn't get reposted.
@@ -2265,6 +2306,200 @@ CxPlatDataPathRdmaProcessConnectCompletion(
     CxPlatRundownRelease(&SocketProc->RundownRef);
 }
 
+void
+CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
+    _In_ ULONG IoResult
+    )
+{
+    CXPLAT_SOCKET_PROC* AcceptSocketProc = NULL;
+    RDMA_CONNECTION* RdmaConnection = NULL;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (IoResult == WSA_OPERATION_ABORTED) {
+        //
+        // Error from shutdown, silently ignore. Return immediately so the
+        // receive doesn't get reposted.
+        //
+        return;
+    }
+
+    if (!CxPlatRundownAcquire(&ListenerSocketProc->RundownRef))
+    {
+        return;
+    }
+
+    if (IoResult == QUIC_STATUS_SUCCESS)
+    {
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket->RdmaContext != NULL);
+        AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        
+        RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+
+        //
+        // Perform an accept operation on the connection
+        //
+        CxPlatStartDatapathIo(
+            ListenerSocketProc,
+            &ListenerSocketProc->IoSqe,
+            CxPlatIoRdmaAcceptEventComplete);
+
+        Status = RdmaConnection->Connector->lpVtbl->Accept(
+            RdmaConnection->Connector,
+            (IUnknown *)RdmaConnection->QueuePair,
+            RdmaConnection->Adapter->AdapterInfo.MaxInboundReadLimit,
+            RdmaConnection->Adapter->AdapterInfo.MaxOutboundReadLimit,
+            NULL,
+            0,
+            &ListenerSocketProc->IoSqe.Overlapped);
+
+        if (QUIC_FAILED(Status))
+        {
+            if (Status != ND_PENDING)
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    ListenerSocketProc->Parent,
+                    Status,
+                    "IND2Connector::Accept");
+            }
+        }
+        else
+        {
+            //
+            // Manually post IO completion if accept completed synchronously.
+            //
+            Status = CxPlatSocketEnqueueSqe(ListenerSocketProc, &ListenerSocketProc->IoSqe, 0);
+            if (QUIC_FAILED(Status))
+            {
+                CxPlatCancelDatapathIo(ListenerSocketProc);
+            }
+        }
+    }
+}
+
+void
+CxPlatDataPathSocketProcessAcceptCompletion(
+    _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
+    _In_ ULONG IoResult
+    )
+{
+    CXPLAT_SOCKET_PROC* AcceptSocketProc = NULL;
+
+    if (IoResult == WSA_OPERATION_ABORTED) {
+        //
+        // Error from shutdown, silently ignore. Return immediately so the
+        // receive doesn't get reposted.
+        //
+        return;
+    }
+
+    if (!CxPlatRundownAcquire(&ListenerSocketProc->RundownRef)) {
+        return;
+    }
+
+    if (IoResult == QUIC_STATUS_SUCCESS)
+    {
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
+        AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        uint16_t PartitionIndex = 0;
+
+        ListenerSocketProc->AcceptSocket->LocalAddress =
+            *(const QUIC_ADDR*)ListenerSocketProc->AcceptAddrSpace;
+        ListenerSocketProc->AcceptSocket->RemoteAddress =
+            *(const QUIC_ADDR*)(ListenerSocketProc->AcceptAddrSpace + (sizeof(SOCKADDR_INET) + 16));
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->LocalAddress,
+            &ListenerSocketProc->AcceptSocket->LocalAddress);
+        CxPlatConvertFromMappedV6(
+            &ListenerSocketProc->AcceptSocket->RemoteAddress,
+            &ListenerSocketProc->AcceptSocket->RemoteAddress);
+
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            ListenerSocketProc->Parent,
+            0,
+            "RDMA Accept Completed!");
+
+        if (!CxPlatRundownAcquire(&AcceptSocketProc->RundownRef)) {
+            goto ErrorExit;
+        }
+
+        CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
+        
+        PartitionIndex = (uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount);
+        AcceptSocketProc->DatapathProc = &Datapath->Partitions[PartitionIndex]; // TODO - Something better?
+        CxPlatRefIncrement(&AcceptSocketProc->DatapathProc->RefCount);
+
+        if (!CxPlatEventQAssociateHandle(
+            AcceptSocketProc->DatapathProc->EventQ,
+            (HANDLE)AcceptSocketProc->RdmaHandle))
+        {
+            DWORD LastError = GetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                ListenerSocketProc->Parent,
+                LastError,
+                "CreateIoCompletionPort (accepted)");
+            goto ErrorExit;
+        }
+
+        QUIC_STATUS Status = Datapath->RdmaHandlers.Accept(
+            ListenerSocketProc->Parent,
+            ListenerSocketProc->Parent->ClientContext,
+            ListenerSocketProc->AcceptSocket,
+            &ListenerSocketProc->AcceptSocket->ClientContext);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                ListenerSocketProc->Parent,
+                Status,
+                "Accept callback");
+            goto ErrorExit;
+        }
+
+        ListenerSocketProc->AcceptSocket = NULL;
+
+        AcceptSocketProc->IoStarted = TRUE;
+        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
+    }
+    else
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            ListenerSocketProc->Parent,
+            IoResult,
+            "RDMA Accept completion");
+    }
+
+ErrorExit:
+    if (AcceptSocketProc != NULL) {
+        CxPlatRundownRelease(&AcceptSocketProc->RundownRef);
+    }
+
+    if (ListenerSocketProc->AcceptSocket != NULL) {
+        SocketDelete(ListenerSocketProc->AcceptSocket);
+        ListenerSocketProc->AcceptSocket = NULL;
+    }
+
+    //
+    // Try to start a new accept.
+    //
+    //(void)CxPlatRdmaStartAccept(ListenerSocketProc);
+
+    //CxPlatRundownRelease(&ListenerSocketProc->RundownRef);
+
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRdmaConnectEventComplete(
@@ -2275,6 +2510,34 @@ CxPlatIoRdmaConnectEventComplete(
     CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
     ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
-    //CxPlatDataPathRdmaProcessConnectCompletion(SocketProc, IoResult);
-    //CxPlatSocketContextRelease(SocketProc);
+    CxPlatDataPathRdmaProcessConnectCompletion(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoRdmaGetConnectionRequestEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CxPlatDataPathSocketProcessGetConnectionRequestCompletion(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoRdmaAcceptEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CxPlatDataPathSocketProcessAcceptCompletion(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
+}   

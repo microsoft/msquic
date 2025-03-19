@@ -430,7 +430,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
@@ -439,6 +442,9 @@ CxPlatSocketCreateRdma(
     Status =
         SocketCreateRdma(
             Datapath,
+            LocalAddress,
+            RemoteAddress,
+            CallbackContext,
             Config,
             NewSocket);
     if (QUIC_FAILED(Status)) {
@@ -456,12 +462,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateRdmaListener(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
     return SocketCreateRdmaListener(
         Datapath,
+        LocalAddress,
+        RecvCallbackContext,
         Config,
         NewSocket);
 }

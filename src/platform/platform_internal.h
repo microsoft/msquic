@@ -455,7 +455,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     SOCKET Socket;
 
     //
-    // Overlapped File Handle for RDMA connection
+    // Overlapped File Handle for RDMA Connection/Listener
     //
     HANDLE RdmaHandle;
 
@@ -1377,7 +1377,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     );
 
@@ -1385,7 +1388,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketCreateRdmaListener(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG * Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_opt_ void* RecvCallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
     );
 

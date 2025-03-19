@@ -912,14 +912,15 @@ CxPlatUpdateRoute(
 #define CXPLAT_RDMA_FLAG_SHARE_MR       0x00000002   // Forces sharing of the Memory Region
 #define CXPLAT_RDMA_FLAG_SHARE_CQ       0x00000004   // Indicates sharing of the Completion Queue
 
-
 typedef struct CXPLAT_RDMA_CONFIG {
-    const QUIC_ADDR* LocalAddress;      // optional
-    const QUIC_ADDR* RemoteAddress;     // optional
     uint32_t Flags;                     // CXPLAT_RDMA_FLAG_*
     uint32_t InterfaceIndex;            // 0 means any/all
     uint16_t PartitionIndex;            // Client-only
-    void* CallbackContext;              // optional
+
+    //
+    // Used to synchronize clean up.
+    //
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // Memory related configuration
@@ -952,7 +953,10 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketCreateRdma(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ const CXPLAT_RDMA_CONFIG* Config,
+    _In_opt_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** Socket
     );
 
@@ -966,6 +970,7 @@ CxPlatSocketCreateRdmaListener(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_ CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** Socket
     );
 
@@ -978,9 +983,6 @@ CxPlatRdmaAdapterInitialize(
     _In_ const QUIC_ADDR*           LocalAddress,
     _Out_ void**                    Adapter           
     );
-
-
-
 
 //
 // Cleanup an RDMA context

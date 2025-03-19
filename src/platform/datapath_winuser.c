@@ -2689,7 +2689,8 @@ CxPlatSocketRelease(
     _In_ CXPLAT_SOCKET* Socket
     )
 {
-    if (CxPlatRefDecrement(&Socket->RefCount)) {
+    if (CxPlatRefDecrement(&Socket->RefCount))
+    {
         QuicTraceLogVerbose(
             DatapathShutDownComplete,
             "[data][%p] Shut down (complete)",
