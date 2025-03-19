@@ -2482,6 +2482,7 @@ CxPlatDataPathSocketProcessAcceptCompletion(
     }
 
 ErrorExit:
+
     if (AcceptSocketProc != NULL) {
         CxPlatRundownRelease(&AcceptSocketProc->RundownRef);
     }
@@ -2494,9 +2495,9 @@ ErrorExit:
     //
     // Try to start a new accept.
     //
-    //(void)CxPlatRdmaStartAccept(ListenerSocketProc);
+    (void)CxPlatRdmaStartAccept(ListenerSocketProc);
 
-    //CxPlatRundownRelease(&ListenerSocketProc->RundownRef);
+    CxPlatRundownRelease(&ListenerSocketProc->RundownRef);
 
 }
 
