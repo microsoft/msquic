@@ -281,7 +281,8 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_OBJECT* Entry = ExAllocateFromLookasideListEx(Pool);
+    CXPLAT_POOL_OBJECT* Entry =
+        (CXPLAT_POOL_OBJECT*)ExAllocateFromLookasideListEx(Pool);
     if (Entry == NULL) {
         return NULL;
     }
