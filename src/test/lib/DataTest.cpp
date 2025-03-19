@@ -326,15 +326,17 @@ NewPingConnection(
     }
 
 
-    if (SendUdpOverQtip) {
-        // If UseQTIP is true, we alternate between creating QUIC and QTIP connections pinging the same listener.
-        Connection->SetQtipPreferences(0);
-    } else if (UseQTIP) {
-        // We hit this case either when we are alternating between QTIP and QUIC to ping the same listener, or SendUdpOverQtip is always false.
-        Connection->SetQtipPreferences(1);
-    } else {
-        // Normal QUIC
-        Connection->SetQtipPreferences(0);
+    if (SendUdpOverQtip && UseQTIP) {
+        // If UseQTIP is true and SendUdpOverQTIP is true, we set it to be the opposite.
+        PerConnSettings.QTIPEnabled = 0;
+        PerConnSettings.IsSet.QTIPEnabled = TRUE;
+        Connection->SetSettings(PerConnSettings);
+        PerConnSettings = Connection->GetSettings();
+        if (PerConnSettings.QTIPEnabled != 0) {
+            TEST_FAILURE("Failed to apply new settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+            delete Connection;
+            return nullptr;
+        }
     }
 
     if (Connection == nullptr || !(Connection)->IsValid()) {
@@ -531,6 +533,22 @@ QuicTestConnectAndPing(
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
+                    }
+
+                    if (SendUdpToQtipListener && (i % 2 == 1) && UseQTIP) {
+                        // Test and make sure this connection's QTIP settings is opposite of UseQTIP.
+                        QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
+                        if (PerConnSettings.QTIPEnabled == UseQTIP) {
+                            TEST_FAILURE("UseQTIP equal to global settings when it shouldn't be." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+                            return;
+                        }
+                    } else {
+                        // Test and make sure this connection's QTIP settings is the same as of UseQTIP.
+                        QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
+                        if (PerConnSettings.QTIPEnabled != UseQTIP) {
+                            TEST_FAILURE("UseQTIP NOT equal to global settings when it should be." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+                            return;
+                        }
                     }
 
                     TEST_QUIC_SUCCEEDED(
