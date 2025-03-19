@@ -482,7 +482,7 @@ typedef struct CXPLAT_POOL_HEADER {
     union {
     CXPLAT_POOL* Owner;
     CXPLAT_SLIST_ENTRY Entry;
-    }
+    };
 #if DEBUG
     uint64_t SpecialFlag;
 #endif
