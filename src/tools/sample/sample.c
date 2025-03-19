@@ -901,8 +901,6 @@ ClientConnectionCallback(
     case QUIC_CONNECTION_EVENT_PATH_ADDED:
         printf("[conn][%p] New Path available!\n", Connection);
         QUIC_PATH_STATUS PathStatus;
-        memcpy(&PathStatus.LocalAddress, Event->PATH_ADDED.LocalAddress, sizeof(QUIC_ADDR));
-        memcpy(&PathStatus.PeerAddress, Event->PATH_ADDED.PeerAddress, sizeof(QUIC_ADDR));
         PathStatus.PathId = Event->PATH_ADDED.PathId;
         PathStatus.Active = FALSE;
         QUIC_STATUS Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_PATH_STATUS, sizeof(QUIC_PATH_STATUS), &PathStatus);

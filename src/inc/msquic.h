@@ -633,8 +633,6 @@ typedef struct QUIC_VERSION_SETTINGS {
 } QUIC_VERSION_SETTINGS;
 
 typedef struct QUIC_PATH_STATUS {
-    QUIC_ADDR PeerAddress;
-    QUIC_ADDR LocalAddress;
     uint32_t PathId;
     BOOLEAN Active;
 } QUIC_PATH_STATUS;

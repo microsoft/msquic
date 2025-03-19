@@ -6985,13 +6985,7 @@ QuicConnParamSet(
         QUIC_PATH_STATUS* PathStatus = (QUIC_PATH_STATUS*)Buffer;
         QUIC_PATH* Path = NULL;
         for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-            if (QuicAddrCompare(
-                    &PathStatus->LocalAddress,
-                    &Connection->Paths[i].Route.LocalAddress) &&
-                QuicAddrCompare(
-                    &PathStatus->PeerAddress,
-                    &Connection->Paths[i].Route.RemoteAddress) &&
-                PathStatus->PathId == Connection->Paths[i].PathID->ID) {
+            if (PathStatus->PathId == Connection->Paths[i].PathID->ID) {
                 Path = &Connection->Paths[i];
                 break;
             }
@@ -7656,42 +7650,6 @@ QuicConnParamGet(
         *BufferLength = Connection->OrigDestCID->Length;
         Status = QUIC_STATUS_SUCCESS;
         break;
-
-    case QUIC_PARAM_CONN_PATH_STATUS: {
-
-        if (*BufferLength < sizeof(QUIC_PATH_STATUS) * Connection->PathsCount) {
-            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
-            *BufferLength = sizeof(QUIC_PATH_STATUS) * Connection->PathsCount;
-            break;
-        }
-
-        if (Buffer == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
-
-        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-            QUIC_PATH_STATUS* PathStatus = &((QUIC_PATH_STATUS*)Buffer)[i];
-
-            CxPlatCopyMemory(
-                &PathStatus->LocalAddress,
-                &Connection->Paths[i].Route.LocalAddress,
-                sizeof(QUIC_ADDR));
-
-            CxPlatCopyMemory(
-                &PathStatus->PeerAddress,
-                &Connection->Paths[i].Route.RemoteAddress,
-                sizeof(QUIC_ADDR));
-    
-            PathStatus->Active = Connection->Paths[i].IsActive;
-
-        }
-
-        *BufferLength = sizeof(QUIC_PATH_STATUS) * Connection->PathsCount;
-
-        Status = QUIC_STATUS_SUCCESS;
-        break;
-    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
