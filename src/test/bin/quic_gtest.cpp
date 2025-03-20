@@ -117,6 +117,10 @@ public:
                 MsQuicSettings Settings;
                 Settings.SetQtipEnabled(TRUE);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+            } else {
+                MsQuicSettings Settings;
+                Settings.SetQtipEnabled(FALSE);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
             Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
             if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
