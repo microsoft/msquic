@@ -109,11 +109,11 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug",  plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug",  plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug",  plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
-          { config: "Debug",  plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
