@@ -165,6 +165,10 @@ typedef enum QUIC_FRAME_TYPE {
 } QUIC_FRAME_TYPE;
 
 CXPLAT_STATIC_ASSERT(
+    QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
+    "Sent packet metadata 'Type' field above assumes frames types fit in 16-bits");
+
+CXPLAT_STATIC_ASSERT(
     QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT32_MAX,
     "Logging assumes frames types fit in 32-bits");
 

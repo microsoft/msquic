@@ -46,19 +46,19 @@ typedef struct QUIC_HANDLE {
 typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
 
     //
-    // Pool for QUIC_CONNECTIONs.
+    // Per-processor pools for allocations.
     //
-    CXPLAT_POOL ConnectionPool;
-
-    //
-    // Pool for QUIC_TRANSPORT_PARAMETERs.
-    //
-    CXPLAT_POOL TransportParamPool;
-
-    //
-    // Pool for QUIC_PACKET_SPACE.
-    //
-    CXPLAT_POOL PacketSpacePool;
+    CXPLAT_POOL ConnectionPool;             // QUIC_CONNECTION
+    CXPLAT_POOL TransportParamPool;         // QUIC_TRANSPORT_PARAMETER
+    CXPLAT_POOL PacketSpacePool;            // QUIC_PACKET_SPACE
+    CXPLAT_POOL StreamPool;                 // QUIC_STREAM
+    CXPLAT_POOL DefaultReceiveBufferPool;   // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
+    CXPLAT_POOL SendRequestPool;            // QUIC_SEND_REQUEST
+    QUIC_SENT_PACKET_POOL SentPacketPool;   // QUIC_SENT_PACKET_METADATA
+    CXPLAT_POOL ApiContextPool;             // QUIC_API_CONTEXT
+    CXPLAT_POOL StatelessContextPool;       // QUIC_STATELESS_CONTEXT
+    CXPLAT_POOL OperPool;                   // QUIC_OPERATION
+    CXPLAT_POOL AppBufferChunkPool;         // QUIC_RECV_CHUNK
 
     //
     // Used for generating stateless reset hashes.

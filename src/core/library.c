@@ -113,6 +113,14 @@ MsQuicLibraryFreePartitions(
             CxPlatPoolUninitialize(&PerProc->ConnectionPool);
             CxPlatPoolUninitialize(&PerProc->TransportParamPool);
             CxPlatPoolUninitialize(&PerProc->PacketSpacePool);
+            CxPlatPoolUninitialize(&PerProc->StreamPool);
+            CxPlatPoolUninitialize(&PerProc->DefaultReceiveBufferPool);
+            CxPlatPoolUninitialize(&PerProc->SendRequestPool);
+            QuicSentPacketPoolUninitialize(&PerProc->SentPacketPool);
+            CxPlatPoolUninitialize(&PerProc->ApiContextPool);
+            CxPlatPoolUninitialize(&PerProc->StatelessContextPool);
+            CxPlatPoolUninitialize(&PerProc->OperPool);
+            CxPlatPoolUninitialize(&PerProc->AppBufferChunkPool);
             CxPlatLockUninitialize(&PerProc->ResetTokenLock);
             CxPlatHashFree(PerProc->ResetTokenHash);
         }
@@ -173,6 +181,14 @@ QuicLibraryInitializePartitions(
         CxPlatPoolInitialize(FALSE, sizeof(QUIC_CONNECTION), QUIC_POOL_CONN, &PerProc->ConnectionPool);
         CxPlatPoolInitialize(FALSE, sizeof(QUIC_TRANSPORT_PARAMETERS), QUIC_POOL_TP, &PerProc->TransportParamPool);
         CxPlatPoolInitialize(FALSE, sizeof(QUIC_PACKET_SPACE), QUIC_POOL_TP, &PerProc->PacketSpacePool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &PerProc->StreamPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK)+QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &PerProc->DefaultReceiveBufferPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &PerProc->SendRequestPool);
+        QuicSentPacketPoolInitialize(&PerProc->SentPacketPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &PerProc->ApiContextPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &PerProc->StatelessContextPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &PerProc->OperPool);
+        CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_APP_BUFFER_CHUNK, &PerProc->AppBufferChunkPool);
         CxPlatLockInitialize(&PerProc->ResetTokenLock);
     }
 

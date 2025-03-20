@@ -28,9 +28,8 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -130,7 +129,8 @@ QuicStreamInitialize(
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvChunk =
+            CxPlatPoolAlloc(&QuicLibraryGetPerProc()->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;

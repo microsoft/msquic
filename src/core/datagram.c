@@ -370,8 +370,7 @@ QuicDatagramQueueSend(
     Status = QUIC_STATUS_PENDING;
 
     if (QueueOper) {
-        QUIC_OPERATION* Oper =
-            QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        QUIC_OPERATION* Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             QuicTraceEvent(
                 AllocFailure,

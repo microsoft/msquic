@@ -329,7 +329,6 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_TYPE Type
     );
 

@@ -396,7 +396,7 @@ QuicLossDetectionOnPacketSent(
     //
     QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
-            &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
+            &QuicLibraryGetPerProc()->SentPacketPool, TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
         //
         // We can't allocate the memory to permanently track this packet so just
