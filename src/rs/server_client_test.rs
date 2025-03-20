@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    config::{CertificateHash, Credential, CredentialFlags},
+    config::{Credential, CredentialFlags},
     Addr, BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
     Listener, Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
 };
@@ -19,7 +19,9 @@ fn buffers_to_string(buffers: &[BufferRef]) -> String {
 }
 
 /// Use pwsh to get the test cert hash
-pub fn get_test_cert_hash() -> String {
+#[cfg(target_os = "windows")]
+pub fn get_test_cred() -> Credential {
+    use crate::CertificateHash;
     let output = std::process::Command::new("pwsh.exe")
         .args(["-Command", "Get-ChildItem Cert:\\CurrentUser\\My | Where-Object -Property FriendlyName -EQ -Value MsQuicTestServer | Select-Object -ExpandProperty Thumbprint -First 1"]).
         output().expect("Failed to execute command");
@@ -31,12 +33,24 @@ pub fn get_test_cert_hash() -> String {
             s.pop();
         }
     };
-    s
+    Credential::CertificateHash(CertificateHash::from_str(&s).unwrap())
+}
+
+/// Use test certs from openssl submodule
+#[cfg(not(target_os = "windows"))]
+pub fn get_test_cred() -> Credential {
+    use crate::CertificateFile;
+    let root_dir = std::env::current_dir().unwrap();
+    let cert_dir = root_dir.join("submodules/openssl/test/certs");
+    Credential::CertificateFile(CertificateFile::new(
+        cert_dir.join("serverkey.pem").display().to_string(),
+        cert_dir.join("servercert.pem").display().to_string(),
+    ))
 }
 
 #[test]
 fn test_server_client() {
-    let cert_hash = get_test_cert_hash();
+    let cred = get_test_cred();
 
     let reg = Registration::new(&RegistrationConfig::default()).unwrap();
     let alpn = [BufferRef::from("qtest")];
@@ -48,9 +62,7 @@ fn test_server_client() {
 
     let cred_config = CredentialConfig::new()
         .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION)
-        .set_credential(Credential::CertificateHash(
-            CertificateHash::from_str(&cert_hash).unwrap(),
-        ));
+        .set_credential(cred);
     config.load_credential(&cred_config).unwrap();
     let config = Arc::new(config);
     let config_cp = config.clone();
