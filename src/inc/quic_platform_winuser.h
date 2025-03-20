@@ -49,7 +49,6 @@ Environment:
 #include <intrin.h>
 #endif
 #pragma warning(pop)
-#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 #pragma warning(disable:4201)  // nonstandard extension used: nameless struct/union
 #pragma warning(disable:4324)  // 'CXPLAT_POOL': structure was padded due to alignment specifier
 
@@ -291,19 +290,21 @@ CxPlatFree(
 
 typedef struct CXPLAT_POOL CXPLAT_POOL;
 
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_OBJECT {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
+    union {
     CXPLAT_POOL* Owner;
+    CXPLAT_SLIST_ENTRY Entry;
+    };
 #if DEBUG
     uint64_t SpecialFlag;
 #endif
-    uint8_t Memory[0];
-} CXPLAT_POOL_OBJECT;
+} CXPLAT_POOL_HEADER;
 
 #define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAui64
 #define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ui64
 
 typedef
-CXPLAT_POOL_OBJECT*
+CXPLAT_POOL_HEADER*
 (*CXPLAT_POOL_ALLOC_FN)(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -313,7 +314,7 @@ CXPLAT_POOL_OBJECT*
 typedef
 void
 (*CXPLAT_POOL_FREE_FN)(
-    _In_ CXPLAT_POOL_OBJECT* Entry,
+    _In_ CXPLAT_POOL_HEADER* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
@@ -342,7 +343,7 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 inline
-CXPLAT_POOL_OBJECT*
+CXPLAT_POOL_HEADER*
 CxPlatPoolGenericAlloc(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -350,13 +351,13 @@ CxPlatPoolGenericAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Pool);
-    return (CXPLAT_POOL_OBJECT*)CxPlatAlloc(Size, Tag);
+    return (CXPLAT_POOL_HEADER*)CxPlatAlloc(Size, Tag);
 }
 
 inline
 void
 CxPlatPoolGenericFree(
-    _In_ CXPLAT_POOL_OBJECT* Entry,
+    _In_ CXPLAT_POOL_HEADER* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
@@ -374,7 +375,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT); // Add space for the object header
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the object header
     Pool->Tag = Tag;
     Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
     Pool->Allocate = CxPlatPoolGenericAlloc;
@@ -395,7 +396,7 @@ CxPlatPoolInitializeEx(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    Pool->Size = Size + sizeof(CXPLAT_POOL_OBJECT); // Add space for the object header
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the object header
     Pool->Tag = Tag;
     Pool->Allocate = Allocate ? Allocate : CxPlatPoolGenericAlloc;
     Pool->Free = Free ? Free : CxPlatPoolGenericFree;
@@ -414,8 +415,8 @@ CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_OBJECT* Entry;
-    while ((Entry = (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
+    CXPLAT_POOL_HEADER* Entry;
+    while ((Entry = (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
 #if DEBUG
         CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
 #endif
@@ -429,25 +430,25 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_OBJECT* Entry =
+    CXPLAT_POOL_HEADER* Header =
 #if DEBUG
         CxPlatGetAllocFailDenominator() ? NULL :
 #endif
-        (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead);
-    if (Entry == NULL) {
-        Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
-        if (Entry == NULL) {
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
+    if (Header == NULL) {
+        Header = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        if (Header == NULL) {
             return NULL;
         }
     }
 #if DEBUG
     else {
-        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
     }
-    Entry->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
-    Entry->Owner = Pool;
-    return Entry->Memory;
+    Header->Owner = Pool;
+    return (void*)(Header + 1);
 }
 
 inline
@@ -456,21 +457,20 @@ CxPlatPoolFree(
     _In_ void* Memory
     )
 {
-    CXPLAT_POOL_OBJECT* Entry =
-        CXPLAT_CONTAINING_RECORD(Memory, CXPLAT_POOL_OBJECT, Memory);
-    CXPLAT_POOL* Pool = Entry->Owner;
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
-    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
+    CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
-        Pool->Free(Entry, Pool->Tag, Pool);
+        Pool->Free(Header, Pool->Tag, Pool);
         return;
     }
-    Entry->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
+    Header->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= Pool->MaxDepth) {
-        Pool->Free(Entry, Pool->Tag, Pool);
+        Pool->Free(Header, Pool->Tag, Pool);
     } else {
-        InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
+        InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Header);
     }
 }
 
@@ -480,8 +480,8 @@ CxPlatPoolPrune(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_OBJECT* Entry =
-        (CXPLAT_POOL_OBJECT*)InterlockedPopEntrySList(&Pool->ListHead);
+    CXPLAT_POOL_HEADER* Entry =
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         return FALSE;
     }

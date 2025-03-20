@@ -2640,7 +2640,7 @@ CxPlatSendBufferPoolAlloc(
         NumberOfBytes - sizeof(*SendBuffer));
     MmBuildMdlForNonPagedPool(&SendBuffer->Mdl);
 
-    return SendBuffer;
+    return Header;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
