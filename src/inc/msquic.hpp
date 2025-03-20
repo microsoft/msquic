@@ -396,6 +396,20 @@ class UniquePtrArray {
 public:
     UniquePtrArray() : ptr(nullptr) { }
     UniquePtrArray(T* _ptr) : ptr(_ptr) { }
+    UniquePtrArray(const UniquePtrArray& other) = delete;
+    UniquePtrArray(UniquePtrArray&& other) noexcept {
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+    }
+    UniquePtrArray& operator=(const UniquePtrArray& other) = delete;
+    UniquePtrArray& operator=(UniquePtrArray&& other) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
     ~UniquePtrArray() { delete [] ptr; }
     T* get() { return ptr; }
     const T* get() const { return ptr; }
@@ -1668,6 +1682,8 @@ struct ConnectionScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+CXPLAT_STATIC_ASSERT(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct StreamScope {
     HQUIC Handle;
     StreamScope() noexcept : Handle(nullptr) { }
@@ -1676,6 +1692,8 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+CXPLAT_STATIC_ASSERT(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct ConfigurationScope {
     HQUIC Handle;
     ConfigurationScope() noexcept : Handle(nullptr) { }
@@ -1683,6 +1701,8 @@ struct ConfigurationScope {
     ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
     operator HQUIC() const noexcept { return Handle; }
 };
+
+CXPLAT_STATIC_ASSERT(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
@@ -1696,5 +1716,7 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
+
+CXPLAT_STATIC_ASSERT(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
 
 #endif  //  _WIN32

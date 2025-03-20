@@ -1019,7 +1019,7 @@ RunMultiClient(
     if (!ClientLoadConfiguration(GetFlag(argc, argv, "unsecure"))) {
         return;
     }
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     uint32_t NumberOfConnections = 0;
     HQUIC* Connections = NULL;
 

@@ -4246,7 +4246,7 @@ QuicTestConnectionPoolCreate(
                 PoolConfig.CibirIdLength = CibirIdLength;
             }
 
-            QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, (HQUIC*)Connections.get());
+            QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, &(Connections.get()->Handle));
             if (XdpSupported) {
                 TEST_QUIC_SUCCEEDED(Status);
                 ServerAcceptContext.StartedEvent.WaitForever();

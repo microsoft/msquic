@@ -1525,6 +1525,7 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
         break;
 
+#ifdef QUIC_TEST_CONNECTION_POOL
     case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(
@@ -1534,6 +1535,7 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->ConnPoolCreateParams.XdpSupported,
                 Params->ConnPoolCreateParams.TestCibirSupport));
         break;
+#endif
 
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
         QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());

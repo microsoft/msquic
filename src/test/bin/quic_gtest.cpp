@@ -366,7 +366,7 @@ TEST(ParameterValidation, ValidateConnection) {
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE));
     } else {
         QuicTestValidateConnectionPoolCreate();
     }

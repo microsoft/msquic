@@ -65,7 +65,7 @@ The address family to use for resolving the IP address of the *ServerName* param
 
 Value | Meaning
 --- | ---
-**QUIC_ADDRESS_FAMILY_UNSPEC**<br> |Unspecified address family.
+**QUIC_ADDRESS_FAMILY_UNSPEC**<br> | Unspecified address family.
 **QUIC_ADDRESS_FAMILY_INET**<br> | Version 4 IP address family.
 **QUIC_ADDRESS_FAMILY_INET6**<br> | Version 6 IP address family.
 
