@@ -28,7 +28,6 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    QUIC_WORKER* Worker = Connection->Worker;
 
     Stream = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StreamPool);
     if (Stream == NULL) {
