@@ -132,7 +132,9 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t TryCount = 0;
 
+    Retry:
     Status =
         SocketCreateUdp(
             Datapath,
@@ -160,9 +162,17 @@ CxPlatSocketCreateUdp(
                 "[sock] Failed to create raw socket, status:%d", Status);
             if ((*NewSocket)->UseTcp) {
                 CxPlatSocketDelete(*NewSocket);
+            }
+            BOOLEAN PortPoolCollision = Status == HRESULT_FROM_WIN32(WSAEACCES) || Status == HRESULT_FROM_WIN32(WSAEADDRINUSE);
+            if (QuicAddrIsWildCard(Config->LocalAddress) && TryCount < 100 && PortPoolCollision) {
+                TryCount += 1;
+                goto Retry;
+            } else {
+                if (!(*NewSocket)->UseTcp) {
+                    Status = QUIC_STATUS_SUCCESS;
+                }
                 goto Error;
             }
-            Status = QUIC_STATUS_SUCCESS;
         }
     }
 
