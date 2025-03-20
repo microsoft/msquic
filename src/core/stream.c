@@ -30,7 +30,7 @@ QuicStreamInitialize(
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
     QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -130,7 +130,8 @@ QuicStreamInitialize(
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvChunk =
+            CxPlatPoolAlloc(&QuicLibraryGetPerProc()->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -154,7 +155,7 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
-            &Connection->Worker->AppBufferChunkPool,
+            &QuicLibraryGetPerProc()->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -181,10 +182,10 @@ Exit:
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        CxPlatPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(&QuicLibraryGetPerProc()->StreamPool, Stream);
     }
     if (PreallocatedRecvChunk) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
+        CxPlatPoolFree(&QuicLibraryGetPerProc()->DefaultReceiveBufferPool, PreallocatedRecvChunk);
     }
 
     return Status;
@@ -227,12 +228,12 @@ QuicStreamFree(
 
     if (Stream->RecvBuffer.PreallocatedChunk) {
         CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
+            &QuicLibraryGetPerProc()->DefaultReceiveBufferPool,
             Stream->RecvBuffer.PreallocatedChunk);
     }
 
     Stream->Flags.Freed = TRUE;
-    CxPlatPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(&QuicLibraryGetPerProc()->StreamPool, Stream);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -993,7 +994,7 @@ QuicStreamSwitchToAppOwnedBuffers(
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
         CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
+            &QuicLibraryGetPerProc()->DefaultReceiveBufferPool,
             Stream->RecvBuffer.PreallocatedChunk);
         Stream->RecvBuffer.PreallocatedChunk = NULL;
     }
@@ -1006,7 +1007,7 @@ QuicStreamSwitchToAppOwnedBuffers(
         0,
         0,
         QUIC_RECV_BUF_MODE_APP_OWNED,
-        &Worker->AppBufferChunkPool,
+        &QuicLibraryGetPerProc()->AppBufferChunkPool,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }

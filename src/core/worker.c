@@ -78,14 +78,6 @@ QuicWorkerInitialize(
     CxPlatListInitializeHead(&Worker->Connections);
     Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
     CxPlatListInitializeHead(&Worker->Operations);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK)+QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
-    QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_APP_BUFFER_CHUNK, &Worker->AppBufferChunkPool);
 
     QUIC_STATUS Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
@@ -194,14 +186,6 @@ QuicWorkerUninitialize(
     Worker->PriorityConnectionsTail = NULL;
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
 
-    CxPlatPoolUninitialize(&Worker->StreamPool);
-    CxPlatPoolUninitialize(&Worker->DefaultReceiveBufferPool);
-    CxPlatPoolUninitialize(&Worker->SendRequestPool);
-    QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
-    CxPlatPoolUninitialize(&Worker->ApiContextPool);
-    CxPlatPoolUninitialize(&Worker->StatelessContextPool);
-    CxPlatPoolUninitialize(&Worker->OperPool);
-    CxPlatPoolUninitialize(&Worker->AppBufferChunkPool);
     CxPlatDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 

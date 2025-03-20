@@ -153,7 +153,7 @@ QuicCryptoInitialize(
             InitialRecvBufferLength,
             QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
             QUIC_RECV_BUF_MODE_SINGLE,
-            &Connection->Worker->AppBufferChunkPool,
+            &QuicLibraryGetPerProc()->AppBufferChunkPool,
             NULL);
     if (QUIC_FAILED(Status)) {
         goto Exit;
