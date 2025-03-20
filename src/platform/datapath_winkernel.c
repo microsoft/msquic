@@ -276,7 +276,7 @@ CxPlatSendBufferPoolAlloc(
         NULL, \
         NonPagedPoolNx, \
         0, \
-        Size, \
+        (Size) + sizeof(CXPLAT_POOL_HEADER), \
         Tag, \
         1024)
 
@@ -2611,18 +2611,19 @@ CxPlatSendBufferPoolAlloc(
     _Inout_ PLOOKASIDE_LIST_EX Lookaside
     )
 {
+    CXPLAT_POOL_HEADER* Header;
     CXPLAT_DATAPATH_SEND_BUFFER* SendBuffer;
 
     UNREFERENCED_PARAMETER(Lookaside);
     UNREFERENCED_PARAMETER(PoolType);
     CXPLAT_DBG_ASSERT(PoolType == NonPagedPoolNx);
-    CXPLAT_DBG_ASSERT(NumberOfBytes > sizeof(*SendBuffer));
+    CXPLAT_DBG_ASSERT(NumberOfBytes > sizeof(*Header) + sizeof(*SendBuffer));
 
     //
     // ExAllocatePool2 requires a different set of flags, so the assert above must keep the pool sane.
     //
-    SendBuffer = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
-    if (SendBuffer == NULL) {
+    Header = ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, NumberOfBytes, Tag);
+    if (Header == NULL) {
         return NULL;
     }
 
@@ -2630,6 +2631,7 @@ CxPlatSendBufferPoolAlloc(
     // Build the MDL for the entire buffer. The WSK_BUF's length will be updated
     // on each send.
     //
+    SendBuffer = (CXPLAT_DATAPATH_SEND_BUFFER*)(Header + 1);
     SendBuffer->Link.Buffer.Offset = 0;
     SendBuffer->Link.Buffer.Mdl = &SendBuffer->Mdl;
     MmInitializeMdl(
