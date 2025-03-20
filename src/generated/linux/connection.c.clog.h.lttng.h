@@ -2311,29 +2311,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnQTIP
-// [conn][%p] Bubbled down QTIP Setting: %d
-// QuicTraceEvent(
-        ConnQTIP,
-        "[conn][%p] Bubbled down QTIP Setting: %d",
-        Connection,
-        UdpConfig.UseQTIP);
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = UdpConfig.UseQTIP = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnQTIP,
-    TP_ARGS(
-        const void *, arg2,
-        int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnServerResumeTicket
 // [conn][%p] Server app accepted resumption ticket
 // QuicTraceEvent(
