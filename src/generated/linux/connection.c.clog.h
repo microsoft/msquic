@@ -2048,6 +2048,26 @@ tracepoint(CLOG_CONNECTION_C, ConnErrorStatus , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnQTIP
+// [conn][%p] Bubbled down QTIP Setting: %d
+// QuicTraceEvent(
+        ConnQTIP,
+        "[conn][%p] Bubbled down QTIP Setting: %d",
+        Connection,
+        UdpConfig.UseQTIP);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = UdpConfig.UseQTIP = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnQTIP
+#define _clog_4_ARGS_TRACE_ConnQTIP(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnQTIP , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnServerResumeTicket
 // [conn][%p] Server app accepted resumption ticket
 // QuicTraceEvent(

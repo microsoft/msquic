@@ -1867,6 +1867,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "ConnQTIP": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Bubbled down QTIP Setting: %d",
+      "UniqueId": "ConnQTIP",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "ConnQueueSendFlush": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queueing send flush, reason=%u",
@@ -14007,6 +14023,11 @@
         "UniquenessHash": "c339eadc-2eef-8e45-4a51-1fc84a3c198e",
         "TraceID": "ConnPersistentCongestion",
         "EncodingString": "[conn][%p] Persistent congestion event"
+      },
+      {
+        "UniquenessHash": "bda2b989-641b-ea34-79d3-085dc70ab7fa",
+        "TraceID": "ConnQTIP",
+        "EncodingString": "[conn][%p] Bubbled down QTIP Setting: %d"
       },
       {
         "UniquenessHash": "1774df63-d849-a89c-4a88-bf2ff1002e15",
