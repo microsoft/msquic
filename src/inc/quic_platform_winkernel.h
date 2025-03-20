@@ -258,10 +258,17 @@ extern uint64_t CxPlatTotalMemory;
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
-typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_OBJECT {
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
     CXPLAT_POOL* Owner;
-    uint8_t Memory[0];
-} CXPLAT_POOL_OBJECT;
+} CXPLAT_POOL_HEADER;
+
+//
+// Use 16 bytes for the header to keep things aligned.
+//
+#define CXPLAT_POOL_HEADER_SIZE 16
+static_assert(
+    CXPLAT_POOL_HEADER_SIZE >= sizeof(CXPLAT_POOL_HEADER),
+    "Header size must be large enough");
 
 #define CxPlatPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
@@ -270,7 +277,7 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_OBJECT {
         NULL, \
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
-        (Size + sizeof(CXPLAT_POOL_OBJECT)), \
+        (Size + CXPLAT_POOL_HEADER_SIZE), \
         Tag, \
         1024)
 
@@ -281,13 +288,13 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_OBJECT* Entry =
-        (CXPLAT_POOL_OBJECT*)ExAllocateFromLookasideListEx(Pool);
-    if (Entry == NULL) {
+    CXPLAT_POOL_HEADER* Header =
+        (CXPLAT_POOL_HEADER*)ExAllocateFromLookasideListEx(Pool);
+    if (Header == NULL) {
         return NULL;
     }
-    Entry->Owner = Pool;
-    return Entry->Memory;
+    Header->Owner = Pool;
+    return (uint8_t*)Header + CXPLAT_POOL_HEADER_SIZE;
 }
 inline
 void
@@ -295,10 +302,10 @@ CxPlatPoolFree(
     _In_ void* Memory
     )
 {
-    CXPLAT_POOL_OBJECT* Entry =
-        CXPLAT_CONTAINING_RECORD(Memory, CXPLAT_POOL_OBJECT, Memory);
-    CXPLAT_POOL* Pool = Entry->Owner;
-    ExFreeToLookasideListEx(Pool, Entry);
+    CXPLAT_POOL_HEADER* Header =
+        (CXPLAT_POOL_HEADER*)((uint8_t*)Memory - CXPLAT_POOL_HEADER_SIZE);
+    CXPLAT_POOL* Pool = Header->Owner;
+    ExFreeToLookasideListEx(Pool, Header);
 }
 #define CxPlatZeroMemory RtlZeroMemory
 #define CxPlatCopyMemory RtlCopyMemory
