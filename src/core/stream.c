@@ -154,7 +154,6 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
-            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -181,10 +180,10 @@ Exit:
         QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        CxPlatPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(Stream);
     }
     if (PreallocatedRecvChunk) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
+        CxPlatPoolFree(PreallocatedRecvChunk);
     }
 
     return Status;
@@ -198,7 +197,6 @@ QuicStreamFree(
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
     QUIC_CONNECTION* Connection = Stream->Connection;
-    QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
@@ -226,13 +224,11 @@ QuicStreamFree(
     CxPlatRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
     }
 
     Stream->Flags.Freed = TRUE;
-    CxPlatPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(Stream);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -989,12 +985,9 @@ QuicStreamSwitchToAppOwnedBuffers(
     //
     // Reset the current receive buffer and preallocated chunk.
     //
-    QUIC_WORKER* Worker = Stream->Connection->Worker;
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
         Stream->RecvBuffer.PreallocatedChunk = NULL;
     }
 
@@ -1006,7 +999,6 @@ QuicStreamSwitchToAppOwnedBuffers(
         0,
         0,
         QUIC_RECV_BUF_MODE_APP_OWNED,
-        &Worker->AppBufferChunkPool,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }

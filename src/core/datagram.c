@@ -119,7 +119,7 @@ QuicDatagramCancelSend(
         Connection,
         &SendRequest->ClientContext,
         QUIC_DATAGRAM_SEND_CANCELED);
-    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -135,7 +135,7 @@ QuicDatagramCompleteSend(
         Connection,
         ClientContext,
         QUIC_DATAGRAM_SEND_SENT);
-    CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -359,7 +359,7 @@ QuicDatagramQueueSend(
     CxPlatDispatchLockRelease(&Datagram->ApiQueueLock);
 
     if (QUIC_FAILED(Status)) {
-        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(SendRequest);
         goto Exit;
     }
 
@@ -614,7 +614,7 @@ QuicDatagramCancelBlocked(
             SendQueue = &((*SendQueue)->Next);
         }
     } while (*SendQueue != NULL);
-    
+
     Datagram->SendQueueTail = SendQueue;
 
     if (Datagram->SendQueue != NULL) {

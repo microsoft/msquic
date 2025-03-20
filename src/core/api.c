@@ -1114,7 +1114,7 @@ MsQuicStreamSend(
     CxPlatDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     if (QUIC_FAILED(Status)) {
-        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(SendRequest);
         goto Exit;
     }
 
@@ -1470,7 +1470,7 @@ Error:
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
         CXPLAT_DBG_ASSERT(Connection != NULL);
-        CxPlatPoolFree(&Connection->Worker->AppBufferChunkPool,
+        CxPlatPoolFree(
             CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         CXPLAT_FREE(
             CXPLAT_CONTAINING_RECORD(

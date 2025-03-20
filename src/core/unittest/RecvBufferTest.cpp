@@ -56,7 +56,7 @@ struct RecvBuffer {
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
 
         auto Result = QuicRecvBufferInitialize(
-            &RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, &AppBufferChunkPool, PreallocChunk);
+            &RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
         if (Result != QUIC_STATUS_SUCCESS) {
             return Result;
         }
@@ -287,8 +287,9 @@ struct RecvBuffer {
 
     void FreeChunkList(CXPLAT_LIST_ENTRY& ChunkList) {
         while (!CxPlatListIsEmpty(&ChunkList)) {
-            QUIC_RECV_CHUNK *Chunk = CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link);
-            CxPlatPoolFree(&AppBufferChunkPool, Chunk);
+            CxPlatPoolFree(
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         }
     }
 };
