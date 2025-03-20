@@ -478,7 +478,7 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
-typedef struct CXPLAT_POOL_HEADER {
+typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
     union {
     CXPLAT_POOL* Owner;
     CXPLAT_SLIST_ENTRY Entry;
