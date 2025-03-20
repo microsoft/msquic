@@ -344,8 +344,6 @@ class WithHandshakeArgs11 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs11> {
 };
 
-#if QUIC_TEST_CONNECTION_POOL
-
 struct HandshakeArgs12 {
     int Family;
     uint16_t NumberOfConnections;
@@ -376,8 +374,6 @@ std::ostream& operator << (std::ostream& o, const HandshakeArgs12& args) {
 class WithHandshakeArgs12 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs12> {
 };
-
-#endif // QUIC_TEST_CONNECTION_POOL
 
 struct FeatureSupportArgs {
     int Family;

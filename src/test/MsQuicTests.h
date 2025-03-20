@@ -15,6 +15,10 @@ Abstract:
 
 #include "msquic.hpp"
 
+//
+// Enable tests for specific platforms/scenarios
+//
+
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;

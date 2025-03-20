@@ -4152,7 +4152,6 @@ struct ConnectionPoolConnectionContext {
 };
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#ifdef QUIC_TEST_CONNECTION_POOL
 void
 QuicTestConnectionPoolCreate(
     _In_ int Family,
@@ -4275,8 +4274,10 @@ QuicTestConnectionPoolCreate(
                 // NOT_SUPPORTED is expected.
                 //
                 if (Status != QUIC_STATUS_NOT_SUPPORTED &&
-                    Status != QUIC_STATUS_NOT_FOUND &&
-                    Status != QUIC_STATUS_FILE_NOT_FOUND) {
+#ifdef _WIN32
+                    Status != QUIC_STATUS_FILE_NOT_FOUND &&
+#endif
+                    Status != QUIC_STATUS_NOT_FOUND) {
                     TEST_FAILURE(
                         "Expected QUIC_STATUS_NOT_SUPPORTED or QUIC_STATUS_NOT_FOUND, but got 0x%x",
                         Status);
@@ -4285,5 +4286,4 @@ QuicTestConnectionPoolCreate(
         }
     }
 }
-#endif
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
