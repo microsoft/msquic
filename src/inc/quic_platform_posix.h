@@ -562,7 +562,7 @@ CxPlatPoolAlloc(
     CxPlatLockRelease(&Pool->Lock);
     if (Header == NULL) {
         Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
-        if (Entry == NULL) {
+        if (Header == NULL) {
             return NULL;
         }
     }
@@ -579,7 +579,7 @@ CxPlatPoolFree(
     _In_ void* Memory
     )
 {
-    CXPLAT_POOL_HEADER* HEader =
+    CXPLAT_POOL_HEADER* Header =
         (CXPLAT_POOL_HEADER*)((uint8_t*)Memory - CXPLAT_POOL_HEADER_SIZE);
     CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
