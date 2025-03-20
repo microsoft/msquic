@@ -1770,6 +1770,11 @@ QuicConnStart(
 
     CXPLAT_TEL_ASSERT(Path->Binding == NULL);
 
+    QuicConnApplyNewSettings(
+        Connection,
+        FALSE,
+        &Configuration->Settings);
+
     if (!Connection->State.RemoteAddressSet) {
 
         CXPLAT_DBG_ASSERT(ServerName != NULL);
@@ -1844,11 +1849,7 @@ QuicConnStart(
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
 
-    if (!Connection->Settings.IsSet.QTIPEnabled) {
-        UdpConfig.UseQTIP = FALSE;
-    } else {
-        UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
-    }
+    UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
 
     //
     // Get the binding for the current local & remote addresses.
@@ -6225,11 +6226,7 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
-            if (!Connection->Settings.IsSet.QTIPEnabled) {
-                UdpConfig.UseQTIP = FALSE;
-            } else {
-                UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
-            }
+            UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
 
             Status =
                 QuicLibraryGetBinding(
