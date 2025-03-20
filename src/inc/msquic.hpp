@@ -1682,7 +1682,7 @@ struct ConnectionScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
-CXPLAT_STATIC_ASSERT(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+static_assert(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct StreamScope {
     HQUIC Handle;
@@ -1692,7 +1692,7 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
-CXPLAT_STATIC_ASSERT(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+static_assert(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct ConfigurationScope {
     HQUIC Handle;
@@ -1702,7 +1702,7 @@ struct ConfigurationScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
-CXPLAT_STATIC_ASSERT(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+static_assert(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
@@ -1717,6 +1717,6 @@ struct QuicBufferScope {
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
 
-CXPLAT_STATIC_ASSERT(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
+static_assert(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
 
 #endif  //  _WIN32
