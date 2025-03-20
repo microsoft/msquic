@@ -552,7 +552,9 @@ struct CxPlatSocket {
             CxPlatSocketCreateUdp(
                 Datapath,
                 &UdpConfig,
-                &Socket);
+                &Socket,
+                FALSE,
+                FALSE);
 #ifdef _WIN32
         if (InitStatus == HRESULT_FROM_WIN32(WSAEACCES)) {
             InitStatus = QUIC_STATUS_ADDRESS_IN_USE;
