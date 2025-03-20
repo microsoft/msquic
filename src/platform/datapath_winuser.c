@@ -842,10 +842,6 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        Datapath->UseTcp = TRUE;
-    }
-
     Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);

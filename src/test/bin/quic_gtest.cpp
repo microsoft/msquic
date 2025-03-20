@@ -113,7 +113,6 @@ public:
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseQTIP) {
                 Config.PollingIdleTimeoutUs = 10000;
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
                 MsQuicSettings Settings;
                 Settings.SetQtipEnabled(TRUE);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));

@@ -15,6 +15,7 @@
 #include "msquichelper.h"
 
 #include "packet_writer.h"
+#include <msquic.hpp>
 
 #define US_TO_MS(x) ((x) / 1000)
 
@@ -458,7 +459,11 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+        if (AttackType == 0) {
+            MsQuicSettings Settings;
+            Settings.SetQtipEnabled(TRUE);
+            Settings.SetGlobal();
+        }
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
         };

@@ -55,10 +55,6 @@ RawDataPathInitialize(
 
     DataPath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        DataPath->UseTcp = TRUE;
-    }
-
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
