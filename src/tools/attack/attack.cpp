@@ -15,7 +15,6 @@
 #include "msquichelper.h"
 
 #include "packet_writer.h"
-#include <msquic.hpp>
 
 #define US_TO_MS(x) ((x) / 1000)
 
@@ -460,9 +459,8 @@ main(
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
         if (AttackType == 0) {
-            MsQuicSettings Settings;
-            Settings.SetQtipEnabled(TRUE);
-            Settings.SetGlobal();
+            // TODO: Since we moved the QTIP configuration from the datapath to the core layer (MsQuic Settings),
+            //       and this tool seems to be using purely the datapath layer, do we just remove QTIP support from here?
         }
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
