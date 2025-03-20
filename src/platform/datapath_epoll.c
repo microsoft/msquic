@@ -49,7 +49,7 @@ const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
 // Contains all the info for a single RX IO operation. Multiple RX packets may
 // come from a single IO operation.
 //
-typedef struct DATAPATH_RX_IO_BLOCK {
+typedef struct __attribute__((aligned(16))) DATAPATH_RX_IO_BLOCK {
     //
     // Represents the network route.
     //

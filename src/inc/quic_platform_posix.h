@@ -488,14 +488,6 @@ typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
 #endif
 } CXPLAT_POOL_HEADER;
 
-//
-// Use 16 bytes for the header to keep things aligned.
-//
-#define CXPLAT_POOL_HEADER_SIZE 16
-static_assert(
-    CXPLAT_POOL_HEADER_SIZE >= sizeof(CXPLAT_POOL_HEADER),
-    "Header size must be large enough");
-
 #define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAull
 #define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ull
 
@@ -520,7 +512,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    Pool->Size = Size + CXPLAT_POOL_HEADER_SIZE; // Add space for the pool header
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the pool header
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
@@ -570,7 +562,7 @@ CxPlatPoolAlloc(
     Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
     Header->Owner = Pool;
-    return (uint8_t*)Header + CXPLAT_POOL_HEADER_SIZE;
+    return (void*)(Header + 1);
 }
 
 inline
@@ -579,8 +571,7 @@ CxPlatPoolFree(
     _In_ void* Memory
     )
 {
-    CXPLAT_POOL_HEADER* Header =
-        (CXPLAT_POOL_HEADER*)((uint8_t*)Memory - CXPLAT_POOL_HEADER_SIZE);
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
     CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
     CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
