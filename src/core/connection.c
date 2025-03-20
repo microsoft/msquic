@@ -1850,7 +1850,11 @@ QuicConnStart(
 #endif
 
     UdpConfig.UseQTIP = Connection->Settings.QTIPEnabled;
-    
+    QuicTraceLogConnInfo(
+        IndicateQTIPSettingsBubbledDown,
+        Connection,
+        "Bubbling down UseQTIP setting: %hhu",
+        UdpConfig.UseQTIP);
 
     //
     // Get the binding for the current local & remote addresses.

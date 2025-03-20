@@ -471,6 +471,26 @@ tracepoint(CLOG_CONNECTION_C, CloseComplete , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateQTIPSettingsBubbledDown
+// [conn][%p] Bubbling down UseQTIP setting: %hhu
+// QuicTraceLogConnInfo(
+        IndicateQTIPSettingsBubbledDown,
+        Connection,
+        "Bubbling down UseQTIP setting: %hhu",
+        UdpConfig.UseQTIP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UdpConfig.UseQTIP = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_IndicateQTIPSettingsBubbledDown
+#define _clog_4_ARGS_TRACE_IndicateQTIPSettingsBubbledDown(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, IndicateQTIPSettingsBubbledDown , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for Restart
 // [conn][%p] Restart (CompleteReset=%hhu)
 // QuicTraceLogConnInfo(

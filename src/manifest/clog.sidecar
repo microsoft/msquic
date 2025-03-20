@@ -6044,6 +6044,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicateQTIPSettingsBubbledDown": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Bubbling down UseQTIP setting: %hhu",
+      "UniqueId": "IndicateQTIPSettingsBubbledDown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "IndicateReliableResetNegotiated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
@@ -15203,6 +15219,11 @@
         "UniquenessHash": "c5a168ed-97fa-1cb7-3c3f-15762d9e402a",
         "TraceID": "IndicatePeerStreamStarted",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]"
+      },
+      {
+        "UniquenessHash": "651766ae-e436-c010-d55a-bcb9ecd224be",
+        "TraceID": "IndicateQTIPSettingsBubbledDown",
+        "EncodingString": "[conn][%p] Bubbling down UseQTIP setting: %hhu"
       },
       {
         "UniquenessHash": "cb6ed5bc-5216-e56f-9e29-117ba277fde6",
