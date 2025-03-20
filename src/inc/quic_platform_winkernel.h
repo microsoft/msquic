@@ -45,8 +45,6 @@ Environment:
 #include "msquic_winkernel.h"
 #pragma warning(pop)
 
-#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
-
 #if defined(__cplusplus)
 extern "C" {
 #endif

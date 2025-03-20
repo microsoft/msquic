@@ -562,7 +562,7 @@ CxPlatPoolAlloc(
     Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
     Header->Owner = Pool;
-    return (void*)(Header + 1);
+    return (void*)((uint8_t*)Header + sizeof(CXPLAT_POOL_HEADER));
 }
 
 inline
