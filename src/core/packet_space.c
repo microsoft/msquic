@@ -61,7 +61,7 @@ QuicPacketSpaceUninitialize(
     }
 
     QuicAckTrackerUninitialize(&Packets->AckTracker);
-    CxPlatPoolFree(&QuicLibraryGetPerProc()->PacketSpacePool, Packets);
+    CxPlatPoolFree(Packets);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

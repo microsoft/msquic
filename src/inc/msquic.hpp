@@ -94,7 +94,7 @@ struct CxPlatPool {
     CxPlatPool(uint32_t Size, uint32_t Tag = 0, bool IsPaged = false) noexcept { CxPlatPoolInitialize(IsPaged, Size, Tag, &Handle); }
     ~CxPlatPool() noexcept { CxPlatPoolUninitialize(&Handle); }
     void* Alloc() noexcept { return CxPlatPoolAlloc(&Handle); }
-    void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
+    void Free(void* Ptr) noexcept { CxPlatPoolFree(Ptr); }
 };
 
 //
@@ -131,7 +131,7 @@ public:
     void Free(T* Obj) noexcept {
         if (Obj != nullptr) {
             Obj->~T();
-            CxPlatPoolFree(&Pool, Obj);
+            CxPlatPoolFree(Obj);
         }
     }
 };

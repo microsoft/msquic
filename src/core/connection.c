@@ -352,7 +352,7 @@ QuicConnFree(
     QuicConnUnregister(Connection);
     if (Connection->Worker != NULL) {
         QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-        QuicOperationQueueClear(Connection->Worker, &Connection->OperQ);
+        QuicOperationQueueClear(&Connection->OperQ);
     }
     if (Connection->ReceiveQueue != NULL) {
         QUIC_RX_PACKET* Packet = Connection->ReceiveQueue;
@@ -385,9 +385,7 @@ QuicConnFree(
     }
     if (Connection->HandshakeTP != NULL) {
         QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
-        CxPlatPoolFree(
-            &QuicLibraryGetPerProc()->TransportParamPool,
-            Connection->HandshakeTP);
+        CxPlatPoolFree(Connection->HandshakeTP);
         Connection->HandshakeTP = NULL;
     }
     QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
@@ -409,7 +407,7 @@ QuicConnFree(
         ConnDestroyed,
         "[conn][%p] Destroyed",
         Connection);
-    CxPlatPoolFree(&QuicLibraryGetPerProc()->ConnectionPool, Connection);
+    CxPlatPoolFree(Connection);
 
 #if DEBUG
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
@@ -2188,9 +2186,7 @@ QuicConnCleanupServerResumptionState(
     if (!Connection->State.ResumptionEnabled) {
         if (Connection->HandshakeTP != NULL) {
             QuicCryptoTlsCleanupTransportParameters(Connection->HandshakeTP);
-            CxPlatPoolFree(
-                &QuicLibraryGetPerProc()->TransportParamPool,
-                Connection->HandshakeTP);
+            CxPlatPoolFree(Connection->HandshakeTP);
             Connection->HandshakeTP = NULL;
         }
 
@@ -7772,7 +7768,7 @@ QuicConnDrainOperations(
         QuicConnValidate(Connection);
 
         if (FreeOper) {
-            QuicOperationFree(Connection->Worker, Oper);
+            QuicOperationFree(Oper);
         }
 
         Connection->Stats.Schedule.OperationCount++;

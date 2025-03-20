@@ -369,7 +369,7 @@ QuicWorkerQueueOperation(
         const QUIC_BINDING* Binding = Operation->STATELESS.Context->Binding;
         const QUIC_RX_PACKET* Packet = Operation->STATELESS.Context->Packet;
         QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");
-        QuicOperationFree(Worker, Operation);
+        QuicOperationFree(Operation);
     } else if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
@@ -669,7 +669,7 @@ QuicWorkerLoopCleanup(
 #if DEBUG
         Operation->Link.Flink = NULL;
 #endif
-        QuicOperationFree(Worker, Operation);
+        QuicOperationFree(Operation);
         --Dequeue;
     }
     QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
@@ -733,7 +733,7 @@ QuicWorkerLoop(
         QuicBindingProcessStatelessOperation(
             Operation->Type,
             Operation->STATELESS.Context);
-        QuicOperationFree(Worker, Operation);
+        QuicOperationFree(Operation);
         QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         Worker->ExecutionContext.Ready = TRUE;
         State->NoWorkCount = 0;

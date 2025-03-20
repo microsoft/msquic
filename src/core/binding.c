@@ -219,9 +219,7 @@ QuicBindingUninitialize(
             &StatelessCtx->TableEntry,
             NULL);
         CXPLAT_DBG_ASSERT(StatelessCtx->IsProcessed);
-        CxPlatPoolFree(
-            &QuicLibraryGetPerProc()->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
     CXPLAT_DBG_ASSERT(Binding->StatelessOperCount == 0);
     CXPLAT_DBG_ASSERT(Binding->StatelessOperTable.NumEntries == 0);
@@ -669,9 +667,7 @@ QuicBindingCreateStatelessOperation(
         // If it's also processed, free it.
         //
         if (OldStatelessCtx->IsProcessed) {
-            CxPlatPoolFree(
-                &QuicLibraryGetPerProc()->StatelessContextPool,
-                OldStatelessCtx);
+            CxPlatPoolFree(OldStatelessCtx);
         }
     }
 
@@ -1090,9 +1086,7 @@ QuicBindingReleaseStatelessOperation(
     }
 
     if (FreeCtx) {
-        CxPlatPoolFree(
-            &QuicLibraryGetPerProc()->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
 }
 

@@ -470,7 +470,7 @@ QuicStreamCompleteSendRequest(
         }
     }
 
-    CxPlatPoolFree(&QuicLibraryGetPerProc()->SendRequestPool, SendRequest);
+    CxPlatPoolFree(SendRequest);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
