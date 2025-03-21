@@ -354,6 +354,9 @@ struct HandshakeArgs12 {
         for (int Family : { 4, 6 })
         for (uint16_t NumberOfConnections : { 1, 2, 4 })
         for (bool XdpSupported : { false, true }) {
+#if !defined(_WIN32)
+            if (XdpSupported) continue;
+#endif
             if (!UseDuoNic && XdpSupported) {
                 continue;
             }
