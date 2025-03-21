@@ -16,6 +16,7 @@ typedef struct QUIC_CONGESTION_CONTROL QUIC_CONGESTION_CONTROL;
 typedef struct QUIC_CONNECTION QUIC_CONNECTION;
 typedef struct QUIC_STREAM QUIC_STREAM;
 typedef struct QUIC_PACKET_BUILDER QUIC_PACKET_BUILDER;
+typedef struct QUIC_PATHID QUIC_PATHID;
 typedef struct QUIC_PATH QUIC_PATH;
 typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 
@@ -381,6 +382,11 @@ CXPLAT_STATIC_ASSERT(
     "Should always have enough CIDs for all paths");
 
 //
+// Maximum number of PATH IDs accepted from the peer.
+//
+#define QUIC_ACTIVE_PATH_ID_LIMIT               4
+
+//
 // The default value for pacing being enabled or not.
 //
 #define QUIC_DEFAULT_SEND_PACING                TRUE
@@ -539,6 +545,16 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED    FALSE
 
 //
+// The default settings for disabling Connection ID generation.
+//
+#define QUIC_DEFAULT_CONN_ID_GENERATION_DISABLED     FALSE
+
+//
+// The default settings for allowing multipath.
+//
+#define QUIC_DEFAULT_MULTIPATH_ENABLED               FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -595,6 +611,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED                 0x01000000
 #define QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED                 0x02000000
 #define QUIC_TP_FLAG_TIMESTAMP_SHIFT                        24
+#define QUIC_TP_FLAG_INITIAL_MAX_PATH_ID                    0x04000000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
@@ -616,6 +633,12 @@ CXPLAT_STATIC_ASSERT(
 // as a variable-length integer.
 //
 #define QUIC_TP_MAX_STREAMS_MAX                             ((1ULL << 60) - 1)
+
+//
+// Max allowed value of a MAX_PATHS frame or transport parameter.
+// Any larger value would allow a max path ID that cannot be used in the nonce.
+//
+#define QUIC_TP_MAX_PATH_ID_MAX                             ((1ULL << 32) - 1)
 
 /*************************************************************
                   PERSISTENT SETTINGS
@@ -645,6 +668,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 #define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"
+#define QUIC_SETTING_MULTIPATH_ENABLED              "MultipathEnabled"
 
 #define QUIC_SETTING_INITIAL_WINDOW_PACKETS         "InitialWindowPackets"
 #define QUIC_SETTING_SEND_IDLE_TIMEOUT_MS           "SendIdleTimeoutMs"
@@ -682,3 +706,5 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
+
+#define QUIC_SETTING_CONN_ID_GENERATION_DISABLED    "ConnIDGenerationDisabled"

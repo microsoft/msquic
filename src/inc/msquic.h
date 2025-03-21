@@ -631,6 +631,11 @@ typedef struct QUIC_VERSION_SETTINGS {
     uint32_t FullyDeployedVersionsLength;
 
 } QUIC_VERSION_SETTINGS;
+
+typedef struct QUIC_PATH_STATUS {
+    uint32_t PathId;
+    BOOLEAN Active;
+} QUIC_PATH_STATUS;
 #endif
 
 typedef struct QUIC_GLOBAL_SETTINGS {
@@ -697,7 +702,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t MultipathEnabled                       : 1;
+            uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -748,7 +754,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
             uint64_t StreamMultiReceiveEnabled : 1;
-            uint64_t ReservedFlags             : 58;
+            uint64_t MultipathEnabled          : 1;
+            uint64_t ReservedFlags             : 57;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -929,6 +936,11 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS               0x0500001A  // QUIC_ADDR
+#define QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS            0x0500001B  // QUIC_ADDR
+#define QUIC_PARAM_CONN_PATH_STATUS                     0x0500001C  // QUIC_PATH_STATUS 
+#endif
 
 //
 // Parameters for TLS.
@@ -1196,6 +1208,9 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
     QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
     QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_ADDED                        = 19,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_REMOVED                      = 20,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
+    QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED               = 21,   // Only indicated if QUIC_SETTINGS.EnableMultipath is TRUE.
 #endif
 } QUIC_CONNECTION_EVENT_TYPE;
 
@@ -1286,6 +1301,22 @@ typedef struct QUIC_CONNECTION_EVENT {
            uint32_t CongestionWindow;           // Congestion Window
            uint64_t Bandwidth;                  // Estimated bandwidth
         } NETWORK_STATISTICS;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_ADDED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+        } PATH_REMOVED;
+        struct {
+            const QUIC_ADDR* PeerAddress;
+            const QUIC_ADDR* LocalAddress;
+            uint32_t PathId;
+            BOOLEAN IsActive;
+        } PATH_STATUS_CHANGED;
 #endif
     };
 } QUIC_CONNECTION_EVENT;
