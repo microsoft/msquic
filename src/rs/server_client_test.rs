@@ -36,15 +36,49 @@ pub fn get_test_cred() -> Credential {
     Credential::CertificateHash(CertificateHash::from_str(&s).unwrap())
 }
 
-/// Use test certs from openssl submodule
+/// Generate a test cert if not present using openssl cli.
 #[cfg(not(target_os = "windows"))]
 pub fn get_test_cred() -> Credential {
+    let cert_dir = std::env::temp_dir().join("msquic_test_rs");
+    let key = "key.pem";
+    let cert = "cert.pem";
+    let key_path = cert_dir.join(key);
+    let cert_path = cert_dir.join(cert);
+    if !key_path.exists() || !cert_path.exists() {
+        // remove the dir
+        let _ = std::fs::remove_dir_all(&cert_dir);
+        std::fs::create_dir_all(&cert_dir).expect("cannot create cert dir");
+        // generate test cert using openssl cli
+        let output = std::process::Command::new("openssl")
+            .args([
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:4096",
+                "-keyout",
+                "key.pem",
+                "-out",
+                "cert.pem",
+                "-sha256",
+                "-days",
+                "3650",
+                "-nodes",
+                "-subj",
+                "/CN=localhost",
+            ])
+            .current_dir(cert_dir)
+            .stderr(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .output()
+            .expect("cannot generate cert");
+        if !output.status.success() {
+            panic!("generate cert failed");
+        }
+    }
     use crate::CertificateFile;
-    let root_dir = std::env::current_dir().unwrap();
-    let cert_dir = root_dir.join("submodules/openssl/test/certs");
     Credential::CertificateFile(CertificateFile::new(
-        cert_dir.join("serverkey.pem").display().to_string(),
-        cert_dir.join("servercert.pem").display().to_string(),
+        key_path.display().to_string(),
+        cert_path.display().to_string(),
     ))
 }
 

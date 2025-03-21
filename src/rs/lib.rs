@@ -652,14 +652,14 @@ macro_rules! define_quic_handle_impl {
 
             /// Closes the handle and consumes it.
             pub fn close(mut self) {
-                // close_inner implementation for listener, connection and stream
+                // The close_inner implementation for listener, connection and stream
                 // is suppose to cleanup the context associated with the handle.
                 // Handle context is dropped after handle ffi close  call completes to ensure that
                 // it outlives the callbacks.
-                // context raw pointer is not set to null after ffi close call because a closed
+                // Context raw pointer is not set to null after ffi close call because a closed
                 // handle should not be accessed anymore.
                 self.close_inner();
-                // prevent drop to call ffi function again.
+                // Prevent drop to call ffi function again.
                 self.handle = std::ptr::null_mut();
             }
         }
