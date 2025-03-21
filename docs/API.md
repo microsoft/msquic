@@ -16,8 +16,8 @@ Term | Definition
 *endpoint* | One side of a connection; client or server.
 *peer* | The *other* side of a connection.
 *callback handler* | The function pointer the app registers with an MsQuic object.
-*app context* or<br> *context* | A (possibly null) pointer registered with an MsQuic object. It is passed to callback handlers.
-*event* | An upcall to a callback handler.
+*app context* or<br> *context* | A (possibly null) pointer registered with an MsQuic object. It is passed to App's callback handlers.
+*event* | Beginning or ending of a specific condition or action in MsQuic library that results in the App's callback hander invocation.
 
 # High Level Overview
 
