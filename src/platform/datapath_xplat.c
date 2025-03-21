@@ -161,7 +161,8 @@ CxPlatSocketCreateUdp(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
             BOOLEAN UseTcp = (*NewSocket)->UseTcp;
-            if (QuicAddrIsWildCard(Config->LocalAddress) && TryCount < 1000) {
+            BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
+            if (IsWildcardAddr && TryCount < 1000) {
                 CxPlatSocketDelete(*NewSocket);
                 TryCount += 1;
                 goto Retry;
