@@ -4274,7 +4274,7 @@ QuicTestConnectionPoolCreate(
                 // NOT_SUPPORTED is expected.
                 //
                 if (Status != QUIC_STATUS_NOT_SUPPORTED &&
-#ifdef _WIN32
+#if defined(_WIN32) && !defined(_KERNEL_MODE)
                     Status != QUIC_STATUS_FILE_NOT_FOUND &&
 #endif
                     Status != QUIC_STATUS_NOT_FOUND) {
