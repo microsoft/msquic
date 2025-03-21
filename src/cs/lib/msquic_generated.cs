@@ -3209,6 +3209,50 @@ namespace Microsoft.Quic
         }
     }
 
+    [System.Flags]
+    internal enum QUIC_CONNECTION_POOL_FLAGS
+    {
+        QUIC_CONNECTION_POOL_FLAG_NONE = 0x00000000,
+        QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE = 0x00000001,
+    }
+
+    internal unsafe partial struct QUIC_CONNECTION_POOL_CONFIG
+    {
+        [NativeTypeName("HQUIC")]
+        internal QUIC_HANDLE* Registration;
+
+        [NativeTypeName("HQUIC")]
+        internal QUIC_HANDLE* Configuration;
+
+        [NativeTypeName("QUIC_CONNECTION_CALLBACK_HANDLER")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int> Handler;
+
+        internal void** Context;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* ServerName;
+
+        [NativeTypeName("const QUIC_ADDR *")]
+        internal QuicAddr* ServerAddress;
+
+        [NativeTypeName("QUIC_ADDRESS_FAMILY")]
+        internal ushort Family;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort ServerPort;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort NumberOfConnections;
+
+        [NativeTypeName("uint8_t **")]
+        internal byte** CibirIds;
+
+        [NativeTypeName("uint8_t")]
+        internal byte CibirIdLength;
+
+        internal QUIC_CONNECTION_POOL_FLAGS Flags;
+    }
+
     internal unsafe partial struct QUIC_API_TABLE
     {
         [NativeTypeName("QUIC_SET_CONTEXT_FN")]
@@ -3306,6 +3350,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
+
+        [NativeTypeName("QUIC_CONN_POOL_CREATE_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_CONNECTION_POOL_CONFIG*, QUIC_HANDLE**, int> ConnectionPoolCreate;
     }
 
     internal static unsafe partial class MsQuic

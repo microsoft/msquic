@@ -396,6 +396,20 @@ class UniquePtrArray {
 public:
     UniquePtrArray() : ptr(nullptr) { }
     UniquePtrArray(T* _ptr) : ptr(_ptr) { }
+    UniquePtrArray(const UniquePtrArray& other) = delete;
+    UniquePtrArray(UniquePtrArray&& other) noexcept {
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+    }
+    UniquePtrArray& operator=(const UniquePtrArray& other) = delete;
+    UniquePtrArray& operator=(UniquePtrArray&& other) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
     ~UniquePtrArray() { delete [] ptr; }
     T* get() { return ptr; }
     const T* get() const { return ptr; }
@@ -404,6 +418,8 @@ public:
     operator bool() const { return ptr != nullptr; }
     bool operator == (T* _ptr) const { return ptr == _ptr; }
     bool operator != (T* _ptr) const { return ptr != _ptr; }
+    T& operator[](size_t i) { return ptr[i]; }
+    const T& operator[](size_t i) const { return ptr[i]; }
 };
 
 class MsQuicApi : public QUIC_API_TABLE {
@@ -1666,6 +1682,8 @@ struct ConnectionScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+static_assert(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct StreamScope {
     HQUIC Handle;
     StreamScope() noexcept : Handle(nullptr) { }
@@ -1674,6 +1692,8 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+static_assert(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct ConfigurationScope {
     HQUIC Handle;
     ConfigurationScope() noexcept : Handle(nullptr) { }
@@ -1681,6 +1701,8 @@ struct ConfigurationScope {
     ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
     operator HQUIC() const noexcept { return Handle; }
 };
+
+static_assert(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
@@ -1694,5 +1716,7 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
+
+static_assert(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
 
 #endif  //  _WIN32

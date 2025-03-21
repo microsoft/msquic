@@ -363,6 +363,15 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+TEST(ParameterValidation, ValidateConnectionPoolCreate) {
+    TestLogger Logger("QuicTestValidateConnectionPoolCreate");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE));
+    } else {
+        QuicTestValidateConnectionPoolCreate();
+    }
+}
+
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
     if (TestingKernelMode) {
@@ -1734,6 +1743,27 @@ TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE, Params));
+    } else {
+        QuicTestConnectionPoolCreate(
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {
@@ -2570,6 +2600,13 @@ INSTANTIATE_TEST_SUITE_P(
     Handshake,
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs12,
+    testing::ValuesIn(HandshakeArgs12::Generate()));
+#endif
 
 INSTANTIATE_TEST_SUITE_P(
     AppData,
