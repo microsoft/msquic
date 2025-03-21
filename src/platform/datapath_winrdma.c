@@ -81,8 +81,11 @@ typedef enum _RDMA_CONNECTION_STATE
     RdmaConnectionStateUninitialized = 0,
     RdmaConnectionStateRingBufferRegistered,
     RdmaConnectionStateConnecting,
+    RdmaConnectionStateWaitingForGetConnRequest,
+    RdmaConnectionStateWaitingForAccept,
     RdmaConnectionStateConnected,
-    RdmaConnectionStateRingBufferInfoExchanged,
+    RdmaConnectionStateTokenExchangeInitiated,
+    RdmaConnectionStateTokenExchangeComplete,
     RdmaConnectionStateClosing,
     RdmaConnectionStateClosed
 } RDMA_CONNECTION_STATE;
@@ -93,6 +96,7 @@ typedef enum _RDMA_CONNECTION_STATE
 #define RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED     0x00000001  // Offset Buffer Used, Ring buffer size > 64 KB
 #define RDMA_CONNECTION_FLAG_SHARED_ENDPOINT        0x00000002  // Shared Endpoint
 #define RDMA_CONNECTION_FLAG_SHARED_CQ              0x00000004  // Shared Completion Queue
+#define RDMA_CONNECTION_FLAG_MEMORY_WINDOW_USED     0x00000008  // Memory Window Enabled
 
 //
 // RDMA Connection Context
@@ -101,9 +105,9 @@ typedef struct _RDMA_NDSPI_CONNECTION {
     RDMA_NDSPI_ADAPTER*         Adapter;
     HANDLE                      OverlappedConnFile;
     IND2MemoryRegion*           MemoryRegion;
-    IND2MemoryWindow*           MemoryWindow;
-    IND2ManaCompletionQueue*    RecvCompletionQueue;
-    IND2ManaCompletionQueue*    SendCompletionQueue;
+    IND2MemoryWindow*           RecvMemoryWindow;
+    IND2MemoryWindow*           OffsetMemoryWindow;
+    IND2ManaCompletionQueue*    CompletionQueue;
     IND2ManaQueuePair*          QueuePair;
     IND2Connector*              Connector;
     RDMA_SEND_RING_BUFFER*      SendRingBuffer;
@@ -133,10 +137,79 @@ CXPLAT_EVENT_COMPLETION CxPlatIoRdmaSendEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaConnectEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaGetConnectionRequestEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaAcceptEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatIoRdmaTokenExchangeInitEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatIoRdmaTokenExchangeFinalEventComplete;
 
+//
+// RDMA I/O helper functions
+//
+
+inline
+void
+UInt32ToByteBuffer(
+    _In_ UINT32 Value,
+    _Inout_bytecount_(4) uint8_t* Buffer
+    )
+{
+    Buffer[0] = (uint8_t)(Value & 0xFF); // Most significant byte
+    Buffer[1] = (uint8_t)((Value >> 8) & 0xFF);
+    Buffer[2] = (uint8_t)((Value >> 16) & 0xFF);
+    Buffer[3] = (uint8_t)((Value >> 24) & 0xFF);  // Least significant byte
+}
+
+inline
+UINT32 ByteBufferToUInt32(
+    _In_reads_bytes_(4) uint8_t* Buffer
+    )
+{
+    UINT32 Value = 0;
+
+    Value |= (Buffer[0] << 24);
+    Value |= (Buffer[1] << 16);
+    Value |= (Buffer[2] << 8);
+    Value |= Buffer[3];
+
+    return Value;
+}
+
+inline
+void
+UInt64ToByteBuffer(
+    _In_ UINT64 Value,
+    _Inout_bytecount_(8) uint8_t* Buffer
+    )
+{
+    for (int i = 0; i < 8; i++)
+    {
+        Buffer[i] = (value >> (8 * i)) & 0xFF;
+    }
+}
+
+inline
+UINT64 ByteBufferToUInt64(
+    _In_reads_bytes_(8) uint8_t* Buffer
+    )
+{
+    UINT64 Value = 0;
+
+    for (int i = 0; i < 8; i++)
+    {
+        Value |= (uint64_t)Buffer[i] << (8 * i);
+    }
+
+    return Value;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaStartAccept(
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc
+    );
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatRdmaExchangeTokensInit(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
 //
@@ -475,8 +548,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 NdspiCreateQueuePair(
     _In_ RDMA_NDSPI_ADAPTER* NdAdapter,
-    _In_ IND2ManaCompletionQueue* ReceiveCompletionQueue,
-    _In_ IND2ManaCompletionQueue* InitiatorCompletionQueue,
+    _In_ IND2ManaCompletionQueue* CompletionQueue,
     _In_ VOID* Context,
     _In_ ULONG ReceiveQueueDepth,
     _In_ ULONG InitiatorQueueDepth,
@@ -491,20 +563,19 @@ NdspiCreateQueuePair(
 
     if (!NdAdapter ||
         !NdAdapter->Adapter ||
-        !ReceiveCompletionQueue ||
-        !InitiatorCompletionQueue)
+        !CompletionQueue)
     {
         QuicTraceEvent(
             CreateQueuePairFailed,
-            "CreateQueuePair failed, Adapter is NULL");
+            "CreateQueuePair failed, invalid parameters");
         return QUIC_STATUS_INVALID_STATE;
     }
 
     Status = NdAdapter->Adapter->lpVtbl->CreateQueuePair(
         NdAdapter->Adapter,
         &IID_IND2ManaQueuePair,
-        (IUnknown *)ReceiveCompletionQueue,
-        (IUnknown *)InitiatorCompletionQueue,
+        (IUnknown *)CompletionQueue,
+        (IUnknown *)CompletionQueue,
         Context,
         ReceiveQueueDepth,
         InitiatorQueueDepth,
@@ -749,7 +820,7 @@ NdspiBindMemoryWindow(
     _In_ IND2ManaQueuePair* QueuePair,
     _In_ IND2MemoryWindow *MemoryWindow,
     _In_ void *Context,
-    _In_bytecount_(cbBuffer) const VOID* Buffer,
+    _In_bytecount_(BufferSize) const VOID* Buffer,
     _In_ SIZE_T BufferSize,
     _In_ ULONG Flags
     )
@@ -1010,16 +1081,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 NdspiPostReceive(
     _Inout_ RDMA_CONNECTION* RdmaConnection,
-    __in_ecount_opt(SgeSize) const void *Sge,
+    __in_ecount_opt(SgeSize) const ND2_SGE *Sge,
     _In_ ULONG SgeSize
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (!RdmaConnection ||
-        !RdmaConnection->QueuePair ||
-        !Sge ||
-        !SgeSize)
+        !RdmaConnection->QueuePair)
     {
         QuicTraceEvent(
             NdspiPostReceiveFailed,
@@ -1202,14 +1271,9 @@ RdmaConnectionFree(
         RdmaConnection->QueuePair->lpVtbl->Release(RdmaConnection->QueuePair);
     }
 
-    if (RdmaConnection->RecvCompletionQueue)
+    if (RdmaConnection->CompletionQueue)
     {
-        RdmaConnection->RecvCompletionQueue->lpVtbl->Release(RdmaConnection->RecvCompletionQueue);
-    }
-
-    if (RdmaConnection->SendCompletionQueue)
-    {
-        RdmaConnection->SendCompletionQueue->lpVtbl->Release(RdmaConnection->SendCompletionQueue);
+        RdmaConnection->CompletionQueue->lpVtbl->Release(RdmaConnection->CompletionQueue);
     }
 
     if (RdmaConnection->Connector)
@@ -1217,9 +1281,14 @@ RdmaConnectionFree(
         RdmaConnection->Connector->lpVtbl->Release(RdmaConnection->Connector);
     }
 
-    if (RdmaConnection->MemoryWindow)
+    if (RdmaConnection->RecvMemoryWindow)
     {
-        RdmaConnection->MemoryWindow->lpVtbl->Release(RdmaConnection->MemoryWindow);
+        RdmaConnection->RecvMemoryWindow->lpVtbl->Release(RdmaConnection->RecvMemoryWindow);
+    }
+
+    if (RdmaConnection->OffsetMemoryWindow)
+    {
+        RdmaConnection->OffsetMemoryWindow->lpVtbl->Release(RdmaConnection->OffsetMemoryWindow);
     }
 
     if (RdmaConnection->MemoryRegion)
@@ -1348,7 +1417,7 @@ SocketCreateRdmaInternal(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BytesReturned;
+    DWORD BytesReturned = 0;
     uint16_t PartitionIndex;
     RDMA_CONNECTION* RdmaConnection = NULL;
     RDMA_NDSPI_ADAPTER* NdAdapter = NULL;
@@ -1440,8 +1509,6 @@ SocketCreateRdmaInternal(
         goto ErrorExit;
     }
 
-    CxPlatPoolAlloc(&NdAdapter->ConnectionPool);
-
     RdmaConnection = (RDMA_CONNECTION*) CxPlatPoolAlloc(&NdAdapter->ConnectionPool);
     if (RdmaConnection == NULL)
     {
@@ -1496,6 +1563,11 @@ SocketCreateRdmaInternal(
         RdmaConnection->Flags |= RDMA_CONNECTION_FLAG_SHARED_CQ;
     }
 
+    if (Config->Flags & CXPLAT_RDMA_FLAG_USE_MEMORY_WINDOW)
+    {
+        RdmaConnection->Flags |= RDMA_CONNECTION_FLAG_MEMORY_WINDOW_USED;
+    }
+
     //
     // Set the connection endpoint information
     //
@@ -1520,13 +1592,13 @@ SocketCreateRdmaInternal(
     }
 
     Buffer = CXPLAT_ALLOC_NONPAGED(BufferSize, QUIC_POOL_SOCKET);
-    if (!SendRingBuffer)
+    if (!Buffer)
     {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "SendRingBuffer",
-            Config->SendRingBufferSize);
+            "Buffer",
+            BufferSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto ErrorExit;
     }
@@ -1652,59 +1724,19 @@ SocketCreateRdmaInternal(
     //
     // Create completion queue
     //
-    if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_SHARED_CQ)
+    Status = NdspiCreateCompletionQueue(
+        NdAdapter,
+        RdmaConnection->OverlappedConnFile,
+        NdAdapter->AdapterInfo.MaxCompletionQueueDepth,
+        Config->ProcessorGroup,
+        Config->Affinity,
+        &RdmaConnection->CompletionQueue);
+    if (QUIC_FAILED(Status))
     {
-        IND2ManaCompletionQueue* CompletionQueue = NULL;
-
-        Status = NdspiCreateCompletionQueue(
-            NdAdapter,
-            RdmaConnection->OverlappedConnFile,
-            NdAdapter->AdapterInfo.MaxCompletionQueueDepth,
-            Config->ProcessorGroup,
-            Config->Affinity,
-            &CompletionQueue);
-        if (QUIC_FAILED(Status))
-        {
-            QuicTraceEvent(
-                CreateSharedCompletionQueueFailed,
-                "Create Shared CompletionQueue failed, status:%d", Status);
-            goto ErrorExit;
-        }
-
-        RdmaConnection->RecvCompletionQueue = CompletionQueue;
-        RdmaConnection->SendCompletionQueue = CompletionQueue;
-    }
-    else
-    {
-        Status = NdspiCreateCompletionQueue(
-            NdAdapter,
-            RdmaConnection->OverlappedConnFile,
-            NdAdapter->AdapterInfo.MaxCompletionQueueDepth,
-            Config->ProcessorGroup,
-            Config->Affinity,
-            &RdmaConnection->RecvCompletionQueue);
-        if (QUIC_FAILED(Status))
-        {
-            QuicTraceEvent(
-                CreateRecvCompletionQueueFailed,
-                "Create Recv CompletionQueue failed, status:%d", Status);
-            goto ErrorExit;
-        }
-
-        Status = NdspiCreateCompletionQueue(
-            NdAdapter,
-            RdmaConnection->OverlappedConnFile,
-            NdAdapter->AdapterInfo.MaxCompletionQueueDepth,
-            Config->ProcessorGroup,
-            Config->Affinity,
-            &RdmaConnection->SendCompletionQueue);
-        if (QUIC_FAILED(Status))
-        {
-            QuicTraceEvent(
-                CreateSendCompletionQueueFailed,
-                "Create Send CompletionQueue failed, status:%d", Status);
-            goto ErrorExit;
-        }
+        QuicTraceEvent(
+            CreateSharedCompletionQueueFailed,
+            "Create CompletionQueue failed, status:%d", Status);
+        goto ErrorExit;
     }
 
     //
@@ -1712,8 +1744,7 @@ SocketCreateRdmaInternal(
     //
     Status = NdspiCreateQueuePair(
         NdAdapter,
-        RdmaConnection->RecvCompletionQueue,
-        RdmaConnection->SendCompletionQueue,
+        RdmaConnection->CompletionQueue,
         RdmaConnection,
         NdAdapter->AdapterInfo.MaxReceiveQueueDepth,
         NdAdapter->AdapterInfo.MaxInitiatorQueueDepth,
@@ -1744,13 +1775,33 @@ SocketCreateRdmaInternal(
     //
     // Create Memory Window for the connection
     //
-    Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->MemoryWindow);
-    if (QUIC_FAILED(Status))
+    if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_MEMORY_WINDOW_USED)
     {
-        QuicTraceEvent(
-            CreateMemoryWindowFailed,
-            "Create MemoryWindow failed, status:%d", Status);
-        goto ErrorExit;
+        Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->RecvMemoryWindow);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                CreateRecvMemoryWindowFailed,
+                "Create RecvMemoryWindow failed, status:%d", Status);
+            goto ErrorExit;
+        }
+        
+        if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED)
+        {
+            Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->OffsetMemoryWindow);
+            if (QUIC_FAILED(Status))
+            {
+                QuicTraceEvent(
+                    CreateSendMemoryWindowFailed,
+                    "Create SendMemoryWindow failed, status:%d", Status);
+                goto ErrorExit;
+            }
+        }
+    }
+    else
+    {
+        RdmaConnection->RecvMemoryWindow = NULL;
+        RdmaConnection->OffsetMemoryWindow = NULL;
     }
 
     SocketProc->RdmaHandle = RdmaConnection->OverlappedConnFile;
@@ -1762,7 +1813,8 @@ SocketCreateRdmaInternal(
     //
     if (!SetFileCompletionNotificationModes(
         SocketProc->RdmaHandle,
-        FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE)) {
+        FILE_SKIP_COMPLETION_PORT_ON_SUCCESS | FILE_SKIP_SET_EVENT_ON_HANDLE))
+    {
         DWORD LastError = GetLastError();
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1856,7 +1908,6 @@ SocketCreateRdmaInternal(
                     goto ErrorExit;
                 }
             }
-            
 
             SocketProc->IoStarted = TRUE;
         }
@@ -2240,7 +2291,7 @@ CxPlatRdmaStartAccept(
     {
         Status = SocketCreateRdmaInternal(
             Datapath,
-            CXPLAT_SOCKET_RDMA,
+            CXPLAT_SOCKET_RDMA_SERVER,
             NULL,
             NULL,
             NULL,
@@ -2260,6 +2311,7 @@ CxPlatRdmaStartAccept(
         CxPlatIoRdmaGetConnectionRequestEventComplete);
 
     RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+    RdmaConnection->State = RdmaConnectionStateWaitingForGetConnRequest;
 
     Status = RdmaListener->Listener->lpVtbl->GetConnectionRequest(
         RdmaListener->Listener,
@@ -2286,6 +2338,213 @@ CxPlatRdmaStartAccept(
             CxPlatCancelDatapathIo(ListenerSocketProc);
             goto ErrorExit;
         }
+    }
+
+ErrorExit:
+
+    return Status;
+}
+
+QUIC_STATUS
+CxPlatRdmaExchangeTokensInit(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    DWORD BytesRecv = 0;
+
+    if (!SocketProc ||
+        !SocketProc->Parent ||
+        !SocketProc->Parent->Datapath ||
+        !SocketProc->Parent->RdmaContext)
+    {
+        QuicTraceEvent(
+            ExchangeTokensFailed,
+            "ExchangeTokens failed, invalid parameters");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
+    CXPLAT_SOCKET *Socket = SocketProc->Parent;
+
+    CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER);
+    CXPLAT_DBG_ASSERT(RdmaConnection->State == RdmaConnectionStateConnected);
+
+    //
+    // Bind Memory Window to Queue Pair
+    //
+    Status = NdspiBindMemoryWindow(
+        RdmaConnection->MemoryRegion,
+        RdmaConnection->QueuePair,
+        RdmaConnection->RecvMemoryWindow,
+        (void *)RdmaConnection,
+        RdmaConnection->RecvRingBuffer->Buffer,
+        RdmaConnection->RecvRingBuffer->Size,
+        ND_OP_FLAG_ALLOW_WRITE | ND_OP_FLAG_ALLOW_READ);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            BindRecvMemoryWindowFailed,
+            "BindRecvMemoryWindow failed, status:%d", Status);
+        goto ErrorExit; 
+    }
+
+    if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED)
+    {
+        Status = NdspiBindMemoryWindow(
+            RdmaConnection->MemoryRegion,
+            RdmaConnection->QueuePair,
+            RdmaConnection->OffsetMemoryWindow,
+            (void *)RdmaConnection,
+            RdmaConnection->RecvRingBuffer->OffsetBuffer,
+            RdmaConnection->RecvRingBuffer->OffsetBufferSize,
+            ND_OP_FLAG_ALLOW_READ);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                BindRecvMemoryWindowFailed,
+                "BindRecvMemoryWindow failed, status:%d", Status);
+            goto ErrorExit;
+        }
+    }
+
+    CxPlatStartDatapathIo(
+        SocketProc,
+        &SocketProc->IoSqe,
+        CxPlatIoRdmaTokenExchangeInitEventComplete);
+
+    if (Socket->Type == CXPLAT_SOCKET_RDMA_SERVER)
+    {
+        //
+        // For server, first post a receive to get the ring buffer details from  client.
+        // The server would then send the remote tokens for tis ring buffers
+        //
+        Status = RdmaConnection->CompletionQueue->lpVtbl->Notify(
+            RdmaConnection->CompletionQueue,
+            ND_CQ_NOTIFY_ANY,
+            &SocketProc->IoSqe.Overlapped);
+        if (QUIC_FAILED(Status))   
+        {
+            if (Status != ND_PENDING)
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    Status,
+                    "IND2CompletionQueue::Notify");
+                goto ErrorExit;
+            }
+        }
+        else
+        {
+            //
+            // Manually post IO completion if accept completed synchronously.
+            //
+            Status = CxPlatSocketEnqueueSqe(SocketProc, &SocketProc->IoSqe, BytesRecv);
+            if (QUIC_FAILED(Status)) {
+                CxPlatCancelDatapathIo(SocketProc);
+                goto ErrorExit;
+            }
+        }        
+    }
+    else
+    {
+        //
+        // For client, first send the remote token for the Recv ring buffer to server.
+        // The client would then post a receive to get the remote token rom the server
+        //
+        ND2_SGE *sge = CxPlatPoolAlloc(&RdmaConnection->SgePool);
+        if (sge == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "ND2_SGE",
+                sizeof(ND2_SGE));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto ErrorExit;
+        }
+
+        memset(RdmaConnection->SendRingBuffer->Buffer, 0, RdmaConnection->SendRingBuffer->Size);
+        RdmaConnection->SendRingBuffer->LocalToken = RdmaConnection->MemoryRegion->lpVtbl->GetLocalToken(RdmaConnection->MemoryRegion);
+
+        UINT64 RecvRingBufferAdress = (uint64_t)(uintptr_t)RdmaConnection->RecvRingBuffer->Buffer;
+        UINT32 RecvRingBufferToken = RdmaConnection->RecvMemoryWindow->lpVtbl->GetRemoteToken(RdmaConnection->RecvMemoryWindow);
+
+        sge->Buffer = RdmaConnection->SendRingBuffer->Buffer;
+        sge->BufferLength = 0;
+
+        UInt64ToByteBuffer(RecvRingBufferAdress, &RdmaConnection->SendRingBuffer->Buffer[0]);
+        sge->BufferLength += sizeof(UINT64);
+
+        UInt32ToByteBuffer(RecvRingBufferToken, &RdmaConnection->SendRingBuffer->Buffer[sge->BufferLength]);
+        sge->BufferLength += sizeof(UINT32);
+
+        if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED)
+        {
+            UINT64 OffsetBufferAdress = (uint64_t)(uintptr_t)RdmaConnection->RecvRingBuffer->OffsetBuffer;
+            UINT32 OffsetBufferToken = RdmaConnection->OffsetMemoryWindow->lpVtbl->GetRemoteToken(RdmaConnection->OffsetMemoryWindow);
+
+            UInt64ToByteBuffer(OffsetBufferAdress, &RdmaConnection->SendRingBuffer->Buffer[sge->BufferLength]);
+            sge->BufferLength += sizeof(UINT64);
+
+            UInt32ToByteBuffer(OffsetBufferToken, &RdmaConnection->SendRingBuffer->Buffer[sge->BufferLength]);
+            sge->BufferLength += sizeof(UINT32);
+        }
+
+        //
+        // Send the token information to the server
+        //
+        Status = RdmaConnection->QueuePair->lpVtbl->Send(
+            RdmaConnection->QueuePair,
+            RdmaConnection,
+            sge,
+            1,
+            0);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                Status,
+                "IND2QueuePair::Send for sending ring buffer tokens");
+            goto ErrorExit;
+        }
+
+        //
+        // Call Notify on the completion queue to get send complete
+        // notification
+        //
+        Status = RdmaConnection->CompletionQueue->lpVtbl->Notify(
+            RdmaConnection->CompletionQueue,
+            ND_CQ_NOTIFY_ANY,
+            &SocketProc->IoSqe.Overlapped);
+        if (QUIC_FAILED(Status))
+        {
+            if (Status != ND_PENDING)
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    Socket,
+                    Status,
+                    "IND2CompletionQueue::Notify");
+                goto ErrorExit;
+            }
+        }
+        else
+        {
+            //
+            // Manually post IO completion if accept completed synchronously.
+            //
+            Status = CxPlatSocketEnqueueSqe(SocketProc, &SocketProc->IoSqe, BytesRecv);
+            if (QUIC_FAILED(Status)) {
+                CxPlatCancelDatapathIo(SocketProc);
+                goto ErrorExit;
+            }
+        }        
     }
 
 ErrorExit:
@@ -2329,7 +2588,7 @@ CxPlatDataPathRdmaProcessConnectCompletion(
         //
         // Try to start a new receive.
         //
-        CxPlatDataPathStartReceiveAsync(SocketProc);
+        //CxPlatDataPathStartReceiveAsync(SocketProc);
 
     } else {
         QuicTraceEvent(
@@ -2349,7 +2608,7 @@ CxPlatDataPathRdmaProcessConnectCompletion(
 }
 
 void
-CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
+CxPlatDataPathRdmaProcessGetConnectionRequestCompletion(
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
@@ -2379,6 +2638,43 @@ CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
         
         RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+        RdmaConnection->State = RdmaConnectionStateWaitingForAccept;
+
+        //
+        // Before calling accept, post a receive to get the token information
+        // from the client. In response, the server will send the token for its
+        // ring buffer.
+        //
+        ND2_SGE *sge = CxPlatPoolAlloc(&RdmaConnection->SgePool);
+        if (sge == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "ND2_SGE",
+                sizeof(ND2_SGE));
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto ErrorExit;
+        }
+
+        sge->Buffer = RdmaConnection->RecvRingBuffer->Buffer;
+        sge->BufferLength = (ULONG) RdmaConnection->RecvRingBuffer->Size;
+
+        Status = RdmaConnection->QueuePair->lpVtbl->Receive(
+            RdmaConnection->QueuePair,
+            RdmaConnection,
+            sge,
+            1);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                ListenerSocketProc->Parent,
+                Status,
+                "IND2QueuePair::Receive for fetching ring buffer tokens");
+
+            goto ErrorExit;
+        }
 
         //
         // Perform an accept operation on the connection
@@ -2387,7 +2683,7 @@ CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
             ListenerSocketProc,
             &ListenerSocketProc->IoSqe,
             CxPlatIoRdmaAcceptEventComplete);
-
+            
         Status = RdmaConnection->Connector->lpVtbl->Accept(
             RdmaConnection->Connector,
             (IUnknown *)RdmaConnection->QueuePair,
@@ -2396,7 +2692,6 @@ CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
             NULL,
             0,
             &ListenerSocketProc->IoSqe.Overlapped);
-
         if (QUIC_FAILED(Status))
         {
             if (Status != ND_PENDING)
@@ -2421,15 +2716,44 @@ CxPlatDataPathSocketProcessGetConnectionRequestCompletion(
             }
         }
     }
+
+ErrorExit:
+    
+        if (QUIC_FAILED(Status))
+        {
+            if (RdmaConnection)
+            {
+                RdmaConnectionFree(RdmaConnection);
+            }
+    
+            if (AcceptSocketProc)
+            {
+                SocketDelete(AcceptSocketProc->Parent);
+            }
+        }
+    
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                ListenerSocketProc->Parent,
+                Status,
+                "CxPlatDataPathRdmaProcessGetConnectionRequestCompletion");
+        }
+    
+        CxPlatRundownRelease(&ListenerSocketProc->RundownRef);
 }
 
 void
-CxPlatDataPathSocketProcessAcceptCompletion(
+CxPlatDataPathRdmaProcessAcceptCompletion(
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc,
     _In_ ULONG IoResult
     )
 {
     CXPLAT_SOCKET_PROC* AcceptSocketProc = NULL;
+    RDMA_CONNECTION* RdmaConnection = NULL;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (IoResult == WSA_OPERATION_ABORTED) {
         //
@@ -2439,7 +2763,8 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         return;
     }
 
-    if (!CxPlatRundownAcquire(&ListenerSocketProc->RundownRef)) {
+    if (!CxPlatRundownAcquire(&ListenerSocketProc->RundownRef))
+    {
         return;
     }
 
@@ -2450,10 +2775,42 @@ CxPlatDataPathSocketProcessAcceptCompletion(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
         uint16_t PartitionIndex = 0;
 
-        ListenerSocketProc->AcceptSocket->LocalAddress =
-            *(const QUIC_ADDR*)ListenerSocketProc->AcceptAddrSpace;
-        ListenerSocketProc->AcceptSocket->RemoteAddress =
-            *(const QUIC_ADDR*)(ListenerSocketProc->AcceptAddrSpace + (sizeof(SOCKADDR_INET) + 16));
+        RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+        RdmaConnection->State = RdmaConnectionStateConnected;
+
+        ULONG AssignedLocalAddressLength = sizeof(ListenerSocketProc->AcceptSocket->LocalAddress);
+        Status = RdmaConnection->Connector->lpVtbl->GetLocalAddress(
+            RdmaConnection->Connector,
+            (PSOCKADDR)&ListenerSocketProc->AcceptSocket->LocalAddress,
+            &AssignedLocalAddressLength);
+        if (QUIC_FAILED(Status))
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    ListenerSocketProc->Parent,
+                    Status,
+
+                    " CxPlatDataPathRdmaProcessAcceptCompletion IND2Connector::GetLocalAddress");
+                goto ErrorExit;
+            }
+
+        ULONG AssignedRemoteAddressLength = sizeof(ListenerSocketProc->AcceptSocket->RemoteAddress);
+        Status = RdmaConnection->Connector->lpVtbl->GetPeerAddress(
+            RdmaConnection->Connector,
+            (PSOCKADDR)&ListenerSocketProc->AcceptSocket->RemoteAddress,
+            &AssignedRemoteAddressLength);
+        if (QUIC_FAILED(Status))
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                ListenerSocketProc->Parent,
+                Status,
+                " CxPlatDataPathRdmaProcessAcceptCompletion IND2Connector::GetRemoteAddress");
+            goto ErrorExit;
+        }
+
         CxPlatConvertFromMappedV6(
             &ListenerSocketProc->AcceptSocket->LocalAddress,
             &ListenerSocketProc->AcceptSocket->LocalAddress);
@@ -2492,26 +2849,41 @@ CxPlatDataPathSocketProcessAcceptCompletion(
             goto ErrorExit;
         }
 
-        QUIC_STATUS Status = Datapath->RdmaHandlers.Accept(
-            ListenerSocketProc->Parent,
-            ListenerSocketProc->Parent->ClientContext,
-            ListenerSocketProc->AcceptSocket,
-            &ListenerSocketProc->AcceptSocket->ClientContext);
-        if (QUIC_FAILED(Status))
-        {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                ListenerSocketProc->Parent,
-                Status,
-                "Accept callback");
-            goto ErrorExit;
-        }
-
         ListenerSocketProc->AcceptSocket = NULL;
-
         AcceptSocketProc->IoStarted = TRUE;
-        CxPlatDataPathStartReceiveAsync(AcceptSocketProc);
+
+        if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_MEMORY_WINDOW_USED)
+        {
+            Status = CxPlatRdmaExchangeTokensInit(AcceptSocketProc);
+            if (QUIC_FAILED(Status))
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    ListenerSocketProc->Parent,
+                    Status,
+                    "CxPlatRdmaExchangeTokensInit");
+                goto ErrorExit;
+            }
+        }
+        else
+        {
+            Status = Datapath->RdmaHandlers.Accept(
+                ListenerSocketProc->Parent,
+                ListenerSocketProc->Parent->ClientContext,
+                ListenerSocketProc->AcceptSocket,
+                &ListenerSocketProc->AcceptSocket->ClientContext);
+            if (QUIC_FAILED(Status))
+            {
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    ListenerSocketProc->Parent,
+                    Status,
+                    "Accept callback");
+                goto ErrorExit;
+            }
+        }
     }
     else
     {
@@ -2543,6 +2915,24 @@ ErrorExit:
 
 }
 
+void
+CxPlatDataPathRdmaProcessExchangeInitCompletion(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ ULONG IoResult
+)
+{
+
+}
+
+void
+CxPlatDataPathRdmaProcessExchangeFinalCompletion(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ ULONG IoResult
+)
+{
+
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRdmaConnectEventComplete(
@@ -2567,7 +2957,7 @@ CxPlatIoRdmaGetConnectionRequestEventComplete(
     CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
     ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
-    CxPlatDataPathSocketProcessGetConnectionRequestCompletion(SocketProc, IoResult);
+    CxPlatDataPathRdmaProcessGetConnectionRequestCompletion(SocketProc, IoResult);
     CxPlatSocketContextRelease(SocketProc);
 }
 
@@ -2581,6 +2971,34 @@ CxPlatIoRdmaAcceptEventComplete(
     CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
     CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
     ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
-    CxPlatDataPathSocketProcessAcceptCompletion(SocketProc, IoResult);
+    CxPlatDataPathRdmaProcessAcceptCompletion(SocketProc, IoResult);
     CxPlatSocketContextRelease(SocketProc);
 }   
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoRdmaTokenExchangeInitEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CxPlatDataPathRdmaProcessExchangeInitCompletion(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
+} 
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoRdmaTokenExchangeFinalEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CxPlatDataPathRdmaProcessExchangeFinalCompletion(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
+}

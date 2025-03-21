@@ -908,9 +908,10 @@ CxPlatUpdateRoute(
 //
 // The following APIs are specific for RDMA Implementation
 //
-#define CXPLAT_RDMA_FLAG_SHARE_ENDPOINT 0x00000001   // Forces sharing of the address and port
-#define CXPLAT_RDMA_FLAG_SHARE_MR       0x00000002   // Forces sharing of the Memory Region
-#define CXPLAT_RDMA_FLAG_SHARE_CQ       0x00000004   // Indicates sharing of the Completion Queue
+#define CXPLAT_RDMA_FLAG_SHARE_ENDPOINT     0x00000001   // Forces sharing of the address and port
+#define CXPLAT_RDMA_FLAG_SHARE_MR           0x00000002   // Forces sharing of the Memory Region
+#define CXPLAT_RDMA_FLAG_SHARE_CQ           0x00000004   // Indicates sharing of the Completion Queue
+#define CXPLAT_RDMA_FLAG_USE_MEMORY_WINDOW  0x00000008   // Indicates sharing of the Completion Queue
 
 typedef struct CXPLAT_RDMA_CONFIG {
     uint32_t Flags;                     // CXPLAT_RDMA_FLAG_*
@@ -921,7 +922,7 @@ typedef struct CXPLAT_RDMA_CONFIG {
     // Used to synchronize clean up.
     //
     CXPLAT_REF_COUNT RefCount;
-
+    
     //
     // Memory related configuration
     //
@@ -933,6 +934,12 @@ typedef struct CXPLAT_RDMA_CONFIG {
     //
     unsigned short ProcessorGroup;      // Processor group number for the requested affinity
     uint64_t Affinity;                 // A bitmap that specifies the processor affinity on which notifications should be processed
+
+    //
+    // I/O related configuration
+    //
+    unsigned long PostReceiveCount;         // Number of receive requests to post for the queue pair
+
 
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional

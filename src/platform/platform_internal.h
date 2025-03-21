@@ -800,11 +800,6 @@ CxPlatSocketContextRelease(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
-void
-CxPlatDataPathStartReceiveAsync(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
-    );
-
 #endif // _WIN32
 
 //

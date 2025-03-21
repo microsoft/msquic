@@ -129,6 +129,11 @@ RdmaRecvRingBufferInitialize(
 
     memset((*RecvRingBuffer)->Buffer, 0, Capacity);
 
+    if (OffsetBuffer)
+    {
+        memset((*RecvRingBuffer)->OffsetBuffer, 0, OffsetBufferSize);
+    }
+
 Exit:
     return Status;       
 }
