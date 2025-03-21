@@ -163,8 +163,7 @@ CxPlatSocketCreateUdp(
             if ((*NewSocket)->UseTcp) {
                 CxPlatSocketDelete(*NewSocket);
             }
-            BOOLEAN PortPoolCollision = Status == HRESULT_FROM_WIN32(WSAEACCES) || Status == HRESULT_FROM_WIN32(WSAEADDRINUSE);
-            if (QuicAddrIsWildCard(Config->LocalAddress) && TryCount < 100 && PortPoolCollision) {
+            if (QuicAddrIsWildCard(Config->LocalAddress) && TryCount < 100) {
                 TryCount += 1;
                 goto Retry;
             } else {
