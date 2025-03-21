@@ -11190,6 +11190,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SockStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:",
+      "UniqueId": "SockStatus",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
@@ -16924,6 +16940,11 @@
         "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",
         "TraceID": "SockCreateFail",
         "EncodingString": "[sock] Failed to create socket, status:%d"
+      },
+      {
+        "UniquenessHash": "d0c18368-6f75-5e69-9d2f-76edf03adf47",
+        "TraceID": "SockStatus",
+        "EncodingString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

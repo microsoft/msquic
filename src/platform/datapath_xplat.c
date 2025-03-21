@@ -148,6 +148,10 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
+    QuicTraceLogVerbose(
+        SockStatus,
+        "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:", (*NewSocket)->IsServer, Config->UseQTIP);
+
     (*NewSocket)->RawSocketAvailable = 0;
     if (Datapath->RawDataPath) {
         Status =
@@ -160,14 +164,13 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
-            BOOLEAN UseTcp = (*NewSocket)->UseTcp;
             BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-            if (IsWildcardAddr && TryCount < 1000 && UseTcp) {
+            if (IsWildcardAddr && TryCount < 1000 && Config->UseQTIP) {
                 CxPlatSocketDelete(*NewSocket);
                 TryCount += 1;
                 goto Retry;
             } else {
-                if (!UseTcp) {
+                if (!Config->UseQTIP) {
                     // It's fine to not be able to create a raw socket if we're not using QTIP.
                     Status = QUIC_STATUS_SUCCESS;
                 } else {
