@@ -11206,6 +11206,34 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SockStatus2": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
+      "UniqueId": "SockStatus2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SockStatus3": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d",
+      "UniqueId": "SockStatus3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
@@ -16945,6 +16973,16 @@
         "UniquenessHash": "d0c18368-6f75-5e69-9d2f-76edf03adf47",
         "TraceID": "SockStatus",
         "EncodingString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:"
+      },
+      {
+        "UniquenessHash": "de94c2aa-2080-519a-1813-9d205ab343f9",
+        "TraceID": "SockStatus2",
+        "EncodingString": "[sock] Allocated socket. IgnoreRawSocketFailure: %d"
+      },
+      {
+        "UniquenessHash": "9ea32e07-da06-1c05-2ed6-234e7b353ec6",
+        "TraceID": "SockStatus3",
+        "EncodingString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
