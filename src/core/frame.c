@@ -1064,7 +1064,8 @@ QuicRetireConnectionIDFrameEncode(
     uint16_t RequiredLength =
         (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID ?
             QuicVarIntSize(QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) : sizeof(uint8_t)) + // Type
-        QuicVarIntSize(Frame->PathID) +
+        (FrameType == QUIC_FRAME_PATH_RETIRE_CONNECTION_ID ?
+            QuicVarIntSize(Frame->PathID) : 0) +
         QuicVarIntSize(Frame->Sequence);
 
     if (BufferLength < *Offset + RequiredLength) {
