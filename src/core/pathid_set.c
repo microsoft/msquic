@@ -672,9 +672,9 @@ QuicPathIDSetGetPathIDForLocal(
     //
     // Connection is closed. No more pathids are open.
     //
-    if (QuicConnIsClosed(Connection)) {
-        return NULL;
-    }
+    // if (QuicConnIsClosed(Connection)) {
+    //     return NULL;
+    // }
 
     //
     // Validate the stream ID isn't above the allowed max.
