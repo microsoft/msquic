@@ -170,7 +170,7 @@ CxPlatSocketCreateUdp(
                 TryCount += 1;
                 goto Retry;
             } else {
-                if (Config->IgnoreRawSocketFailure) {
+                if (!Config->UseQTIP) {
                     Status = QUIC_STATUS_SUCCESS;
                 } else {
                     CxPlatSocketDelete(*NewSocket);
