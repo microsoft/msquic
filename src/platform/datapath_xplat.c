@@ -156,7 +156,7 @@ CxPlatSocketCreateUdp(
     QuicTraceLogVerbose(
         SockStatus2,
         "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
-        (*NewSocket)->IsServer);
+        Config->IgnoreRawSocketFailure);
 
     (*NewSocket)->RawSocketAvailable = 0;
     if (Datapath->RawDataPath) {

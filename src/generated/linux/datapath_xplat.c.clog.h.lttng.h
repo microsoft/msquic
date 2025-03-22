@@ -83,8 +83,8 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, SockStatus3,
 // QuicTraceLogVerbose(
         SockStatus2,
         "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
-        (*NewSocket)->IsServer);
-// arg2 = arg2 = (*NewSocket)->IsServer = arg2
+        Config->IgnoreRawSocketFailure);
+// arg2 = arg2 = Config->IgnoreRawSocketFailure = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, SockStatus2,
     TP_ARGS(

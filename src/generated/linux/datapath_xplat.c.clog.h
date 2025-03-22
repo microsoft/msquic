@@ -97,8 +97,8 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, SockStatus3 , arg2, arg3);\
 // QuicTraceLogVerbose(
         SockStatus2,
         "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
-        (*NewSocket)->IsServer);
-// arg2 = arg2 = (*NewSocket)->IsServer = arg2
+        Config->IgnoreRawSocketFailure);
+// arg2 = arg2 = Config->IgnoreRawSocketFailure = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_SockStatus2
 #define _clog_3_ARGS_TRACE_SockStatus2(uniqueId, encoded_arg_string, arg2)\
