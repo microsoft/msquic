@@ -202,14 +202,13 @@ typedef struct CXPLAT_ROUTE {
     uint8_t NextHopLinkLayerAddress[6];
 
     uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
-
+    uint8_t UseQTIP : 1;   // TRUE if the route is using QTIP
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
     //
 
     CXPLAT_ROUTE_STATE State;
     CXPLAT_RAW_TCP_STATE TcpState;
-
 } CXPLAT_ROUTE;
 
 //
@@ -578,6 +577,9 @@ typedef struct CXPLAT_UDP_CONFIG {
     uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
     uint8_t CibirId[6];                 // CIBIR ID data
+
+    uint8_t UseQTIP;
+    uint8_t IgnoreRawSocketFailure;
 } CXPLAT_UDP_CONFIG;
 
 //
@@ -650,7 +652,8 @@ CxPlatSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     );
 
 //

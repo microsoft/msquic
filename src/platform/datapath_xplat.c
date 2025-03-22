@@ -132,18 +132,25 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t TryCount = 0;
 
+    Retry:
     Status =
         SocketCreateUdp(
             Datapath,
             Config,
-            NewSocket);
+            NewSocket
+        );
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             SockCreateFail,
             "[sock] Failed to create socket, status:%d", Status);
         goto Error;
     }
+
+    QuicTraceLogVerbose(
+        SockStatus,
+        "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:", (*NewSocket)->IsServer, Config->UseQTIP);
 
     (*NewSocket)->RawSocketAvailable = 0;
     if (Datapath->RawDataPath) {
@@ -157,11 +164,19 @@ CxPlatSocketCreateUdp(
             QuicTraceLogVerbose(
                 RawSockCreateFail,
                 "[sock] Failed to create raw socket, status:%d", Status);
-            if (Datapath->UseTcp) {
+            BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
+            if (IsWildcardAddr && TryCount < 1000 && !Config->IgnoreRawSocketFailure) {
                 CxPlatSocketDelete(*NewSocket);
+                TryCount += 1;
+                goto Retry;
+            } else {
+                if (!Config->UseQTIP) {
+                    Status = QUIC_STATUS_SUCCESS;
+                } else {
+                    CxPlatSocketDelete(*NewSocket);
+                }
                 goto Error;
             }
-            Status = QUIC_STATUS_SUCCESS;
         }
     }
 
@@ -218,13 +233,14 @@ CxPlatSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ BOOLEAN UseQTIP
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(CxPlatSocketToRaw(Socket));
+        return RawSocketGetLocalMtu(UseQTIP);
     }
     return Socket->Mtu;
 }
@@ -286,10 +302,10 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
-        SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
+        SendData = RawSendDataAlloc(Config);
     } else {
         SendData = SendDataAlloc(Socket, Config);
     }
@@ -412,7 +428,28 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->UseTcp || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (!Socket->IsServer) {
+        //
+        // For clients,
+        // The flag Socket->UseTcp determines what resources to instantiate as clients cannot
+        // allocate a TCP and UDP socket from the OS at the same time whereas servers can.
+        // So we need to set Route->UseQTIP here for clients.
+        //
+        // For servers,
+        // We always initialize everything. The flag Route->UseQTIP will be set on the receive side.
+        //
+        // For clients, it must be true that Route->UseQTIP == Socket->UseTcp as only 1 set of resources is
+        // allocated.
+        //
+        // For servers, it could be the case that Route->UseQTIP != Socket->UseTcp as servers do not rely
+        // on Socket->UseTcp to initialize resources. For testing purposes though, if we always set
+        // Socket->UseTcp to true in the QTIP scenarios, then both client and servers must have
+        // Route->UseQTIP == Socket->UseTcp.
+        //
+        Route->UseQTIP = Socket->UseTcp;
+    }
+
+    if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);

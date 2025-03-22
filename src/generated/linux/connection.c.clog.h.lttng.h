@@ -485,6 +485,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicateQTIPSettingsBubbledDown
+// [conn][%p] Bubbling down UseQTIP setting: %hhu
+// QuicTraceLogConnInfo(
+        IndicateQTIPSettingsBubbledDown,
+        Connection,
+        "Bubbling down UseQTIP setting: %hhu",
+        UdpConfig.UseQTIP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = UdpConfig.UseQTIP = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateQTIPSettingsBubbledDown,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for Restart
 // [conn][%p] Restart (CompleteReset=%hhu)
 // QuicTraceLogConnInfo(

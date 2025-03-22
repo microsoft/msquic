@@ -119,6 +119,7 @@ PerfServer::Init(
     //
     QuicAddr TeardownLocalAddress {QUIC_ADDRESS_FAMILY_INET, (uint16_t)9999};
     CXPLAT_UDP_CONFIG UdpConfig = {&TeardownLocalAddress.SockAddr, 0};
+    UdpConfig.IgnoreRawSocketFailure = true;
     UdpConfig.CallbackContext = this;
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = QuicProcessGetCurrentProcess();

@@ -205,6 +205,7 @@ typedef struct CXPLAT_SOCKET {
     };
 
     uint8_t UseTcp : 1; // always false?
+    uint8_t IsServer : 1;
     uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
@@ -633,7 +634,9 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;                  // Quic over TCP
+    uint8_t UseTcp : 1;  // This flag represents the expression (THIS SOCKET IS PART OF A CLIENT CONNECTION) && (THE CLIENT CONNECTION SPECIFIED TO USE QTIP)
+
+    uint8_t IsServer : 1;
 
     uint8_t RawSocketAvailable : 1;
 
@@ -918,6 +921,8 @@ typedef struct CXPLAT_SOCKET {
 #endif
 
     uint8_t UseTcp : 1;                  // Quic over TCP
+
+    uint8_t IsServer : 1;
 
     uint8_t RawSocketAvailable : 1;
 
@@ -1231,7 +1236,7 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ BOOLEAN UseQTIP
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1244,7 +1249,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
