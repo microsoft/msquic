@@ -4385,6 +4385,7 @@ QuicTestStreamMultiReceive(
     {
         uint32_t BufferSize = 128;
         UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
         QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
         int NumSend = MultiRecvNumSend;
 
@@ -4423,6 +4424,7 @@ QuicTestStreamMultiReceive(
     {
         uint32_t BufferSize = 2048;
         UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
         QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
 
         int NumSend = MultiRecvNumSend;
@@ -4470,6 +4472,7 @@ QuicTestStreamMultiReceive(
     {
         uint32_t BufferSize = 10'000'000; // 10MB
         UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
         QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
         int NumSend = 1;
         MultiReceiveTestContext Context;
