@@ -931,10 +931,6 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_CONN_QTIP                            0x0500001A  // uint8_t (BOOLEAN)
-#endif
-
 //
 // Parameters for TLS.
 //
