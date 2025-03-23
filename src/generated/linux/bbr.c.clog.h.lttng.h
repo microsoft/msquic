@@ -50,7 +50,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
 // QuicTraceEvent(
         ConnBbr,
         "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
-        Connection,
+        PathID->Connection,
         Bbr->BbrState,
         Bbr->RecoveryState,
         BbrCongestionControlGetCongestionWindow(Cc),
@@ -59,7 +59,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
         Bbr->MinRtt,
         BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
         BbrCongestionControlIsAppLimited(Cc));
-// arg2 = arg2 = Connection = arg2
+// arg2 = arg2 = PathID->Connection = arg2
 // arg3 = arg3 = Bbr->BbrState = arg3
 // arg4 = arg4 = Bbr->RecoveryState = arg4
 // arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5

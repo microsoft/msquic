@@ -7,10 +7,10 @@
 // QuicTraceEvent(
         ConnOutFlowStreamStats,
         "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
-        Connection,
+        PathID->Connection,
         FcAvailable,
         SendWindow);
-// arg2 = arg2 = Connection = arg2
+// arg2 = arg2 = PathID->Connection = arg2
 // arg3 = arg3 = FcAvailable = arg3
 // arg4 = arg4 = SendWindow = arg4
 ----------------------------------------------------------*/
@@ -63,8 +63,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
         Connection->Stats.Send.PersistentCongestionCount,
         Connection->Stats.Send.TotalBytes,
         Connection->Stats.Recv.TotalBytes,
-        QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl),
-        Connection->CongestionControl.Name,
+        QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl),
+        Path->PathID->CongestionControl.Name,
         Connection->Stats.Send.EcnCongestionCount);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Path->SmoothedRtt = arg3
@@ -72,8 +72,8 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnInFlowStats,
 // arg5 = arg5 = Connection->Stats.Send.PersistentCongestionCount = arg5
 // arg6 = arg6 = Connection->Stats.Send.TotalBytes = arg6
 // arg7 = arg7 = Connection->Stats.Recv.TotalBytes = arg7
-// arg8 = arg8 = QuicCongestionControlGetCongestionWindow(&Connection->CongestionControl) = arg8
-// arg9 = arg9 = Connection->CongestionControl.Name = arg9
+// arg8 = arg8 = QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl) = arg8
+// arg9 = arg9 = Path->PathID->CongestionControl.Name = arg9
 // arg10 = arg10 = Connection->Stats.Send.EcnCongestionCount = arg10
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnStatsV3,
@@ -171,34 +171,5 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnOutFlowBlocked,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!
-// QuicTraceEvent(
-                    ConnSourceCidRemoved,
-                    "[conn][%p] (SeqNum=%llu) Removed Source CID: %!CID!",
-                    Connection,
-                    SourceCid->CID.SequenceNumber,
-                    CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_H, ConnSourceCidRemoved,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned long long, arg3,
-        unsigned int, arg4_len,
-        const void *, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(uint64_t, arg3, arg3)
-        ctf_integer(unsigned int, arg4_len, arg4_len)
-        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
     )
 )

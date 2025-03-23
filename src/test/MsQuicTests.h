@@ -371,6 +371,40 @@ QuicTestVNTPOtherVersionZero(
 //
 
 void
+QuicTestProbePath(
+    _In_ int Family,
+    _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN DeferConnIDGen,
+    _In_ uint32_t DropPacketCount
+    );
+
+typedef enum QUIC_MIGRATION_TYPE {
+    MigrateWithProbe,
+    MigrateWithoutProbe,
+    DeleteAndMigrate,
+} QUIC_MIGRATION_TYPE;
+
+void
+QuicTestMigration(
+    _In_ int Family,
+    _In_ BOOLEAN ShareBinding,
+    _In_ QUIC_MIGRATION_TYPE Type
+    );
+
+void
+QuicTestMultipleLocalAddresses(
+    _In_ int Family,
+    _In_ BOOLEAN ShareBinding,
+    _In_ BOOLEAN DeferConnIDGen,
+    _In_ uint32_t DropPacketCount
+    );
+
+void
+QuicTestMultipath(
+    _In_ int Family
+    );
+
+void
 QuicTestNatPortRebind(
     _In_ int Family,
     _In_ uint16_t KeepAlivePaddingSize
@@ -1375,4 +1409,32 @@ typedef struct {
     QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
     //int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 131
+typedef struct {
+    int Family;
+    BOOLEAN ShareBinding;
+    BOOLEAN DeferConnIDGen;
+    uint32_t DropPacketCount;
+} QUIC_RUN_PROBE_PATH_PARAMS;
+
+#define IOCTL_QUIC_RUN_PROBE_PATH \
+    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_PROBE_PATH_PARAMS
+
+typedef struct {
+    int Family;
+    BOOLEAN ShareBinding;
+    QUIC_MIGRATION_TYPE Type;
+} QUIC_RUN_MIGRATION_PARAMS;
+
+#define IOCTL_QUIC_RUN_MIGRATION \
+    QUIC_CTL_CODE(133, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_MIGRATION
+
+typedef struct {
+    int Family;
+} QUIC_RUN_MULTIPATH_PARAMS;
+
+#define IOCTL_QUIC_RUN_MULTIPATH \
+    QUIC_CTL_CODE(134, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_MULTIPATH
+#define QUIC_MAX_IOCTL_FUNC_CODE 134
