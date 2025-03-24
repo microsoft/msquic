@@ -126,6 +126,9 @@ void PrintUsage()
         "Usage:\n"
         "\n"
         "  quicsample.exe -client -unsecure -target:{IPAddress|Hostname} [-ticket:<ticket>]\n"
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        "  quicsample.exe -multiclient -count:<N> -unsecure -target:{IPAddress|Hostname}\n"
+#endif
         "  quicsample.exe -server -cert_hash:<...>\n"
         "  quicsample.exe -server -cert_file:<...> -key_file:<...> [-password:<...>]\n"
         );
@@ -1007,6 +1010,8 @@ Error:
 //
 // Runs the multi client side of the protocol.
 //
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
 void
 RunMultiClient(
     _In_ int argc,
@@ -1087,6 +1092,8 @@ Error:
     }
 }
 
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 int
 QUIC_MAIN_EXPORT
 main(
@@ -1117,7 +1124,13 @@ main(
     } else if (GetFlag(argc, argv, "client")) {
         RunClient(argc, argv);
     } else if (GetFlag(argc, argv, "multiclient")) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         RunMultiClient(argc, argv);
+#else
+        printf("Error: Multiclient requires the sample to be built with QUIC_API_ENABLE_PREVIEW_FEATURES.\n\n");
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        PrintUsage();
+#endif
     } else if (GetFlag(argc, argv, "server")) {
         RunServer(argc, argv);
     } else {
