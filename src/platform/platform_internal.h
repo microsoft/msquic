@@ -634,7 +634,13 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;  // This flag represents the expression (THIS SOCKET IS PART OF A CLIENT CONNECTION) && (THE CLIENT CONNECTION SPECIFIED TO USE QTIP)
+    //
+    // This flag determines whether or not we instantiate an auxiliary TCP
+    // socket in XDP mode. For clients, we either only create an auxiliary
+    // TCP socket, or per-proc UDP sockets. For servers, we always create
+    // per-proc UDP sockets, and optionally create an auxiliary TCP socket.
+    //
+    uint8_t UseTcp : 1;
 
     uint8_t IsServer : 1;
 
