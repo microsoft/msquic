@@ -736,7 +736,7 @@ QuicConnQueuePriorityOper(
 #endif
     if (QuicOperationEnqueuePriority(
             &Connection->OperQ,
-            Connection->Worker->Partition,
+            Connection->Partition,
             Oper)) {
         //
         // The connection needs to be queued on the worker because this was the
@@ -755,7 +755,7 @@ QuicConnQueueHighestPriorityOper(
 {
     if (QuicOperationEnqueueFront(
             &Connection->OperQ,
-            Connection->Worker->Partition,
+            Connection->Partition,
             Oper)) {
         //
         // The connection needs to be queued on the worker because this was the

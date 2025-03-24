@@ -130,7 +130,7 @@ QuicStreamInitialize(
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         PreallocatedRecvChunk =
-            CxPlatPoolAlloc(&Connection->Worker->Partition->DefaultReceiveBufferPool);
+            CxPlatPoolAlloc(&Connection->Partition->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;

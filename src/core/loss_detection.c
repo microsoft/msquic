@@ -396,7 +396,7 @@ QuicLossDetectionOnPacketSent(
     //
     QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
-            &Connection->Worker->Partition->SentPacketPool,
+            &Connection->Partition->SentPacketPool,
             TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
         //

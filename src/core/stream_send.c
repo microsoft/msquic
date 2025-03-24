@@ -675,7 +675,7 @@ QuicStreamSendFlush(
     }
 
     QuicPerfCounterAdd(
-        Stream->Connection->Worker->Partition,
+        Stream->Connection->Partition,
         QUIC_PERF_COUNTER_APP_SEND_BYTES,
         TotalBytesSent);
 }

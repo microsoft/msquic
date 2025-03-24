@@ -219,7 +219,7 @@ QuicPacketBuilderPrepare(
     // the current one doesn't match, finalize it and then start a new one.
     //
 
-    QUIC_PARTITION* Partition = Connection->Worker->Partition;
+    QUIC_PARTITION* Partition = Connection->Partition;
     const uint64_t PartitionShifted = ((uint64_t)Partition->Index + 1) << 40;
 
     BOOLEAN NewQuicPacket = FALSE;
@@ -1065,7 +1065,7 @@ QuicPacketBuilderSendBatch(
 
     QuicBindingSend(
         Builder->Path->Binding,
-        Builder->Connection->Worker->Partition,
+        Builder->Connection->Partition,
         &Builder->Path->Route,
         Builder->SendData,
         Builder->TotalDatagramsLength,

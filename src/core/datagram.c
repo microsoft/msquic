@@ -460,7 +460,7 @@ QuicDatagramSendFlush(
 
     QuicDatagramValidate(Datagram);
     QuicPerfCounterAdd(
-        Connection->Worker->Partition,
+        Connection->Partition,
         QUIC_PERF_COUNTER_APP_SEND_BYTES,
         TotalBytesSent);
 }
@@ -588,7 +588,7 @@ QuicDatagramProcessFrame(
     (void)QuicConnIndicateEvent(Connection, &Event);
 
     QuicPerfCounterAdd(
-        Connection->Worker->Partition,
+        Connection->Partition,
         QUIC_PERF_COUNTER_APP_RECV_BYTES,
         QuicBuffer.Length);
 

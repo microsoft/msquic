@@ -809,7 +809,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.Length);
                 CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
                 QuicPartitionGenerateStatelessResetToken(
-                    Connection->Worker->Partition,
+                    Connection->Partition,
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 

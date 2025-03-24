@@ -1081,7 +1081,7 @@ QuicStreamReceiveComplete(
     if (BufferLength != 0) {
         Stream->RecvPendingLength -= BufferLength;
         QuicPerfCounterAdd(
-            Stream->Connection->Worker->Partition,
+            Stream->Connection->Partition,
             QUIC_PERF_COUNTER_APP_RECV_BYTES,
             BufferLength);
         QuicStreamOnBytesDelivered(Stream, BufferLength);
