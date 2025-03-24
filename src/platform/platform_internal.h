@@ -205,6 +205,11 @@ typedef struct CXPLAT_SOCKET {
     };
 
     uint8_t UseTcp : 1; // always false?
+
+    //
+    // Flag indicates the socket has a default remote destination.
+    //
+    uint8_t HasFixedRemoteAddress : 1;
     uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc

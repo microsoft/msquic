@@ -4,4 +4,4 @@
 #else
 #define TRACEPOINT_DEFINE
 #endif
-#include "TestConnection.cpp.clog.h"
+#include "library.c.clog.h"
