@@ -139,18 +139,8 @@ QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
     );
 
-uint16_t
+QUIC_PARTITION*
 QuicLibraryGetCurrentPartition(
-    void
-    );
-
-uint16_t
-QuicLibraryGetPartitionProcessor(
-    uint16_t PartitionIndex
-    );
-
-QUIC_LIBRARY_PP*
-QuicLibraryGetPerProc(
     void
     );
 

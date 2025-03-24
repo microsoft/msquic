@@ -330,7 +330,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -459,6 +459,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_PARTITION* Partition,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,

@@ -54,11 +54,12 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_TYPE Type
     )
 {
     QUIC_OPERATION* Oper =
-        (QUIC_OPERATION*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->OperPool);
+        (QUIC_OPERATION*)CxPlatPoolAlloc(&Partition->OperPool);
     if (Oper != NULL) {
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -68,7 +69,7 @@ QuicOperationAlloc(
 
         if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
             Oper->API_CALL.Context =
-                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->ApiContextPool);
+                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Partition->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
                 CxPlatPoolFree(Oper);
                 Oper = NULL;
@@ -144,6 +145,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -155,8 +157,8 @@ QuicOperationEnqueue(
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     CxPlatListInsertTail(&OperQ->List, &Oper->Link);
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
@@ -164,6 +166,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueuePriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -176,8 +179,8 @@ QuicOperationEnqueuePriority(
     CxPlatListInsertTail(*OperQ->PriorityTail, &Oper->Link);
     OperQ->PriorityTail = &Oper->Link.Flink;
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
@@ -185,6 +188,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -199,14 +203,15 @@ QuicOperationEnqueueFront(
         OperQ->PriorityTail = &Oper->Link.Flink;
     }
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationDequeue(
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
@@ -230,7 +235,7 @@ QuicOperationDequeue(
     CxPlatDispatchLockRelease(&OperQ->Lock);
 
     if (Oper != NULL) {
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+        QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, -1);
     }
     return Oper;
 }
@@ -238,6 +243,7 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
@@ -295,5 +301,5 @@ QuicOperationQueueClear(
             }
         }
     }
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
 }

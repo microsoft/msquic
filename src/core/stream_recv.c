@@ -141,7 +141,7 @@ QuicStreamRecvQueueFlush(
                 "Queuing recv flush");
 
             QUIC_OPERATION* Oper;
-            if ((Oper = QuicOperationAlloc(QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
+            if ((Oper = QuicConnAllocOperation(Stream->Connection, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
                 Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
                 QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
                 QuicConnQueueOper(Stream->Connection, Oper);
@@ -1080,7 +1080,10 @@ QuicStreamReceiveComplete(
 
     if (BufferLength != 0) {
         Stream->RecvPendingLength -= BufferLength;
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
+        QuicPerfCounterAdd(
+            Stream->Connection->Worker->Partition,
+            QUIC_PERF_COUNTER_APP_RECV_BYTES,
+            BufferLength);
         QuicStreamOnBytesDelivered(Stream, BufferLength);
     }
 

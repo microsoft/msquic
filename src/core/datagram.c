@@ -370,7 +370,8 @@ QuicDatagramQueueSend(
     Status = QUIC_STATUS_PENDING;
 
     if (QueueOper) {
-        QUIC_OPERATION* Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
+        QUIC_OPERATION* Oper =
+            QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -458,7 +459,10 @@ QuicDatagramSendFlush(
     }
 
     QuicDatagramValidate(Datagram);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_SEND_BYTES, TotalBytesSent);
+    QuicPerfCounterAdd(
+        Connection->Worker->Partition,
+        QUIC_PERF_COUNTER_APP_SEND_BYTES,
+        TotalBytesSent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -583,7 +587,10 @@ QuicDatagramProcessFrame(
         (uint16_t)Frame.Length);
     (void)QuicConnIndicateEvent(Connection, &Event);
 
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, QuicBuffer.Length);
+    QuicPerfCounterAdd(
+        Connection->Worker->Partition,
+        QUIC_PERF_COUNTER_APP_RECV_BYTES,
+        QuicBuffer.Length);
 
     return TRUE;
 }

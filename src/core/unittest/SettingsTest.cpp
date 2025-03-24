@@ -633,7 +633,7 @@ TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;
     CxPlatLockInitialize(&MsQuicLib.Lock); // Initialize the lock so it can be acquired later
-    MsQuicLib.PerProc = (QUIC_LIBRARY_PP*)1; // Pretend already initialized
+    MsQuicLib.Partitions = (QUIC_PARTITION*)1; // Pretend already initialized
     MsQuicLib.Datapath = (CXPLAT_DATAPATH*)1; // Pretend already initialized
     MsQuicLib.LazyInitComplete = TRUE;
     ASSERT_EQ(

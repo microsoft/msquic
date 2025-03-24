@@ -29,7 +29,7 @@ QuicStreamInitialize(
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
 
-    Stream = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StreamPool);
+    Stream = CxPlatPoolAlloc(&Connection->Partition->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -47,7 +47,7 @@ QuicStreamInitialize(
     CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
@@ -130,7 +130,7 @@ QuicStreamInitialize(
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         PreallocatedRecvChunk =
-            CxPlatPoolAlloc(&QuicLibraryGetPerProc()->DefaultReceiveBufferPool);
+            CxPlatPoolAlloc(&Connection->Worker->Partition->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -177,7 +177,7 @@ Exit:
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+        QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
         CxPlatPoolFree(Stream);
@@ -216,7 +216,7 @@ QuicStreamFree(
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);

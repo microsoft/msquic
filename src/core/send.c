@@ -127,7 +127,7 @@ QuicSendQueueFlush(
 
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        if ((Oper = QuicOperationAlloc(QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
+        if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(
                 ConnQueueSendFlush,
@@ -808,7 +808,8 @@ QuicSendWriteFrames(
                     SourceCid->CID.Data,
                     SourceCid->CID.Length);
                 CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
-                QuicLibraryGenerateStatelessResetToken(
+                QuicPartitionGenerateStatelessResetToken(
+                    Connection->Worker->Partition,
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 

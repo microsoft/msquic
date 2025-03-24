@@ -16,6 +16,11 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     CXPLAT_EXECUTION_CONTEXT ExecutionContext;
 
     //
+    // The partition this worker is affinitized to.
+    //
+    QUIC_PARTITION* Partition;
+
+    //
     // Event to signal when the execution context (i.e. worker thread) is
     // complete.
     //
@@ -35,11 +40,6 @@ typedef struct QUIC_CACHEALIGN QUIC_WORKER {
     // TRUE if the worker is currently processing connections.
     //
     BOOLEAN IsActive;
-
-    //
-    // The index into the partition array (of processors).
-    //
-    uint16_t PartitionIndex;
 
     //
     // The average queue delay connections experience, in microseconds.

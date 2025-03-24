@@ -1,0 +1,143 @@
+/*++
+
+    Copyright (c) Microsoft Corporation.
+    Licensed under the MIT License.
+
+Abstract:
+
+    The partitioned storage for global library state. The partitioning allows
+    multiple threads to operate on the library simultaneously with minimal
+    contention.
+
+    The primary goal of partitioning is to allow multiple threads to allocate
+    and free pool memory simultaneously without contention. It also maintains
+    isolation for other state that may be commonly accessed by multiple threads,
+    such as performance counters and stateless resets and retries.ABC
+
+    A partition is always (soft) affinitized to a specific processor. By default,
+    partitions are one to one with processors. Though, an application may choose
+    to create partitions on a subset of processors. In this case, the partition
+    will be shared by all processors that are not explicitly affinitized to a
+    partition, though generally the library will try to only execute on those
+    specified processors.
+
+--*/
+
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
+typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
+
+    //
+    // The index into the global array of partitions.
+    //
+    uint16_t Index;
+
+    //
+    // The processor that this partition is affinitized to.
+    //
+    uint16_t Processor;
+
+    //
+    // Log correlation ID for events.
+    //
+    uint64_t SendBatchId;
+    uint64_t SendPacketId;
+    uint64_t ReceivePacketId;
+
+    //
+    // Used for generating stateless reset hashes.
+    //
+    CXPLAT_HASH* ResetTokenHash;
+    CXPLAT_LOCK ResetTokenLock;
+
+    //
+    // Pools for allocations.
+    //
+    CXPLAT_POOL ConnectionPool;             // QUIC_CONNECTION
+    CXPLAT_POOL TransportParamPool;         // QUIC_TRANSPORT_PARAMETER
+    CXPLAT_POOL PacketSpacePool;            // QUIC_PACKET_SPACE
+    CXPLAT_POOL StreamPool;                 // QUIC_STREAM
+    CXPLAT_POOL DefaultReceiveBufferPool;   // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
+    CXPLAT_POOL SendRequestPool;            // QUIC_SEND_REQUEST
+    QUIC_SENT_PACKET_POOL SentPacketPool;   // QUIC_SENT_PACKET_METADATA
+    CXPLAT_POOL ApiContextPool;             // QUIC_API_CONTEXT
+    CXPLAT_POOL StatelessContextPool;       // QUIC_STATELESS_CONTEXT
+    CXPLAT_POOL OperPool;                   // QUIC_OPERATION
+    CXPLAT_POOL AppBufferChunkPool;         // QUIC_RECV_CHUNK
+
+    //
+    // Per-processor performance counters.
+    //
+    int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
+
+} QUIC_PARTITION;
+
+//
+// N.B.: All partitions are assumed to be preallocated with zeroed memory.
+//
+QUIC_STATUS
+QuicPartitionInitialize(
+    _Inout_ QUIC_PARTITION* Partition,
+    _In_ uint16_t Index,
+    _In_ uint16_t Processor,
+    _In_ CXPLAT_HASH_TYPE HashType,
+    _In_reads_(ResetHashKeyLength)
+        const uint8_t* const ResetHashKey,
+    _In_ uint32_t ResetHashKeyLength
+    );
+
+void
+QuicPartitionUninitialize(
+    _Inout_ QUIC_PARTITION* Partition
+    );
+
+inline
+QUIC_STATUS
+QuicPartitionUpdateStatelessResetKey(
+    _Inout_ QUIC_PARTITION* Partition,
+    _In_ CXPLAT_HASH_TYPE HashType,
+    _In_reads_(ResetHashKeyLength)
+        const uint8_t* const ResetHashKey,
+    _In_ uint32_t ResetHashKeyLength
+    )
+{
+    CXPLAT_HASH* NewResetTokenHash = NULL;
+    QUIC_STATUS Status =
+        CxPlatHashCreate(
+            HashType,
+            ResetHashKey,
+            ResetHashKeyLength,
+            &NewResetTokenHash);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    CxPlatLockAcquire(&Partition->ResetTokenLock);
+    CxPlatHashFree(Partition->ResetTokenHash);
+    Partition->ResetTokenHash = NewResetTokenHash;
+    CxPlatLockRelease(&Partition->ResetTokenLock);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+void
+QuicPerfCounterAdd(
+    _In_ QUIC_PARTITION* Partition,
+    _In_ QUIC_PERFORMANCE_COUNTERS Type,
+    _In_ int64_t Value
+    )
+{
+    CXPLAT_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
+    InterlockedExchangeAdd64(&Partition->PerfCounters[Type], Value);
+}
+
+#define QuicPerfCounterIncrement(Partition, Type) QuicPerfCounterAdd(Partition, Type, 1)
+#define QuicPerfCounterDecrement(Partition, Type) QuicPerfCounterAdd(Partition, Type, -1)
+
+#if defined(__cplusplus)
+}
+#endif

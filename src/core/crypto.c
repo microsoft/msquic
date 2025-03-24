@@ -1620,7 +1620,7 @@ QuicCryptoProcessTlsCompletion(
         // CONNECTED event is indicated to the app).
         //
         Connection->State.Connected = TRUE;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CONNECTED);
 
         QuicConnGenerateNewSourceCids(Connection, FALSE);
 
@@ -1652,7 +1652,7 @@ QuicCryptoProcessTlsCompletion(
             Event.CONNECTED.SessionResumed);
         (void)QuicConnIndicateEvent(Connection, &Event);
         if (Crypto->TlsState.SessionResumed) {
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_RESUMED);
+            QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_RESUMED);
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 

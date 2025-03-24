@@ -341,6 +341,12 @@ typedef struct QUIC_CONNECTION {
     QUIC_WORKER* Worker;
 
     //
+    // The partition this connection is currently assigned to. It is changed at
+    // the same time as the worker.
+    //
+    QUIC_PARTITION* Partition;
+
+    //
     // The top level registration this connection is a part of.
     //
     QUIC_REGISTRATION* Registration;
@@ -709,6 +715,9 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 #else
 #define QUIC_CONN_VERIFY(Connection, Expr)
 #endif
+
+#define QuicConnAllocOperation(Connection, Type) \
+    QuicOperationAlloc((Connection)->Partition, (Type))
 
 //
 // Helper to determine if a connection is server side.
