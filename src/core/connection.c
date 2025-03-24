@@ -542,7 +542,7 @@ QuicConnQueueTraceRundown(
     )
 {
     QUIC_OPERATION* Oper;
-    if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TRACE_RUNDOWN)) != NULL) {
+    if ((Oper = QuicOperationAlloc(QUIC_OPER_TYPE_TRACE_RUNDOWN)) != NULL) {
         QuicConnQueueOper(Connection, Oper);
     } else {
         QuicTraceEvent(
@@ -1270,7 +1270,7 @@ QuicConnTimerExpired(
                 FlushSendImmediate = TRUE;
             } else {
                 QUIC_OPERATION* Oper;
-                if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
+                if ((Oper = QuicOperationAlloc(QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
                     Oper->TIMER_EXPIRED.Type = Type;
                     QuicConnQueueOper(Connection, Oper);
                 } else {
@@ -3195,7 +3195,7 @@ QuicConnQueueRecvPackets(
 
     if (QueueOperation) {
         QUIC_OPERATION* ConnOper =
-            QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_RECV);
+            QuicOperationAlloc(QUIC_OPER_TYPE_FLUSH_RECV);
         if (ConnOper != NULL) {
             QuicConnQueueOper(Connection, ConnOper);
         } else {
@@ -3228,7 +3228,7 @@ QuicConnQueueUnreachable(
     }
 
     QUIC_OPERATION* ConnOper =
-        QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_UNREACHABLE);
+        QuicOperationAlloc(QUIC_OPER_TYPE_UNREACHABLE);
     if (ConnOper != NULL) {
         ConnOper->UNREACHABLE.RemoteAddress = *RemoteAddress;
         QuicConnQueueOper(Connection, ConnOper);
@@ -3255,7 +3255,7 @@ QuicConnQueueRouteCompletion(
 {
     QUIC_CONNECTION* Connection = (QUIC_CONNECTION*)Context;
     QUIC_OPERATION* ConnOper =
-        QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_ROUTE_COMPLETION);
+        QuicOperationAlloc(QUIC_OPER_TYPE_ROUTE_COMPLETION);
     if (ConnOper != NULL) {
         ConnOper->ROUTE.Succeeded = Succeeded;
         ConnOper->ROUTE.PathId = PathId;

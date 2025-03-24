@@ -702,7 +702,7 @@ QuicBindingCreateStatelessOperation(
     //
 
     StatelessCtx =
-        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&Worker->StatelessContextPool);
+        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StatelessContextPool);
     if (StatelessCtx == NULL) {
         QuicPacketLogDrop(Binding, Packet, "Alloc failure for stateless oper ctx");
         goto Exit;
@@ -762,7 +762,7 @@ QuicBindingQueueStatelessOperation(
         return FALSE;
     }
 
-    QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
+    QUIC_OPERATION* Oper = QuicOperationAlloc(OperType);
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,

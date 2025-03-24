@@ -432,7 +432,7 @@ CxPlatPoolAlloc(
 {
     CXPLAT_POOL_HEADER* Header =
 #if DEBUG
-        CxPlatGetAllocFailDenominator() ? NULL :
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
 #endif
         (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
     if (Header == NULL) {
