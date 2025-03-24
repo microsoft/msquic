@@ -1486,7 +1486,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Config->UseQTIP;
+    Socket->UseTcp = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);

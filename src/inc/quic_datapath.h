@@ -557,6 +557,7 @@ CxPlatDataPathGetGatewayAddresses(
 #define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
 #define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
 #define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
+#define CXPLAT_SOCKET_FLAG_QTIP     0x00000008  // Socket will support QTIP
 
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
@@ -577,8 +578,6 @@ typedef struct CXPLAT_UDP_CONFIG {
     uint8_t CibirIdOffsetSrc;           // CIBIR ID offset in source CID
     uint8_t CibirIdOffsetDst;           // CIBIR ID offset in destination CID
     uint8_t CibirId[6];                 // CIBIR ID data
-
-    uint8_t UseQTIP;
 } CXPLAT_UDP_CONFIG;
 
 //
