@@ -653,7 +653,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ BOOLEAN UseQTIP
+    _In_ CXPLAT_ROUTE* Route
     );
 
 //

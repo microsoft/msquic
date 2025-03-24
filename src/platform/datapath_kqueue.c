@@ -2107,10 +2107,10 @@ CxPlatSocketSend(
 uint16_t
 CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ BOOLEAN UseQTIP
+    _In_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(UseQTIP);
+    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
     return Socket->Mtu;
 }

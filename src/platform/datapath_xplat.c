@@ -240,13 +240,13 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
     _In_ CXPLAT_SOCKET* Socket,
-    _In_ BOOLEAN UseQTIP
+    _In_ CXPLAT_ROUTE* Route
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (UseQTIP || (Socket->RawSocketAvailable &&
+    if (Route->UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(UseQTIP);
+        return RawSocketGetLocalMtu(Route->UseQTIP);
     }
     return Socket->Mtu;
 }
