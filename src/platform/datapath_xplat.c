@@ -434,7 +434,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (!Socket->IsServer) {
+    if (Socket->HasFixedRemoteAddress) {
         //
         // For clients,
         // It must be true that Route->UseQTIP == Socket->UseTcp because client

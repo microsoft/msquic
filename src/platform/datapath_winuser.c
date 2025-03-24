@@ -1488,7 +1488,6 @@ SocketCreateUdp(
     Socket->UseRio = Datapath->UseRio;
     Socket->UseTcp = Config->UseQTIP;
 
-    Socket->IsServer = IsServerSocket;
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -2626,8 +2625,8 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp && !Socket->IsServer) {
-        // QTIP did not initialize PerProcSockets
+    if (Socket->UseTcp && Socket->HasFixedRemoteAddress) {
+        // QTIP did not initialize PerProcSockets only for Client sockets.
         CxPlatSocketRelease(Socket);
     } else {
         const uint16_t SocketCount =
