@@ -184,11 +184,6 @@ QuicMainStart(
     const char* IoMode = GetValue(argc, argv, "io");
 
 #ifndef _KERNEL_MODE
-    if (IoMode && IsValue(IoMode, "qtip")) {
-        MsQuicSettings Settings;
-        Settings.SetQtipEnabled(TRUE);
-        Settings.SetGlobal();
-    }
 
     if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
