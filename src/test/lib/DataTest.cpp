@@ -325,6 +325,11 @@ NewPingConnection(
         return nullptr;
     }
 
+    if (Connection == nullptr || !(Connection)->IsValid()) {
+        TEST_FAILURE("Failed to create new TestConnection.");
+        delete Connection;
+        return nullptr;
+    }
 
     if (SendUdpOverQtip && UseQTIP) {
         // If UseQTIP is true and SendUdpOverQTIP is true, we set it to be the opposite.
@@ -339,11 +344,6 @@ NewPingConnection(
         }
     }
 
-    if (Connection == nullptr || !(Connection)->IsValid()) {
-        TEST_FAILURE("Failed to create new TestConnection.");
-        delete Connection;
-        return nullptr;
-    }
     Connection->SetAutoDelete();
 
     if (UseSendBuffer) {
