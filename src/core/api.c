@@ -1053,7 +1053,7 @@ MsQuicStreamSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicStreamCompleteSendRequest).")
-    SendRequest = CxPlatPoolAlloc(&Connection->Worker->Partition->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&Connection->Partition->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1410,7 +1410,7 @@ MsQuicStreamProvideReceiveBuffers(
     //
     for (uint32_t i = 0; i < BufferCount; ++i) {
         QUIC_RECV_CHUNK* Chunk =
-            CxPlatPoolAlloc(&Connection->Worker->Partition->AppBufferChunkPool);
+            CxPlatPoolAlloc(&Connection->Partition->AppBufferChunkPool);
         if (Chunk == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1788,7 +1788,7 @@ MsQuicDatagramSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
-    SendRequest = CxPlatPoolAlloc(&Connection->Worker->Partition->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&Connection->Partition->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;

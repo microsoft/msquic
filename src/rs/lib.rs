@@ -651,8 +651,16 @@ macro_rules! define_quic_handle_impl {
             }
 
             /// Closes the handle and consumes it.
-            pub fn close(self) {
+            pub fn close(mut self) {
+                // The close_inner implementation for listener, connection and stream
+                // is suppose to cleanup the context associated with the handle.
+                // Handle context is dropped after handle ffi close  call completes to ensure that
+                // it outlives the callbacks.
+                // Context raw pointer is not set to null after ffi close call because a closed
+                // handle should not be accessed anymore.
                 self.close_inner();
+                // Prevent drop to call ffi function again.
+                self.handle = std::ptr::null_mut();
             }
         }
 
@@ -919,7 +927,6 @@ impl Connection {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             // Drop call here is required to prevent compiler drop it early.
             // During handle close the ctx might still be used.
@@ -1113,7 +1120,6 @@ impl Listener {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             std::mem::drop(ctx);
         }
@@ -1203,7 +1209,6 @@ impl Stream {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             std::mem::drop(ctx);
         }
@@ -1471,7 +1476,5 @@ mod tests {
     }
 }
 
-// test certs are only installed on windows
-#[cfg(target_os = "windows")]
 #[cfg(test)]
 mod server_client_test;
