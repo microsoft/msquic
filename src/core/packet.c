@@ -810,7 +810,6 @@ QuicPacketLogDrop(
     _In_z_ const char* Reason
     )
 {
-    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->PartitionIndex];
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
@@ -830,7 +829,9 @@ QuicPacketLogDrop(
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
-    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_PKTS_DROPPED, 1);
+    QuicPerfCounterIncrement(
+        &MsQuicLib.Partitions[Packet->PartitionIndex],
+        QUIC_PERF_COUNTER_PKTS_DROPPED);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -842,7 +843,6 @@ QuicPacketLogDropWithValue(
     _In_ uint64_t Value
     )
 {
-    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->PartitionIndex];
     if (Packet->AssignedToConnection) {
         InterlockedIncrement64((int64_t*)&((QUIC_CONNECTION*)Owner)->Stats.Recv.DroppedPackets);
         QuicTraceEvent(
@@ -864,5 +864,7 @@ QuicPacketLogDropWithValue(
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
-    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_PKTS_DROPPED, 1);
+    QuicPerfCounterIncrement(
+        &MsQuicLib.Partitions[Packet->PartitionIndex],
+        QUIC_PERF_COUNTER_PKTS_DROPPED);
 }

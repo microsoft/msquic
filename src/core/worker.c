@@ -256,7 +256,7 @@ QuicWorkerQueueConnection(
         if (WakeWorkerThread) {
             QuicWorkerThreadWake(Worker);
         }
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 1);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
 
@@ -300,7 +300,7 @@ QuicWorkerQueuePriorityConnection(
         if (WakeWorkerThread) {
             QuicWorkerThreadWake(Worker);
         }
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, 1);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
 
@@ -357,8 +357,8 @@ QuicWorkerQueueOperation(
         CxPlatListInsertTail(&Worker->Operations, &Operation->Link);
         Worker->OperationCount++;
         Operation = NULL;
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, 1);
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUED, 1);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUED);
     } else {
         WakeWorkerThread = FALSE;
         Worker->DroppedOperationCount++;
@@ -428,7 +428,7 @@ QuicWorkerGetNextConnection(
             Connection->HasQueuedWork = FALSE;
             Connection->HasPriorityWork = FALSE;
             Connection->WorkerProcessing = TRUE;
-            QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, -1);
+            QuicPerfCounterDecrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
         CxPlatDispatchLockRelease(&Worker->Lock);
     }
@@ -453,7 +453,7 @@ QuicWorkerGetNextOperation(
         Operation->Link.Flink = NULL;
 #endif
         Worker->OperationCount--;
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, -1);
+        QuicPerfCounterDecrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
         CxPlatDispatchLockRelease(&Worker->Lock);
     }
 
@@ -735,7 +735,7 @@ QuicWorkerLoop(
             Operation->Type,
             Operation->STATELESS.Context);
         QuicOperationFree(Operation);
-        QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_COMPLETED, 1);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         Worker->ExecutionContext.Ready = TRUE;
         State->NoWorkCount = 0;
     }
