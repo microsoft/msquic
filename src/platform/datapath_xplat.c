@@ -437,20 +437,14 @@ CxPlatResolveRoute(
     if (!Socket->IsServer) {
         //
         // For clients,
-        // The flag Socket->UseTcp determines what resources to instantiate as clients cannot
-        // allocate a TCP and UDP socket from the OS at the same time whereas servers can.
-        // So we need to set Route->UseQTIP here for clients.
+        // It must be true that Route->UseQTIP == Socket->UseTcp because client
+        // connections can only send/recv either UDP or TCP traffic.
         //
         // For servers,
-        // We always initialize everything. The flag Route->UseQTIP will be set on the receive side.
-        //
-        // For clients, it must be true that Route->UseQTIP == Socket->UseTcp as only 1 set of resources is
-        // allocated.
-        //
-        // For servers, it could be the case that Route->UseQTIP != Socket->UseTcp as servers do not rely
-        // on Socket->UseTcp to initialize resources. For testing purposes though, if we always set
-        // Socket->UseTcp to true in the QTIP scenarios, then both client and servers must have
-        // Route->UseQTIP == Socket->UseTcp.
+        // It could be the case that Route->UseQTIP != Socket->UseTcp. The state of
+        // Socket->UseTcp simply determines whether or not we initialize an auxiliary TCP socket
+        // to prevent XDP from hijacking traffic from other processes. Therefore, servers rely
+        // on the receive path to set Route->UseQTIP, depending on the type of XDP traffic it sees.
         //
         Route->UseQTIP = Socket->UseTcp;
     }

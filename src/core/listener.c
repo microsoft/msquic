@@ -334,8 +334,7 @@ MsQuicListenerStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Listener->Binding
-        );
+            &Listener->Binding);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             ListenerErrorStatus,
@@ -759,47 +758,48 @@ QuicListenerParamSet(
     )
 {
     switch (Param) {
-        case QUIC_PARAM_LISTENER_CIBIR_ID: {
-            if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-            if (BufferLength == 0) {
-                CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
-                return QUIC_STATUS_SUCCESS;
-            }
-            if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
-                return QUIC_STATUS_INVALID_PARAMETER;
-            }
-
-            if (((uint8_t*)Buffer)[0] != 0) {
-                return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
-            }
-
-            Listener->CibirId[0] = (uint8_t)BufferLength - 1;
-            memcpy(Listener->CibirId + 1, Buffer, BufferLength);
-
-            QuicTraceLogVerbose(
-                ListenerCibirIdSet,
-                "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
-                Listener,
-                Listener->CibirId[0],
-                Listener->CibirId[1]);
-
+        
+    case QUIC_PARAM_LISTENER_CIBIR_ID: {
+        if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        if (BufferLength == 0) {
+            CxPlatZeroMemory(Listener->CibirId, sizeof(Listener->CibirId));
             return QUIC_STATUS_SUCCESS;
         }
-
-        case QUIC_PARAM_DOS_MODE_EVENTS: {
-            if (BufferLength == sizeof(BOOLEAN)) {
-                Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
-                if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
-                    QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
-                }
-                return QUIC_STATUS_SUCCESS;
-            }
-            break;
+        if (BufferLength < 2) { // Must have at least the offset and 1 byte of payload.
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
-        default:
-            break;
+
+        if (((uint8_t*)Buffer)[0] != 0) {
+            return QUIC_STATUS_NOT_SUPPORTED; // Not yet supproted.
+        }
+
+        Listener->CibirId[0] = (uint8_t)BufferLength - 1;
+        memcpy(Listener->CibirId + 1, Buffer, BufferLength);
+
+        QuicTraceLogVerbose(
+            ListenerCibirIdSet,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            Listener,
+            Listener->CibirId[0],
+            Listener->CibirId[1]);
+
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    case QUIC_PARAM_DOS_MODE_EVENTS: {
+        if (BufferLength == sizeof(BOOLEAN)) {
+            Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
+            if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
+                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
+            }
+            return QUIC_STATUS_SUCCESS;
+        }
+        break;
+    }
+    default:
+        break;
     }
     return QUIC_STATUS_INVALID_PARAMETER;
 }
