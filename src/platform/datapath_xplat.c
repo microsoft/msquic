@@ -148,16 +148,6 @@ CxPlatSocketCreateUdp(
         goto Error;
     }
 
-    QuicTraceLogVerbose(
-        SockStatus3,
-        "[sock] Allocated socket. IsServer: %d, UseQTIP: %d",
-        (*NewSocket)->IsServer, Config->UseQTIP);
-
-    QuicTraceLogVerbose(
-        SockStatus2,
-        "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
-        Config->IgnoreRawSocketFailure);
-
     (*NewSocket)->RawSocketAvailable = 0;
     if (Datapath->RawDataPath) {
         Status =

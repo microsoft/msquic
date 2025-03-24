@@ -47,11 +47,11 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateNewConnection,
 // Decoder Ring for ListenerCibirIdSet
 // [list][%p] CIBIR ID set (len %hhu, offset %hhu)
 // QuicTraceLogVerbose(
-                ListenerCibirIdSet,
-                "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
-                Listener,
-                Listener->CibirId[0],
-                Listener->CibirId[1]);
+            ListenerCibirIdSet,
+            "[list][%p] CIBIR ID set (len %hhu, offset %hhu)",
+            Listener,
+            Listener->CibirId[0],
+            Listener->CibirId[1]);
 // arg2 = arg2 = Listener = arg2
 // arg3 = arg3 = Listener->CibirId[0] = arg3
 // arg4 = arg4 = Listener->CibirId[1] = arg4

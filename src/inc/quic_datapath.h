@@ -579,7 +579,6 @@ typedef struct CXPLAT_UDP_CONFIG {
     uint8_t CibirId[6];                 // CIBIR ID data
 
     uint8_t UseQTIP;
-    uint8_t IgnoreRawSocketFailure;
 } CXPLAT_UDP_CONFIG;
 
 //

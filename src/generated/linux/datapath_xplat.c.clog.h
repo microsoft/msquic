@@ -73,43 +73,6 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, SockCreateFail , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SockStatus3
-// [sock] Allocated socket. IsServer: %d, UseQTIP: %d
-// QuicTraceLogVerbose(
-        SockStatus3,
-        "[sock] Allocated socket. IsServer: %d, UseQTIP: %d",
-        (*NewSocket)->IsServer, Config->UseQTIP);
-// arg2 = arg2 = (*NewSocket)->IsServer = arg2
-// arg3 = arg3 = Config->UseQTIP = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_SockStatus3
-#define _clog_4_ARGS_TRACE_SockStatus3(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, SockStatus3 , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for SockStatus2
-// [sock] Allocated socket. IgnoreRawSocketFailure: %d
-// QuicTraceLogVerbose(
-        SockStatus2,
-        "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
-        Config->IgnoreRawSocketFailure);
-// arg2 = arg2 = Config->IgnoreRawSocketFailure = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_SockStatus2
-#define _clog_3_ARGS_TRACE_SockStatus2(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, SockStatus2 , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for RawSockCreateFail
 // [sock] Failed to create raw socket, status:%d
 // QuicTraceLogVerbose(

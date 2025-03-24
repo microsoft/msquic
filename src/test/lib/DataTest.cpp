@@ -405,7 +405,6 @@ QuicTestConnectAndPing(
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
-
     TEST_TRUE(Registration.IsValid());
 
     if (ServerRejectZeroRtt) {
@@ -453,6 +452,21 @@ QuicTestConnectAndPing(
         TEST_QUIC_SUCCEEDED(ServerConfiguration.SetTicketKey(&GoodKey));
     }
 
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+    if (ClientZeroRtt) {
+        QuicTestPrimeResumption(
+            QuicAddrFamily,
+            Registration,
+            ServerConfiguration,
+            ClientConfiguration,
+            &ClientStats.ResumptionTicket);
+        if (!ClientStats.ResumptionTicket) {
+            return;
+        }
+    }
+
     StatelessRetryHelper RetryHelper(ServerStatelessRetry);
 
     {
@@ -467,29 +481,18 @@ QuicTestConnectAndPing(
         TEST_TRUE(Listener.IsValid());
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-        MsQuicCredentialConfig ClientCredConfig;
-        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
-        TEST_TRUE(ClientConfiguration.IsValid());
-        if (ClientZeroRtt) {
-            QuicTestPrimeResumption(
-                QuicAddrFamily,
-                Registration,
-                ServerConfiguration,
-                ClientConfiguration,
-                &ClientStats.ResumptionTicket);
-            if (!ClientStats.ResumptionTicket) {
-                return;
-            }
-        }
-
         QuicAddr ServerLocalAddr;
         TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
         Listener.Context = &ServerStats;
+
         TestConnection** ConnAlloc = new(std::nothrow) TestConnection*[ConnectionCount];
         if (ConnAlloc == nullptr) {
             return;
         }
+
         UniquePtrArray<TestConnection*> Connections(ConnAlloc);
+        
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
