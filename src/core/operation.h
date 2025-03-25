@@ -411,6 +411,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_PARTITION* Partition,
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     );

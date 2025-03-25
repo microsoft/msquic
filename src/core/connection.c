@@ -355,7 +355,7 @@ QuicConnFree(
     QuicConnUnregister(Connection);
     if (Connection->Worker != NULL) {
         QuicTimerWheelRemoveConnection(&Connection->Worker->TimerWheel, Connection);
-        QuicOperationQueueClear(Partition, &Connection->OperQ);
+        QuicOperationQueueClear(&Connection->OperQ, Partition);
     }
     if (Connection->ReceiveQueue != NULL) {
         QUIC_RX_PACKET* Packet = Connection->ReceiveQueue;
