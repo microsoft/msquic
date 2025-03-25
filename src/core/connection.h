@@ -342,7 +342,8 @@ typedef struct QUIC_CONNECTION {
 
     //
     // The partition this connection is currently assigned to. It is changed at
-    // the same time as the worker.
+    // the same time as the worker, but doesn't always need to stay in sync with
+    // the worker.
     //
     QUIC_PARTITION* Partition;
 
