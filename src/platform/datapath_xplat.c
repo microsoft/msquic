@@ -132,48 +132,54 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    uint32_t TryCount = 0;
-
-    Retry:
-    Status =
-        SocketCreateUdp(
-            Datapath,
-            Config,
-            NewSocket
-        );
-    if (QUIC_FAILED(Status)) {
-        QuicTraceLogVerbose(
-            SockCreateFail,
-            "[sock] Failed to create socket, status:%d", Status);
-        goto Error;
-    }
-
-    (*NewSocket)->RawSocketAvailable = 0;
-    if (Datapath->RawDataPath) {
+    //
+    // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
+    // because server admins will ensure whatever port they are binding to is available.
+    // The reason we have this loop is to eliminate test flakiness. The tests treat server
+    // sockets the same as client sockets, in that they bind to some random free UDP port.
+    // However, what's free in UDP may not be free in TCP. So we loop until we find a free port.
+    //
+    for (uint32_t TryCount = 0; TryCount < 1000; TryCount++) {
         Status =
-            RawSocketCreateUdp(
-                Datapath->RawDataPath,
+            SocketCreateUdp(
+                Datapath,
                 Config,
-                CxPlatSocketToRaw(*NewSocket));
-        (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
+                NewSocket
+            );
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
-                RawSockCreateFail,
-                "[sock] Failed to create raw socket, status:%d", Status);
-            BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-            if (IsWildcardAddr && TryCount < 1000 && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                CxPlatSocketDelete(*NewSocket);
-                TryCount += 1;
-                goto Retry;
-            } else {
-                if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    Status = QUIC_STATUS_SUCCESS;
-                } else {
+                SockCreateFail,
+                "[sock] Failed to create socket, status:%d", Status);
+            goto Error;
+        }
+
+        (*NewSocket)->RawSocketAvailable = 0;
+        if (Datapath->RawDataPath) {
+            Status =
+                RawSocketCreateUdp(
+                    Datapath->RawDataPath,
+                    Config,
+                    CxPlatSocketToRaw(*NewSocket));
+            (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
+            if (QUIC_FAILED(Status)) {
+                QuicTraceLogVerbose(
+                    RawSockCreateFail,
+                    "[sock] Failed to create raw socket, status:%d", Status);
+                BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
+                if (IsWildcardAddr && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
                     CxPlatSocketDelete(*NewSocket);
+                    continue;
+                } else {
+                    if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
+                        Status = QUIC_STATUS_SUCCESS;
+                    } else {
+                        CxPlatSocketDelete(*NewSocket);
+                    }
+                    goto Error;
                 }
-                goto Error;
             }
         }
+        break;
     }
 
 Error:
