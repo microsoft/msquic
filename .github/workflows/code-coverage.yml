@@ -203,7 +203,7 @@ jobs:
     - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       name: Download BVT (XDP) Coverage Results
       with:
-        name: BVT-Debug-windows-windows-2022-x64-openssl-xdp
+        name: BVT-Debug-windows-windows-2022-x64-openssl-UseXdp
         path: artifacts\coverage\windows\x64_Debug_openssl
     - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
       name: Download SpinQuic Coverage Results
