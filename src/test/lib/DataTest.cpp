@@ -3577,6 +3577,9 @@ struct ConnectionPriorityTestContext {
     MsQuicStream* StartOrder[128] {0};
     MsQuicStream* SendOrder[128] {0};
 
+    ConnectionPriorityTestContext(uint8_t MaxSend) : MaxSend(MaxSend) {
+    }
+
     static QUIC_STATUS ServerStreamCallback(_In_ MsQuicStream*, _In_opt_ void*, _Inout_ QUIC_STREAM_EVENT*) {
         return QUIC_STATUS_SUCCESS;
     }
@@ -3646,7 +3649,7 @@ static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], u
     // [1[s0]]                                            | [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]
     // [3[s0p, s2p], 2[s00, s02, ..., s(n-1)0, s(n-1)2]]  | []
     UNREFERENCED_PARAMETER(NumConnections);
-    ConnectionPriorityTestContext Context;
+    ConnectionPriorityTestContext Context(ConnectionPriorityTestContext::NumSend + 1);
     MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     Context.ExpectedStream = &Stream1;
@@ -3668,7 +3671,6 @@ static void ConnectionPriorityTest1(UniquePtr<MsQuicConnection> Connections[], u
 
     TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_PRIORITY_WORK));
     TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
-    Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
     Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
 
     for (uint8_t i = 1; i < 3; ++i) {
@@ -3705,7 +3707,7 @@ static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], u
     // [2[s(n-1)0p, s(n-1)2p, s00, s02, ..., s(n-2)0, s(n-2)2], 3[s0p, s2p]]  | []
 
     UNREFERENCED_PARAMETER(NumConnections);
-    ConnectionPriorityTestContext Context;
+    ConnectionPriorityTestContext Context(ConnectionPriorityTestContext::NumSend + 1);
     MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     Context.ExpectedStream = &Stream1;
@@ -3736,7 +3738,6 @@ static void ConnectionPriorityTest2(UniquePtr<MsQuicConnection> Connections[], u
 
     TEST_QUIC_SUCCEEDED(Stream3.Start(QUIC_STREAM_START_FLAG_NONE));
     TEST_QUIC_SUCCEEDED(Stream3.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
-    Context.MaxSend = ConnectionPriorityTestContext::NumSend + 1;
     Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
 
     MsQuicStream* ExpectedStartOrder[ConnectionPriorityTestContext::NumSend + 2] = {0};
@@ -3778,7 +3779,7 @@ static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], u
 
     UNREFERENCED_PARAMETER(NumConnections);
     UNREFERENCED_PARAMETER(Streams);
-    ConnectionPriorityTestContext Context;
+    ConnectionPriorityTestContext Context(5);
     MsQuicStream Stream1(*Connections[0], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     MsQuicStream Stream2(*Connections[1], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
     MsQuicStream Stream3(*Connections[2], QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, ConnectionPriorityTestContext::ClientStreamStartStreamCallback, &Context);
@@ -3803,7 +3804,6 @@ static void ConnectionPriorityTest3(UniquePtr<MsQuicConnection> Connections[], u
     TEST_QUIC_SUCCEEDED(Stream1.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN | QUIC_SEND_FLAG_PRIORITY_WORK));
 
     Context.OperationQueuedComplete.Set(); // All operations are queued. Kick off processing the operations
-    Context.MaxSend = 5;
 
     for (uint8_t i = 1; i < NumConnections; ++i) {
         ConnectionPriorityTestConnectionStart(Connections[i], ClientConfiguration, ServerLocalAddr);
