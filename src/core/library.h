@@ -510,6 +510,9 @@ QuicLibraryOnHandshakeConnectionRemoved(
     void
     );
 
+//
+// Generates a stateless reset token for the given connection ID.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGenerateStatelessResetToken(
