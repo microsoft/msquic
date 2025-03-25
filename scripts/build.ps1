@@ -132,7 +132,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "quictls", "quictls3")]
+    [ValidateSet("schannel", "quictls", "quictls3", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
