@@ -169,14 +169,13 @@ CxPlatSocketCreateUdp(
                 if (IsWildcardAddr && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
                     CxPlatSocketDelete(*NewSocket);
                     continue;
-                } else {
-                    if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                        Status = QUIC_STATUS_SUCCESS;
-                    } else {
-                        CxPlatSocketDelete(*NewSocket);
-                    }
-                    goto Error;
                 }
+                if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
+                    Status = QUIC_STATUS_SUCCESS;
+                } else {
+                    CxPlatSocketDelete(*NewSocket);
+                }
+                goto Error;
             }
         }
         break;
