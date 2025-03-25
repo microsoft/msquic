@@ -573,26 +573,6 @@ tracepoint(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated , arg2);\
 
 
 
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Create stateless retry key");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Create stateless retry key" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryErrorStatus , arg2, arg3);\
-
-#endif
-
-
-
-
 #ifdef __cplusplus
 }
 #endif

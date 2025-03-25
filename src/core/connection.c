@@ -7685,7 +7685,7 @@ QuicConnDrainOperations(
     while (!Connection->State.UpdateWorker &&
            OperationCount++ < MaxOperationCount) {
 
-        Oper = QuicOperationDequeue(Connection->Partition, &Connection->OperQ);
+        Oper = QuicOperationDequeue(&Connection->OperQ, Connection->Partition);
         if (Oper == NULL) {
             HasMoreWorkToDo = FALSE;
             break;
