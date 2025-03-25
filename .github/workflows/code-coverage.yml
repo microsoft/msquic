@@ -63,7 +63,7 @@ jobs:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest -InstallCodeCoverage
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
       shell: pwsh
     - name: Install ETW Manifest
       shell: pwsh
