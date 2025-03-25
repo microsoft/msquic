@@ -53,6 +53,14 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
     CXPLAT_LOCK ResetTokenLock;
 
     //
+    // Used for generating stateless retries.
+    //
+    CXPLAT_DISPATCH_LOCK StatelessRetryKeysLock;
+    CXPLAT_KEY* StatelessRetryKeys[2]; // Encryption of retry tokens
+    int64_t StatelessRetryKeysExpiration[2]; // Timestamp when the current stateless retry key expires.
+    BOOLEAN CurrentStatelessRetryKey; // Index into StatelessRetryKeys.
+
+    //
     // Pools for allocations.
     //
     CXPLAT_POOL ConnectionPool;             // QUIC_CONNECTION
@@ -93,6 +101,28 @@ QuicPartitionUninitialize(
     _Inout_ QUIC_PARTITION* Partition
     );
 
+//
+// Returns the current stateless retry key.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
+CXPLAT_KEY*
+QuicPartitionGetCurrentStatelessRetryKey(
+    _In_ QUIC_PARTITION* Partition
+    );
+
+//
+// Returns the stateless retry key for that timestamp.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
+CXPLAT_KEY*
+QuicPartitionGetStatelessRetryKeyForTimestamp(
+    _In_ QUIC_PARTITION* Partition,
+    _In_ int64_t Timestamp
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 inline
 QUIC_STATUS
 QuicPartitionUpdateStatelessResetKey(

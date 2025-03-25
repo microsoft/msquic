@@ -2347,7 +2347,7 @@ QuicConnGenerateLocalTransportParameters(
 
         LocalTP->Flags |= QUIC_TP_FLAG_STATELESS_RESET_TOKEN;
         QUIC_STATUS Status =
-            QuicPartitionGenerateStatelessResetToken(
+            QuicLibraryGenerateStatelessResetToken(
                 Connection->Partition,
                 SourceCid->CID.Data,
                 LocalTP->StatelessResetToken);
@@ -2357,7 +2357,7 @@ QuicConnGenerateLocalTransportParameters(
                 "[conn][%p] ERROR, %u, %s.",
                 Connection,
                 Status,
-                "QuicPartitionGenerateStatelessResetToken");
+                "QuicLibraryGenerateStatelessResetToken");
             return Status;
         }
 

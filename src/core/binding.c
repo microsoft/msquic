@@ -941,7 +941,7 @@ QuicBindingProcessStatelessOperation(
         ResetPacket->IsLongHeader = FALSE;
         ResetPacket->FixedBit = 1;
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
-        QuicPartitionGenerateStatelessResetToken(
+        QuicLibraryGenerateStatelessResetToken(
             Partition,
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
@@ -996,11 +996,12 @@ QuicBindingProcessStatelessOperation(
             CxPlatCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
         }
 
-        CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockAcquire(&Partition->StatelessRetryKeysLock);
 
-        CXPLAT_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+        CXPLAT_KEY* StatelessRetryKey =
+            QuicPartitionGetCurrentStatelessRetryKey(Partition);
         if (StatelessRetryKey == NULL) {
-            CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+            CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
             goto Exit;
         }
 
@@ -1011,7 +1012,7 @@ QuicBindingProcessStatelessOperation(
                 sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
                 sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
 
-        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1821,7 +1822,7 @@ QuicBindingSend(
 
     QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
     QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
-    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_SEND_CALLS, 1);
+    QuicPerfCounterIncrement(Partition, QUIC_PERF_COUNTER_UDP_SEND_CALLS);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

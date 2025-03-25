@@ -22,6 +22,7 @@ set(SOURCES
     bbr.c
     datagram.c
     frame.c
+    partition.c
     library.c
     listener.c
     lookup.c

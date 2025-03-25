@@ -32,6 +32,7 @@
     <ClCompile Include="datagram.c" />
     <ClCompile Include="frame.c" />
     <ClCompile Include="injection.c" />
+    <ClCompile Include="partition.c" />
     <ClCompile Include="library.c" />
     <ClCompile Include="listener.c" />
     <ClCompile Include="lookup.c" />

@@ -297,10 +297,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "connection pools",
-            PerProcSize);
-// arg2 = arg2 = "connection pools" = arg2
-// arg3 = arg3 = PerProcSize = arg3
+            "Library Partitions",
+            PartitionsSize);
+// arg2 = arg2 = "Library Partitions" = arg2
+// arg3 = arg3 = PartitionsSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, AllocFailure,
     TP_ARGS(

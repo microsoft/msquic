@@ -56,7 +56,7 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN LazyInitComplete : 1;
 
     //
-    // Tracks whether the library's lazy initialization has completed.
+    // Indicates the app has configured non-default (per-processor) partitioning.
     //
     BOOLEAN CustomPartitions : 1;
 
@@ -78,11 +78,6 @@ typedef struct QUIC_LIBRARY {
     // Indicates if the stateless retry feature is currently enabled.
     //
     BOOLEAN SendRetryEnabled;
-
-    //
-    // Index for the current stateless retry token key.
-    //
-    BOOLEAN CurrentStatelessRetryKey;
 
     //
     // Current binary version.
@@ -118,12 +113,6 @@ typedef struct QUIC_LIBRARY {
     // Total outstanding references from calls to MsQuicOpenVersion.
     //
     uint16_t OpenRefCount;
-
-    //
-    // Number of processors currently being used.
-    //
-    _Field_range_(>, 0)
-    //uint16_t ProcessorCount;
 
     //
     // Number of partitions currently being used.
@@ -208,21 +197,6 @@ typedef struct QUIC_LIBRARY {
     //
     _Field_size_(PartitionCount)
     QUIC_PARTITION* Partitions;
-
-    //
-    // Controls access to the stateless retry keys when rotated.
-    //
-    CXPLAT_DISPATCH_LOCK StatelessRetryKeysLock; // TODO - Move to Partition
-
-    //
-    // Keys used for encryption of stateless retry tokens.
-    //
-    CXPLAT_KEY* StatelessRetryKeys[2];
-
-    //
-    // Timestamp when the current stateless retry key expires.
-    //
-    int64_t StatelessRetryKeysExpiration[2];
 
     //
     // The Toeplitz hash used for hashing received long header packets.
@@ -519,26 +493,6 @@ QuicLibraryGetWorker(
     );
 
 //
-// Returns the current stateless retry key.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetCurrentStatelessRetryKey(
-    void
-    );
-
-//
-// Returns the stateless retry key for that timestamp.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetStatelessRetryKeyForTimestamp(
-    _In_ int64_t Timestamp
-    );
-
-//
 // Called when a new (server) connection is added in the handshake state.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -556,39 +510,15 @@ QuicLibraryOnHandshakeConnectionRemoved(
     void
     );
 
-CXPLAT_STATIC_ASSERT(
-    CXPLAT_HASH_SHA256_SIZE >= QUIC_STATELESS_RESET_TOKEN_LENGTH,
-    "Stateless reset token must be shorter than hash size used");
-
-inline
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicPartitionGenerateStatelessResetToken(
+QuicLibraryGenerateStatelessResetToken(
     _In_ QUIC_PARTITION* Partition,
     _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
-    )
-{
-    uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
-    CxPlatLockAcquire(&Partition->ResetTokenLock);
-    QUIC_STATUS Status =
-        CxPlatHashCompute(
-            Partition->ResetTokenHash,
-            CID,
-            MsQuicLib.CidTotalLength,
-            sizeof(HashOutput),
-            HashOutput);
-    CxPlatLockRelease(&Partition->ResetTokenLock);
-    if (QUIC_SUCCEEDED(Status)) {
-        CxPlatCopyMemory(
-            ResetToken,
-            HashOutput,
-            QUIC_STATELESS_RESET_TOKEN_LENGTH);
-    }
-    return Status;
-}
+    );
 
 #if defined(__cplusplus)
 }
