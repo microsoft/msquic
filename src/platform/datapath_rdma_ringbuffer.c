@@ -25,7 +25,7 @@ Abstract:
 QUIC_STATUS
 RdmaSendRingBufferInitialize(
     _In_ uint8_t* Buffer,
-    _In_ size_t Capacity,
+    _In_ uint32_t Capacity,
     _Inout_ RDMA_SEND_RING_BUFFER** SendRingBuffer
     )
 {
@@ -89,9 +89,9 @@ RdmaSendRingBufferUnInitialize(
 QUIC_STATUS
 RdmaRecvRingBufferInitialize(
     _In_ uint8_t*  Buffer,
-    _In_ size_t Capacity,
+    _In_ uint32_t Capacity,
     _In_opt_ uint8_t* OffsetBuffer,
-    _In_ size_t  OffsetBufferSize,
+    _In_ uint32_t  OffsetBufferSize,
     _Inout_ RDMA_RECV_RING_BUFFER** RecvRingBuffer
     )
 
@@ -162,9 +162,9 @@ RdmaRecvRingBufferUnInitialize(
 QUIC_STATUS
 RdmaSendRingBufferReserve(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
-    _In_ size_t Length,
+    _In_ uint32_t Length,
     _Out_ uint8_t** Buffer,
-    _Out_ size_t *AllocLength
+    _Out_ uint32_t *AllocLength
     )
 {
     if (SendRingBuffer == NULL ||
@@ -183,7 +183,7 @@ RdmaSendRingBufferReserve(
     }
     else if (SendRingBuffer->Size != 0)
     {
-        size_t AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->Size;
+        uint32_t AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->Size;
 
         if (AvailableSpace < Length || AvailableSpace < MIN_FREE_BUFFER_THRESHOLD)
         {
@@ -236,7 +236,7 @@ RdmaSendRingBufferReserve(
 QUIC_STATUS
 RdmaSendRingBufferRelease(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
-    _In_ size_t Length,
+    _In_ uint32_t Length,
     _In_ uint8_t* Buffer
     )
 {
@@ -271,9 +271,9 @@ RdmaSendRingBufferRelease(
 QUIC_STATUS
 RdmaRemoteRecvRingBufferReserve(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
-    _In_ size_t Length,
+    _In_ uint32_t Length,
     _Out_ uint8_t** Buffer,
-    _Out_ size_t* AllocLength
+    _Out_ uint32_t* AllocLength
     )
 {
     if (RecvRingBuffer == NULL ||
@@ -292,7 +292,7 @@ RdmaRemoteRecvRingBufferReserve(
     }
     else if (RecvRingBuffer->Size != 0)
     {
-        size_t AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->Size;
+        uint32_t AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->Size;
 
         if (AvailableSpace < Length || AvailableSpace < MIN_FREE_BUFFER_THRESHOLD)
         {
@@ -345,7 +345,7 @@ QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t* Buffer,
-    _In_ size_t Length
+    _In_ uint32_t Length
     )
 {
     if (RecvRingBuffer == NULL ||
