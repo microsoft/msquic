@@ -1486,7 +1486,7 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+    Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1500,9 +1500,9 @@ SocketCreateUdp(
     //
     // Servers always initialize everything.
     //
-    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->UseTcp && !IsServerSocket) ? 1 : SocketCount);
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Socket->UseTcp && !IsServerSocket) {
+    if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
         //
         // Skip normal socket settings to use AuxSocket in raw socket
         //
@@ -2082,7 +2082,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
+    if (!Socket->ReserveAuxTcpSock) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2625,7 +2625,7 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp && Socket->HasFixedRemoteAddress) {
+    if (Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) {
         // QTIP did not initialize PerProcSockets only for Client sockets.
         CxPlatSocketRelease(Socket);
     } else {

@@ -1335,7 +1335,7 @@ CxPlatDpRawPlumbRulesOnSocket(
     _In_ BOOLEAN IsCreated
     )
 {
-    BOOLEAN UseQTIP = Socket->UseTcp;
+    BOOLEAN UseQTIP = Socket->ReserveAuxTcpSock;
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
         XDP_RULE Rules[5] = {0};
