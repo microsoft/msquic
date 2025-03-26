@@ -85,6 +85,7 @@ fn cmake_build() {
     }
 }
 
+#[cfg(feature = "find")]
 mod find {
     use std::path::{Path, PathBuf};
 
