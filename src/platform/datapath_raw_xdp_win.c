@@ -1882,3 +1882,127 @@ CxPlatIoXdpShutdownEventComplete(
         Partition);
     CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t RssConfigSize = 0;
+    XDP_RSS_CONFIGURATION *RawRssConfig = NULL;
+
+    CXPLAT_DBG_ASSERT(RssConfig != NULL);
+
+    *RssConfig = NULL;
+
+    HANDLE InterfaceHandle = NULL;
+    HRESULT Result = XdpInterfaceOpen(InterfaceIndex, &InterfaceHandle);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpInterfaceOpen");
+        Status = Result;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
+    if (Result != HRESULT_FROM_WIN32(ERROR_MORE_DATA)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet size");
+        Status = FAILED(Result) ? Result : QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    RawRssConfig = CXPLAT_ALLOC_PAGED(RssConfigSize, QUIC_POOL_TMP_ALLOC);
+    if (RawRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet");
+        Status = Result;
+        goto Error;
+    }
+
+    CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(PROCESSOR_NUMBER), "Ensure same size");
+    RssConfigSize = sizeof(CXPLAT_RSS_CONFIG) +
+        RawRssConfig->HashSecretKeySize +
+        RawRssConfig->IndirectionTableSize;
+    CXPLAT_RSS_CONFIG* NewRssConfig =
+        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_PAGED(
+            RssConfigSize,
+            QUIC_POOL_DATAPATH_RSS_CONFIG);
+    if (NewRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    NewRssConfig->HashTypes = RawRssConfig->HashType;
+
+    NewRssConfig->RssSecretKey = (uint8_t*)(NewRssConfig + 1);
+    NewRssConfig->RssSecretKeyLength = RawRssConfig->HashSecretKeySize;
+    CxPlatCopyMemory(
+        NewRssConfig->RssSecretKey,
+        RTL_PTR_ADD(RawRssConfig, RawRssConfig->HashSecretKeyOffset),
+        NewRssConfig->RssSecretKeyLength);
+
+    NewRssConfig->RssIndirectionTable =
+        (uint32_t*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
+    NewRssConfig->RssIndirectionTableCount = RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER);
+
+    CXPLAT_DBG_ASSERT(
+        RawRssConfig->IndirectionTableSize ==
+        NewRssConfig->RssIndirectionTableCount * sizeof(PROCESSOR_NUMBER));
+
+    PROCESSOR_NUMBER* IndirectionTable =
+        (PROCESSOR_NUMBER*)RTL_PTR_ADD(
+            RawRssConfig,
+            RawRssConfig->IndirectionTableOffset);
+
+    for (uint32_t i = 0; i < RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER); i++) {
+        NewRssConfig->RssIndirectionTable[i] = CxPlatProcNumberToIndex(&IndirectionTable[i]);
+    }
+
+    *RssConfig = NewRssConfig;
+    NewRssConfig = NULL;
+
+Error:
+    if (RawRssConfig != NULL) {
+        CXPLAT_FREE(RawRssConfig, QUIC_POOL_TMP_ALLOC);
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
+}
