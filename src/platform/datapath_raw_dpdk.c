@@ -617,7 +617,7 @@ CxPlatDpRawRxFree(
         const DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
         rte_pktmbuf_free(Packet->Mbuf);
-        CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
+        CxPlatPoolFree((void*)Packet);
     }
 }
 
@@ -645,7 +645,7 @@ CxPlatDpRawTxAlloc(
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;
             Packet->Mbuf->l3_len = HeaderFill.NetworkLayer;
         } else {
-            CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+            CxPlatPoolFree(Packet);
             Packet = NULL;
         }
     }
@@ -660,7 +660,7 @@ CxPlatDpRawTxFree(
 {
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
     rte_pktmbuf_free(Packet->Mbuf);
-    CxPlatPoolFree(&Packet->Dpdk->AdditionalInfoPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -683,7 +683,7 @@ CxPlatDpRawTxEnqueue(
             "No room in DPDK TX ring buffer");
     }
 
-    CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+    CxPlatPoolFree(Packet);
 }
 
 static

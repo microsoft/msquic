@@ -530,6 +530,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     sizeof(INT32),
+    sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -571,6 +573,7 @@ typedef union {
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
     BOOLEAN EnableResumption;
+    QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS ConnPoolCreateParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -1521,6 +1524,20 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+        break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectionPoolCreate(
+                Params->ConnPoolCreateParams.Family,
+                Params->ConnPoolCreateParams.NumberOfConnections,
+                Params->ConnPoolCreateParams.XdpSupported,
+                Params->ConnPoolCreateParams.TestCibirSupport));
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
+        QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
         break;
 #endif
 

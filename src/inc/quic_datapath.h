@@ -42,6 +42,12 @@ extern "C" {
 #define CXPLAT_TCP_HEADER_SIZE 20
 
 //
+// The minimum and maximum ephemeral ports according to RFC 6335.
+//
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
+//
 // Different types of Explicit Congestion Notifications
 //
 typedef enum CXPLAT_ECN_TYPE {
@@ -857,6 +863,47 @@ void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
+    );
+
+//
+// Get the RSS Configuration of the interface.
+//
+typedef enum CXPLAT_RSS_HASH_TYPE {
+    CXPLAT_RSS_HASH_TYPE_IPV4        = 0x001,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV4    = 0x002,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV4    = 0x004,
+    CXPLAT_RSS_HASH_TYPE_IPV6        = 0x008,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6    = 0x010,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6    = 0x020,
+    CXPLAT_RSS_HASH_TYPE_IPV6_EX     = 0x040,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX = 0x080,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX = 0x100
+} CXPLAT_RSS_HASH_TYPE;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_RSS_HASH_TYPE)
+
+typedef struct CXPLAT_RSS_CONFIG {
+    CXPLAT_RSS_HASH_TYPE HashTypes;
+    uint32_t RssSecretKeyLength;
+    uint32_t RssIndirectionTableCount;
+    _Field_size_bytes_(RssSecretKeyLength)
+    uint8_t* RssSecretKey;
+    _Field_size_(RssIndirectionTableCount)
+    uint32_t* RssIndirectionTable;      // Converted to processor indices from platform-specific representation.
+} CXPLAT_RSS_CONFIG;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
     );
 
 #if defined(__cplusplus)

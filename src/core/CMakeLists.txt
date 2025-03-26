@@ -16,6 +16,7 @@ set(SOURCES
     configuration.c
     congestion_control.c
     connection.c
+    connection_pool.c
     crypto.c
     crypto_tls.c
     cubic.c

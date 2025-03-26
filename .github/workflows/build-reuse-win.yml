@@ -35,6 +35,7 @@ on:
         # options:
         #   - windows-2019
         #   - windows-2022
+        #   - windows-2025
       arch:
         required: false
         default: 'x64'
@@ -82,7 +83,7 @@ jobs:
       with:
         perl-version: '5.34'
     - name: Install NASM
-      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}

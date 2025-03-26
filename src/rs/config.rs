@@ -183,6 +183,7 @@ impl CertificateHash {
     }
 
     /// Construct from string hash.
+    #[allow(clippy::should_implement_trait)]
     pub fn from_str(s: &str) -> Result<Self, crate::Status> {
         Ok(Self::new(Self::decode_hex(s)?))
     }
@@ -224,7 +225,7 @@ impl CertificateHash {
 pub struct CertificateHashStore(crate::ffi::QUIC_CERTIFICATE_HASH_STORE);
 
 impl CertificateHashStore {
-    pub fn new(flags: CertificatHashStoreFlags, hash: [u8; 20], store_name: String) -> Self {
+    pub fn new(flags: CertificateHashStoreFlags, hash: [u8; 20], store_name: String) -> Self {
         // prepare slice with nul terminator
         let c_str = CString::new(store_name).unwrap();
         let c_slice = c_str.as_bytes_with_nul();
@@ -245,7 +246,7 @@ impl CertificateHashStore {
 bitflags::bitflags! {
     /// Modifies the default credential configuration.
     #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-    pub struct CertificatHashStoreFlags: crate::ffi::QUIC_CERTIFICATE_HASH_STORE_FLAGS {
+    pub struct CertificateHashStoreFlags: crate::ffi::QUIC_CERTIFICATE_HASH_STORE_FLAGS {
         const NONE = crate::ffi::QUIC_CERTIFICATE_HASH_STORE_FLAGS_QUIC_CERTIFICATE_HASH_STORE_FLAG_NONE;
         const MACHINE_STORE = crate::ffi::QUIC_CERTIFICATE_HASH_STORE_FLAGS_QUIC_CERTIFICATE_HASH_STORE_FLAG_MACHINE_STORE;
     }
@@ -427,7 +428,7 @@ impl Default for AllowedCipherSuiteFlags {
 mod tests {
     use crate::{
         config::{
-            CertificatHashStoreFlags, CertificateFile, CertificateHash, CertificateHashStore,
+            CertificateFile, CertificateHash, CertificateHashStore, CertificateHashStoreFlags,
             Credential,
         },
         BufferRef, Configuration, Registration, RegistrationConfig, Settings, StatusCode,
@@ -495,7 +496,7 @@ mod tests {
             // cert with empty hash store.
             let cred_config = cred_config.set_credential(Credential::CertificateHashStore(
                 CertificateHashStore::new(
-                    CertificatHashStoreFlags::MACHINE_STORE,
+                    CertificateHashStoreFlags::MACHINE_STORE,
                     [0; 20],
                     String::from("MY"),
                 ),

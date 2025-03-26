@@ -46,19 +46,19 @@ typedef struct QUIC_HANDLE {
 typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
 
     //
-    // Pool for QUIC_CONNECTIONs.
+    // Per-processor pools for allocations.
     //
-    CXPLAT_POOL ConnectionPool;
-
-    //
-    // Pool for QUIC_TRANSPORT_PARAMETERs.
-    //
-    CXPLAT_POOL TransportParamPool;
-
-    //
-    // Pool for QUIC_PACKET_SPACE.
-    //
-    CXPLAT_POOL PacketSpacePool;
+    CXPLAT_POOL ConnectionPool;             // QUIC_CONNECTION
+    CXPLAT_POOL TransportParamPool;         // QUIC_TRANSPORT_PARAMETER
+    CXPLAT_POOL PacketSpacePool;            // QUIC_PACKET_SPACE
+    CXPLAT_POOL StreamPool;                 // QUIC_STREAM
+    CXPLAT_POOL DefaultReceiveBufferPool;   // QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE
+    CXPLAT_POOL SendRequestPool;            // QUIC_SEND_REQUEST
+    QUIC_SENT_PACKET_POOL SentPacketPool;   // QUIC_SENT_PACKET_METADATA
+    CXPLAT_POOL ApiContextPool;             // QUIC_API_CONTEXT
+    CXPLAT_POOL StatelessContextPool;       // QUIC_STATELESS_CONTEXT
+    CXPLAT_POOL OperPool;                   // QUIC_OPERATION
+    CXPLAT_POOL AppBufferChunkPool;         // QUIC_RECV_CHUNK
 
     //
     // Used for generating stateless reset hashes.
@@ -302,25 +302,35 @@ extern QUIC_LIBRARY MsQuicLib;
 _IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 uint16_t
-QuicLibraryGetCurrentPartition(
-    void
+QuicLibraryGetPartitionFromProcessorIndex(
+    uint32_t ProcessorIndex
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
-    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
     if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
         CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
         //
         // Try to find a partition close to the current processor.
         //
         for (uint32_t i = 0; i < MsQuicLib.ExecutionConfig->ProcessorCount; ++i) {
-            if (CurrentProc <= MsQuicLib.ExecutionConfig->ProcessorList[i]) {
+            if (ProcessorIndex <= MsQuicLib.ExecutionConfig->ProcessorList[i]) {
                 return (uint16_t)i;
             }
         }
         return (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount - 1;
     }
-    return CurrentProc % MsQuicLib.PartitionCount;
+    return (uint16_t)(ProcessorIndex % MsQuicLib.PartitionCount);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+uint16_t
+QuicLibraryGetCurrentPartition(
+    void
+    )
+{
+    const uint32_t CurrentProc = CxPlatProcCurrentNumber();
+    return QuicLibraryGetPartitionFromProcessorIndex(CurrentProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
