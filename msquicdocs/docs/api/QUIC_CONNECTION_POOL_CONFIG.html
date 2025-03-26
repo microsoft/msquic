@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_CONNECTION_POOL_CONFIG structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_CONNECTION_POOL_CONFIG structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_CONNECTION_POOL_CONFIG.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_connection_pool_config-structure">QUIC_CONNECTION_POOL_CONFIG structure</h1>
+
+<p>The configuration for creating a connection pool.</p>
+<div class="WARNING">
+<h5>Warning</h5>
+<p>This API is still in preview and may change in the future!</p>
+</div>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef enum QUIC_CONNECTION_POOL_FLAGS {
+    QUIC_CONNECTION_POOL_FLAG_NONE =                            0x00000000,
+    QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE =    0x00000001,
+} QUIC_CONNECTION_POOL_FLAGS;
+
+typedef struct QUIC_CONNECTION_POOL_CONFIG {
+    HQUIC Registration;
+    HQUIC Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER Handler;
+    _Field_size_opt_(NumberOfConnections)
+        void** Context;                         // Optional
+    _Field_z_ const char* ServerName;
+    const QUIC_ADDR* ServerAddress;             // Optional
+    QUIC_ADDRESS_FAMILY Family;
+    uint16_t ServerPort;
+    uint16_t NumberOfConnections;
+    _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
+    _Field_size_opt_(NumberOfConnections)
+        uint8_t** CibirIds;                     // Optional
+    uint8_t CibirIdLength;                      // Zero if not using CIBIR
+    QUIC_CONNECTION_POOL_FLAGS Flags;
+} QUIC_CONNECTION_POOL_CONFIG;
+</code></pre>
+<h1 id="members">Members</h1>
+<p><code>Registration</code></p>
+<p>The valid handle to an open registration object.</p>
+<p><code>Configuration</code></p>
+<p>The valid handle to an open and loaded configuration object that is used to create each connection in the pool.</p>
+<p><code>Handler</code></p>
+<p>A pointer to the app's callback handler to be invoked for all connection events.</p>
+<p><code>Context</code></p>
+<p>The array of app context pointers (possibly null). The first is associated with the first connection created, the second with the second connection, etc.</p>
+<p><code>ServerName</code></p>
+<p>The name of the server to connect to. It may also be an IP literal.</p>
+<p><code>ServerAddress</code></p>
+<p>An optional pointer to a <code>QUIC_ADDR</code> specifying the specific IP address to connect to. Takes precedence over the resolved <code>ServerName</code> address.</p>
+<p><code>Family</code></p>
+<p>The address family to use for resolving the IP address of the <em>ServerName</em> parameter. Supported values definitions are supported (The values are platform specific):</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_UNSPEC</strong><br></td>
+<td>Unspecified address family.</td>
+</tr>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_INET</strong><br></td>
+<td>Version 4 IP address family.</td>
+</tr>
+<tr>
+<td><strong>QUIC_ADDRESS_FAMILY_INET6</strong><br></td>
+<td>Version 6 IP address family.</td>
+</tr>
+</tbody>
+</table>
+<p><code>ServerPort</code></p>
+<p>The UDP port, in host byte order, to connect to on the server.</p>
+<p><code>NumberOfConnections</code></p>
+<p>The number of connections to create in this connection pool.
+If this number is greater than the number of RSS CPUs configured on the system, then multiple connections will end up on the same CPU, potentially hurting performance.</p>
+<p><code>CibirIds</code></p>
+<p>An optional pointer to an array of pointers to <code>uint8_t</code>s specifying the <a href="https://datatracker.ietf.org/doc/html/draft-banks-quic-cibir">CIBIR ID</a> to use for each connection. All CIBIR IDs must be the same length.  Not allowed to be non-NULL if <code>CibirIdLength</code> is zero.</p>
+<p><code>CibirIdLength</code></p>
+<p>The number of bytes in each CIBIR ID. Not allowed to be zero if <code>CibirIds</code> is non-NULL.</p>
+<p><code>Flags</code></p>
+<p>Flags which affect settings on the connections or how the pool is created.
+| Flag | Effect |
+|------|--------|
+| QUIC_CONNECTION_POOL_FLAG_NONE | Nothing |
+| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to close all <em>started</em> connections in the pool if an error occurrs while creating the pool. <strong>Note:</strong> The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned from <code>ConnectionPoolCreate</code>. |</p>
+<h1 id="see-also">See Also</h1>
+<p><a href="ConnectionPoolCreate.html">ConnectionPoolCreate</a><br>
+<a href="ConnectionOpen.html">ConnectionOpen</a><br>
+<a href="ConnectionStart.html">ConnectionStart</a><br>
+<a href="ConnectionShutdown.html">ConnectionShutdown</a><br>
+<a href="ConnectionClose.html">ConnectionClose</a><br>
+<a href="QUIC_CONNECTION_CALLBACK.html">QUIC_CONNECTION_CALLBACK</a><br>
+<a href="QUIC_CONNECTION_EVENT.html">QUIC_CONNECTION_EVENT</a><br>
+<a href="QUIC_SETTINGS.html">QUIC_SETTINGS</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_CONNECTION_POOL_CONFIG.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
