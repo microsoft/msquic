@@ -163,6 +163,16 @@ QuicPartitionIndexDecrement(
     uint16_t Decrement
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPartitionUpdateStatelessResetKey(
+    _Inout_ QUIC_PARTITION* Partition,
+    _In_ CXPLAT_HASH_TYPE HashType,
+    _In_reads_(ResetHashKeyLength)
+        const uint8_t* const ResetHashKey,
+    _In_ uint32_t ResetHashKeyLength
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPerfCounterAdd(

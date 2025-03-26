@@ -12,14 +12,14 @@ Abstract:
     The primary goal of partitioning is to allow multiple threads to allocate
     and free pool memory simultaneously without contention. It also maintains
     isolation for other state that may be commonly accessed by multiple threads,
-    such as performance counters and stateless resets and retries.ABC
+    such as performance counters and stateless resets and retries.
 
-    A partition is always (soft) affinitized to a specific processor. By default,
-    partitions are one to one with processors. Though, an application may choose
-    to create partitions on a subset of processors. In this case, the partition
-    will be shared by all processors that are not explicitly affinitized to a
-    partition, though generally the library will try to only execute on those
-    specified processors.
+    A partition is always (soft) affinitized to a single, specific processor. By
+    default, partitions are one to one with processors. Though, an application
+    may choose to create partitions on a subset of processors. In this case, the
+    partition may be use by work queued on processors that are not explicitly
+    affinitized to a partition. In general, though, the library will try to only
+    execute on those processors with assigned partitions.
 
 --*/
 
