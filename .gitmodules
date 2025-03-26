@@ -8,7 +8,7 @@
 [submodule "submodules/openssl3"]
 	path = submodules/openssl3
 	url = https://github.com/quictls/openssl.git
-	branch = openssl-3.1.4+quic
+	branch = openssl-3.3.0+quic
 [submodule "submodules/clog"]
 	path = submodules/clog
 	url = https://github.com/microsoft/CLOG.git
