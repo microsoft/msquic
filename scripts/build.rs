@@ -92,14 +92,13 @@ mod find {
     /// Find and use preinstalled msquic binaries.
     pub(crate) fn find() {
         let out_dir = std::path::PathBuf::from(std::env::var("OUT_DIR").unwrap());
-        // On linux try the known install location of libmsquic pkg.
         let libs = if cfg!(target_os = "linux") {
-            try_system_location()
+            // On linux try the known install location of libmsquic pkg.
+            try_system_location().expect("cannot find msquic in system")
         } else {
-            None
+            // On windows try find from vcpkg.
+            try_vcpkg().expect("cannot find msquic in vcpkg")
         };
-        // Try find msquic in vcpkg.
-        let libs = libs.unwrap_or_else(|| try_vcpkg().expect("cannot find use system and vcpkg"));
         #[cfg(target_os = "windows")]
         copy_libs(&libs, &out_dir);
 
@@ -169,7 +168,7 @@ mod find {
         Some(libs)
     }
 
-    /// Try get from system installed location.
+    /// Try get from system installed location. Linux only.
     fn try_system_location() -> Option<Vec<PathBuf>> {
         let installed_dir = "/usr/lib/x86_64-linux-gnu";
         let libs = get_preinstalled_libs(&PathBuf::from(installed_dir));

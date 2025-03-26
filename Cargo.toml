@@ -52,7 +52,7 @@ default = ["src"]
 # Build c code from source
 src = [ "dep:cmake" ]
 # Find prebuilt msquic. Use vcpkg installed location on Windows,
-# while use system installed location first and then use vcpkg location on linux.
+# while use system installed location on linux.
 # MacOs is not supported.
 find = [] 
 # Windows uses schannel, and linux uses openssl by default. 
