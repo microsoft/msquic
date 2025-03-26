@@ -3550,6 +3550,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x05000019")]
         internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x05000019;
 
+        [NativeTypeName("#define QUIC_PARAM_CONN_QTIP 0x0500001A")]
+        internal const uint QUIC_PARAM_CONN_QTIP = 0x0500001A;
+
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
 

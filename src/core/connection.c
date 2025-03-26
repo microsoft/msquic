@@ -1851,7 +1851,9 @@ QuicConnStart(
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
-            &Path->Binding);
+            &Path->Binding,
+            Connection->State.UseQTIP,
+            Connection->State.AppDidSetQTIP);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
@@ -2244,7 +2246,9 @@ QuicConnGenerateLocalTransportParameters(
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
-                Connection->Paths[0].Binding->Socket));
+                Connection->Paths[0].Binding->Socket,
+                Connection->Paths[0].Route.UseQTIP
+            ));
     LocalTP->MaxAckDelay = QuicConnGetAckDelay(Connection);
     LocalTP->MinAckDelay =
         MsQuicLib.ExecutionConfig != NULL &&
@@ -6221,7 +6225,9 @@ QuicConnParamSet(
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,
-                    &Connection->Paths[0].Binding);
+                    &Connection->Paths[0].Binding,
+                    Connection->State.UseQTIP,
+                    Connection->State.AppDidSetQTIP);
             if (QUIC_FAILED(Status)) {
                 Connection->Paths[0].Binding = OldBinding;
                 break;
@@ -6638,6 +6644,25 @@ QuicConnParamSet(
             "Connection DSCP set to %hhu",
             Connection->DSCP);
 
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_CONN_QTIP: {
+        if (QuicConnIsServer(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (BufferLength != sizeof(BOOLEAN) || Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        if (Connection->State.Started) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        Connection->State.UseQTIP = *(BOOLEAN*)Buffer;
+        Connection->State.AppDidSetQTIP = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
@@ -7275,6 +7300,28 @@ QuicConnParamGet(
             sizeof(Connection->DSCP));
 
         *BufferLength = sizeof(Connection->DSCP);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_QTIP:
+        if (QuicConnIsServer(Connection)) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.UseQTIP;
+
         Status = QUIC_STATUS_SUCCESS;
         break;
 

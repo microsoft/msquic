@@ -1781,7 +1781,8 @@ TEST_P(WithSendArgs1, Send) {
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
             (uint8_t)GetParam().ServerInitiatedStreams,
-            0   // FifoScheduling
+            0,   // FifoScheduling
+            0,   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1799,7 +1800,8 @@ TEST_P(WithSendArgs1, Send) {
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
             GetParam().ServerInitiatedStreams,
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            true); // SendUdpToQtipListener
     }
 }
 
@@ -1820,7 +1822,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            1   // FifoScheduling
+            1,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1838,7 +1841,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            true);  // FifoScheduling
+            true,   // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1859,7 +1863,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1877,7 +1882,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1910,7 +1916,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1928,7 +1935,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1958,7 +1966,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             0,  // UseSendBuffer
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1976,7 +1985,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             false,  // UseSendBuffer
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
