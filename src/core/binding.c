@@ -1620,7 +1620,7 @@ QuicBindingReceive(
 
     CXPLAT_DBG_ASSERT(DatagramChain->PartitionIndex < MsQuicLib.PartitionCount);
     QUIC_PARTITION* Partition = &MsQuicLib.Partitions[DatagramChain->PartitionIndex];
-    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
+    const uint64_t PartitionShifted = ((uint64_t)Partition->Index + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
