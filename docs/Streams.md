@@ -45,8 +45,8 @@ If there is no room to copy the data, then MsQuic will hold onto the buffer unti
 With this mode, the app can easily "keep the pipe full" using only a single outstanding send: It continually keeps a single send pending on the stream. As soon as the send is completed, the app immediately queues a new send again with any new data it needs to transmit.
 
 This is seen by many as the simplest design for apps, and it allows great performances by ensuring MsQuic send path never runs idle.
-
 However, internal buffering introduces an additional copy in the data path, which can be a performance draw back for some application.
+
 MsQuic also supports another buffering mode that requires no internal copy of the data: MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
 
 To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle.
