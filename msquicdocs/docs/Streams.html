@@ -106,14 +106,21 @@
 <p>When calling <a href="api/StreamStart.html">StreamStart</a> the app passes a set of <code>QUIC_STREAM_START_FLAGS</code> flags to control the behavior. Starting the stream <strong>always</strong> results in a <code>QUIC_STREAM_EVENT_START_COMPLETE</code> event, regardless of success/fail or synchronous/asynchronous flags.</p>
 <p>For peer initiated streams, the app gets a <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> event on the connection. A stream is officially started when this event or the <code>QUIC_STREAM_EVENT_START_COMPLETE</code> event is received.</p>
 <h1 id="sending">Sending</h1>
-<p>An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the <a href="api/StreamSend.html">StreamSend</a> API send data. MsQuic holds on to any buffers queued via <a href="api/StreamSend.html">StreamSend</a> until they have been completed via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event.</p>
+<p>An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the <a href="api/StreamSend.html">StreamSend</a> API to send data.
+MsQuic holds on to any buffers queued via <a href="api/StreamSend.html">StreamSend</a> until they have been completed via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event:
+the app must not free, reuse or otherwise access the buffers provided through <a href="api/StreamSend.html">StreamSend</a> before the matching completion notification.</p>
 <h2 id="send-buffering">Send Buffering</h2>
-<p>There are two buffering modes for sending supported by MsQuic. The first mode has MsQuic buffer the stream data internally. As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event. If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.</p>
-<p>With this mode, the app can &quot;keep the pipe full&quot; using only a single outstanding send. It continually keeps a send pending on the stream. When the send is completed, the app immediately queues a send again with any new data it has.</p>
-<p>This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. <strong>This is the default MsQuic behavior.</strong></p>
-<p>The other buffering mode supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.</p>
-<p>To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the <code>QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE</code> event. The app should always have at least two sends pending at a time. If only a single send is used, the connection can go idle for the time between that send is completed and the new send is queued.</p>
-<p>By default, this mode is not used. To enable this mode, the app must call <a href="api/SetParam.html">SetParam</a> on the connection with the <code>QUIC_PARAM_CONN_SEND_BUFFERING</code> parameter set to <code>FALSE</code>.</p>
+<p><strong>By default</strong>, MsQuic buffers the stream data internally when <a href="api/StreamSend.html">StreamSend</a> is called by an app.
+As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the <code>QUIC_STREAM_EVENT_SEND_COMPLETE</code> event.
+If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.</p>
+<p>With this mode, the app can easily &quot;keep the pipe full&quot; using only a single outstanding send: It continually keeps a single send pending on the stream. As soon as the send is completed, the app immediately queues a new send again with any new data it needs to transmit.</p>
+<p>This is seen by many as the simplest design for apps, and it allows great performances by ensuring MsQuic send path never runs idle.
+However, internal buffering introduces an additional copy in the data path, which can be a performance draw back for some application.</p>
+<p>MsQuic also supports another buffering mode that requires no internal copy of the data: MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.</p>
+<p>To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle.
+MsQuic indicates the amount of data the app should keep pending in the <code>QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE</code> event.
+The app should always have at least two sends pending at a time: If only a single send is used, the connection will go idle for the interval of time between when a send is completed and a new send is queued.</p>
+<p>To disable internal send buffering and use the second mode, the app must set <code>SendBufferingEnabled</code> to <code>FALSE</code> through <a href="Settings.html">MsQuic settings</a>.</p>
 <h2 id="send-shutdown">Send Shutdown</h2>
 <p>The send direction can be shut down in three different ways:</p>
 <ul>
