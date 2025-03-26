@@ -55,3 +55,26 @@ jobs:
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty
+  # Test rust crate with preinstalled msquic lib.
+  cargo-preinstall:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+    runs-on: ${{ matrix.os }}
+    name: Cargo-Preinstall
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Install msquic from apt
+      run: |
+        wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
+        sudo dpkg -i packages-microsoft-prod.deb;
+        sudo apt-get update;
+        suto apt-get install libmsquic;
+    - name: Cargo test
+      run: cargo test --all --no-default-features --features find
