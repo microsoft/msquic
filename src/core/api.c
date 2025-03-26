@@ -61,9 +61,14 @@ MsQuicConnectionOpen(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
+    //
+    // Just use the current partition // for now. Once the connection receives a
+    // packet the partition can be updated accordingly.
+    //
     Status =
         QuicConnAlloc(
             Registration,
+            QuicLibraryGetCurrentPartition(),
             NULL,
             NULL,
             &Connection);

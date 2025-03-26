@@ -57,6 +57,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_PARTITION* Partition,
     _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const QUIC_RX_PACKET* Packet,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
@@ -67,15 +68,6 @@ QuicConnAlloc(
     *NewConnection = NULL;
     QUIC_STATUS Status;
 
-    //
-    // For client, the datapath partitioning info is not known yet, so just use
-    // the current processor for now. Once the connection receives a packet the
-    // partition can be updated accordingly.
-    //
-    CXPLAT_DBG_ASSERT(
-        !IsServer || Packet->PartitionIndex < MsQuicLib.PartitionCount);
-    QUIC_PARTITION* Partition =
-        IsServer ? &MsQuicLib.Partitions[Packet->PartitionIndex] : QuicLibraryGetCurrentPartition();
     const uint16_t PartitionId = QuicPartitionIdCreate(Partition->Index);
     CXPLAT_DBG_ASSERT(Partition->Index == QuicPartitionIdGetIndex(PartitionId));
 
@@ -1745,7 +1737,8 @@ QuicConnStart(
     _In_ QUIC_CONFIGURATION* Configuration,
     _In_ QUIC_ADDRESS_FAMILY Family,
     _In_opt_z_ const char* ServerName,
-    _In_ uint16_t ServerPort // Host byte order
+    _In_ uint16_t ServerPort, // Host byte order
+    _In_ QUIC_CONN_START_FLAGS StartFlags
     )
 {
     QUIC_STATUS Status;
@@ -1936,7 +1929,9 @@ Exit:
     if (QUIC_FAILED(Status)) {
         QuicConnCloseLocally(
             Connection,
-            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
+                QUIC_CLOSE_SILENT | QUIC_CLOSE_QUIC_STATUS :
+                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)Status,
             NULL);
     }
@@ -7488,7 +7483,8 @@ QuicConnProcessApiOperation(
                 ApiCtx->CONN_START.Configuration,
                 ApiCtx->CONN_START.Family,
                 ApiCtx->CONN_START.ServerName,
-                ApiCtx->CONN_START.ServerPort);
+                ApiCtx->CONN_START.ServerPort,
+                QUIC_CONN_START_FLAG_NONE);
         ApiCtx->CONN_START.ServerName = NULL;
         break;
 

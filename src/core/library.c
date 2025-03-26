@@ -382,6 +382,7 @@ MsQuicLibraryInitialize(
     CxPlatZeroMemory(MsQuicLib.PerfCounterSamples, sizeof(MsQuicLib.PerfCounterSamples));
 
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    MsQuicLib.ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
@@ -1803,6 +1804,8 @@ MsQuicOpenVersion(
     Api->StreamProvideReceiveBuffers = MsQuicStreamProvideReceiveBuffers;
 
     Api->DatagramSend = MsQuicDatagramSend;
+
+    Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
     *QuicApi = Api;
 

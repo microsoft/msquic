@@ -1270,6 +1270,7 @@ QuicBindingCreateConnection(
     QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
+            Worker->Partition,
             Worker,
             Packet,
             &NewConnection);

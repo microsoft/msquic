@@ -241,15 +241,13 @@ extern QUIC_LIBRARY MsQuicLib;
 #define QUIC_LIB_VERIFY(Expr)
 #endif
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 inline
 QUIC_PARTITION*
-QuicLibraryGetCurrentPartition(
-    void
+QuicLibraryGetPartitionFromProcessorIndex(
+    uint32_t ProcessorIndex
     )
 {
     CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
-    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
 
     if (MsQuicLib.CustomPartitions) {
         //
@@ -258,7 +256,7 @@ QuicLibraryGetCurrentPartition(
         // the current processor.
         //
         for (uint32_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
-            if (CurrentProc <= MsQuicLib.Partitions[i].Processor) {
+            if (ProcessorIndex <= MsQuicLib.Partitions[i].Processor) {
                 return &MsQuicLib.Partitions[i];
             }
         }
@@ -273,7 +271,18 @@ QuicLibraryGetCurrentPartition(
     // Not doing any custom partitioning, just use the current processor modulo
     // the partition count.
     //
-    return &MsQuicLib.Partitions[CurrentProc % MsQuicLib.PartitionCount];
+    return &MsQuicLib.Partitions[ProcessorIndex % MsQuicLib.PartitionCount];
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+inline
+QUIC_PARTITION*
+QuicLibraryGetCurrentPartition(
+    void
+    )
+{
+    const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
+    return QuicLibraryGetPartitionFromProcessorIndex(CurrentProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
