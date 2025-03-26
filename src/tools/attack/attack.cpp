@@ -458,10 +458,10 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        if (AttackType == 0) {
-            // TODO: Since we moved the QTIP configuration from the datapath to the core layer (MsQuic Settings),
-            //       and this tool seems to be using purely the datapath layer, do we just remove QTIP support from here?
-        }
+
+        // TODO: Since we moved the QTIP configuration from the datapath to the core layer (MsQuic Settings),
+        //       and this tool seems to be using purely the datapath layer, do we just remove QTIP support from here?
+
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
         };
