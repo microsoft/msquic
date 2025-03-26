@@ -230,7 +230,7 @@ MsQuicConnectionShutdown(
         (Connection->WorkerThreadID == CxPlatCurThreadID()) ||
         !Connection->State.HandleClosed);
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         if (InterlockedCompareExchange16(
                 (short*)&Connection->BackUpOperUsed, 1, 0) != 0) {
@@ -365,7 +365,7 @@ MsQuicConnectionStart(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     CXPLAT_DBG_ASSERT(QuicConnIsClient(Connection));
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -464,7 +464,7 @@ MsQuicConnectionSetConfiguration(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.HandleClosed);
     CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -571,7 +571,7 @@ MsQuicConnectionSendResumptionTicket(
         CxPlatCopyMemory(ResumptionDataCopy, ResumptionData, DataLength);
     }
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -744,7 +744,7 @@ MsQuicStreamClose(
             // No need to wait for the close if already shutdown complete.
             //
             QUIC_OPERATION* Oper =
-                QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+                QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
             if (Oper != NULL) {
                 Oper->API_CALL.Context->Type = QUIC_API_TYPE_STRM_CLOSE;
                 Oper->API_CALL.Context->STRM_CLOSE.Stream = Stream;
@@ -829,8 +829,7 @@ MsQuicStreamStart(
         goto Exit;
     }
 
-    QUIC_OPERATION* Oper =
-        QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    QUIC_OPERATION* Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -953,7 +952,7 @@ MsQuicStreamShutdown(
         goto Error;
     }
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1054,7 +1053,7 @@ MsQuicStreamSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (QuicStreamCompleteSendRequest).")
-    SendRequest = CxPlatPoolAlloc(&Connection->Worker->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1115,7 +1114,7 @@ MsQuicStreamSend(
     CxPlatDispatchLockRelease(&Stream->ApiSendRequestLock);
 
     if (QUIC_FAILED(Status)) {
-        CxPlatPoolFree(&Connection->Worker->SendRequestPool, SendRequest);
+        CxPlatPoolFree(SendRequest);
         goto Exit;
     }
 
@@ -1139,7 +1138,7 @@ MsQuicStreamSend(
         }
 
     } else if (QueueOper) {
-        Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1230,7 +1229,7 @@ MsQuicStreamReceiveSetEnabled(
 
     Connection = Stream->Connection;
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1411,7 +1410,7 @@ MsQuicStreamProvideReceiveBuffers(
     //
     for (uint32_t i = 0; i < BufferCount; ++i) {
         QUIC_RECV_CHUNK* Chunk =
-            CxPlatPoolAlloc(&Connection->Worker->AppBufferChunkPool);
+            CxPlatPoolAlloc(&QuicLibraryGetPerProc()->AppBufferChunkPool);
         if (Chunk == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1436,7 +1435,7 @@ MsQuicStreamProvideReceiveBuffers(
         //
         // Queue the operation to insert the chunks in the recv buffer, without waiting for the result.
         //
-        Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+        Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
         if (Oper == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             QuicTraceEvent(
@@ -1471,7 +1470,7 @@ Error:
     //
     while (!CxPlatListIsEmpty(&ChunkList)) {
         CXPLAT_DBG_ASSERT(Connection != NULL);
-        CxPlatPoolFree(&Connection->Worker->AppBufferChunkPool,
+        CxPlatPoolFree(
             CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         CXPLAT_FREE(
             CXPLAT_CONTAINING_RECORD(
@@ -1789,7 +1788,7 @@ MsQuicDatagramSend(
     }
 
 #pragma prefast(suppress: __WARNING_6014, "Memory is correctly freed (...).")
-    SendRequest = CxPlatPoolAlloc(&Connection->Worker->SendRequestPool);
+    SendRequest = CxPlatPoolAlloc(&QuicLibraryGetPerProc()->SendRequestPool);
     if (SendRequest == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -1859,7 +1858,7 @@ MsQuicConnectionResumptionTicketValidationComplete(
         goto Error;
     }
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(
@@ -1929,7 +1928,7 @@ MsQuicConnectionCertificateValidationComplete(
         goto Error;
     }
 
-    Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_API_CALL);
+    Oper = QuicOperationAlloc(QUIC_OPER_TYPE_API_CALL);
     if (Oper == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         QuicTraceEvent(

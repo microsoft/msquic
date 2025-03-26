@@ -54,11 +54,11 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_TYPE Type
     )
 {
-    QUIC_OPERATION* Oper = (QUIC_OPERATION*)CxPlatPoolAlloc(&Worker->OperPool);
+    QUIC_OPERATION* Oper =
+        (QUIC_OPERATION*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->OperPool);
     if (Oper != NULL) {
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -68,9 +68,9 @@ QuicOperationAlloc(
 
         if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
             Oper->API_CALL.Context =
-                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Worker->ApiContextPool);
+                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
-                CxPlatPoolFree(&Worker->OperPool, Oper);
+                CxPlatPoolFree(Oper);
                 Oper = NULL;
             } else {
                 Oper->API_CALL.Context->Status = NULL;
@@ -84,7 +84,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -130,7 +129,7 @@ QuicOperationFree(
             }
             QuicStreamRelease(ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream, QUIC_STREAM_REF_OPERATION);
         }
-        CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
+        CxPlatPoolFree(ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
         QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
@@ -138,7 +137,7 @@ QuicOperationFree(
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
         }
     }
-    CxPlatPoolFree(&Worker->OperPool, Oper);
+    CxPlatPoolFree(Oper);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -239,7 +238,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION_QUEUE* OperQ
     )
 {
@@ -282,7 +280,7 @@ QuicOperationQueueClear(
                         0);
                 }
             }
-            QuicOperationFree(Worker, Oper);
+            QuicOperationFree(Oper);
         } else {
             CXPLAT_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {

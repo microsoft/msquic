@@ -4305,8 +4305,6 @@ QuicTestStreamReliableResetMultipleSends(
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define MultiRecvNumSend 10
-// 1G seems to be too big for CI environment to finish in a reasonable time.
-uint8_t Buffer10M[10000000] = {};
 struct MultiReceiveTestContext {
     CxPlatEvent PktRecvd[MultiRecvNumSend];
     MsQuicStream* ServerStream {nullptr};
@@ -4316,7 +4314,7 @@ struct MultiReceiveTestContext {
     CXPLAT_LOCK Lock;
     uint64_t TotalReceivedBytes {0};
     uint64_t TotalSendBytes {0};
-    uint8_t* RecvBuffer {nullptr};
+    UniquePtr<uint8_t[]> RecvBuffer {nullptr};
 
     MultiReceiveTestContext() {
         CxPlatLockInitialize(&Lock);
@@ -4340,7 +4338,7 @@ struct MultiReceiveTestContext {
             if (TestContext->RecvBuffer) {
                 uint64_t Offset = Event->RECEIVE.AbsoluteOffset;
                 for (uint32_t i = 0; i < BufferCount; i++) {
-                    memcpy(TestContext->RecvBuffer + Offset, Buffers[i].Buffer, Buffers[i].Length);
+                    memcpy(TestContext->RecvBuffer.get() + Offset, Buffers[i].Buffer, Buffers[i].Length);
                     Offset += Buffers[i].Length;
                 }
                 if (TestContext->TotalReceivedBytes == TestContext->TotalSendBytes) {
@@ -4386,7 +4384,9 @@ QuicTestStreamMultiReceive(
     // Server side multi receive simple. 3 Sends and Complete at once
     {
         uint32_t BufferSize = 128;
-        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
+        QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
         int NumSend = MultiRecvNumSend;
 
         MultiReceiveTestContext Context;
@@ -4423,7 +4423,10 @@ QuicTestStreamMultiReceive(
     // Possible packet split
     {
         uint32_t BufferSize = 2048;
-        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
+        QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
+
         int NumSend = MultiRecvNumSend;
 
         MultiReceiveTestContext Context;
@@ -4467,16 +4470,17 @@ QuicTestStreamMultiReceive(
     // handle MAX_STREAM_DATA and STREAM_DATA_BLOCKED,
     // potential multi chunk and multi range
     {
-        uint32_t BufferSize = sizeof(Buffer10M);
-        QUIC_BUFFER Buffer { BufferSize, Buffer10M };
+        uint32_t BufferSize = 10'000'000; // 10MB
+        UniquePtr<uint8_t[]> SendDataBuffer{new(std::nothrow) uint8_t[BufferSize]};
+        memset(SendDataBuffer.get(), 0, BufferSize);
+        QUIC_BUFFER Buffer { BufferSize, SendDataBuffer.get() };
         int NumSend = 1;
         MultiReceiveTestContext Context;
         for (uint32_t i = 0; i < BufferSize; i++) {
-            Buffer10M[i] = (uint8_t)(i % 255) + 1;
+            SendDataBuffer[i] = (uint8_t)(i % 255) + 1;
         }
-        // alloc 1G
-        Context.RecvBuffer = new(std::nothrow) uint8_t[BufferSize];
-        memset(Context.RecvBuffer, 0, BufferSize);
+        Context.RecvBuffer.reset(new(std::nothrow) uint8_t[BufferSize]);
+        memset(Context.RecvBuffer.get(), 0, BufferSize);
         Context.TotalSendBytes = BufferSize;
 
         MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MultiReceiveTestContext::ConnCallback, &Context);
@@ -4516,8 +4520,7 @@ QuicTestStreamMultiReceive(
         }
 
         TEST_TRUE(Context.TotalReceivedBytes == BufferSize * NumSend);
-        TEST_EQUAL(0, memcmp(Buffer10M, Context.RecvBuffer, BufferSize));
-        delete[] Context.RecvBuffer;
+        TEST_EQUAL(0, memcmp(SendDataBuffer.get(), Context.RecvBuffer.get(), BufferSize));
     }
 }
 

@@ -669,7 +669,7 @@ RunServer(
     // Continue listening for connections until the Enter key is pressed.
     //
     printf("Press Enter to exit.\n\n");
-    getchar();
+    (void)getchar();
 
 Error:
 
