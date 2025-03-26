@@ -32,21 +32,28 @@ For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_ST
 
 # Sending
 
-An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API send data. MsQuic holds on to any buffers queued via [StreamSend](api/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API to send data.
+MsQuic holds on to any buffers queued via [StreamSend](api/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event:
+the app must not free, reuse or otherwise access the buffers provided through [StreamSend](api/StreamSend.md) before the matching completion notification.
 
 ## Send Buffering
 
-There are two buffering modes for sending supported by MsQuic. The first mode has MsQuic buffer the stream data internally. As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event. If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.
+**By default**, MsQuic buffers the stream data internally when [StreamSend](api/StreamSend.md) is called by an app.
+As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.
 
-With this mode, the app can "keep the pipe full" using only a single outstanding send. It continually keeps a send pending on the stream. When the send is completed, the app immediately queues a send again with any new data it has.
+With this mode, the app can easily "keep the pipe full" using only a single outstanding send: It continually keeps a single send pending on the stream. As soon as the send is completed, the app immediately queues a new send again with any new data it needs to transmit.
 
-This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. **This is the default MsQuic behavior.**
+This is seen by many as the simplest design for apps, and it allows great performances by ensuring MsQuic send path never runs idle.
+However, internal buffering introduces an additional copy in the data path, which can be a performance draw back for some application.
 
-The other buffering mode supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
+MsQuic also supports another buffering mode that requires no internal copy of the data: MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
 
-To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event. The app should always have at least two sends pending at a time. If only a single send is used, the connection can go idle for the time between that send is completed and the new send is queued.
+To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle.
+MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event.
+The app should always have at least two sends pending at a time: If only a single send is used, the connection will go idle for the interval of time between when a send is completed and a new send is queued.
 
-By default, this mode is not used. To enable this mode, the app must call [SetParam](api/SetParam.md) on the connection with the `QUIC_PARAM_CONN_SEND_BUFFERING` parameter set to `FALSE`.
+To disable internal send buffering and use the second mode, the app must set `SendBufferingEnabled` to `FALSE` through [MsQuic settings](Settings.md).
 
 ## Send Shutdown
 
