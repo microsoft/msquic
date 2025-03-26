@@ -100,7 +100,11 @@ mod find {
         };
         // Try find msquic in vcpkg.
         let libs = libs.unwrap_or_else(|| try_vcpkg().expect("cannot find use system and vcpkg"));
+        #[cfg(target_os = "windows")]
         copy_libs(&libs, &out_dir);
+
+        #[cfg(not(target_os = "windows"))]
+        symlink_libs(&libs, &out_dir);
         println!("cargo:rustc-link-search=native={}", out_dir.display());
     }
 
@@ -108,7 +112,7 @@ mod find {
     const LIBS: [&str; 3] = ["bin/msquic.dll", "bin/msquic.pdb", "lib/msquic.lib"];
 
     #[cfg(not(target_os = "windows"))]
-    const LIBS: [&str; 2] = ["lib/libmsquic.so", "lib/libmsquic.so.2"];
+    const LIBS: [&str; 1] = ["libmsquic.so.2"];
 
     /// Get libs for preinstalled msquic.
     fn get_preinstalled_libs(install_dir: &Path) -> Vec<PathBuf> {
@@ -118,17 +122,25 @@ mod find {
     /// Copy libs from pre-installed dir to rust out_dir.
     /// This ensures cargo link msquic from this dir, and propagates right
     /// variables for test executables to load msquic.
-    fn copy_libs(libs: &Vec<PathBuf>, out_dir: &Path) {
+    #[cfg(target_os = "windows")]
+    fn copy_libs(libs: &[PathBuf], out_dir: &Path) {
         for lib in libs {
             let lib_out = out_dir.join(lib.file_name().unwrap());
             if !lib_out.exists() {
                 assert!(lib.exists()); // we have checked it in prior steps.
-                #[cfg(target_os = "windows")]
                 std::fs::copy(lib, &lib_out).expect("cannot copy file");
-                // On unix use symlink to save space.
-                #[cfg(not(target_os = "windows"))]
-                std::os::unix::fs::symlink(lib, &lib_out).expect("cannot symlink file");
             }
+        }
+    }
+
+    /// On unix we can just symlink the libmsquic.so.2 file to outdir as libmsquic.so
+    #[cfg(not(target_os = "windows"))]
+    fn symlink_libs(libs: &[PathBuf], out_dir: &Path) {
+        let lib = libs.first().unwrap(); // There is only 1 so file on unix
+        let lib_out = out_dir.join("libmsquic.so");
+        if !lib_out.exists() {
+            std::os::unix::fs::symlink(lib, out_dir.join("libmsquic.so"))
+                .expect("cannot symlink file");
         }
     }
 
