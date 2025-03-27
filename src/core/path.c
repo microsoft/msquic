@@ -35,7 +35,9 @@ QuicPathInitialize(
     Path->EcnValidationState =
         Connection->Settings.EcnEnabled ? ECN_VALIDATION_TESTING : ECN_VALIDATION_FAILED;
 
-    CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
+    if (Connection->Settings.QTIPEnabled) {
+        CxPlatRandom(sizeof(Path->Route.TcpState.SequenceNumber), &Path->Route.TcpState.SequenceNumber);
+    }
 
     QuicTraceLogConnInfo(
         PathInitialized,

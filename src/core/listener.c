@@ -769,9 +769,7 @@ QuicListenerParamSet(
         const void* Buffer
     )
 {
-    switch (Param) {
-
-    case QUIC_PARAM_LISTENER_CIBIR_ID: {
+    if (Param == QUIC_PARAM_LISTENER_CIBIR_ID) {
         if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
@@ -800,7 +798,7 @@ QuicListenerParamSet(
         return QUIC_STATUS_SUCCESS;
     }
 
-    case QUIC_PARAM_DOS_MODE_EVENTS: {
+    if (Param == QUIC_PARAM_DOS_MODE_EVENTS) {
         if (BufferLength == sizeof(BOOLEAN)) {
             Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
             if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
@@ -808,11 +806,8 @@ QuicListenerParamSet(
             }
             return QUIC_STATUS_SUCCESS;
         }
-        break;
     }
-    default:
-        break;
-    }
+
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
