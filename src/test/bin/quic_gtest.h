@@ -353,6 +353,7 @@ struct HandshakeArgs12 {
         ::std::vector<HandshakeArgs12> list;
         for (int Family : { 4, 6 })
         for (uint16_t NumberOfConnections : { 1, 2, 4 })
+        for (bool TestCibir : { false, true })
         for (bool XdpSupported : { false, true }) {
 #if !defined(_WIN32)
             if (XdpSupported) continue;
@@ -360,7 +361,7 @@ struct HandshakeArgs12 {
             if (!UseDuoNic && XdpSupported) {
                 continue;
             }
-            list.push_back({ Family, NumberOfConnections, XdpSupported, false /*Don't test CIBIR*/ });
+            list.push_back({ Family, NumberOfConnections, XdpSupported, TestCibir });
         }
         return list;
     }
