@@ -69,6 +69,14 @@ MsQuicListenerOpen(
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
+
+    BOOLEAN QtipEnabledGlobalSettings = MsQuicLib.Settings.QTIPEnabled;
+    if (QtipEnabledGlobalSettings) {
+        Listener->ReserveAuxTcpSock = TRUE;
+    } else {
+        Listener->ReserveAuxTcpSock = FALSE;
+    }
+
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
@@ -328,6 +336,10 @@ MsQuicListenerStart(
             UdpConfig.CibirId,
             &Listener->CibirId[2],
             UdpConfig.CibirIdLength);
+    }
+
+    if (Listener->ReserveAuxTcpSock) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
@@ -758,7 +770,7 @@ QuicListenerParamSet(
     )
 {
     switch (Param) {
-        
+
     case QUIC_PARAM_LISTENER_CIBIR_ID: {
         if (BufferLength > QUIC_MAX_CIBIR_LENGTH + 1) {
             return QUIC_STATUS_INVALID_PARAMETER;

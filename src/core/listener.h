@@ -115,6 +115,14 @@ typedef struct QUIC_LISTENER {
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
 
+    //
+    // This flag represents whether or not this listener will try to create an
+    // auxiliary OS TCP socket to reserve the current port when calling Listener.Start().
+    // This is necessary when running msquic in XDP+QTIP mode as we don't want XDP
+    // to steal TCP traffic from other processes.
+    //
+    uint8_t ReserveAuxTcpSock : 1;
+
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO

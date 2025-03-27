@@ -1488,13 +1488,13 @@ SocketCreateUdp(
         Socket->PcpBinding = TRUE;
     }
     //
-    // Servers always initialize everything.
+    // Servers always initialize per-proc UDP sockets.
     //
     CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
 
     if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
         //
-        // Skip normal socket settings to use AuxSocket in raw socket
+        // Client will skip normal socket settings to use AuxSocket in raw socket.
         //
         goto Skip;
     }
