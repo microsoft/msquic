@@ -456,14 +456,13 @@ CxPlatDpRawParseEthernet(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ BOOLEAN UseTcp
+    _In_ CXPLAT_ROUTE* Route
     )
 {
     HEADER_BACKFILL HeaderBackFill;
-    HeaderBackFill.TransportLayer = UseTcp ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER);
+    HeaderBackFill.TransportLayer = Route->UseQTIP ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER);
     HeaderBackFill.NetworkLayer =
-        Family == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
+        QuicAddrGetFamily(&Route->RemoteAddress) == QUIC_ADDRESS_FAMILY_INET ? sizeof(IPV4_HEADER) : sizeof(IPV6_HEADER);
     HeaderBackFill.LinkLayer = sizeof(ETHERNET_HEADER);
     HeaderBackFill.AllLayer =
         HeaderBackFill.TransportLayer + HeaderBackFill.NetworkLayer + HeaderBackFill.LinkLayer;

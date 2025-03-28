@@ -1062,7 +1062,7 @@ CxPlatDpRawTxAlloc(
 
     Packet = (XDP_TX_PACKET*)xsk_umem__get_data(XskInfo->UmemInfo->Buffer, BaseAddr);
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseQTIP); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Config->Route); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

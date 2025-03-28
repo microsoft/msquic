@@ -1630,14 +1630,13 @@ CxPlatDpRawTxAlloc(
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(Queue != NULL);
     CXPLAT_DBG_ASSERT(&Queue->TxPool != NULL);
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Config->Route->UseQTIP); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Config->Route); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

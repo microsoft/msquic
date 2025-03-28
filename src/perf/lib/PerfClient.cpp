@@ -144,8 +144,8 @@ PerfClient::Init(
     // General configuration options
     //
 
-    TryGetValue(argc, argv, "qtip", &UseQtip);
     TryGetValue(argc, argv, "tcp", &UseTCP);
+    TryGetValue(argc, argv, "qtip", &UseQtip);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
