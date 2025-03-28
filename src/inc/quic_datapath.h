@@ -207,12 +207,8 @@ typedef struct CXPLAT_ROUTE {
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
 
-    union {
-        struct {
-            uint16_t DatapathType: 15; // CXPLAT_DATAPATH_TYPE
-            uint8_t UseQTIP: 1;        // TRUE if the route is using QTIP
-        };
-    };
+    uint16_t DatapathType: 15; // CXPLAT_DATAPATH_TYPE
+    uint8_t UseQTIP: 1;        // TRUE if the route is using QTIP
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
