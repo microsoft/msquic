@@ -1046,7 +1046,6 @@ CxPlatDpRawTxAlloc(
     )
 {
     CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_TX_PACKET* Packet = NULL;
     XDP_QUEUE* Queue = Config->Route->Queue;
     struct XskSocketInfo* XskInfo = Queue->XskInfo;
