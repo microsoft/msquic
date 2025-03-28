@@ -273,7 +273,6 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
     QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
     QUIC_EXECUTION_CONFIG_FLAG_XDP              = 0x0004,
     QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC    = 0x0008,
@@ -697,7 +696,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t QTIPEnabled                            : 1;
+            uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -748,7 +748,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
             uint64_t StreamMultiReceiveEnabled : 1;
-            uint64_t ReservedFlags             : 58;
+            uint64_t QTIPEnabled               : 1;
+            uint64_t ReservedFlags             : 57;
 #else
             uint64_t ReservedFlags             : 63;
 #endif

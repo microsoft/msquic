@@ -832,10 +832,6 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        Datapath->UseTcp = TRUE;
-    }
-
     Datapath->PartitionCount = (uint16_t)PartitionCount;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
@@ -1480,7 +1476,8 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->UseRio = Datapath->UseRio;
-    Socket->UseTcp = Datapath->UseTcp;
+    Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
     } else {
@@ -1490,11 +1487,14 @@ SocketCreateUdp(
     if (Config->Flags & CXPLAT_SOCKET_FLAG_PCP) {
         Socket->PcpBinding = TRUE;
     }
-    CxPlatRefInitializeEx(&Socket->RefCount, Socket->UseTcp ? 1 : SocketCount);
+    //
+    // Servers always initialize per-proc UDP sockets.
+    //
+    CxPlatRefInitializeEx(&Socket->RefCount, (Socket->ReserveAuxTcpSock && !IsServerSocket) ? 1 : SocketCount);
 
-    if (Datapath->UseTcp) {
+    if (Socket->ReserveAuxTcpSock && !IsServerSocket) {
         //
-        // Skip normal socket settings to use AuxSocket in raw socket
+        // Client will skip normal socket settings to use AuxSocket in raw socket.
         //
         goto Skip;
     }
@@ -2072,7 +2072,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->UseTcp) {
+    if (!Socket->ReserveAuxTcpSock) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
@@ -2615,8 +2615,8 @@ SocketDelete(
     CXPLAT_DBG_ASSERT(!Socket->Uninitialized);
     Socket->Uninitialized = TRUE;
 
-    if (Socket->UseTcp) {
-        // QTIP did not initialize PerProcSockets
+    if (Socket->ReserveAuxTcpSock && Socket->HasFixedRemoteAddress) {
+        // QTIP did not initialize PerProcSockets only for Client sockets.
         CxPlatSocketRelease(Socket);
     } else {
         const uint16_t SocketCount =

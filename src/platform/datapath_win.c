@@ -24,7 +24,7 @@ CxPlatSocketUpdateQeo(
     _In_ uint32_t OffloadCount
     )
 {
-    if (Socket->UseTcp || (Socket->RawSocketAvailable &&
+    if (Socket->ReserveAuxTcpSock || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Offloads[0].Address))) {
         return RawSocketUpdateQeo(CxPlatSocketToRaw(Socket), Offloads, OffloadCount);
     }

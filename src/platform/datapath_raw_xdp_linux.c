@@ -1042,13 +1042,10 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    CXPLAT_DBG_ASSERT(Socket != NULL);
     CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_TX_PACKET* Packet = NULL;
     XDP_QUEUE* Queue = Config->Route->Queue;
     struct XskSocketInfo* XskInfo = Queue->XskInfo;
@@ -1064,7 +1061,7 @@ CxPlatDpRawTxAlloc(
 
     Packet = (XDP_TX_PACKET*)xsk_umem__get_data(XskInfo->UmemInfo->Buffer, BaseAddr);
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Config->Route); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;

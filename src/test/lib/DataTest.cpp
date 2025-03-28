@@ -311,17 +311,39 @@ TestConnection*
 NewPingConnection(
     _In_ MsQuicRegistration& Registration,
     _In_ PingStats* ClientStats,
-    _In_ bool UseSendBuffer
+    _In_ bool UseSendBuffer,
+    _In_ bool SendUdpOverQtip
     )
 {
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
+    QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
+    if (PerConnSettings.QTIPEnabled != UseQTIP) {
+        TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+        delete Connection;
+        return nullptr;
+    }
+
     if (Connection == nullptr || !(Connection)->IsValid()) {
         TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
         return nullptr;
     }
+
+    if (SendUdpOverQtip && UseQTIP) {
+        // If UseQTIP is true and SendUdpOverQTIP is true, we set it to be the opposite.
+        PerConnSettings.QTIPEnabled = 0;
+        PerConnSettings.IsSet.QTIPEnabled = TRUE;
+        Connection->SetSettings(PerConnSettings);
+        PerConnSettings = Connection->GetSettings();
+        if (PerConnSettings.QTIPEnabled != 0) {
+            TEST_FAILURE("Failed to apply new settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+            delete Connection;
+            return nullptr;
+        }
+    }
+
     Connection->SetAutoDelete();
 
     if (UseSendBuffer) {
@@ -371,7 +393,8 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
+    _In_ bool FifoScheduling,
+    _In_ bool SendUdpToQtipListener
     )
 {
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
@@ -404,7 +427,6 @@ QuicTestConnectAndPing(
     }
 
     MsQuicAlpn Alpn("MsQuicTest");
-
     MsQuicSettings Settings;
     if (ClientZeroRtt) {
         Settings.SetServerResumptionLevel(QUIC_SERVER_RESUME_AND_ZERORTT);
@@ -414,7 +436,6 @@ QuicTestConnectAndPing(
         Settings.SetPeerUnidiStreamCount(TotalStreamCount);
     }
     Settings.SetSendBufferingEnabled(UseSendBuffer);
-
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -434,7 +455,6 @@ QuicTestConnectAndPing(
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
-
     if (ClientZeroRtt) {
         QuicTestPrimeResumption(
             QuicAddrFamily,
@@ -472,13 +492,14 @@ QuicTestConnectAndPing(
         }
 
         UniquePtrArray<TestConnection*> Connections(ConnAlloc);
-
+        
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
                     Registration,
                     &ClientStats,
-                    UseSendBuffer);
+                    UseSendBuffer,
+                    SendUdpToQtipListener && (i % 2 == 1)); // Every other connection, we alternate the QTIP preferences (if UseQTIP is true AND SendUdpToQtipListener is true).
             if (Connections.get()[i] == nullptr) {
                 return;
             }
@@ -487,7 +508,6 @@ QuicTestConnectAndPing(
                     Connections.get()[i]->SetTlsSecrets(&ClientSecrets[i]));
             }
         }
-
         QuicAddr LocalAddr;
         for (uint32_t j = 0; j < StreamBurstCount; ++j) {
             if (j != 0) {
@@ -516,6 +536,22 @@ QuicTestConnectAndPing(
 #endif
                     ) {
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
+                    }
+
+                    if (SendUdpToQtipListener && (i % 2 == 1) && UseQTIP) {
+                        // Test and make sure this connection's QTIP settings is opposite of UseQTIP.
+                        QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
+                        if (PerConnSettings.QTIPEnabled == UseQTIP) {
+                            TEST_FAILURE("UseQTIP equal to global settings when it shouldn't be." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+                            return;
+                        }
+                    } else {
+                        // Test and make sure this connection's QTIP settings is the same as of UseQTIP.
+                        QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
+                        if (PerConnSettings.QTIPEnabled != UseQTIP) {
+                            TEST_FAILURE("UseQTIP NOT equal to global settings when it should be." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+                            return;
+                        }
                     }
 
                     TEST_QUIC_SUCCEEDED(
@@ -621,6 +657,7 @@ QuicTestServerDisconnect(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    FALSE,
                     FALSE);
             if (Client == nullptr) {
                 return;
@@ -744,6 +781,7 @@ QuicTestClientDisconnect(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    false,
                     false);
             if (Client == nullptr) {
                 return;
@@ -841,6 +879,7 @@ QuicTestStatelessResetKey(
                 NewPingConnection(
                     Registration,
                     &ClientStats,
+                    false,
                     false);
             if (Client == nullptr) {
                 return;
@@ -4641,7 +4680,7 @@ QuicTestStreamAppProvidedBuffers(
         ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", 
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
         MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
         MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
@@ -4788,7 +4827,7 @@ QuicTestStreamAppProvidedBuffersZeroWindow(
         ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
 
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", 
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest",
         MsQuicSettings().SetPeerUnidiStreamCount(1).SetPeerBidiStreamCount(1).SetStreamRecvWindowDefault(0x2000),
         MsQuicCredentialConfig());
     TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());

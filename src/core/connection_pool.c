@@ -157,12 +157,16 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
     _In_ QUIC_ADDR* RemoteAddress,
-    _Out_ QUIC_ADDR* LocalAddress
+    _Out_ QUIC_ADDR* LocalAddress,
+    _In_ BOOLEAN UseQTIP
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_UDP_CONFIG UdpConfig;
     CxPlatZeroMemory(&UdpConfig, sizeof(UdpConfig));
+    if (UseQTIP) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+    }
     UdpConfig.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
@@ -453,12 +457,17 @@ MsQuicConnectionPoolCreate(
     }
 
     QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
+    BOOLEAN UseQTIP = FALSE;
+    if (MsQuicLib.Settings.QTIPEnabled ||
+        ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.QTIPEnabled) {
+        UseQTIP = TRUE;
+    }
 
     //
     // Get the local address and a port to start from.
     //
     QUIC_ADDR LocalAddress;
-    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress);
+    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress, UseQTIP);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

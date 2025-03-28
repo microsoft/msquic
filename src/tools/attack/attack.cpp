@@ -161,7 +161,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
     uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
-    
+
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
         if (CxPlatTimeDiff64(BucketTime, CurTime) > 1000) {
@@ -214,9 +214,9 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
-        
+
         if (TCP) {
             CxPlatSendDataFree(SendData);
             Route.LocalAddress.Ipv4.sin_port++;
@@ -283,7 +283,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             BucketTime = CurTime;
             BucketCount = 0;
         }
-        
+
         if (BucketCount >= BucketThreshold) {
             continue;
         }
@@ -352,7 +352,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
     }
 }
@@ -458,7 +458,10 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+
+        // TODO: Since we moved the QTIP configuration from the datapath to the core layer (MsQuic Settings),
+        //       and this tool seems to be using purely the datapath layer, do we just remove QTIP support from here?
+
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
         };
