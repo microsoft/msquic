@@ -693,10 +693,10 @@ typedef struct QUIC_SETTINGS {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             uint64_t EncryptionOffloadAllowed               : 1;
             uint64_t ReliableResetEnabled                   : 1;
-            uint64_t QTIPEnabled                            : 1;
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
+            uint64_t QTIPEnabled                            : 1;
             uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
