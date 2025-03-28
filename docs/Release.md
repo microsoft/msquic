@@ -43,9 +43,16 @@ This table describes all officially supported MsQuic releases.
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
 
-## Architectures
+## Platforms
 
-Generally, MsQuic is supported for all 64-bit architectures on all platforms, including x64 and arm64. arm32 is also supported, but only on Linux.
+We officially support the following operating systems and architectures.
+
+| OS | Architectures |
+| -- | -- |
+| Windows | x64, arm64 |
+| SAC | x64, arm64, arm32 |
+
+MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but is not currently *officially* supported.
 
 # Publishing a Release
 
