@@ -241,7 +241,7 @@ CxPlatSocketGetLocalMtu(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     if (Route->UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
-        return RawSocketGetLocalMtu(Route->UseQTIP);
+        return RawSocketGetLocalMtu(Route);
     }
     return Socket->Mtu;
 }

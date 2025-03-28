@@ -198,11 +198,11 @@ RawSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ BOOLEAN UseQTIP
+    _In_ CXPLAT_ROUTE* Route
     )
 {
     // Reserve space for TCP header.
-    return UseQTIP ? 1488 : 1500;
+    return Route->UseQTIP ? 1488 : 1500;
 
 }
 
@@ -231,7 +231,7 @@ CxPlatDpRawRxEthernet(
         if (Socket) {
             CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Socket->ReserveAuxTcpSock == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                uint8_t SocketType = (PacketChain->Route->UseQTIP) ? L4_TYPE_TCP : L4_TYPE_UDP;
+                uint8_t SocketType = PacketChain->Route->UseQTIP ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //

@@ -144,9 +144,7 @@ PerfClient::Init(
     // General configuration options
     //
 
-    #ifndef _KERNEL_MODE
     TryGetValue(argc, argv, "qtip", &UseQtip);
-    #endif // _KERNEL_MODE
     TryGetValue(argc, argv, "tcp", &UseTCP);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "pacing", &UsePacing);
@@ -239,11 +237,9 @@ PerfClient::Init(
             if (!UsePacing) {
                 Settings.SetPacingEnabled(UsePacing != 0);
             }
-            #ifndef _KERNEL_MODE
             if (UseQtip) {
                 Settings.SetQtipEnabled(UseQtip != 0);
             }
-            #endif // _KERNEL_MODE
             Configuration.SetSettings(Settings);
         }
     }

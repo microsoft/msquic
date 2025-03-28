@@ -62,7 +62,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
-    BOOLEAN ReserveAuxTcpSock;
+    BOOLEAN ReserveAuxTcpSock; // Whether or not we create an auxiliary TCP socket.
 
 } CXPLAT_DATAPATH_RAW;
 
