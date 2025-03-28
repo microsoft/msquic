@@ -50,7 +50,7 @@ We officially support the following operating systems and architectures.
 | OS | Architectures |
 | -- | -- |
 | Windows | x64, arm64 |
-| SAC | x64, arm64, arm32 |
+| Linux | x64, arm64, arm32 |
 
 MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but is not currently *officially* supported.
 
