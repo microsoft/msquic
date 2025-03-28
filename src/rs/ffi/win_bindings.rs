@@ -3196,47 +3196,14 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub fn QTIPEnabled(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(40usize, 1u8) as u64) }
-    }
-    #[inline]
-    pub fn set_QTIPEnabled(&mut self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(40usize, 1u8, val as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn QTIPEnabled_raw(this: *const Self) -> u64 {
-        unsafe {
-            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
-                ::std::ptr::addr_of!((*this)._bitfield_1),
-                40usize,
-                1u8,
-            ) as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn set_QTIPEnabled_raw(this: *mut Self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
-                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                40usize,
-                1u8,
-                val as u64,
-            )
-        }
-    }
-    #[inline]
     pub fn OneWayDelayEnabled(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(41usize, 1u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(40usize, 1u8) as u64) }
     }
     #[inline]
     pub fn set_OneWayDelayEnabled(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(41usize, 1u8, val as u64)
+            self._bitfield_1.set(40usize, 1u8, val as u64)
         }
     }
     #[inline]
@@ -3244,7 +3211,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                41usize,
+                40usize,
                 1u8,
             ) as u64)
         }
@@ -3255,7 +3222,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                41usize,
+                40usize,
                 1u8,
                 val as u64,
             )
@@ -3263,17 +3230,50 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
     }
     #[inline]
     pub fn NetStatsEventEnabled(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(42usize, 1u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(41usize, 1u8) as u64) }
     }
     #[inline]
     pub fn set_NetStatsEventEnabled(&mut self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            self._bitfield_1.set(41usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn NetStatsEventEnabled_raw(this: *const Self) -> u64 {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                41usize,
+                1u8,
+            ) as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_NetStatsEventEnabled_raw(this: *mut Self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                41usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
+    pub fn StreamMultiReceiveEnabled(&self) -> u64 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(42usize, 1u8) as u64) }
+    }
+    #[inline]
+    pub fn set_StreamMultiReceiveEnabled(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             self._bitfield_1.set(42usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub unsafe fn NetStatsEventEnabled_raw(this: *const Self) -> u64 {
+    pub unsafe fn StreamMultiReceiveEnabled_raw(this: *const Self) -> u64 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
@@ -3283,7 +3283,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub unsafe fn set_NetStatsEventEnabled_raw(this: *mut Self, val: u64) {
+    pub unsafe fn set_StreamMultiReceiveEnabled_raw(this: *mut Self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
@@ -3295,18 +3295,18 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub fn StreamMultiReceiveEnabled(&self) -> u64 {
+    pub fn QTIPEnabled(&self) -> u64 {
         unsafe { ::std::mem::transmute(self._bitfield_1.get(43usize, 1u8) as u64) }
     }
     #[inline]
-    pub fn set_StreamMultiReceiveEnabled(&mut self, val: u64) {
+    pub fn set_QTIPEnabled(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             self._bitfield_1.set(43usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub unsafe fn StreamMultiReceiveEnabled_raw(this: *const Self) -> u64 {
+    pub unsafe fn QTIPEnabled_raw(this: *const Self) -> u64 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
@@ -3316,7 +3316,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub unsafe fn set_StreamMultiReceiveEnabled_raw(this: *mut Self, val: u64) {
+    pub unsafe fn set_QTIPEnabled_raw(this: *mut Self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
@@ -3402,10 +3402,10 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         StreamRecvWindowUnidiDefault: u64,
         EncryptionOffloadAllowed: u64,
         ReliableResetEnabled: u64,
-        QTIPEnabled: u64,
         OneWayDelayEnabled: u64,
         NetStatsEventEnabled: u64,
         StreamMultiReceiveEnabled: u64,
+        QTIPEnabled: u64,
         RESERVED: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -3591,21 +3591,21 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             ReliableResetEnabled as u64
         });
         __bindgen_bitfield_unit.set(40usize, 1u8, {
-            let QTIPEnabled: u64 = unsafe { ::std::mem::transmute(QTIPEnabled) };
-            QTIPEnabled as u64
-        });
-        __bindgen_bitfield_unit.set(41usize, 1u8, {
             let OneWayDelayEnabled: u64 = unsafe { ::std::mem::transmute(OneWayDelayEnabled) };
             OneWayDelayEnabled as u64
         });
-        __bindgen_bitfield_unit.set(42usize, 1u8, {
+        __bindgen_bitfield_unit.set(41usize, 1u8, {
             let NetStatsEventEnabled: u64 = unsafe { ::std::mem::transmute(NetStatsEventEnabled) };
             NetStatsEventEnabled as u64
         });
-        __bindgen_bitfield_unit.set(43usize, 1u8, {
+        __bindgen_bitfield_unit.set(42usize, 1u8, {
             let StreamMultiReceiveEnabled: u64 =
                 unsafe { ::std::mem::transmute(StreamMultiReceiveEnabled) };
             StreamMultiReceiveEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(43usize, 1u8, {
+            let QTIPEnabled: u64 = unsafe { ::std::mem::transmute(QTIPEnabled) };
+            QTIPEnabled as u64
         });
         __bindgen_bitfield_unit.set(44usize, 20u8, {
             let RESERVED: u64 = unsafe { ::std::mem::transmute(RESERVED) };
