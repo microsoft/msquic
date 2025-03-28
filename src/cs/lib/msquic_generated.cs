@@ -1972,7 +1972,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong OneWayDelayEnabled
+                internal ulong QTIPEnabled
                 {
                     get
                     {
@@ -1986,7 +1986,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong NetStatsEventEnabled
+                internal ulong OneWayDelayEnabled
                 {
                     get
                     {
@@ -2000,7 +2000,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong StreamMultiReceiveEnabled
+                internal ulong NetStatsEventEnabled
                 {
                     get
                     {
@@ -2014,7 +2014,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong QTIPEnabled
+                internal ulong StreamMultiReceiveEnabled
                 {
                     get
                     {
