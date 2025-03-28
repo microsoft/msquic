@@ -6,6 +6,14 @@ The payload for QUIC listener events.
 # Syntax
 
 ```C
+typedef enum QUIC_LISTENER_EVENT_TYPE {
+    QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
+    QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
+    QUIC_LISTENER_EVENT_DOS_MODE_CHANGED    = 2,
+} QUIC_LISTENER_EVENT_TYPE;
+```
+
+```C
 typedef struct QUIC_LISTENER_EVENT {
     QUIC_LISTENER_EVENT_TYPE Type;
     union {

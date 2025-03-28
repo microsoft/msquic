@@ -6,6 +6,27 @@ The payload for QUIC connection events.
 # Syntax
 
 ```C
+typedef enum QUIC_CONNECTION_EVENT_TYPE {
+    QUIC_CONNECTION_EVENT_CONNECTED                         = 0,
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT   = 1,    // The transport started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER        = 2,    // The peer application started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE                 = 3,    // Ready for the handle to be closed.
+    QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED             = 4,
+    QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED              = 5,
+    QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
+    QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
+    QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+} QUIC_CONNECTION_EVENT_TYPE;
+```
+
+```C
 typedef struct QUIC_CONNECTION_EVENT {
     QUIC_CONNECTION_EVENT_TYPE Type;
     union {
