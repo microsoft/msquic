@@ -69,7 +69,6 @@ MsQuicListenerOpen(
     Listener->ClientContext = Context;
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
-
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
