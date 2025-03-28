@@ -70,13 +70,6 @@ MsQuicListenerOpen(
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
 
-    BOOLEAN QtipEnabledGlobalSettings = MsQuicLib.Settings.QTIPEnabled;
-    if (QtipEnabledGlobalSettings) {
-        Listener->ReserveAuxTcpSock = TRUE;
-    } else {
-        Listener->ReserveAuxTcpSock = FALSE;
-    }
-
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
@@ -338,7 +331,7 @@ MsQuicListenerStart(
             UdpConfig.CibirIdLength);
     }
 
-    if (Listener->ReserveAuxTcpSock) {
+    if (MsQuicLib.Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
 
