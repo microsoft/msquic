@@ -4104,7 +4104,7 @@ struct ServerMultiAcceptContext {
     uint32_t StartedConnectionCount;
     uint32_t MaxConnections;
     CxPlatEvent StartedEvent;
-    UniquePtr<MsQuicConnection>* Connections;
+    UniquePtr<TestConnection>* Connections;
 
     _Function_class_(MsQuicListenerCallback)
     static
@@ -4123,12 +4123,14 @@ struct ServerMultiAcceptContext {
                 return QUIC_STATUS_CONNECTION_REFUSED;
             }
             This->Connections[NewCount - 1] =
-                UniquePtr<MsQuicConnection>(new(std::nothrow)
-                    MsQuicConnection(
-                        Event->NEW_CONNECTION.Connection,
-                        CleanUpManual,
-                        MsQuicConnection::NoOpCallback,
-                        nullptr));
+                UniquePtr<TestConnection>(new(std::nothrow)
+                    TestConnection(Event->NEW_CONNECTION.Connection));
+                // UniquePtr<MsQuicConnection>(new(std::nothrow)
+                    // MsQuicConnection(
+                    //     Event->NEW_CONNECTION.Connection,
+                    //     CleanUpManual,
+                    //     MsQuicConnection::NoOpCallback,
+                    //     nullptr));
             if (This->StartedConnectionCount == This->MaxConnections) {
                 This->StartedEvent.Set();
             }
@@ -4196,7 +4198,7 @@ QuicTestConnectionPoolCreate(
     ServerAddr.SetPort(ServerPort);
 
     {
-        UniquePtrArray<UniquePtr<MsQuicConnection>> ServerConnections(new(std::nothrow) UniquePtr<MsQuicConnection>[NumberOfConnections]);
+        UniquePtrArray<UniquePtr<TestConnection>> ServerConnections(new(std::nothrow) UniquePtr<TestConnection>[NumberOfConnections]);
         TEST_NOT_EQUAL(nullptr, ServerConnections);
 
         UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
@@ -4268,8 +4270,8 @@ QuicTestConnectionPoolCreate(
                     //
                     // Verify the server connections are connected. The client connections should also be connected too.
                     //
-                    ServerConnections[i]->HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout);
-                    if (!ServerConnections[i]->HandshakeComplete) {
+                    ServerConnections[i]->WaitForConnectionComplete();
+                    if (!ServerConnections[i]->GetIsConnected()) {
                         TEST_FAILURE("Server connection %u failed to connect", i);
                     }
                     //
