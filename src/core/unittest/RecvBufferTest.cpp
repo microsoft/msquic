@@ -552,6 +552,10 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1u, BufferCount);
     ASSERT_EQ(20u, ReadBuffers[0].Length);
+    for (uint32_t i = 0; i < ReadBuffers[0].Length; ++i) {
+        ASSERT_EQ(i, ReadBuffers[0].Buffer[i]); // Read data is as expected
+    }
+
     InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -564,8 +568,73 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_TRUE(RecvBuf.HasUnreadData());
     ASSERT_EQ(512ull, InOutWriteLength);
     ASSERT_EQ(532ull, RecvBuf.GetTotalLength());
+
+    for (uint32_t i = 0; i < ReadBuffers[0].Length; ++i) {
+        ASSERT_EQ(i, ReadBuffers[0].Buffer[i]); // Read data has not been overriden by the write
+    }
     ASSERT_FALSE(RecvBuf.Drain(20) && Mode != QUIC_RECV_BUF_MODE_MULTIPLE);
     ASSERT_TRUE(RecvBuf.HasUnreadData());
+}
+
+TEST_P(WithMode, WriteLargeWhilePendingReadWithPartialDrain)
+{
+    RecvBuffer RecvBuf;
+    auto Mode = GetParam();
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+
+    {
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        uint64_t ReadOffset{};
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_FALSE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(0ull, ReadOffset);
+        ASSERT_EQ(1u, BufferCount);
+        ASSERT_EQ(20u, ReadBuffers[0].Length);
+    }
+
+    //
+    // Write a large chunk while the read is pending
+    //
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(20, 512, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady); // Still ready to read
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(512ull, InOutWriteLength);
+    ASSERT_EQ(532ull, RecvBuf.GetTotalLength());
+
+    ASSERT_FALSE(RecvBuf.Drain(0)); // Complete the read without draining any data
+
+    //
+    // Read again and check the data from the first write is still intact
+    //
+    {
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        uint64_t ReadOffset{};
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_TRUE(BufferCount > 0u);
+        ASSERT_TRUE(ReadBuffers[0].Length >= 20);
+
+        for (uint32_t i = 0; i < 20; ++i) {
+            if (Mode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+                //
+                // Multiple mode doesn't re-read the initial data
+                //
+                ASSERT_EQ(i + 20, ReadBuffers[0].Buffer[i]);
+            } else {
+                //
+                // Read data has not been overwritten by the write
+                //
+                ASSERT_EQ(i, ReadBuffers[0].Buffer[i]);
+            }
+        }
+    }
 }
 
 TEST_P(WithMode, WriteLarge)
@@ -1662,19 +1731,27 @@ TEST(MultiRecvTest, Grow3rdChunk)
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE, FALSE};
-    uint32_t LengthList[] = {8, 0, 0};
-    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
+    uint32_t LengthList[] = {0, 0, 0};
+
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences); // append -> 8
+
+    LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
-    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // append -> 32
+
+    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // grow -> 8 + 64, append -> 32
+
     LengthList[0] = 32;
     ExternalReferences[1] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
-    RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // append -> 64
-    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128
+
+    RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // grow -> 8 + 64 + 128, append -> 104
+    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128, append -> 124
+
     ExternalReferences[2] = TRUE;
-    LengthList[0] = 84;
-    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 3, ExternalReferences);
+    LengthList[0] = 32;
+    LengthList[1] = 52;
+    RecvBuf.ReadAndCheck(2, LengthList, 0, 8, 3, ExternalReferences);
     RecvBuf.Drain(124);
 }
 

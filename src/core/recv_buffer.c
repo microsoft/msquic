@@ -473,8 +473,8 @@ QuicRecvBufferCopyIntoChunks(
                 RecvBuffer->Chunks.Blink, // Last chunk
                 QUIC_RECV_CHUNK,
                 Link);
-        CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit in the last chunk
         uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
+        CXPLAT_DBG_ASSERT(RelativeOffset + WriteLength <= Chunk->AllocLength); // Should always fit in the last chunk
         uint32_t ChunkOffset = (RecvBuffer->ReadStart + RelativeOffset) % Chunk->AllocLength;
 
         if (ChunkOffset + WriteLength > Chunk->AllocLength) {
@@ -675,7 +675,7 @@ QuicRecvBufferWrite(
                     RecvBuffer->Chunks.Blink,
                     QUIC_RECV_CHUNK,
                     Link)->AllocLength << 1;
-            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength + RecvBuffer->ReadPendingLength) {
+            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
                 NewBufferLength <<= 1;
             }
             if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
