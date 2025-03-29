@@ -4224,9 +4224,9 @@ QuicTestConnectionPoolCreate(
         Listener.Context = &ServerAcceptContext;
 
         if (TestCibirSupport) {
-            uint8_t CibirId[] = { 0 /* offset */, 9, 8, 7, 6 };
-            uint8_t CibirIdLength = sizeof(CibirId);
-            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
+            uint8_t ServerCibirId[] = { 0 /* offset */, 9, 8, 7, 6 };
+            uint8_t ServerCibirIdLength = sizeof(CibirId);
+            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(ServerCibirId, ServerCibirIdLength));
         }
 
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
