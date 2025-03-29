@@ -1662,18 +1662,19 @@ TEST(MultiRecvTest, Grow3rdChunk)
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE, FALSE};
     uint32_t LengthList[] = {8, 0, 0};
-    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences); // append -> 8
     ExternalReferences[0] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
-    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // append -> 32
+    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // grow -> 8 + 64, append -> 32
     LengthList[0] = 32;
     ExternalReferences[1] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
     RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // append -> 64
-    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128
+    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 8 + 64 + 128, append -> 124
     ExternalReferences[2] = TRUE;
-    LengthList[0] = 84;
-    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 3, ExternalReferences);
+    LengthList[0] = 32;
+    LengthList[1] = 52;
+    RecvBuf.ReadAndCheck(2, LengthList, 0, 8, 3, ExternalReferences);
     RecvBuf.Drain(124);
 }
 
