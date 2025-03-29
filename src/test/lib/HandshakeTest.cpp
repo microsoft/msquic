@@ -4106,26 +4106,36 @@ struct ServerMultiAcceptContext {
     CxPlatEvent StartedEvent;
     UniquePtr<TestConnection>* Connections;
 
-    _Function_class_(NEW_CONNECTION_CALLBACK)
+    _Function_class_(MsQuicListenerCallback)
     static
-    bool
+    QUIC_STATUS
     ListenerMultiAcceptConnection(
-        _In_ TestListener* Listener,
-        _In_ HQUIC ConnectionHandle
+        _In_ struct MsQuicListener*,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_LISTENER_EVENT* Event
         )
     {
-        auto* This = (ServerMultiAcceptContext*)Listener->Context;
-        uint32_t NewCount = (uint32_t)InterlockedIncrement((long*)&This->StartedConnectionCount);
-        if (NewCount > This->MaxConnections) {
-            TEST_FAILURE("Too many connections started!");
-            return false;
+        auto* This = (ServerMultiAcceptContext*)Context;
+        if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+            uint32_t NewCount = (uint32_t)InterlockedIncrement((long*)&This->StartedConnectionCount);
+            if (NewCount > This->MaxConnections) {
+                TEST_FAILURE("Too many connections started!");
+                return QUIC_STATUS_CONNECTION_REFUSED;
+            }
+            This->Connections[NewCount - 1] =
+                UniquePtr<TestConnection>(new(std::nothrow)
+                    TestConnection(Event->NEW_CONNECTION.Connection));
+                // UniquePtr<MsQuicConnection>(new(std::nothrow)
+                    // MsQuicConnection(
+                    //     Event->NEW_CONNECTION.Connection,
+                    //     CleanUpManual,
+                    //     MsQuicConnection::NoOpCallback,
+                    //     nullptr));
+            if (This->StartedConnectionCount == This->MaxConnections) {
+                This->StartedEvent.Set();
+            }
         }
-        This->Connections[NewCount - 1] =
-            UniquePtr<TestConnection>(new(std::nothrow) TestConnection(ConnectionHandle, nullptr));
-        if (This->StartedConnectionCount == This->MaxConnections) {
-            This->StartedEvent.Set();
-        }
-        return true;
+        return QUIC_STATUS_SUCCESS;
     }
 };
 
@@ -4211,10 +4221,17 @@ QuicTestConnectionPoolCreate(
         ServerAcceptContext.MaxConnections = NumberOfConnections;
         ServerAcceptContext.Connections = ServerConnections.get();
         ServerAcceptContext.StartedConnectionCount = 0;
-        TestListener Listener(Registration, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
+        MsQuicListener Listener(Registration, CleanUpManual, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
         TEST_TRUE(Listener.IsValid());
         Listener.Context = &ServerAcceptContext;
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerAddr.SockAddr));
+
+        if (TestCibirSupport) {
+            uint8_t ServerCibirId[] = { 0 /* offset */, 9, 8, 7, 6 };
+            uint8_t ServerCibirIdLength = sizeof(CibirId);
+            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(ServerCibirId, ServerCibirIdLength));
+        }
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
 
         {
             UniquePtrArray<uint8_t*> CibirIdPtrs(new(std::nothrow) uint8_t*[NumberOfConnections]);
