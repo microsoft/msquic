@@ -81,94 +81,184 @@ The `QUIC_STREAM_EVENT_TYPE` that indicates which type of event this is, and whi
 
 ## QUIC_STREAM_EVENT_START_COMPLETE
 
+This event is delivered when the [StreamStart](streamStart.md) operation completes. The accompanying payload contains data to indicate whether the operation succeeded or failed.
+
 ### START_COMPLETE
+
+Additional state from the `StreamStart` operation is included in this payload struct/union.
 
 `Status`
 
+QUIC_STATUS value to indicate the operation completion code. Check for success using the QUIC_SUCCEEDED macro.
+
 `ID`
+
+Stream ID if available.
 
 `PeerAccepted`
 
+Flag indicates whether the peer has accepted the stream.
+
 ## QUIC_STREAM_EVENT_RECEIVE
+
+Data received on an open stream is primarily delivered to the application through this event.
 
 ### RECEIVE
 
+Received data on the stream is passed in this struct/union.
+
 `AbsoluteOffset`
+
+Absolute offset of the current data payload from the start of the receive operation.
 
 `TotalBufferLength`
 
+MsQuic indicates the total buffer length of the data in this parameter.
+
+If the application can processes only part of the received buffer synchronously in this call, it can be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
+If the application desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from this call.
+
+See [Receiving Data On Streams](../Streams.md#Receiving) for further details on receiving data on a stream.
+
 `Buffers`
+
+An array of `QUIC_BUFFERs` containing received data.
 
 `BufferCount`
 
+Count of `QUIC_BUFFERs` in this payload.
+
 `Flags`
 
+A set of flags indicating describing the received data:
+
+Value | Meaning
+--- | ---
+**QUIC_RECEIVE_FLAG_NONE**<br>0 | No special behavior.
+**QUIC_RECEIVE_FLAG_0_RTT**<br>1 | The data was received in 0-RTT.
+**QUIC_RECEIVE_FLAG_FIN**<br>2 | FIN was included with this data. Used only for streamed data.
 
 ## QUIC_STREAM_EVENT_SEND_COMPLETE
 
+Indicates that MsQuic has completed a [StreamSend](StreamSend.md) operation initated by the application.
+
 ### SEND_COMPLETE
 
+Data for `StreamSend` completion is included in this struct/union.
+
 `Canceled`
+Indicates that the StreamSend operation was canceled.
 
 `ClientContext`
+Client context to match this event with the original `StreamSend` operation.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
 
+Indicates that the current send operation to the peer on this stream has been shutdown/completed.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_ABORTED
 
+Indicates that the peer has aborted `StreamSend` operation.
+
 ### SEND_ABORTED
 
+Additional details of the send abort event are passed in this struct/union.
+
 `ErrorCode`
+
+Application's protocol specific, 62-bit error code.
 
 ## QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED
 
+Indicates that the peer has aborted receiving data.
+
 ### RECEIVE_ABORTED
+
+Additional details of the receive abort event are passed in this struct/union.
 
 `ErrorCode`
 
+Application's protocol specific, 62-bit error code.
 
 ## QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE
 
+This event is raised when a stream send direction has been fully shut down.
+
 ### SEND_SHUTDOWN_COMPLETE
+
+Additional details of send shutdown completion are passed in this struct/union.
 
 `Graceful`
 
+TRUE if the send shutdown operation was gracefully shutdown, FALSE otherwise.
 
 ## QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE
 
+This event indicates that the stream has been completely shutdown.
+
 ### SHUTDOWN_COMPLETE
+
+Additional details for the stream shutdown are passed in this struct/union.
 
 `ConnectionShutdown`
 
+If TRUE, the Connection corresponding to this stream has been closed locally or remotely.
+
 `AppCloseInProgress`
+
+If TRUE, the application is in the process of closing the stream.
 
 `ConnectionShutdownByApp`
 
+If TRUE, the application shutdown the Connection corresponding to this stream.
+
 `ConnectionClosedRemotely`
+
+If TRUE, the Connection corresponding to this stream has been closed remotely.
 
 `ConnectionErrorCode`
 
+62-bit Connection closure error code, if any.
+
 `ConnectionCloseStatus`
+
+QUIC_STATUS value of the connection close operation, if any.
 
 ## QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE
 
+MsQuic indicates the ideal send buffer size to the application through this event, so as not to idle the connection.
+
 ### IDEAL_SEND_BUFFER_SIZE
+
+Ideal send buffer size is indicated in this struct/union.
 
 `ByteCount`
 
+Ideal send buffer size in bytes for each `StreamSend` operation to avoid idling the connection.
+
 ## QUIC_STREAM_EVENT_PEER_ACCEPTED
 
+This event is raised when a peer has provided sufficient flow control to accept a new stream. See [StreamStart](StreamStart.md) for additional information.
 
 ## QUIC_STREAM_EVENT_CANCEL_ON_LOSS
 
+This event is raised when a stream is shutdown due to packet loss
+
 ### CANCEL_ON_LOSS
+
+The application can supply an error code in this struct to be sent to the peer.
+
 `ErrorCode`
 
+The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event on its stream object.
 
 # See Also
 
+[Streams](../Streams.md)<br>
 [StreamOpen](StreamOpen.md)<br>
+[StreamStart](StreamStart.md)<br>
+[StreamSend](StreamSend.md)<br>
+[StreamShutdown](StreamShutdown.md)<br>
 [QUIC_STREAM_CALLBACK](QUIC_STREAM_CALLBACK.md)<br>
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
