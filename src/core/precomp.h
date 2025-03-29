@@ -50,6 +50,7 @@
 #include "timer_wheel.h"
 #include "settings.h"
 #include "sent_packet_metadata.h"
+#include "partition.h"
 #include "library.h"
 #include "operation.h"
 #include "binding.h"

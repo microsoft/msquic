@@ -396,7 +396,8 @@ QuicLossDetectionOnPacketSent(
     //
     QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
-            &QuicLibraryGetPerProc()->SentPacketPool, TempSentPacket->FrameCount);
+            &Connection->Partition->SentPacketPool,
+            TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
         //
         // We can't allocate the memory to permanently track this packet so just
@@ -840,7 +841,8 @@ QuicLossDetectionRetransmitFrames(
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
-                    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
+                    QuicPerfCounterIncrement(
+                        Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
                     QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
@@ -1024,7 +1026,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             Connection->Stats.Send.SuspectedLostPackets++;
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+            QuicPerfCounterIncrement(
+                Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
             if (Packet->Flags.IsAckEliciting) {
                 LossDetection->PacketsInFlight--;
                 LostRetransmittableBytes += Packet->PacketLength;
@@ -1351,7 +1354,8 @@ QuicLossDetectionProcessAckBlocks(
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
-                QuicPerfCounterDecrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+                QuicPerfCounterDecrement(
+                    Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
                 //
                 // NOTE: we don't increment AckedRetransmittableBytes here
                 // because we already told the congestion control module that

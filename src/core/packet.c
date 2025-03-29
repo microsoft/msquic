@@ -829,7 +829,9 @@ QuicPacketLogDrop(
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);
+    QuicPerfCounterIncrement(
+        &MsQuicLib.Partitions[Packet->PartitionIndex],
+        QUIC_PERF_COUNTER_PKTS_DROPPED);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -862,5 +864,7 @@ QuicPacketLogDropWithValue(
             CASTED_CLOG_BYTEARRAY(sizeof(Packet->Route->RemoteAddress), &Packet->Route->RemoteAddress),
             Reason);
     }
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_DROPPED);
+    QuicPerfCounterIncrement(
+        &MsQuicLib.Partitions[Packet->PartitionIndex],
+        QUIC_PERF_COUNTER_PKTS_DROPPED);
 }

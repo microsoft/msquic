@@ -72,10 +72,10 @@ tracepoint(CLOG_WORKER_C, AbandonOnLibShutdown , arg1);\
         WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
-        QuicLibraryGetPartitionProcessor(PartitionIndex),
+        Partition->Processor,
         Registration);
 // arg2 = arg2 = Worker = arg2
-// arg3 = arg3 = QuicLibraryGetPartitionProcessor(PartitionIndex) = arg3
+// arg3 = arg3 = Partition->Processor = arg3
 // arg4 = arg4 = Registration = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_WorkerCreated
