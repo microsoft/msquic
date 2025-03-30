@@ -199,6 +199,11 @@ typedef struct QUIC_LIBRARY {
     QUIC_PARTITION* Partitions;
 
     //
+    // The base key used to generate subkeys for the stateless retry token.
+    //
+    uint8_t BaseRetryKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
+
+    //
     // The Toeplitz hash used for hashing received long header packets.
     //
     CXPLAT_TOEPLITZ_HASH ToeplitzHash;

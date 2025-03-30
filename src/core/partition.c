@@ -56,7 +56,7 @@ QuicPartitionUninitialize(
     )
 {
     for (size_t i = 0; i < ARRAYSIZE(Partition->StatelessRetryKeys); ++i) {
-        CxPlatKeyFree(Partition->StatelessRetryKeys[i]);
+        CxPlatKeyFree(Partition->StatelessRetryKeys[i].Key);
     }
     CxPlatPoolUninitialize(&Partition->ConnectionPool);
     CxPlatPoolUninitialize(&Partition->TransportParamPool);
@@ -77,28 +77,31 @@ QuicPartitionUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 CXPLAT_KEY*
-QuicPartitionGetCurrentStatelessRetryKey(
-    _In_ QUIC_PARTITION* Partition
+QuicPartitioGetStatelessRetryKey(
+    _In_ QUIC_PARTITION* Partition,
+    _In_ int64_t KeyIndex
     )
 {
-    int64_t Now = CxPlatTimeEpochMs64();
-    int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-
-    if (StartTime < Partition->StatelessRetryKeysExpiration[Partition->CurrentStatelessRetryKey]) {
-        return Partition->StatelessRetryKeys[Partition->CurrentStatelessRetryKey];
+    //
+    // Check if the key is already generated.
+    //
+    if (Partition->StatelessRetryKeys[KeyIndex & 1].Index == KeyIndex) {
+        return Partition->StatelessRetryKeys[KeyIndex & 1].Key;
     }
 
     //
-    // If the start time for the current key interval is greater-than-or-equal
-    // to the expiration time of the latest stateless retry key, generate a new
-    // key, and rotate the old.
+    // Generate a new key from the base retry key combined with the index.
     //
-
-    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
+    CxPlatCopyMemory(
+        RawKey,
+        MsQuicLib.BaseRetryKey,
+        sizeof(MsQuicLib.BaseRetryKey));
+    for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
+        RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
+    }
 
     CXPLAT_KEY* NewKey;
-    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
-    CxPlatRandom(sizeof(RawKey), RawKey);
     QUIC_STATUS Status =
         CxPlatKeyCreate(
             CXPLAT_AEAD_AES_256_GCM,
@@ -113,12 +116,23 @@ QuicPartitionGetCurrentStatelessRetryKey(
         return NULL;
     }
 
-    Partition->StatelessRetryKeysExpiration[!Partition->CurrentStatelessRetryKey] = ExpirationTime;
-    CxPlatKeyFree(Partition->StatelessRetryKeys[!Partition->CurrentStatelessRetryKey]);
-    Partition->StatelessRetryKeys[!Partition->CurrentStatelessRetryKey] = NewKey;
-    Partition->CurrentStatelessRetryKey = !Partition->CurrentStatelessRetryKey;
+    CxPlatKeyFree(Partition->StatelessRetryKeys[KeyIndex & 1].Key);
+    Partition->StatelessRetryKeys[KeyIndex & 1].Key = NewKey;
+    Partition->StatelessRetryKeys[KeyIndex & 1].Index = KeyIndex;
 
     return NewKey;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Ret_maybenull_
+CXPLAT_KEY*
+QuicPartitionGetCurrentStatelessRetryKey(
+    _In_ QUIC_PARTITION* Partition
+    )
+{
+    const int64_t Now = CxPlatTimeEpochMs64();
+    const int64_t KeyIndex = Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    return QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -129,29 +143,16 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
     _In_ int64_t Timestamp
     )
 {
-    if (Timestamp < Partition->StatelessRetryKeysExpiration[!Partition->CurrentStatelessRetryKey] - QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) {
+    const int64_t Now = CxPlatTimeEpochMs64();
+    const int64_t CurrentKeyIndex = Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    const int64_t KeyIndex = Timestamp / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+
+    if (KeyIndex < CurrentKeyIndex - 1 || KeyIndex > CurrentKeyIndex) {
         //
-        // Timestamp is before the beginning of the previous key's validity window.
+        // This key index is too old or too new.
         //
         return NULL;
     }
 
-    if (Timestamp < Partition->StatelessRetryKeysExpiration[!Partition->CurrentStatelessRetryKey]) {
-        if (Partition->StatelessRetryKeys[!Partition->CurrentStatelessRetryKey] == NULL) {
-            return NULL;
-        }
-        return Partition->StatelessRetryKeys[!Partition->CurrentStatelessRetryKey];
-    }
-
-    if (Timestamp < Partition->StatelessRetryKeysExpiration[Partition->CurrentStatelessRetryKey]) {
-        if (Partition->StatelessRetryKeys[Partition->CurrentStatelessRetryKey] == NULL) {
-            return NULL;
-        }
-        return Partition->StatelessRetryKeys[Partition->CurrentStatelessRetryKey];
-    }
-
-    //
-    // Timestamp is after the end of the latest key's validity window.
-    //
-    return NULL;
+    return QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
 }

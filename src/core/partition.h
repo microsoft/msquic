@@ -27,6 +27,11 @@ Abstract:
 extern "C" {
 #endif
 
+typedef struct QUIC_RETRY_KEY {
+    CXPLAT_KEY* Key;
+    int64_t Index;
+} QUIC_RETRY_KEY;
+
 typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
 
     //
@@ -56,9 +61,7 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
     // Used for generating stateless retries.
     //
     CXPLAT_DISPATCH_LOCK StatelessRetryKeysLock;
-    CXPLAT_KEY* StatelessRetryKeys[2]; // Encryption of retry tokens
-    int64_t StatelessRetryKeysExpiration[2]; // Timestamp when the current stateless retry key expires.
-    BOOLEAN CurrentStatelessRetryKey; // Index into StatelessRetryKeys.
+    QUIC_RETRY_KEY StatelessRetryKeys[2];
 
     //
     // Pools for allocations.

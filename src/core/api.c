@@ -62,7 +62,7 @@ MsQuicConnectionOpen(
     Registration = (QUIC_REGISTRATION*)RegistrationHandle;
 
     //
-    // Just use the current partition // for now. Once the connection receives a
+    // Just use the current partition for now. Once the connection receives a
     // packet the partition can be updated accordingly.
     //
     Status =
