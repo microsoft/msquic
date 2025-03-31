@@ -17,7 +17,7 @@ Abstract:
     A partition is always (soft) affinitized to a single, specific processor. By
     default, partitions are one to one with processors. Though, an application
     may choose to create partitions on a subset of processors. In this case, the
-    partition may be use by work queued on processors that are not explicitly
+    partition may be used by work queued on processors that are not explicitly
     affinitized to a partition. In general, though, the library will try to only
     execute on those processors with assigned partitions.
 
