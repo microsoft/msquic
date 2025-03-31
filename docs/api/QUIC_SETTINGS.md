@@ -55,7 +55,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t QTIPEnabled                            : 1;
+            uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -106,7 +107,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
             uint64_t StreamMultiReceiveEnabled : 1;
-            uint64_t ReservedFlags             : 58;
+            uint64_t QTIPEnabled               : 1;
+            uint64_t ReservedFlags             : 57;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -319,7 +321,7 @@ The time limit between operations for the same endpoint, in milliseconds.
 
 `DestCidUpdateIdleTimeoutMs`
 
-Idle timeout period after which the destination CID is updated before sending again.  
+Idle timeout period after which the destination CID is updated before sending again.
 
 **Default value:** 20,000
 
@@ -356,6 +358,13 @@ Initial stream receive flow control window size for remotely initiated unidirect
 `StreamMultiReceiveEnabled`
 
 Enable multi receive mode. An app can continue receiving stream data without calling `StreamReceiveComplete` for each `QUIC_STREAM_EVENT_RECEIVE` indication.
+
+**Default value:** 0 (`FALSE`)
+
+
+`QTIPEnabled`
+
+(CAUTION: for advanced users only) When set to true at a global level, all listeners and client connections (must be running in XDP mode) created thereafter will initialize a TCP socket and attempt to bind to your local address. This is to reserve a TCP port for your listener/client connection to ensure XDP does not steal any TCP traffic from other processes later. That also means you need to ensure no other processes are listening on the same TCP port as your local address prior to starting your listener/client connection. When client connections are started with QTIPEnabled set to true, they will exclusively send/recv data over QTIP. For listeners, they are able to recv/send data over both QTIP+XDP or QUIC+XDP, depending on the connection.
 
 **Default value:** 0 (`FALSE`)
 
