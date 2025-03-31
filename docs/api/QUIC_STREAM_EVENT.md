@@ -1,7 +1,7 @@
 QUIC_STREAM_EVENT structure
 ======
 
-The payload for QUIC connection events.
+QUIC stream events and the corresponding payload
 
 # Syntax
 ```C
@@ -19,6 +19,8 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
 } QUIC_STREAM_EVENT_TYPE;
 ```
+
+The payload for QUIC stream events.
 
 ```C
 typedef struct QUIC_STREAM_EVENT {
@@ -97,7 +99,7 @@ Stream ID if available.
 
 `PeerAccepted`
 
-Flag indicates whether the peer has accepted the stream.
+If TRUE, the peer has accepted the stream.
 
 ## QUIC_STREAM_EVENT_RECEIVE
 
@@ -122,11 +124,11 @@ See [Receiving Data On Streams](../Streams.md#Receiving) for further details on 
 
 `Buffers`
 
-An array of `QUIC_BUFFERs` containing received data.
+An array of `QUIC_BUFFER`s containing received data.
 
 `BufferCount`
 
-Count of `QUIC_BUFFERs` in this payload.
+Count of `QUIC_BUFFER`s in this payload.
 
 `Flags`
 

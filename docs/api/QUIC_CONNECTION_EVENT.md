@@ -1,7 +1,7 @@
 QUIC_CONNECTION_EVENT structure
 ======
 
-The payload for QUIC connection events.
+QUIC connection events and the corresponding payload
 
 # Syntax
 
@@ -25,6 +25,8 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
 } QUIC_CONNECTION_EVENT_TYPE;
 ```
+
+The payload for QUIC connection events.
 
 ```C
 typedef struct QUIC_CONNECTION_EVENT {

@@ -8,8 +8,7 @@ The sections below detail the designs MsQuic uses and the reasons behind these c
 
 MsQuic [Object Model](./API.md#object-model) describes the hierarchy of MsQuic objects.
 
-MsQuic API delivers all state changes and notifications for a specific MsQuic object directly to the corresponding callback handler registered by the application.
-These include connection state changes, new streams being created, stream data being received, and stream sends completing.
+MsQuic API delivers all state changes and notifications for a specific MsQuic object directly to the corresponding callback handler registered by the application. These include connection state changes, new streams being created, stream data being received, and stream sends completing, among others.
 
 Example definition of Listener object callback API:
 
@@ -34,18 +33,18 @@ QUIC_STATUS
     );
 ```
 
-The application must register a callback handler for every MsQuic object it creates. This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic whether not not the event was successfully handled.
+The application must register a callback handler for every MsQuic object it creates. This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MSQuic that further processing is required.
 
 This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
 
 - The MsQuic API **runs in-process**, eliminating the need for a kernel to user mode boundary switch to notify the application layer. This makes the callback-based design more practical compared to sockets.
 
-- MsQuic, due to the QUIC protocol, has numerous event types. Applications may have hundreds of objects with potential state changes. The callback model allows the application to avoid call management on each object and focus on event management for a given object.
+- The various events defined in MsQuic are derived from the underlying QUIC protocol. Applications may have hundreds of objects with potential state changes. The callback model allows the application to avoid synchronization/call management on each object and focus on event handling for the object.
 
-- Writing correct, scalable code on top of the socket interfaces has proven challenging. Offloading the threading and call managementment to MsQuic enables every application to scalable with minimal effort, making things "just work" out of the box.
+- Writing correct, scalable code in every application built on top of the socket interfaces is a repetetive, challenging task prone to errors. Offloading the threading and synchronization to MsQuic enables every application to be scalable with minimal effort, making things "just work" out of the box.
 
-- Simplified logic flow in MsQuic by eliminating a queue/cached state of yet to be delivered application notifications. This queue/cached state is maintained in the socket model to track yet-to-be-picked-up events/data and the networking stack must wait for call(s) from the application before indicating completion. This represents additional code, complexity and memory usage in socket model that MsQuic does without.
+- Simpler logic flow in MsQuic by eliminating a queue/cached state of yet to be delivered application notifications. This queue/cached state is maintained in the socket model to track yet-to-be-picked-up events/data and the networking stack must wait for call(s) from the application before indicating completion. This represents additional code, complexity and memory usage in socket model that MsQuic does without.
 
 ### Writing Event Handlers
 
@@ -60,7 +59,7 @@ Any substantial work required by the application **must** be performed on thread
 
 This does not imply that the application needs separate threads to perform all of its work.
 Many operations are designed to be most efficient when executed within the callback.
-For example, closing a handle to a connection or stream is ideally done during the "shutdown complete" callback.
+For example, closing a handle to a connection or stream is ideally done during the "shutdown complete" event notification callback.
 
 Some callbacks necessitate the application to call MsQuic API in return, which can be a source of deadlocks.
 MsQuic design ensures that MsQuic API (down) calls made from a callback thread always occur inline (thus avoiding deadlocks) and will take precedence over any calls in progress or queued from a separate thread.
