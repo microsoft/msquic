@@ -8,8 +8,6 @@ Abstract:
     Implements the TLS functions by calling OpenSSL.
 
 --*/
-#include <assert.h>
-
 #include "platform_internal.h"
 
 #include "openssl/opensslv.h"
@@ -42,490 +40,239 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
-/**
- * @brief internal debug macro
- */
+ //
+ // @brief internal debug macro
+ //
 #ifdef OPENSSL_DEBUG
 #define OSSL_DBG(format, args...) fprintf(stderr, "OPENSSL: " format, ##args)
 #else
 #define OSSL_DBG(format, ...)
 #endif
 
-/**
- * @struct CXPLAT_SEC_CONFIG
- * @brief Represents the security configuration used for TLS.
- *
- * This structure encapsulates all the necessary information for
- * configuring TLS security settings, including SSL context,
- * ticket keying, and callback functions.
- */
+ //
+ // @struct CXPLAT_SEC_CONFIG
+ // @brief Represents the security configuration used for TLS.
+ // 
+ // This structure encapsulates all the necessary information for
+ // configuring TLS security settings, including SSL context,
+ // ticket keying, and callback functions.
+ // 
 typedef struct CXPLAT_SEC_CONFIG {
 
-    /**
-     * SSL context used for establishing TLS connections.
-     */
+    //
+    // SSL context used for establishing TLS connections.
+    //
     SSL_CTX *SSLCtx;
 
-    /**
-     * Pointer to the ticket key configuration for session resumption.
-     */
+    //
+    // Pointer to the ticket key configuration for session resumption.
+    //
     QUIC_TICKET_KEY_CONFIG* TicketKey;
 
-    /**
-     * TLS-related callbacks for handling crypto events.
-     */
+    //
+    // TLS-related callbacks for handling crypto events.
+    //
     CXPLAT_TLS_CALLBACKS Callbacks;
 
-    /**
-     * Credential flags specifying various QUIC credential options.
-     */
+    //
+    // Credential flags specifying various QUIC credential options.
+    //
     QUIC_CREDENTIAL_FLAGS Flags;
 
-    /**
-     * Flags that specify behavior for TLS credential handling.
-     */
+    //
+    // Flags that specify behavior for TLS credential handling.
+    //
     CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags;
 
 } CXPLAT_SEC_CONFIG;
 
-/**
- * @struct CXPLAT_TLS
- * @brief Represents the state and configuration of a TLS session.
- *
- * This structure holds information necessary to manage a TLS handshake,
- * encryption state, and associated connection details for QUIC.
- */
+//
+// @struct CXPLAT_TLS
+// @brief Represents the state and configuration of a TLS session.
+//
+// This structure holds information necessary to manage a TLS handshake,
+// encryption state, and associated connection details for QUIC.
+//
 typedef struct CXPLAT_TLS {
 
-    /**
-     * Pointer to the security configuration used for the TLS session.
-     */
+    //
+    // Pointer to the security configuration used for the TLS session.
+    //
     CXPLAT_SEC_CONFIG* SecConfig;
 
-    /**
-     * Pointer to HKDF label definitions used in the key derivation process.
-     */
+    //
+    // Pointer to HKDF label definitions used in the key derivation process.
+    //
     const QUIC_HKDF_LABELS* HkdfLabels;
 
-    /**
-     * Indicates if the endpoint is acting as a server.
-     */
+    //
+    // Indicates if the endpoint is acting as a server.
+    //
     BOOLEAN IsServer : 1;
 
-    /**
-     * Indicates if a peer certificate has been received.
-     */
+    //
+    // Indicates if a peer certificate has been received.
+    //
     BOOLEAN PeerCertReceived : 1;
 
-    /**
-     * Indicates if the peer's transport parameters have been received.
-     */
+    //
+    // Indicates if the peer's transport parameters have been received.
+    //
     BOOLEAN PeerTPReceived : 1;
 
-    /**
-     * QUIC transport parameter extension type used in the session.
-     */
+    //
+    // QUIC transport parameter extension type used in the session.
+    //
     uint16_t QuicTpExtType;
 
-    /**
-     * Length of the ALPN buffer.
-     */
+    //
+    // Length of the ALPN buffer.
+    //
     uint16_t AlpnBufferLength;
 
-    /**
-     * Pointer to the ALPN buffer data.
-     */
+    //
+    // Pointer to the ALPN buffer data.
+    //
     const uint8_t* AlpnBuffer;
 
-    /**
-     * Pointer to the Server Name Indication (SNI) string.
-     */
+    //
+    // Pointer to the Server Name Indication (SNI) string.
+    //
     const char* SNI;
 
-    /**
-     * OpenSSL SSL object used for the TLS handshake and encryption.
-     */
+    //
+    // OpenSSL SSL object used for the TLS handshake and encryption.
+    //
     SSL *Ssl;
 
-    /**
-     * Pointer to internal TLS processing state.
-     */
+    //
+    // Pointer to internal TLS processing state.
+    //
     CXPLAT_TLS_PROCESS_STATE* State;
 
-    /**
-     * Flags indicating the results of TLS processing.
-     */
+    //
+    // Flags indicating the results of TLS processing.
+    //
     CXPLAT_TLS_RESULT_FLAGS ResultFlags;
 
-    /**
-     * Pointer to the QUIC connection associated with this TLS session.
-     */
+    //
+    // Pointer to the QUIC connection associated with this TLS session.
+    //
     QUIC_CONNECTION* Connection;
 
-    /**
-     * Pointer to derived TLS secrets for encryption and decryption.
-     */
+    //
+    // Pointer to derived TLS secrets for encryption and decryption.
+    //
     QUIC_TLS_SECRETS* TlsSecrets;
 
 } CXPLAT_TLS;
 
-/**
- * @struct list_head
- * @brief Doubly-linked list node structure.
- *
- * This structure defines a node used in a circular doubly-linked list.
- * Each node contains pointers to the next and previous elements.
- * Commonly used as a generic list element header in list management.
- * adapted from https://github.com/embeddedartistry/c-linked-list/blob/main/src/linkedlist/ll.h
- */
-struct list_head {
-    /**
-     * Pointer to the next node in the list.
-     */
-    struct list_head *next;
+//
+// @struct RECORD_ENTRY
+// @brief Represents a buffered SSL record in a linked list.
+//
+// This structure is used to store an SSL record along with its
+// metAData and linkage in a list. It supports tracking incomplete
+// records and whether the memory should be freed.
+//
+typedef struct RECORD_ENTRY {
+    //
+    // Linked list node for linking Entries in a list.
+    //
+    CXPLAT_LIST_ENTRY Entries;
 
-    /**
-     * Pointer to the previous node in the list.
-     */
-    struct list_head *prev;
-};
+    //
+    // Pointer to the raw SSL record data.
+    //
+    unsigned char *Record;
 
-/**
- * @def container_of
- * @brief Retrieves the pointer to the parent structure from a member pointer.
- *
- * This macro computes the address of the containing structure based on the
- * address of a member within it. It is commonly used to cast a member pointer
- * back to its enclosing structure.
- *
- * @param ptr    Pointer to the member.
- * @param type   Type of the container structure.
- * @param member Name of the member within the structure.
- *
- * @return Pointer to the container structure of type @p type.
- */
-#define container_of(ptr, type, member) \
-    ((type*)((uintptr_t)(ptr)-offsetof(type, member)))
+    //
+    // Length of the SSL record.
+    //
+    size_t RecLen;
 
-/**
- * @def list_entry
- * @brief Retrieves the pointer to the structure containing a list node.
- *
- * Given a pointer to a @c list_head member, this macro returns a pointer
- * to the structure that contains it. It is typically used to access the
- * parent structure from a list node in a linked list.
- *
- * @param ptr    Pointer to the @c list_head member.
- * @param type   Type of the structure containing the list node.
- * @param member Name of the @c list_head member within the structure.
- *
- * @return Pointer to the parent structure of type @p type.
- */
-#define list_entry(ptr, type, member) container_of(ptr, type, member)
+    //
+    // Pointer to the associated SSL connection.
+    //
+    SSL *Ssl;
 
-/**
- * @def LIST_FOREACH
- * @brief Iterates over each entry in a linked list.
- *
- * This macro provides a convenient way to iterate through a circular
- * doubly-linked list where each element embeds a @c list_head node.
- *
- * @param pos    Loop cursor of the container element type.
- * @param head   Pointer to the list head (of type @c struct list_head).
- * @param member Name of the @c list_head field within the container type.
- *
- * Example usage:
- * @code
- * struct item {
- *     int value;
- *     struct list_head node;
- * };
- *
- * struct list_head my_list;
- * struct item *it;
- *
- * LIST_FOREACH(it, &my_list, node) {
- *     printf("%d\n", it->value);
- * }
- * @endcode
- */
-#define LIST_FOREACH(pos, head, member) \
-for(pos = list_entry((head)->next, __typeof__(*pos), member); &pos->member != (head); \
-		pos = list_entry(pos->member.next, __typeof__(*pos), member)) 
+    //
+    // Non-zero if the record is incomplete.
+    //
+    unsigned char Incomplete;
 
-/**
- * @brief Inserts a new node between two known consecutive entries.
- *
- * This function is a low-level helper that inserts a new node into a
- * doubly-linked list by updating the surrounding @c next and @c prev
- * pointers. It does not perform any validation checks.
- *
- * @param n     Pointer to the new node to insert.
- * @param prev  Pointer to the node that will precede the new node.
- * @param next  Pointer to the node that will follow the new node.
- */
-static inline void list_insert(struct list_head *n, struct list_head *prev,
-                               struct list_head *next)
-{
-    next->prev = n;
-    n->next = next;
-    n->prev = prev;
-    prev->next = n;
-}
+    //
+    // Non-zero if the record memory should be freed.
+    //
+    unsigned char FreeMe;
+} RECORD_ENTRY;
 
-/**
- * @brief Adds a new node immediately after the list head.
- *
- * Inserts a node at the beginning of the list, making it the first
- * element after the head. Useful for stack-like behavior.
- *
- * @param n     Pointer to the new node to insert.
- * @param head  Pointer to the list head.
- */
-static inline void list_add(struct list_head *n, struct list_head *head)
-{
-    list_insert(n, head, head->next);
-}
+//
+// @struct AUX_DATA
+// @brief holds auxilliary data we need for each ssl
+//
+typedef struct AUX_DATA {
+    //
+    // @brief transport params for our endpoint 
+    //
+    const uint8_t *Tp;
 
-/**
- * @brief Adds a new node at the end of the list, before the head.
- *
- * Inserts a node at the tail of the list, just before the head.
- * Useful for queue-like behavior.
- *
- * @param n     Pointer to the new node to insert.
- * @param head  Pointer to the list head.
- */
-static inline void list_add_tail(struct list_head *n, struct list_head *head)
-{
-    list_insert(n, head->prev, head);
-}
+    //
+    // @brief peer transport params
+    //
+    uint8_t *PeerTp;
 
-/**
- * @brief Adds a new node immediately after a specified node.
- *
- * Inserts a node after the given list element @p e.
- *
- * @param n  Pointer to the new node to insert.
- * @param e  Pointer to the existing node to insert after.
- */
-static inline void list_add_after(struct list_head *n, struct list_head *e)
-{
-    list_insert(n, e, e->next);
-}
+    //
+    // @brief peer transport param len
+    //
+    size_t PeerTpLen;
 
-/**
- * @brief Joins two list nodes by updating their pointers.
- *
- * This is a low-level helper that connects two nodes in a doubly-linked
- * list, effectively bypassing any node that was between them.
- *
- * @param prev  Pointer to the previous node.
- * @param next  Pointer to the next node.
- */
-static inline void list_join_nodes(struct list_head *prev,
-                                   struct list_head *next)
-{
-    next->prev = prev;
-    prev->next = next;
-}
+    //
+    // @brief The current encryption level we are sending data for
+    //
+    uint32_t Level;
 
-/**
- * @brief Removes a node from the list.
- *
- * Unlinks the specified entry from the doubly-linked list and sets
- * its @c next and @c prev pointers to NULL. After removal, the entry
- * is no longer part of any list.
- *
- * @param entry Pointer to the node to remove.
- */
-static inline void list_del(struct list_head *entry)
-{
-    list_join_nodes(entry->prev, entry->next);
-    entry->next = entry->prev = NULL; 
-}
+    //
+    // @brief this SSL's receive record list
+    //
+    CXPLAT_LIST_ENTRY RList;
 
-static inline int list_empty(struct list_head *head)
-{
-    if (head->next == head)
-        return 1;
-    return 0;
-}
+    //
+    // @brief state tracking for 1_rtt secrets
+    uint8_t SecretSet[2];
+} AUX_DATA;
 
-/**
- * @def LIST_HEAD
- * @brief Declares a new list head variable.
- *
- * This macro declares a variable of type @c struct list_head to be used
- * as the head of a circular doubly-linked list.
- *
- * @param name Name of the list head variable.
- */
-#define LIST_HEAD(name) struct list_head name
+//
+// @def GetSslAuxData
+// @brief Retrieves application-specific data associated with an SSL object.
+//
+// This macro accesses the auxiliary data stored in the BIO associated
+// with the given SSL connection.
+//
+// @param s Pointer to an @c SSL object.
+//
+// @return Pointer to the application-specific data.
+//
+#define GetSslAuxData(s) BIO_get_app_data(SSL_get_rbio(s))
 
-/**
- * @def LIST_HEAD_INITIALIZER
- * @brief Statically initializes a list head.
- *
- * Sets the @c next and @c prev pointers of the list head to point to
- * itself, forming an empty circular list.
- *
- * @param name Name of the list head variable to initialize.
- */
-#define LIST_HEAD_INITIALIZER(name) {&(name), &(name)}
-
-/**
- * @def LIST_INIT
- * @brief Dynamically initializes a list head at runtime.
- *
- * Sets the @c next and @c prev pointers of the list head to point to
- * itself, forming an empty circular list.
- *
- * @param name Pointer to the list head to initialize.
- */
-#define LIST_INIT(name) do { \
-    (name)->next = name; \
-    (name)->prev = name; \
-} while (0)
-
-/**
- * @def LIST_REMOVE
- * @brief Removes a node from its containing list.
- *
- * Convenience macro that wraps @c list_del to unlink a node from a
- * doubly-linked list and nullify its pointers.
- *
- * @param e Pointer to the node to remove.
- */
-#define LIST_REMOVE(e) list_del(e)
-
-#define LIST_EMPTY(head) list_empty(head)
-
-/**
- * @def LIST_ADD_TAIL
- * @brief Adds a node to the end of the list.
- *
- * Convenience macro that wraps @c list_add_tail to insert a node at
- * the tail (before the head) of a circular doubly-linked list.
- *
- * @param elem Pointer to the new node to insert.
- * @param head Pointer to the list head.
- */
-#define LIST_ADD_TAIL(elem, head) list_add_tail(elem, head)
-
-/**
- * @struct record_entry
- * @brief Represents a buffered SSL record in a linked list.
- *
- * This structure is used to store an SSL record along with its
- * metadata and linkage in a list. It supports tracking incomplete
- * records and whether the memory should be freed.
- */
-struct record_entry {
-    /**
-     * Linked list node for linking entries in a list.
-     */
-    struct list_head entries;
-
-    /**
-     * Pointer to the raw SSL record data.
-     */
-    unsigned char *record;
-
-    /**
-     * Length of the SSL record.
-     */
-    size_t rec_len;
-
-    /**
-     * Pointer to the associated SSL connection.
-     */
-    SSL *ssl;
-
-    /**
-     * Non-zero if the record is incomplete.
-     */
-    unsigned char incomplete;
-
-    /**
-     * Non-zero if the record memory should be freed.
-     */
-    unsigned char freeme;
-};
-
-/**
- * @struct aux_data
- * @brief holds auxilliary data we need for each ssl
- */
-struct aux_data {
-    /*
-     * @brief transport params for our endpoint 
-     */
-    const uint8_t *tp;
-
-    /*
-     * @brief peer transport params
-     */
-    uint8_t *peer_tp;
-
-    /*
-     * @brief peer transport param len
-     */
-    size_t peer_tp_len;
-
-    /*
-     * @brief The current encryption level we are sending data for
-     */
-    uint32_t level;
-
-    /*
-     * @brief, this SSL's receive record list
-     */
-    struct list_head rlist;
-
-    uint8_t secret_set[2];
-};
-
-/**
- * @def get_ssl_aux_data
- * @brief Retrieves application-specific data associated with an SSL object.
- *
- * This macro accesses the auxiliary data stored in the BIO associated
- * with the given SSL connection.
- *
- * @param s Pointer to an @c SSL object.
- *
- * @return Pointer to the application-specific data.
- */
-#define get_ssl_aux_data(s) BIO_get_app_data(SSL_get_rbio(s))
-
-/**
- * @def _unused
- * @brief Marks a variable or function as intentionally unused.
- *
- * This macro uses the GCC attribute @c unused to suppress compiler
- * warnings for unused variables or functions.
- */
-#define _unused __attribute__((unused))
-
-/**
- * @brief Determines the negotiated AEAD and hash algorithms from a TLS session.
- *
- * This function inspects the currently negotiated cipher suite in the given
- * TLS context and maps it to corresponding internal AEAD and hash algorithm
- * types used by the QUIC implementation.
- *
- * Supported ciphers include:
- * - TLS_AES_128_GCM_SHA256
- * - TLS_AES_256_GCM_SHA384
- * - TLS_CHACHA20_POLY1305_SHA256
- *
- * If an unsupported cipher is negotiated, the function asserts.
- *
- * @param[in]  TlsContext Pointer to the TLS context containing the SSL object.
- * @param[out] AeadType   Pointer to receive the negotiated AEAD algorithm type.
- * @param[out] HashType   Pointer to receive the negotiated hash algorithm type.
- */
+//
+// @brief Determines the negotiated AEAD and hash algorithms from a TLS session.
+//
+// This function inspects the currently negotiated cipher suite in the given
+// TLS context and maps it to corresponding internal AEAD and hash algorithm
+// types used by the QUIC implementation.
+//
+// Supported ciphers include:
+// - TLS_AES_128_GCM_SHA256
+// - TLS_AES_256_GCM_SHA384
+// - TLS_CHACHA20_POLY1305_SHA256
+//
+// If an unsupported cipher is negotiated, the function asserts.
+//
+// @param[in]  TlsContext Pointer to the TLS context containing the SSL object.
+// @param[out] AeadType   Pointer to receive the negotiated AEAD algorithm type.
+// @param[out] HashType   Pointer to receive the negotiated hash algorithm type.
+//
 void
 CxPlatTlsNegotiatedCiphers(
     _In_ CXPLAT_TLS* TlsContext,
@@ -551,37 +298,37 @@ CxPlatTlsNegotiatedCiphers(
     }
 }
 
-/**
- * @brief Callback to send TLS handshake data to the QUIC stack.
- *
- * This function is called by OpenSSL to send handshake data over QUIC.
- * It submits the provided buffer to the QUIC connection for transmission.
- * If the submission fails, it sets the TLS error on the QUIC connection.
- *
- * @param[in]  s           Pointer to the SSL connection object.
- * @param[in]  buf         Pointer to the buffer containing data to send.
- * @param[in]  buf_len     Length of the data in @p buf.
- * @param[out] consumed    Number of bytes successfully consumed from @p buf.
- * @param[in]  arg         Unused argument (typically NULL).
- *
- * @return 1 on success, 0 on failure.
- */
-static int QuicTlsSend(SSL *s, const unsigned char *buf,
-                         size_t buf_len, size_t *consumed,
-                         void *arg)
+//
+// @brief Callback to send TLS handshake data to the QUIC stack.
+//
+// This function is called by OpenSSL to send handshake data over QUIC.
+// It submits the provided buffer to the QUIC connection for transmission.
+// If the submission fails, it sets the TLS error on the QUIC connection.
+//
+// @param[in]  s           Pointer to the SSL connection object.
+// @param[in]  buf         Pointer to the buffer containing data to send.
+// @param[in]  buf_len     Length of the data in @p buf.
+// @param[out] consumed    Number of bytes successfully consumed from @p buf.
+// @param[in]  arg         Unused argument (typically NULL).
+//
+// @return 1 on success, 0 on failure.
+//
+static int QuicTlsSend(SSL *s, const unsigned char *Buf,
+                         size_t BufLen, size_t *Consumed,
+                         void *Arg)
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(s);
     CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
-    struct aux_data *adata = get_ssl_aux_data(s);
+    struct AUX_DATA *AData = GetSslAuxData(s);
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
     OSSL_DBG("SENDING IN QUIC_TLS_SEND\n");
 
-    /*
-     * KeyTypes in msquic map directly to our protection levels
-     */
-    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)adata->level;
+    //
+    // KeyTypes in msquic map directly to our protection levels
+    //
+    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)AData->Level;
 
     if (TlsContext->ResultFlags & CXPLAT_TLS_RESULT_ERROR) {
         return -1;
@@ -591,13 +338,13 @@ static int QuicTlsSend(SSL *s, const unsigned char *buf,
         OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
-        (uint64_t)buf_len,
-        (uint32_t)adata->level);
+        (uint64_t)BufLen,
+        (uint32_t)AData->Level);
 
-    /*
-     * Make sure that we don't violate handshake data lengths
-     */
-    if (buf_len + TlsState->BufferLength > 0xF000) {
+    //
+    // Make sure that we don't violate handshake data lengths
+    //
+    if (BufLen + TlsState->BufferLength > 0xF000) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s.",
@@ -607,13 +354,13 @@ static int QuicTlsSend(SSL *s, const unsigned char *buf,
         return -1;
     }
 
-    if (buf_len + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
-        /*
-         * Double the allocated buffer length until there's enough room for the
-         * new data.
-         */ 
+    if (BufLen + TlsState->BufferLength > (size_t)TlsState->BufferAllocLength) {
+        //
+        // Double the allocated Buffer length until there's enough room for the
+        // new data.
+        // 
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
-        while (buf_len + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
+        while (BufLen + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
             NewBufferAllocLength <<= 1;
         }
 
@@ -622,7 +369,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *buf,
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "New crypto buffer",
+                "New crypto Buffer",
                 NewBufferAllocLength);
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
@@ -664,94 +411,102 @@ static int QuicTlsSend(SSL *s, const unsigned char *buf,
 
     CxPlatCopyMemory(
         TlsState->Buffer + TlsState->BufferLength,
-        buf,
-        buf_len);
-    TlsState->BufferLength += (uint16_t)buf_len;
-    TlsState->BufferTotalLength += (uint16_t)buf_len;
+        Buf,
+        BufLen);
+    TlsState->BufferLength += (uint16_t)BufLen;
+    TlsState->BufferTotalLength += (uint16_t)BufLen;
 
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_DATA;
 
-    *consumed = buf_len;
+    *Consumed = BufLen;
     return 1;
 }
 
-/**
- * @brief Callback to provide a previously buffered TLS record to OpenSSL.
- *
- * This function is called by OpenSSL to retrieve a TLS record for further
- * processing. It searches the buffered records for one matching the given
- * SSL connection. If a complete record is found, it is returned via @p buf
- * and @p bytes_read. If the record is incomplete, it signals OpenSSL to
- * wait for more data.
- *
- * @param[in]  s            Pointer to the SSL connection object.
- * @param[out] buf          Pointer to the buffer containing the record data.
- *                          If no data is available, set to NULL.
- * @param[out] bytes_read   Length of the record returned in @p buf.
- *                          If no data is available, set to 0.
- * @param[in]  arg          Unused argument (typically NULL).
- *
- * @return Always returns 1.
- */
-static int QuicTlsRcvRec(SSL *s, const unsigned char **buf, size_t *bytes_read,
-                            void *arg)
+//
+// @brief Callback to provide a previously buffered TLS record to OpenSSL.
+//
+// This function is called by OpenSSL to retrieve a TLS record for further
+// processing. It searches the buffered records for one matching the given
+// SSL connection. If a complete record is found, it is returned via @p buf
+// and @p bytes_read. If the record is incomplete, it signals OpenSSL to
+// wait for more data.
+//
+// @param[in]  s            Pointer to the SSL connection object.
+// @param[out] buf          Pointer to the buffer containing the record data.
+//                          If no data is available, set to NULL.
+// @param[out] bytes_read   Length of the record returned in @p buf.
+//                          If no data is available, set to 0.
+// @param[in]  arg          Unused argument (typically NULL).
+//
+// @return Always returns 1.
+//
+static int QuicTlsRcvRec(SSL *s, const unsigned char **Buf, size_t *BytesRead,
+                            void *Arg)
 {
-    struct record_entry *entry;
-    struct aux_data *adata = get_ssl_aux_data(s);
+    RECORD_ENTRY *entry;
+    struct AUX_DATA *AData = GetSslAuxData(s);
+    CXPLAT_LIST_ENTRY* lentry;
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
-    adata = get_ssl_aux_data(s);
-    assert(adata != NULL);
+    AData = GetSslAuxData(s);
+    CXPLAT_DBG_ASSERT(AData != NULL);
 
-    /*
-     * Iterate over our received record list looking
-     * for a complete entry to submit to the TLS
-     * stack
-     */
-    LIST_FOREACH(entry, &adata->rlist, entries) {
-        if (entry->incomplete)
+    //
+    // Iterate over our received record list looking
+    // for a complete entry to submit to the TLS
+    // stack
+    //
+    lentry = AData->RList.Flink;
+    while (lentry != &AData->RList) {
+        entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Entries);
+        lentry = lentry->Flink;
+        if (entry->Incomplete)
             return 1;
-        if (entry->freeme == 1)
+        if (entry->FreeMe == 1)
             continue;
-        *buf = entry->record;
-        *bytes_read = entry->rec_len;
-        entry->freeme = 1;
+        *Buf = entry->Record;
+        *BytesRead = entry->RecLen;
+        entry->FreeMe = 1;
         break;
   }
   return 1;
 
 }
 
-/**
- * @brief Callback to release a previously buffered TLS record.
- *
- * This function is called by OpenSSL after a TLS record has been fully
- * processed and can be safely released. It verifies the number of bytes
- * read matches the expected record length, frees the associated memory,
- * and resets the pointer.
- *
- * @param[in] bytes_read  The number of bytes processed in the TLS record.
- * @param[in] arg         Unused argument (typically NULL).
- *
- * @return Always returns 1.
- */
-static int QuicTlsRlsRec(SSL *s, size_t bytes_read,
-                            void *arg)
+//
+// @brief Callback to release a previously buffered TLS record.
+//
+// This function is called by OpenSSL after a TLS record has been fully
+// processed and can be safely released. It verifies the number of bytes
+// read matches the expected record length, frees the associated memory,
+// and resets the pointer.
+//
+// @param[in] bytes_read  The number of bytes processed in the TLS record.
+// @param[in] arg         Unused argument (typically NULL).
+//
+// @return Always returns 1.
+//
+static int QuicTlsRlsRec(SSL *S, size_t BytesRead,
+                            void *Arg)
 {
-    struct aux_data *adata = get_ssl_aux_data(s);
-    struct record_entry *entry;
+    struct AUX_DATA *AData = GetSslAuxData(S);
+    RECORD_ENTRY *entry;
+    CXPLAT_LIST_ENTRY* lentry;
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
-    /*
-     * Look for entries that are marked for freeing
-     * if the record length matches, we can free it
-     */
-    LIST_FOREACH(entry, &adata->rlist, entries) {
-      if ((entry->freeme == 1) && (entry->rec_len == bytes_read)) {
-        LIST_REMOVE(&entry->entries);
-        free(entry->record);
+    //
+    // Look for Entries that are marked for freeing
+    // if the record length matches, we can free it
+    //
+    lentry = AData->RList.Flink;
+    while (lentry != &AData->RList) {
+      entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Entries);
+      lentry = lentry->Flink;
+      if ((entry->FreeMe == 1) && (entry->RecLen == BytesRead)) {
+        CxPlatListEntryRemove(&entry->Entries);
+        free(entry->Record);
         free(entry);
         return 1;
       }
@@ -760,59 +515,59 @@ static int QuicTlsRlsRec(SSL *s, size_t bytes_read,
 
 }
 
-/**
- * @brief Callback to yield TLS secrets to the QUIC stack.
- *
- * This function is invoked by OpenSSL to provide traffic secrets during
- * the QUIC handshake. It installs the given secret into the ngtcp2 QUIC
- * connection, either as a read (RX) key or write (TX) key depending on
- * the direction.
- *
- * @param[in] s           Pointer to the SSL connection object.
- * @param[in] prot_level  OpenSSL encryption level of the secret.
- * @param[in] dir         Direction of the key. 1 for read (RX) key,
- *                        0 for write (TX) key.
- * @param[in] secret      Pointer to the secret to be installed.
- * @param[in] secret_len  Length of the secret.
- * @param[in] arg         Unused argument (typically NULL).
- *
- * @return 1 on success, 0 on failure.
- */
-static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
-                                 int dir,
-                                 const unsigned char *secret,
-                                 size_t secret_len, void *arg)
+//
+// @brief Callback to yield TLS secrets to the QUIC stack.
+//
+// This function is invoked by OpenSSL to provide traffic secrets during
+// the QUIC handshake. It installs the given secret into the ngtcp2 QUIC
+// connection, either as a read (RX) key or write (TX) key depending on
+// the direction.
+//
+// @param[in] s           Pointer to the SSL connection object.
+// @param[in] prot_level  OpenSSL encryption level of the secret.
+// @param[in] dir         Direction of the key. 1 for read (RX) key,
+//                        0 for write (TX) key.
+// @param[in] secret      Pointer to the secret to be installed.
+// @param[in] secret_len  Length of the secret.
+// @param[in] arg         Unused argument (typically NULL).
+//
+// @return 1 on success, 0 on failure.
+//
+static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
+                                 int Dir,
+                                 const unsigned char *NewSecret,
+                                 size_t SecretLen, void *Arg)
 {
-    CXPLAT_TLS* TlsContext = SSL_get_app_data(s);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(S);
     CXPLAT_TLS_PROCESS_STATE* TlsState = TlsContext->State;
-    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)prot_level;
+    QUIC_PACKET_KEY_TYPE KeyType = (QUIC_PACKET_KEY_TYPE)ProtLevel;
     QUIC_STATUS Status;
     CXPLAT_SECRET Secret;
-    struct aux_data *adata = get_ssl_aux_data(s);
+    struct AUX_DATA *AData = GetSslAuxData(S);
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
     QuicTraceLogConnVerbose(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
-        "New encryption secrets (Level = %u) (dir = %u)",
-        prot_level, (unsigned int)dir);
+        "New encryption Secrets (Level = %u) (Dir = %u)",
+        ProtLevel, (unsigned int)Dir);
 
-    OSSL_DBG("Got %s Secret for prot level %d\n", dir == 1 ? "write" : "read", prot_level);
+    OSSL_DBG("Got %s Secret for prot level %d\n", Dir == 1 ? "write" : "read", ProtLevel);
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
 
-    /*
-     * Tx/Write Secret
-     */
-    if (dir == 1) {
-        CxPlatCopyMemory(Secret.Secret, secret, secret_len);
+    //
+    // Tx/Write Secret
+    //
+    if (Dir == 1) {
+        CxPlatCopyMemory(Secret.Secret, NewSecret, SecretLen);
         CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
         Status =
             QuicPacketKeyDerive(
                 KeyType,
                 TlsContext->HkdfLabels,
                 &Secret,
-                "write secret",
+                "write Secret",
                 TRUE,
                 &TlsState->WriteKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
@@ -825,14 +580,14 @@ static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
             TlsContext->State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
         }
     } else  {
-        CxPlatCopyMemory(Secret.Secret, secret, secret_len);
+        CxPlatCopyMemory(Secret.Secret, NewSecret, SecretLen);
         CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
         Status =
             QuicPacketKeyDerive(
                 KeyType,
                 TlsContext->HkdfLabels,
                 &Secret,
-                "read secret",
+                "read Secret",
                 TRUE,
                 &TlsState->ReadKeys[KeyType]);
         if (QUIC_FAILED(Status)) {
@@ -841,17 +596,17 @@ static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
         }
 
     }
-    if (prot_level == 3) {
-        adata->secret_set[dir] = 1;
-        if (adata->secret_set[!dir] == 1) {
+    if (ProtLevel == 3) {
+        AData->SecretSet[Dir] = 1;
+        if (AData->SecretSet[!Dir] == 1) {
             OSSL_DBG("BOTH 1_RTT SECRETS SET, UPDATING KEY PROTECTION\n");
-            adata->level = prot_level;
+            AData->Level = ProtLevel;
             TlsState->ReadKey = TlsState->WriteKey = KeyType;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED | CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         }
     } else {
-        adata->level = prot_level;
-        if (dir == 1) {
+        AData->Level = ProtLevel;
+        if (Dir == 1) {
             TlsState->WriteKey = KeyType;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         } else {
@@ -860,38 +615,38 @@ static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
         }
     }
 
-    /*
-     * If we are installing initial secrets TlsSecrets aren't allocated yet
-     */
+    //
+    // If we are installing initial Secrets TlsSecrets aren't allocated yet
+    //
     if (TlsContext->TlsSecrets == NULL) {
         return 1;
     }
-    /*
-     * We pass our secrets one at a time instead of together
-     * So we need to map which secret we're assigning based
-     * on weather we are a server, what type of key we're writing
-     * and the direction (1 for write, 0 for read)
-     */
+    //
+    // We pass our Secrets one at a time instead of together
+    // So we need to map which Secret we're assigning based
+    // on weather we are a server, what type of key we're writing
+    // and the Direction (1 for write, 0 for read)
+    //
     switch(KeyType) {
     case QUIC_PACKET_KEY_HANDSHAKE:
         if (TlsContext->IsServer) {
-            if (dir == 1) {
+            if (Dir == 1) {
                 memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
             } else {
                 memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
             }
         } else {
-            if (dir == 1) {
+            if (Dir == 1) {
                 memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
             } else {
                 memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
             }
         }
@@ -899,15 +654,15 @@ static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
         break;
     case QUIC_PACKET_KEY_0_RTT:
         if (TlsContext->IsServer) {
-            if (dir == 0) {
+            if (Dir == 0) {
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
             }
         } else {
-            if (dir == 1) {
+            if (Dir == 1) {
                 memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                       secret, secret_len);
+                       NewSecret, SecretLen);
                 TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
             }
         }
@@ -920,45 +675,45 @@ static int QuicTlsYieldSecret(SSL *s, uint32_t prot_level,
     return 1;
 }
 
-/**
- * @brief Callback invoked when transport parameters are received from peer.
- *
- * This function is called by OpenSSL when remote QUIC transport parameters
- * are received during the TLS handshake. It decodes and applies these
- * parameters to the QUIC connection. If decoding fails, it sets a TLS
- * error on the connection.
- *
- * @param[in] s           Pointer to the SSL connection object.
- * @param[in] params      Pointer to the buffer containing transport
- *                        parameters from the peer.
- * @param[in] params_len  Length of the transport parameters buffer.
- * @param[in] arg         Unused argument (typically NULL).
- *
- * @return 1 on success, -1 on failure.
- */
-static int QuicTlsGotTp(SSL *s, const unsigned char *params,
-                           size_t params_len, void *arg)
+//
+// @brief Callback invoked when transport parameters are received from peer.
+//
+// This function is called by OpenSSL when remote QUIC transport parameters
+// are received during the TLS handshake. It decodes and applies these
+// parameters to the QUIC connection. If decoding fails, it sets a TLS
+// error on the connection.
+//
+// @param[in] s           Pointer to the SSL connection object.
+// @param[in] params      Pointer to the buffer containing transport
+//                        parameters from the peer.
+// @param[in] params_len  Length of the transport parameters buffer.
+// @param[in] arg         Unused argument (typically NULL).
+//
+// @return 1 on success, -1 on failure.
+//
+static int QuicTlsGotTp(SSL *S, const unsigned char *Params,
+                           size_t ParamsLen, void *Arg)
 {
-    CXPLAT_TLS* TlsContext = SSL_get_app_data(s);
-    struct aux_data *adata = get_ssl_aux_data(s);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(S);
+    struct AUX_DATA *AData = GetSslAuxData(S);
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
     OSSL_DBG("GOT PEER TRANSPORT PARAMS\n");
 
-    adata->peer_tp = CXPLAT_ALLOC_NONPAGED(params_len,
+    AData->PeerTp = CXPLAT_ALLOC_NONPAGED(ParamsLen,
                                            QUIC_POOL_TLS_TRANSPARAMS);
-    CXPLAT_DBG_ASSERT(adata->peer_tp != NULL);
-    memcpy(adata->peer_tp, params, params_len);
-    adata->peer_tp_len = params_len;
+    CXPLAT_DBG_ASSERT(AData->PeerTp != NULL);
+    memcpy(AData->PeerTp, Params, ParamsLen);
+    AData->PeerTpLen = ParamsLen;
     if (!TlsContext->IsServer && TlsContext->PeerTPReceived == FALSE) {
-        if (adata->peer_tp != NULL && adata->peer_tp_len != 0) {
+        if (AData->PeerTp != NULL && AData->PeerTpLen != 0) {
             OSSL_DBG("SETTING PEER TRANSPORT PARAMS\n");
             TlsContext->PeerTPReceived = TRUE;
             if (!TlsContext->SecConfig->Callbacks.ReceiveTP(
                                 TlsContext->Connection,
-                                (uint16_t)adata->peer_tp_len,
-                                adata->peer_tp)) {
+                                (uint16_t)AData->PeerTpLen,
+                                AData->PeerTp)) {
                 TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
                 return 0;
             }
@@ -968,61 +723,61 @@ static int QuicTlsGotTp(SSL *s, const unsigned char *params,
     return 1;
 }
 
-/**
- * @brief Callback invoked when a TLS alert is generated or received.
- *
- * This function is called by OpenSSL when a TLS alert is triggered
- * during the handshake or connection. It logs the alert event for
- * debugging purposes.
- *
- * @param[in] s           Pointer to the SSL connection object (_unused).
- * @param[in] alert_code  The TLS alert code (_unused).
- * @param[in] arg         Unused argument (typically NULL).
- *
- * @return Always returns 1.
- */
-static int QuicTlsAlert(SSL *s,
-                          unsigned int alert_code,
-                          void *arg)
+//
+// @brief Callback invoked when a TLS alert is generated or received.
+//
+// This function is called by OpenSSL when a TLS alert is triggered
+// during the handshake or connection. It logs the alert event for
+// debugging purposes.
+//
+// @param[in] s           Pointer to the SSL connection object.
+// @param[in] alert_code  The TLS alert code.
+// @param[in] arg         Unused argument (typically NULL).
+//
+// @return Always returns 1.
+//
+static int QuicTlsAlert(SSL *S,
+                          unsigned int AlertCode,
+                          void *Arg)
 {
 
-    CXPLAT_TLS* TlsContext = SSL_get_app_data(s);
-    struct aux_data *adata = get_ssl_aux_data(s);
+    CXPLAT_TLS* TlsContext = SSL_get_app_data(S);
+    struct AUX_DATA *AData = GetSslAuxData(S);
 
-    UNREFERENCED_PARAMETER(arg);
+    UNREFERENCED_PARAMETER(Arg);
 
     QuicTraceLogConnError(
         OpenSslAlert,
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
-        alert_code,
-        (uint32_t)adata->level);
+        AlertCode,
+        (uint32_t)AData->Level);
     
-    TlsContext->State->AlertCode = (uint16_t)alert_code;
+    TlsContext->State->AlertCode = (uint16_t)AlertCode;
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
 
     return 1;
 }
 
-/**
- * @brief OpenSSL QUIC TLS callback dispatch table.
- *
- * This array defines a set of function pointers that OpenSSL uses to
- * interact with the QUIC transport layer in a QUIC-enabled TLS session.
- * Each entry maps a specific OpenSSL QUIC operation to its corresponding
- * callback implementation.
- *
- * The dispatch table includes:
- * - @ref QuicTlsSend: Sends handshake data to the QUIC stack.
- * - @ref QuicTlsRcvRec: Provides received handshake data to OpenSSL.
- * - @ref QuicTlsRlsRec: Releases processed handshake records.
- * - @ref QuicTlsYieldSecret: Supplies derived secrets to the QUIC stack.
- * - @ref QuicTlsGotTp: Handles received transport parameters.
- * - @ref QuicTlsAlert: Processes TLS alerts.
- *
- * This table is registered with OpenSSL using SSL_set_quic_tls_cbs().
- */
-static OSSL_DISPATCH openssl_quic_dispatch[] = {
+//
+// @brief OpenSSL QUIC TLS callback dispatch table.
+//
+// This array defines a set of function pointers that OpenSSL uses to
+// interact with the QUIC transport layer in a QUIC-enabled TLS session.
+// Each entry maps a specific OpenSSL QUIC operation to its corresponding
+// callback implementation.
+//
+// The dispatch table includes:
+// - @ref QuicTlsSend: Sends handshake data to the QUIC stack.
+// - @ref QuicTlsRcvRec: Provides received handshake data to OpenSSL.
+// - @ref QuicTlsRlsRec: Releases processed handshake records.
+// - @ref QuicTlsYieldSecret: Supplies derived secrets to the QUIC stack.
+// - @ref QuicTlsGotTp: Handles received transport parameters.
+// - @ref QuicTlsAlert: Processes TLS alerts.
+//
+// This table is registered with OpenSSL using SSL_set_quic_tls_cbs().
+//
+static OSSL_DISPATCH OpenSslQuicDispatch[] = {
     {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_SEND, (void (*)(void))QuicTlsSend},
     {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RECV_RCD, (void (*)(void))QuicTlsRcvRec},
     {OSSL_FUNC_SSL_QUIC_TLS_CRYPTO_RELEASE_RCD, (void (*)(void))QuicTlsRlsRec},
@@ -1048,31 +803,31 @@ const size_t OpenSslFilePrefixLength = sizeof("..\\..\\..\\..\\..\\..\\submodule
 #define CXPLAT_TLS_AES_256_GCM_SHA384       "TLS_AES_256_GCM_SHA384"
 #define CXPLAT_TLS_CHACHA20_POLY1305_SHA256 "TLS_CHACHA20_POLY1305_SHA256"
 
-/*
- * Default cert verify depth.
- */
+//
+// Default cert verify depth.
+//
 #define CXPLAT_TLS_DEFAULT_VERIFY_DEPTH  10
 
-/**
- * @brief Maps an OpenSSL certificate verification error to a QUIC status code.
- *
- * This function translates specific OpenSSL X.509 verification error codes
- * into corresponding QUIC error status values used by the QUIC transport
- * layer. It provides a way to surface TLS-level certificate issues through
- * standardized QUIC error codes.
- *
- * Supported mappings:
- * - @c X509_V_ERR_CERT_REJECTED → @c QUIC_STATUS_BAD_CERTIFICATE
- * - @c X509_V_ERR_CERT_REVOKED → @c QUIC_STATUS_REVOKED_CERTIFICATE
- * - @c X509_V_ERR_CERT_HAS_EXPIRED → @c QUIC_STATUS_CERT_EXPIRED
- * - @c X509_V_ERR_CERT_UNTRUSTED,
- *   @c X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT → @c QUIC_STATUS_CERT_UNTRUSTED_ROOT
- * - All other errors → @c QUIC_STATUS_TLS_ERROR
- *
- * @param[in] OpenSSLError OpenSSL error code from certificate validation.
- *
- * @return Corresponding @c QUIC_STATUS value.
- */
+//
+// @brief Maps an OpenSSL certificate verification error to a QUIC status code.
+//
+// This function translates specific OpenSSL X.509 verification error codes
+// into corresponding QUIC error status values used by the QUIC transport
+// layer. It provides a way to surface TLS-level certificate issues through
+// standardized QUIC error codes.
+//
+// Supported mappings:
+// - @c X509_V_ERR_CERT_REJECTED → @c QUIC_STATUS_BAD_CERTIFICATE
+// - @c X509_V_ERR_CERT_REVOKED → @c QUIC_STATUS_REVOKED_CERTIFICATE
+// - @c X509_V_ERR_CERT_HAS_EXPIRED → @c QUIC_STATUS_CERT_EXPIRED
+// - @c X509_V_ERR_CERT_UNTRUSTED,
+//   @c X509_V_ERR_DEPTH_ZERO_SELF_SIGNED_CERT → @c QUIC_STATUS_CERT_UNTRUSTED_ROOT
+// - All other errors → @c QUIC_STATUS_TLS_ERROR
+//
+// @param[in] OpenSSLError OpenSSL error code from certificate validation.
+//
+// @return Corresponding @c QUIC_STATUS value.
+//
 static
 QUIC_STATUS
 CxPlatTlsMapOpenSSLErrorToQuicStatus(
@@ -1095,25 +850,25 @@ CxPlatTlsMapOpenSSLErrorToQuicStatus(
     }
 }
 
-/**
- * @brief ALPN selection callback for OpenSSL during TLS handshake.
- *
- * This callback is invoked by OpenSSL during the TLS handshake to select
- * the Application-Layer Protocol Negotiation (ALPN) value to be used.
- *
- * The selection is driven by QUIC's previously parsed and negotiated ALPN,
- * which is already stored in the TLS context. This avoids needing to parse
- * the client's offered ALPNs again.
- *
- * @param[in]  Ssl     Pointer to the SSL object.
- * @param[out] Out     On success, set to point to the selected ALPN buffer.
- * @param[out] OutLen  On success, set to the length of the selected ALPN.
- * @param[in]  In      Pointer to the client's list of ALPN identifiers.
- * @param[in]  InLen   Length in bytes of the @p In buffer.
- * @param[in]  Arg     Application-provided argument (unused).
- *
- * @return @c SSL_TLSEXT_ERR_OK to indicate successful selection.
- */
+//
+// @brief ALPN selection callback for OpenSSL during TLS handshake.
+//
+// This callback is invoked by OpenSSL during the TLS handshake to select
+// the Application-Layer Protocol Negotiation (ALPN) value to be used.
+//
+// The selection is driven by QUIC's previously parsed and negotiated ALPN,
+// which is already stored in the TLS context. This avoids needing to parse
+// the client's offered ALPNs again.
+//
+// @param[in]  Ssl     Pointer to the SSL object.
+// @param[out] Out     On success, set to point to the selected ALPN buffer.
+// @param[out] OutLen  On success, set to the length of the selected ALPN.
+// @param[in]  In      Pointer to the client's list of ALPN identifiers.
+// @param[in]  InLen   Length in bytes of the @p In buffer.
+// @param[in]  Arg     Application-provided argument (unused).
+//
+// @return @c SSL_TLSEXT_ERR_OK to indicate successful selection.
+//
 static
 int
 CxPlatTlsAlpnSelectCallback(
@@ -1131,10 +886,10 @@ CxPlatTlsAlpnSelectCallback(
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    /* 
-     * QUIC already parsed and picked the ALPN to use and set it in the
-     * NegotiatedAlpn variable.
-     */ 
+    // 
+    // QUIC already parsed and picked the ALPN to use and set it in the
+    // NegotiatedAlpn variable.
+    // 
 
     CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
     *OutLen = TlsContext->State->NegotiatedAlpn[0];
@@ -1143,47 +898,47 @@ CxPlatTlsAlpnSelectCallback(
     return SSL_TLSEXT_ERR_OK;
 }
 
-/**
- * @brief Custom OpenSSL certificate verification callback for OpenSSL.
- *
- * This function is invoked by OpenSSL during the TLS handshake to verify
- * the peer certificate. It handles several QUIC-specific scenarios such as:
- * - Disabling or deferring certificate validation.
- * - Using QUIC callbacks for certificate verification.
- * - Serializing certificates into a portable format when needed.
- * - Mapping OpenSSL errors to QUIC status codes.
- *
- * Behavior depends on the configured credential flags in the associated
- * TLS context. It may use OpenSSL’s built-in validation, a custom raw
- * certificate verifier, or simply indicate that a certificate was received.
- *
- * If portable certificates are requested, the peer certificate and chain
- * are serialized and passed to the certificate callback. If validation is
- * deferred or explicitly disabled, the function ensures certificate
- * information is still collected without enforcing verification.
- *
- * @param[in] x509_ctx
- *     Pointer to the OpenSSL certificate verification context.
- * @param[in] param
- *     Application-defined parameter (unused).
- *
- * @return Non-zero on success (certificate accepted), zero on failure.
- */
+//
+// @brief Custom OpenSSL certificate verification callback for OpenSSL.
+//
+// This function is invoked by OpenSSL during the TLS handshake to verify
+// the peer certificate. It handles several QUIC-specific scenarios such as:
+// - Disabling or deferring certificate validation.
+// - Using QUIC callbacks for certificate verification.
+// - Serializing certificates into a portable format when needed.
+// - Mapping OpenSSL errors to QUIC status codes.
+//
+// Behavior depends on the configured credential flags in the associated
+// TLS context. It may use OpenSSL’s built-in validation, a custom raw
+// certificate verifier, or simply indicate that a certificate was received.
+//
+// If portable certificates are requested, the peer certificate and chain
+// are serialized and passed to the certificate callback. If validation is
+// deferred or explicitly disabled, the function ensures certificate
+// information is still collected without enforcing verification.
+//
+// @param[in] x509_ctx
+//     Pointer to the OpenSSL certificate verification context.
+// @param[in] param
+//     Application-defined parameter (unused).
+//
+// @return Non-zero on success (certificate accepted), zero on failure.
+//
 static
 int
 CxPlatTlsCertificateVerifyCallback(
-    X509_STORE_CTX *x509_ctx,
-    void* param
+    X509_STORE_CTX *X509Ctx,
+    void* Param
     )
 {
-    UNREFERENCED_PARAMETER(param);
+    UNREFERENCED_PARAMETER(Param);
     int CertificateVerified = 0;
     int status = TRUE;
     unsigned char* OpenSSLCertBuffer = NULL;
     QUIC_BUFFER PortableCertificate = { 0, 0 };
     QUIC_BUFFER PortableChain = { 0, 0 };
-    X509* Cert = X509_STORE_CTX_get0_cert(x509_ctx);
-    SSL *Ssl = X509_STORE_CTX_get_ex_data(x509_ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
+    X509* Cert = X509_STORE_CTX_get0_cert(X509Ctx);
+    SSL *Ssl = X509_STORE_CTX_get_ex_data(X509Ctx, SSL_get_ex_data_X509_STORE_CTX_idx());
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     int ValidationResult = X509_V_OK;
     BOOLEAN IsDeferredValidationOrClientAuth =
@@ -1202,7 +957,7 @@ CxPlatTlsCertificateVerifyCallback(
                     "[ tls][%p] ERROR, %s.",
                     TlsContext->Connection,
                     "No certificate passed");
-                X509_STORE_CTX_set_error(x509_ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
+                X509_STORE_CTX_set_error(X509Ctx, X509_R_NO_CERT_SET_FOR_US_TO_VERIFY);
                 return FALSE;
             }
 
@@ -1230,28 +985,28 @@ CxPlatTlsCertificateVerifyCallback(
             }
 
             if (!CertificateVerified) {
-                X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+                X509_STORE_CTX_set_error(X509Ctx, X509_V_ERR_CERT_REJECTED);
             }
         } else {
-            CertificateVerified = X509_verify_cert(x509_ctx);
+            CertificateVerified = X509_verify_cert(X509Ctx);
 
             if (IsDeferredValidationOrClientAuth &&
                 CertificateVerified <= 0) {
                 ValidationResult =
-                    (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(x509_ctx));
+                    (int)CxPlatTlsMapOpenSSLErrorToQuicStatus(X509_STORE_CTX_get_error(X509Ctx));
             }
         }
     } else if ((TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED) &&
                (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES)) {
         //
         // We need to get certificates provided by peer if we going to pass them via Callbacks.CertificateReceived.
-        // We don't really care about validation status but without calling X509_verify_cert() x509_ctx has
+        // We don't really care about validation status but without calling X509_verify_cert() X509Ctx has
         // no certificates attached to it and that impacts validation of custom certificate chains.
         //
         // OpenSSL 3 has X509_build_chain() to build just the chain.
         // We may do something similar here for OpenSsl 1.1
         //
-        X509_verify_cert(x509_ctx);
+        X509_verify_cert(X509Ctx);
     }
 
     if (!(TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION) &&
@@ -1274,13 +1029,13 @@ CxPlatTlsCertificateVerifyCallback(
                     "[ tls][%p] ERROR, %s.",
                     TlsContext->Connection,
                     "Failed to serialize certificate context");
-                X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_OUT_OF_MEM);
+                X509_STORE_CTX_set_error(X509Ctx, X509_V_ERR_OUT_OF_MEM);
                 return FALSE;
             }
         }
-        if (x509_ctx) {
+        if (X509Ctx) {
             int ChainCount;
-            STACK_OF(X509)* Chain = X509_STORE_CTX_get0_chain(x509_ctx);
+            STACK_OF(X509)* Chain = X509_STORE_CTX_get0_chain(X509Ctx);
             if ((ChainCount = sk_X509_num(Chain)) > 0) {
                 PKCS7* p7 = PKCS7_new();
                 if (p7) {
@@ -1307,7 +1062,7 @@ CxPlatTlsCertificateVerifyCallback(
         !TlsContext->SecConfig->Callbacks.CertificateReceived(
             TlsContext->Connection,
             (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE*)&PortableCertificate : (QUIC_CERTIFICATE*)Cert,
-            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)x509_ctx,
+            (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES) ? (QUIC_CERTIFICATE_CHAIN*)&PortableChain : (QUIC_CERTIFICATE_CHAIN*)X509Ctx,
             0,
             ValidationResult)) {
         QuicTraceEvent(
@@ -1315,7 +1070,7 @@ CxPlatTlsCertificateVerifyCallback(
             "[ tls][%p] ERROR, %s.",
             TlsContext->Connection,
             "Indicate certificate received failed");
-        X509_STORE_CTX_set_error(x509_ctx, X509_V_ERR_CERT_REJECTED);
+        X509_STORE_CTX_set_error(X509Ctx, X509_V_ERR_CERT_REJECTED);
         status = FALSE;
     }
 
@@ -1329,26 +1084,26 @@ CxPlatTlsCertificateVerifyCallback(
     return status;
 }
 
-/*
- * Static build time checks to make sure OpenSSL protection levels
- * map correctly to msquic key levels
- */
+//
+// Static build time checks to make sure OpenSSL protection levels
+// map correctly to msquic key levels
+//
 CXPLAT_STATIC_ASSERT((int)0 == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_EARLY == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_HANDSHAKE == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_APPLICATION == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
-/**
- * @brief OpenSSL flush flight callback for QUIC.
- *
- * This callback is invoked by OpenSSL when it's ready to flush a flight
- * of handshake data. For QUIC, no action is required here, so the function
- * simply returns 1 to indicate success.
- *
- * @param[in] Ssl Pointer to the SSL object (unused).
- *
- * @return Always returns 1 to indicate success.
- */
+//
+// @brief OpenSSL flush flight callback for QUIC.
+//
+// This callback is invoked by OpenSSL when it's ready to flush a flight
+// of handshake data. For QUIC, no action is required here, so the function
+// simply returns 1 to indicate success.
+//
+// @param[in] Ssl Pointer to the SSL object (unused).
+//
+// @return Always returns 1 to indicate success.
+//
 int
 CxPlatTlsFlushFlightCallback(
     _In_ SSL *Ssl
@@ -1358,31 +1113,31 @@ CxPlatTlsFlushFlightCallback(
     return 1;
 }
 
-/**
- * @brief OpenSSL ClientHello callback used to extract QUIC transport parameters.
- *
- * This function is called by OpenSSL when parsing the ClientHello message
- * during the TLS handshake. It attempts to extract the QUIC transport
- * parameters extension using the configured extension type.
- *
- * If the extension is not present or extraction fails, the TLS context is
- * marked with an error, and the appropriate TLS alert is set.
- *
- * @param[in] Ssl
- *     Pointer to the OpenSSL SSL object representing the TLS session.
- * @param[out] Alert
- *     On failure, receives the TLS alert code to send to the peer.
- * @param[in] arg
- *     Application-defined argument (unused).
- *
- * @retval SSL_CLIENT_HELLO_SUCCESS
- *     If the transport parameters were successfully found.
- * @retval SSL_CLIENT_HELLO_ERROR
- *     If an error occurred and the handshake should be aborted.
- *
- * @note The QUIC transport parameters are expected to be present in
- *       the ClientHello as a custom TLS extension.
- */
+//
+// @brief OpenSSL ClientHello callback used to extract QUIC transport parameters.
+//
+// This function is called by OpenSSL when parsing the ClientHello message
+// during the TLS handshake. It attempts to extract the QUIC transport
+// parameters extension using the configured extension type.
+//
+// If the extension is not present or extraction fails, the TLS context is
+// marked with an error, and the appropriate TLS alert is set.
+//
+// @param[in] Ssl
+//     Pointer to the OpenSSL SSL object representing the TLS session.
+// @param[out] Alert
+//     On failure, receives the TLS alert code to send to the peer.
+// @param[in] arg
+//     Application-defined argument (unused).
+//
+// @retval SSL_CLIENT_HELLO_SUCCESS
+//     If the transport parameters were successfully found.
+// @retval SSL_CLIENT_HELLO_ERROR
+//     If an error occurred and the handshake should be aborted.
+//
+// @note The QUIC transport parameters are expected to be present in
+//       the ClientHello as a custom TLS extension.
+//
 _Success_(return == SSL_CLIENT_HELLO_SUCCESS)
 int
 CxPlatTlsClientHelloCallback(
@@ -1411,25 +1166,24 @@ CxPlatTlsClientHelloCallback(
     return SSL_CLIENT_HELLO_SUCCESS;
 }
 
-/**
- * @brief Callback invoked when a TLS session ticket is received by the client.
- *
- * This function is called by OpenSSL when the server issues a session
- * ticket to the client. It serializes the session into PEM format and
- * passes the data to the QUIC layer using the registered
- * @c ReceiveTicket callback.
- *
- * If serialization fails or the session is too large, appropriate error
- * messages are logged. Regardless of success or failure, the function
- * returns 0 to indicate OpenSSL should discard the session reference.
- *
- * @param[in] Ssl
- *     Pointer to the SSL object representing the TLS session.
- * @param[in] Session
- *     Pointer to the received session ticket (as an SSL_SESSION object).
- *
- * @return Always returns 0 to instruct OpenSSL to free the session.
- */
+//
+// @brief Callback invoked when a TLS session ticket is received by the client.
+//
+// This function is called by OpenSSL when the server issues a session
+// ticket to the client. It serializes the session into PEM format and
+// passes the data to the QUIC layer using the registered
+// @c ReceiveTicket callback.
+//
+// If serialization fails or the session is too large, appropriate error
+// messages are logged. Regardless of success or failure, the function
+// returns 0 to indicate OpenSSL should discard the session reference.
+//
+// @param[in] Ssl
+//     Pointer to the SSL object representing the TLS session.
+// @param[in] Session
+//     Pointer to the received session ticket (as an SSL_SESSION object).
+//
+
 int
 CxPlatTlsOnClientSessionTicketReceived(
     _In_ SSL *Ssl,
@@ -1478,59 +1232,59 @@ CxPlatTlsOnClientSessionTicketReceived(
             "BIO_new_mem_buf failed");
     }
 
-    /* 
-     * We always return a "fail" response so that the session gets freed again
-     * because we haven't used the reference.
-     */ 
+    //
+    // We always return a "fail" response so that the session gets freed again
+    // because we haven't used the reference.
+    // 
     return 0;
 }
 
-/**
- * @brief OpenSSL callback invoked when a session ticket key is needed.
- *
- * This function is called by OpenSSL during TLS session ticket encryption
- * or decryption. It sets up the encryption context (`ctx`) and HMAC context
- * (`hctx`) using the configured QUIC ticket key.
- *
- * On encryption, the function:
- * - Generates a random IV.
- * - Copies the key ID into @p key_name.
- * - Initializes the encryption and HMAC contexts.
- *
- * On decryption, it:
- * - Verifies the key ID matches the current ticket key.
- * - Initializes the decryption and HMAC contexts.
- *
- * OpenSSL 1.1 and 3.0+ are supported via conditional logic using
- * `EVP_MAC_CTX` or `HMAC_CTX`, respectively.
- *
- * @param[in] Ssl
- *     Pointer to the OpenSSL SSL object.
- * @param[in,out] key_name
- *     On encryption, receives the key name (16 bytes).
- *     On decryption, contains the key name to match.
- * @param[in,out] iv
- *     On encryption, receives the randomly generated IV.
- *     On decryption, contains the IV used during encryption.
- * @param[in,out] ctx
- *     Cipher context for encryption or decryption.
- * @param[in,out] hctx
- *     HMAC or MAC context, depending on OpenSSL version.
- * @param[in] enc
- *     Non-zero if encrypting a ticket, zero if decrypting.
- *
- * @return
- *     - 1 on success (key matched and contexts initialized).
- *     - 0 if key name does not match (decryption only).
- *     - -1 on failure (e.g., missing key or random generation failure).
- *
- * @retval >0
- *     Indicates success and that OpenSSL may proceed with ticket handling.
- *
- * @note This function uses the ticket key stored in the TLS context's
- *       security configuration and is required for session resumption
- *       via session tickets in QUIC.
- */
+//
+// @brief OpenSSL callback invoked when a session ticket key is needed.
+//
+// This function is called by OpenSSL during TLS session ticket encryption
+// or decryption. It sets up the encryption context (`ctx`) and HMAC context
+// (`hctx`) using the configured QUIC ticket key.
+//
+// On encryption, the function:
+// - Generates a random IV.
+// - Copies the key ID into @p key_name.
+// - Initializes the encryption and HMAC contexts.
+//
+// On decryption, it:
+// - Verifies the key ID matches the current ticket key.
+// - Initializes the decryption and HMAC contexts.
+//
+// OpenSSL 1.1 and 3.0+ are supported via conditional logic using
+// `EVP_MAC_CTX` or `HMAC_CTX`, respectively.
+//
+// @param[in] Ssl
+//     Pointer to the OpenSSL SSL object.
+// @param[in,out] key_name
+//     On encryption, receives the key name (16 bytes).
+//     On decryption, contains the key name to match.
+// @param[in,out] iv
+//     On encryption, receives the randomly generated IV.
+//     On decryption, contains the IV used during encryption.
+// @param[in,out] ctx
+//     Cipher context for encryption or decryption.
+// @param[in,out] hctx
+//     HMAC or MAC context, depending on OpenSSL version.
+// @param[in] enc
+//     Non-zero if encrypting a ticket, zero if decrypting.
+//
+// @return
+//     - 1 on success (key matched and contexts initialized).
+//     - 0 if key name does not match (decryption only).
+//     - -1 on failure (e.g., missing key or random generation failure).
+//
+// @retval >0
+//     Indicates success and that OpenSSL may proceed with ticket handling.
+//
+// @note This function uses the ticket key stored in the TLS context's
+//       security configuration and is required for session resumption
+//       via session tickets in QUIC.
+//
 _Success_(return > 0)
 int
 CxPlatTlsOnSessionTicketKeyNeeded(
@@ -1621,23 +1375,23 @@ CxPlatTlsOnSessionTicketKeyNeeded(
               // session can continue on those parameters.
 }
 
-/**
- * @brief Callback invoked when a session ticket is generated by the server.
- *
- * This function is called by OpenSSL on the server side after generating
- * a TLS session ticket. In this implementation, it performs no action and
- * always returns 1 to allow the handshake to continue.
- *
- * This placeholder exists to support the session ticket generation
- * process required for session resumption in TLS/QUIC.
- *
- * @param[in] Ssl
- *     Pointer to the OpenSSL SSL object representing the TLS session.
- * @param[in] arg
- *     Application-defined argument (unused).
- *
- * @return Always returns 1 to indicate success.
- */
+//
+// @brief Callback invoked when a session ticket is generated by the server.
+//
+// This function is called by OpenSSL on the server side after generating
+// a TLS session ticket. In this implementation, it performs no action and
+// always returns 1 to allow the handshake to continue.
+//
+// This placeholder exists to support the session ticket generation
+// process required for session resumption in TLS/QUIC.
+//
+// @param[in] Ssl
+//     Pointer to the OpenSSL SSL object representing the TLS session.
+// @param[in] arg
+//     Application-defined argument (unused).
+//
+// @return Always returns 1 to indicate success.
+//
 int
 CxPlatTlsOnServerSessionTicketGenerated(
     _In_ SSL *Ssl,
@@ -1650,41 +1404,41 @@ CxPlatTlsOnServerSessionTicketGenerated(
     return 1;
 }
 
-/**
- * @brief Callback invoked when a TLS session ticket is decrypted on the server.
- *
- * This function is called by OpenSSL when it decrypts a session ticket
- * received from a client during the TLS handshake. It determines how
- * to proceed based on the ticket decryption status and optionally
- * processes application data embedded in the ticket.
- *
- * If ticket application data is present, it is passed to the QUIC layer
- * using the configured @c ReceiveTicket callback. If that callback fails,
- * the ticket is ignored.
- *
- * @param[in] Ssl
- *     Pointer to the SSL object representing the TLS session.
- * @param[in] Session
- *     Pointer to the decrypted SSL session (may contain app data).
- * @param[in] keyname
- *     Pointer to the name of the key used for decryption (unused).
- * @param[in] keyname_length
- *     Length of @p keyname in bytes (unused).
- * @param[in] status
- *     Result of the ticket decryption operation.
- *     May be one of:
- *     - @c SSL_TICKET_SUCCESS
- *     - @c SSL_TICKET_SUCCESS_RENEW
- *     - @c SSL_TICKET_NONE
- * @param[in] arg
- *     Application-defined argument (unused).
- *
- * @return One of the following to control ticket usage:
- *     - @c SSL_TICKET_RETURN_USE: Use the ticket.
- *     - @c SSL_TICKET_RETURN_USE_RENEW: Use and renew the ticket.
- *     - @c SSL_TICKET_RETURN_IGNORE: Ignore the ticket.
- *     - @c SSL_TICKET_RETURN_IGNORE_RENEW: Ignore and renew the ticket.
- */
+//
+// @brief Callback invoked when a TLS session ticket is decrypted on the server.
+//
+// This function is called by OpenSSL when it decrypts a session ticket
+// received from a client during the TLS handshake. It determines how
+// to proceed based on the ticket decryption status and optionally
+// processes application data embedded in the ticket.
+//
+// If ticket application data is present, it is passed to the QUIC layer
+// using the configured @c ReceiveTicket callback. If that callback fails,
+// the ticket is ignored.
+//
+// @param[in] Ssl
+//     Pointer to the SSL object representing the TLS session.
+// @param[in] Session
+//     Pointer to the decrypted SSL session (may contain app data).
+// @param[in] keyname
+//     Pointer to the name of the key used for decryption (unused).
+// @param[in] keyname_length
+//     Length of @p keyname in bytes (unused).
+// @param[in] status
+//     Result of the ticket decryption operation.
+//     May be one of:
+//     - @c SSL_TICKET_SUCCESS
+//     - @c SSL_TICKET_SUCCESS_RENEW
+//     - @c SSL_TICKET_NONE
+// @param[in] arg
+//     Application-defined argument (unused).
+//
+// @return One of the following to control ticket usage:
+//     - @c SSL_TICKET_RETURN_USE: Use the ticket.
+//     - @c SSL_TICKET_RETURN_USE_RENEW: Use and renew the ticket.
+//     - @c SSL_TICKET_RETURN_IGNORE: Ignore the ticket.
+//     - @c SSL_TICKET_RETURN_IGNORE_RENEW: Ignore and renew the ticket.
+//
 SSL_TICKET_RETURN
 CxPlatTlsOnServerSessionTicketDecrypted(
     _In_ SSL *Ssl,
@@ -1763,58 +1517,58 @@ CxPlatTlsGetProvider(
     return QUIC_TLS_PROVIDER_OPENSSL;
 }
 
-/**
- * @brief Creates a QUIC-compatible TLS security configuration.
- *
- * This function validates and processes a given QUIC credential
- * configuration, then constructs a TLS security configuration using
- * OpenSSL APIs. The created configuration includes a fully initialized
- * `SSL_CTX` with certificate, private key, cipher suites, and TLS options
- * according to the specified flags and certificate type.
- *
- * It supports both synchronous and asynchronous operation modes. On
- * successful creation (or immediate failure), the result is returned via
- * the `CompletionHandler` callback. On asynchronous operation, the caller
- * should wait for the callback invocation before proceeding.
- *
- * The caller must not use the returned configuration after this call
- * unless `CompletionHandler` was invoked with success.
- *
- * @param[in] CredConfig
- *     Pointer to the credential configuration describing certificate type,
- *     file paths, revocation options, flags, etc.
- *
- * @param[in] TlsCredFlags
- *     Flags controlling TLS behavior such as session resumption support.
- *
- * @param[in] TlsCallbacks
- *     Pointer to the set of TLS callback functions to bind to this config.
- *
- * @param[in,opt] Context
- *     User-defined context passed to the completion callback.
- *
- * @param[in] CompletionHandler
- *     Callback to invoke once configuration is successfully created or
- *     if creation fails.
- *
- * @return QUIC_STATUS_SUCCESS if the config was created and completion
- *         was called synchronously; QUIC_STATUS_PENDING if creation will
- *         complete asynchronously; appropriate failure status otherwise.
- *
- * @note Supported certificate types include:
- * - QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE
- * - QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED
- * - QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
- * - QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH / HASH_STORE / CONTEXT (Windows only)
- * - QUIC_CREDENTIAL_TYPE_NONE (client-only)
- *
- * @remark This function performs deep validation of inputs and flags
- *         to ensure compatibility with OpenSSL and QUIC's expectations.
- *
- * @warning If validation or resource allocation fails at any stage,
- *          the configuration will not be created and appropriate errors
- *          will be logged via tracing.
- */
+//
+// @brief Creates a QUIC-compatible TLS security configuration.
+//
+// This function validates and processes a given QUIC credential
+// configuration, then constructs a TLS security configuration using
+// OpenSSL APIs. The created configuration includes a fully initialized
+// `SSL_CTX` with certificate, private key, cipher suites, and TLS options
+// according to the specified flags and certificate type.
+//
+// It supports both synchronous and asynchronous operation modes. On
+// successful creation (or immediate failure), the result is returned via
+// the `CompletionHandler` callback. On asynchronous operation, the caller
+// should wait for the callback invocation before proceeding.
+//
+// The caller must not use the returned configuration after this call
+// unless `CompletionHandler` was invoked with success.
+//
+// @param[in] CredConfig
+//     Pointer to the credential configuration describing certificate type,
+//     file paths, revocation options, flags, etc.
+//
+// @param[in] TlsCredFlags
+//     Flags controlling TLS behavior such as session resumption support.
+//
+// @param[in] TlsCallbacks
+//     Pointer to the set of TLS callback functions to bind to this config.
+//
+// @param[in,opt] Context
+//     User-defined context passed to the completion callback.
+//
+// @param[in] CompletionHandler
+//     Callback to invoke once configuration is successfully created or
+//     if creation fails.
+//
+// @return QUIC_STATUS_SUCCESS if the config was created and completion
+//         was called synchronously; QUIC_STATUS_PENDING if creation will
+//         complete asynchronously; appropriate failure status otherwise.
+//
+// @note Supported certificate types include:
+// - QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE
+// - QUIC_CREDENTIAL_TYPE_CERTIFICATE_FILE_PROTECTED
+// - QUIC_CREDENTIAL_TYPE_CERTIFICATE_PKCS12
+// - QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH / HASH_STORE / CONTEXT (Windows only)
+// - QUIC_CREDENTIAL_TYPE_NONE (client-only)
+//
+// @remark This function performs deep validation of inputs and flags
+//         to ensure compatibility with OpenSSL and QUIC's expectations.
+//
+// @warning If validation or resource allocation fails at any stage,
+//          the configuration will not be created and appropriate errors
+//          will be logged via tracing.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigCreate(
@@ -2456,24 +2210,24 @@ Exit:
     return Status;
 }
 
-/**
- * @brief Frees a TLS security configuration previously created by QUIC.
- *
- * This function releases all resources associated with a
- * @c CXPLAT_SEC_CONFIG structure, including the OpenSSL @c SSL_CTX and
- * any allocated session ticket keys. It should be called once the security
- * configuration is no longer needed.
- *
- * The pointer passed to this function must have been returned by
- * @c CxPlatTlsSecConfigCreate or its associated completion callback.
- *
- * @param[in] SecurityConfig
- *     Pointer to the security configuration to delete. Must not be NULL.
- *
- * @note After this call, the @p SecurityConfig pointer must not be used.
- *
- * @remark This function is safe to call at PASSIVE_LEVEL only.
- */
+//
+// @brief Frees a TLS security configuration previously created by QUIC.
+//
+// This function releases all resources associated with a
+// @c CXPLAT_SEC_CONFIG structure, including the OpenSSL @c SSL_CTX and
+// any allocated session ticket keys. It should be called once the security
+// configuration is no longer needed.
+//
+// The pointer passed to this function must have been returned by
+// @c CxPlatTlsSecConfigCreate or its associated completion callback.
+//
+// @param[in] SecurityConfig
+//     Pointer to the security configuration to delete. Must not be NULL.
+//
+// @note After this call, the @p SecurityConfig pointer must not be used.
+//
+// @remark This function is safe to call at PASSIVE_LEVEL only.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsSecConfigDelete(
@@ -2492,35 +2246,35 @@ CxPlatTlsSecConfigDelete(
     CXPLAT_FREE(SecurityConfig, QUIC_POOL_TLS_SECCONF);
 }
 
-/**
- * @brief Sets the session ticket encryption key for a server TLS configuration.
- *
- * This function assigns a session ticket key to a QUIC server-side TLS
- * security configuration. It enables support for session resumption by
- * configuring OpenSSL to encrypt and decrypt TLS session tickets using
- * the provided key material.
- *
- * Currently, only the first ticket key in the list is used. Support for
- * multiple keys (key rotation) may be added in the future.
- *
- * @param[in] SecurityConfig
- *     Pointer to the server TLS security configuration.
- *
- * @param[in] KeyConfig
- *     Pointer to an array of one or more ticket key configurations.
- *     Only the first key is used.
- *
- * @param[in] KeyCount
- *     Number of keys in the @p KeyConfig array. Must be at least 1.
- *
- * @return
- *     - @c QUIC_STATUS_SUCCESS on success.
- *     - @c QUIC_STATUS_OUT_OF_MEMORY if memory allocation fails.
- *     - @c QUIC_STATUS_NOT_SUPPORTED if called on a client config.
- *
- * @note This function must not be called for client-side configurations.
- * @note Sets OpenSSL's internal callback for session ticket encryption.
- */
+//
+// @brief Sets the session ticket encryption key for a server TLS configuration.
+//
+// This function assigns a session ticket key to a QUIC server-side TLS
+// security configuration. It enables support for session resumption by
+// configuring OpenSSL to encrypt and decrypt TLS session tickets using
+// the provided key material.
+//
+// Currently, only the first ticket key in the list is used. Support for
+// multiple keys (key rotation) may be added in the future.
+//
+// @param[in] SecurityConfig
+//     Pointer to the server TLS security configuration.
+//
+// @param[in] KeyConfig
+//     Pointer to an array of one or more ticket key configurations.
+//     Only the first key is used.
+//
+// @param[in] KeyCount
+//     Number of keys in the @p KeyConfig array. Must be at least 1.
+//
+// @return
+//     - @c QUIC_STATUS_SUCCESS on success.
+//     - @c QUIC_STATUS_OUT_OF_MEMORY if memory allocation fails.
+//     - @c QUIC_STATUS_NOT_SUPPORTED if called on a client config.
+//
+// @note This function must not be called for client-side configurations.
+// @note Sets OpenSSL's internal callback for session ticket encryption.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsSecConfigSetTicketKeys(
@@ -2567,103 +2321,103 @@ CxPlatTlsSecConfigSetTicketKeys(
     return QUIC_STATUS_SUCCESS;
 }
 
-/**
- * @brief OpenSSL BIO callback to free application-specific auxiliary data.
- *
- * This function is registered as a callback with a BIO and is called when
- * the BIO is being freed. If the operation is @c BIO_CB_FREE, it retrieves
- * the custom @c aux_data structure previously stored using
- * @c BIO_set_app_data, releases its internal allocations, and clears the
- * pointer from the BIO.
- *
- * This is used in the QUIC TLS layer to clean up transport parameters,
- * peer transport parameters, and the auxiliary data struct itself.
- *
- * @param[in] b
- *     Pointer to the BIO being freed.
- * @param[in] oper
- *     Operation code. Only @c BIO_CB_FREE triggers cleanup.
- * @param[in] argp
- *     Unused parameter.
- * @param[in] len
- *     Unused parameter.
- * @param[in] argi
- *     Unused parameter.
- * @param[in] arg1
- *     Unused parameter.
- * @param[in] ret
- *     Return value passed through by OpenSSL.
- * @param[in] processed
- *     Unused parameter.
- *
- * @return The value of @p ret, unmodified.
- */
-static long FreeBioAuxData(BIO *b, int oper,
-                           const char *argp,
-                           size_t len,
-                           int argi,
-                           long arg1,
-                           int ret,
-                           size_t *processed)
+//
+// @brief OpenSSL BIO callback to free application-specific auxiliary data.
+//
+// This function is registered as a callback with a BIO and is called when
+// the BIO is being freed. If the operation is @c BIO_CB_FREE, it retrieves
+// the custom @c AUX_DATA structure previously stored using
+// @c BIO_set_app_data, releases its internal allocations, and clears the
+// pointer from the BIO.
+//
+// This is used in the QUIC TLS layer to clean up transport parameters,
+// peer transport parameters, and the auxiliary data struct itself.
+//
+// @param[in] b
+//     Pointer to the BIO being freed.
+// @param[in] oper
+//     Operation code. Only @c BIO_CB_FREE triggers cleanup.
+// @param[in] argp
+//     Unused parameter.
+// @param[in] len
+//     Unused parameter.
+// @param[in] argi
+//     Unused parameter.
+// @param[in] arg1
+//     Unused parameter.
+// @param[in] ret
+//     Return value passed through by OpenSSL.
+// @param[in] Processed
+//     Unused parameter.
+//
+// @return The value of @p ret, unmodified.
+//
+static long FreeBioAuxData(BIO *B, int Oper,
+                           const char *ArgP,
+                           size_t Len,
+                           int ArgI,
+                           long Arg1,
+                           int Ret,
+                           size_t *Processed)
 {
-    struct aux_data *adata;
+    struct AUX_DATA *AData;
 
-    UNREFERENCED_PARAMETER(*argp);
-    UNREFERENCED_PARAMETER(len);
-    UNREFERENCED_PARAMETER(argi);
-    UNREFERENCED_PARAMETER(arg1);
-    UNREFERENCED_PARAMETER(processed);
+    UNREFERENCED_PARAMETER(*ArgP);
+    UNREFERENCED_PARAMETER(Len);
+    UNREFERENCED_PARAMETER(ArgI);
+    UNREFERENCED_PARAMETER(Arg1);
+    UNREFERENCED_PARAMETER(Processed);
 
-    if (oper == BIO_CB_FREE) {
-        adata = BIO_get_app_data(b);
-        CXPLAT_FREE(adata->tp, QUIC_POOL_TLS_TRANSPARAMS);
-        CXPLAT_FREE(adata->peer_tp, QUIC_POOL_TLS_TRANSPARAMS);
-        CXPLAT_FREE(adata, QUIC_POOL_GENERIC);
-        BIO_set_app_data(b, NULL);
+    if (Oper == BIO_CB_FREE) {
+        AData = BIO_get_app_data(B);
+        CXPLAT_FREE(AData->Tp, QUIC_POOL_TLS_TRANSPARAMS);
+        CXPLAT_FREE(AData->PeerTp, QUIC_POOL_TLS_TRANSPARAMS);
+        CXPLAT_FREE(AData, QUIC_POOL_GENERIC);
+        BIO_set_app_data(B, NULL);
     }
-    return ret;
+    return Ret;
 }
 
-/**
- * @brief Initializes a new QUIC TLS context using OpenSSL.
- *
- * This function sets up a new TLS context for a QUIC connection by allocating
- * and configuring internal structures, creating an OpenSSL SSL object, and
- * applying QUIC-specific parameters such as ALPN, SNI, transport parameters,
- * and session resumption data.
- *
- * It supports both client and server roles, and validates all required input
- * fields provided via the @p Config parameter.
- *
- * On success, a fully-initialized `CXPLAT_TLS` object is returned through
- * @p NewTlsContext. On failure, all allocated resources are cleaned up.
- *
- * @param[in] Config
- *     Pointer to the configuration structure describing how the TLS context
- *     should be initialized (e.g., server/client role, ALPN, SNI, transport
- *     parameters, session ticket).
- *
- * @param[in,out] State
- *     Pointer to the TLS processing state (currently unused in this function).
- *
- * @param[out] NewTlsContext
- *     On success, receives a pointer to the initialized `CXPLAT_TLS` context.
- *
- * @return
- *     - `QUIC_STATUS_SUCCESS` on success.
- *     - `QUIC_STATUS_OUT_OF_MEMORY` if allocation fails.
- *     - `QUIC_STATUS_INVALID_PARAMETER` if input parameters are invalid.
- *     - `QUIC_STATUS_TLS_ERROR` if OpenSSL operations fail.
- *     - `QUIC_STATUS_INTERNAL_ERROR` on unexpected internal failure.
- *
- * @note The caller is responsible for calling `CxPlatTlsUninitialize` on the
- *       returned context when it is no longer needed.
- *
- * @remark If session resumption is enabled, a previously saved session ticket
- *         may be used for early data.
- *
- * @remark This function is only safe to call at IRQL <= PASSIVE_LEVEL.
- */
+//
+// @brief Initializes a new QUIC TLS context using OpenSSL.
+//
+// This function sets up a new TLS context for a QUIC connection by allocating
+// and configuring internal structures, creating an OpenSSL SSL object, and
+// applying QUIC-specific parameters such as ALPN, SNI, transport parameters,
+// and session resumption data.
+//
+// It supports both client and server roles, and validates all required input
+// fields provided via the @p Config parameter.
+//
+// On success, a fully-initialized `CXPLAT_TLS` object is returned through
+// @p NewTlsContext. On failure, all allocated resources are cleaned up.
+//
+// @param[in] Config
+//     Pointer to the configuration structure describing how the TLS context
+//     should be initialized (e.g., server/client role, ALPN, SNI, transport
+//     parameters, session ticket).
+//
+// @param[in,out] State
+//     Pointer to the TLS processing state (currently unused in this function).
+//
+// @param[out] NewTlsContext
+//     On success, receives a pointer to the initialized `CXPLAT_TLS` context.
+//
+// @return
+//     - `QUIC_STATUS_SUCCESS` on success.
+//     - `QUIC_STATUS_OUT_OF_MEMORY` if allocation fails.
+//     - `QUIC_STATUS_INVALID_PARAMETER` if input parameters are invalid.
+//     - `QUIC_STATUS_TLS_ERROR` if OpenSSL operations fail.
+//     - `QUIC_STATUS_INTERNAL_ERROR` on unexpected internal failure.
+//
+// @note The caller is responsible for calling `CxPlatTlsUninitialize` on the
+//       returned context when it is no longer needed.
+//
+// @remark If session resumption is enabled, a previously saved session ticket
+//         may be used for early data.
+//
+// @remark This function is only safe to call at IRQL <= PASSIVE_LEVEL.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatTlsInitialize(
@@ -2676,7 +2430,7 @@ CxPlatTlsInitialize(
     CXPLAT_TLS* TlsContext = NULL;
     uint16_t ServerNameLength = 0;
     UNREFERENCED_PARAMETER(State);
-    struct aux_data *adata;
+    struct AUX_DATA *AData;
     BIO *ossl_bio = NULL;
 
     CXPLAT_DBG_ASSERT(Config->HkdfLabels);
@@ -2757,7 +2511,7 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
-    if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, openssl_quic_dispatch, NULL)) {
+    if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
         QuicTraceEvent(
             TlsError,
             "[ tls][%p] ERROR, %s. ",
@@ -2767,17 +2521,17 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
-    /*
-     * Note This has to happen after the SSL_set_quic_tls_cbs call
-     * as it installs null bios for us
-     */
-    adata = CXPLAT_ALLOC_NONPAGED(sizeof(struct aux_data), QUIC_POOL_GENERIC);
-    CXPLAT_DBG_ASSERT(adata != NULL);
-    memset(adata, 0, sizeof(struct aux_data));
-    LIST_INIT(&adata->rlist);
+    //
+    // Note This has to happen after the SSL_set_quic_tls_cbs call
+    // as it installs null bios for us
+    //
+    AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_GENERIC);
+    CXPLAT_DBG_ASSERT(AData != NULL);
+    memset(AData, 0, sizeof(struct AUX_DATA));
+    CxPlatListInitializeHead(&AData->RList);
     ossl_bio = BIO_new(BIO_s_null());
     CXPLAT_DBG_ASSERT(ossl_bio != NULL);
-    BIO_set_app_data(ossl_bio, adata);
+    BIO_set_app_data(ossl_bio, AData);
     BIO_set_callback_ex(ossl_bio, FreeBioAuxData);
     SSL_set_bio(TlsContext->Ssl, ossl_bio, ossl_bio);
 
@@ -2853,7 +2607,7 @@ CxPlatTlsInitialize(
         Status = QUIC_STATUS_TLS_ERROR;
         goto Exit;
     }
-    adata->tp = Config->LocalTPBuffer;
+    AData->Tp = Config->LocalTPBuffer;
 
     if (Config->ResumptionTicketBuffer) {
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
@@ -2872,22 +2626,22 @@ Exit:
     return Status;
 }
 
-/**
- * @brief Cleans up and frees a QUIC TLS context.
- *
- * This function deallocates all memory and resources associated with a
- * `CXPLAT_TLS` context, including the OpenSSL `SSL` object and any
- * allocated Server Name Indication (SNI) data. It is safe to call with
- * a NULL pointer.
- *
- * This function should be called once a TLS context is no longer in use
- * to avoid memory leaks.
- *
- * @param[in] TlsContext
- *     Pointer to the TLS context to clean up. May be NULL.
- *
- * @note After calling this function, the pointer must not be used again.
- */
+//
+// @brief Cleans up and frees a QUIC TLS context.
+//
+// This function deallocates all memory and resources associated with a
+// `CXPLAT_TLS` context, including the OpenSSL `SSL` object and any
+// allocated Server Name Indication (SNI) data. It is safe to call with
+// a NULL pointer.
+//
+// This function should be called once a TLS context is no longer in use
+// to avoid memory leaks.
+//
+// @param[in] TlsContext
+//     Pointer to the TLS context to clean up. May be NULL.
+//
+// @note After calling this function, the pointer must not be used again.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUninitialize(
@@ -2914,23 +2668,23 @@ CxPlatTlsUninitialize(
     }
 }
 
-/**
- * @brief Updates the HKDF label set used by the TLS context.
- *
- * This function assigns a new set of HKDF (HMAC-based Key Derivation Function)
- * labels to the given TLS context. These labels are used during QUIC's
- * cryptographic key derivation process as part of the TLS handshake.
- *
- * @param[in] TlsContext
- *     Pointer to the TLS context to update.
- *
- * @param[in] Labels
- *     Pointer to the new HKDF labels to assign. Must remain valid for the
- *     lifetime of the TLS context or until replaced.
- *
- * @note This function does not validate or duplicate the label data. The
- *       caller must ensure the pointer remains valid.
- */
+//
+// @brief Updates the HKDF label set used by the TLS context.
+//
+// This function assigns a new set of HKDF (HMAC-based Key Derivation Function)
+// labels to the given TLS context. These labels are used during QUIC's
+// cryptographic key derivation process as part of the TLS handshake.
+//
+// @param[in] TlsContext
+//     Pointer to the TLS context to update.
+//
+// @param[in] Labels
+//     Pointer to the new HKDF labels to assign. Must remain valid for the
+//     lifetime of the TLS context or until replaced.
+//
+// @note This function does not validate or duplicate the label data. The
+//       caller must ensure the pointer remains valid.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatTlsUpdateHkdfLabels(
@@ -2941,137 +2695,147 @@ CxPlatTlsUpdateHkdfLabels(
     TlsContext->HkdfLabels = Labels;
 }
 
-/**
- * @brief Allocates and initializes a new TLS record entry.
- *
- * This function creates a new `record_entry` structure, allocates memory
- * for a private copy of the given TLS record, and stores its length and
- * associated SSL context. The returned structure is used to buffer TLS
- * records for later transmission or processing in QUIC.
- *
- * @param[in] record
- *     Pointer to the TLS record data to copy.
- *
- * @param[in] rec_len
- *     Length of the TLS record in bytes.
- *
- * @param[in] ssl
- *     Pointer to the associated OpenSSL `SSL` context.
- *
- * @return
- *     A pointer to the newly allocated `record_entry` on success, or NULL
- *     if memory allocation fails.
- *
- * @note The caller is responsible for freeing the returned structure and
- *       its `record` buffer when no longer needed.
- */
-static struct record_entry *MakeNewRecord(const uint8_t *record, size_t rec_len, SSL *ssl)
+//
+// @brief Allocates and initializes a new TLS record entry.
+//
+// This function creates a new `record_entry` structure, allocates memory
+// for a private copy of the given TLS record, and stores its length and
+// associated SSL context. The returned structure is used to buffer TLS
+// records for later transmission or processing in QUIC.
+//
+// @param[in] record
+//     Pointer to the TLS record data to copy.
+//
+// @param[in] RecLen
+//     Length of the TLS record in bytes.
+//
+// @param[in] ssl
+//     Pointer to the associated OpenSSL `SSL` context.
+//
+// @return
+//     A pointer to the newly allocated `record_entry` on success, or NULL
+//     if memory allocation fails.
+//
+// @note The caller is responsible for freeing the returned structure and
+//       its `record` buffer when no longer needed.
+//
+static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ssl)
 {
-    struct record_entry *new;
+    RECORD_ENTRY *new;
 
-    /*
-     * Allocate a new structure, make sure its zeroed out
-     */
-    new = calloc(1, sizeof(struct record_entry));
+    //
+    // Allocate a new structure, make sure its zeroed out
+    //
+    new = calloc(1, sizeof(RECORD_ENTRY));
         if (new == NULL)
             return NULL;
-    new->record = malloc(rec_len);
-    if (new->record == NULL) {
+    new->Record = malloc(RecLen);
+    if (new->Record == NULL) {
         free(new);
         return NULL;
     }
-    /*
-     * Copy the record to its private buffer
-     * save the length and ssl pointer for use in QuicTlsSend
-     */
-    memcpy(new->record, record, rec_len);
-    new->rec_len = rec_len;
-    new->ssl = ssl;
+    //
+    // Copy the Record to its private buffer
+    // save the length and Ssl pointer for use in QuicTlsSend
+    //
+    memcpy(new->Record, Record, RecLen);
+    new->RecLen = RecLen;
+    new->Ssl = Ssl;
     return new;
 }
 
-/**
- * @brief Splits and queues a TLS record for processing by QUIC.
- *
- * This function examines a `record_entry` that may contain one or more
- * TLS handshake messages and determines if it must be split due to:
- * - The message being incomplete (spans multiple records).
- * - A message requiring isolation (e.g., EncryptedExtensions, type 8).
- *
- * If a split is necessary, the function adjusts the original record and
- * creates a trailing "leftover" record for the remainder. Both records are
- * appended to the connection’s TLS processing queue.
- *
- * @param[in,out] entry
- *     Pointer to the TLS record entry to inspect and split if needed.
- *
- * @returns 1 if an incomplete record was left on the list, 0 otherwise
- *
- * @note Message lengths are read from the first 3 bytes of a 4-byte field
- *       (TLS handshake header). The total length includes a 1-byte type and
- *       a 3-byte length field.
- *
- * @note Records containing EncryptedExtensions (type 8) must be isolated
- *       unless they appear first in the datagram.
- *
- * @warning Assumes the record buffer contains valid TLS handshake formatting.
- * @warning The function asserts that the message type is <= 20.
- */
-static int SplitAddRecord(struct record_entry *entry)
+//
+// @brief Splits and queues a TLS record for processing by QUIC.
+//
+// This function examines a `record_entry` that may contain one or more
+// TLS handshake messages and determines if it must be split due to:
+// - The message being incomplete (spans multiple records).
+// - A message requiring isolation (e.g., EncryptedExtensions, type 8).
+//
+// If a split is necessary, the function adjusts the original record and
+// creates a trailing "leftover" record for the remainder. Both records are
+// appended to the connection’s TLS processing queue.
+//
+// @param[in,out] entry
+//     Pointer to the TLS record entry to inspect and split if needed.
+//
+// @returns 1 if an incomplete record was left on the list, 0 otherwise
+//
+// @note Message lengths are read from the first 3 bytes of a 4-byte field
+//       (TLS handshake header). The total length includes a 1-byte type and
+//       a 3-byte length field.
+//
+// @note Records containing EncryptedExtensions (type 8) must be isolated
+//       unless they appear first in the datagram.
+//
+// @warning Assumes the record buffer contains valid TLS handshake formatting.
+// @warning The function asserts that the message type is <= 20.
+//
+static int SplitAddRecord(RECORD_ENTRY *Entry)
 {
-    struct record_entry *leftover = NULL;
+    RECORD_ENTRY *leftover = NULL;
     const uint8_t *idx;
     uint8_t message_type;
     size_t total_message_size = 0;
     uint32_t message_size;
-    struct aux_data *adata;
-    uint8_t incomplete = 0;
+    struct AUX_DATA *AData;
+    uint8_t Incomplete = 0;
     uint8_t force_split = 0;
 
-    adata = get_ssl_aux_data(entry->ssl);
-    assert(adata != NULL);
+    AData = GetSslAuxData(Entry->Ssl);
+    CXPLAT_DBG_ASSERT(AData != NULL);
+    //
+    // set our cursor to the start of the message
+    //
+    idx = Entry->Record;
 
-    /* set our cursor to the start of the message */
-    idx = entry->record;
-
-    while (total_message_size < entry->rec_len) {
+    while (total_message_size < Entry->RecLen) {
         message_type = *idx;
         message_size = *((uint32_t *)idx);
 
-        /* message size is just the lower 3 bytes of the TLS record */
+        //
+        //message size is just the lower 3 bytes of the TLS record
+        //
         message_size = htonl(message_size) & 0x00ffffff;
 
-        /* make sure our message type is valid */
-        assert(message_type <= 20);
-        /*
-         * If this message is larger then the total record length
-         * then we need to create an incomplete record as its remainder
-         * is in the next datagram
-         * also, if this is an epoch key change message (8 is EncryptedExtensions)
-         * then we need to split it as rcv_rec expects that
-         * Note we only need to force the split if the epoch change
-         * isn't the first message in this record
-         */
-        if (total_message_size + message_size + 4 > entry->rec_len)
-                incomplete = 1;
+        //
+        //make sure our message type is valid
+        //
+        CXPLAT_DBG_ASSERT(message_type <= 20);
+        //
+        // If this message is larger then the total record length
+        // then we need to create an Incomplete record as its remainder
+        // is in the next datagram
+        // also, if this is an epoch key change message (8 is EncryptedExtensions)
+        // then we need to split it as rcv_rec expects that
+        // Note we only need to force the split if the epoch change
+        // isn't the first message in this record
+        //
+        if (total_message_size + message_size + 4 > Entry->RecLen)
+                Incomplete = 1;
 
         if ((message_type == 8) && (total_message_size != 0))
              force_split = 1;
 
-        if (incomplete == 1 || force_split == 1) {
+        if (Incomplete == 1 || force_split == 1) {
             if (total_message_size == 0) {
-                /*
-                 * If this is the first record, just mark this one
-                 * as being incomplete
-                 */
-                entry->incomplete = 1;
+                //
+                // If this is the first record, just mark this one
+                // as being incomplete
+                //
+                Entry->Incomplete = 1;
             } else {
-                /* create the incomplete trailing record */
-                 leftover = MakeNewRecord(idx, entry->rec_len - total_message_size,
-                                                                        entry->ssl);
-                 /* reduce the size of this entry to drop whats contained in the leftover */
-                 entry->rec_len -= leftover->rec_len;
-                 leftover->incomplete = incomplete;
+                //
+                //create the incomplete trailing record
+                //
+                 leftover = MakeNewRecord(idx, Entry->RecLen - total_message_size,
+                                                                        Entry->Ssl);
+                 //
+                 //reduce the size of this Entry to drop whats contained
+                 //in the leftover
+                 //
+                 Entry->RecLen -= leftover->RecLen;
+                 leftover->Incomplete = Incomplete;
             }
             break;
         }
@@ -3079,126 +2843,130 @@ static int SplitAddRecord(struct record_entry *entry)
         idx += message_size + 4;
     }
 
-    /* Add the entry, and potentially the leftover record */
-    LIST_ADD_TAIL(&entry->entries, &adata->rlist);
+    //
+    //Add the Entry, and potentially the leftover record
+    //
+    CxPlatListInsertTail(&AData->RList, &Entry->Entries);
     if (leftover != NULL) {
-        /*
-         * Make sure the leftover record doesn't need to be split
-         * Do so by recursively calling this function.  This will
-         * Also add the leftover record to the list
-         */
+        //
+        // Make sure the leftover record doesn't need to be split
+        // Do so by recursively calling this function.  This will
+        // Also add the leftover record to the list
+        //
         return SplitAddRecord(leftover);
     }
-    return incomplete;
+    return Incomplete;
 }
 
-/**
- * @brief Merges a new TLS record fragment into a previously incomplete record.
- *
- * This function searches the current TLS record list for the given SSL
- * connection to find an incomplete record. If one is found, it appends
- * the new record data to it, marks the record as complete, and returns
- * the updated entry.
- *
- * If no incomplete record exists, or if the most recent entry is complete,
- * the function returns NULL, and the new record should be treated as a
- * standalone message.
- *
- * @param[in] new_record
- *     Pointer to the new TLS record fragment to merge.
- *
- * @param[in] new_rec_len
- *     Length of the new record fragment in bytes.
- *
- * @param[in] new_ssl
- *     Pointer to the OpenSSL SSL object associated with the record stream.
- *
- * @return
- *     Pointer to the updated `record_entry` if merged, or NULL if no
- *     incomplete record was found or merged.
- *
- * @note This function assumes the input fragment follows a previously
- *       detected split TLS message (e.g., split across multiple QUIC packets).
- *
- * @warning The function asserts that the record memory allocation succeeds.
- */
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable:4702) // Unreachable code
-#endif
-static struct record_entry *GetIncompleteRecord(const uint8_t *new_record,
-                                                  size_t new_rec_len,
-                                                  SSL *new_ssl)
+//
+// @brief Merges a new TLS record fragment into a previously incomplete record.
+//
+// This function searches the current TLS record list for the given SSL
+// connection to find an incomplete record. If one is found, it appends
+// the new record data to it, marks the record as complete, and returns
+// the updated entry.
+//
+// If no incomplete record exists, or if the most recent entry is complete,
+// the function returns NULL, and the new record should be treated as a
+// standalone message.
+//
+// @param[in] new_record
+//     Pointer to the new TLS record fragment to merge.
+//
+// @param[in] new_RecLen
+//     Length of the new record fragment in bytes.
+//
+// @param[in] new_ssl
+//     Pointer to the OpenSSL SSL object associated with the record stream.
+//
+// @return
+//     Pointer to the updated `record_entry` if merged, or NULL if no
+//     incomplete record was found or merged.
+//
+// @note This function assumes the input fragment follows a previously
+//       detected split TLS message (e.g., split across multiple QUIC packets).
+//
+// @warning The function asserts that the record memory allocation succeeds.
+//
+static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
+                                         size_t NewRecLen,
+                                         SSL *NewSsl)
 {
-    struct record_entry *entry;
-    struct aux_data *adata;
-    uint8_t *tmprec;
+    RECORD_ENTRY *entry;
+    struct AUX_DATA *AData;
+    uint8_t *TmpRec;
+    CXPLAT_LIST_ENTRY* lentry;
 
-    adata = get_ssl_aux_data(new_ssl);
+    AData = GetSslAuxData(NewSsl);
 
-    LIST_FOREACH(entry, &adata->rlist, entries) {
-        if (entry->incomplete) {
-            /*
-             * We have an incomplete record for this SSL
-             * merge them
-             */
-            LIST_REMOVE(&entry->entries);
-            tmprec = realloc(entry->record, entry->rec_len + new_rec_len);
-            CXPLAT_DBG_ASSERT(tmprec != NULL);
-            entry->record = tmprec;
-            assert(entry->record != NULL);
-            memcpy(&entry->record[entry->rec_len], new_record, new_rec_len);
-            entry->rec_len += new_rec_len;
-            entry->incomplete = 0; /* need to recheck this */
+    lentry = AData->RList.Flink;
+    while (lentry != &AData->RList) {
+        entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Entries);
+        lentry = lentry->Flink;
+        if (entry->Incomplete) {
+            //
+            // We have an incomplete record for this SSL
+            // merge them
+            //
+            CxPlatListEntryRemove(&entry->Entries);
+            TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
+            CXPLAT_DBG_ASSERT(TmpRec != NULL);
+            entry->Record = TmpRec;
+            CXPLAT_DBG_ASSERT(entry->Record != NULL);
+            memcpy(&entry->Record[entry->RecLen], NewRecord, NewRecLen);
+            entry->RecLen += NewRecLen;
+            entry->Incomplete = 0; // need to recheck this for splitting
             return entry;
         } else {
-            /* current record is complete, nothing to coalesce */
+            //
+            //current record is complete, nothing to coalesce
+            //
             return NULL;
         }
     }
   return NULL;
 }
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
-/**
- * @brief Processes a newly received TLS record for a QUIC connection.
- *
- * This function handles a new TLS record by either merging it with a
- * previously incomplete record (if one exists), or by creating a new
- * `record_entry`. The resulting complete or partial record(s) are
- * passed to `SplitAddRecord` for potential splitting and queuing.
- *
- * This is part of the QUIC TLS record processing pipeline and ensures
- * correct reconstruction of fragmented handshake messages.
- *
- * @param[in] ssl
- *     Pointer to the OpenSSL SSL object associated with the connection.
- *
- * @param[in] record
- *     Pointer to the newly received TLS record buffer.
- *
- * @param[in] rec_len
- *     Length of the TLS record buffer in bytes.
- *
- * @return
- *     Returns 1 if processing succeeded, 0 if allocation or merge failed
- *     or 2 if processing succeded but an incomplete record is at the end of
- *     the chain
- *
- * @note If a matching incomplete record exists, this function merges the
- *       data before proceeding.
- *
- * @warning Assumes valid TLS handshake record formatting.
- */
-static int ProcessNewMessage(SSL *ssl, const uint8_t *record, size_t rec_len)
-{
-    struct record_entry *this_rec;
 
-    this_rec = GetIncompleteRecord(record, rec_len, ssl);
+//
+// @brief Processes a newly received TLS record for a QUIC connection.
+//
+// This function handles a new TLS record by either merging it with a
+// previously incomplete record (if one exists), or by creating a new
+// `record_entry`. The resulting complete or partial record(s) are
+// passed to `SplitAddRecord` for potential splitting and queuing.
+//
+// This is part of the QUIC TLS record processing pipeline and ensures
+// correct reconstruction of fragmented handshake messages.
+//
+// @param[in] ssl
+//     Pointer to the OpenSSL SSL object associated with the connection.
+//
+// @param[in] record
+//     Pointer to the newly received TLS record buffer.
+//
+// @param[in] RecLen
+//     Length of the TLS record buffer in bytes.
+//
+// @return
+//     Returns 1 if processing succeeded, 0 if allocation or merge failed
+//     or 2 if processing succeded but an incomplete record is at the end of
+//     the chain
+//
+// @note If a matching incomplete record exists, this function merges the
+//       data before proceeding.
+//
+// @warning Assumes valid TLS handshake record formatting.
+//
+static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
+{
+    RECORD_ENTRY *this_rec;
+
+    this_rec = GetIncompleteRecord(Record, RecLen, Ssl);
     if (this_rec == NULL) {
-        /* No imcomplete records, just create a new one */
-        this_rec = MakeNewRecord(record, rec_len, ssl);
+        //
+        //No imcomplete Records, just create a new one
+        //
+        this_rec = MakeNewRecord(Record, RecLen, Ssl);
     }
 
     if (SplitAddRecord(this_rec))
@@ -3206,10 +2974,6 @@ static int ProcessNewMessage(SSL *ssl, const uint8_t *record, size_t rec_len)
     return 1;
 }
 
-#ifdef _WIN32
-#pragma warning(push)
-#pragma warning(disable:4702) // Unreachable code
-#endif
 _IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsProcessData(
@@ -3222,8 +2986,9 @@ CxPlatTlsProcessData(
     )
 {
     int Ret;
-    struct aux_data *adata = get_ssl_aux_data(TlsContext->Ssl);
-    struct record_entry *entry;
+    struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
+    RECORD_ENTRY *entry;
+    CXPLAT_LIST_ENTRY* lentry;
 
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
@@ -3293,7 +3058,7 @@ CxPlatTlsProcessData(
     }
 
     if (!State->HandshakeComplete) {
-        OSSL_DBG("Handshake is incomplete\n");
+        OSSL_DBG("Handshake is Incomplete\n");
 more_handshake:
         Ret = SSL_do_handshake(TlsContext->Ssl);
         if (Ret <= 0) {
@@ -3332,12 +3097,15 @@ more_handshake:
                 goto Exit;
             }
         } else {
-            LIST_FOREACH(entry, &adata->rlist, entries) {
-                /*
-                 * If the first entry on the list is incompete
-                 * we're done here
-                 */
-                if (entry->incomplete == 1)
+            lentry = AData->RList.Flink;
+            while (lentry != &AData->RList) {
+                entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Entries);
+                lentry = lentry->Flink;
+                //
+                // If the first entry on the list is incompete
+                // we're done here
+                //
+                if (entry->Incomplete == 1)
                     break;
                 else
                     goto more_handshake;
@@ -3469,10 +3237,6 @@ Exit:
 
     return TlsContext->ResultFlags;
 }
-
-#ifdef _WIN32
-#pragma warning(pop)
-#endif
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
