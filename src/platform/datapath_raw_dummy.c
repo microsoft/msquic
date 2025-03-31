@@ -126,10 +126,10 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Route);
     return 1500;
 }
 
@@ -146,11 +146,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Config);
     return NULL;
 }

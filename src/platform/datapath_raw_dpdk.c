@@ -630,14 +630,13 @@ CxPlatDpRawTxAlloc(
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Config->Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;
         Packet->Mbuf = rte_pktmbuf_alloc(Interface->MemoryPool);
         if (likely(Packet->Mbuf)) {
-            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
+            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Config->Route);
             Packet->Dpdk = Dpdk;
             Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;

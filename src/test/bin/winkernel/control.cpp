@@ -819,7 +819,8 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params2.UseSendBuffer != 0,
                 Params->Params2.UnidirectionalStreams != 0,
                 Params->Params2.ServerInitiatedStreams != 0,
-                Params->Params2.FifoScheduling != 0
+                Params->Params2.FifoScheduling != 0,
+                Params->Params2.SendUdpToQtipListener != 0
                 ));
         break;
 

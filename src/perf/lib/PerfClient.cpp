@@ -145,6 +145,7 @@ PerfClient::Init(
     //
 
     TryGetValue(argc, argv, "tcp", &UseTCP);
+    TryGetValue(argc, argv, "qtip", &UseQtip);
     TryGetValue(argc, argv, "encrypt", &UseEncryption);
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
@@ -227,7 +228,7 @@ PerfClient::Init(
                 PerfClientConnection::TcpSendCompleteCallback,
                 TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
-        if (UseSendBuffering || !UsePacing) { // Update settings if non-default
+        if (UseSendBuffering || !UsePacing || UseQtip) { // Update settings if non-default
             MsQuicSettings Settings;
             Configuration.GetSettings(Settings);
             if (UseSendBuffering) {
@@ -235,6 +236,9 @@ PerfClient::Init(
             }
             if (!UsePacing) {
                 Settings.SetPacingEnabled(UsePacing != 0);
+            }
+            if (UseQtip) {
+                Settings.SetQtipEnabled(UseQtip != 0);
             }
             Configuration.SetSettings(Settings);
         }

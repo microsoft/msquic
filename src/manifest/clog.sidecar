@@ -6316,6 +6316,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "IndicateQTIPSettingsBubbledDown": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Bubbling down UseQTIP setting: %hhu",
+      "UniqueId": "IndicateQTIPSettingsBubbledDown",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnInfo"
+    },
     "IndicateReliableResetNegotiated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]",
@@ -11278,6 +11294,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingQTIPEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] QTIPEnabled            = %hhu",
+      "UniqueId": "SettingQTIPEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingReliableResetEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
@@ -11430,6 +11458,50 @@
         {
           "DefinationEncoding": "d",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SockStatus": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:",
+      "UniqueId": "SockStatus",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SockStatus2": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IgnoreRawSocketFailure: %d",
+      "UniqueId": "SockStatus2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SockStatus3": {
+      "ModuleProperites": {},
+      "TraceString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d",
+      "UniqueId": "SockStatus3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -15624,6 +15696,11 @@
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED [%p, 0x%x]"
       },
       {
+        "UniquenessHash": "651766ae-e436-c010-d55a-bcb9ecd224be",
+        "TraceID": "IndicateQTIPSettingsBubbledDown",
+        "EncodingString": "[conn][%p] Bubbling down UseQTIP setting: %hhu"
+      },
+      {
         "UniquenessHash": "cb6ed5bc-5216-e56f-9e29-117ba277fde6",
         "TraceID": "IndicateReliableResetNegotiated",
         "EncodingString": "[conn][%p] Indicating QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED [IsNegotiated=%hhu]"
@@ -17264,6 +17341,11 @@
         "EncodingString": "[sett] OneWayDelayEnabled     = %hhu"
       },
       {
+        "UniquenessHash": "4b7db079-533f-22a0-d0d1-a19436940ebb",
+        "TraceID": "SettingQTIPEnabled",
+        "EncodingString": "[sett] QTIPEnabled            = %hhu"
+      },
+      {
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
@@ -17317,6 +17399,21 @@
         "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",
         "TraceID": "SockCreateFail",
         "EncodingString": "[sock] Failed to create socket, status:%d"
+      },
+      {
+        "UniquenessHash": "d0c18368-6f75-5e69-9d2f-76edf03adf47",
+        "TraceID": "SockStatus",
+        "EncodingString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d:"
+      },
+      {
+        "UniquenessHash": "de94c2aa-2080-519a-1813-9d205ab343f9",
+        "TraceID": "SockStatus2",
+        "EncodingString": "[sock] Allocated socket. IgnoreRawSocketFailure: %d"
+      },
+      {
+        "UniquenessHash": "9ea32e07-da06-1c05-2ed6-234e7b353ec6",
+        "TraceID": "SockStatus3",
+        "EncodingString": "[sock] Allocated socket. IsServer: %d, UseQTIP: %d"
       },
       {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",

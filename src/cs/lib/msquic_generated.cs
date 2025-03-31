@@ -216,7 +216,6 @@ namespace Microsoft.Quic
     internal enum QUIC_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
-        QTIP = 0x0001,
         RIO = 0x0002,
         XDP = 0x0004,
         NO_IDEAL_PROC = 0x0008,
@@ -1371,6 +1370,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong QTIPEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.QTIPEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.QTIPEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -2001,17 +2013,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 21")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 43) & 0x1FFFFFUL;
+                        return (_bitfield >> 43) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1FFFFFUL << 43)) | ((value & 0x1FFFFFUL) << 43);
+                        _bitfield = (_bitfield & ~(0x1UL << 43)) | ((value & 0x1UL) << 43);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 20")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 44) & 0xFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0xFFFFFUL << 44)) | ((value & 0xFFFFFUL) << 44);
                     }
                 }
             }
@@ -2116,17 +2142,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 58")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 6) & 0x3FFFFFFUL;
+                        return (_bitfield >> 6) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 6)) | ((value & 0x3FFFFFFUL) << 6);
+                        _bitfield = (_bitfield & ~(0x1UL << 6)) | ((value & 0x1UL) << 6);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 57")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 7) & 0x1FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFUL << 7)) | ((value & 0x1FFFFFFUL) << 7);
                     }
                 }
             }

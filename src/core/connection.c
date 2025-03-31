@@ -1771,6 +1771,11 @@ QuicConnStart(
 
     CXPLAT_TEL_ASSERT(Path->Binding == NULL);
 
+    QuicConnApplyNewSettings(
+        Connection,
+        FALSE,
+        &Configuration->Settings);
+
     if (!Connection->State.RemoteAddressSet) {
 
         CXPLAT_DBG_ASSERT(ServerName != NULL);
@@ -1844,6 +1849,10 @@ QuicConnStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
+
+    if (Connection->Settings.QTIPEnabled) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+    }
 
     //
     // Get the binding for the current local & remote addresses.
@@ -2244,7 +2253,8 @@ QuicConnGenerateLocalTransportParameters(
     LocalTP->MaxUdpPayloadSize =
         MaxUdpPayloadSizeFromMTU(
             CxPlatSocketGetLocalMtu(
-                Connection->Paths[0].Binding->Socket));
+                Connection->Paths[0].Binding->Socket,
+                &Connection->Paths[0].Route));
     LocalTP->MaxAckDelay = QuicConnGetAckDelay(Connection);
     LocalTP->MinAckDelay =
         MsQuicLib.ExecutionConfig != NULL &&
@@ -2426,10 +2436,13 @@ QuicConnSetConfiguration(
     QuicConfigurationAddRef(Configuration);
     QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
-    QuicConnApplyNewSettings(
-        Connection,
-        FALSE,
-        &Configuration->Settings);
+
+    if (QuicConnIsServer(Connection)) {
+        QuicConnApplyNewSettings(
+            Connection,
+            FALSE,
+            &Configuration->Settings);
+    }
 
     if (QuicConnIsClient(Connection)) {
 
@@ -6218,6 +6231,9 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
+            if (Connection->Settings.QTIPEnabled) {
+                UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+            }
             Status =
                 QuicLibraryGetBinding(
                     &UdpConfig,
