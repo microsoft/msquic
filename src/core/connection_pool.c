@@ -457,10 +457,15 @@ MsQuicConnectionPoolCreate(
     }
 
     QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
-    BOOLEAN UseQTIP = FALSE;
-    if (MsQuicLib.Settings.QTIPEnabled ||
-        ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.QTIPEnabled) {
-        UseQTIP = TRUE;
+
+    //
+    // Copying how Connection Settings flow downwards. It will first inherit the global settings,
+    // if a global setting field is not set, but the configuration setting is set, override the global.
+    //
+    BOOLEAN UseQTIP = MsQuicLib.Settings.QTIPEnabled;
+    if (!MsQuicLib.Settings.IsSet.QTIPEnabled
+        && ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.IsSet.QTIPEnabled) {
+        UseQTIP = ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.QTIPEnabled;
     }
 
     //
