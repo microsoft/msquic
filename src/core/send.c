@@ -1227,10 +1227,10 @@ QuicSendFlush(
         (void)QuicConnRetireCurrentDestCid(Connection, Path);
     }
 
-    QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
-    QUIC_STREAM* Stream = NULL;
-    uint32_t StreamPacketCount = 0;
-
+    //
+    // Send path challenges.
+    // `QuicSendPathChallenges` might re-queue a path challenge immediately.
+    //
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
         Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
         QuicSendPathChallenges(Send);
@@ -1281,6 +1281,9 @@ QuicSendFlush(
     uint32_t PrevPrevSendFlags = UINT32_MAX;    // N-2
 #endif
 
+    QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
+    QUIC_STREAM* Stream = NULL;
+    uint32_t StreamPacketCount = 0;
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
@@ -1343,7 +1346,10 @@ QuicSendFlush(
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+        BOOLEAN SendConnectionControlData =
+            (SendFlags & ~(QUIC_CONN_SEND_FLAG_DPLPMTUD |
+                            QUIC_CONN_SEND_FLAG_PATH_CHALLENGE)) != 0;
+        if (SendConnectionControlData) {
             CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,

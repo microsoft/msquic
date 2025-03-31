@@ -46,7 +46,7 @@ jobs:
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
-      run: cargo clippy --all-targets -- -D warnings
+      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
     - name: Cargo build
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
@@ -55,3 +55,34 @@ jobs:
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty
+  # Test rust crate with preinstalled msquic lib.
+  cargo-preinstall:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        features: ["--no-default-features --features find"]
+    runs-on: ${{ matrix.os }}
+    name: Cargo-Preinstall
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Install msquic from apt
+      run: |
+        wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
+        sudo dpkg -i packages-microsoft-prod.deb;
+        sudo apt-get update;
+        sudo apt-get install libmsquic;
+        dpkg -L libmsquic;
+    - name: Cargo fmt
+      run: cargo fmt --all -- --check
+    - name: Cargo clippy
+      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+    - name: Cargo build
+      run: cargo build --all ${{ matrix.features }}
+    - name: Cargo test
+      run: cargo test --all ${{ matrix.features }}
