@@ -269,7 +269,6 @@ QuicRecvBufferResize(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
-
     QUIC_RECV_CHUNK* LastChunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Blink,
