@@ -4100,46 +4100,6 @@ QuicTestHandshakeSpecificLossPatterns(
     }
 }
 
-struct ServerMultiAcceptContext {
-    uint32_t StartedConnectionCount;
-    uint32_t MaxConnections;
-    CxPlatEvent StartedEvent;
-    MsQuicConfiguration* ServerConfiguration;
-
-    _Function_class_(MsQuicListenerCallback)
-    static
-    QUIC_STATUS
-    ListenerMultiAcceptConnection(
-        _In_ struct MsQuicListener*,
-        _In_opt_ void* Context,
-        _Inout_ QUIC_LISTENER_EVENT* Event
-        )
-    {
-        auto* This = (ServerMultiAcceptContext*)Context;
-        if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
-            uint32_t NewCount = (uint32_t)InterlockedIncrement((long*)&This->StartedConnectionCount);
-            if (NewCount > This->MaxConnections) {
-                TEST_FAILURE("Too many connections started!");
-                return QUIC_STATUS_CONNECTION_REFUSED;
-            }
-            QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-            auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, MsQuicConnection::NoOpCallback, nullptr);
-            if (Connection) {
-                if (!This->ServerConfiguration ||
-                        QUIC_FAILED(Status = MsQuic->ConnectionSetConfiguration(Connection->Handle, This->ServerConfiguration->Handle))) {
-                    TEST_FAILURE("ServerConfiguration is null or failed 0x%x", Status);
-                    Connection->Handle = nullptr;
-                    delete Connection;
-                }
-            }
-            if (NewCount == This->MaxConnections) {
-                This->StartedEvent.Set();
-            }
-        }
-        return QUIC_STATUS_SUCCESS;
-    }
-};
-
 struct ConnectionPoolConnectionContext {
     CxPlatEvent ConnectedEvent;
     uint16_t IdealProcessor;
@@ -4183,6 +4143,7 @@ QuicTestConnectionPoolCreate(
 
     MsQuicSettings Settings;
     Settings.SetIdleTimeoutMs(TestWaitTimeout);
+    Settings.SetPeerBidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -4212,13 +4173,8 @@ QuicTestConnectionPoolCreate(
             Contexts[i].PartitionIndex = 0;
         }
 
-        ServerMultiAcceptContext ServerAcceptContext {};
-        ServerAcceptContext.MaxConnections = NumberOfConnections;
-        ServerAcceptContext.StartedConnectionCount = 0;
-        ServerAcceptContext.ServerConfiguration = &ServerConfiguration;
-        MsQuicListener Listener(Registration, CleanUpManual, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        Listener.Context = &ServerAcceptContext;
 
         if (TestCibirSupport) {
             TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
@@ -4258,7 +4214,6 @@ QuicTestConnectionPoolCreate(
             QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, &(Connections.get()->Handle));
             if (XdpSupported) {
                 TEST_QUIC_SUCCEEDED(Status);
-                ServerAcceptContext.StartedEvent.WaitTimeout(TestWaitTimeout);
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
                     //
                     // Verify the client connection is connected.
@@ -4268,6 +4223,7 @@ QuicTestConnectionPoolCreate(
                         TEST_FAILURE("Client connection %u failed to connect", i);
                     }
                 }
+                TEST_EQUAL(NumberOfConnections, Listener.AcceptedConnectionCount);
             } else {
                 //
                 // When testing no XDP support, the loopback address is used,
