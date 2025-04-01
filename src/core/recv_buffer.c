@@ -70,7 +70,7 @@ QuicRecvChunkFree(
     }
 
     if (Chunk->AppOwnedBuffer) {
-        CxPlatPoolFree(RecvBuffer->AppBufferChunkPool, Chunk);
+        CxPlatPoolFree(Chunk);
     } else {
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
     }
@@ -83,7 +83,6 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ QUIC_RECV_BUF_MODE RecvMode,
-    _In_ CXPLAT_POOL* AppBufferChunkPool,
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     )
 {
@@ -98,7 +97,6 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
-    RecvBuffer->AppBufferChunkPool = AppBufferChunkPool;
     RecvBuffer->PreallocatedChunk = PreallocatedChunk;
     RecvBuffer->RetiredChunk = NULL;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
@@ -482,8 +480,8 @@ QuicRecvBufferCopyIntoChunks(
                 QUIC_RECV_CHUNK,
                 Link);
         CXPLAT_DBG_ASSERT(Chunk->Link.Flink == &RecvBuffer->Chunks); // Should only have one chunk
-        CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit in the last chunk
         uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
+        CXPLAT_DBG_ASSERT(RelativeOffset + WriteLength <= Chunk->AllocLength); // Should always fit in the last chunk
         uint32_t ChunkOffset = (RecvBuffer->ReadStart + RelativeOffset) % Chunk->AllocLength;
 
         if (ChunkOffset + WriteLength > Chunk->AllocLength) {
@@ -684,7 +682,7 @@ QuicRecvBufferWrite(
                     RecvBuffer->Chunks.Blink,
                     QUIC_RECV_CHUNK,
                     Link)->AllocLength << 1;
-            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength + RecvBuffer->ReadPendingLength) {
+            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
                 NewBufferLength <<= 1;
             }
             if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
@@ -1154,7 +1152,7 @@ QuicRecvBufferFullDrain(
     //
     // We have more chunks and just drained this one completely: we are never
     // going to re-use this one. Free it.
-    // 
+    //
     CxPlatListEntryRemove(&Chunk->Link);
     QuicRecvChunkFree(RecvBuffer, Chunk);
 

@@ -15,6 +15,10 @@ Abstract:
 
 #include "msquic.hpp"
 
+//
+// Enable tests for specific platforms/scenarios
+//
+
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -57,6 +61,7 @@ void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+void QuicTestValidateConnectionPoolCreate();
 
 //
 // Ownership tests
@@ -364,6 +369,14 @@ void
 QuicTestVNTPOtherVersionZero(
     _In_ bool TestServer
     );
+
+void
+QuicTestConnectionPoolCreate(
+    _In_ int Family,
+    _In_ uint16_t NumberOfConnections,
+    _In_ bool XdpSupported,
+    _In_ bool TestCibirSupport
+    );
 #endif
 
 //
@@ -412,7 +425,8 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
+    _In_ bool FifoScheduling,
+    _In_ bool SendUdpToQtipListener
     );
 
 //
@@ -836,6 +850,7 @@ typedef struct {
     uint8_t UnidirectionalStreams;
     uint8_t ServerInitiatedStreams;
     uint8_t FifoScheduling;
+    uint8_t SendUdpToQtipListener;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)
@@ -1375,4 +1390,18 @@ typedef struct {
     QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
     //int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 131
+struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
+    int Family;
+    uint16_t NumberOfConnections;
+    bool XdpSupported;
+    bool TestCibirSupport;
+};
+
+#define IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE \
+    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE \
+    QUIC_CTL_CODE(133, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 133

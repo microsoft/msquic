@@ -49,12 +49,7 @@ const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
 // Contains all the info for a single RX IO operation. Multiple RX packets may
 // come from a single IO operation.
 //
-typedef struct DATAPATH_RX_IO_BLOCK {
-    //
-    // The pool owning this recv block.
-    //
-    CXPLAT_POOL* OwningPool;
-
+typedef struct __attribute__((aligned(16))) DATAPATH_RX_IO_BLOCK {
     //
     // Represents the network route.
     //
@@ -1990,7 +1985,6 @@ CxPlatSocketReceiveCoalesced(
             goto Exit;
         }
 
-        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
         IoBlock->Route.State = RouteResolved;
 
         struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
@@ -2031,7 +2025,7 @@ CxPlatSocketReceiveCoalesced(
 Exit:
 
     if (IoBlock) {
-        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -2065,7 +2059,6 @@ CxPlatSocketReceiveMessages(
             }
 
             IoBlocks[i] = IoBlock;
-            IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
             IoBlock->Route.State = RouteResolved;
 
             struct msghdr* MsgHdr = &RecvMsgHdr[i].msg_hdr;
@@ -2108,7 +2101,7 @@ Exit:
 
     for (uint32_t i = 0; i < CXPLAT_MAX_IO_BATCH_SIZE; ++i) {
         if (IoBlocks[i]) {
-            CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlocks[i]);
+            CxPlatPoolFree(IoBlocks[i]);
         }
     }
 }
@@ -2139,7 +2132,6 @@ CxPlatSocketReceiveTcpData(
             goto Exit;
         }
 
-        IoBlock->OwningPool = &DatapathPartition->RecvBlockPool;
         IoBlock->Route.State = RouteResolved;
         IoBlock->Route.Queue = SocketContext;
         IoBlock->RefCount = 0;
@@ -2192,7 +2184,7 @@ CxPlatSocketReceiveTcpData(
 
 Exit:
     if (IoBlock) {
-        CxPlatPoolFree(&DatapathPartition->RecvBlockPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -2223,7 +2215,7 @@ RecvDataReturn(
         DATAPATH_RX_PACKET* Packet =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
         if (InterlockedDecrement(&Packet->IoBlock->RefCount) == 0) {
-            CxPlatPoolFree(Packet->IoBlock->OwningPool, Packet->IoBlock);
+            CxPlatPoolFree(Packet->IoBlock);
         }
     }
 }
@@ -2283,7 +2275,7 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CxPlatPoolFree(&SendData->SocketContext->DatapathPartition->SendBlockPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 static

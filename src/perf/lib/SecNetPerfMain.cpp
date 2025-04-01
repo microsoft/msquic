@@ -132,12 +132,12 @@ PrintHelp(
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
-#ifdef _KERNEL_MODE
+#ifndef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
+        "                            - {iocp, rio, xdp, qtip, epoll, kqueue}\n"
 #else
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {xdp}\n"
+        "                            - {wsk}\n"
 #endif // _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -184,10 +184,6 @@ QuicMainStart(
     const char* IoMode = GetValue(argc, argv, "io");
 
 #ifndef _KERNEL_MODE
-    if (IoMode && IsValue(IoMode, "qtip")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-        SetConfig = true;
-    }
 
     if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;

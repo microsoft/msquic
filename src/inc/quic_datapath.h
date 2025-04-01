@@ -42,6 +42,12 @@ extern "C" {
 #define CXPLAT_TCP_HEADER_SIZE 20
 
 //
+// The minimum and maximum ephemeral ports according to RFC 6335.
+//
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
+//
 // Different types of Explicit Congestion Notifications
 //
 typedef enum CXPLAT_ECN_TYPE {
@@ -201,7 +207,8 @@ typedef struct CXPLAT_ROUTE {
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
 
-    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
+    uint16_t DatapathType: 15; // CXPLAT_DATAPATH_TYPE
+    uint8_t UseQTIP: 1;        // TRUE if the route is using QTIP
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
@@ -558,6 +565,7 @@ CxPlatDataPathGetGatewayAddresses(
 #define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
 #define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
 #define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
+#define CXPLAT_SOCKET_FLAG_QTIP     0x00000008  // Socket will support QTIP
 
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
@@ -650,7 +658,8 @@ CxPlatSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_ROUTE* Route
     );
 
 //
@@ -856,6 +865,47 @@ void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
+    );
+
+//
+// Get the RSS Configuration of the interface.
+//
+typedef enum CXPLAT_RSS_HASH_TYPE {
+    CXPLAT_RSS_HASH_TYPE_IPV4        = 0x001,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV4    = 0x002,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV4    = 0x004,
+    CXPLAT_RSS_HASH_TYPE_IPV6        = 0x008,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6    = 0x010,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6    = 0x020,
+    CXPLAT_RSS_HASH_TYPE_IPV6_EX     = 0x040,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX = 0x080,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX = 0x100
+} CXPLAT_RSS_HASH_TYPE;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_RSS_HASH_TYPE)
+
+typedef struct CXPLAT_RSS_CONFIG {
+    CXPLAT_RSS_HASH_TYPE HashTypes;
+    uint32_t RssSecretKeyLength;
+    uint32_t RssIndirectionTableCount;
+    _Field_size_bytes_(RssSecretKeyLength)
+    uint8_t* RssSecretKey;
+    _Field_size_(RssIndirectionTableCount)
+    uint32_t* RssIndirectionTable;      // Converted to processor indices from platform-specific representation.
+} CXPLAT_RSS_CONFIG;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
     );
 
 #if defined(__cplusplus)

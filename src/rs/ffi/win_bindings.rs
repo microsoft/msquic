@@ -413,8 +413,6 @@ pub const QUIC_DATAGRAM_SEND_STATE_QUIC_DATAGRAM_SEND_CANCELED: QUIC_DATAGRAM_SE
 pub type QUIC_DATAGRAM_SEND_STATE = ::std::os::raw::c_int;
 pub const QUIC_EXECUTION_CONFIG_FLAGS_QUIC_EXECUTION_CONFIG_FLAG_NONE: QUIC_EXECUTION_CONFIG_FLAGS =
     0;
-pub const QUIC_EXECUTION_CONFIG_FLAGS_QUIC_EXECUTION_CONFIG_FLAG_QTIP: QUIC_EXECUTION_CONFIG_FLAGS =
-    1;
 pub const QUIC_EXECUTION_CONFIG_FLAGS_QUIC_EXECUTION_CONFIG_FLAG_RIO: QUIC_EXECUTION_CONFIG_FLAGS =
     2;
 pub const QUIC_EXECUTION_CONFIG_FLAGS_QUIC_EXECUTION_CONFIG_FLAG_XDP: QUIC_EXECUTION_CONFIG_FLAGS =
@@ -3297,14 +3295,47 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
+    pub fn QTIPEnabled(&self) -> u64 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(43usize, 1u8) as u64) }
+    }
+    #[inline]
+    pub fn set_QTIPEnabled(&mut self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            self._bitfield_1.set(43usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn QTIPEnabled_raw(this: *const Self) -> u64 {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                43usize,
+                1u8,
+            ) as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_QTIPEnabled_raw(this: *mut Self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                43usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
     pub fn RESERVED(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(43usize, 21u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(44usize, 20u8) as u64) }
     }
     #[inline]
     pub fn set_RESERVED(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(43usize, 21u8, val as u64)
+            self._bitfield_1.set(44usize, 20u8, val as u64)
         }
     }
     #[inline]
@@ -3312,8 +3343,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                43usize,
-                21u8,
+                44usize,
+                20u8,
             ) as u64)
         }
     }
@@ -3323,8 +3354,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                43usize,
-                21u8,
+                44usize,
+                20u8,
                 val as u64,
             )
         }
@@ -3374,6 +3405,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         OneWayDelayEnabled: u64,
         NetStatsEventEnabled: u64,
         StreamMultiReceiveEnabled: u64,
+        QTIPEnabled: u64,
         RESERVED: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -3571,7 +3603,11 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
                 unsafe { ::std::mem::transmute(StreamMultiReceiveEnabled) };
             StreamMultiReceiveEnabled as u64
         });
-        __bindgen_bitfield_unit.set(43usize, 21u8, {
+        __bindgen_bitfield_unit.set(43usize, 1u8, {
+            let QTIPEnabled: u64 = unsafe { ::std::mem::transmute(QTIPEnabled) };
+            QTIPEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(44usize, 20u8, {
             let RESERVED: u64 = unsafe { ::std::mem::transmute(RESERVED) };
             RESERVED as u64
         });
@@ -3808,14 +3844,47 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         }
     }
     #[inline]
+    pub fn QTIPEnabled(&self) -> u64 {
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(6usize, 1u8) as u64) }
+    }
+    #[inline]
+    pub fn set_QTIPEnabled(&mut self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            self._bitfield_1.set(6usize, 1u8, val as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn QTIPEnabled_raw(this: *const Self) -> u64 {
+        unsafe {
+            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
+                ::std::ptr::addr_of!((*this)._bitfield_1),
+                6usize,
+                1u8,
+            ) as u64)
+        }
+    }
+    #[inline]
+    pub unsafe fn set_QTIPEnabled_raw(this: *mut Self, val: u64) {
+        unsafe {
+            let val: u64 = ::std::mem::transmute(val);
+            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
+                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
+                6usize,
+                1u8,
+                val as u64,
+            )
+        }
+    }
+    #[inline]
     pub fn ReservedFlags(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(6usize, 58u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(7usize, 57u8) as u64) }
     }
     #[inline]
     pub fn set_ReservedFlags(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(6usize, 58u8, val as u64)
+            self._bitfield_1.set(7usize, 57u8, val as u64)
         }
     }
     #[inline]
@@ -3823,8 +3892,8 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                6usize,
-                58u8,
+                7usize,
+                57u8,
             ) as u64)
         }
     }
@@ -3834,8 +3903,8 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                6usize,
-                58u8,
+                7usize,
+                57u8,
                 val as u64,
             )
         }
@@ -3848,6 +3917,7 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         OneWayDelayEnabled: u64,
         NetStatsEventEnabled: u64,
         StreamMultiReceiveEnabled: u64,
+        QTIPEnabled: u64,
         ReservedFlags: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -3877,7 +3947,11 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
                 unsafe { ::std::mem::transmute(StreamMultiReceiveEnabled) };
             StreamMultiReceiveEnabled as u64
         });
-        __bindgen_bitfield_unit.set(6usize, 58u8, {
+        __bindgen_bitfield_unit.set(6usize, 1u8, {
+            let QTIPEnabled: u64 = unsafe { ::std::mem::transmute(QTIPEnabled) };
+            QTIPEnabled as u64
+        });
+        __bindgen_bitfield_unit.set(7usize, 57u8, {
             let ReservedFlags: u64 = unsafe { ::std::mem::transmute(ReservedFlags) };
             ReservedFlags as u64
         });
@@ -6224,6 +6298,62 @@ pub type QUIC_DATAGRAM_SEND_FN = ::std::option::Option<
         ClientSendContext: *mut ::std::os::raw::c_void,
     ) -> HRESULT,
 >;
+pub const QUIC_CONNECTION_POOL_FLAGS_QUIC_CONNECTION_POOL_FLAG_NONE: QUIC_CONNECTION_POOL_FLAGS = 0;
+pub const QUIC_CONNECTION_POOL_FLAGS_QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE:
+    QUIC_CONNECTION_POOL_FLAGS = 1;
+pub type QUIC_CONNECTION_POOL_FLAGS = ::std::os::raw::c_int;
+#[repr(C)]
+pub struct QUIC_CONNECTION_POOL_CONFIG {
+    pub Registration: HQUIC,
+    pub Configuration: HQUIC,
+    pub Handler: QUIC_CONNECTION_CALLBACK_HANDLER,
+    pub Context: *mut *mut ::std::os::raw::c_void,
+    pub ServerName: *const ::std::os::raw::c_char,
+    pub ServerAddress: *const QUIC_ADDR,
+    pub Family: QUIC_ADDRESS_FAMILY,
+    pub ServerPort: u16,
+    pub NumberOfConnections: u16,
+    pub CibirIds: *mut *mut u8,
+    pub CibirIdLength: u8,
+    pub Flags: QUIC_CONNECTION_POOL_FLAGS,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_CONNECTION_POOL_CONFIG"]
+        [::std::mem::size_of::<QUIC_CONNECTION_POOL_CONFIG>() - 72usize];
+    ["Alignment of QUIC_CONNECTION_POOL_CONFIG"]
+        [::std::mem::align_of::<QUIC_CONNECTION_POOL_CONFIG>() - 8usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Registration"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Registration) - 0usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Configuration"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Configuration) - 8usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Handler"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Handler) - 16usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Context"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Context) - 24usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerName"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerName) - 32usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerAddress"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerAddress) - 40usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Family"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Family) - 48usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::ServerPort"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, ServerPort) - 50usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::NumberOfConnections"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, NumberOfConnections) - 52usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIds"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, CibirIds) - 56usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::CibirIdLength"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, CibirIdLength) - 64usize];
+    ["Offset of field: QUIC_CONNECTION_POOL_CONFIG::Flags"]
+        [::std::mem::offset_of!(QUIC_CONNECTION_POOL_CONFIG, Flags) - 68usize];
+};
+pub type QUIC_CONN_POOL_CREATE_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Config: *mut QUIC_CONNECTION_POOL_CONFIG,
+        ConnectionPool: *mut HQUIC,
+    ) -> HRESULT,
+>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_API_TABLE {
@@ -6259,10 +6389,11 @@ pub struct QUIC_API_TABLE {
     pub ConnectionResumptionTicketValidationComplete: QUIC_CONNECTION_COMP_RESUMPTION_FN,
     pub ConnectionCertificateValidationComplete: QUIC_CONNECTION_COMP_CERT_FN,
     pub StreamProvideReceiveBuffers: QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN,
+    pub ConnectionPoolCreate: QUIC_CONN_POOL_CREATE_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 256usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 264usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6332,6 +6463,8 @@ const _: () = {
     ) - 240usize];
     ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 248usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 256usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 459749;

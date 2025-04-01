@@ -617,7 +617,7 @@ CxPlatDpRawRxFree(
         const DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
         rte_pktmbuf_free(Packet->Mbuf);
-        CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
+        CxPlatPoolFree((void*)Packet);
     }
 }
 
@@ -630,14 +630,13 @@ CxPlatDpRawTxAlloc(
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Config->Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;
         Packet->Mbuf = rte_pktmbuf_alloc(Interface->MemoryPool);
         if (likely(Packet->Mbuf)) {
-            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
+            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Config->Route);
             Packet->Dpdk = Dpdk;
             Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;
@@ -645,7 +644,7 @@ CxPlatDpRawTxAlloc(
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;
             Packet->Mbuf->l3_len = HeaderFill.NetworkLayer;
         } else {
-            CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+            CxPlatPoolFree(Packet);
             Packet = NULL;
         }
     }
@@ -660,7 +659,7 @@ CxPlatDpRawTxFree(
 {
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
     rte_pktmbuf_free(Packet->Mbuf);
-    CxPlatPoolFree(&Packet->Dpdk->AdditionalInfoPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -683,7 +682,7 @@ CxPlatDpRawTxEnqueue(
             "No room in DPDK TX ring buffer");
     }
 
-    CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+    CxPlatPoolFree(Packet);
 }
 
 static

@@ -1337,10 +1337,10 @@ CxPlatDpRawPlumbRulesOnSocket(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
-        XDP_RULE Rules[3] = {0};
+        XDP_RULE Rules[5] = {0};
         uint8_t RulesSize = 0;
         if (Socket->CibirIdLength) {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID;
+            Rules[0].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
             Rules[0].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[0].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
@@ -1348,7 +1348,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
 
-            Rules[1].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID;
+            Rules[1].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
             Rules[1].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[1].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[1].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
@@ -1356,27 +1356,50 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[1].Redirect.Target = NULL;
 
+            Rules[2].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
+            Rules[2].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[2].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[2].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
+            Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[2].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[2].Redirect.Target = NULL;
+
+            Rules[3].Match = XDP_MATCH_TCP_QUIC_FLOW_DST_CID;
+            Rules[3].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[3].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[3].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
+            Rules[3].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[3].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[3].Redirect.Target = NULL;
+
+
             memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[2].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[3].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
 
-            RulesSize = 2;
-            if (Socket->UseTcp) {
-                Rules[2].Match = XDP_MATCH_TCP_CONTROL_DST;
-                Rules[2].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
-                Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
-                Rules[2].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-                Rules[2].Redirect.Target = NULL;
-                ++RulesSize;
-            }
+            Rules[4].Match = XDP_MATCH_TCP_CONTROL_DST;
+            Rules[4].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[4].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[4].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[4].Redirect.Target = NULL;
+            RulesSize = 5;
+
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST;
+            Rules[0].Match = XDP_MATCH_TCP_DST;
             Rules[0].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
 
-            RulesSize = 1;
+            Rules[1].Match = XDP_MATCH_UDP_DST;
+            Rules[1].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[1].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[1].Redirect.Target = NULL;
+
+            RulesSize = 2;
         }
 
         CXPLAT_LIST_ENTRY* Entry;
@@ -1398,11 +1421,11 @@ CxPlatDpRawPlumbRulesOnSocket(
         uint8_t* IpAddress;
         size_t IpAddressSize;
         if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
+            MatchType = Socket->ReserveAuxTcpSock ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
             IpAddressSize = sizeof(IN_ADDR);
         } else {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
+            MatchType = Socket->ReserveAuxTcpSock ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
             IpAddressSize = sizeof(IN6_ADDR);
         }
@@ -1604,18 +1627,16 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(Queue != NULL);
     CXPLAT_DBG_ASSERT(&Queue->TxPool != NULL);
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Config->Route); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;
@@ -1881,4 +1902,128 @@ CxPlatIoXdpShutdownEventComplete(
         "[ xdp][%p] XDP partition shutdown complete",
         Partition);
     CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t RssConfigSize = 0;
+    XDP_RSS_CONFIGURATION *RawRssConfig = NULL;
+
+    CXPLAT_DBG_ASSERT(RssConfig != NULL);
+
+    *RssConfig = NULL;
+
+    HANDLE InterfaceHandle = NULL;
+    HRESULT Result = XdpInterfaceOpen(InterfaceIndex, &InterfaceHandle);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpInterfaceOpen");
+        Status = Result;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
+    if (Result != HRESULT_FROM_WIN32(ERROR_MORE_DATA)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet size");
+        Status = FAILED(Result) ? Result : QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    RawRssConfig = CXPLAT_ALLOC_PAGED(RssConfigSize, QUIC_POOL_TMP_ALLOC);
+    if (RawRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet");
+        Status = Result;
+        goto Error;
+    }
+
+    CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(PROCESSOR_NUMBER), "Ensure same size");
+    RssConfigSize = sizeof(CXPLAT_RSS_CONFIG) +
+        RawRssConfig->HashSecretKeySize +
+        RawRssConfig->IndirectionTableSize;
+    CXPLAT_RSS_CONFIG* NewRssConfig =
+        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_PAGED(
+            RssConfigSize,
+            QUIC_POOL_DATAPATH_RSS_CONFIG);
+    if (NewRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    NewRssConfig->HashTypes = RawRssConfig->HashType;
+
+    NewRssConfig->RssSecretKey = (uint8_t*)(NewRssConfig + 1);
+    NewRssConfig->RssSecretKeyLength = RawRssConfig->HashSecretKeySize;
+    CxPlatCopyMemory(
+        NewRssConfig->RssSecretKey,
+        RTL_PTR_ADD(RawRssConfig, RawRssConfig->HashSecretKeyOffset),
+        NewRssConfig->RssSecretKeyLength);
+
+    NewRssConfig->RssIndirectionTable =
+        (uint32_t*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
+    NewRssConfig->RssIndirectionTableCount = RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER);
+
+    CXPLAT_DBG_ASSERT(
+        RawRssConfig->IndirectionTableSize ==
+        NewRssConfig->RssIndirectionTableCount * sizeof(PROCESSOR_NUMBER));
+
+    PROCESSOR_NUMBER* IndirectionTable =
+        (PROCESSOR_NUMBER*)RTL_PTR_ADD(
+            RawRssConfig,
+            RawRssConfig->IndirectionTableOffset);
+
+    for (uint32_t i = 0; i < RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER); i++) {
+        NewRssConfig->RssIndirectionTable[i] = CxPlatProcNumberToIndex(&IndirectionTable[i]);
+    }
+
+    *RssConfig = NewRssConfig;
+    NewRssConfig = NULL;
+
+Error:
+    if (RawRssConfig != NULL) {
+        CXPLAT_FREE(RawRssConfig, QUIC_POOL_TMP_ALLOC);
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
 }

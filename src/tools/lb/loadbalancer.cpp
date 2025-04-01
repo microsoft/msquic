@@ -123,7 +123,8 @@ struct LbPublicInterface : public LbInterface {
     struct Hasher {
         CXPLAT_TOEPLITZ_HASH Toeplitz;
         Hasher() {
-            CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+            CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+            Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
             CxPlatToeplitzHashInitialize(&Toeplitz);
         }
         size_t operator() (const std::pair<QUIC_ADDR, QUIC_ADDR> key) const {
@@ -220,7 +221,7 @@ main(int argc, char **argv)
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
-    getchar();
+    (void)getchar();
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);

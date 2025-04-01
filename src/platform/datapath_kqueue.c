@@ -1602,7 +1602,7 @@ CxPlatRecvDataReturn(
         RecvDataChain = RecvDataChain->Next;
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_IO_BLOCK, RecvPacket);
-        CxPlatPoolFree(IoBlock->OwningPool, IoBlock);
+        CxPlatPoolFree(IoBlock);
     }
 }
 
@@ -1641,16 +1641,11 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->Owner;
-    CXPLAT_POOL* BufferPool =
-        SendData->SegmentSize > 0 ?
-            &DatapathPartition->LargeSendBufferPool : &DatapathPartition->SendBufferPool;
-
     for (size_t i = 0; i < SendData->BufferCount; ++i) {
-        CxPlatPoolFree(BufferPool, SendData->Buffers[i].Buffer);
+        CxPlatPoolFree(SendData->Buffers[i].Buffer);
     }
 
-    CxPlatPoolFree(&DatapathPartition->SendDataPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 static
@@ -1835,7 +1830,6 @@ CxPlatSendDataFreeBuffer(
     //
     // This must be the final send buffer; intermediate buffers cannot be freed.
     //
-    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->Owner;
 #ifdef DEBUG
     uint8_t* TailBuffer = SendData->Buffers[SendData->BufferCount - 1].Buffer;
 #endif
@@ -1845,7 +1839,7 @@ CxPlatSendDataFreeBuffer(
         CXPLAT_DBG_ASSERT(Buffer->Buffer == (uint8_t*)TailBuffer);
 #endif
 
-        CxPlatPoolFree(&DatapathPartition->SendBufferPool, Buffer->Buffer);
+        CxPlatPoolFree(Buffer->Buffer);
         --SendData->BufferCount;
     } else {
 #ifdef DEBUG
@@ -1854,7 +1848,7 @@ CxPlatSendDataFreeBuffer(
 #endif
 
         if (SendData->Buffers[SendData->BufferCount - 1].Length == 0) {
-            CxPlatPoolFree(&DatapathPartition->LargeSendBufferPool, Buffer->Buffer);
+            CxPlatPoolFree(Buffer->Buffer);
             --SendData->BufferCount;
         }
 
@@ -2106,9 +2100,11 @@ CxPlatSocketSend(
 
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_ROUTE* Route
     )
 {
+    UNREFERENCED_PARAMETER(Route);
     CXPLAT_DBG_ASSERT(Socket != NULL);
     return Socket->Mtu;
 }
@@ -2176,4 +2172,27 @@ CxPlatUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(InterfaceIndex);
+    UNREFERENCED_PARAMETER(RssConfig);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(RssConfig);
+    CXPLAT_FRE_ASSERTMSG(FALSE, "CxPlatDataPathRssConfigFree not supported");
 }

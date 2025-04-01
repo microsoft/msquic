@@ -37,7 +37,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
@@ -219,9 +219,7 @@ QuicBindingUninitialize(
             &StatelessCtx->TableEntry,
             NULL);
         CXPLAT_DBG_ASSERT(StatelessCtx->IsProcessed);
-        CxPlatPoolFree(
-            &StatelessCtx->Worker->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
     CXPLAT_DBG_ASSERT(Binding->StatelessOperCount == 0);
     CXPLAT_DBG_ASSERT(Binding->StatelessOperTable.NumEntries == 0);
@@ -669,9 +667,7 @@ QuicBindingCreateStatelessOperation(
         // If it's also processed, free it.
         //
         if (OldStatelessCtx->IsProcessed) {
-            CxPlatPoolFree(
-                &OldStatelessCtx->Worker->StatelessContextPool,
-                OldStatelessCtx);
+            CxPlatPoolFree(OldStatelessCtx);
         }
     }
 
@@ -706,7 +702,7 @@ QuicBindingCreateStatelessOperation(
     //
 
     StatelessCtx =
-        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&Worker->StatelessContextPool);
+        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&QuicLibraryGetPerProc()->StatelessContextPool);
     if (StatelessCtx == NULL) {
         QuicPacketLogDrop(Binding, Packet, "Alloc failure for stateless oper ctx");
         goto Exit;
@@ -766,7 +762,7 @@ QuicBindingQueueStatelessOperation(
         return FALSE;
     }
 
-    QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
+    QUIC_OPERATION* Oper = QuicOperationAlloc(OperType);
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1090,9 +1086,7 @@ QuicBindingReleaseStatelessOperation(
     }
 
     if (FreeCtx) {
-        CxPlatPoolFree(
-            &StatelessCtx->Worker->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
 }
 
@@ -1274,6 +1268,7 @@ QuicBindingCreateConnection(
             MsQuicLib.StatelessRegistration,
             Worker,
             Packet,
+            &Packet->PartitionIndex,
             &NewConnection);
     if (QUIC_FAILED(Status)) {
         QuicPacketLogDrop(Binding, Packet, "Failed to initialize new connection");

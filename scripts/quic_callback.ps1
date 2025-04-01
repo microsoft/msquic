@@ -109,28 +109,14 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
-} elseif ($Command.Contains("Start_Server_CPU_Tracing")) {
-    if ($IsWindows) {
-        Write-Host "Starting CPU tracing with WPR on windows!"
-        wpr -start CPU
-    } else {
-        Write-Host "Preprending the command with 'perf record' to start CPU tracing on linux!"
-        $filename = $Command.Split(";")[1]
-        $write_this_string_to_disk = "perf record -o server-cpu-traces-$filename -- "
-        # now write the string to disk
-        Set-Content -Path "perf_command.txt" -Value $write_this_string_to_disk
-        ls
-    }
-} elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
-    if ($IsWindows) {
-        Write-Host "Stopping CPU tracing with WPR on windows!"
-        $filename = $Command.Split(";")[1]
-        wpr -stop "server-cpu-traces-$filename"
-    } else {
-        Write-Host "Nothing to do on Linux. 'perf' should have stopped recording."
-        Write-Host "Listing directory: "
-        ls
-    }
+} elseif ($Command.Contains("Start_Server_Msquic_Logging")) {
+    $LogProfile = $Command.Split(";")[1]
+    .\scripts\log.ps1 -Start -Profile $LogProfile
+} elseif ($Command.Contains("Stop_Server_Msquic_Logging")) {
+    $artifactName = $Command.Split(";")[1]
+    # if artifacts don't exist, make it
+    New-Item -ItemType Directory "artifacts/logs/$artifactName/server" -ErrorAction Ignore | Out-Null
+    .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
 } else {
     throw "Invalid command: $Command"
 }

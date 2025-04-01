@@ -125,14 +125,14 @@ RawSocketCreateUdp(
 
     if (Config->RemoteAddress) {
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
-        if (Socket->UseTcp) {
+        if (Socket->ReserveAuxTcpSock) {
             Socket->RemoteAddress = *Config->RemoteAddress;
         }
         Socket->Connected = TRUE;
     }
 
     if (Config->LocalAddress) {
-        if (Socket->UseTcp) {
+        if (Socket->ReserveAuxTcpSock) {
             Socket->LocalAddress = *Config->LocalAddress;
         }
         if (QuicAddrIsWildCard(Config->LocalAddress)) {
@@ -145,7 +145,7 @@ RawSocketCreateUdp(
             goto Error;
         }
     } else {
-        if (Socket->UseTcp) {
+        if (Socket->ReserveAuxTcpSock) {
             QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
         }
         if (!Socket->Connected) {
@@ -218,7 +218,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatRouteResolutionWorkerThread, Context)
                     Operation->Context, Operation->IpnetRow.PhysicalAddress, Operation->PathId, TRUE);
             }
 
-            CxPlatPoolFree(&Worker->OperationPool, Operation);
+            CxPlatPoolFree(Operation);
         }
     }
 

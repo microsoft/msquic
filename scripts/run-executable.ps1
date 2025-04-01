@@ -150,7 +150,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
-$CoverageName = "$(Split-Path $Path -LeafBase).cov"
+$CoverageName = "$(Split-Path $Path -LeafBase).$([guid]::NewGuid()).cov"
 
 $ExeLogFolder = $ExeName
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
