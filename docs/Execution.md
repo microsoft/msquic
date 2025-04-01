@@ -33,7 +33,7 @@ QUIC_STATUS
     );
 ```
 
-The application must register a callback handler for every MsQuic object it creates. This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MSQuic that further processing is required.
+The application must register a callback handler for every MsQuic object it creates. This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MsQuic that further processing is required.
 
 This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
@@ -61,8 +61,8 @@ This does not imply that the application needs separate threads to perform all o
 Many operations are designed to be most efficient when executed within the callback.
 For example, closing a handle to a connection or stream is ideally done during the "shutdown complete" event notification callback.
 
-Some callbacks necessitate the application to call MsQuic API in return, which can be a source of deadlocks.
-MsQuic design ensures that MsQuic API (down) calls made from a callback thread always occur inline (thus avoiding deadlocks) and will take precedence over any calls in progress or queued from a separate thread.
+Some callbacks necessitate the application to call MsQuic API in return. Such cyclic call patterns could lead to deadlocks in a generic implementation, but not so in MsQuic.
+Special attention has been paid to ensure that MsQuic API (down) calls made from a callback thread always occur inline (thus avoiding deadlocks) and will take precedence over any calls in progress or queued from a separate thread.
 By default, MsQuic will **never** invoke a recursive callback to the application in these cases. The only exception to this rule is if the application opts in via the `QUIC_STREAM_SHUTDOWN_FLAG_INLINE` flag when calling `StreamShudown` on a callback.
 
 ## Threading
@@ -111,3 +111,12 @@ graph TD
         end
     end
 ```
+
+# See Also
+
+[QUIC_STREAM_CALLBACK](api/QUIC_STREAM_CALLBACK.md)<br>
+[QUIC_STREAM_EVENT](api/QUIC_STREAM_EVENT.md)<br>
+[QUIC_CONNECTION_CALLBACK](api/QUIC_CONNECTION_CALLBACK.md)<br>
+[QUIC_CONNECTION_EVENT](api/QUIC_CONNECTION_EVENT.md)<br>
+[QUIC_LISTENER_CALLBACK](api/QUIC_LISTENER_CALLBACK.md)<br>
+[QUIC_LISTENER_EVENT](api/QUIC_LISTENER_EVENT.md)<br>

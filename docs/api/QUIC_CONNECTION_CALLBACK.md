@@ -21,7 +21,7 @@ QUIC_STATUS
 
 `Connection`
 
-The valid handle to the connection object this event handler is for.
+The valid handle to the connection object this event is for.
 
 `Context`
 

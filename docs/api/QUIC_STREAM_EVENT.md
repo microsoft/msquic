@@ -117,10 +117,12 @@ Absolute offset of the current data payload from the start of the receive operat
 
 MsQuic indicates the total buffer length of the data in this parameter.
 
-If the application can processes only part of the received buffer synchronously in this call, it can be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
-If the application desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from this call.
-
 See [Receiving Data On Streams](../Streams.md#Receiving) for further details on receiving data on a stream.
+
+Most notably, if the application...
+ - processes all the received data synchronously in this call, this parameter must be left unchanged and  `QUIC_STATUS_SUCCESS` must be returned from this call.
+ - can processes only part of the received buffer synchronously in this call, it should be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
+ - desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from this call.
 
 `Buffers`
 
@@ -144,6 +146,11 @@ Value | Meaning
 
 Indicates that MsQuic has completed a [StreamSend](StreamSend.md) operation initated by the application.
 
+This is an important event in the asynchronous process of sending data over a stream.
+More info here:
+- [Send Buffering](../Streams.md#Send_Buffering)
+- [QUIC_BUFFER Handling Note](StreamSend.md#Remarks)
+
 ### SEND_COMPLETE
 
 Data for `StreamSend` completion is included in this struct/union.
@@ -156,7 +163,7 @@ Client context to match this event with the original `StreamSend` operation.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
 
-Indicates that the current send operation to the peer on this stream has been shutdown/completed.
+Indicates that the current send operation from the peer on this stream has been completed/shutdown.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_ABORTED
 
@@ -244,7 +251,7 @@ This event is raised when a peer has provided sufficient flow control to accept 
 
 ## QUIC_STREAM_EVENT_CANCEL_ON_LOSS
 
-This event is raised when a stream is shutdown due to packet loss
+This event is raised when a stream is shutdown due to packet loss. See [Cancel on Loss](../Streams.md#Cancel_On_Loss) for further details.
 
 ### CANCEL_ON_LOSS
 

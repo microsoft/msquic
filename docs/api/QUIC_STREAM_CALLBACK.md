@@ -21,7 +21,7 @@ QUIC_STATUS
 
 `Stream`
 
-The valid handle to the stream object this event handler is for.
+The valid handle to the stream object this event is for.
 
 `Context`
 
