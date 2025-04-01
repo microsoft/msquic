@@ -17,7 +17,7 @@ protocol. It is cross-platform, written in C and designed to be a general purpos
 
 > [!TIP]
 > You are using MsQuic? Let us know! Knowing our users lets us prioritize work and keep improving MsQuic in the best possible direction.
-> Start a [Discussion](https://github.com/microsoft/msquic/discussions) to say hello, or give us a wave on [Discord](https://discord.gg/YGAtCwTSsc)!
+> Post in the [Discussion](https://github.com/microsoft/msquic/discussions/4963) to say hello and give us a wave on [Discord](https://discord.gg/YGAtCwTSsc)!
 
 ## Protocol Features
 
