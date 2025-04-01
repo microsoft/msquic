@@ -33,8 +33,15 @@ For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_ST
 # Sending
 
 An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API to send data.
-MsQuic holds on to any buffers queued via [StreamSend](api/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event:
-the app must not free, reuse or otherwise access the buffers provided through [StreamSend](api/StreamSend.md) before the matching completion notification.
+
+MsQuic takes ownership of any buffers successfully queued via [StreamSend](api/StreamSend.md). Buffer ownership is
+returned to the application via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event. The application must not free, reuse or
+otherwise access a buffer provided to [StreamSend](api/StreamSend.md) until the matching
+`QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+
+![Note]
+> `QUIC_STREAM_EVENT_SEND_COMPLETE` does not mean the data has been received by the peer, or even the it has been put on
+> the wire - only that MsQuic no longer needs the app send buffer.
 
 ## Send Buffering
 
@@ -59,7 +66,7 @@ To disable internal send buffering and use the second mode, the app must set `Se
 
 The send direction can be shut down in three different ways:
 
-- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](api/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.
+- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](api/StreamSend.md) call. In this scenario all data will first be delivered to the peer, then the peer is informed the stream has been gracefully shut down.
 
 - **Sender Abort** - The sender can abortively shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
 
@@ -186,3 +193,19 @@ MsQuic does not enforce it, and it is legal for an application to provide less b
 
 After the initial receive window is full, flow control will ensure that the peer does not send more data than there is buffer space available.
 However, the application should still provide enough buffer space to keep flow control from impacting performances.
+
+## Receive Shutdown
+
+The receiver can abortively shutdown a stream receive direction by calling [`StreamShutdown`](api/StreamShutdown.md) 
+with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE` option.
+
+# Closing a Stream
+
+Once all the directions relevant for a stream have been shutdown, the application receives a
+`QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
+
+The application must then close the stream using [`StreamClose`](api/StreamClose.md), and can release its notification
+handling context.
+
+Closing a stream before the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` is only allowed if the stream was not started yet.
+Otherwise, it will result in the connection being closed abortively.
