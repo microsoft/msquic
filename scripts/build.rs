@@ -42,10 +42,12 @@ fn cmake_build() {
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
 
     // By default enable schannel on windows, unless quictls feature is selected.
-    if cfg!(windows) && !cfg!(feature = "quictls") {
+    if cfg!(windows) && (!cfg!(feature = "quictls") || !cfg!(feature = "openssl")) {
         config.define("QUIC_TLS", "schannel");
-    } else {
+    } else if cfg!(feature = "quictls") {
         config.define("QUIC_TLS", "quictls");
+    } else {
+        config.define("QUIC_TLS", "openssl");
     }
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");

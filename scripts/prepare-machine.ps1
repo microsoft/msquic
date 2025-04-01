@@ -502,6 +502,11 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule init $RootDir/submodules/quictls3
     }
 
+    if ($Tls -eq "openssl") {
+        Write-Host "Initializing openssl submodule"
+        git submodule init $RootDir/submodules/openssl
+    }
+
     if (!$DisableTest) {
         Write-Host "Initializing googletest submodule"
         git submodule init $RootDir/submodules/googletest
