@@ -117,12 +117,9 @@ Absolute offset of the current data payload from the start of the receive operat
 
 MsQuic indicates the total buffer length of the data in this parameter.
 
-See [Receiving Data On Streams](../Streams.md#Receiving) for further details on receiving data on a stream.
+Receiving data goes beyond handling of this stream event callback. See [Receiving Data On Streams](../Streams.md#Receiving) for the various different approaches to receiving data on a stream.
 
-Most notably, if the application...
- - processes all the received data synchronously in this call, this parameter must be left unchanged and  `QUIC_STATUS_SUCCESS` must be returned from this call.
- - can processes only part of the received buffer synchronously in this call, it should be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
- - desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from this call.
+Upon successful handling of this event, the event handler should return one of `QUIC_STATUS_SUCCESS` or `QUIC_STATUS_CONTINUE` or `QUIC_STATUS_PENDING` to the MsQuic library, depending on the chosen approach to handling the received data.
 
 `Buffers`
 
@@ -163,7 +160,7 @@ Client context to match this event with the original `StreamSend` operation.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN
 
-Indicates that the current send operation from the peer on this stream has been completed/shutdown.
+Indicates that the send direction of the stream **from the peer** has been shutdown and no further data is expected to be received on this stream.
 
 ## QUIC_STREAM_EVENT_PEER_SEND_ABORTED
 
@@ -191,7 +188,7 @@ Application's protocol specific, 62-bit error code.
 
 ## QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE
 
-This event is raised when a stream send direction has been fully shut down.
+This event is raised when the send direction of the stream **to the peer** has been shutdown and no further data can be sent on this stream.
 
 ### SEND_SHUTDOWN_COMPLETE
 

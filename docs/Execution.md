@@ -8,7 +8,7 @@ The sections below detail the designs MsQuic uses and the reasons behind these c
 
 MsQuic [Object Model](./API.md#object-model) describes the hierarchy of MsQuic objects.
 
-MsQuic API delivers all state changes and notifications for a specific MsQuic object directly to the corresponding callback handler registered by the application. These include connection state changes, new streams being created, stream data being received, and stream sends completing, among others.
+The MsQuic API delivers all state changes and notifications for a specific MsQuic object directly to the corresponding callback handler registered by the application. These include connection state changes, new streams being created, stream data being received, and stream sends completing, among others.
 
 Example definition of Listener object callback API:
 
