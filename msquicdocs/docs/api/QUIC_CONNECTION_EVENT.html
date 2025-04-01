@@ -87,8 +87,28 @@
         <article data-uid="">
 <h1 id="quic_connection_event-structure">QUIC_CONNECTION_EVENT structure</h1>
 
-<p>The payload for QUIC connection events.</p>
+<p>QUIC connection events and the corresponding payload</p>
 <h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef enum QUIC_CONNECTION_EVENT_TYPE {
+    QUIC_CONNECTION_EVENT_CONNECTED                         = 0,
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT   = 1,    // The transport started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER        = 2,    // The peer application started the shutdown process.
+    QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE                 = 3,    // Ready for the handle to be closed.
+    QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED             = 4,
+    QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED              = 5,
+    QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED               = 6,
+    QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE                 = 7,
+    QUIC_CONNECTION_EVENT_PEER_NEEDS_STREAMS                = 8,
+    QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED           = 9,
+    QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED            = 10,
+    QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED                 = 11,
+    QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED       = 12,
+    QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
+    QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
+    QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+} QUIC_CONNECTION_EVENT_TYPE;
+</code></pre>
+<p>The payload for QUIC connection events.</p>
 <pre><code class="lang-C">typedef struct QUIC_CONNECTION_EVENT {
     QUIC_CONNECTION_EVENT_TYPE Type;
     union {
@@ -164,7 +184,9 @@
 <p>The <code>QUIC_CONNECTION_EVENT_TYPE</code> that indicates which type of event this is, and which payload to reference (if any) for additional information.</p>
 <h1 id="remarks">Remarks</h1>
 <h2 id="quic_connection_event_connected">QUIC_CONNECTION_EVENT_CONNECTED</h2>
-<p>This event is delivered when the handshake has completed. This means the peer has been securely authenticated. This happens after one full round trip on the client side. The server side considers the handshake complete once the client responds after this. Additional state can be found in the <code>CONNECTED</code> struct/union.</p>
+<p>This event is delivered when the handshake has completed. This means the peer has been securely authenticated. This happens after one full round trip on the client side. The server side considers the handshake complete once the client responds after this.</p>
+<h3 id="connected">Connected</h3>
+<p>Additional state can be found in the <code>CONNECTED</code> struct/union.</p>
 <p><code>SessionResumed</code></p>
 <p>A flag that indicates if a previous TLS session was successfully resumed.</p>
 <p><code>NegotiatedAlpnLength</code></p>
@@ -174,21 +196,27 @@
 <h2 id="quic_connection_event_shutdown_initiated_by_transport">QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT</h2>
 <p>This event is delivered whenever the transport (e.g. QUIC layer) determines the connection has been terminated. This can happen for a number of different reasons. Some are as follows.</p>
 <ul>
-<li>The handshake fails (any number of reasons).</li>
-<li>The connection is idle for long enough.</li>
-<li>The connection disconnects (loses contact with peer; no acknowledgments).</li>
-<li>The connection encounters a protocol violation.</li>
+<li>The handshake failed (any number of reasons).</li>
+<li>The connection was idle for long enough.</li>
+<li>The connection disconnected (lost contact with peer; no acknowledgments).</li>
+<li>The connection encountered a protocol violation.</li>
 </ul>
+<h3 id="shutdown_initiated_by_transport">SHUTDOWN_INITIATED_BY_TRANSPORT</h3>
+<p>Additional status can be found in the <code>SHUTDOWN_INITIATED_BY_TRANSPORT</code> struct/union.</p>
 <p><code>Status</code></p>
 <p>The platform status code that indicates the reason for the shutdown.</p>
 <p><code>ErrorCode</code></p>
 <p>The wire format error code that indicates the reason for the shutdown.</p>
 <h2 id="quic_connection_event_shutdown_initiated_by_peer">QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER</h2>
 <p>This event is delivered when the peer application has terminated the application, with an application's protocol specific, 62-bit error code.</p>
+<h3 id="shutdown_initiated_by_peer">SHUTDOWN_INITIATED_BY_PEER</h3>
+<p>Error code is found in the <code>SHUTDOWN_INITIATED_BY_PEER</code> struct/union.</p>
 <p><code>ErrorCode</code></p>
 <p>The error code received from the peer for the shutdown.</p>
 <h2 id="quic_connection_event_shutdown_complete">QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE</h2>
 <p>This event is the last one delivered to the application, and indicates the connection may now be safely closed.</p>
+<h3 id="shutdown_complete">SHUTDOWN_COMPLETE</h3>
+<p>Various state flags are contained in the <code>SHUTDOWN_COMPLETE</code> struct/union.</p>
 <p><code>HandshakeCompleted</code></p>
 <p>A flag indicating if the QUIC handshake completed before the connection was shutdown.</p>
 <p><code>PeerAcknowledgedShutdown</code></p>
@@ -197,14 +225,20 @@
 <p>A flag indicating that the application called <a href="ConnectionClose.html">ConnectionClose</a> on this connection.</p>
 <h2 id="quic_connection_event_local_address_changed">QUIC_CONNECTION_EVENT_LOCAL_ADDRESS_CHANGED</h2>
 <p>This event is delivered when the local address used for the primary/active path communication has changed.</p>
+<h3 id="local_address_changed">LOCAL_ADDRESS_CHANGED</h3>
+<p>New local address is passed in the <code>LOCAL_ADDRESS_CHANGED</code> struct/union.</p>
 <p><code>Address</code></p>
 <p>The new local IP address.</p>
 <h2 id="quic_connection_event_peer_address_changed">QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED</h2>
 <p>This event is delivered when the remote address used for the primary/active path communication has changed.</p>
+<h3 id="peer_address_changed">PEER_ADDRESS_CHANGED</h3>
+<p>New peer ip address is passed in the <code>PEER_ADDRESS_CHANGED</code> struct/union.</p>
 <p><code>Address</code></p>
 <p>The new peer IP address.</p>
 <h2 id="quic_connection_event_peer_stream_started">QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</h2>
 <p>This event is delivered when the peer has created a new stream.</p>
+<h3 id="peer_stream_started">PEER_STREAM_STARTED</h3>
+<p>Details of the new stream are passed in the <code>PEER_STREAM_STARTED</code> struct/union.</p>
 <p><code>Stream</code></p>
 <p>A handle to the newly peer-created stream.</p>
 <p><code>Flags</code></p>
@@ -234,6 +268,8 @@
 <p>If a server wishes to use <code>QUIC_STREAM_OPEN_FLAG_DELAY_ID_FC_UPDATES</code> for the newly started stream, it may append this flag to <code>Flags</code> before it returns from the callback.</p>
 <h2 id="quic_connection_event_streams_available">QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE</h2>
 <p>This event indicates the number of streams the peer is willing to accept has changed.</p>
+<h3 id="streams_available">STREAMS_AVAILABLE</h3>
+<p>New stream counts are passed in the <code>STREAMS_AVAILABLE</code> struct/union.</p>
 <p><code>BidirectionalCount</code></p>
 <p>The number of bidirectional streams the peer is willing to accept.</p>
 <p><code>UnidirectionalCount</code></p>
@@ -242,16 +278,22 @@
 <p>This event indicates the peer is currently blocked on the number of parallel streams the app has configured it is willing to accept.</p>
 <h2 id="quic_connection_event_ideal_processor_changed">QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED</h2>
 <p>This event indicates the processor or CPU that MsQuic has determined would be the best for processing the given connection.</p>
+<h3 id="ideal_processor_changed">IDEAL_PROCESSOR_CHANGED</h3>
+<p>The new processor number is passed in the <code>IDEAL_PROCESSOR_CHANGED</code> struct/union.</p>
 <p><code>IdealProcessor</code></p>
 <p>The processor number that should be ideally used for processing the connection.</p>
 <h2 id="quic_connection_event_datagram_state_changed">QUIC_CONNECTION_EVENT_DATAGRAM_STATE_CHANGED</h2>
 <p>This event indicates the current state for sending unreliable datagrams has changed.</p>
+<h3 id="datagram_state_changed">DATAGRAM_STATE_CHANGED</h3>
+<p>New datagram state is passed in the <code>DATAGRAM_STATE_CHANGED</code> struct/union.</p>
 <p><code>SendEnabled</code></p>
 <p>A flag that indicates datagrams are allowed to be sent.</p>
 <p><code>MaxSendLength</code></p>
 <p>When enabled, indicates the maximum length of a single datagram that can fit in a packet.</p>
 <h2 id="quic_connection_event_datagram_received">QUIC_CONNECTION_EVENT_DATAGRAM_RECEIVED</h2>
 <p>This event indicates a received unreliable datagram from the peer.</p>
+<h3 id="datagram_received">DATAGRAM_RECEIVED</h3>
+<p>Unreliable datagram buffer and metadata are passed in the <code>DATAGRAM_RECEIVED</code> struct/union.</p>
 <p><code>Buffer</code></p>
 <p>Contains a pointer to the received data along with the length of the data.</p>
 <p><code>Flags</code></p>
@@ -280,6 +322,8 @@
 </table>
 <h2 id="quic_connection_event_datagram_send_state_changed">QUIC_CONNECTION_EVENT_DATAGRAM_SEND_STATE_CHANGED</h2>
 <p>This event indicates a state change for a previous unreliable datagram send via <a href="DatagramSend.html">DatagramSend</a>.</p>
+<h3 id="send_state_changed">SEND_STATE_CHANGED</h3>
+<p>Unreliable datagram send state is passed in the <code>SEND_STATE_CHANGED</code> struct/union.</p>
 <p><code>ClientContext</code></p>
 <p>The context pointer passed into <a href="DatagramSend.html">DatagramSend</a> as <code>ClientSendContext</code>.</p>
 <p><code>State</code></p>
@@ -320,18 +364,24 @@
 </table>
 <h2 id="quic_connection_event_resumed">QUIC_CONNECTION_EVENT_RESUMED</h2>
 <p>This event indicates that a previous session has been successfully resumed at the TLS layer. This event is delivered for the server side only. The server app must indicate acceptance or rejection of the resumption ticket by returning a successful or failure status code from the event. If rejected by the server app, then resumption is rejected and a normal handshake will be performed.</p>
+<h3 id="resumed">RESUMED</h3>
+<p>Connection resumption state is passed in the <code>Resumed</code> struct/union.</p>
 <p><code>ResumptionStateLength</code></p>
 <p>The length of the <code>ResumptionState</code> buffer.</p>
 <p><code>ResumptionState</code></p>
 <p>The resumption ticket data previously sent to the client via <a href="ConnectionSendResumptionTicket.html">ConnectionSendResumptionTicket</a>.</p>
 <h2 id="quic_connection_event_resumption_ticket_received">QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED</h2>
-<p>This event indicates a TLS resumption ticket has been received from the server.</p>
+<p>This event indicates the client that a TLS resumption ticket has been received from the server.</p>
+<h3 id="resumption_ticket_received">RESUMPTION_TICKET_RECEIVED</h3>
+<p>Resumption ticket state is passed in the <code>RESUMPTION_TICKET_RECEIVED</code> struct/union.</p>
 <p><code>ResumptionTicketLength</code></p>
 <p>The length of the <code>ResumptionTicket</code> buffer.</p>
 <p><code>ResumptionTicket</code></p>
 <p>The resumption ticket data received from the server. For a client to later resume the session in a new connection, it must pass this data to the new connection via the <code>QUIC_PARAM_CONN_RESUMPTION_TICKET</code> parameter.</p>
 <h2 id="quic_connection_event_peer_certificate_received">QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED</h2>
 <p>This event indicates a certificate has been received from the peer.</p>
+<h3 id="peer_certificate_received">PEER_CERTIFICATE_RECEIVED</h3>
+<p>The peer certificate and related data is passed in the <code>PEER_CERTIFICATE_RECEIVED</code> struct/union.</p>
 <p><code>Certificate</code></p>
 <p>Pointer to a platform/TLS specific certificate. Valid only during the callback.</p>
 <p>If <code>QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES</code> was specified in the <a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a>, this will be a <code>QUIC_BUFFER</code> containing the DER (binary) encoded remote X.509 certificate.</p>

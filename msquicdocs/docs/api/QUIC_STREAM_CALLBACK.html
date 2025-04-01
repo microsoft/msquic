@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>QUIC_LISTENER_EVENT structure </title>
+      <title>QUIC_STREAM_CALLBACK function pointer signature </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="QUIC_LISTENER_EVENT structure ">
+      <meta name="title" content="QUIC_STREAM_CALLBACK function pointer signature ">
       
       
       <link rel="icon" href="../../favicon.ico">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_LISTENER_EVENT.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_STREAM_CALLBACK.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -85,64 +85,39 @@
         </div>
 
         <article data-uid="">
-<h1 id="quic_listener_event-structure">QUIC_LISTENER_EVENT structure</h1>
+<h1 id="quic_stream_callback-function-pointer-signature">QUIC_STREAM_CALLBACK function pointer signature</h1>
 
-<p>QUIC listener events and the corresponding payload</p>
+<p>Handles stream events.</p>
 <h1 id="syntax">Syntax</h1>
-<pre><code class="lang-C">typedef enum QUIC_LISTENER_EVENT_TYPE {
-    QUIC_LISTENER_EVENT_NEW_CONNECTION      = 0,
-    QUIC_LISTENER_EVENT_STOP_COMPLETE       = 1,
-    QUIC_LISTENER_EVENT_DOS_MODE_CHANGED    = 2,
-} QUIC_LISTENER_EVENT_TYPE;
-</code></pre>
-<p>The payload for QUIC listener events.</p>
-<pre><code class="lang-C">typedef struct QUIC_LISTENER_EVENT {
-    QUIC_LISTENER_EVENT_TYPE Type;
-    union {
-        struct {
-            const QUIC_NEW_CONNECTION_INFO* Info;
-            HQUIC Connection;
-            const uint8_t* NewNegotiatedAlpn;
-        } NEW_CONNECTION;
-        struct {
-            BOOLEAN AppCloseInProgress  : 1;
-            BOOLEAN RESERVED            : 7;
-        } STOP_COMPLETE;
-    };
-} QUIC_LISTENER_EVENT;
+<pre><code class="lang-C">typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_STREAM_CALLBACK)
+QUIC_STATUS
+(QUIC_API QUIC_STREAM_CALLBACK)(
+    _In_ HQUIC Stream,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    );
 </code></pre>
 <h1 id="parameters">Parameters</h1>
-<p><code>Type</code></p>
-<p>The <code>QUIC_LISTENER_EVENT_TYPE</code> that indicates which type of event this is, and which payload to reference (if any) for additional information.</p>
+<p><code>Stream</code></p>
+<p>The valid handle to the stream object this event is for.</p>
+<p><code>Context</code></p>
+<p>The application callback context (optionally) supplied in <a href="StreamOpen.html">StreamOpen</a>, <a href="SetCallbackHandler.html">SetCallbackHandler</a> or <a href="SetContext.html">SetContext</a>.</p>
+<p><code>Event</code></p>
+<p>A pointer to the <a href="QUIC_STREAM_EVENT.html">QUIC_STREAM_EVENT</a> payload.</p>
 <h1 id="remarks">Remarks</h1>
-<h2 id="quic_listener_event_new_connection">QUIC_LISTENER_EVENT_NEW_CONNECTION</h2>
-<p>This event is delivered when a new connection is received by the listener.</p>
-<h3 id="new_connection">NEW_CONNECTION</h3>
-<p>Details of the new connection are passed in the <code>NEW_CONNECTION</code> struct/union.</p>
-<p><code>Info</code></p>
-<p>This field indicates the <a href="QUIC_NEW_CONNECTION_INFO.html">QUIC_NEW_CONNECTION_INFO</a> structure for the new connection.</p>
-<p><code>Connection</code></p>
-<p>This field indicates the valid handle to the new incoming connection.</p>
-<h2 id="quic_listener_event_stop_complete">QUIC_LISTENER_EVENT_STOP_COMPLETE</h2>
-<p>This event is delivered when server app wants to stop receiving new incoming connections.</p>
-<h3 id="stop_complete">STOP_COMPLETE</h3>
-<p>Details of the listener stopping are indicated in <code>STOP_COMPLETE</code> struct/union.</p>
-<p><code>AppCloseInProgress</code></p>
-<p>This flag indicates the server has called <a href="ListenerClose.html">ListenerClose</a>.</p>
-<p><code>RESERVED</code></p>
-<p>This field reserved for future use. Do not use.</p>
+<p>This is the signature of the function that handles callbacks from MsQuic for stream events. Apps are expected to keep any execution time in the callback <strong>to a minimum</strong>.</p>
 <h1 id="see-also">See Also</h1>
-<p><a href="ListenerOpen.html">ListenerOpen</a><br>
-<a href="ListenerStop.html">ListenerStop</a><br>
-<a href="QUIC_LISTENER_CALLBACK.html">QUIC_LISTENER_CALLBACK</a><br>
-<a href="QUIC_NEW_CONNECTION_INFO.html">QUIC_NEW_CONNECTION_INFO</a><br>
+<p><a href="StreamOpen.html">StreamOpen</a><br>
+<a href="QUIC_STREAM_EVENT.html">QUIC_STREAM_EVENT</a><br>
 <a href="SetCallbackHandler.html">SetCallbackHandler</a><br>
 <a href="SetContext.html">SetContext</a><br></p>
 
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_LISTENER_EVENT.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_STREAM_CALLBACK.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>

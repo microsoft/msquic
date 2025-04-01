@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_STREAM_EVENT structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_STREAM_EVENT structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_STREAM_EVENT.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_stream_event-structure">QUIC_STREAM_EVENT structure</h1>
+
+<p>QUIC stream events and the corresponding payload</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef enum QUIC_STREAM_EVENT_TYPE {
+    QUIC_STREAM_EVENT_START_COMPLETE            = 0,
+    QUIC_STREAM_EVENT_RECEIVE                   = 1,
+    QUIC_STREAM_EVENT_SEND_COMPLETE             = 2,
+    QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN        = 3,
+    QUIC_STREAM_EVENT_PEER_SEND_ABORTED         = 4,
+    QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED      = 5,
+    QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE    = 6,
+    QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
+    QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
+    QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
+    QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
+} QUIC_STREAM_EVENT_TYPE;
+</code></pre>
+<p>The payload for QUIC stream events.</p>
+<pre><code class="lang-C">typedef struct QUIC_STREAM_EVENT {
+    QUIC_STREAM_EVENT_TYPE Type;
+    union {
+        struct {
+            QUIC_STATUS Status;
+            QUIC_UINT62 ID;
+            BOOLEAN PeerAccepted : 1;
+            BOOLEAN RESERVED : 7;
+        } START_COMPLETE;
+        struct {
+            /* in */    uint64_t AbsoluteOffset;
+            /* inout */ uint64_t TotalBufferLength;
+            _Field_size_(BufferCount)
+            /* in */    const QUIC_BUFFER* Buffers;
+            _Field_range_(0, UINT32_MAX)
+            /* in */    uint32_t BufferCount;
+            /* in */    QUIC_RECEIVE_FLAGS Flags;
+        } RECEIVE;
+        struct {
+            BOOLEAN Canceled;
+            void* ClientContext;
+        } SEND_COMPLETE;
+        struct {
+            QUIC_UINT62 ErrorCode;
+        } PEER_SEND_ABORTED;
+        struct {
+            QUIC_UINT62 ErrorCode;
+        } PEER_RECEIVE_ABORTED;
+        struct {
+            BOOLEAN Graceful;
+        } SEND_SHUTDOWN_COMPLETE;
+        struct {
+            BOOLEAN ConnectionShutdown;
+            BOOLEAN AppCloseInProgress       : 1;
+            BOOLEAN ConnectionShutdownByApp  : 1;
+            BOOLEAN ConnectionClosedRemotely : 1;
+            BOOLEAN RESERVED                 : 5;
+            QUIC_UINT62 ConnectionErrorCode;
+            QUIC_STATUS ConnectionCloseStatus;
+        } SHUTDOWN_COMPLETE;
+        struct {
+            uint64_t ByteCount;
+        } IDEAL_SEND_BUFFER_SIZE;
+        struct {
+            /* out */ QUIC_UINT62 ErrorCode;
+        } CANCEL_ON_LOSS;
+    };
+} QUIC_STREAM_EVENT;
+</code></pre>
+<h1 id="parameters">Parameters</h1>
+<p><code>Type</code></p>
+<p>The <code>QUIC_STREAM_EVENT_TYPE</code> that indicates which type of event this is, and which payload to reference (if any) for additional information.</p>
+<h1 id="remarks">Remarks</h1>
+<h2 id="quic_stream_event_start_complete">QUIC_STREAM_EVENT_START_COMPLETE</h2>
+<p>This event is delivered when the <a href="streamStart.md">StreamStart</a> operation completes. The accompanying payload contains data to indicate whether the operation succeeded or failed.</p>
+<h3 id="start_complete">START_COMPLETE</h3>
+<p>Additional state from the <code>StreamStart</code> operation is included in this payload struct/union.</p>
+<p><code>Status</code></p>
+<p>QUIC_STATUS value to indicate the operation completion code. Check for success using the QUIC_SUCCEEDED macro.</p>
+<p><code>ID</code></p>
+<p>Stream ID if available.</p>
+<p><code>PeerAccepted</code></p>
+<p>If TRUE, the peer has accepted the stream.</p>
+<h2 id="quic_stream_event_receive">QUIC_STREAM_EVENT_RECEIVE</h2>
+<p>Data received on an open stream is primarily delivered to the application through this event.</p>
+<h3 id="receive">RECEIVE</h3>
+<p>Received data on the stream is passed in this struct/union.</p>
+<p><code>AbsoluteOffset</code></p>
+<p>Absolute offset of the current data payload from the start of the receive operation.</p>
+<p><code>TotalBufferLength</code></p>
+<p>MsQuic indicates the total buffer length of the data in this parameter.</p>
+<p>Receiving data goes beyond handling of this stream event callback. See <a href="../Streams.html#Receiving">Receiving Data On Streams</a> for the various different approaches to receiving data on a stream.</p>
+<p>Upon successful handling of this event, the event handler should return one of <code>QUIC_STATUS_SUCCESS</code> or <code>QUIC_STATUS_CONTINUE</code> or <code>QUIC_STATUS_PENDING</code> to the MsQuic library, depending on the chosen approach to handling the received data.</p>
+<p><code>Buffers</code></p>
+<p>An array of <code>QUIC_BUFFER</code>s containing received data.</p>
+<p><code>BufferCount</code></p>
+<p>Count of <code>QUIC_BUFFER</code>s in this payload.</p>
+<p><code>Flags</code></p>
+<p>A set of flags indicating describing the received data:</p>
+<table>
+<thead>
+<tr>
+<th>Value</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_NONE</strong><br>0</td>
+<td>No special behavior.</td>
+</tr>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_0_RTT</strong><br>1</td>
+<td>The data was received in 0-RTT.</td>
+</tr>
+<tr>
+<td><strong>QUIC_RECEIVE_FLAG_FIN</strong><br>2</td>
+<td>FIN was included with this data. Used only for streamed data.</td>
+</tr>
+</tbody>
+</table>
+<h2 id="quic_stream_event_send_complete">QUIC_STREAM_EVENT_SEND_COMPLETE</h2>
+<p>Indicates that MsQuic has completed a <a href="StreamSend.html">StreamSend</a> operation initated by the application.</p>
+<p>This is an important event in the asynchronous process of sending data over a stream.
+More info here:</p>
+<ul>
+<li><a href="../Streams.html#Send_Buffering">Send Buffering</a></li>
+<li><a href="StreamSend.html#Remarks">QUIC_BUFFER Handling Note</a></li>
+</ul>
+<h3 id="send_complete">SEND_COMPLETE</h3>
+<p>Data for <code>StreamSend</code> completion is included in this struct/union.</p>
+<p><code>Canceled</code>
+Indicates that the StreamSend operation was canceled.</p>
+<p><code>ClientContext</code>
+Client context to match this event with the original <code>StreamSend</code> operation.</p>
+<h2 id="quic_stream_event_peer_send_shutdown">QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN</h2>
+<p>Indicates that the send direction of the stream <strong>from the peer</strong> has been shutdown and no further data is expected to be received on this stream.</p>
+<h2 id="quic_stream_event_peer_send_aborted">QUIC_STREAM_EVENT_PEER_SEND_ABORTED</h2>
+<p>Indicates that the peer has aborted <code>StreamSend</code> operation.</p>
+<h3 id="send_aborted">SEND_ABORTED</h3>
+<p>Additional details of the send abort event are passed in this struct/union.</p>
+<p><code>ErrorCode</code></p>
+<p>Application's protocol specific, 62-bit error code.</p>
+<h2 id="quic_stream_event_peer_receive_aborted">QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED</h2>
+<p>Indicates that the peer has aborted receiving data.</p>
+<h3 id="receive_aborted">RECEIVE_ABORTED</h3>
+<p>Additional details of the receive abort event are passed in this struct/union.</p>
+<p><code>ErrorCode</code></p>
+<p>Application's protocol specific, 62-bit error code.</p>
+<h2 id="quic_stream_event_send_shutdown_complete">QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE</h2>
+<p>This event is raised when the send direction of the stream <strong>to the peer</strong> has been shutdown and no further data can be sent on this stream.</p>
+<h3 id="send_shutdown_complete">SEND_SHUTDOWN_COMPLETE</h3>
+<p>Additional details of send shutdown completion are passed in this struct/union.</p>
+<p><code>Graceful</code></p>
+<p>TRUE if the send shutdown operation was gracefully shutdown, FALSE otherwise.</p>
+<h2 id="quic_stream_event_shutdown_complete">QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</h2>
+<p>This event indicates that the stream has been completely shutdown.</p>
+<h3 id="shutdown_complete">SHUTDOWN_COMPLETE</h3>
+<p>Additional details for the stream shutdown are passed in this struct/union.</p>
+<p><code>ConnectionShutdown</code></p>
+<p>If TRUE, the Connection corresponding to this stream has been closed locally or remotely.</p>
+<p><code>AppCloseInProgress</code></p>
+<p>If TRUE, the application is in the process of closing the stream.</p>
+<p><code>ConnectionShutdownByApp</code></p>
+<p>If TRUE, the application shutdown the Connection corresponding to this stream.</p>
+<p><code>ConnectionClosedRemotely</code></p>
+<p>If TRUE, the Connection corresponding to this stream has been closed remotely.</p>
+<p><code>ConnectionErrorCode</code></p>
+<p>62-bit Connection closure error code, if any.</p>
+<p><code>ConnectionCloseStatus</code></p>
+<p>QUIC_STATUS value of the connection close operation, if any.</p>
+<h2 id="quic_stream_event_ideal_send_buffer_size">QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE</h2>
+<p>MsQuic indicates the ideal send buffer size to the application through this event, so as not to idle the connection.</p>
+<h3 id="ideal_send_buffer_size">IDEAL_SEND_BUFFER_SIZE</h3>
+<p>Ideal send buffer size is indicated in this struct/union.</p>
+<p><code>ByteCount</code></p>
+<p>Ideal send buffer size in bytes for each <code>StreamSend</code> operation to avoid idling the connection.</p>
+<h2 id="quic_stream_event_peer_accepted">QUIC_STREAM_EVENT_PEER_ACCEPTED</h2>
+<p>This event is raised when a peer has provided sufficient flow control to accept a new stream. See <a href="StreamStart.html">StreamStart</a> for additional information.</p>
+<h2 id="quic_stream_event_cancel_on_loss">QUIC_STREAM_EVENT_CANCEL_ON_LOSS</h2>
+<p>This event is raised when a stream is shutdown due to packet loss. See <a href="../Streams.html#Cancel_On_Loss">Cancel on Loss</a> for further details.</p>
+<h3 id="cancel_on_loss">CANCEL_ON_LOSS</h3>
+<p>The application can supply an error code in this struct to be sent to the peer.</p>
+<p><code>ErrorCode</code></p>
+<p>The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a <code>QUIC_STREAM_EVENT_PEER_SEND_ABORTED</code> event on its stream object.</p>
+<h1 id="see-also">See Also</h1>
+<p><a href="../Streams.html">Streams</a><br>
+<a href="StreamOpen.html">StreamOpen</a><br>
+<a href="StreamStart.html">StreamStart</a><br>
+<a href="StreamSend.html">StreamSend</a><br>
+<a href="StreamShutdown.html">StreamShutdown</a><br>
+<a href="QUIC_STREAM_CALLBACK.html">QUIC_STREAM_CALLBACK</a><br>
+<a href="SetCallbackHandler.html">SetCallbackHandler</a><br>
+<a href="SetContext.html">SetContext</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_STREAM_EVENT.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

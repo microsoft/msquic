@@ -582,6 +582,26 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STREAM_CALLBACK.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STREAM_CALLBACK.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STREAM_EVENT.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STREAM_EVENT.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/RegistrationClose.md",
       "output": {
         ".html": {
