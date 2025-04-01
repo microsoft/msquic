@@ -37,6 +37,26 @@ include = [
     "/submodules/quictls/tools",
     "/submodules/quictls/util",
     "/submodules/quictls/VMS",
+    "/submodules/openssl/*.*",
+    "/submodules/openssl/apps",
+    "/submodules/openssl/CHANGES",
+    "/submodules/openssl/config",
+    "/submodules/openssl/Configure",
+    "/submodules/openssl/Configurations",
+    "/submodules/openssl/crypto",
+    "/submodules/openssl/engines",
+    "/submodules/openssl/external",
+    "/submodules/openssl/include",
+    "/submodules/openssl/ms",
+    "/submodules/openssl/os-dep",
+    "/submodules/openssl/ssl",
+    "/submodules/openssl/tools",
+    "/submodules/openssl/fuzz",
+    "/submodules/openssl/doc",
+    "/submodules/openssl/exporters",
+    "/submodules/openssl/providers",
+    "/submodules/openssl/util",
+    "/submodules/openssl/VMS",
     "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/**/*.rs",
@@ -62,6 +82,8 @@ src = [ "dep:cmake" ]
 find = []
 # Windows uses schannel, and linux uses quictls by default.
 # This feature enables quictls on windows, and has no effect on linux.
+# This feature enables openssl on windows, and has no effect on linux.
+openssl = []
 quictls = []
 static = []
 preview-api = []
