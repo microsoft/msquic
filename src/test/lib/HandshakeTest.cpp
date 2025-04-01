@@ -4104,7 +4104,7 @@ struct ServerMultiAcceptContext {
     uint32_t StartedConnectionCount;
     uint32_t MaxConnections;
     CxPlatEvent StartedEvent;
-    UniquePtr<TestConnection>* Connections;
+    MsQuicConfiguration* ServerConfiguration;
 
     _Function_class_(MsQuicListenerCallback)
     static
@@ -4122,16 +4122,17 @@ struct ServerMultiAcceptContext {
                 TEST_FAILURE("Too many connections started!");
                 return QUIC_STATUS_CONNECTION_REFUSED;
             }
-            This->Connections[NewCount - 1] =
-                UniquePtr<TestConnection>(new(std::nothrow)
-                    TestConnection(Event->NEW_CONNECTION.Connection));
-                // UniquePtr<MsQuicConnection>(new(std::nothrow)
-                    // MsQuicConnection(
-                    //     Event->NEW_CONNECTION.Connection,
-                    //     CleanUpManual,
-                    //     MsQuicConnection::NoOpCallback,
-                    //     nullptr));
-            if (This->StartedConnectionCount == This->MaxConnections) {
+            QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+            auto Connection = new(std::nothrow) MsQuicConnection(Event->NEW_CONNECTION.Connection, CleanUpAutoDelete, MsQuicConnection::NoOpCallback, nullptr);
+            if (Connection) {
+                if (!This->ServerConfiguration ||
+                        QUIC_FAILED(Status = MsQuic->ConnectionSetConfiguration(Connection->Handle, This->ServerConfiguration->Handle))) {
+                    TEST_FAILURE("ServerConfiguration is null or failed 0x%x", Status);
+                    Connection->Handle = nullptr;
+                    delete Connection;
+                }
+            }
+            if (NewCount == This->MaxConnections) {
                 This->StartedEvent.Set();
             }
         }
@@ -4140,6 +4141,7 @@ struct ServerMultiAcceptContext {
 };
 
 struct ConnectionPoolConnectionContext {
+    CxPlatEvent ConnectedEvent;
     uint16_t IdealProcessor;
     uint16_t PartitionIndex;
     bool Connected;
@@ -4149,6 +4151,7 @@ struct ConnectionPoolConnectionContext {
         switch (Event->Type) {
             case QUIC_CONNECTION_EVENT_CONNECTED:
                 This->Connected = true;
+                This->ConnectedEvent.Set();
                 break;
             case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
                 This->IdealProcessor = Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor;
@@ -4179,8 +4182,7 @@ QuicTestConnectionPoolCreate(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(1000);
-    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetIdleTimeoutMs(TestWaitTimeout);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
@@ -4191,16 +4193,9 @@ QuicTestConnectionPoolCreate(
     QuicAddr ServerAddr(QuicAddrFamily);
     if (XdpSupported) {
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
-    } else {
-        QuicAddrSetToLoopback(&ServerAddr.SockAddr);
     }
-    const uint16_t ServerPort = 4433;
-    ServerAddr.SetPort(ServerPort);
 
     {
-        UniquePtrArray<UniquePtr<TestConnection>> ServerConnections(new(std::nothrow) UniquePtr<TestConnection>[NumberOfConnections]);
-        TEST_NOT_EQUAL(nullptr, ServerConnections);
-
         UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
         TEST_NOT_EQUAL(nullptr, Connections);
 
@@ -4219,19 +4214,18 @@ QuicTestConnectionPoolCreate(
 
         ServerMultiAcceptContext ServerAcceptContext {};
         ServerAcceptContext.MaxConnections = NumberOfConnections;
-        ServerAcceptContext.Connections = ServerConnections.get();
         ServerAcceptContext.StartedConnectionCount = 0;
+        ServerAcceptContext.ServerConfiguration = &ServerConfiguration;
         MsQuicListener Listener(Registration, CleanUpManual, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         Listener.Context = &ServerAcceptContext;
 
         if (TestCibirSupport) {
-            uint8_t ServerCibirId[] = { 0 /* offset */, 9, 8, 7, 6 };
-            uint8_t ServerCibirIdLength = sizeof(CibirId);
-            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(ServerCibirId, ServerCibirIdLength));
+            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
         }
 
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
 
         {
             UniquePtrArray<uint8_t*> CibirIdPtrs(new(std::nothrow) uint8_t*[NumberOfConnections]);
@@ -4246,7 +4240,7 @@ QuicTestConnectionPoolCreate(
             if (XdpSupported) {
                 PoolConfig.ServerAddress = &ServerAddr.SockAddr;
             }
-            PoolConfig.ServerPort = ServerPort;
+            PoolConfig.ServerPort = ServerAddr.GetPort();
             PoolConfig.Context = (void**)ContextPtrs.get();
             PoolConfig.Family = QuicAddrFamily;
             PoolConfig.NumberOfConnections = NumberOfConnections;
@@ -4255,7 +4249,6 @@ QuicTestConnectionPoolCreate(
             if (TestCibirSupport) {
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
                     CxPlatCopyMemory(&(CibirIdBuffer[i * CibirIdLength]), CibirId, CibirIdLength);
-                    CibirIdBuffer[(i * CibirIdLength) + (CibirIdLength - 1)] += (uint8_t)i;
                     CibirIdPtrs[i] = &CibirIdBuffer[i * CibirIdLength];
                 }
                 PoolConfig.CibirIds = CibirIdPtrs.get();
@@ -4265,18 +4258,12 @@ QuicTestConnectionPoolCreate(
             QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, &(Connections.get()->Handle));
             if (XdpSupported) {
                 TEST_QUIC_SUCCEEDED(Status);
-                ServerAcceptContext.StartedEvent.WaitForever();
+                ServerAcceptContext.StartedEvent.WaitTimeout(TestWaitTimeout);
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
-                    //
-                    // Verify the server connections are connected. The client connections should also be connected too.
-                    //
-                    ServerConnections[i]->WaitForConnectionComplete();
-                    if (!ServerConnections[i]->GetIsConnected()) {
-                        TEST_FAILURE("Server connection %u failed to connect", i);
-                    }
                     //
                     // Verify the client connection is connected.
                     //
+                    Contexts[i].ConnectedEvent.WaitTimeout(TestWaitTimeout);
                     if (!Contexts[i].Connected) {
                         TEST_FAILURE("Client connection %u failed to connect", i);
                     }
