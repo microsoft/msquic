@@ -92,7 +92,7 @@ fn test_server_client() {
         .set_ServerResumptionLevel(crate::ServerResumptionLevel::ResumeAndZerortt)
         .set_PeerBidiStreamCount(1);
 
-    let config = Configuration::new(&reg, &alpn, Some(&settings)).unwrap();
+    let config = Configuration::open(&reg, &alpn, Some(&settings)).unwrap();
 
     let cred_config = CredentialConfig::new()
         .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION)
@@ -166,8 +166,7 @@ fn test_server_client() {
         Ok(())
     };
 
-    let mut l = Listener::new();
-    l.open(&reg, move |_, ev| {
+    let l = Listener::open(&reg, move |_, ev| {
         println!("Server listener event: {ev:?}");
         match ev {
             crate::ListenerEvent::NewConnection {
@@ -193,7 +192,7 @@ fn test_server_client() {
 
     // create client and send msg
     let client_settings = Settings::new().set_IdleTimeoutMs(1000);
-    let client_config = Configuration::new(&reg, &alpn, Some(&client_settings)).unwrap();
+    let client_config = Configuration::open(&reg, &alpn, Some(&client_settings)).unwrap();
     {
         let cred_config = CredentialConfig::new_client()
             .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION);
@@ -232,8 +231,11 @@ fn test_server_client() {
                 ConnectionEvent::Connected { .. } => {
                     // open stream and send
                     let f_send = || {
-                        let mut s = Stream::new();
-                        s.open(&conn, crate::StreamOpenFlags::NONE, stream_handler.clone())?;
+                        let s = Stream::open(
+                            &conn,
+                            crate::StreamOpenFlags::NONE,
+                            stream_handler.clone(),
+                        )?;
                         s.start(crate::StreamStartFlags::NONE)?;
                         // BufferRef needs to be heap allocated
                         let b = "hello from client".as_bytes().to_vec();
@@ -266,8 +268,7 @@ fn test_server_client() {
         };
 
         println!("open client connection");
-        let mut conn = Connection::new();
-        conn.open(&reg, conn_handler).unwrap();
+        let conn = Connection::open(&reg, conn_handler).unwrap();
 
         conn.start(&client_config, "127.0.0.1", 4567).unwrap();
 

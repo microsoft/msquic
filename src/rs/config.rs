@@ -441,7 +441,7 @@ mod tests {
         let registration = Registration::new(&RegistrationConfig::default()).unwrap();
 
         let alpn = [BufferRef::from("h3")];
-        let configuration = Configuration::new(
+        let configuration = Configuration::open(
             &registration,
             &alpn,
             Some(
