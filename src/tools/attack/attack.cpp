@@ -449,10 +449,8 @@ main(
         PrintUsageList();
         ErrorCode = 0;
     } else if (!TryGetValue(argc, argv, "type", &AttackType) ||
-        (AttackType < 0 || AttackType > 4)) {
+        (AttackType <= 0 || AttackType > 4)) {
         PrintUsage();
-    } else if (AttackType == 0) {
-        printf("QTIP not supported. \n");
     } else {
         const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             UdpRecvCallback,
