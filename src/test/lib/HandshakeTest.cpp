@@ -4100,36 +4100,8 @@ QuicTestHandshakeSpecificLossPatterns(
     }
 }
 
-struct ServerMultiAcceptContext {
-    uint32_t StartedConnectionCount;
-    uint32_t MaxConnections;
-    CxPlatEvent StartedEvent;
-    UniquePtr<TestConnection>* Connections;
-
-    _Function_class_(NEW_CONNECTION_CALLBACK)
-    static
-    bool
-    ListenerMultiAcceptConnection(
-        _In_ TestListener* Listener,
-        _In_ HQUIC ConnectionHandle
-        )
-    {
-        auto* This = (ServerMultiAcceptContext*)Listener->Context;
-        uint32_t NewCount = (uint32_t)InterlockedIncrement((long*)&This->StartedConnectionCount);
-        if (NewCount > This->MaxConnections) {
-            TEST_FAILURE("Too many connections started!");
-            return false;
-        }
-        This->Connections[NewCount - 1] =
-            UniquePtr<TestConnection>(new(std::nothrow) TestConnection(ConnectionHandle, nullptr));
-        if (This->StartedConnectionCount == This->MaxConnections) {
-            This->StartedEvent.Set();
-        }
-        return true;
-    }
-};
-
 struct ConnectionPoolConnectionContext {
+    CxPlatEvent ConnectedEvent;
     uint16_t IdealProcessor;
     uint16_t PartitionIndex;
     bool Connected;
@@ -4139,6 +4111,7 @@ struct ConnectionPoolConnectionContext {
         switch (Event->Type) {
             case QUIC_CONNECTION_EVENT_CONNECTED:
                 This->Connected = true;
+                This->ConnectedEvent.Set();
                 break;
             case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
                 This->IdealProcessor = Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor;
@@ -4169,7 +4142,7 @@ QuicTestConnectionPoolCreate(
     MsQuicAlpn Alpn("MsQuicTest");
 
     MsQuicSettings Settings;
-    Settings.SetIdleTimeoutMs(1000);
+    Settings.SetIdleTimeoutMs(TestWaitTimeout);
     Settings.SetPeerBidiStreamCount(1);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
@@ -4181,16 +4154,9 @@ QuicTestConnectionPoolCreate(
     QuicAddr ServerAddr(QuicAddrFamily);
     if (XdpSupported) {
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
-    } else {
-        QuicAddrSetToLoopback(&ServerAddr.SockAddr);
     }
-    const uint16_t ServerPort = 4433;
-    ServerAddr.SetPort(ServerPort);
 
     {
-        UniquePtrArray<UniquePtr<TestConnection>> ServerConnections(new(std::nothrow) UniquePtr<TestConnection>[NumberOfConnections]);
-        TEST_NOT_EQUAL(nullptr, ServerConnections);
-
         UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
         TEST_NOT_EQUAL(nullptr, Connections);
 
@@ -4207,14 +4173,15 @@ QuicTestConnectionPoolCreate(
             Contexts[i].PartitionIndex = 0;
         }
 
-        ServerMultiAcceptContext ServerAcceptContext {};
-        ServerAcceptContext.MaxConnections = NumberOfConnections;
-        ServerAcceptContext.Connections = ServerConnections.get();
-        ServerAcceptContext.StartedConnectionCount = 0;
-        TestListener Listener(Registration, ServerMultiAcceptContext::ListenerMultiAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
-        Listener.Context = &ServerAcceptContext;
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerAddr.SockAddr));
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+        if (TestCibirSupport) {
+            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
+        }
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
 
         {
             UniquePtrArray<uint8_t*> CibirIdPtrs(new(std::nothrow) uint8_t*[NumberOfConnections]);
@@ -4229,7 +4196,7 @@ QuicTestConnectionPoolCreate(
             if (XdpSupported) {
                 PoolConfig.ServerAddress = &ServerAddr.SockAddr;
             }
-            PoolConfig.ServerPort = ServerPort;
+            PoolConfig.ServerPort = ServerAddr.GetPort();
             PoolConfig.Context = (void**)ContextPtrs.get();
             PoolConfig.Family = QuicAddrFamily;
             PoolConfig.NumberOfConnections = NumberOfConnections;
@@ -4238,7 +4205,6 @@ QuicTestConnectionPoolCreate(
             if (TestCibirSupport) {
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
                     CxPlatCopyMemory(&(CibirIdBuffer[i * CibirIdLength]), CibirId, CibirIdLength);
-                    CibirIdBuffer[(i * CibirIdLength) + (CibirIdLength - 1)] += (uint8_t)i;
                     CibirIdPtrs[i] = &CibirIdBuffer[i * CibirIdLength];
                 }
                 PoolConfig.CibirIds = CibirIdPtrs.get();
@@ -4248,22 +4214,16 @@ QuicTestConnectionPoolCreate(
             QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, &(Connections.get()->Handle));
             if (XdpSupported) {
                 TEST_QUIC_SUCCEEDED(Status);
-                ServerAcceptContext.StartedEvent.WaitForever();
                 for (uint32_t i = 0; i < NumberOfConnections; i++) {
-                    //
-                    // Verify the server connections are connected. The client connections should also be connected too.
-                    //
-                    ServerConnections[i]->WaitForConnectionComplete();
-                    if (!ServerConnections[i]->GetIsConnected()) {
-                        TEST_FAILURE("Server connection %u failed to connect", i);
-                    }
                     //
                     // Verify the client connection is connected.
                     //
+                    Contexts[i].ConnectedEvent.WaitTimeout(TestWaitTimeout);
                     if (!Contexts[i].Connected) {
                         TEST_FAILURE("Client connection %u failed to connect", i);
                     }
                 }
+                TEST_EQUAL(NumberOfConnections, Listener.AcceptedConnectionCount);
             } else {
                 //
                 // When testing no XDP support, the loopback address is used,
