@@ -174,7 +174,7 @@ QuicLibraryInitializePartitions(
 
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
-    CxPlatRandom(sizeof(MsQuicLib.BaseRetryKey), MsQuicLib.BaseRetryKey);
+    CxPlatRandom(sizeof(MsQuicLib.BaseRetrySecret), MsQuicLib.BaseRetrySecret);
 
     uint16_t i;
     QUIC_STATUS Status;

@@ -95,8 +95,8 @@ QuicPartitioGetStatelessRetryKey(
     uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
     CxPlatCopyMemory(
         RawKey,
-        MsQuicLib.BaseRetryKey,
-        sizeof(MsQuicLib.BaseRetryKey));
+        MsQuicLib.BaseRetrySecret,
+        sizeof(MsQuicLib.BaseRetrySecret));
     for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
         RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
     }

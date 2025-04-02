@@ -21,6 +21,22 @@ Abstract:
     affinitized to a partition. In general, though, the library will try to only
     execute on those processors with assigned partitions.
 
+    Several things make use of partitions, including memory pools, various keys
+    used for global state and performance counters.
+
+    There are various different pools for allocating different fixed size
+    objects. These are used to reduce the cost of allocating and freeing these
+    objects. Memory is then returned back to the pool if was allocated from on
+    free.
+
+    They keys and associated state for stateless Reset and Retry functionality
+    are stored in the partition. This allows for multiple processors to be
+    generating stateless resets and retries simultaneously without contention.
+    For Retry, it employes a single base secret/key (stored in the library as
+    a singteton) and then generates the actual keys based on elapsed time
+    intervales. Each key only last for 30 seconds to protect from attack.
+    Additionally, these keys are only created as necessary.
+
 --*/
 
 #if defined(__cplusplus)
@@ -58,7 +74,7 @@ typedef struct QUIC_CACHEALIGN QUIC_PARTITION {
     CXPLAT_LOCK ResetTokenLock;
 
     //
-    // Used for generating stateless retries.
+    // Two most recent keys used for generating stateless retries.
     //
     CXPLAT_DISPATCH_LOCK StatelessRetryKeysLock;
     QUIC_RETRY_KEY StatelessRetryKeys[2];
