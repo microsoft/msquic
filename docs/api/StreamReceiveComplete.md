@@ -40,9 +40,9 @@ stop indicating new `QUIC_STREAM_EVENT_RECEIVE` events until a call to [`StreamR
 If Multi-receive mode has been enabled on the connection, the behavior is different from default behavior detailed above.
 
 In Multi-receive mode, calls to `StreamReceiveComplete` do not need to match `QUIC_STREAM_EVENT_RECEIVE`: there can be
-either more or less calls to `StramReceiveComplete` than `QUIC_STREAM_EVENT_RECEIVE` events.
+either more or less calls to `StreamReceiveComplete` than `QUIC_STREAM_EVENT_RECEIVE` events.
 
-MsQuic will keep on indicating `QUIC_STREAM_EVENT_RECEIVE` irrespectively from calls to `StramReceiveComplete` and the
+MsQuic will keep on indicating `QUIC_STREAM_EVENT_RECEIVE` irrespectively from calls to `StreamReceiveComplete` and the
 value of `BufferLength`.
 
 The application must keep track of the accumulated `TotalBufferLength` from `QUIC_STREAM_EVENT_RECEIVE` events and ensure that:
