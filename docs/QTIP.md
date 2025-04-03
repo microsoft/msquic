@@ -4,12 +4,13 @@
 
 QTIP is an MsQuic specific concept that allows MsQuic to exercise the QUIC protocol over XDP using TCP packets.
 
-To be specific, we put the QUIC packet inside the TCP payload,
-and have stub data in the TCP header, real enough to be compliant with networks of interest.
+To be specific, QTIP adds a TCP header to the QUIC packet instead of a UDP header. It doesn't follow the TCP protocol after the initial handshake: headers are generated with good enough data to be compatible with most networks and leverage TCP specific optimizations, but are not used to operate the protocol.
+
+You can think of it as disguising QUIC packets as TCP packets!
 
 ## Why?
 
-Certain hardware / networks / cloud environments are optimized for TCP traffic. Instead of pushing for those environments to also optimize for UDP, QTIP allows us to leverage existing hardware with MsQuic for cheap.
+Certain hardware / networks / cloud environments are optimized for TCP traffic. Instead of pushing for those environments to also optimize for UDP, QTIP allows us to leverage existing hardware with MsQuic.
 
 ## How?
 
