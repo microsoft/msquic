@@ -3,9 +3,9 @@
 ## What?
 
 QTIP is an MsQuic specific concept that allows MsQuic to exercise the QUIC protocol over XDP using TCP packets.
-The TCP packets here are a kind of trojan horse; we still leverage the QUIC protocol but masquerade it as TCP packets.
-We put the QUIC packet inside the TCP payload,
-and have fake data in the TCP header, but just real enough to fool certain networks.
+
+To be specific, we put the QUIC packet inside the TCP payload,
+and have stub data in the TCP header, real enough to be compliant with networks of interest.
 
 ## Why?
 
