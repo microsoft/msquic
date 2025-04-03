@@ -5521,10 +5521,32 @@ QuicConnRecvDatagramBatch(
         CxPlatZeroMemory(HpMask, BatchCount * CXPLAT_HP_SAMPLE_LENGTH);
     }
 
+    uint8_t prevPacket = 0;
     for (uint8_t i = 0; i < BatchCount; ++i) {
         CXPLAT_DBG_ASSERT(Packets[i]->Allocated);
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
         Packet = Packets[i];
+
+        if (Packets[prevPacket]->KeyType != Packet->KeyType) {
+            if (Packet->Encrypted &&
+                Connection->State.HeaderProtectionEnabled) {
+                uint8_t RemainingBatchCount = BatchCount - i;
+                if (Connection->Crypto.TlsState.ReadKeys[Packet->KeyType] == NULL) {
+                    QuicPacketLogDrop(Connection, Packet, "Key no longer accepted (batch)");
+                    continue; // Skip this packet and move to the next one
+                }
+                if (QUIC_FAILED(
+                    CxPlatHpComputeMask(
+                        Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->HeaderKey,
+                        RemainingBatchCount,
+                        Cipher + i * CXPLAT_HP_SAMPLE_LENGTH,
+                        HpMask + i * CXPLAT_HP_SAMPLE_LENGTH))) {
+                    QuicPacketLogDrop(Connection, Packet, "Failed to compute HP mask");
+                    continue; // Skip this packet and move to the next one
+                }
+            }
+        }
+
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (!QuicConnRecvPrepareDecrypt(
                 Connection, Packet, HpMask + i * CXPLAT_HP_SAMPLE_LENGTH) ||
@@ -5560,6 +5582,7 @@ QuicConnRecvDatagramBatch(
                 }
             }
         }
+        prevPacket = i;
     }
 }
 
