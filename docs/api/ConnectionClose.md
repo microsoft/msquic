@@ -27,7 +27,7 @@ The valid handle to an open connection object.
 
 A caller should shutdown an active connection via [ConnectionShutdown](ConnectionShutdown.md) before calling
 `ConnectionClose`. Calling `ConnectionClose` without [ConnectionShutdown](ConnectionShutdown.md) will abortively and
-silently shutdown the connection and all associated streams through an implicitly call to
+silently shutdown the connection as well as all associated streams through an implicit call to
 [ConnectionShutdown](ConnectionShutdown.md) with the `QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT` flag.
 
 A server application **MUST NOT** call `ConnectionClose` within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback when returning failure, to reject a connection. This will result in a double-free in release builds, and an assert in debug builds.  It's acceptable to call `ConnectionClose` within the `QUIC_LISTENER_EVENT_NEW_CONNECTION` callback if returning `QUIC_STATUS_SUCCESS`, or `QUIC_STATUS_PENDING`, since the server application owns the connection object then.

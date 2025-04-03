@@ -393,12 +393,6 @@ QuicStreamClose(
     if (!Stream->Flags.ShutdownComplete) {
 
         if (Stream->Flags.Started && !Stream->Flags.HandleShutdown) {
-            //
-            // TODO - If the stream hasn't been aborted already, then this is a
-            // fatal error for the connection. The QUIC transport cannot "just
-            // pick an error" to shutdown the stream with. It must abort the
-            // entire connection.
-            //
             QuicTraceLogStreamWarning(
                 CloseWithoutShutdown,
                 Stream,

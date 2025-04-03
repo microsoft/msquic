@@ -29,8 +29,10 @@ This is an asynchronous API but can run inline if called in a callback.
 The application must ensure that for each `QUIC_STREAM_EVENT_RECEIVE` processed asynchronously (`QUIC_STATUS_PENDING`
 was returned from the callback), `StreamReceiveComplete` is called exactly once.
 
-Duplicate `StreamReceiveComplete` calls after a `QUIC_STREAM_EVENT_RECEIVE` event are ignored
-silently, even when a different `BufferLength` is provided.
+The application must ensure it calls `StreamReceiveComplete` a single time for every `QUIC_STREAM_EVENT_RECEIVE`
+processed asynchronously. Duplicate `StreamReceiveComplete` calls are ignored silently if no `QUIC_STREAM_EVENT_RECEIVE`
+is pending when the call is processed, but they could race with a new `QUIC_STREAM_EVENT_RECEIVE` event and complete it,
+likely breaking the app data processing.
 
 If `BufferLength` is smaller than the number of bytes indicated in the matching `QUIC_STREAM_EVENT_RECEIVE`, MsQuic will
 stop indicating new `QUIC_STREAM_EVENT_RECEIVE` events until a call to [`StreamReceiveSetEnabled`](StreamReceiveSetEnabled.md).
@@ -45,10 +47,11 @@ either more or less calls to `StreamReceiveComplete` than `QUIC_STREAM_EVENT_REC
 MsQuic will keep on indicating `QUIC_STREAM_EVENT_RECEIVE` irrespectively from calls to `StreamReceiveComplete` and the
 value of `BufferLength`.
 
-The application must keep track of the accumulated `TotalBufferLength` from `QUIC_STREAM_EVENT_RECEIVE` events and ensure that:
+The application must keep track of the accumulated `TotalBufferLength` from `QUIC_STREAM_EVENT_RECEIVE` events and
+ensure that:
 - the sum of all `BufferLength` parameters in `StreamReceiveComplete` calls is always smaller or equal than the number
     of bytes received on the stream
-- all bytes received are eventually completed in `StreamReceiveComplete` call
+- all bytes received are eventually completed in `StreamReceiveComplete` call OR the stream is aborted.
 
 # See Also
 

@@ -40,8 +40,10 @@ otherwise access a buffer provided to [StreamSend](api/StreamSend.md) until the 
 `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
 
 ![Note]
-> `QUIC_STREAM_EVENT_SEND_COMPLETE` does not mean the data has been received by the peer, or even the it has been put on
-> the wire - only that MsQuic no longer needs the app send buffer.
+> `QUIC_STREAM_EVENT_SEND_COMPLETE` does not mean the data has been received by the peer app, the peer transport, or
+> even the it has been put on the wire - it only means that MsQuic no longer needs the app send buffer and give the
+> owernship back to the application. The app should not assume anything about whether the data has been successfully
+> transmitted based on this notification.
 
 ## Send Buffering
 
@@ -205,7 +207,9 @@ Once all the directions relevant for a stream have been shutdown, the applicatio
 `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
 
 The application must then close the stream using [`StreamClose`](api/StreamClose.md), and can release its notification
-handling context.
+handling context one the call returns.
 
-Closing a stream before the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` is only allowed if the stream was not started yet.
-Otherwise, it will result in the connection being closed abortively.
+If the app closes a stream before it is shutdown, the stream will be shutdown abortively with an error code of `0`.
+This should be avoided, the app should rather abortively shutdown the stream first with a meaningful error code.
+It is however possible for an application to abortively shutdown a stream and immediately close it from the same thread,
+without waiting for the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
