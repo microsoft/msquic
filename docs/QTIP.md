@@ -16,10 +16,10 @@ Certain hardware / networks / cloud environments are optimized for TCP traffic. 
 
 To use QTIP, you first must be running XDP. The setting is ignored if XDP is not enabled.
 
-QTIPEnabled in [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) controls whether client connections will send/recv packets over QTIP xor UDP and whether listeners will optionally accept QTIP traffic.
+QTIPEnabled in [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) controls whether client connections exclusively use QTIP, and whether listeners will optionally accept QTIP traffic.
 
 Opt in to use QTIP for listeners by setting QTIPEnabled to true at a global level prior to starting the listener. Additionally, all client connections created thereafter will send/recv data over QTIP.
-This setting can be overrided per client connection, allowing you to create some client connections that send QTIP or UDP traffic.
+This setting can be overridden per client connection, allowing you to create some client connections that send QTIP or UDP traffic.
 
 > [!IMPORTANT]
 > Crucial information necessary for users to succeed.
