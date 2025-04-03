@@ -88,11 +88,14 @@ When the buffer count is 0, it signifies the reception of a QUIC frame with empt
 
 ## Summary - Common handling of receive data events
 
+Here is a quick overview of receiving data in _some_ common scenarios.
+
 If the application...
  - processes all the received data synchronously in the stream event handler, `QUIC_STREAM_EVENT.RECEIVE.TotalBufferLength` parameter must be left unchanged and `QUIC_STATUS_SUCCESS` must be returned from the handler.
  - could process only part of the received buffer synchronously in the stream event handler call and wants to process the remaining data in a subsequent event handler call, it **must** be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
  - desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from the event handler call.
 
+Read on further for details on all possible scenarios of receiving data using the MsQuic library.
 
 ## Handling a receive event
 
