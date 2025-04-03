@@ -78,7 +78,7 @@ This field reserved for future use. Do not use.
 
 ## QUIC_LISTENER_EVENT_DOS_MODE_CHANGED
 
-This event indicates an automated change in the DoS mode on the listner object in the MsQuic library. This event is delivered only for listener objects that have opted in for DoS mode change events. Refer to details on [Listener Parameters](../Settings.md#Listener_Parameters) for further information.
+This event indicates an automated change in the DoS mode on the listner object in the MsQuic library. This event is delivered only for listener objects that have opted in for DoS mode change events. Refer to the [Listener Parameters](../Settings.md#Listener_Parameters) documentation for further information.
 
 ### DOS_MODE_CHANGED
 
