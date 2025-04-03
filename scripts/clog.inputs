@@ -73,6 +73,7 @@
 ../src/core/mtu_discovery.c
 ../src/core/configuration.c
 ../src/core/inline.c
+../src/core/partition.c
 ../src/core/library.c
 ../src/bin/winuser_fuzz/dllmain.c
 ../src/bin/linux/init.c

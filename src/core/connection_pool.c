@@ -227,7 +227,7 @@ QUIC_STATUS
 QuicConnPoolTryCreateConnection(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_CONFIGURATION* Configuration,
-    _In_ const uint16_t* PartitionIndex,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _In_ QUIC_ADDR* RemoteAddress,
@@ -247,9 +247,9 @@ QuicConnPoolTryCreateConnection(
     QUIC_STATUS Status =
         QuicConnAlloc(
             Registration,
+            Partition,
             NULL,
             NULL,
-            PartitionIndex,
             Connection);
     if (QUIC_FAILED(Status)) {
         goto Error;
@@ -591,14 +591,14 @@ MsQuicConnectionPoolCreate(
                 continue;
             }
 
-            uint16_t PartitionIndex =
+            QUIC_PARTITION* Partition =
                 QuicLibraryGetPartitionFromProcessorIndex(CurrentProc->ProcIndex);
 
             Status =
                 QuicConnPoolTryCreateConnection(
                     (QUIC_REGISTRATION*)Config->Registration,
                     (QUIC_CONFIGURATION*)Config->Configuration,
-                    &PartitionIndex,
+                    Partition,
                     Config->Handler,
                     Config->Context ? Config->Context[i] : NULL,
                     &ResolvedRemoteAddress,
