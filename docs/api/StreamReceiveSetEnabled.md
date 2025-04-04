@@ -17,7 +17,8 @@ QUIC_STATUS
 
 # Parameters
 
-**TODO**
+- `Stream`: A handle to a valid stream
+- `IsEnabled`: Whether MsQuic can indicate `QUIC_STREAM_EVENT_RECEIVE` notifications.
 
 # Return Value
 
@@ -35,3 +36,4 @@ This function always delegates to the worker queue, even if called from a quic w
 [StreamShutdown](StreamShutdown.md)<br>
 [StreamSend](StreamSend.md)<br>
 [StreamReceiveComplete](StreamReceiveComplete.md)<br>
+[Streams](../Streams.md)<br>
