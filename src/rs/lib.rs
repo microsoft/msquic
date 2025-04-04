@@ -1226,6 +1226,10 @@ impl Stream {
     pub fn receive_complete(&self, buffer_length: u64) {
         unsafe { Api::ffi_ref().StreamReceiveComplete.unwrap()(self.handle, buffer_length) }
     }
+
+    pub fn get_stream_id(&self) -> Result<u64, Status> {
+        unsafe { Api::get_param_auto(self.handle, ffi::QUIC_PARAM_STREAM_ID) }
+    }
 }
 
 define_quic_handle_impl!(Stream);
