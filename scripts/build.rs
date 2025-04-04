@@ -30,10 +30,12 @@ fn cmake_build() {
         logging_enabled = "on";
     }
 
-    let target = env::var("TARGET").unwrap();
-    let out_dir = env::var("OUT_DIR").unwrap();
+    let target = env::var("TARGET").unwrap().replace("\\", "/");
+    let out_dir = env::var("OUT_DIR").unwrap().replace("\\", "/");
     // The output directory for the native MsQuic library.
-    let quic_output_dir = Path::new(&out_dir).join("lib");
+    let libdir = "/lib";
+    let full_out_dir = [out_dir, libdir.to_string()].join("");
+    let quic_output_dir = Path::new(&full_out_dir);
 
     // Builds the native MsQuic and installs it into $OUT_DIR.
     let mut config = Config::new(".");
@@ -41,9 +43,11 @@ fn cmake_build() {
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
 
-    // By default enable schannel on windows, unless openssl feature is selected.
-    if cfg!(windows) && !cfg!(feature = "openssl") {
+    // By default enable schannel on windows, unless quictls feature is selected.
+    if cfg!(windows) && (!cfg!(feature = "quictls") || !cfg!(feature = "openssl")) {
         config.define("QUIC_TLS", "schannel");
+    } else if cfg!(feature = "quictls") {
+        config.define("QUIC_TLS", "quictls");
     } else {
         config.define("QUIC_TLS", "openssl");
     }

@@ -30,8 +30,27 @@ include = [
     "/submodules/openssl/ms",
     "/submodules/openssl/os-dep",
     "/submodules/openssl/ssl",
+    "/submodules/openssl/tools",
+    "/submodules/openssl/fuzz",
+    "/submodules/openssl/doc",
+    "/submodules/openssl/exporters",
+    "/submodules/openssl/providers",
     "/submodules/openssl/util",
     "/submodules/openssl/VMS",
+    "/submodules/quictls/*.*",
+    "/submodules/quictls/apps",
+    "/submodules/quictls/CHANGES",
+    "/submodules/quictls/config",
+    "/submodules/quictls/Configure",
+    "/submodules/quictls/Configurations",
+    "/submodules/quictls/crypto",
+    "/submodules/quictls/engines",
+    "/submodules/quictls/external",
+    "/submodules/quictls/include",
+    "/submodules/quictls/ms",
+    "/submodules/quictls/os-dep",
+    "/submodules/quictls/ssl",
+    "/submodules/quictls/util",
     "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/**/*.rs",
@@ -58,6 +77,7 @@ find = []
 # Windows uses schannel, and linux uses openssl by default. 
 # This feature enables openssl on windows, and has no effect on linux.
 openssl = []
+quictls = []
 static = []
 preview-api = []
 # Overwrite generated binding by reruning the bindgen
