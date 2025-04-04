@@ -519,7 +519,7 @@ static int QuicTlsRlsRec(SSL *S, size_t BytesRead,
 // @brief Callback to yield TLS secrets to the QUIC stack.
 //
 // This function is invoked by OpenSSL to provide traffic secrets during
-// the QUIC handshake. It installs the given secret into the ngtcp2 QUIC
+// the QUIC handshake. It installs the given secret into the msquic QUIC
 // connection, either as a read (RX) key or write (TX) key depending on
 // the direction.
 //
