@@ -380,3 +380,6 @@ Cargo.lock
 
 # docfx cache folder
 _site
+
+# packaging artifacts
+APKBUILD
