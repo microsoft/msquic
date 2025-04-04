@@ -202,13 +202,13 @@ with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE` option.
 
 # Closing a Stream
 
-Once all the directions relevant for a stream have been shutdown, the application receives a
+Once a stream has been shutdown (on both direction for a bi-directional stream), the application receives a
 `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
 
-The application must then close the stream using [`StreamClose`](api/StreamClose.md), and can release its notification
-handling context once the call returns.
+The application must then close the stream using [`StreamClose`](api/StreamClose.md), and can release its context
+pointer safely once the call returns.
 
 If the app closes a stream before it is shutdown, the stream will be shutdown abortively with an error code of `0`.
-This should be avoided, the app should rather abortively shutdown the stream first with a meaningful error code.
+This should be avoided; instead the app should abortively shutdown the stream first with a meaningful error code.
 It is however possible for an application to abortively shutdown a stream and immediately close it from the same thread,
 without waiting for the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
