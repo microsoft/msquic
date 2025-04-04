@@ -33,7 +33,11 @@ QUIC_STATUS
     );
 ```
 
-The application must register a callback handler for every MsQuic object it creates. This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MsQuic that further processing is required.
+The application must register a callback handler for every MsQuic object it creates, as well as for some objects automatically created by MsQuic (TODO: add reference).
+
+(TODO: add notes on Preview feature events)
+
+This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MsQuic that further processing is required.
 
 This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
@@ -44,7 +48,7 @@ This design choice was made for several reasons:
 
 - Writing correct, scalable code in every application built on top of the socket interfaces is a repetetive, challenging task prone to errors. Offloading the threading and synchronization to MsQuic enables every application to be scalable with minimal effort, making things "just work" out of the box.
 
-- Simpler logic flow in MsQuic by eliminating a queue/cached state of yet to be delivered application notifications. This queue/cached state is maintained in the socket model to track yet-to-be-picked-up events/data and the networking stack must wait for call(s) from the application before indicating completion. This represents additional code, complexity and memory usage in socket model that MsQuic does without.
+- Simplifies MsQuic logic by eliminating a queue/cached state to track yet-to-be-delivered application notifications/data. Such state is maintained in the socket model and the networking stack must wait for call(s) from the application before indicating completion. This represents reduced code, complexity and memory usage in the MsQuic library compared to the socket model.
 
 ### Writing Event Handlers
 
