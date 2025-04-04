@@ -412,6 +412,8 @@ If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_C
 
 ## QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED
 
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
 This event indicates the result of reliable reset negotiation. This is only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
 
 ### RELIABLE_RESET_NEGOTIATED
@@ -423,6 +425,8 @@ Result of reliable reset negotiation is passed in the `RELIABLE_RESET_NEGOTIATED
 If TRUE, reliable reset has been negotiated.
 
 ## QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
 
 This event indicates the result of one way delay negotiation. This is only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
 
@@ -439,6 +443,8 @@ If TRUE, sending one-way delay timestamps has been negotiated.
 If TRUE, receiving one-way delay timestamps has been negotiated.
 
 ## QUIC_CONNECTION_EVENT_NETWORK_STATISTICS
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
 
 This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.
 
@@ -478,4 +484,4 @@ Estimated bandwidth
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
 [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md)<br>
-[Preview Features](PreviewFeatures.md)<br>
+[Preview Features](../PreviewFeatures.md)<br>
