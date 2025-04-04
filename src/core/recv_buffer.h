@@ -210,7 +210,7 @@ QuicRecvBufferRead(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
     _Inout_ uint32_t* BufferCount,
-    _Out_writes_all_(*BufferCount)
+    _Out_writes_to_(*BufferCount, *BufferCount)
         QUIC_BUFFER* Buffers
     );
 
