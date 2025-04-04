@@ -5521,12 +5521,13 @@ QuicConnRecvDatagramBatch(
         CxPlatZeroMemory(HpMask, BatchCount * CXPLAT_HP_SAMPLE_LENGTH);
     }
 
-    uint8_t prevPacket = 0;
+    //uint8_t prevPacket = 0;
     for (uint8_t i = 0; i < BatchCount; ++i) {
         CXPLAT_DBG_ASSERT(Packets[i]->Allocated);
         CXPLAT_ECN_TYPE ECN = CXPLAT_ECN_FROM_TOS(Packets[i]->TypeOfService);
         Packet = Packets[i];
 
+#if 0
         if (Packets[prevPacket]->KeyType != Packet->KeyType) {
             if (Packet->Encrypted &&
                 Connection->State.HeaderProtectionEnabled) {
@@ -5546,6 +5547,7 @@ QuicConnRecvDatagramBatch(
                 }
             }
         }
+#endif
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         if (!QuicConnRecvPrepareDecrypt(
@@ -5582,7 +5584,7 @@ QuicConnRecvDatagramBatch(
                 }
             }
         }
-        prevPacket = i;
+        //prevPacket = i;
     }
 }
 
