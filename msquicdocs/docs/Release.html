@@ -249,7 +249,7 @@
 </ul>
 <ol>
 <li>Checkout to release tag. (e.g. <code>git checkout v2.4.7</code>)</li>
-<li>Run <code>generate-alpine-packaging-file.ps1</code> script on host computer to create <code>APKBUILD</code> file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)</li>
+<li>Run <code>generate-alpine-packaging-file.ps1</code> script from the repository root on host computer to create <code>APKBUILD</code> file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)</li>
 <li>If you don't have account for <a href="https://gitlab.alpinelinux.org">AlpineLinux GitLab</a>. Create an account and <a href="https://docs.gitlab.com/ee/user/ssh.html">configure your SSH</a>.</li>
 <li>If you didn't fork <code>aports</code> repository yet, Fork <code>https://gitlab.alpinelinux.org/alpine/aports</code>.</li>
 <li>Clone <code>https://gitlab.alpinelinux.org/&lt;your_username&gt;/aports</code> repository.</li>
