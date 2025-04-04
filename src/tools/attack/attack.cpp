@@ -449,7 +449,7 @@ main(
         PrintUsageList();
         ErrorCode = 0;
     } else if (!TryGetValue(argc, argv, "type", &AttackType) ||
-        (AttackType < 0 || AttackType > 4)) {
+        (AttackType <= 0 || AttackType > 4)) {
         PrintUsage();
     } else {
         const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -458,9 +458,6 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-
-        // TODO: Since we moved the QTIP configuration from the datapath to the core layer (MsQuic Settings),
-        //       and this tool seems to be using purely the datapath layer, do we just remove QTIP support from here?
 
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,

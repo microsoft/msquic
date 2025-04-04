@@ -492,7 +492,7 @@ QuicTestConnectAndPing(
         }
 
         UniquePtrArray<TestConnection*> Connections(ConnAlloc);
-        
+
         for (uint32_t i = 0; i < ClientStats.ConnectionCount; ++i) {
             Connections.get()[i] =
                 NewPingConnection(
