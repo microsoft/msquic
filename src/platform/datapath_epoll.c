@@ -1132,10 +1132,7 @@ CxPlatSocketContextUninitializeComplete(
                 TxEntry));
     }
 
-    if (SocketContext->Binding->Type == CXPLAT_SOCKET_TCP_LISTENER && SocketContext->AcceptSocket) {
-        SocketDelete(SocketContext->AcceptSocket);
-        SocketContext->AcceptSocket = NULL;
-    }
+    CXPLAT_DBG_ASSERT(SocketContext->AcceptSocket == NULL);
 
     if (SocketContext->SocketFd != INVALID_SOCKET) {
         epoll_ctl(*SocketContext->DatapathPartition->EventQ, EPOLL_CTL_DEL, SocketContext->SocketFd, NULL);
@@ -1589,7 +1586,8 @@ CxPlatSocketContextAcceptCompletion(
 {
     UNREFERENCED_PARAMETER(Cqe);
     CXPLAT_DATAPATH* Datapath = SocketContext->Binding->Datapath;
-
+    CXPLAT_SOCKET* AcceptSocket = NULL;
+    
     QUIC_STATUS Status =
         CxPlatSocketCreateTcpInternal(
             Datapath,
@@ -1597,18 +1595,18 @@ CxPlatSocketContextAcceptCompletion(
             NULL,
             NULL,
             NULL,
-            (CXPLAT_SOCKET**)&SocketContext->AcceptSocket);
+            (CXPLAT_SOCKET**)&AcceptSocket);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    socklen_t AssignedRemoteAddressLength = sizeof(SocketContext->AcceptSocket->RemoteAddress);
-    SocketContext->AcceptSocket->SocketContexts[0].SocketFd =
-        accept(
+    socklen_t AssignedRemoteAddressLength = sizeof(AcceptSocket->RemoteAddress);
+    AcceptSocket->SocketContexts[0].SocketFd =
+        accept4(
             SocketContext->SocketFd,
-            (struct sockaddr*)&SocketContext->AcceptSocket->RemoteAddress,
-            &AssignedRemoteAddressLength);
-    if (SocketContext->AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
+            (struct sockaddr*)&AcceptSocket->RemoteAddress,
+            &AssignedRemoteAddressLength, SOCK_NONBLOCK | SOCK_CLOEXEC);
+    if (AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1619,11 +1617,11 @@ CxPlatSocketContextAcceptCompletion(
         goto Error;
     }
 
-    socklen_t AssignedLocalAddressLength = sizeof(SocketContext->AcceptSocket->LocalAddress);
+    socklen_t AssignedLocalAddressLength = sizeof(AcceptSocket->LocalAddress);
     int Result =
         getsockname(
-            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            (struct sockaddr*)&SocketContext->AcceptSocket->LocalAddress,
+            AcceptSocket->SocketContexts[0].SocketFd,
+            (struct sockaddr*)&AcceptSocket->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         QuicTraceEvent(
@@ -1636,66 +1634,30 @@ CxPlatSocketContextAcceptCompletion(
     }
 
     CxPlatConvertFromMappedV6(
-        &SocketContext->AcceptSocket->LocalAddress,
-        &SocketContext->AcceptSocket->LocalAddress);
+        &AcceptSocket->LocalAddress,
+        &AcceptSocket->LocalAddress);
     CxPlatConvertFromMappedV6(
-        &SocketContext->AcceptSocket->RemoteAddress,
-        &SocketContext->AcceptSocket->RemoteAddress);
+        &AcceptSocket->RemoteAddress,
+        &AcceptSocket->RemoteAddress);
 
-    //
-    // Set non blocking mode
-    //
-    int Flags =
-        fcntl(
-            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            F_GETFL,
-            NULL);
-    if (Flags < 0) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "fcntl(F_GETFL) failed");
-        goto Error;
-    }
-
-    Flags |= O_NONBLOCK;
-    Result =
-        fcntl(
-            SocketContext->AcceptSocket->SocketContexts[0].SocketFd,
-            F_SETFL,
-            Flags);
-    if (Result < 0) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "fcntl(F_SETFL) failed");
-        goto Error;
-    }
-
-    CxPlatSocketContextSetEvents(&SocketContext->AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
-    SocketContext->AcceptSocket->SocketContexts[0].IoStarted = TRUE;
+    CxPlatSocketContextSetEvents(&AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
+    AcceptSocket->SocketContexts[0].IoStarted = TRUE;
     Status = Datapath->TcpHandlers.Accept(
         SocketContext->Binding,
         SocketContext->Binding->ClientContext,
-        SocketContext->AcceptSocket,
-        &SocketContext->AcceptSocket->ClientContext);
+        AcceptSocket,
+        &AcceptSocket->ClientContext);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    SocketContext->AcceptSocket = NULL;
+    AcceptSocket = NULL;
 
 Error:
 
-    if (SocketContext->AcceptSocket != NULL) {
-        SocketDelete(SocketContext->AcceptSocket);
-        SocketContext->AcceptSocket = NULL;
+    if (AcceptSocket != NULL) {
+        SocketDelete(AcceptSocket);
+        AcceptSocket = NULL;
     }
 }
 
