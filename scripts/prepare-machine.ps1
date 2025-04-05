@@ -378,7 +378,13 @@ function Install-TestCertificates {
         $RootCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestRoot" -FriendlyName MsQuicTestRoot -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP521 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
         $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRoot.cer"
         Export-Certificate -Type CERT -Cert $RootCert -FilePath $TempRootPath
-        CertUtil.exe -addstore Root $TempRootPath 2>&1 | Out-Null
+        CertUtil.exe -addstore Root $TempRootPath 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                Write-Error $_
+            } else {
+                Write-Host $_
+            }
+        }
         Remove-Item $TempRootPath
         $NewRoot = $true
         Write-Host "New MsQuicTestRoot certificate installed!"
