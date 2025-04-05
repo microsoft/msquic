@@ -24,7 +24,7 @@ jobs:
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
+      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
       with:
         egress-policy: audit
     - name: Checkout repository
@@ -66,7 +66,7 @@ jobs:
     name: Cargo-Preinstall
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@4d991eb9b905ef189e4c376166672c3f2f230481
+      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
       with:
         egress-policy: audit
     - name: Checkout repository
