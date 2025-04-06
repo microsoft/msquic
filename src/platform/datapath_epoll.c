@@ -524,7 +524,7 @@ CxPlatSocketConfigureRss(
     int Result = 0;
 
     struct sock_filter BpfCode[] = {
-        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU}, // Loads CPU number
+        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU}, // Load CPU number
         {BPF_ALU | BPF_MOD, 0, 0, SocketCount}, // MOD by SocketCount
         {BPF_RET | BPF_A, 0, 0, 0} // Return
     };
@@ -1412,7 +1412,7 @@ CxPlatSocketCreateTcpInternal(
     if (Type == CXPLAT_SOCKET_TCP_SERVER) {
         //
         // The accepted socket must be assigned to the same partition as the listener
-        // to prevent race conditions, e.g. accept handler racing with recieve handler.
+        // to prevent race conditions, e.g. accept handler racing with receive handler.
         // Also, it distributes the load across the partitions.
         //
         PartitionIndex = ListenerSocketContext->DatapathPartition->PartitionIndex;
