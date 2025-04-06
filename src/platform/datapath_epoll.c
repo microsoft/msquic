@@ -524,9 +524,9 @@ CxPlatSocketConfigureRss(
     int Result = 0;
 
     struct sock_filter BpfCode[] = {
-        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU},
-        {BPF_ALU | BPF_MOD, 0, 0, SocketCount},
-        {BPF_RET | BPF_A, 0, 0, 0}
+        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU}, // Loads CPU number
+        {BPF_ALU | BPF_MOD, 0, 0, SocketCount}, // MOD by SocketCount
+        {BPF_RET | BPF_A, 0, 0, 0} // Return
     };
 
     struct sock_fprog BpfConfig = {0};
@@ -671,7 +671,7 @@ CxPlatSocketContextInitialize(
         socket(
             AF_INET6,
             (SocketType == CXPLAT_SOCKET_UDP ? SOCK_DGRAM : SOCK_STREAM) |
-                SOCK_NONBLOCK | SOCK_CLOEXEC, // TODO check if SOCK_CLOEXEC is required?
+                SOCK_NONBLOCK,
             SocketType == CXPLAT_SOCKET_UDP ? IPPROTO_UDP : IPPROTO_TCP);
     if (SocketContext->SocketFd == INVALID_SOCKET) {
         Status = errno;
@@ -704,7 +704,6 @@ CxPlatSocketContextInitialize(
             "setsockopt(IPV6_V6ONLY) failed");
         goto Exit;
     }
-
 
     if (SocketType == CXPLAT_SOCKET_UDP) {
         //
@@ -959,15 +958,17 @@ CxPlatSocketContextInitialize(
         }
     } else if (SocketType == CXPLAT_SOCKET_TCP_LISTENER) {
         //
-        // Set SO_REUSEADDR on listener sockets to avoid
-        // TIME_WAIT state on shutdown.
+        // Set SO_REUSEPORT to allow multiple TCP listeners to
+        // bind to the same port and load balance the connections across them.
+        // Meanwhile, it allows us to bind to the port that's held by
+        // passive connections.
         //
         Option = TRUE;
         Result =
             setsockopt(
                 SocketContext->SocketFd,
                 SOL_SOCKET,
-                SO_REUSEADDR,
+                SO_REUSEPORT,
                 (const void*)&Option,
                 sizeof(Option));
         if (Result == SOCKET_ERROR) {
@@ -1364,11 +1365,13 @@ CxPlatSocketCreateTcpInternal(
     _In_opt_ const QUIC_ADDR* LocalAddress,
     _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* RecvCallbackContext,
+    _In_opt_ CXPLAT_SOCKET_CONTEXT* ListenerSocketContext,
     _Out_ CXPLAT_SOCKET** NewBinding
     )
 {
     QUIC_STATUS Status;
     uint16_t PartitionIndex;
+    uint32_t EpollEvents = ListenerSocketContext ? EPOLLIN : EPOLLOUT | EPOLLIN;
 
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
 
@@ -1406,9 +1409,19 @@ CxPlatSocketCreateTcpInternal(
     }
 
     Binding->RecvBufLen = Datapath->RecvBlockSize - Datapath->RecvBlockBufferOffset;
-    PartitionIndex =
-        RemoteAddress ?
-            ((uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount)) : 0;
+    if (Type == CXPLAT_SOCKET_TCP_SERVER) {
+        //
+        // The accepted socket must be assigned to the same partition as the listener
+        // to prevent race conditions, e.g. accept handler racing with recieve handler.
+        // Also, it distributes the load across the partitions.
+        //
+        PartitionIndex = ListenerSocketContext->DatapathPartition->PartitionIndex;
+    } else {
+        PartitionIndex =
+            RemoteAddress ?
+                ((uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount)) : 0;
+    }
+
     CxPlatRefInitializeEx(&Binding->RefCount, 1);
 
     SocketContext = &Binding->SocketContexts[0];
@@ -1433,10 +1446,38 @@ CxPlatSocketCreateTcpInternal(
     }
 
     if (Type == CXPLAT_SOCKET_TCP_SERVER) {
-        *NewBinding = Binding;
-        Binding = NULL;
-        RawBinding = NULL;
-        goto Exit;
+        socklen_t AssignedRemoteAddressLength = sizeof(Binding->RemoteAddress);
+        SocketContext->SocketFd =
+            accept4(
+                ListenerSocketContext->SocketFd,
+                (struct sockaddr*)&Binding->RemoteAddress,
+                &AssignedRemoteAddressLength, SOCK_NONBLOCK);
+        if (SocketContext->SocketFd == INVALID_SOCKET) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "accept failed");
+            goto Exit;
+        }
+    
+        socklen_t AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
+        int Result =
+            getsockname(
+                SocketContext->SocketFd,
+                (struct sockaddr*)&Binding->LocalAddress,
+                &AssignedLocalAddressLength);
+        if (Result == SOCKET_ERROR) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "getsockname failed");
+            goto Exit;
+        }
     }
 
     CxPlatConvertFromMappedV6(&Binding->LocalAddress, &Binding->LocalAddress);
@@ -1445,7 +1486,11 @@ CxPlatSocketCreateTcpInternal(
     if (RemoteAddress != NULL) {
         Binding->RemoteAddress = *RemoteAddress;
     } else {
-        Binding->RemoteAddress.Ipv4.sin_port = 0;
+        if (Binding->Type == CXPLAT_SOCKET_TCP_SERVER) {
+            CxPlatConvertFromMappedV6(&Binding->RemoteAddress, &Binding->RemoteAddress);
+        } else {
+            Binding->RemoteAddress.Ipv4.sin_port = 0;
+        }
     }
 
     //
@@ -1454,7 +1499,7 @@ CxPlatSocketCreateTcpInternal(
     //
     *NewBinding = Binding;
 
-    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN | EPOLLOUT);
+    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EpollEvents);
     SocketContext->IoStarted = TRUE;
 
     Binding = NULL;
@@ -1486,6 +1531,7 @@ SocketCreateTcp(
             LocalAddress,
             RemoteAddress,
             CallbackContext,
+            NULL,
             Socket);
 }
 
@@ -1501,9 +1547,8 @@ SocketCreateTcpListener(
     QUIC_STATUS Status;
 
     CXPLAT_DBG_ASSERT(Datapath->TcpHandlers.Receive != NULL);
-
-    CXPLAT_SOCKET_CONTEXT* SocketContext = NULL;
-    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + sizeof(CXPLAT_SOCKET_CONTEXT);
+    const uint16_t SocketCount = Datapath->PartitionCount > 1 ? (uint16_t)CxPlatProcCount() : 1;
+    uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_CONTEXT);
     CXPLAT_SOCKET_RAW* RawBinding = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
     if (RawBinding == NULL) {
         QuicTraceEvent(
@@ -1537,34 +1582,47 @@ SocketCreateTcpListener(
     } else {
         Binding->LocalAddress.Ip.sa_family = QUIC_ADDRESS_FAMILY_INET6;
     }
-    CxPlatRefInitializeEx(&Binding->RefCount, 1);
-
-    SocketContext = &Binding->SocketContexts[0];
-    SocketContext->Binding = Binding;
-    SocketContext->SocketFd = INVALID_SOCKET;
-    CxPlatListInitializeHead(&SocketContext->TxQueue);
-    CxPlatLockInitialize(&SocketContext->TxQueueLock);
-    CxPlatRundownInitialize(&SocketContext->UpcallRundown);
+    CxPlatRefInitializeEx(&Binding->RefCount, SocketCount);
 
     CXPLAT_UDP_CONFIG Config = {
         .LocalAddress = LocalAddress,
         .RemoteAddress = NULL
     };
-    Status =
-        CxPlatSocketContextInitialize(
-            SocketContext,
-            &Config,
-            0,
-            Binding->Type);
-    if (QUIC_FAILED(Status)) {
-        goto Exit;
+
+    for (uint32_t i = 0; i < SocketCount; i++) {
+        Binding->SocketContexts[i].Binding = Binding;
+        Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
+        CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
+        CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
+        CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
+    }
+
+    for (uint32_t i = 0; i < SocketCount; i++) {
+        Status =
+            CxPlatSocketContextInitialize(
+                &Binding->SocketContexts[i],
+                &Config,
+                i % Datapath->PartitionCount,
+                Binding->Type);
+        if (QUIC_FAILED(Status)) {
+            goto Exit;
+        }
     }
 
     *Socket = Binding;
 
-    CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_ADD, EPOLLIN);
+    //
+    // RSS based load balancing for listeners. This is not necessarily better
+    // than the default round-robin strategy, but it's good to keep TCP behavior
+    // consistent with UDP.
+    //
+    (void)CxPlatSocketConfigureRss(&Binding->SocketContexts[0], SocketCount);
 
-    SocketContext->IoStarted = TRUE;
+    for (uint32_t i = 0; i < SocketCount; i++) {
+        CxPlatSocketContextSetEvents(&Binding->SocketContexts[i], EPOLL_CTL_ADD, EPOLLIN);
+        Binding->SocketContexts[i].IoStarted = TRUE;
+    }
+
     Binding = NULL;
     RawBinding = NULL;
     Status = QUIC_STATUS_SUCCESS;
@@ -1587,7 +1645,7 @@ CxPlatSocketContextAcceptCompletion(
     UNREFERENCED_PARAMETER(Cqe);
     CXPLAT_DATAPATH* Datapath = SocketContext->Binding->Datapath;
     CXPLAT_SOCKET* AcceptSocket = NULL;
-    
+
     QUIC_STATUS Status =
         CxPlatSocketCreateTcpInternal(
             Datapath,
@@ -1595,58 +1653,18 @@ CxPlatSocketContextAcceptCompletion(
             NULL,
             NULL,
             NULL,
+            SocketContext,
             (CXPLAT_SOCKET**)&AcceptSocket);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
 
-    socklen_t AssignedRemoteAddressLength = sizeof(AcceptSocket->RemoteAddress);
-    AcceptSocket->SocketContexts[0].SocketFd =
-        accept4(
-            SocketContext->SocketFd,
-            (struct sockaddr*)&AcceptSocket->RemoteAddress,
-            &AssignedRemoteAddressLength, SOCK_NONBLOCK | SOCK_CLOEXEC);
-    if (AcceptSocket->SocketContexts[0].SocketFd == INVALID_SOCKET) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
+    Status =
+        Datapath->TcpHandlers.Accept(
             SocketContext->Binding,
-            Status,
-            "accept failed");
-        goto Error;
-    }
-
-    socklen_t AssignedLocalAddressLength = sizeof(AcceptSocket->LocalAddress);
-    int Result =
-        getsockname(
-            AcceptSocket->SocketContexts[0].SocketFd,
-            (struct sockaddr*)&AcceptSocket->LocalAddress,
-            &AssignedLocalAddressLength);
-    if (Result == SOCKET_ERROR) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            Status,
-            "getsockname failed");
-        goto Error;
-    }
-
-    CxPlatConvertFromMappedV6(
-        &AcceptSocket->LocalAddress,
-        &AcceptSocket->LocalAddress);
-    CxPlatConvertFromMappedV6(
-        &AcceptSocket->RemoteAddress,
-        &AcceptSocket->RemoteAddress);
-
-    CxPlatSocketContextSetEvents(&AcceptSocket->SocketContexts[0], EPOLL_CTL_ADD, EPOLLIN);
-    AcceptSocket->SocketContexts[0].IoStarted = TRUE;
-    Status = Datapath->TcpHandlers.Accept(
-        SocketContext->Binding,
-        SocketContext->Binding->ClientContext,
-        AcceptSocket,
-        &AcceptSocket->ClientContext);
+            SocketContext->Binding->ClientContext,
+            AcceptSocket,
+            &AcceptSocket->ClientContext);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
