@@ -1572,6 +1572,7 @@ SocketCreateTcpListener(
     Binding->Datapath = Datapath;
     Binding->ClientContext = CallbackContext;
     Binding->HasFixedRemoteAddress = FALSE;
+    Binding->NumPerProcessorSockets = Datapath->PartitionCount > 1;
     Binding->Mtu = CXPLAT_MAX_MTU;
     Binding->Type = CXPLAT_SOCKET_TCP_LISTENER;
     if (LocalAddress) {
