@@ -5610,7 +5610,6 @@ QuicConnRecvDatagrams(
     QUIC_RX_PACKET* Batch[QUIC_MAX_CRYPTO_BATCH_COUNT];
     uint8_t Cipher[CXPLAT_HP_SAMPLE_LENGTH * QUIC_MAX_CRYPTO_BATCH_COUNT];
     QUIC_PATH* CurrentPath = NULL;
-    QUIC_PACKET_KEY_TYPE PrevPackKeyType = QUIC_PACKET_KEY_COUNT;
 
     QUIC_RX_PACKET* Packet;
     while ((Packet = Packets) != NULL) {
@@ -5694,14 +5693,11 @@ QuicConnRecvDatagrams(
                 break;
             }
 
-            if ((BatchCount != 0) &&
-                (!Packet->IsShortHeader ||
-                (PrevPackKeyType != QUIC_PACKET_KEY_COUNT && PrevPackKeyType != Packet->KeyType))) {
+            if (!Packet->IsShortHeader && BatchCount != 0) {
                 //
                 // We already had some batched short header packets and then
-                // encountered a long header packet OR the current packet 
-                // has different key type. Finish off the batch first and
-                // then continue with the current packet.
+                // encountered a long header packet. Finish off the short
+                // headers first and then continue with the current packet.
                 //
                 QuicConnRecvDatagramBatch(
                     Connection,
@@ -5718,7 +5714,6 @@ QuicConnRecvDatagrams(
             }
 
             Batch[BatchCount++] = Packet;
-            PrevPackKeyType = Packet->KeyType;
             if (Packet->IsShortHeader && BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT) {
                 break;
             }
