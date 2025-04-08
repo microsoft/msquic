@@ -102,6 +102,8 @@ void
 <p>The valid handle to an open configuration object.</p>
 <h1 id="remarks">Remarks</h1>
 <p>This function releases the configuration object.</p>
+<p><code>ConfigurationClose</code> is equivalent to <code>free</code> and <strong>MUST</strong> be the final call on a configuration handle.
+Any API calls using a configuration handle after <code>ConfigurationClose</code> has been called is a use-after-free error!</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="ConfigurationOpen.html">ConfigurationOpen</a><br>
 <a href="ConfigurationLoadCredential.html">ConfigurationLoadCredential</a><br></p>

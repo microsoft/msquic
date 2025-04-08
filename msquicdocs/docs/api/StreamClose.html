@@ -101,9 +101,11 @@ void
 <p><code>Stream</code></p>
 <p>A Stream handle from a previous call to <a href="StreamOpen.html">StreamOpen</a>.</p>
 <h1 id="remarks">Remarks</h1>
-<p>The application should only close a stream after it has been completely shut down or it was never successfully started. Closing a stream before it has been completely shut down produces <strong>undefined behavior</strong> because clean up of the stream <strong>must</strong> be reflected on the wire with an application specific error code. When the app closes a stream without first shutting down, MsQuic has to guess which error code to use (currently uses <code>0</code>) when sending the state change to the peer.</p>
+<p>The application should only close a stream after it has been completely shut down or if it was never successfully started. Closing a stream before it has been completely shut down produces <strong>undefined behavior</strong> because clean up of the stream <strong>must</strong> be reflected on the wire with an application specific error code. When the app closes a stream without first shutting down, MsQuic has to guess which error code to use (currently uses <code>0</code>) when sending the state change to the peer.</p>
 <p>If the application needs to quickly discard all stream state and doesn't care about the result, it should first call <a href="StreamShutdown.html">StreamShutdown</a> with the <code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT</code> and <code>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</code> flags, specifying an appropriate error code. Then, only after the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> should the app call close. This event will happen immediately.</p>
 <p><code>StreamClose</code> may be called on any callback, including one for the stream being closed.</p>
+<p><code>StreamClose</code> is equivalent to <code>free</code> and <strong>MUST</strong> be the final call on a stream handle.
+Any API calls using a stream handle after <code>StreamClose</code> has been called is a use-after-free error!</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="StreamOpen.html">StreamOpen</a><br>
 <a href="StreamStart.html">StreamStart</a><br>

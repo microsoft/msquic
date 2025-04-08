@@ -98,7 +98,10 @@ QUIC_STATUS
     );
 </code></pre>
 <h1 id="parameters">Parameters</h1>
-<p><strong>TODO</strong></p>
+<ul>
+<li><code>Stream</code>: A handle to a valid stream</li>
+<li><code>IsEnabled</code>: Whether MsQuic can indicate <code>QUIC_STREAM_EVENT_RECEIVE</code> notifications.</li>
+</ul>
 <h1 id="return-value">Return Value</h1>
 <p>The function returns a <a href="QUIC_STATUS.html">QUIC_STATUS</a>. The app may use <code>QUIC_FAILED</code> or <code>QUIC_SUCCEEDED</code> to determine if the function failed or succeeded.</p>
 <h1 id="remarks">Remarks</h1>
@@ -109,7 +112,8 @@ QUIC_STATUS
 <a href="StreamStart.html">StreamStart</a><br>
 <a href="StreamShutdown.html">StreamShutdown</a><br>
 <a href="StreamSend.html">StreamSend</a><br>
-<a href="StreamReceiveComplete.html">StreamReceiveComplete</a><br></p>
+<a href="StreamReceiveComplete.html">StreamReceiveComplete</a><br>
+<a href="../Streams.html">Streams</a><br></p>
 
 </article>
 

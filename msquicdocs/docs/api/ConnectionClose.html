@@ -102,9 +102,13 @@ void
 <p>The valid handle to an open connection object.</p>
 <h1 id="remarks">Remarks</h1>
 <p><code>ConnectionClose</code> cleans up and frees all resources allocated for the connection in <code>ConnectionOpen</code>.</p>
-<p>A caller should shutdown an active connection via <a href="ConnectionShutdown.html">ConnectionShutdown</a> before calling <code>ConnectionClose</code>; calling <code>ConnectionClose</code> without <a href="ConnectionShutdown.html">ConnectionShutdown</a> will implicitly call <a href="ConnectionShutdown.html">ConnectionShutdown</a> with the <code>QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT</code> flag.</p>
+<p>A caller should shutdown an active connection via <a href="ConnectionShutdown.html">ConnectionShutdown</a> before calling
+<code>ConnectionClose</code>. Calling <code>ConnectionClose</code> without <a href="ConnectionShutdown.html">ConnectionShutdown</a> will abortively and
+silently shutdown the connection as well as all associated streams through an implicit call to
+<a href="ConnectionShutdown.html">ConnectionShutdown</a> with the <code>QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT</code> flag.</p>
 <p>A server application <strong>MUST NOT</strong> call <code>ConnectionClose</code> within the <code>QUIC_LISTENER_EVENT_NEW_CONNECTION</code> callback when returning failure, to reject a connection. This will result in a double-free in release builds, and an assert in debug builds.  It's acceptable to call <code>ConnectionClose</code> within the <code>QUIC_LISTENER_EVENT_NEW_CONNECTION</code> callback if returning <code>QUIC_STATUS_SUCCESS</code>, or <code>QUIC_STATUS_PENDING</code>, since the server application owns the connection object then.</p>
-<p><code>ConnectionClose</code> is the <strong>last</strong> API call to use a connection handle. An application <strong>MUST NOT</strong> use a connection handle after calling <code>ConnectionClose</code>! Any calls using a connection handle after calling <code>ConnectionClose</code> is a use-after-free.</p>
+<p><code>ConnectionClose</code> is equivalent to <code>free</code> and <strong>MUST</strong> be the final call on a connection handle.
+Any API calls using a connection handle after <code>ConnectionClose</code> has been called is a use-after-free error!</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="ConnectionOpen.html">ConnectionOpen</a><br>
 <a href="ConnectionShutdown.html">ConnectionShutdown</a><br>

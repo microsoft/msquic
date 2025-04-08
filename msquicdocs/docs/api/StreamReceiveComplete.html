@@ -98,12 +98,34 @@ void
     );
 </code></pre>
 <h1 id="parameters">Parameters</h1>
-<p><strong>TODO</strong></p>
+<ul>
+<li><code>Stream</code>: A handle to a valid stream</li>
+<li><code>BufferLength</code>: The number of bytes processed by the application</li>
+</ul>
 <h1 id="remarks">Remarks</h1>
-<p>This is an asynchronous API but can run inline if called in a callback.
-The application, without setting <code>StreamMultiReceiveEnabled</code>, must ensure that one <code>StreamReceiveComplete</code> call corresponds to one <code>QUIC_STREAM_EVENT_RECEIVE</code> event.
-Duplicate <code>StreamReceiveComplete</code> calls after one <code>QUIC_STREAM_EVENT_RECEIVE</code> event are ignored silently even with different <code>BufferLength</code>.
-The <code>StreamMultiReceiveEnabled</code> mode doesn't follow this rule. Multiple <code>QUIC_STREAM_EVENT_RECEIVE</code> events can be indicated at once by <code>StreamReceiveComplete</code>. The application needs to keep track of accumulated <code>TotalBufferLength</code> with this mode.</p>
+<p>This is an asynchronous API but can run inline if called in a callback.</p>
+<h2 id="default-behavior">Default behavior</h2>
+<p>The application must ensure that for each <code>QUIC_STREAM_EVENT_RECEIVE</code> processed asynchronously (<code>QUIC_STATUS_PENDING</code>
+was returned from the callback), <code>StreamReceiveComplete</code> is called exactly once.</p>
+<p>The application must ensure it calls <code>StreamReceiveComplete</code> a single time for every <code>QUIC_STREAM_EVENT_RECEIVE</code>
+processed asynchronously. Duplicate <code>StreamReceiveComplete</code> calls are ignored silently if no <code>QUIC_STREAM_EVENT_RECEIVE</code>
+is pending when the call is processed, but they could race with a new <code>QUIC_STREAM_EVENT_RECEIVE</code> event and complete it,
+likely breaking the app data processing.</p>
+<p>If <code>BufferLength</code> is smaller than the number of bytes indicated in the matching <code>QUIC_STREAM_EVENT_RECEIVE</code>, MsQuic will
+stop indicating new <code>QUIC_STREAM_EVENT_RECEIVE</code> events until a call to <a href="StreamReceiveSetEnabled.html"><code>StreamReceiveSetEnabled</code></a>.</p>
+<h2 id="multi-receive-mode">Multi-receive Mode</h2>
+<p>If Multi-receive mode has been enabled on the connection, the behavior is different from default behavior detailed above.</p>
+<p>In Multi-receive mode, calls to <code>StreamReceiveComplete</code> do not need to match <code>QUIC_STREAM_EVENT_RECEIVE</code>: there can be
+either more or fewer calls to <code>StreamReceiveComplete</code> than <code>QUIC_STREAM_EVENT_RECEIVE</code> events.</p>
+<p>MsQuic will keep on indicating <code>QUIC_STREAM_EVENT_RECEIVE</code> irrespectively from calls to <code>StreamReceiveComplete</code> and the
+value of <code>BufferLength</code>.</p>
+<p>The application must keep track of the accumulated <code>TotalBufferLength</code> from <code>QUIC_STREAM_EVENT_RECEIVE</code> events and
+ensure that:</p>
+<ul>
+<li>the sum of all <code>BufferLength</code> parameters in <code>StreamReceiveComplete</code> calls is always smaller or equal than the number
+of bytes received on the stream</li>
+<li>all bytes received are eventually completed in <code>StreamReceiveComplete</code> call OR the stream is aborted.</li>
+</ul>
 <h1 id="see-also">See Also</h1>
 <p><a href="StreamOpen.html">StreamOpen</a><br>
 <a href="StreamClose.html">StreamClose</a><br>

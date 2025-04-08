@@ -101,8 +101,12 @@ void
 <p><code>Listener</code></p>
 <p>A valid handle to an open listener object.</p>
 <h1 id="remarks">Remarks</h1>
-<p><code>ListenerClose</code> frees all allocated resources associated with the listener handle. If a listener has not had <a href="ListenerStop.html">ListenerStop</a> called on it at the time <code>ListenerClose</code> is called, <a href="ListenerStop.html">ListenerStop</a> is invoked internally. A server application <strong>MUST NOT</strong> call <code>ListenerClose</code> within any callback except for <code>QUIC_LISTENER_EVENT_STOP_COMPLETE</code>, unless it has already received the <code>QUIC_LISTENER_EVENT_STOP_COMPLETE</code> event.</p>
-<p><code>ListenerClose</code> is equivalent to <code>free</code> and <strong>MUST</strong> be the final call on a listener handle. Any API calls using a listener handle after <code>ListenerClose</code> has been called is a use-after-free error!</p>
+<p><code>ListenerClose</code> frees all allocated resources associated with the listener handle. If a listener has not had <a href="ListenerStop.html">ListenerStop</a> called on it at the time <code>ListenerClose</code> is called, <a href="ListenerStop.html">ListenerStop</a> is invoked internally.</p>
+<p>A call to <code>ListenerClose</code> is blocking: a server application <strong>MUST NOT</strong> call <code>ListenerClose</code> within any callback,
+unless it received the <code>QUIC_LISTENER_EVENT_STOP_COMPLETE</code> event, previously or as the current event.
+Calling <code>ListenerClose</code> in a callback before the <code>QUIC_LISTENER_EVENT_STOP_COMPLETE</code> event may cause a deadlock.</p>
+<p><code>ListenerClose</code> is equivalent to <code>free</code> and <strong>MUST</strong> be the final call on a listener handle.
+Any API calls using a listener handle after <code>ListenerClose</code> has been called is a use-after-free error!</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="ListenerOpen.html">ListenerOpen</a><br>
 <a href="ListenerStart.html">ListenerStart</a><br>
