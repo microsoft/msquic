@@ -5692,11 +5692,14 @@ QuicConnRecvDatagrams(
                 break;
             }
 
-            if (!Packet->IsShortHeader && BatchCount != 0) {
+            if ((BatchCount != 0) &&
+                (!Packet->IsShortHeader ||
+                (PrevPackKeyType != QUIC_PACKET_KEY_COUNT && PrevPackKeyType != Packet->KeyType))) {
                 //
                 // We already had some batched short header packets and then
-                // encountered a long header packet. Finish off the short
-                // headers first and then continue with the current packet.
+                // encountered a long header packet OR the current packet 
+                // has different key type. Finish off the batch first and
+                // then continue with the current packet.
                 //
                 QuicConnRecvDatagramBatch(
                     Connection,
@@ -5709,21 +5712,6 @@ QuicConnRecvDatagrams(
                     Cipher + BatchCount * CXPLAT_HP_SAMPLE_LENGTH,
                     Cipher,
                     CXPLAT_HP_SAMPLE_LENGTH);
-                BatchCount = 0;
-            }
-
-            if ((PrevPackKeyType != QUIC_PACKET_KEY_COUNT) &&
-                (PrevPackKeyType != Packet->KeyType) && (BatchCount != 0)) {
-                //
-                //  Dont batch different key type packets
-                //
-                QuicConnRecvDatagramBatch(
-                    Connection,
-                    CurrentPath,
-                    BatchCount,
-                    Batch,
-                    Cipher,
-                    &RecvState);
                 BatchCount = 0;
             }
 
