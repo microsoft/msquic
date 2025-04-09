@@ -43,9 +43,9 @@ fn cmake_build() {
 
     // By default enable schannel on windows, unless quictls feature is selected.
     if cfg!(windows) && !cfg!(feature = "quictls") {
-        config.define("QUIC_TLS", "schannel");
+        config.define("QUIC_TLS_LIB", "schannel");
     } else {
-        config.define("QUIC_TLS", "quictls");
+        config.define("QUIC_TLS_LIB", "quictls");
     }
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");
