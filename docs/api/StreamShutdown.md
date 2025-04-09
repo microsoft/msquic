@@ -33,6 +33,7 @@ Value | Meaning
 **QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND**<br>2 | Indicates the app is abortively shutting down the stream in the send direction.
 **QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE**<br>4 | Indicates the app is abortively shutting down the stream in the receive direction.
 **QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE**<br>8 | Indicates the app does not want to wait for the acknowledgment of the shutdown before getting the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event. Only allowed for abortive shutdowns.
+**QUIC_STREAM_SHUTDOWN_FLAG_INLINE**<br>10 | Indicates that the stream shutdown should be processed inmediately inline. This in only applicable for calls made within callbacks. WARNING: It can cause reentrant callbacks!
 
 `QUIC_STREAM_SHUTDOWN_FLAG_ABORT` is provided as a helper and is simply a logic OR of `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` and `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE`.
 
