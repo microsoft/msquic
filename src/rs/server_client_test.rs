@@ -204,6 +204,9 @@ fn test_server_client() {
         let stream_handler = move |stream: StreamRef, ev: StreamEvent| {
             println!("Client stream event: {ev:?}");
             match ev {
+                StreamEvent::StartComplete { id, .. } => {
+                    assert_eq!(stream.get_stream_id().unwrap(), id);
+                }
                 StreamEvent::SendComplete {
                     cancelled: _,
                     client_context,
