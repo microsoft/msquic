@@ -46,8 +46,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl", build: "-Test", xdp: "-UseXdp" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
         ]
     runs-on:
      - self-hosted
@@ -60,7 +60,7 @@ jobs:
     - name: Download Build Artifacts
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.imgtls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
+        name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} -InstallCodeCoverage
@@ -68,7 +68,7 @@ jobs:
     - name: Install ETW Manifest
       shell: pwsh
       run: |
-        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.imgtls }}\msquic.dll"
+        $MsQuicDll = ".\artifacts\bin\windows\${{ matrix.vec.arch }}_${{ matrix.vec.config }}_${{ matrix.vec.tls }}\msquic.dll"
         $ManifestPath = ".\src\manifest\MsQuicEtw.man"
         wevtutil.exe um $ManifestPath
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
