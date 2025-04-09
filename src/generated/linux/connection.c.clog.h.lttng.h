@@ -3,10 +3,10 @@
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketRxVersionNegotiation
-// [C][TX][-] VN
+// [C][RX][-] VN
 // QuicTraceLogVerbose(
         PacketRxVersionNegotiation,
-        "[C][TX][-] VN");
+        "[C][RX][-] VN");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegotiation,
     TP_ARGS(
@@ -19,10 +19,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegotiation,
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketRxVersionNegVer
-// [C][TX][-]   Ver[%d]: 0x%x
+// [C][RX][-]   Ver[%d]: 0x%x
 // QuicTraceLogVerbose(
             PacketRxVersionNegVer,
-            "[C][TX][-]   Ver[%d]: 0x%x",
+            "[C][RX][-]   Ver[%d]: 0x%x",
             (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
 // arg2 = arg2 = (int32_t)i = arg2

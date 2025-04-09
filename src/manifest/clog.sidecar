@@ -8214,14 +8214,14 @@
     },
     "PacketRxVersionNegotiation": {
       "ModuleProperites": {},
-      "TraceString": "[C][TX][-] VN",
+      "TraceString": "[C][RX][-] VN",
       "UniqueId": "PacketRxVersionNegotiation",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
     "PacketRxVersionNegVer": {
       "ModuleProperites": {},
-      "TraceString": "[C][TX][-]   Ver[%d]: 0x%x",
+      "TraceString": "[C][RX][-]   Ver[%d]: 0x%x",
       "UniqueId": "PacketRxVersionNegVer",
       "splitArgs": [
         {
@@ -16329,14 +16329,14 @@
         "EncodingString": "[S][RX][-] SR %s"
       },
       {
-        "UniquenessHash": "2b9ae921-d91b-43c5-ae24-347669e9476d",
+        "UniquenessHash": "46f11126-1b95-7be6-d4b5-355e596c8e8e",
         "TraceID": "PacketRxVersionNegotiation",
-        "EncodingString": "[C][TX][-] VN"
+        "EncodingString": "[C][RX][-] VN"
       },
       {
-        "UniquenessHash": "2c479fb4-18d6-413d-ce18-ea47d4bb8271",
+        "UniquenessHash": "0026470e-9655-96a1-ef44-5e613a17a5dc",
         "TraceID": "PacketRxVersionNegVer",
-        "EncodingString": "[C][TX][-]   Ver[%d]: 0x%x"
+        "EncodingString": "[C][RX][-]   Ver[%d]: 0x%x"
       },
       {
         "UniquenessHash": "9d72c640-7512-38fd-8823-f24b7e1ad94c",

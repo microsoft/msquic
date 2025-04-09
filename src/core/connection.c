@@ -3414,7 +3414,7 @@ QuicConnRecvVerNeg(
     //
     QuicTraceLogVerbose(
         PacketRxVersionNegotiation,
-        "[C][TX][-] VN");
+        "[C][RX][-] VN");
     for (uint16_t i = 0; i < ServerVersionListLength; i++) {
 
         uint32_t ServerVersion;
@@ -3422,7 +3422,7 @@ QuicConnRecvVerNeg(
 
         QuicTraceLogVerbose(
             PacketRxVersionNegVer,
-            "[C][TX][-]   Ver[%d]: 0x%x",
+            "[C][RX][-]   Ver[%d]: 0x%x",
             (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
 
@@ -5697,7 +5697,7 @@ QuicConnRecvDatagrams(
                 (PrevPackKeyType != QUIC_PACKET_KEY_COUNT && PrevPackKeyType != Packet->KeyType))) {
                 //
                 // We already had some batched short header packets and then
-                // encountered a long header packet OR the current packet 
+                // encountered a long header packet OR the current packet
                 // has different key type. Finish off the batch first and
                 // then continue with the current packet.
                 //
