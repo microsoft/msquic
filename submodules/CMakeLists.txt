@@ -91,7 +91,7 @@ if (WIN32)
     endif()
 
     # guard:cf does not work on OpenSSL
-    # https://github.com/quictls/quictls/issues/16147
+    # https://github.com/openssl/openssl/issues/16147
     # if(HAS_GUARDCF)
     #     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
     # endif()
