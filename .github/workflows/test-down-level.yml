@@ -71,7 +71,7 @@ jobs:
       run: |
         chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}/msquictest
         $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}"
-        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.imgtls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
       run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
