@@ -25,20 +25,20 @@ jobs:
       matrix:
         vec: [
           # v2.2
-          { release: "2.2.6",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { release: "2.2.6",  os: "ubuntu-22.04", arch: "x64", tls: "quictls3" },
           { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "quictls" },
+          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "quictls3" },
           # v2.3
-          { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "quictls3" },
           { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "quictls" },
+          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "quictls3" },
           # v2.4
-          { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
+          { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "quictls3" },
           { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "quictls" },
+          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "quictls3" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
