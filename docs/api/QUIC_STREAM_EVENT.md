@@ -83,7 +83,7 @@ The `QUIC_STREAM_EVENT_TYPE` that indicates which type of event this is, and whi
 
 ## QUIC_STREAM_EVENT_START_COMPLETE
 
-This event is delivered when the [StreamStart](streamStart.md) operation completes. The accompanying payload contains data to indicate whether the operation succeeded or failed.
+This event is delivered when the [StreamStart](StreamStart.md) operation completes. The accompanying payload contains data to indicate whether the operation succeeded or failed.
 
 ### START_COMPLETE
 
