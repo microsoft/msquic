@@ -59,7 +59,7 @@
             "cacheVariables": {
                 "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/windows/x64_Debug_schannel",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "QUIC_TLS": "schannel"
+                "QUIC_TLS_LIB": "schannel"
             }
         },
         {
@@ -74,7 +74,7 @@
             "cacheVariables": {
                 "QUIC_OUTPUT_DIR": "${sourceDir}/artifacts/bin/linux/x64_Debug_openssl",
                 "CMAKE_BUILD_TYPE": "Debug",
-                "QUIC_TLS": "openssl"
+                "QUIC_TLS_LIB": "openssl"
             }
         }
     ],

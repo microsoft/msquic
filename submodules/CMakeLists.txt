@@ -13,8 +13,8 @@ project(OpenSSLQuic)
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 
-if(QUIC_TLS STREQUAL "quictls" OR QUIC_TLS STREQUAL "quictls3")
-    if(QUIC_TLS STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "quictls3")
+    if(QUIC_TLS_LIB STREQUAL "quictls")
         message(STATUS "Configuring for OpenSSL 1.1")
         set(EXPECTED_OPENSSL_VERSION 1.1.1)
         set(QUIC_OPENSSL quictls)
@@ -25,7 +25,7 @@ if(QUIC_TLS STREQUAL "quictls" OR QUIC_TLS STREQUAL "quictls3")
         set(QUIC_OPENSSL quictls3)
     endif()
 else()
-    message(FATAL_ERROR "Unsupported QUIC_TLS ${QUIC_TLS}")
+    message(FATAL_ERROR "Unsupported QUIC_TLS_LIB ${QUIC_TLS_LIB}")
 endif()
 
 set(OPENSSL_DIR ${QUIC_BUILD_DIR}/${QUIC_OPENSSL})
@@ -91,7 +91,7 @@ if (WIN32)
     endif()
 
     # guard:cf does not work on OpenSSL
-    # https://github.com/quictls/quictls/issues/16147
+    # https://github.com/openssl/openssl/issues/16147
     # if(HAS_GUARDCF)
     #     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
     # endif()
@@ -179,7 +179,7 @@ else()
 
     # Figure out the default cert directory
     execute_process(
-        COMMAND quictls version -d
+        COMMAND openssl version -d
         RESULT_VARIABLE OPENSSL_VERSION_RESULT
         OUTPUT_VARIABLE FULL_OPENSSL_CERT_DIR)
 
