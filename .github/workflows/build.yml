@@ -120,12 +120,12 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No quictls system crypto on ubuntu-22.04
+        # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
           tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No quictls system crypto on ubuntu-24.04
+        # No openssl system crypto on ubuntu-24.04
         - plat: linux
           os: 'ubuntu-24.04'
           tls: 'quictls'
