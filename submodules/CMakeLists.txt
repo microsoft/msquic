@@ -179,7 +179,7 @@ else()
 
     # Figure out the default cert directory
     execute_process(
-        COMMAND quictls version -d
+        COMMAND openssl version -d
         RESULT_VARIABLE OPENSSL_VERSION_RESULT
         OUTPUT_VARIABLE FULL_OPENSSL_CERT_DIR)
 
