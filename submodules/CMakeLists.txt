@@ -11,18 +11,18 @@ cmake_minimum_required(VERSION 3.16)
 project(OpenSSLQuic)
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
-option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 
-if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
-    if(QUIC_TLS STREQUAL "openssl")
+if(QUIC_TLS STREQUAL "quictls" OR QUIC_TLS STREQUAL "quictls3")
+    if(QUIC_TLS STREQUAL "quictls")
         message(STATUS "Configuring for OpenSSL 1.1")
         set(EXPECTED_OPENSSL_VERSION 1.1.1)
-        set(QUIC_OPENSSL openssl)
+        set(QUIC_OPENSSL quictls)
     else()
         set(QUIC_USE_OPENSSL3 ON)
         message(STATUS "Configuring for OpenSSL 3.x")
         set(EXPECTED_OPENSSL_VERSION 3.0)
-        set(QUIC_OPENSSL openssl3)
+        set(QUIC_OPENSSL quictls3)
     endif()
 else()
     message(FATAL_ERROR "Unsupported QUIC_TLS ${QUIC_TLS}")
@@ -91,7 +91,7 @@ if (WIN32)
     endif()
 
     # guard:cf does not work on OpenSSL
-    # https://github.com/openssl/openssl/issues/16147
+    # https://github.com/quictls/quictls/issues/16147
     # if(HAS_GUARDCF)
     #     list(APPEND OPENSSL_EXTRA_CONFIGURE_ARGS /guard:cf)
     # endif()
@@ -117,7 +117,7 @@ if (WIN32)
     # Create working and output directories as needed
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/${QUIC_OPENSSL}/openssl/debug)
+    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/${QUIC_OPENSSL}/quictls/debug)
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release)
 
     # Configure steps for debug and release variants
@@ -179,7 +179,7 @@ else()
 
     # Figure out the default cert directory
     execute_process(
-        COMMAND openssl version -d
+        COMMAND quictls version -d
         RESULT_VARIABLE OPENSSL_VERSION_RESULT
         OUTPUT_VARIABLE FULL_OPENSSL_CERT_DIR)
 
@@ -301,7 +301,7 @@ else()
     if (QUIC_USE_OPENSSL3 AND QUIC_USE_SYSTEM_LIBCRYPTO)
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see openssl3/ssl/build.info
+        # To fix that we need little hackery - see quictls3/ssl/build.info
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
