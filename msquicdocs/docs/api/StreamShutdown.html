@@ -131,6 +131,10 @@ QUIC_STATUS
 <td><strong>QUIC_STREAM_SHUTDOWN_FLAG_IMMEDIATE</strong><br>8</td>
 <td>Indicates the app does not want to wait for the acknowledgment of the shutdown before getting the <code>QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE</code> event. Only allowed for abortive shutdowns.</td>
 </tr>
+<tr>
+<td><strong>QUIC_STREAM_SHUTDOWN_FLAG_INLINE</strong><br>10</td>
+<td>Indicates that the stream shutdown should be processed inmediately inline. This in only applicable for calls made within callbacks. WARNING: It can cause reentrant callbacks!</td>
+</tr>
 </tbody>
 </table>
 <p><code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT</code> is provided as a helper and is simply a logic OR of <code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND</code> and <code>QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE</code>.</p>
