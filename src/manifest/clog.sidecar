@@ -2473,7 +2473,7 @@
     },
     "ConnVersionSet": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] QUIC Version: %u",
+      "TraceString": "[conn][%p] QUIC Version: 0x%x",
       "UniqueId": "ConnVersionSet",
       "splitArgs": [
         {
@@ -2481,7 +2481,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
         }
       ],
@@ -8208,6 +8208,29 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PacketRxVersionNegotiation": {
+      "ModuleProperites": {},
+      "TraceString": "[C][TX][-] VN",
+      "UniqueId": "PacketRxVersionNegotiation",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PacketRxVersionNegVer": {
+      "ModuleProperites": {},
+      "TraceString": "[C][TX][-]   Ver[%d]: 0x%x",
+      "UniqueId": "PacketRxVersionNegVer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -14606,9 +14629,9 @@
         "EncodingString": "[conn][%p] Unregistered from %p"
       },
       {
-        "UniquenessHash": "8fbe1b93-5e48-0738-c64d-8e60a387bc13",
+        "UniquenessHash": "4dba1f55-4a25-f194-dc19-c0d6beba3de7",
         "TraceID": "ConnVersionSet",
-        "EncodingString": "[conn][%p] QUIC Version: %u"
+        "EncodingString": "[conn][%p] QUIC Version: 0x%x"
       },
       {
         "UniquenessHash": "6a04dcf8-d84b-933c-ab7a-6f700e5111d2",
@@ -16304,6 +16327,16 @@
         "UniquenessHash": "74a3473b-5ac0-6376-652d-882aac50b01a",
         "TraceID": "PacketRxStatelessReset",
         "EncodingString": "[S][RX][-] SR %s"
+      },
+      {
+        "UniquenessHash": "2b9ae921-d91b-43c5-ae24-347669e9476d",
+        "TraceID": "PacketRxVersionNegotiation",
+        "EncodingString": "[C][TX][-] VN"
+      },
+      {
+        "UniquenessHash": "2c479fb4-18d6-413d-ce18-ea47d4bb8271",
+        "TraceID": "PacketRxVersionNegVer",
+        "EncodingString": "[C][TX][-]   Ver[%d]: 0x%x"
       },
       {
         "UniquenessHash": "9d72c640-7512-38fd-8823-f24b7e1ad94c",

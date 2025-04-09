@@ -579,7 +579,7 @@ QuicConnTraceRundownOper(
     if (Connection->Stats.QuicVersion != 0) {
         QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] QUIC Version: %u",
+            "[conn][%p] QUIC Version: 0x%x",
             Connection,
             Connection->Stats.QuicVersion);
     }
@@ -1715,7 +1715,7 @@ QuicConnOnQuicVersionSet(
 {
     QuicTraceEvent(
         ConnVersionSet,
-        "[conn][%p] QUIC Version: %u",
+        "[conn][%p] QUIC Version: 0x%x",
         Connection,
         Connection->Stats.QuicVersion);
 
@@ -3412,19 +3412,17 @@ QuicConnRecvVerNeg(
     // requested version. If it does, we are supposed to ignore it. Cache the
     // first supported version.
     //
-    QuicTraceLogConnVerbose(
-        RecvVerNeg,
-        Connection,
-        "Received Version Negotation:");
+    QuicTraceLogVerbose(
+        PacketRxVersionNegotiation,
+        "[C][TX][-] VN");
     for (uint16_t i = 0; i < ServerVersionListLength; i++) {
 
         uint32_t ServerVersion;
         CxPlatCopyMemory(&ServerVersion, &ServerVersionList[i], sizeof(ServerVersion));
 
-        QuicTraceLogConnVerbose(
-            VerNegItem,
-            Connection,
-            "  Ver[%d]: 0x%x",
+        QuicTraceLogVerbose(
+            PacketRxVersionNegVer,
+            "[C][TX][-]   Ver[%d]: 0x%x",
             (int32_t)i,
             CxPlatByteSwapUint32(ServerVersion));
 
