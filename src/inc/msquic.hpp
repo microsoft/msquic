@@ -94,7 +94,7 @@ struct CxPlatPool {
     CxPlatPool(uint32_t Size, uint32_t Tag = 0, bool IsPaged = false) noexcept { CxPlatPoolInitialize(IsPaged, Size, Tag, &Handle); }
     ~CxPlatPool() noexcept { CxPlatPoolUninitialize(&Handle); }
     void* Alloc() noexcept { return CxPlatPoolAlloc(&Handle); }
-    void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
+    void Free(void* Ptr) noexcept { CxPlatPoolFree(Ptr); }
 };
 
 //
@@ -131,7 +131,7 @@ public:
     void Free(T* Obj) noexcept {
         if (Obj != nullptr) {
             Obj->~T();
-            CxPlatPoolFree(&Pool, Obj);
+            CxPlatPoolFree(Obj);
         }
     }
 };
@@ -396,6 +396,20 @@ class UniquePtrArray {
 public:
     UniquePtrArray() : ptr(nullptr) { }
     UniquePtrArray(T* _ptr) : ptr(_ptr) { }
+    UniquePtrArray(const UniquePtrArray& other) = delete;
+    UniquePtrArray(UniquePtrArray&& other) noexcept {
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+    }
+    UniquePtrArray& operator=(const UniquePtrArray& other) = delete;
+    UniquePtrArray& operator=(UniquePtrArray&& other) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
     ~UniquePtrArray() { delete [] ptr; }
     T* get() { return ptr; }
     const T* get() const { return ptr; }
@@ -404,6 +418,8 @@ public:
     operator bool() const { return ptr != nullptr; }
     bool operator == (T* _ptr) const { return ptr == _ptr; }
     bool operator != (T* _ptr) const { return ptr != _ptr; }
+    T& operator[](size_t i) { return ptr[i]; }
+    const T& operator[](size_t i) const { return ptr[i]; }
 };
 
 class MsQuicApi : public QUIC_API_TABLE {
@@ -644,6 +660,7 @@ public:
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
+    MsQuicSettings& SetQtipEnabled(bool value) { QTIPEnabled = value; IsSet.QTIPEnabled = TRUE; return *this; }
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
     MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }
@@ -1717,6 +1734,8 @@ struct ConnectionScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+static_assert(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct StreamScope {
     HQUIC Handle;
     StreamScope() noexcept : Handle(nullptr) { }
@@ -1725,6 +1744,8 @@ struct StreamScope {
     operator HQUIC() const noexcept { return Handle; }
 };
 
+static_assert(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
+
 struct ConfigurationScope {
     HQUIC Handle;
     ConfigurationScope() noexcept : Handle(nullptr) { }
@@ -1732,6 +1753,8 @@ struct ConfigurationScope {
     ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
     operator HQUIC() const noexcept { return Handle; }
 };
+
+static_assert(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
@@ -1745,5 +1768,7 @@ struct QuicBufferScope {
     operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
 };
+
+static_assert(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
 
 #endif  //  _MSQUIC_HPP_

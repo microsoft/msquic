@@ -48,7 +48,13 @@ include = [
 path = "src/rs/lib.rs"
 
 [features]
-default = []
+default = ["src"]
+# Build c code from source
+src = [ "dep:cmake" ]
+# Find prebuilt msquic. Use vcpkg installed location on Windows,
+# while use system installed location on linux.
+# MacOs is not supported.
+find = [] 
 # Windows uses schannel, and linux uses openssl by default. 
 # This feature enables openssl on windows, and has no effect on linux.
 openssl = []
@@ -58,7 +64,7 @@ preview-api = []
 overwrite = [ "dep:bindgen" ]
 
 [build-dependencies]
-cmake = "0.1"
+cmake = { version = "0.1", optional = true }
 bindgen = { version = "0.71", optional = true }
 
 [dependencies]

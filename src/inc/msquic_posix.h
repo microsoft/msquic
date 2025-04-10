@@ -111,6 +111,7 @@ inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYP
 #define QUIC_STATUS_INVALID_STATE           ((QUIC_STATUS)EPERM)            // 1
 #define QUIC_STATUS_NOT_SUPPORTED           ((QUIC_STATUS)EOPNOTSUPP)       // 95   (102 on macOS)
 #define QUIC_STATUS_NOT_FOUND               ((QUIC_STATUS)ENOENT)           // 2
+#define QUIC_STATUS_FILE_NOT_FOUND          QUIC_STATUS_NOT_FOUND           // 2
 #define QUIC_STATUS_BUFFER_TOO_SMALL        ((QUIC_STATUS)EOVERFLOW)        // 75   (84 on macOS)
 #define QUIC_STATUS_HANDSHAKE_FAILURE       ((QUIC_STATUS)ECONNABORTED)     // 103  (53 on macOS)
 #define QUIC_STATUS_ABORTED                 ((QUIC_STATUS)ECANCELED)        // 125  (89 on macOS)

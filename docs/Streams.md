@@ -32,27 +32,42 @@ For peer initiated streams, the app gets a `QUIC_CONNECTION_EVENT_PEER_STREAM_ST
 
 # Sending
 
-An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API send data. MsQuic holds on to any buffers queued via [StreamSend](api/StreamSend.md) until they have been completed via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+An app can send on any locally initiated stream or a peer initiated bidirectional stream. The app uses the [StreamSend](api/StreamSend.md) API to send data.
+
+MsQuic takes ownership of any buffers successfully queued via [StreamSend](api/StreamSend.md). Buffer ownership is
+returned to the application via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event. The application must not free, reuse or
+otherwise access a buffer provided to [StreamSend](api/StreamSend.md) until the matching
+`QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+
+![Note]
+> `QUIC_STREAM_EVENT_SEND_COMPLETE` does not mean the data has been received by the peer application layer.
+> It only means that MsQuic no longer needs the app send buffer and give the owernship back to the application. The app
+> should *not* assume the data has been successfully transmitted based on this notification.
 
 ## Send Buffering
 
-There are two buffering modes for sending supported by MsQuic. The first mode has MsQuic buffer the stream data internally. As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event. If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.
+**By default**, MsQuic buffers the stream data internally when [StreamSend](api/StreamSend.md) is called by an app.
+As long as there is room to buffer the data, MsQuic will copy the data locally and then immediately complete the send back to the app, via the `QUIC_STREAM_EVENT_SEND_COMPLETE` event.
+If there is no room to copy the data, then MsQuic will hold onto the buffer until there is room.
 
-With this mode, the app can "keep the pipe full" using only a single outstanding send. It continually keeps a send pending on the stream. When the send is completed, the app immediately queues a send again with any new data it has.
+With this mode, the app can easily "keep the pipe full" using only a single outstanding send: It continually keeps a single send pending on the stream. As soon as the send is completed, the app immediately queues a new send again with any new data it needs to transmit.
 
-This is seen by many as the simplest design for apps, but does introduce an additional copy in the data path, which has some performance draw backs. **This is the default MsQuic behavior.**
+This is seen by many as the simplest design for apps, and it allows great performances by ensuring MsQuic send path never runs idle.
+However, internal buffering introduces an additional copy in the data path, which can be a performance draw back for some application.
 
-The other buffering mode supported by MsQuic requires no internal copy of the data. MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
+MsQuic also supports another buffering mode that requires no internal copy of the data: MsQuic holds onto the app buffers until all the data has been acknowledged by the peer.
 
-To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle. MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event. The app should always have at least two sends pending at a time. If only a single send is used, the connection can go idle for the time between that send is completed and the new send is queued.
+To fill the pipe in this mode, the app is responsible for keeping enough sends pending at all times to ensure the connection doesn't go idle.
+MsQuic indicates the amount of data the app should keep pending in the `QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE` event.
+The app should always have at least two sends pending at a time: If only a single send is used, the connection will go idle for the interval of time between when a send is completed and a new send is queued.
 
-By default, this mode is not used. To enable this mode, the app must call [SetParam](api/SetParam.md) on the connection with the `QUIC_PARAM_CONN_SEND_BUFFERING` parameter set to `FALSE`.
+To disable internal send buffering and use the second mode, the app must set `SendBufferingEnabled` to `FALSE` through [MsQuic settings](Settings.md).
 
 ## Send Shutdown
 
 The send direction can be shut down in three different ways:
 
-- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](api/StreamSend.md) call. In this scenario all data will be delivered to the peer and then the peer is informed the stream has been gracefully shut down.
+- **Graceful** - The sender can gracefully shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_GRACEFUL` flag or by including the `QUIC_SEND_FLAG_FIN` flag on the last [StreamSend](api/StreamSend.md) call. In this scenario all data will first be delivered to the peer, then the peer is informed the stream has been gracefully shut down.
 
 - **Sender Abort** - The sender can abortively shut down the send direction by calling [StreamShutdown](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_SEND` flag. In this scenario, all outstanding sends are immediately canceled and are not delivered to the peer. The peer is immediately informed of the abort.
 
@@ -78,6 +93,14 @@ When using default settings, the buffer count is 1 the majority of the time, whi
 The application can optimize its processing for that case but should be ready to handle any number of `QUIC_BUFFER`s.
 
 When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.
+
+## Summary - Common handling of receive data events
+
+If the application...
+ - processes all the received data synchronously in the stream event handler, `QUIC_STREAM_EVENT.RECEIVE.TotalBufferLength` parameter must be left unchanged and `QUIC_STATUS_SUCCESS` must be returned from the handler.
+ - could process only part of the received buffer synchronously in the stream event handler call and wants to process the remaining data in a subsequent event handler call, it **must** be indicated to MsQuic by setting this parameter to the byte count processed and returning `QUIC_STATUS_CONTINUE` from this call.
+ - desires to process the received data asynchronously, it should return `QUIC_STATUS_PENDING` from the event handler call.
+
 
 ## Handling a receive event
 
@@ -171,3 +194,21 @@ MsQuic does not enforce it, and it is legal for an application to provide less b
 
 After the initial receive window is full, flow control will ensure that the peer does not send more data than there is buffer space available.
 However, the application should still provide enough buffer space to keep flow control from impacting performances.
+
+## Receive Shutdown
+
+The receiver can abortively shutdown a stream receive direction by calling [`StreamShutdown`](api/StreamShutdown.md) 
+with the `QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE` option.
+
+# Closing a Stream
+
+Once a stream has been shutdown (in both direction for a bi-directional stream), the application receives a
+`QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.
+
+The application must then close the stream using [`StreamClose`](api/StreamClose.md), and can release its context
+pointer safely once the call returns.
+
+If the app closes a stream before it is shutdown, the stream will be shutdown abortively with an error code of `0`.
+This should be avoided; instead the app should abortively shutdown the stream first with a meaningful error code.
+It is possible for an application to abortively shutdown a stream and immediately close it from the same thread,
+without waiting for the `QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE` event.

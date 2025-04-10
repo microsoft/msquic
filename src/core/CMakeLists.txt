@@ -16,12 +16,14 @@ set(SOURCES
     configuration.c
     congestion_control.c
     connection.c
+    connection_pool.c
     crypto.c
     crypto_tls.c
     cubic.c
     bbr.c
     datagram.c
     frame.c
+    partition.c
     library.c
     listener.c
     lookup.c

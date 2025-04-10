@@ -478,6 +478,19 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
+typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
+    union {
+    CXPLAT_POOL* Owner;
+    CXPLAT_SLIST_ENTRY Entry;
+    };
+#if DEBUG
+    uint64_t SpecialFlag;
+#endif
+} CXPLAT_POOL_HEADER;
+
+#define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAull
+#define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ull
+
 #ifndef DISABLE_CXPLAT_POOL
 #define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 #else
@@ -485,12 +498,6 @@ typedef struct CXPLAT_POOL {
 #endif
 
 #if DEBUG
-typedef struct CXPLAT_POOL_ENTRY {
-    CXPLAT_SLIST_ENTRY ListHead;
-    uint64_t SpecialFlag;
-} CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
-
 int32_t
 CxPlatGetAllocFailDenominator(
     );
@@ -505,10 +512,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
-    Pool->Size = Size;
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the pool header
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
@@ -522,16 +526,11 @@ CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry;
-    CxPlatLockAcquire(&Pool->Lock);
-    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
-        Pool->ListDepth--;
-        CxPlatLockRelease(&Pool->Lock);
+    CXPLAT_POOL_HEADER* Entry;
+    while ((Entry = (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
         CxPlatFree(Entry, Pool->Tag);
-        CxPlatLockAcquire(&Pool->Lock);
     }
-    CxPlatLockRelease(&Pool->Lock);
     CxPlatLockUninitialize(&Pool->Lock);
 }
 
@@ -541,49 +540,52 @@ CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    if (CxPlatGetAllocFailDenominator()) {
-        return CxPlatAlloc(Pool->Size, Pool->Tag);
-    }
-#endif
     CxPlatLockAcquire(&Pool->Lock);
-    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
-    if (Entry != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+    CXPLAT_POOL_HEADER* Header =
+    #if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
+    #endif
+        (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead);
+    if (Header != NULL) {
+        CXPLAT_DBG_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
         Pool->ListDepth--;
     }
     CxPlatLockRelease(&Pool->Lock);
-    if (Entry == NULL) {
-        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+    if (Header == NULL) {
+        Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
+        if (Header == NULL) {
+            return NULL;
+        }
     }
 #if DEBUG
-    if (Entry != NULL) {
-        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
-    }
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
-    return Entry;
+    Header->Owner = Pool;
+    return (void*)((uint8_t*)Header + sizeof(CXPLAT_POOL_HEADER));
 }
 
 inline
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
+    _In_ void* Memory
     )
 {
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
+    CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
-        CxPlatFree(Entry, Pool->Tag);
+        CxPlatFree(Header, Pool->Tag);
         return;
     }
-    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    Header->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
-        CxPlatFree(Entry, Pool->Tag);
+        CxPlatFree(Header, Pool->Tag);
     } else {
         CxPlatLockAcquire(&Pool->Lock);
-        CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY*)Entry);
+        CxPlatListPushEntry(&Pool->ListHead, &Header->Entry);
         Pool->ListDepth++;
         CxPlatLockRelease(&Pool->Lock);
     }

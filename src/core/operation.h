@@ -329,7 +329,7 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_TYPE Type
     );
 
@@ -339,7 +339,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -367,6 +366,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -379,6 +379,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueuePriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -390,6 +391,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -399,7 +401,8 @@ QuicOperationEnqueueFront(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationDequeue(
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     );
 
 //
@@ -408,6 +411,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     );

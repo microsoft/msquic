@@ -43,6 +43,17 @@ This table describes all officially supported MsQuic releases.
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
 
+## Platforms
+
+We officially support the following operating systems and architectures.
+
+| OS | Architectures |
+| -- | -- |
+| Windows | x64, arm64 |
+| Linux | x64, arm64, arm32 |
+
+MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but is not currently *officially* supported.
+
 # Publishing a Release
 
 ## Create a New Release Branch
@@ -108,7 +119,7 @@ Prerequisites:
 - Powershell
 
 1. Checkout to release tag. (e.g. `git checkout v2.4.7`)
-1. Run `generate-alpine-packaging-file.ps1` script on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
+1. Run `generate-alpine-packaging-file.ps1` script from the repository root on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
 1. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org). Create an account and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
 1. If you didn't fork `aports` repository yet, Fork `https://gitlab.alpinelinux.org/alpine/aports`.
 1. Clone `https://gitlab.alpinelinux.org/<your_username>/aports` repository.

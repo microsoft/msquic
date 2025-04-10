@@ -55,10 +55,6 @@ RawDataPathInitialize(
 
     DataPath->WorkerPool = WorkerPool;
 
-    if (Config && (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_QTIP)) {
-        DataPath->UseTcp = TRUE;
-    }
-
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
@@ -202,11 +198,11 @@ RawSocketDelete(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_ROUTE* Route
     )
 {
     // Reserve space for TCP header.
-    return Socket->UseTcp ? 1488 : 1500;
+    return Route->UseQTIP ? 1488 : 1500;
 
 }
 
@@ -233,9 +229,9 @@ CxPlatDpRawRxEthernet(
         }
 
         if (Socket) {
+            CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Socket->ReserveAuxTcpSock == PacketChain->Route->UseQTIP);
             if (PacketChain->Reserved == L4_TYPE_UDP || PacketChain->Reserved == L4_TYPE_TCP) {
-                uint8_t SocketType = Socket->UseTcp ? L4_TYPE_TCP : L4_TYPE_UDP;
-
+                uint8_t SocketType = PacketChain->Route->UseQTIP ? L4_TYPE_TCP : L4_TYPE_UDP;
                 //
                 // Found a match. Chain and deliver contiguous packets with the same 4-tuple.
                 //
@@ -289,11 +285,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    return CxPlatDpRawTxAlloc(Socket, Config);
+    return CxPlatDpRawTxAlloc(Config);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -349,7 +344,8 @@ RawSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Socket->UseTcp &&
+    CXPLAT_DBG_ASSERT(!Socket->HasFixedRemoteAddress || Route->UseQTIP == Socket->ReserveAuxTcpSock);
+    if (Route->UseQTIP &&
         Socket->Connected &&
         Route->TcpState.Syncd == FALSE) {
         Socket->PausedTcpSend = SendData;

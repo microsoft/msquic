@@ -651,8 +651,16 @@ macro_rules! define_quic_handle_impl {
             }
 
             /// Closes the handle and consumes it.
-            pub fn close(self) {
+            pub fn close(mut self) {
+                // The close_inner implementation for listener, connection and stream
+                // is suppose to cleanup the context associated with the handle.
+                // Handle context is dropped after handle ffi close  call completes to ensure that
+                // it outlives the callbacks.
+                // Context raw pointer is not set to null after ffi close call because a closed
+                // handle should not be accessed anymore.
                 self.close_inner();
+                // Prevent drop to call ffi function again.
+                self.handle = std::ptr::null_mut();
             }
         }
 
@@ -681,6 +689,8 @@ macro_rules! define_quic_handle_ctx_fn {
 
             /// Consume ctx by dropping it.
             /// Set msquic ctx to null.
+            // This is used by Connection and Stream, but not Listener.
+            #[allow(dead_code)]
             fn consume_callback_ctx(&self) {
                 let res = unsafe { self.get_callback_ctx() };
                 if res.is_some() {
@@ -769,7 +779,7 @@ impl Registration {
 define_quic_handle_impl!(Registration);
 
 impl Configuration {
-    pub fn new(
+    pub fn open(
         registration: &Registration,
         alpn: &[BufferRef],
         settings: Option<&Settings>,
@@ -820,12 +830,6 @@ impl Configuration {
 
 define_quic_handle_impl!(Configuration);
 
-impl Default for Connection {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 // Remarks on Rust callback in general:
 // Callback function or closure is set to msquic handle context of type `*mut Box<TCallback>>`.
 // We cannot use type `*mut TCallback` because dyn trait is a "fat pointer" so it cannot be
@@ -866,32 +870,27 @@ extern "C" fn raw_conn_callback(
 }
 
 impl Connection {
-    pub fn new() -> Connection {
-        Connection {
-            handle: ptr::null_mut(),
-        }
-    }
-
-    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    pub fn open<F>(registration: &Registration, handler: F) -> Result<Self, Status>
     where
         F: FnMut(ConnectionRef, ConnectionEvent) -> Result<(), Status> + 'static,
     {
+        let mut handle: HQUIC = ptr::null_mut();
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ConnectionCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ConnectionOpen.unwrap()(
                 registration.handle,
                 Some(raw_conn_callback),
                 ctx as *mut c_void,
-                std::ptr::addr_of_mut!(self.handle),
+                std::ptr::addr_of_mut!(handle),
             )
         };
         Status::ok_from_raw(status).inspect_err(|_| {
             // attach memory back on failure
             let _ = unsafe { Box::from_raw(ctx) };
-        })
+        })?;
+        Ok(Self { handle })
     }
 
     pub fn start(
@@ -919,7 +918,6 @@ impl Connection {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             // Drop call here is required to prevent compiler drop it early.
             // During handle close the ctx might still be used.
@@ -1026,12 +1024,6 @@ define_quic_handle_impl!(Connection);
 define_quic_handle_ref!(Connection, ConnectionRef);
 define_quic_handle_ctx_fn!(Connection, ConnectionCallback);
 
-impl Default for Listener {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 /// Listener callback.
 /// msquic may execute listener callback in parallel,
 /// so Fn is used for immutability.
@@ -1056,31 +1048,26 @@ extern "C" fn raw_listener_callback(
 }
 
 impl Listener {
-    pub fn new() -> Listener {
-        Listener {
-            handle: ptr::null_mut(),
-        }
-    }
-
-    pub fn open<F>(&mut self, registration: &Registration, handler: F) -> Result<(), Status>
+    pub fn open<F>(registration: &Registration, handler: F) -> Result<Self, Status>
     where
         F: Fn(ListenerRef, ListenerEvent) -> Result<(), Status> + 'static,
     {
+        let mut handle: HQUIC = std::ptr::null_mut();
         // double boxing to allow Box dyn fat pointer
         let b: Box<Box<ListenerCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().ListenerOpen.unwrap()(
                 registration.handle,
                 Some(raw_listener_callback),
                 ctx as *mut c_void,
-                std::ptr::addr_of_mut!(self.handle),
+                std::ptr::addr_of_mut!(handle),
             )
         };
         Status::ok_from_raw(status).inspect_err(|_| {
             let _ = unsafe { Box::from_raw(ctx) };
-        })
+        })?;
+        Ok(Self { handle })
     }
 
     pub fn start(&self, alpn: &[BufferRef], local_address: Option<&Addr>) -> Result<(), Status> {
@@ -1113,7 +1100,6 @@ impl Listener {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             std::mem::drop(ctx);
         }
@@ -1123,12 +1109,6 @@ impl Listener {
 define_quic_handle_impl!(Listener);
 define_quic_handle_ref!(Listener, ListenerRef);
 define_quic_handle_ctx_fn!(Listener, ListenerCallback);
-
-impl Default for Stream {
-    fn default() -> Self {
-        Self::new()
-    }
-}
 
 /// Stream callback.
 /// msquic never executes stream callback on the same stream in parallel.
@@ -1153,36 +1133,30 @@ extern "C" fn raw_stream_callback(
 }
 
 impl Stream {
-    pub fn new() -> Stream {
-        Stream {
-            handle: ptr::null_mut(),
-        }
-    }
-
     pub fn open<F>(
-        &mut self,
         connection: &Connection,
         flags: StreamOpenFlags,
         handler: F,
-    ) -> Result<(), Status>
+    ) -> Result<Self, Status>
     where
         F: FnMut(StreamRef, StreamEvent) -> Result<(), Status> + 'static,
     {
+        let mut handle: HQUIC = std::ptr::null_mut();
         let b: Box<Box<StreamCallback>> = Box::new(Box::new(handler));
         let ctx = Box::into_raw(b);
-        self.consume_callback_ctx();
         let status = unsafe {
             Api::ffi_ref().StreamOpen.unwrap()(
                 connection.handle,
                 flags.bits(),
                 Some(raw_stream_callback),
                 ctx as *mut c_void,
-                std::ptr::addr_of_mut!(self.handle),
+                std::ptr::addr_of_mut!(handle),
             )
         };
         Status::ok_from_raw(status).inspect_err(|_| {
             let _ = unsafe { Box::from_raw(ctx) };
-        })
+        })?;
+        Ok(Self { handle })
     }
 
     pub fn start(&self, flags: StreamStartFlags) -> Result<(), Status> {
@@ -1203,7 +1177,6 @@ impl Stream {
             let ctx = unsafe { self.get_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
-                self.set_context(std::ptr::null_mut());
             }
             std::mem::drop(ctx);
         }
@@ -1252,6 +1225,10 @@ impl Stream {
 
     pub fn receive_complete(&self, buffer_length: u64) {
         unsafe { Api::ffi_ref().StreamReceiveComplete.unwrap()(self.handle, buffer_length) }
+    }
+
+    pub fn get_stream_id(&self) -> Result<u64, Status> {
+        unsafe { Api::get_param_auto(self.handle, ffi::QUIC_PARAM_STREAM_ID) }
     }
 }
 
@@ -1405,7 +1382,7 @@ mod tests {
             .set_PeerUnidiStreamCount(3);
         #[cfg(feature = "preview-api")]
         let settings = settings.set_StreamMultiReceiveEnabled();
-        let res = Configuration::new(&registration, &alpn, Some(&settings));
+        let res = Configuration::open(&registration, &alpn, Some(&settings));
         assert!(
             res.is_ok(),
             "Failed to open configuration: {}",
@@ -1421,13 +1398,8 @@ mod tests {
             res.err().unwrap()
         );
 
-        let mut connection = Connection::new();
-        let res = connection.open(&registration, test_conn_callback);
-        assert!(
-            res.is_ok(),
-            "Failed to open connection: {}",
-            res.err().unwrap()
-        );
+        let connection =
+            Connection::open(&registration, test_conn_callback).expect("cannot open connection");
 
         let res = connection.start(&configuration, "www.cloudflare.com", 443);
         assert!(
@@ -1471,7 +1443,5 @@ mod tests {
     }
 }
 
-// test certs are only installed on windows
-#[cfg(target_os = "windows")]
 #[cfg(test)]
 mod server_client_test;
