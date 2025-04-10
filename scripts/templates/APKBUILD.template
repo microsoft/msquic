@@ -24,10 +24,10 @@ prepare() {
 	default_prepare
 
 	cd "$builddir/submodules"
-	rm -rf clog googletest openssl quictls3 xdp-for-windows
+	rm -rf clog googletest quictls quictls3 xdp-for-windows
 	mv ../../CLOG-*/ clog/
 	mv ../../googletest-*/ googletest/
-	mv ../../openssl-*/ quictls3/
+	mv ../../quictls3-*/ quictls3/
 }
 
 build() {
