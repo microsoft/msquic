@@ -397,6 +397,12 @@ QuicTestConnectAndPing(
     _In_ bool SendUdpToQtipListener
     )
 {
+
+    if (SendUdpToQtipListener) {
+        TEST_FAILURE("This should fail then upload logs.");
+        return;
+    }
+
     const uint32_t TimeoutMs = EstimateTimeoutMs(Length) * StreamBurstCount;
     const uint16_t TotalStreamCount = (uint16_t)(StreamCount * StreamBurstCount);
     QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
