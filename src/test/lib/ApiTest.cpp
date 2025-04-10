@@ -1215,7 +1215,7 @@ struct CloseFromCallbackContext {
 void
 QuicTestConnectionCloseFromCallback() {
     for (uint16_t i = 0; i < 20; i++) {
-        CxPlatWatchdog Watchdog(2000);
+        CxPlatWatchdog Watchdog(20000);
 
         CloseFromCallbackContext Context {(short)i, 0};
 

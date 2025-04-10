@@ -13,16 +13,21 @@ project(OpenSSLQuic)
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
 
-if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
-    if(QUIC_TLS STREQUAL "openssl")
-        message(STATUS "Configuring for OpenSSL 1.1")
+if(QUIC_TLS STREQUAL "quictls" OR QUIC_TLS STREQUAL "quictls3" OR QUIC_TLS STREQUAL "openssl")
+    if(QUIC_TLS STREQUAL "quictls")
+        message(STATUS "Configuring for QuicTLS 1.1")
         set(EXPECTED_OPENSSL_VERSION 1.1.1)
-        set(QUIC_OPENSSL openssl)
+        set(QUIC_OPENSSL quictls)
+    elseif(QUIC_TLS STREQUAL "quictls3")
+        set(QUIC_USE_OPENSSL3 ON)
+        message(STATUS "Configuring for QuicTLS 3.x")
+        set(EXPECTED_OPENSSL_VERSION 3.0)
+        set(QUIC_OPENSSL quictls3)
     else()
         set(QUIC_USE_OPENSSL3 ON)
-        message(STATUS "Configuring for OpenSSL 3.x")
-        set(EXPECTED_OPENSSL_VERSION 3.0)
-        set(QUIC_OPENSSL openssl3)
+        message(STATUS "Configuring for OpenSSL")
+        set(EXPECTED_OPENSSL_VERSION 3.5)
+        set(QUIC_OPENSSL openssl)
     endif()
 else()
     message(FATAL_ERROR "Unsupported QUIC_TLS ${QUIC_TLS}")
@@ -301,7 +306,7 @@ else()
     if (QUIC_USE_OPENSSL3 AND QUIC_USE_SYSTEM_LIBCRYPTO)
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see openssl3/ssl/build.info
+        # To fix that we need little hackery - see quictls3/ssl/build.info
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
