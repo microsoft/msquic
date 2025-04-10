@@ -27,7 +27,7 @@ prepare() {
 	rm -rf clog googletest quictls quictls3 xdp-for-windows
 	mv ../../CLOG-*/ clog/
 	mv ../../googletest-*/ googletest/
-	mv ../../quictls3-*/ quictls3/
+	mv ../../openssl-*/ quictls3/
 }
 
 build() {
