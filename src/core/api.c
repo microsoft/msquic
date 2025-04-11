@@ -41,6 +41,27 @@ MsQuicConnectionOpen(
         HQUIC *NewConnection
     )
 {
+    return
+        MsQuicConnectionOpenInPartition(
+            RegistrationHandle,
+            QuicLibraryGetCurrentPartition()->Index,
+            Handler,
+            Context,
+            NewConnection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
     QUIC_STATUS Status;
     QUIC_REGISTRATION* Registration;
     QUIC_CONNECTION* Connection = NULL;
@@ -52,6 +73,7 @@ MsQuicConnectionOpen(
         RegistrationHandle);
 
     if (!IS_REGISTRATION_HANDLE(RegistrationHandle) ||
+        PartitionIndex >= MsQuicLib.PartitionCount ||
         NewConnection == NULL ||
         Handler == NULL) {
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -68,7 +90,7 @@ MsQuicConnectionOpen(
     Status =
         QuicConnAlloc(
             Registration,
-            QuicLibraryGetCurrentPartition(),
+            &MsQuicLib.Partitions[PartitionIndex],
             NULL,
             NULL,
             &Connection);
