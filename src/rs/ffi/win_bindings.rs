@@ -5726,7 +5726,7 @@ pub type QUIC_CONNECTION_OPEN_FN = ::std::option::Option<
         Connection: *mut HQUIC,
     ) -> HRESULT,
 >;
-pub type QUIC_CONNECTION_OPEN_EX1_FN = ::std::option::Option<
+pub type QUIC_CONNECTION_OPEN_IN_PARTITION_FN = ::std::option::Option<
     unsafe extern "C" fn(
         Registration: HQUIC,
         PartitionIndex: u16,
@@ -6397,7 +6397,7 @@ pub struct QUIC_API_TABLE {
     pub DatagramSend: QUIC_DATAGRAM_SEND_FN,
     pub ConnectionResumptionTicketValidationComplete: QUIC_CONNECTION_COMP_RESUMPTION_FN,
     pub ConnectionCertificateValidationComplete: QUIC_CONNECTION_COMP_CERT_FN,
-    pub ConnectionOpenEx1: QUIC_CONNECTION_OPEN_EX1_FN,
+    pub ConnectionOpenInPartition: QUIC_CONNECTION_OPEN_IN_PARTITION_FN,
     pub StreamProvideReceiveBuffers: QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN,
     pub ConnectionPoolCreate: QUIC_CONN_POOL_CREATE_FN,
 }
@@ -6471,8 +6471,8 @@ const _: () = {
         QUIC_API_TABLE,
         ConnectionCertificateValidationComplete
     ) - 240usize];
-    ["Offset of field: QUIC_API_TABLE::ConnectionOpenEx1"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenEx1) - 248usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionOpenInPartition"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenInPartition) - 248usize];
     ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 256usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]

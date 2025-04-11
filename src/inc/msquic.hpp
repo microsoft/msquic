@@ -1037,7 +1037,7 @@ struct MsQuicConnection {
         }
         if (QUIC_FAILED(
             InitStatus =
-                MsQuic->ConnectionOpenEx1(
+                MsQuic->ConnectionOpenInPartition(
                     Registration,
                     PartitionIndex,
                     (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,

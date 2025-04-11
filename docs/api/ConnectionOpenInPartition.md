@@ -1,4 +1,4 @@
-ConnectionOpenEx1 function
+ConnectionOpenInPartition function
 ======
 
 Creates a new connection in a specific partition.
@@ -9,7 +9,7 @@ Creates a new connection in a specific partition.
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-(QUIC_API * QUIC_CONNECTION_OPEN_EX1_FN)(
+(QUIC_API * QUIC_CONNECTION_OPEN_IN_PARTITION_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
     _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
@@ -47,7 +47,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-`ConnectionOpenEx1` is used to create a connection in the client application, with an explicit partition index. In server applications, [ListenerOpen](ListenerOpen.md) and [ListenerStart](ListenerStart.md) must be called to listen for incoming connection attempts, and the server side Connection is created in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
+`ConnectionOpenInPartition` is used to create a connection in the client application, with an explicit partition index. In server applications, [ListenerOpen](ListenerOpen.md) and [ListenerStart](ListenerStart.md) must be called to listen for incoming connection attempts, and the server side Connection is created in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
 
 'ConnectionOpen' only allocates the resources for the connection, it does not start the connection. To start the connect, the application must call [ConnectionStart](ConnectionStart.md).
 

@@ -42,7 +42,7 @@ MsQuicConnectionOpen(
     )
 {
     return
-        MsQuicConnectionOpenEx1(
+        MsQuicConnectionOpenInPartition(
             RegistrationHandle,
             QuicLibraryGetCurrentPartition()->Index,
             Handler,
@@ -53,7 +53,7 @@ MsQuicConnectionOpen(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicConnectionOpenEx1(
+MsQuicConnectionOpenInPartition(
     _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,

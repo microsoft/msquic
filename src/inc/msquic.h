@@ -1319,7 +1319,7 @@ QUIC_STATUS
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-(QUIC_API * QUIC_CONNECTION_OPEN_EX1_FN)(
+(QUIC_API * QUIC_CONNECTION_OPEN_IN_PARTITION_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
     _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
@@ -1725,7 +1725,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
-    QUIC_CONNECTION_OPEN_EX1_FN         ConnectionOpenEx1;          // Available from v2.5
+    QUIC_CONNECTION_OPEN_IN_PARTITION_FN
+                                        ConnectionOpenInPartition;   // Available from v2.5
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN

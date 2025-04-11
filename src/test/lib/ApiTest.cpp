@@ -700,7 +700,7 @@ void QuicTestValidateConnection()
         ConnectionScope Connection;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->ConnectionOpenEx1(
+            MsQuic->ConnectionOpenInPartition(
                 Registration,
                 UINT16_MAX,
                 DummyConnectionCallback,
