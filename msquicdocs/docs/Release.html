@@ -227,11 +227,6 @@
 <li>msquic_windows_x86_Release_schannel.zip</li>
 </ul>
 </li>
-<li>From Linux (use GitHub Codespace) to publish the latest Rust Crate. (CURRENTLY BROKEN)
-<ul>
-<li>Run <code>cargo publish</code> from the <code>release/X.Y</code> branch.</li>
-</ul>
-</li>
 <li>Update (via PR) <code>main</code> branch's <code>test-down-level.yml</code> to point the newly uploaded <code>*_test.zip</code> release binaries.</li>
 </ol>
 <blockquote>
@@ -260,6 +255,20 @@
 <li>Owners of the <code>aports</code> repository will respond to the PR or merge it in couple of days/hours.</li>
 </ol>
 <p>For future reference: <a href="https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package">Official documentation</a></p>
+<h3 id="publishing-the-rust-crate">Publishing the Rust Crate</h3>
+<p>The following are the complete (manual) steps for publishing the Rust crate.</p>
+<ol>
+<li>Create a (Linux) GitHub CodeSpace.</li>
+<li><code>sudo apt update</code></li>
+<li><code>sudo apt install curl</code></li>
+<li><code>curl https://sh.rustup.rs -sSf | sh</code></li>
+<li>Restart bash.</li>
+<li><code>cargo login</code></li>
+<li>Create an API token on <a href="https://crates.io/settings/tokens">https://crates.io/settings/tokens</a> (with <code>publish-update</code> scope).</li>
+<li>Paste the token into bash.</li>
+<li>If doing a beta release, update <code>Cargo.toml</code> to add a # after <code>beta</code> in the version.</li>
+<li><code>cargo publish</code> or <code>cargo publish --allow-dirty</code> if beta release</li>
+</ol>
 <h2 id="synchronizing-with-windows">Synchronizing with Windows</h2>
 <ol>
 <li>Once the release branch is created, set the pipeline <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868">here</a> to ingest the release branch into Windows, and run it.</li>
