@@ -1628,6 +1628,12 @@ QUIC_STATUS
     _In_opt_ void* ClientSendContext
     );
 
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_DUMMY_FN)(
+    );
+
 //
 // Connection Pool API
 //
@@ -1727,6 +1733,8 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_CONNECTION_OPEN_IN_PARTITION_FN
                                         ConnectionOpenInPartition;   // Available from v2.5
+
+    QUIC_DUMMY_FN                       Dummy;   // Not available for real!
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
