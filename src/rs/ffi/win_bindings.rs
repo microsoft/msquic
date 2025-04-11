@@ -5733,7 +5733,7 @@ pub type QUIC_CONNECTION_OPEN_EX1_FN = ::std::option::Option<
         Handler: QUIC_CONNECTION_CALLBACK_HANDLER,
         Context: *mut ::std::os::raw::c_void,
         Connection: *mut HQUIC,
-    ) -> ::std::os::raw::c_uint,
+    ) -> HRESULT,
 >;
 pub type QUIC_CONNECTION_CLOSE_FN = ::std::option::Option<unsafe extern "C" fn(Connection: HQUIC)>;
 pub type QUIC_CONNECTION_SHUTDOWN_FN = ::std::option::Option<
@@ -6403,7 +6403,7 @@ pub struct QUIC_API_TABLE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 264usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 272usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
