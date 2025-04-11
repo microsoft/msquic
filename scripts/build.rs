@@ -41,6 +41,11 @@ fn cmake_build() {
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
 
+    // Disable parallel builds on Windows, as they seems to break manifest builds.
+    if cfg!(windows) {
+        config.define("CMAKE_BUILD_PARALLEL_LEVEL", "1");
+    }
+
     // By default enable schannel on windows, unless openssl feature is selected.
     if cfg!(windows) && !cfg!(feature = "openssl") {
         config.define("QUIC_TLS", "schannel");
