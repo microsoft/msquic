@@ -322,6 +322,7 @@ QuicRecvBufferResize(
                     Span - LengthTillWrap);
             }
             RecvBuffer->ReadStart = 0;
+            CXPLAT_DBG_ASSERT(NewChunk->AllocLength == TargetBufferLength);
             RecvBuffer->Capacity = NewChunk->AllocLength;
 
         } else {
@@ -1186,7 +1187,7 @@ QuicRecvBufferDrain(
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
 
     //
-    // Free retired chunks, now that they are no longer referenced.
+    // Free the retired chunk, now that it is no longer referenced.
     //
     if (RecvBuffer->RetiredChunk != NULL) {
         CXPLAT_DBG_ASSERT(
