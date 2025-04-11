@@ -322,6 +322,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/ConnectionOpenInPartition.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/ConnectionOpenInPartition.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/ConnectionPoolCreate.md",
       "output": {
         ".html": {
