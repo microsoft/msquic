@@ -47,13 +47,9 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-`ConnectionOpenInPartition` is used to create a connection in the client application, with an explicit partition index. In server applications, [ListenerOpen](ListenerOpen.md) and [ListenerStart](ListenerStart.md) must be called to listen for incoming connection attempts, and the server side Connection is created in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
+See [ConnectionOpen](ConnectionOpen.md#Remarks) for more remarks.
 
-'ConnectionOpen' only allocates the resources for the connection, it does not start the connection. To start the connect, the application must call [ConnectionStart](ConnectionStart.md).
-
-Once `ConnectionOpen` completes successfully, the application may create streams, and queue data for sending. This is when 0-RTT streams and data **MUST** be created and queued. See [StreamOpen](StreamOpen.md), and [StreamStart](StreamStart.md).
-
-Once the connection has been shutdown, it must be cleaned up with a call to [ConnectionClose](ConnectionClose.md).
+This function is the same as `ConnectionOpen` with the exception that this puts the connection in an explicit partition instead of inferring it based on the calling thread's current processor.
 
 # See Also
 
