@@ -7,7 +7,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 }
 
 function SetLinuxLibPath {
-    $fullPath = "./artifacts/bin/linux/x64_Release_openssl"
+    $fullPath = "./artifacts/bin/linux/x64_Release_quictls"
     $SecNetPerfPath = "$fullPath/secnetperf"
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "$SecNetPerfPath"
@@ -59,8 +59,8 @@ function Repo-Path {
     return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
 }
 
-if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf")) {
-    Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_quictls/secnetperf")) {
+    Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
     SetLinuxLibPath
 
     # Check and see if a 'perf_command.txt' file exists. If it does, then we need to prepend the command with the contents of the file.
@@ -70,8 +70,8 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
         Write-Host "Prepending the command with: $perf_command"
         $env:linux_perf_prefix = $perf_command
     }
-    Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
-    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+    Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
+    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
 
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"

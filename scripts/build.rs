@@ -41,11 +41,11 @@ fn cmake_build() {
         .define("QUIC_ENABLE_LOGGING", logging_enabled)
         .define("QUIC_OUTPUT_DIR", quic_output_dir.to_str().unwrap());
 
-    // By default enable schannel on windows, unless openssl feature is selected.
-    if cfg!(windows) && !cfg!(feature = "openssl") {
-        config.define("QUIC_TLS", "schannel");
+    // By default enable schannel on windows, unless quictls feature is selected.
+    if cfg!(windows) && !cfg!(feature = "quictls") {
+        config.define("QUIC_TLS_LIB", "schannel");
     } else {
-        config.define("QUIC_TLS", "openssl");
+        config.define("QUIC_TLS_LIB", "quictls");
     }
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");
