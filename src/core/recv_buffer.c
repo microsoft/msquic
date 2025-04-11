@@ -244,6 +244,8 @@ QuicRecvBufferValidate(
     //
     CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL || RecvBuffer->ReadPendingLength != 0);
 
+#else
+    UNREFERENCED_PARAMETER(RecvBuffer);
 #endif
 }
 
