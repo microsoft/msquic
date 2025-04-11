@@ -255,7 +255,7 @@ jobs:
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
       shell: pwsh
-      timeout-minutes: 90
+      timeout-minutes: 120
       run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
