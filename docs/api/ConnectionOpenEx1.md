@@ -1,7 +1,7 @@
-ConnectionOpen function
+ConnectionOpenEx1 function
 ======
 
-Creates a new connection.
+Creates a new connection in a specific partition.
 
 # Syntax
 
@@ -9,8 +9,9 @@ Creates a new connection.
 typedef
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
-(QUIC_API * QUIC_CONNECTION_OPEN_FN)(
+(QUIC_API * QUIC_CONNECTION_OPEN_EX1_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -23,6 +24,10 @@ QUIC_STATUS
 `Registration`
 
 The valid handle to an open registration object.
+
+`PartitionIndex`
+
+An index into the global partition set.
 
 `Handler`
 
@@ -42,7 +47,7 @@ The function returns a [QUIC_STATUS](QUIC_STATUS.md). The app may use `QUIC_FAIL
 
 # Remarks
 
-`ConnectionOpen` is used to create a connection in the client application. In server applications, [ListenerOpen](ListenerOpen.md) and [ListenerStart](ListenerStart.md) must be called to listen for incoming connection attempts, and the server side Connection is created in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
+`ConnectionOpenEx1` is used to create a connection in the client application, with an explicit partition index. In server applications, [ListenerOpen](ListenerOpen.md) and [ListenerStart](ListenerStart.md) must be called to listen for incoming connection attempts, and the server side Connection is created in the `QUIC_LISTENER_EVENT_NEW_CONNECTION` event.
 
 'ConnectionOpen' only allocates the resources for the connection, it does not start the connection. To start the connect, the application must call [ConnectionStart](ConnectionStart.md).
 
@@ -52,7 +57,7 @@ Once the connection has been shutdown, it must be cleaned up with a call to [Con
 
 # See Also
 
-[ConnectionOpenEx1](ConnectionOpenEx1.md)<br>
+[ConnectionOpen](ConnectionOpen.md)<br>
 [ConnectionClose](ConnectionClose.md)<br>
 [ConnectionShutdown](ConnectionShutdown.md)<br>
 [ConnectionStart](ConnectionStart.md)<br>

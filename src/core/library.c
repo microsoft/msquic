@@ -1787,6 +1787,7 @@ MsQuicOpenVersion(
     Api->ListenerStop = MsQuicListenerStop;
 
     Api->ConnectionOpen = MsQuicConnectionOpen;
+    Api->ConnectionOpenEx1 = MsQuicConnectionOpenEx1;
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;
