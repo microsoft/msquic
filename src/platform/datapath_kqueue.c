@@ -439,6 +439,8 @@ CxPlatDataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
+
     if (NewDataPath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -451,19 +453,9 @@ CxPlatDataPathInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    uint32_t PartitionCount;
-    if (Config && Config->ProcessorCount) {
-        PartitionCount = Config->ProcessorCount;
-    } else {
-        PartitionCount = CxPlatProcCount();
-    }
-
     const size_t DatapathLength =
-        sizeof(CXPLAT_DATAPATH) + PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        sizeof(CXPLAT_DATAPATH) +
+        WorkerPool->WorkerCount * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -480,7 +472,7 @@ CxPlatDataPathInitialize(
         Datapath->UdpHandlers = *UdpCallbacks;
     }
     Datapath->WorkerPool = WorkerPool;
-    Datapath->PartitionCount = 1; //PartitionCount; // Darwin only supports a single receiver
+    Datapath->PartitionCount = 1; //WorkerPool->WorkerCount; // Darwin only supports a single receiver
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
 
     for (uint32_t i = 0; i < Datapath->PartitionCount; i++) {

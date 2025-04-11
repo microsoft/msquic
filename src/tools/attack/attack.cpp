@@ -465,6 +465,7 @@ main(
         CxPlatSystemLoad();
         CxPlatInitialize();
         CxPlatWorkerPoolInit(&WorkerPool);
+        CxPlatWorkerPoolStart(&WorkerPool, nullptr);
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,

@@ -150,7 +150,7 @@ CxPlatWorkerPoolInit(
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
 BOOLEAN
-CxPlatWorkerPoolLazyStart(
+CxPlatWorkerPoolStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     )

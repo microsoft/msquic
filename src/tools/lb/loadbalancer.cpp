@@ -215,6 +215,7 @@ main(int argc, char **argv)
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
     CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, &WorkerPool, nullptr, &Datapath);

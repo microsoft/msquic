@@ -365,6 +365,8 @@ DataPathInitialize(
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(Config);
+
     if (NewDatapath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -385,15 +387,9 @@ DataPathInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
-
-    const uint32_t PartitionCount = (Config && Config->ProcessorCount)
-        ? Config->ProcessorCount : CxPlatProcCount();
-
     const size_t DatapathLength =
-        sizeof(CXPLAT_DATAPATH) + PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        sizeof(CXPLAT_DATAPATH) +
+        WorkerPool->WorkerCount * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     CXPLAT_DATAPATH* Datapath =
         (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
@@ -415,7 +411,7 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    Datapath->PartitionCount = PartitionCount;
+    Datapath->PartitionCount = WorkerPool->WorkerCount;
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     CxPlatDataPathCalculateFeatureSupport(Datapath, ClientRecvDataLength);
@@ -1462,7 +1458,7 @@ CxPlatSocketCreateTcpInternal(
                 "accept failed");
             goto Exit;
         }
-    
+
         socklen_t AssignedLocalAddressLength = sizeof(Binding->LocalAddress);
         int Result =
             getsockname(

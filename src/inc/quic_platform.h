@@ -440,6 +440,24 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
+// General purpose execution context abstraction layer. Used for driving worker
+// loops.
+//
+
+typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
+
+typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
+
+typedef struct CXPLAT_EXECUTION_STATE {
+    uint64_t TimeNow;               // in microseconds
+    uint64_t LastWorkTime;          // in microseconds
+    uint64_t LastPoolProcessTime;   // in microseconds
+    uint32_t WaitTime;
+    uint32_t NoWorkCount;
+    CXPLAT_THREAD_ID ThreadID;
+} CXPLAT_EXECUTION_STATE;
+
+//
 // Worker pool API used for driving execution contexts
 //
 
@@ -467,25 +485,19 @@ void
 CxPlatWorkerPoolUninit(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
+
+BOOLEAN
+CxPlatWorkerPoolStart(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+CXPLAT_EVENTQ*
+CxPlatWorkerPoolGetEventQ(
+    _In_ const CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the config processor array
+    );
 #endif
-
-//
-// General purpose execution context abstraction layer. Used for driving worker
-// loops.
-//
-
-typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
-
-typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
-
-typedef struct CXPLAT_EXECUTION_STATE {
-    uint64_t TimeNow;               // in microseconds
-    uint64_t LastWorkTime;          // in microseconds
-    uint64_t LastPoolProcessTime;   // in microseconds
-    uint32_t WaitTime;
-    uint32_t NoWorkCount;
-    CXPLAT_THREAD_ID ThreadID;
-} CXPLAT_EXECUTION_STATE;
 
 #ifndef _KERNEL_MODE // Not supported on kernel mode
 

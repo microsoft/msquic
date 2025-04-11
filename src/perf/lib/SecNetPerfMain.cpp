@@ -298,6 +298,7 @@ QuicMainStart(
     }
 
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,

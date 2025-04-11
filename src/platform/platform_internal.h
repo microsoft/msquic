@@ -772,28 +772,6 @@ CxPlatCryptUninitialize(
     );
 
 //
-// Platform Worker APIs
-//
-
-BOOLEAN
-CxPlatWorkerPoolLazyStart(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
-    );
-
-CXPLAT_EVENTQ*
-CxPlatWorkerPoolGetEventQ(
-    _In_ const CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ uint16_t Index // Into the config processor array
-    );
-
-BOOLEAN // Returns FALSE no work was done.
-CxPlatDataPathPoll(
-    _In_ void* Context,
-    _Out_ BOOLEAN* RemoveFromPolling
-    );
-
-//
 // Queries the raw datapath stack for the total size needed to allocate the
 // datapath structure.
 //
