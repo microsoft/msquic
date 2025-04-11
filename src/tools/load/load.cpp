@@ -18,6 +18,7 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
     if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,&WorkerPool,nullptr,&Datapath)) ||

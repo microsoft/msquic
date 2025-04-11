@@ -950,6 +950,7 @@ void start() {
     };
     MsQuic = new MsQuicApi();
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
     QUIC_STATUS Status =
         CxPlatDataPathInitialize(
             0,

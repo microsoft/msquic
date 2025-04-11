@@ -684,6 +684,14 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
+    if (!CxPlatWorkerPoolStart(
+            &MsQuicLib.WorkerPool,
+            MsQuicLib.ExecutionConfig)) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        MsQuicLibraryFreePartitions();
+        goto Exit;
+    }
+
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),

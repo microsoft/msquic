@@ -25,6 +25,7 @@ public:
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
         CxPlatWorkerPoolInit(&WorkerPool);
+        CxPlatWorkerPoolStart(&WorkerPool, nullptr);
         watchdog = new CxPlatWatchdog(Timeout);
     }
     void TearDown() override {

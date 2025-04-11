@@ -64,6 +64,7 @@ main(
     CxPlatSystemLoad();
     CxPlatInitialize();
     CxPlatWorkerPoolInit(&WorkerPool);
+    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
     CxPlatRandom(sizeof(PcpNonce), PcpNonce);
     CxPlatDataPathInitialize(0, nullptr, nullptr, &WorkerPool, nullptr, &Datapath);
 
