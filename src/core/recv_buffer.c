@@ -109,7 +109,7 @@ QuicRecvBufferGetChunkIterator(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return == TRUE)
-BOOL
+BOOLEAN
 QuicRecvChunkIteratorNext(
     _Inout_ QUIC_RECV_CHUNK_ITERATOR* Iterator,
     _In_ BOOLEAN ReferenceChunk,
@@ -652,7 +652,7 @@ QuicRecvBufferCopyIntoChunks(
     QUIC_RECV_CHUNK_ITERATOR Iterator = QuicRecvBufferGetChunkIterator(RecvBuffer, RelativeOffset);
     QUIC_BUFFER Buffer;
     while (WriteLength != 0 && QuicRecvChunkIteratorNext(&Iterator, FALSE, &Buffer)) {
-        const uint32_t CopyLength = min(Buffer.Length, WriteLength);
+        const uint32_t CopyLength = CXPLAT_MIN(Buffer.Length, WriteLength);
         CxPlatCopyMemory(Buffer.Buffer, WriteBuffer, CopyLength);
         WriteBuffer += CopyLength;
         WriteLength -= (uint16_t)CopyLength;
@@ -664,7 +664,7 @@ QuicRecvBufferCopyIntoChunks(
     //
     QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
     if (FirstRange->Low == 0) {
-        RecvBuffer->ReadLength = (uint32_t)min(
+        RecvBuffer->ReadLength = (uint32_t)CXPLAT_MIN(
             RecvBuffer->Capacity,
             FirstRange->Count - RecvBuffer->BaseOffset);
     }
