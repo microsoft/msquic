@@ -824,7 +824,7 @@ QuicRecvBufferReadBufferNeededCount(
     // Determine how much data is readable
     //
     const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
-    if (!FirstRange) {
+    if (!FirstRange || FirstRange->Low != 0) {
         return 0;
     }
     const uint64_t ReadableData = FirstRange->Count - RecvBuffer->BaseOffset;
