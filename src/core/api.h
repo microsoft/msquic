@@ -308,9 +308,3 @@ MsQuicConnectionPoolCreate(
     _Out_writes_(Config->NumberOfConnections)
         HQUIC* ConnectionPool
     );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicDummy(
-);

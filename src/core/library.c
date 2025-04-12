@@ -1808,7 +1808,6 @@ MsQuicOpenVersion(
     Api->DatagramSend = MsQuicDatagramSend;
 
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
-    Api->Dummy = MsQuicDummy;
 
     *QuicApi = Api;
 

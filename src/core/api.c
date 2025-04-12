@@ -1985,11 +1985,3 @@ Error:
 
     return Status;
 }
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicDummy()
-{
-    return QUIC_STATUS_PENDING;
-}
