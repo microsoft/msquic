@@ -55,6 +55,7 @@ jobs:
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
       id: bindings_diff
+      shell: bash
       run: |
         if git diff --exit-code >> cargo_generated_diff.txt; then
           echo "diff-found=false" >> $GITHUB_OUTPUT
