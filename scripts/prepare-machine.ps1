@@ -420,18 +420,18 @@ function Install-TestCertificates {
         Write-Debug "Found existing MsQuicTestExpiredServer certificate!"
     }
 
-    Write-Debug "Searching for MsQuicTestClient certificate..."
-    $ClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestClient"}
+    Write-Debug "Searching for MsQuicTestValidClient certificate..."
+    $ClientCert = Get-ChildItem -path Cert:\LocalMachine\My\* -Recurse | Where-Object {$_.Subject -eq "CN=MsQuicTestValidClient"}
     if (!$ClientCert) {
-        Write-Host "MsQuicTestClient not found! Creating new MsQuicTestClient certificate..."
-        $ClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestClient" -FriendlyName MsQuicTestClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
-        $TempClientPath = Join-Path $Env:TEMP "MsQuicTestClientCert.pfx"
+        Write-Host "MsQuicTestValidClient not found! Creating new MsQuicTestValidClient certificate..."
+        $ClientCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestValidClient" -FriendlyName MsQuicTestValidClient -KeyUsageProperty Sign -KeyUsage DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP256 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}","2.5.29.37 = {text}1.3.6.1.5.5.7.3.2") -Signer $RootCert
+        $TempClientPath = Join-Path $Env:TEMP "MsQuicTestValidClientCert.pfx"
         Export-PfxCertificate -Cert $ClientCert -Password $PfxPassword -FilePath $TempClientPath
         Import-PfxCertificate -FilePath $TempClientPath -Password $PfxPassword -Exportable -CertStoreLocation Cert:\LocalMachine\My
         Remove-Item $TempClientPath
-        Write-Host "New MsQuicTestClient certificate installed!"
+        Write-Host "New MsQuicTestValidClient certificate installed!"
     } else {
-        Write-Debug "Found existing MsQuicTestClient certificate!"
+        Write-Debug "Found existing MsQuicTestValidClient certificate!"
     }
 
     Write-Debug "Searching for MsQuicTestExpiredClient certificate..."

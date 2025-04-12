@@ -30,11 +30,11 @@ Abstract:
 #define CXPLAT_KEY_SIZE                                 2048
 
 #define CXPLAT_TEST_CERT_VALID_SERVER_FRIENDLY_NAME         L"MsQuicTestServer"
-#define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME         L"MsQuicTestClient"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_FRIENDLY_NAME         L"MsQuicTestValidClient"
 #define CXPLAT_TEST_CERT_EXPIRED_SERVER_FRIENDLY_NAME       L"MsQuicTestExpiredServer"
 #define CXPLAT_TEST_CERT_EXPIRED_CLIENT_FRIENDLY_NAME       L"MsQuicTestExpiredClient"
 #define CXPLAT_TEST_CERT_VALID_SERVER_SUBJECT_NAME          "MsQuicTestServer"
-#define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME          "MsQuicTestClient"
+#define CXPLAT_TEST_CERT_VALID_CLIENT_SUBJECT_NAME          "MsQuicTestValidClient"
 #define CXPLAT_TEST_CERT_EXPIRED_SERVER_SUBJECT_NAME        "MsQuicTestExpiredServer"
 #define CXPLAT_TEST_CERT_EXPIRED_CLIENT_SUBJECT_NAME        "MsQuicTestExpiredClient"
 #define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_SUBJECT_NAME    "MsQuicClient"
