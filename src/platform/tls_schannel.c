@@ -2325,7 +2325,7 @@ CxPlatTlsWriteDataToSchannel(
                 SecStatus =
                     QueryContextAttributesW(
                         &TlsContext->SchannelContext,
-                        SECPKG_ATTR_CERT_CHECK_RESULT_INPROC,
+                        SECPKG_ATTR_CERT_CHECK_RESULT,
                         &CertValidationResult);
                 if (SecStatus == SEC_E_NO_CREDENTIALS) {
                     CertValidationResult.hrVerifyChainStatus = SecStatus;
