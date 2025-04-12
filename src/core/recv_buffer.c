@@ -8,10 +8,8 @@ Abstract:
     The receive buffer is a dynamically sized circular buffer for reassembling
     stream data and holding it until it's delivered to the client.
 
-    When the buffer is resized, all bytes in the buffer are copied to a new
-    backing memory of the requested size. The client must keep this in mind and
-    only resize the buffer infrequently, for instance by resizing exponentially,
-    or try to resize when few bytes are buffered.
+    It is implemented as a linked list of buffers to allow for different
+    behaviors (modes) when managing memory.
 
     There are two size variables, AllocBufferLength and VirtualBufferLength.
     The first indicates the length of the physical buffer that has been
@@ -23,22 +21,20 @@ Abstract:
     the queued up buffer.
 
     When physical buffer space runs out, assuming more 'virtual' space is
-    available, the physical buffer will be reallocated and copied over.
+    available, the physical buffer will be reallocated and may be copied over.
     Physical buffer space always doubles in size as it grows.
 
     The VirtualBufferLength is what is used to report the maximum allowed
     stream offset to the peer. Again, if the application drains at a fast
     enough rate compared to the incoming data, then this value can be much
     larger than the physical buffer. This has the effect of being able to
-    receive a large buffer (given a flight of packets) but not needed to
+    receive a large buffer (given a flight of packets) but not need to
     allocate memory for the entire buffer all at once.
 
     This does expose an attack surface though. In the common case we might be
     able to get by with a smaller buffer, but we need to be careful not to over
     commit. We must always be willing/able to allocate the buffer length
     advertised to the peer.
-
-    Currently, only growing the virtual buffer length is supported.
 
 --*/
 
@@ -102,6 +98,7 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
     RecvBuffer->PreallocatedChunk = PreallocatedChunk;
+    RecvBuffer->RetiredChunk = NULL;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
@@ -149,6 +146,10 @@ QuicRecvBufferUninitialize(
                 QUIC_RECV_CHUNK,
                 Link);
         QuicRecvChunkFree(RecvBuffer, Chunk);
+    }
+
+    if (RecvBuffer->RetiredChunk != NULL) {
+        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
     }
 }
 
@@ -321,7 +322,8 @@ QuicRecvBufferResize(
                     Span - LengthTillWrap);
             }
             RecvBuffer->ReadStart = 0;
-            RecvBuffer->Capacity = TargetBufferLength;
+            CXPLAT_DBG_ASSERT(NewChunk->AllocLength == TargetBufferLength);
+            RecvBuffer->Capacity = NewChunk->AllocLength;
 
         } else {
             //
@@ -342,13 +344,16 @@ QuicRecvBufferResize(
 
     //
     // If the chunk is already referenced, and if we're in multiple receive
-    // mode, we can just add the new chunk to the end of the list. Otherwise,
-    // we need to copy the data from the existing chunks into the new chunk.
+    // mode, we can just add the new chunk to the end of the list.
     //
-
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         return TRUE;
     }
+
+    //
+    // Otherwise, we need to copy the data from the existing chunk
+    // into the new chunk, and retire the existing chunk until we can free it.
+    //
 
     //
     // If it's the first chunk, then it may not start from the beginning.
@@ -371,6 +376,10 @@ QuicRecvBufferResize(
             Span - LengthTillWrap);
     }
     RecvBuffer->ReadStart = 0;
+    RecvBuffer->Capacity = NewChunk->AllocLength;
+    CxPlatListEntryRemove(&LastChunk->Link);
+    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL);
+    RecvBuffer->RetiredChunk = LastChunk;
 
     return TRUE;
 }
@@ -447,8 +456,8 @@ QuicRecvBufferCopyIntoChunks(
 {
     //
     // Copy the data into the correct chunk(s). In multiple/app-owned mode this
-    // may result in copies to multiple chunks. For single/circular it should
-    // always be just a single copy.
+    // may result in copies to multiple chunks.
+    // For single/circular modes, data will always be copied to a single chunk.
     //
 
     //
@@ -465,16 +474,14 @@ QuicRecvBufferCopyIntoChunks(
 
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
-        //
-        // In single/circular mode we always just write to the last chunk.
-        //
         QUIC_RECV_CHUNK* Chunk =
             CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Blink, // Last chunk
+                RecvBuffer->Chunks.Flink, // First chunk
                 QUIC_RECV_CHUNK,
                 Link);
         uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
-        CXPLAT_DBG_ASSERT(RelativeOffset + WriteLength <= Chunk->AllocLength); // Should always fit in the last chunk
+        CXPLAT_DBG_ASSERT(Chunk->Link.Flink == &RecvBuffer->Chunks); // Should only have one chunk
+        CXPLAT_DBG_ASSERT(RelativeOffset + WriteLength <= Chunk->AllocLength); // Should always fit in the first chunk
         uint32_t ChunkOffset = (RecvBuffer->ReadStart + RelativeOffset) % Chunk->AllocLength;
 
         if (ChunkOffset + WriteLength > Chunk->AllocLength) {
@@ -967,7 +974,7 @@ QuicRecvBufferRead(
 #endif
     } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
 
-        uint64_t remainingDataToRead = ContiguousLength;
+        uint64_t RemainingDataToRead = ContiguousLength;
         const uint32_t ProvidedBufferCount = *BufferCount;
         *BufferCount = 0;
 
@@ -982,13 +989,13 @@ QuicRecvBufferRead(
         Chunk->ExternalReference = TRUE;
         Buffers[*BufferCount].Buffer = Chunk->Buffer + RecvBuffer->ReadStart;
         Buffers[*BufferCount].Length = RecvBuffer->ReadLength;
-        remainingDataToRead -= RecvBuffer->ReadLength;
+        RemainingDataToRead -= RecvBuffer->ReadLength;
         (*BufferCount)++;
 
         //
         // Continue reading from the next chunks until we run out of buffers or data.
         //
-        while (*BufferCount < ProvidedBufferCount && remainingDataToRead > 0) {
+        while (*BufferCount < ProvidedBufferCount && RemainingDataToRead > 0) {
             Chunk =
                 CXPLAT_CONTAINING_RECORD(
                     Chunk->Link.Flink,
@@ -997,17 +1004,17 @@ QuicRecvBufferRead(
 
             Chunk->ExternalReference = TRUE;
             uint32_t ChunkReadLength =
-                (uint32_t)(Chunk->AllocLength < remainingDataToRead ?
+                (uint32_t)(Chunk->AllocLength < RemainingDataToRead ?
                     Chunk->AllocLength :
-                    remainingDataToRead);
+                    RemainingDataToRead);
 
             Buffers[*BufferCount].Buffer = Chunk->Buffer;
             Buffers[*BufferCount].Length = ChunkReadLength;
-            remainingDataToRead -= ChunkReadLength;
+            RemainingDataToRead -= ChunkReadLength;
             (*BufferCount)++;
         }
         *BufferOffset = RecvBuffer->BaseOffset;
-        RecvBuffer->ReadPendingLength = ContiguousLength - remainingDataToRead;
+        RecvBuffer->ReadPendingLength = ContiguousLength - RemainingDataToRead;
     }
 }
 
@@ -1026,27 +1033,6 @@ QuicRecvBufferPartialDrain(
             RecvBuffer->Chunks.Flink,
             QUIC_RECV_CHUNK,
             Link);
-
-    if (Chunk->Link.Flink != &RecvBuffer->Chunks &&
-        (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
-         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR)) {
-        //
-        // In single/circular mode, if there is another chunk, then that means
-        // we no longer need this chunk at all because the other chunk contains
-        // a copy of all this data already. Free this one and continue
-        // operating on the next one.
-        //
-        CxPlatListEntryRemove(&Chunk->Link);
-        QuicRecvChunkFree(RecvBuffer, Chunk);
-
-        CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
-        Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        RecvBuffer->ReadStart = 0;
-    }
 
     RecvBuffer->BaseOffset += DrainLength;
     if (DrainLength != 0) {
@@ -1073,9 +1059,12 @@ QuicRecvBufferPartialDrain(
                 Chunk->Link.Flink != &RecvBuffer->Chunks) {
                 //
                 // Shrink the capacity of the first chunk in app-owned mode or
-                // if there is another chunk (in circular and multiple mode,
-                // when there is a single chunk, it is used as a circular buffer).
+                // if there is another chunk (in which case we want to progressively
+                // get rid of the first chunk).
                 //
+                CXPLAT_DBG_ASSERT(
+                    RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+                    RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
                 RecvBuffer->Capacity -= (uint32_t)DrainLength;
             }
         }
@@ -1158,6 +1147,8 @@ QuicRecvBufferFullDrain(
         return 0;
     }
 
+    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
+                      RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     //
     // We have more chunks and just drained this one completely: we are never
     // going to re-use this one. Free it.
@@ -1194,6 +1185,18 @@ QuicRecvBufferDrain(
     )
 {
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
+
+    //
+    // Free the retired chunk, now that it is no longer referenced.
+    //
+    if (RecvBuffer->RetiredChunk != NULL) {
+        CXPLAT_DBG_ASSERT(
+            RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
+            RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR);
+
+        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
+        RecvBuffer->RetiredChunk = NULL;
+    }
 
     //
     // Mark chunks as no longer externally referenced and reset the read-pending data length.

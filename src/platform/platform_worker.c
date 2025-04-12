@@ -149,7 +149,7 @@ CxPlatWorkerPoolInit(
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
-BOOLEAN
+BOOLEAN // Returns TRUE on successfully starting the worker pool
 CxPlatWorkerPoolStart(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
@@ -162,6 +162,10 @@ CxPlatWorkerPoolStart(
         return TRUE;
     }
 
+    //
+    // Build up the processor list either from the config or default to one per
+    // system processor.
+    //
     const uint16_t* ProcessorList;
     if (Config && Config->ProcessorCount) {
         WorkerPool->WorkerCount = Config->ProcessorCount;
@@ -205,6 +209,11 @@ CxPlatWorkerPoolStart(
         NULL
     };
 
+    //
+    // Set up each worker thread with the configuration initialized above. Also
+    // creates the event queue and all the SQEs used to shutdown, wake and poll
+    // the worker.
+    //
     CxPlatZeroMemory(WorkerPool->Workers, WorkersSize);
     for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];

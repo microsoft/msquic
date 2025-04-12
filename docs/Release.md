@@ -98,8 +98,6 @@ MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but
    - msquic_windows_x86_Release_openssl.zip
    - msquic_windows_x86_Release_openssl3.zip
    - msquic_windows_x86_Release_schannel.zip
-1. From Linux (use GitHub Codespace) to publish the latest Rust Crate. (CURRENTLY BROKEN)
-   - Run `cargo publish` from the `release/X.Y` branch.
 1. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
 
 > **Note** - NuGet packages are automatically published to nuget.org by the pipeline.
@@ -130,6 +128,21 @@ Prerequisites:
 1. Owners of the `aports` repository will respond to the PR or merge it in couple of days/hours.
 
 For future reference: [Official documentation](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
+
+### Publishing the Rust Crate
+
+The following are the complete (manual) steps for publishing the Rust crate.
+
+1. Create a (Linux) GitHub CodeSpace.
+1. `sudo apt update`
+1. `sudo apt install curl`
+1. `curl https://sh.rustup.rs -sSf | sh`
+1. Restart bash.
+1. `cargo login`
+1. Create an API token on https://crates.io/settings/tokens (with `publish-update` scope).
+1. Paste the token into bash.
+1. If doing a beta release, update `Cargo.toml` to add a # after `beta` in the version.
+1. `cargo publish` or `cargo publish --allow-dirty` if beta release
 
 ## Synchronizing with Windows
 
