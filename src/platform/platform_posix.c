@@ -51,6 +51,9 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
+uint8_t SystemLoaded;
+uint8_t CxPlatInitialized;
+
 uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
@@ -98,6 +101,17 @@ CxPlatSystemLoad(
     void
     )
 {
+    //
+    // There are a few cases where we might call CxPlatSystemLoad more than
+    // once. Let's guard against that. The caller is responsible for ensuring
+    // it's not called concurrently.
+    //
+    if (SystemLoaded) {
+        return;
+    }
+
+    SystemLoaded = TRUE;
+
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
@@ -210,8 +224,13 @@ CxPlatSystemUnload(
     void
     )
 {
+    if (!SystemLoaded) {
+        return;
+    }
+
 #ifdef CXPLAT_NUMA_AWARE
     CXPLAT_FREE(CxPlatNumaNodeMasks, QUIC_POOL_PLATFORM_PROC);
+    CxPlatNumaNodeMasks = NULL;
 #endif
     QuicTraceLogInfo(
         PosixUnloaded,
@@ -226,6 +245,12 @@ CxPlatInitialize(
     )
 {
     QUIC_STATUS Status;
+
+    if (CxPlatInitialized) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    CxPlatInitialized = TRUE;
 
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
@@ -260,6 +285,10 @@ CxPlatUninitialize(
     void
     )
 {
+    if (!CxPlatInitialized) {
+        return;
+    }
+
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
