@@ -345,7 +345,7 @@ NewPingConnection(
         }
     }
 #else
-    if (UseQTIP || SendUdpOverQtip) {
+    if (SendUdpOverQtip) {
         TEST_FAILURE("QTIP is not supported in this build.");
         delete Connection;
         return nullptr;
