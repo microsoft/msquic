@@ -32,7 +32,6 @@ jobs:
         arch: [x86, x64, arm64]
         tls: [schannel, openssl, openssl3]
         static: ['', '-Static']
-        official: ['', '-OfficialRelease']
         exclude:
         # OpenSSL doesn't support arm64
         - tls: openssl
