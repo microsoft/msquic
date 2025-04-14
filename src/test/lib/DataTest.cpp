@@ -412,6 +412,13 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (SendUdpToQtipListener) {
+        TEST_FAILURE("QTIP is not supported in this build.");
+        return;
+    }
+#endif
+
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
@@ -546,6 +553,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (SendUdpToQtipListener && (i % 2 == 1) && UseQTIP) {
                         // Test and make sure this connection's QTIP settings is opposite of UseQTIP.
                         QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
@@ -561,6 +569,7 @@ QuicTestConnectAndPing(
                             return;
                         }
                     }
+#endif
 
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(
