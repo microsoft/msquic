@@ -64,13 +64,13 @@ jobs:
       run: |
         $osName = "${{runner.os}}".ToLower()
         Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
-        chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}/msquictest
-        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}"
+        chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}/msquictest
+        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}"
         scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
