@@ -365,6 +365,7 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
@@ -373,6 +374,7 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
         QuicTestValidateConnectionPoolCreate();
     }
 }
+#endif
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
@@ -1807,6 +1809,7 @@ TEST_P(WithSendArgs1, Send) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 TEST_P(WithSendArgs1, SendQtip) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
     if (!TestingKernelMode && UseQTIP) {
@@ -1828,6 +1831,7 @@ TEST_P(WithSendArgs1, SendQtip) {
             true); // SendUdpToQtipListener
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithSendArgs2, SendLarge) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
