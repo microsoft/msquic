@@ -318,15 +318,16 @@ NewPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
-    QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
-    if (PerConnSettings.QTIPEnabled != UseQTIP) {
-        TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+    if (Connection == nullptr || !(Connection)->IsValid()) {
+        TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
         return nullptr;
     }
 
-    if (Connection == nullptr || !(Connection)->IsValid()) {
-        TEST_FAILURE("Failed to create new TestConnection.");
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
+    if (PerConnSettings.QTIPEnabled != UseQTIP) {
+        TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
         delete Connection;
         return nullptr;
     }
@@ -343,6 +344,13 @@ NewPingConnection(
             return nullptr;
         }
     }
+#else
+    if (UseQTIP || SendUdpOverQtip) {
+        TEST_FAILURE("QTIP is not supported in this build.");
+        delete Connection;
+        return nullptr;
+    }
+#endif
 
     Connection->SetAutoDelete();
 

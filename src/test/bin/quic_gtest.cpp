@@ -365,6 +365,7 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
@@ -373,6 +374,7 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
         QuicTestValidateConnectionPoolCreate();
     }
 }
+#endif
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
