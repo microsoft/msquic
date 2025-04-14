@@ -25,6 +25,8 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 uint32_t CxPlatProcessorCount;
+uint8_t CxPlatSystemLoaded;
+uint8_t CxPlatInitialized;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
@@ -42,6 +44,12 @@ CxPlatSystemLoad(
     void
     )
 {
+    if (CxPlatSystemLoaded) {
+        return;
+    }
+
+    CxPlatSystemLoaded = TRUE;
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -64,6 +72,10 @@ CxPlatSystemUnload(
     void
     )
 {
+    if (!CxPlatSystemLoaded) {
+        return;
+    }
+
     QuicTraceLogInfo(
         WindowsUserUnloaded,
         "[ dll] Unloaded");
@@ -71,6 +83,7 @@ CxPlatSystemUnload(
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
 #endif
+    CxPlatSystemLoaded = FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -245,6 +258,13 @@ CxPlatInitialize(
     QUIC_STATUS Status;
     BOOLEAN CryptoInitialized = FALSE;
     BOOLEAN ProcInfoInitialized = FALSE;
+
+    if (CxPlatInitialized) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    CxPlatInitialized = TRUE;
+
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -361,6 +381,10 @@ CxPlatUninitialize(
     void
     )
 {
+    if (!CxPlatInitialized) {
+        return;
+    }
+
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
@@ -374,6 +398,7 @@ CxPlatUninitialize(
     QuicTraceLogInfo(
         WindowsUserUninitialized,
         "[ dll] Uninitialized");
+    CxPlatInitialized = FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

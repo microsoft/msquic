@@ -51,7 +51,7 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
-uint8_t SystemLoaded;
+uint8_t CxPlatSystemLoaded;
 uint8_t CxPlatInitialized;
 
 uint32_t CxPlatProcessorCount;
@@ -106,11 +106,11 @@ CxPlatSystemLoad(
     // once. Let's guard against that. The caller is responsible for ensuring
     // it's not called concurrently.
     //
-    if (SystemLoaded) {
+    if (CxPlatSystemLoaded) {
         return;
     }
 
-    SystemLoaded = TRUE;
+    CxPlatSystemLoaded = TRUE;
 
 #if defined(CX_PLATFORM_DARWIN)
     //
@@ -224,7 +224,7 @@ CxPlatSystemUnload(
     void
     )
 {
-    if (!SystemLoaded) {
+    if (!CxPlatSystemLoaded) {
         return;
     }
 
@@ -235,6 +235,8 @@ CxPlatSystemUnload(
     QuicTraceLogInfo(
         PosixUnloaded,
         "[ dso] Unloaded");
+    
+    CxPlatSystemLoaded = FALSE;
 }
 
 uint64_t CGroupGetMemoryLimit();
@@ -294,6 +296,7 @@ CxPlatUninitialize(
     QuicTraceLogInfo(
         PosixUninitialized,
         "[ dso] Uninitialized");
+    CxPlatInitialized = FALSE;
 }
 
 void*
