@@ -44,6 +44,11 @@ CxPlatSystemLoad(
     void
     )
 {
+    //
+    // There are a few cases where we might call CxPlatSystemLoad more than
+    // once. Let's guard against that. The caller is responsible for ensuring
+    // it's not called concurrently.
+    //
     if (CxPlatSystemLoaded) {
         return;
     }
@@ -259,6 +264,9 @@ CxPlatInitialize(
     BOOLEAN CryptoInitialized = FALSE;
     BOOLEAN ProcInfoInitialized = FALSE;
 
+    //
+    // The caller is responsible for ensuring this is not called concurrently.
+    //
     if (CxPlatInitialized) {
         return QUIC_STATUS_SUCCESS;
     }

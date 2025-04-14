@@ -235,7 +235,6 @@ CxPlatSystemUnload(
     QuicTraceLogInfo(
         PosixUnloaded,
         "[ dso] Unloaded");
-    
     CxPlatSystemLoaded = FALSE;
 }
 
@@ -248,6 +247,9 @@ CxPlatInitialize(
 {
     QUIC_STATUS Status;
 
+    //
+    // The caller is responsible for ensuring this is not called concurrently.
+    //
     if (CxPlatInitialized) {
         return QUIC_STATUS_SUCCESS;
     }
