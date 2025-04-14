@@ -179,6 +179,8 @@
 <p>Upon successful handling of this event, the event handler should return one of <code>QUIC_STATUS_SUCCESS</code> or <code>QUIC_STATUS_CONTINUE</code> or <code>QUIC_STATUS_PENDING</code> to the MsQuic library, depending on the chosen approach to handling the received data.</p>
 <p><code>Buffers</code></p>
 <p>An array of <code>QUIC_BUFFER</code>s containing received data.</p>
+<p>The lifetime of the <code>Buffers</code> array itself is limited to the scope of the callback: if the received
+data is handled asynchronously (<code>QUIC_STATUS_PENDING</code>), the <code>QUIC_BUFFER</code> array must be copied.</p>
 <p><code>BufferCount</code></p>
 <p>Count of <code>QUIC_BUFFER</code>s in this payload.</p>
 <p><code>Flags</code></p>

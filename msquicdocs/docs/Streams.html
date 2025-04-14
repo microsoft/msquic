@@ -162,6 +162,8 @@ The application can optimize its processing for that case but should be ready to
 <h3 id="synchronous-vs-asynchronous">Synchronous vs Asynchronous</h3>
 <p>The app has the option of either processing the received data in the callback (synchronous) or queuing the work to a separate thread (asynchronous). If the app processes the data synchronously it must do so in a timely manner. Any significant delays will delay other QUIC processing (such as sending acknowledgments), which can cause protocol issues (dropped connections).</p>
 <p>If the app wants to queue the data to a separate thread, the app must return <code>QUIC_STATUS_PENDING</code> from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a>.</p>
+<p>The lifetime of the <code>QUIC_BUFFER</code>s themselves is limited to the scope of the callback: when handling the received data
+asynchronously, the <code>QUIC_BUFFER</code>s must be copied.</p>
 <h3 id="partial-data-acceptance">Partial Data Acceptance</h3>
 <p>Whenever the app gets the <code>QUIC_STREAM_EVENT_RECEIVE</code> event, it can partially accept/consume the received data.</p>
 <p>For synchronous receives, the app indicates how much of the data it accepted via the <code>TotalBufferLength</code> variable in the payload of the <code>QUIC_STREAM_EVENT_RECEIVE</code> event. On input, that variable indicates the total amount of data being indicated. On output (return from the callback), the variable is taken as how much data the app consumed. By default, if the variable is left unmodified, then all data is assumed to be accepted.</p>
