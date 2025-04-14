@@ -412,7 +412,7 @@ QuicTestConnectAndPing(
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+#if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     if (SendUdpToQtipListener) {
         TEST_FAILURE("QTIP is not supported in this build.");
         return;
