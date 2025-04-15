@@ -191,6 +191,7 @@ QuicRecvChunkFree(
     }
 }
 
+#if DEBUG
 //
 // Validate the receive buffer invariants.
 // No-op in release builds.
@@ -201,7 +202,6 @@ QuicRecvBufferValidate(
     _In_ const QUIC_RECV_BUFFER* RecvBuffer
     )
 {
-#if DEBUG
     QUIC_RECV_CHUNK* FirstChunk =
         CXPLAT_CONTAINING_RECORD(
             RecvBuffer->Chunks.Flink,
@@ -243,11 +243,10 @@ QuicRecvBufferValidate(
     // There can be a retired chunk only when a read is pending.
     //
     CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL || RecvBuffer->ReadPendingLength != 0);
-
-#else
-    UNREFERENCED_PARAMETER(RecvBuffer);
-#endif
 }
+#else
+#define QuicRecvBufferValidate(RecvBuffer)
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
