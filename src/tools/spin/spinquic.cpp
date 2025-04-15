@@ -202,7 +202,9 @@ public:
 };
 
 static QUIC_API_TABLE MsQuic;
-// This locks MsQuicOpen2 in RunThread when statically linked with libmsquic
+//
+// This lock is used to protect concurrent MsQuic library open and close.
+//
 CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
