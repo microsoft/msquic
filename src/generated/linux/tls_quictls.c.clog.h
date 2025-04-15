@@ -2,16 +2,16 @@
 #include <clog.h>
 #endif
 #undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_TLS_OPENSSL_C
+#define TRACEPOINT_PROVIDER CLOG_TLS_QUICTLS_C
 #undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
 #undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "tls_openssl.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_TLS_OPENSSL_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_TLS_OPENSSL_C
+#define TRACEPOINT_INCLUDE "tls_quictls.c.clog.h.lttng.h"
+#if !defined(DEF_CLOG_TLS_QUICTLS_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
+#define DEF_CLOG_TLS_QUICTLS_C
 #include <lttng/tracepoint.h>
 #define __int64 __int64_t
-#include "tls_openssl.c.clog.h.lttng.h"
+#include "tls_quictls.c.clog.h.lttng.h"
 #endif
 #include <lttng/tracepoint-event.h>
 #ifndef _clog_MACRO_QuicTraceLogConnError
@@ -48,7 +48,7 @@ extern "C" {
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_OpenSslAlert
 #define _clog_5_ARGS_TRACE_OpenSslAlert(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlert , arg1, arg3, arg4);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslAlert , arg1, arg3, arg4);\
 
 #endif
 
@@ -68,7 +68,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlert , arg1, arg3, arg4);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr
 #define _clog_4_ARGS_TRACE_OpenSslQuicDataErrorStr(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslQuicDataErrorStr , arg1, arg3);\
 
 #endif
 
@@ -92,7 +92,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_6_ARGS_TRACE_OpenSslHandshakeErrorStr
 #define _clog_6_ARGS_TRACE_OpenSslHandshakeErrorStr(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr , arg1, arg3, arg4, arg5);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslHandshakeErrorStr , arg1, arg3, arg4, arg5);\
 
 #endif
 
@@ -112,7 +112,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr , arg1, arg3, arg4, arg5
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslHandshakeError
 #define _clog_4_ARGS_TRACE_OpenSslHandshakeError(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslHandshakeError , arg1, arg3);\
 
 #endif
 
@@ -130,7 +130,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslAlpnNegotiationFailure
 #define _clog_3_ARGS_TRACE_OpenSslAlpnNegotiationFailure(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslAlpnNegotiationFailure , arg1);\
 
 #endif
 
@@ -148,7 +148,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslInvalidAlpnLength
 #define _clog_3_ARGS_TRACE_OpenSslInvalidAlpnLength(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslInvalidAlpnLength , arg1);\
 
 #endif
 
@@ -166,7 +166,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslNoMatchingAlpn
 #define _clog_3_ARGS_TRACE_OpenSslNoMatchingAlpn(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslNoMatchingAlpn , arg1);\
 
 #endif
 
@@ -184,7 +184,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslMissingTransportParameters
 #define _clog_3_ARGS_TRACE_OpenSslMissingTransportParameters(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslMissingTransportParameters , arg1);\
 
 #endif
 
@@ -204,7 +204,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslHandshakeDataStart
 #define _clog_4_ARGS_TRACE_OpenSslHandshakeDataStart(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslHandshakeDataStart , arg1, arg3);\
 
 #endif
 
@@ -224,7 +224,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSsl1RttDataStart
 #define _clog_4_ARGS_TRACE_OpenSsl1RttDataStart(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSsl1RttDataStart , arg1, arg3);\
 
 #endif
 
@@ -244,7 +244,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslOnRecvTicket
 #define _clog_4_ARGS_TRACE_OpenSslOnRecvTicket(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslOnRecvTicket , arg1, arg3);\
 
 #endif
 
@@ -264,7 +264,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslOnSetTicket
 #define _clog_4_ARGS_TRACE_OpenSslOnSetTicket(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslOnSetTicket , arg1, arg3);\
 
 #endif
 
@@ -282,7 +282,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslHandshakeComplete
 #define _clog_3_ARGS_TRACE_OpenSslHandshakeComplete(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslHandshakeComplete , arg1);\
 
 #endif
 
@@ -300,7 +300,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslHandshakeResumed
 #define _clog_3_ARGS_TRACE_OpenSslHandshakeResumed(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslHandshakeResumed , arg1);\
 
 #endif
 
@@ -320,7 +320,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets
 #define _clog_4_ARGS_TRACE_OpenSslNewEncryptionSecrets(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
 
 #endif
 
@@ -342,7 +342,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_OpenSslAddHandshakeData
 #define _clog_5_ARGS_TRACE_OpenSslAddHandshakeData(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData , arg1, arg3, arg4);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslAddHandshakeData , arg1, arg3, arg4);\
 
 #endif
 
@@ -362,7 +362,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData , arg1, arg3, arg4);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslTickedDecrypted
 #define _clog_4_ARGS_TRACE_OpenSslTickedDecrypted(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslTickedDecrypted , arg1, arg3);\
 
 #endif
 
@@ -382,7 +382,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslRecvTicketData
 #define _clog_4_ARGS_TRACE_OpenSslRecvTicketData(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslRecvTicketData , arg1, arg3);\
 
 #endif
 
@@ -400,7 +400,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslContextCreated
 #define _clog_3_ARGS_TRACE_OpenSslContextCreated(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCreated , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslContextCreated , arg1);\
 
 #endif
 
@@ -418,7 +418,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCreated , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_OpenSslContextCleaningUp
 #define _clog_3_ARGS_TRACE_OpenSslContextCleaningUp(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp , arg1);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslContextCleaningUp , arg1);\
 
 #endif
 
@@ -438,7 +438,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp , arg1);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslSendTicketData
 #define _clog_4_ARGS_TRACE_OpenSslSendTicketData(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslSendTicketData , arg1, arg3);\
 
 #endif
 
@@ -458,7 +458,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_OpenSslProcessData
 #define _clog_4_ARGS_TRACE_OpenSslProcessData(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, OpenSslProcessData , arg1, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, OpenSslProcessData , arg1, arg3);\
 
 #endif
 
@@ -478,7 +478,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, OpenSslProcessData , arg1, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_TlsError
 #define _clog_4_ARGS_TRACE_TlsError(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, TlsError , arg2, arg3);\
 
 #endif
 
@@ -496,7 +496,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, TlsError , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_LibraryError
 #define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_TLS_OPENSSL_C, LibraryError , arg2);\
+tracepoint(CLOG_TLS_QUICTLS_C, LibraryError , arg2);\
 
 #endif
 
@@ -516,7 +516,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryError , arg2);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, AllocFailure , arg2, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, AllocFailure , arg2, arg3);\
 
 #endif
 
@@ -538,7 +538,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, AllocFailure , arg2, arg3);\
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_TlsErrorStatus
 #define _clog_5_ARGS_TRACE_TlsErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_TLS_OPENSSL_C, TlsErrorStatus , arg2, arg3, arg4);\
+tracepoint(CLOG_TLS_QUICTLS_C, TlsErrorStatus , arg2, arg3, arg4);\
 
 #endif
 
@@ -558,7 +558,7 @@ tracepoint(CLOG_TLS_OPENSSL_C, TlsErrorStatus , arg2, arg3, arg4);\
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
+tracepoint(CLOG_TLS_QUICTLS_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 
@@ -569,5 +569,5 @@ tracepoint(CLOG_TLS_OPENSSL_C, LibraryErrorStatus , arg2, arg3);\
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_tls_openssl.c.clog.h.c"
+#include "quic.clog_tls_quictls.c.clog.h.c"
 #endif
