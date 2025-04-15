@@ -51,8 +51,8 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
-uint8_t CxPlatSystemLoaded;
-uint8_t CxPlatInitialized;
+volatile short CxPlatSystemRef;
+volatile short CxPlatRef;
 
 uint32_t CxPlatProcessorCount;
 
@@ -101,16 +101,9 @@ CxPlatSystemLoad(
     void
     )
 {
-    //
-    // There are a few cases where we might call CxPlatSystemLoad more than
-    // once. Let's guard against that. The caller is responsible for ensuring
-    // it's not called concurrently.
-    //
-    if (CxPlatSystemLoaded) {
+    if (InterlockedIncrement16(&CxPlatSystemRef) != 1) {
         return;
     }
-
-    CxPlatSystemLoaded = TRUE;
 
 #if defined(CX_PLATFORM_DARWIN)
     //
@@ -224,7 +217,7 @@ CxPlatSystemUnload(
     void
     )
 {
-    if (!CxPlatSystemLoaded) {
+    if (InterlockedDecrement16(&CxPlatSystemRef) != 0) {
         return;
     }
 
@@ -235,7 +228,6 @@ CxPlatSystemUnload(
     QuicTraceLogInfo(
         PosixUnloaded,
         "[ dso] Unloaded");
-    CxPlatSystemLoaded = FALSE;
 }
 
 uint64_t CGroupGetMemoryLimit();
@@ -247,14 +239,9 @@ CxPlatInitialize(
 {
     QUIC_STATUS Status;
 
-    //
-    // The caller is responsible for ensuring this is not called concurrently.
-    //
-    if (CxPlatInitialized) {
+    if (InterlockedIncrement16(&CxPlatRef) != 1) {
         return QUIC_STATUS_SUCCESS;
     }
-
-    CxPlatInitialized = TRUE;
 
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
@@ -289,7 +276,7 @@ CxPlatUninitialize(
     void
     )
 {
-    if (!CxPlatInitialized) {
+    if (InterlockedDecrement16(&CxPlatRef) != 0) {
         return;
     }
 
@@ -298,7 +285,6 @@ CxPlatUninitialize(
     QuicTraceLogInfo(
         PosixUninitialized,
         "[ dso] Uninitialized");
-    CxPlatInitialized = FALSE;
 }
 
 void*

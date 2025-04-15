@@ -25,8 +25,8 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 uint32_t CxPlatProcessorCount;
-uint8_t CxPlatSystemLoaded;
-uint8_t CxPlatInitialized;
+volatile short CxPlatSystemRef;
+volatile short CxPlatRef;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
@@ -44,16 +44,9 @@ CxPlatSystemLoad(
     void
     )
 {
-    //
-    // There are a few cases where we might call CxPlatSystemLoad more than
-    // once. Let's guard against that. The caller is responsible for ensuring
-    // it's not called concurrently.
-    //
-    if (CxPlatSystemLoaded) {
+    if (InterlockedIncrement16(&CxPlatSystemRef) != 1) {
         return;
     }
-
-    CxPlatSystemLoaded = TRUE;
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
@@ -77,7 +70,7 @@ CxPlatSystemUnload(
     void
     )
 {
-    if (!CxPlatSystemLoaded) {
+    if (InterlockedDecrement16(&CxPlatSystemRef) != 0) {
         return;
     }
 
@@ -88,7 +81,6 @@ CxPlatSystemUnload(
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventUnregisterMicrosoft_Quic();
 #endif
-    CxPlatSystemLoaded = FALSE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -264,14 +256,10 @@ CxPlatInitialize(
     BOOLEAN CryptoInitialized = FALSE;
     BOOLEAN ProcInfoInitialized = FALSE;
 
-    //
-    // The caller is responsible for ensuring this is not called concurrently.
-    //
-    if (CxPlatInitialized) {
+
+    if (InterlockedIncrement16(&CxPlatRef) != 1) {
         return QUIC_STATUS_SUCCESS;
     }
-
-    CxPlatInitialized = TRUE;
 
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
@@ -389,7 +377,7 @@ CxPlatUninitialize(
     void
     )
 {
-    if (!CxPlatInitialized) {
+    if (InterlockedDecrement16(&CxPlatRef) != 0) {
         return;
     }
 
@@ -406,7 +394,6 @@ CxPlatUninitialize(
     QuicTraceLogInfo(
         WindowsUserUninitialized,
         "[ dll] Uninitialized");
-    CxPlatInitialized = FALSE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
