@@ -244,13 +244,9 @@ struct SpinQuicGlobals {
             DumpMsQuicPerfCounters(MsQuic);
 #endif
 
-#ifdef QUIC_BUILD_STATIC
             CxPlatLockAcquire(&RunThreadLock);
             MsQuicClose(MsQuic);
             CxPlatLockRelease(&RunThreadLock);
-#else
-            MsQuicClose(MsQuic);
-#endif
         }
         delete [] SendBuffer;
     }
@@ -1371,13 +1367,9 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
     do {
         Gbs Gb;
 
-#ifdef QUIC_BUILD_STATIC
         CxPlatLockAcquire(&RunThreadLock);
         QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
         CxPlatLockRelease(&RunThreadLock);
-#else
-        QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
-#endif
         if (QUIC_FAILED(Status)) {
             break;
         }
