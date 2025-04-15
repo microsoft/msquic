@@ -39,7 +39,41 @@ MsQuicLibraryLoad(
     void
     )
 {
-    if (InterlockedIncrement16(&MsQuicLib.LoadRefCount) == 1) {
+    //
+    // Use interlocked operations synchronizes loading and unloading across
+    // multiple threads.
+    //
+    long LoadRefCount = MsQuicLib.LoadRefCount;
+    do {
+        if (LoadRefCount & 0x80000000) {
+            CxPlatSchedulerYield(); // Another thread is loading/unloading.
+            LoadRefCount = MsQuicLib.LoadRefCount;
+            continue;
+        }
+
+        if (LoadRefCount != 0) {
+            long PrevLoadRefCount =
+                InterlockedCompareExchange(
+                    &MsQuicLib.LoadRefCount,
+                    LoadRefCount + 1, // Try to increment the count.
+                    LoadRefCount);
+            if (PrevLoadRefCount == LoadRefCount) {
+                return; // Succesfully incremented the count.
+            }
+            LoadRefCount = PrevLoadRefCount;
+            continue;
+        }
+
+        LoadRefCount =
+            InterlockedCompareExchange(
+                &MsQuicLib.LoadRefCount,
+                0x80000000 | 1, // Set 'loading' bit and increment count.
+                0);
+        if (LoadRefCount != 0) {
+            CxPlatSchedulerYield(); // Another thread is loading/unloading.
+            continue;
+        }
+
         //
         // Load the library.
         //
@@ -55,7 +89,14 @@ MsQuicLibraryLoad(
         MsQuicLib.Version[2] = VER_PATCH;
         MsQuicLib.Version[3] = VER_BUILD_ID;
         MsQuicLib.GitHash = VER_GIT_HASH_STR;
-    }
+
+        InterlockedCompareExchange(
+            &MsQuicLib.LoadRefCount,
+            1, // Clear 'loading' bit.
+            0x80000000 | 1);
+        return;
+
+    } while (TRUE);
 }
 
 //
@@ -68,14 +109,56 @@ MsQuicLibraryUnload(
     )
 {
     CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
-    if (InterlockedDecrement16(&MsQuicLib.LoadRefCount) == 0) {
+
+    //
+    // Use interlocked operations synchronizes loading and unloading across
+    // multiple threads.
+    //
+    long LoadRefCount = MsQuicLib.LoadRefCount;
+    do {
+        if (LoadRefCount & 0x80000000) {
+            CxPlatSchedulerYield(); // Another thread is loading/unloading.
+            LoadRefCount = MsQuicLib.LoadRefCount;
+            continue;
+        }
+
+        CXPLAT_DBG_ASSERT(LoadRefCount != 0);
+        if (LoadRefCount != 1) {
+            long PrevLoadRefCount =
+                InterlockedCompareExchange(
+                    &MsQuicLib.LoadRefCount,
+                    LoadRefCount - 1, // Try to decrement the count.
+                    LoadRefCount);
+            if (PrevLoadRefCount == LoadRefCount) {
+                return; // Succesfully decremented the count.
+            }
+            LoadRefCount = PrevLoadRefCount;
+            continue;
+        }
+
+        LoadRefCount =
+            InterlockedCompareExchange(
+                &MsQuicLib.LoadRefCount,
+                0x80000000, // Set 'loading' bit and decrement count.
+                1);
+        if (LoadRefCount != 1) {
+            CxPlatSchedulerYield(); // Another thread is loading/unloading.
+            continue;
+        }
+
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
         CxPlatSystemUnload();
-    }
+
+        InterlockedCompareExchange(
+            &MsQuicLib.LoadRefCount,
+            0, // Clear 'loading' bit.
+            0x80000000);
+        return;
+    } while (TRUE);
 }
 
 void

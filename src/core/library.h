@@ -104,10 +104,17 @@ typedef struct QUIC_LIBRARY {
     //
     CXPLAT_DISPATCH_LOCK DatapathLock;
 
+    #if DEBUG
+        //
+        // Number of connections current allocated.
+        //
+        long ConnectionCount;
+    #endif
+
     //
     // Total outstanding references from calls to MsQuicLoadLibrary.
     //
-    volatile short LoadRefCount;
+    volatile long LoadRefCount;
 
     //
     // Total outstanding references from calls to MsQuicOpenVersion.
@@ -124,13 +131,6 @@ typedef struct QUIC_LIBRARY {
     // Mask for the worker index in the connection's partition ID.
     //
     uint16_t PartitionMask;
-
-#if DEBUG
-    //
-    // Number of connections current allocated.
-    //
-    long ConnectionCount;
-#endif
 
     //
     // Estimated timer resolution for the platform.
