@@ -663,7 +663,7 @@ function Wait-TestCase($TestCase) {
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
             } elseif($AnyTestSkipped) {
-                Log "SKIPPED $($TestCase.Name) (in $($Delta.TotalSeconds) sec)"
+                Log "$($TestCase.Name) skipped"
             } else {
                 Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
