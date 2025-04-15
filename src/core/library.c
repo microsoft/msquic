@@ -40,7 +40,7 @@ MsQuicLibraryLoad(
     )
 {
     //
-    // Use interlocked operations synchronizes loading and unloading across
+    // Use interlocked operations to synchronize loading and unloading across
     // multiple threads.
     //
     long LoadRefCount = MsQuicLib.LoadRefCount;
@@ -111,7 +111,7 @@ MsQuicLibraryUnload(
     CXPLAT_FRE_ASSERT(MsQuicLib.Loaded);
 
     //
-    // Use interlocked operations synchronizes loading and unloading across
+    // Use interlocked operations to synchronize loading and unloading across
     // multiple threads.
     //
     long LoadRefCount = MsQuicLib.LoadRefCount;
