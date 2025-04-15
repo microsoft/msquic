@@ -58,7 +58,7 @@ MsQuicLibraryLoad(
                     LoadRefCount + 1, // Try to increment the count.
                     LoadRefCount);
             if (PrevLoadRefCount == LoadRefCount) {
-                return; // Succesfully incremented the count.
+                return; // Successfully incremented the count.
             }
             LoadRefCount = PrevLoadRefCount;
             continue;
@@ -130,7 +130,7 @@ MsQuicLibraryUnload(
                     LoadRefCount - 1, // Try to decrement the count.
                     LoadRefCount);
             if (PrevLoadRefCount == LoadRefCount) {
-                return; // Succesfully decremented the count.
+                return; // Successfully decremented the count.
             }
             LoadRefCount = PrevLoadRefCount;
             continue;
@@ -158,6 +158,7 @@ MsQuicLibraryUnload(
             0, // Clear 'loading' bit.
             0x80000000);
         return;
+
     } while (TRUE);
 }
 
