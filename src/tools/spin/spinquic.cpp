@@ -243,7 +243,14 @@ struct SpinQuicGlobals {
 #ifndef FUZZING
             DumpMsQuicPerfCounters(MsQuic);
 #endif
+
+#ifdef QUIC_BUILD_STATIC
+            CxPlatLockAcquire(&RunThreadLock);
             MsQuicClose(MsQuic);
+            CxPlatLockRelease(&RunThreadLock);
+#else
+            MsQuicClose(MsQuic);
+#endif
         }
         delete [] SendBuffer;
     }
