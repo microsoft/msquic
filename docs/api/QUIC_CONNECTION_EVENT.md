@@ -114,7 +114,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } ONE_WAY_DELAY_NEGOTIATED;
         struct {
            uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
-           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.
+           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
            uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
            uint64_t SmoothedRTT;                // Smoothed RTT value
            uint32_t CongestionWindow;           // Congestion Window
