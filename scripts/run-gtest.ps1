@@ -560,6 +560,7 @@ function PrintGdbCoreCallStack($CoreFile) {
 function Wait-TestCase($TestCase) {
     $ProcessCrashed = $false
     $AnyTestFailed = $false
+    $AnyTestSkipped = $false
     $StdOut = $null
     $StdOutTxt = $null
     $StdError = $null
@@ -590,6 +591,7 @@ function Wait-TestCase($TestCase) {
                 LogWrn "No test results generated! Treating as crash!"
                 $ProcessCrashed = $true
             }
+            $AnyTestSkipped = $StdOutTxt.Contains("[  SKIPPED ]")
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
@@ -660,6 +662,8 @@ function Wait-TestCase($TestCase) {
                 LogErr "$($TestCase.Name) failed (in $($Delta.TotalSeconds) sec):"
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
+            } elseif($AnyTestSkipped) {
+                Log "SKIPPED $($TestCase.Name) (in $($Delta.TotalSeconds) sec)"
             } else {
                 Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
