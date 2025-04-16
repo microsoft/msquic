@@ -310,34 +310,34 @@ Error:
 
 void
 CxPlatWorkerPoolDelete(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    CXPLAT_DBG_ASSERT(WorkerPool);
+    if (WorkerPool) {
+        CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
 
-    CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
-
-    for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
-        CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
-        Worker->StoppingThread = TRUE;
-        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
-        CxPlatThreadWait(&Worker->Thread);
-        CxPlatThreadDelete(&Worker->Thread);
+        for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+            CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
+            Worker->StoppingThread = TRUE;
+            CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
+            CxPlatThreadWait(&Worker->Thread);
+            CxPlatThreadDelete(&Worker->Thread);
 #if DEBUG
-        CXPLAT_DBG_ASSERT(Worker->ThreadStarted);
-        CXPLAT_DBG_ASSERT(Worker->ThreadFinished);
+            CXPLAT_DBG_ASSERT(Worker->ThreadStarted);
+            CXPLAT_DBG_ASSERT(Worker->ThreadFinished);
 #endif
-        Worker->DestroyedThread = TRUE;
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
-        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
-        CxPlatEventQCleanup(&Worker->EventQ);
-        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&Worker->DynamicPoolList));
-        CxPlatLockUninitialize(&Worker->ECLock);
-    }
+            Worker->DestroyedThread = TRUE;
+            CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+            CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+            CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+            CxPlatEventQCleanup(&Worker->EventQ);
+            CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&Worker->DynamicPoolList));
+            CxPlatLockUninitialize(&Worker->ECLock);
+        }
 
-    CxPlatRundownUninitialize(&WorkerPool->Rundown);
-    CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+        CxPlatRundownUninitialize(&WorkerPool->Rundown);
+        CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+    }
 }
 
 uint32_t

@@ -472,7 +472,7 @@ CxPlatWorkerPoolCreate(
 
 void
 CxPlatWorkerPoolDelete(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
 uint32_t
