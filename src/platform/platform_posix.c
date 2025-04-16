@@ -51,9 +51,6 @@ QUIC_TRACE_RUNDOWN_CALLBACK* QuicTraceRundownCallback;
 
 static const char TpLibName[] = "libmsquic.lttng.so." LIBRARY_VERSION;
 
-volatile short CxPlatSystemRef;
-volatile short CxPlatRef;
-
 uint32_t CxPlatProcessorCount;
 
 uint64_t CxPlatTotalMemory;
@@ -101,10 +98,6 @@ CxPlatSystemLoad(
     void
     )
 {
-    if (InterlockedIncrement16(&CxPlatSystemRef) != 1) {
-        return;
-    }
-
 #if defined(CX_PLATFORM_DARWIN)
     //
     // arm64 macOS has no way to get the current proc, so treat as single core.
@@ -217,13 +210,8 @@ CxPlatSystemUnload(
     void
     )
 {
-    if (InterlockedDecrement16(&CxPlatSystemRef) != 0) {
-        return;
-    }
-
 #ifdef CXPLAT_NUMA_AWARE
     CXPLAT_FREE(CxPlatNumaNodeMasks, QUIC_POOL_PLATFORM_PROC);
-    CxPlatNumaNodeMasks = NULL;
 #endif
     QuicTraceLogInfo(
         PosixUnloaded,
@@ -238,10 +226,6 @@ CxPlatInitialize(
     )
 {
     QUIC_STATUS Status;
-
-    if (InterlockedIncrement16(&CxPlatRef) != 1) {
-        return QUIC_STATUS_SUCCESS;
-    }
 
     RandomFd = open("/dev/urandom", O_RDONLY|O_CLOEXEC);
     if (RandomFd == -1) {
@@ -276,10 +260,6 @@ CxPlatUninitialize(
     void
     )
 {
-    if (InterlockedDecrement16(&CxPlatRef) != 0) {
-        return;
-    }
-
     CxPlatCryptUninitialize();
     close(RandomFd);
     QuicTraceLogInfo(
