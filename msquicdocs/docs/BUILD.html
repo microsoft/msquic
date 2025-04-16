@@ -87,8 +87,8 @@
         <article data-uid="">
 <h1 id="building-msquic">Building MsQuic</h1>
 
-<p>First, clone the repo recursively or run <code>git submodule update --init --recursive</code>
-to get all the submodules.</p>
+<p>First, clone the repo recursively: <code>git clone --recurse-submodules https://github.com/microsoft/msquic.git</code></p>
+<p>For existing repositories, run <code>git submodule update --init --recursive</code> to get all the submodules.</p>
 <h1 id="source-code">Source Code</h1>
 <p>The source (found in the <code>src</code> directory) is divided into several directories:</p>
 <ul>
@@ -109,18 +109,28 @@ to get all the submodules.</p>
 <p>Then you will need to <strong>manually</strong> launch &quot;PowerShell 7&quot; to continue. This install does not replace the built-in version of PowerShell.</p>
 <h2 id="install-on-linux">Install on Linux</h2>
 <p>You can find the full installation instructions for PowerShell on Linux <a href="https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?">here</a>. For Ubuntu you can run the following:</p>
-<pre><code class="lang-PowerShell"># Download the Microsoft repository GPG keys
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-
-# Register the Microsoft repository GPG keys
-sudo dpkg -i packages-microsoft-prod.deb
-
-# Update the list of products
+<pre><code class="lang-sh"># Update the list of packages
 sudo apt-get update
 
-# Enable the &quot;universe&quot; repositories
-sudo add-apt-repository universe
+# Install pre-requisite packages.
+sudo apt-get install -y wget apt-transport-https software-properties-common
 
+# Get the version of Ubuntu
+source /etc/os-release
+
+# Download the Microsoft repository keys
+wget -q https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb
+
+# Register the Microsoft repository keys
+sudo dpkg -i packages-microsoft-prod.deb
+
+# Delete the Microsoft repository keys file
+rm packages-microsoft-prod.deb
+
+# Update the list of packages after we added packages.microsoft.com
+sudo apt-get update
+
+###################################
 # Install PowerShell
 sudo apt-get install -y powershell
 
@@ -147,11 +157,11 @@ sudo dpkg -i libssl1.0.0_1.0.2g-1ubuntu4.18_amd64.deb
 <p>Then you will need to manually run &quot;pwsh&quot; to continue.</p>
 <h1 id="building-with-powershell">Building with PowerShell</h1>
 <h2 id="install-dependencies">Install Dependencies</h2>
-<p>In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.</p>
+<p>In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK (or newer, such as .NET 9 SDK), is required. Go to the following location and find the install page for your platform.</p>
 <ul>
 <li><a href="https://docs.microsoft.com/en-us/dotnet/core/install/">.NET Core</a></li>
 </ul>
-<p>After installing .NET Core, you will need to restart your terminal.</p>
+<p>After installing .NET [Core] SDK, you may need to restart your terminal.</p>
 <p>For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:</p>
 <pre><code class="lang-PowerShell">./scripts/prepare-machine.ps1
 </code></pre>
