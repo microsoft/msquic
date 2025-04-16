@@ -300,7 +300,7 @@ main(
         goto Exit;
     }
 
-     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
+    if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
