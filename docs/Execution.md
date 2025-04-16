@@ -33,7 +33,7 @@ QUIC_STATUS
     );
 ```
 
-The application must register a callback handler for every MsQuic object it creates, as well as for some objects automatically created by MsQuic (TODO: add reference).
+The application must register a callback handler for every MsQuic object it creates, as well as for some objects automatically created by MsQuic (such as those created for [Peer Initiated Streams](Streams.md#Peer_Initiated_Streams) or [Server Connections](./api/QUIC_LISTENER_EVENT.md#New_Connection)).
 
 (TODO: add notes on Preview feature events)
 
