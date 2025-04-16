@@ -290,9 +290,7 @@ main(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
-
-    CxPlatSystemLoad();
-    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
+    MsQuicApi MsQuic; // used to initialize cx platform and
 
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
@@ -336,9 +334,6 @@ Exit:
     if (SelfSignedCredConfig) {
         CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
-
-    CxPlatUninitialize();
-    CxPlatSystemUnload();
 
     return Status;
 }
