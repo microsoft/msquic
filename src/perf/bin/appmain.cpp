@@ -290,16 +290,21 @@ main(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
-    MsQuicApi MsQuic; // used to initialize cx platform and
-
     const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
+    const char* FileName = nullptr;
+
+    MsQuicApi MsQuic; // used to initialize cx platform and
+    
+    if (QUIC_FAILED(MsQuic.GetInitStatus())) {
+        goto Exit;
+    }
+
      if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
 
-    const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
     if (!TryGetTarget(argc, argv)) { // Only create certificate on server
