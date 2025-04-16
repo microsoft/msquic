@@ -43,6 +43,7 @@ Environment:
 #include <bcrypt.h>
 #include <stdlib.h>
 #include <winternl.h>
+#include <intsafe.h>
 #include "msquic_winuser.h"
 #ifdef _M_X64
 #pragma warning(disable:28251) // Inconsistent annotation for function

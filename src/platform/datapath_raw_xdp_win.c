@@ -423,10 +423,14 @@ CxPlatDpRawInterfaceInitialize(
     // TODO: add an independent knob for RSS max-CPU config.
     //
     if (Interface->IfIndex != Interface->ActualIfIndex) {
+        XDP_RSS_CAPABILITIES RssCapabilities;
+        uint32_t RssCapabilitiesSize = sizeof(RssCapabilities);
         struct {
             XDP_RSS_CONFIGURATION Base;
             PROCESSOR_NUMBER IndirectionTable[128]; // 128 is the largest table supported by NDIS.
         } RssConfig;
+        uint16_t IndirectionCount;
+        uint32_t MaxProcessorCount;
 
         //
         // Fill the interface's RSS indirection table with all QUIC CPUs in
@@ -437,29 +441,60 @@ CxPlatDpRawInterfaceInitialize(
         // queues as CPUs, or is capable of software RSS.
         //
 
-        QuicTraceLogVerbose(
-            XdpVfRssConfig,
-            "[ixdp][%p] Applying max CPU RSS config for actual interface %u",
-            Interface,
-            Interface->ActualIfIndex);
+        Status =
+            XdpRssGetCapabilities(Interface->XdpHandle, &RssCapabilities, &RssCapabilitiesSize);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XdpRssGetCapabilities");
+            goto Error;
+        }
+
+        Status = UInt32ToUShort(RssCapabilities.NumberOfIndirectionTableEntries, &IndirectionCount);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "UInt32ToUShort IndirectionCount");
+                goto Error;
+        }
+
+        IndirectionCount = min(IndirectionCount, RTL_NUMBER_OF(RssConfig.IndirectionTable));
+        MaxProcessorCount = min(CxPlatProcCount(), RssCapabilities.NumberOfReceiveQueues);
 
         XdpInitializeRssConfiguration(&RssConfig.Base, sizeof(RssConfig));
+        RssConfig.Base.Flags |= XDP_RSS_FLAG_SET_INDIRECTION_TABLE;
         RssConfig.Base.IndirectionTableOffset =
             FIELD_OFFSET(__typeof__(RssConfig), IndirectionTable);
-        RssConfig.Base.IndirectionTableSize = sizeof(RssConfig.IndirectionTable);
-        RssConfig.Base.Flags |= XDP_RSS_FLAG_SET_INDIRECTION_TABLE;
 
-        //
-        // TODO: Query the RSS capabilities and bound the #CPUs by the #queues.
-        // Sanity test: cap queues to 1 to make sure perf drops.
-        //
-        uint32_t MaxRssQueues = 1;
+        Status =
+            UShortMult(
+                IndirectionCount, sizeof(RssConfig.IndirectionTable[0]),
+                &RssConfig.Base.IndirectionTableSize);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "UShortMult IndirectionTableSize");
+                goto Error;
+        }
 
         for (uint32_t i = 0; i < RTL_NUMBER_OF(RssConfig.IndirectionTable); i++) {
             RssConfig.IndirectionTable[i] =
-                *(const PROCESSOR_NUMBER*)
-                    &CxPlatProcessorInfo[i % min(CxPlatProcCount(), MaxRssQueues)];
+                *(const PROCESSOR_NUMBER*)&CxPlatProcessorInfo[i % MaxProcessorCount];
         }
+
+        QuicTraceLogVerbose(
+            XdpVfRssConfig,
+            "[ixdp][%p] Applying max CPU RSS config for actual interface %u: using %u CPUs across %u entries",
+            Interface,
+            Interface->ActualIfIndex,
+            MaxProcessorCount,
+            IndirectionCount);
 
         //
         // TODO: if multiple instances of QUIC are loaded on this interface,
@@ -468,12 +503,15 @@ CxPlatDpRawInterfaceInitialize(
         //
         Status = XdpRssSet(Interface->XdpHandle, &RssConfig.Base, sizeof(RssConfig));
         if (QUIC_FAILED(Status)) {
+            //
+            // Log the error and continue without changing the RSS table.
+            //
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
                 "XdpRssSet");
-            goto Error;
+            Status = QUIC_STATUS_SUCCESS;
         }
     }
 
