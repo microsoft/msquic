@@ -95,7 +95,7 @@ if ("" -eq $Tls) {
             # This is more complicated in attempt to silently deal with missing openssl executable
             #
             $pinfo = New-Object System.Diagnostics.ProcessStartInfo
-            $pinfo.FileName = "quictls"
+            $pinfo.FileName = "openssl"
             $pinfo.Arguments = "version"
             $pinfo.RedirectStandardError = $true
             $pinfo.RedirectStandardOutput = $true
