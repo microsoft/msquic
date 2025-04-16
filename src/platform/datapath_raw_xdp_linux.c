@@ -844,7 +844,8 @@ CxPlatDpRawInitialize(
             Partition,
             QueueCount);
 
-        CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
+        CxPlatWorkerPoolAddExecutionContext(
+            WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
 
 Error:

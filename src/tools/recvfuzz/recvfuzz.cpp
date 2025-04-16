@@ -26,7 +26,6 @@ Abstract:
 #include "msquic.hpp"
 
 const MsQuicApi* MsQuic;
-CXPLAT_WORKER_POOL WorkerPool;
 uint64_t MagicCid = 0x989898989898989ull;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 uint64_t RunTimeMs = 60000;
@@ -949,14 +948,13 @@ void start() {
         UdpUnreachCallback,
     };
     MsQuic = new MsQuicApi();
-    CxPlatWorkerPoolInit(&WorkerPool);
-    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
     QUIC_STATUS Status =
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
-            &WorkerPool,
+            WorkerPool,
             NULL,
             &Datapath);
     if (QUIC_FAILED(Status)) {
@@ -1018,6 +1016,7 @@ void start() {
 
     CxPlatSocketDelete(Binding);
     CxPlatDataPathUninitialize(Datapath);
+    CxPlatWorkerPoolDelete(WorkerPool);
 
     while (PacketQueue != nullptr) {
         QUIC_RX_PACKET* packet = PacketQueue;

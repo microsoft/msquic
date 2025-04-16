@@ -21,7 +21,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
@@ -45,8 +45,7 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
-        CxPlatWorkerPoolInit(&WorkerPool);
-        CxPlatWorkerPoolStart(&WorkerPool, nullptr);
+        WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
@@ -156,7 +155,7 @@ public:
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;

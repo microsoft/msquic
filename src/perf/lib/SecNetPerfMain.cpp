@@ -15,7 +15,7 @@ Abstract:
 #include "Tcp.h"
 
 const MsQuicApi* MsQuic;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
 PerfServer* Server;
@@ -297,16 +297,15 @@ QuicMainStart(
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
-    CxPlatWorkerPoolInit(&WorkerPool);
-    CxPlatWorkerPoolStart(&WorkerPool, nullptr);
+    WorkerPool = CxPlatWorkerPoolCreate(nullptr);
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -350,7 +349,7 @@ QuicMainFree(
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         Datapath = nullptr;
     }
 

@@ -389,7 +389,7 @@ DataPathInitialize(
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        WorkerPool->WorkerCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        CxPlatWorkerPoolGetCount(WorkerPool) * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     CXPLAT_DATAPATH* Datapath =
         (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
@@ -411,7 +411,7 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    Datapath->PartitionCount = WorkerPool->WorkerCount;
+    Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
     Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     CxPlatDataPathCalculateFeatureSupport(Datapath, ClientRecvDataLength);
@@ -424,7 +424,7 @@ DataPathInitialize(
             Datapath, i, &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
     *NewDatapath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -442,7 +442,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
-        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }

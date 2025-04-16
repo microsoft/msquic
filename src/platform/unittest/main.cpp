@@ -16,7 +16,7 @@ const char* PfxPath = nullptr;
 bool UseDuoNic = false;
 uint32_t Timeout = UINT32_MAX;
 const char* OsRunner = nullptr;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
@@ -24,12 +24,11 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
-        CxPlatWorkerPoolInit(&WorkerPool);
-        CxPlatWorkerPoolStart(&WorkerPool, nullptr);
+        WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         watchdog = new CxPlatWatchdog(Timeout);
     }
     void TearDown() override {
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;

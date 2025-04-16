@@ -455,7 +455,7 @@ CxPlatDataPathInitialize(
 
     const size_t DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        WorkerPool->WorkerCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        CxPlatWorkerPoolGetCount(WorkerPool) * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     CXPLAT_DATAPATH* Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -472,7 +472,7 @@ CxPlatDataPathInitialize(
         Datapath->UdpHandlers = *UdpCallbacks;
     }
     Datapath->WorkerPool = WorkerPool;
-    Datapath->PartitionCount = 1; //WorkerPool->WorkerCount; // Darwin only supports a single receiver
+    Datapath->PartitionCount = 1; //CxPlatWorkerPoolGetCount(WorkerPool); // Darwin only supports a single receiver
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
 
     for (uint32_t i = 0; i < Datapath->PartitionCount; i++) {
@@ -483,7 +483,7 @@ CxPlatDataPathInitialize(
             &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
     *NewDataPath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -501,7 +501,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
-        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }

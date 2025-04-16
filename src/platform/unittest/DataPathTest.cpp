@@ -20,7 +20,7 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
-extern CXPLAT_WORKER_POOL WorkerPool;
+extern CXPLAT_WORKER_POOL* WorkerPool;
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
@@ -65,7 +65,7 @@ struct QuicAddr
                 0,
                 NULL,
                 NULL,
-                &WorkerPool,
+                WorkerPool,
                 NULL,
                 &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
@@ -467,7 +467,7 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                &WorkerPool,
+                WorkerPool,
                 Config ? Config : &DefaultExecutionConfig,
                 &Datapath);
     }

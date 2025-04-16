@@ -98,6 +98,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 } CXPLAT_WORKER;
 
+typedef struct CXPLAT_WORKER_POOL {
+
+    CXPLAT_RUNDOWN_REF Rundown;
+    uint32_t WorkerCount;
+    CXPLAT_WORKER Workers[0];
+
+} CXPLAT_WORKER_POOL;
+
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 static void
@@ -136,58 +144,51 @@ UpdatePollCompletion(
     CxPlatUpdateExecutionContexts(Worker);
 }
 
-void
-CxPlatWorkerPoolInit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    )
-{
-    CXPLAT_DBG_ASSERT(WorkerPool);
-    CxPlatZeroMemory(WorkerPool, sizeof(*WorkerPool));
-    CxPlatLockInitialize(&WorkerPool->WorkerLock);
-}
-
 #pragma warning(push)
 #pragma warning(disable:6385)
 #pragma warning(disable:6386) // SAL is confused about the worker size
-BOOLEAN // Returns TRUE on successfully starting the worker pool
-CxPlatWorkerPoolStart(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreate(
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     )
 {
-    CXPLAT_DBG_ASSERT(WorkerPool);
-    CxPlatLockAcquire(&WorkerPool->WorkerLock);
-    if (WorkerPool->Workers != NULL) {
-        CxPlatLockRelease(&WorkerPool->WorkerLock);
-        return TRUE;
-    }
-
     //
     // Build up the processor list either from the config or default to one per
     // system processor.
     //
     const uint16_t* ProcessorList;
+    uint32_t ProcessorCount;
     if (Config && Config->ProcessorCount) {
-        WorkerPool->WorkerCount = Config->ProcessorCount;
+        ProcessorCount = Config->ProcessorCount;
         ProcessorList = Config->ProcessorList;
     } else {
-        WorkerPool->WorkerCount = CxPlatProcCount();
+        ProcessorCount = CxPlatProcCount();
         ProcessorList = NULL;
     }
-    CXPLAT_DBG_ASSERT(WorkerPool->WorkerCount > 0 && WorkerPool->WorkerCount <= UINT16_MAX);
+    CXPLAT_DBG_ASSERT(ProcessorCount > 0 && ProcessorCount <= UINT16_MAX);
 
-    const size_t WorkersSize = sizeof(CXPLAT_WORKER) * WorkerPool->WorkerCount;
-    WorkerPool->Workers = (CXPLAT_WORKER*)CXPLAT_ALLOC_PAGED(WorkersSize, QUIC_POOL_PLATFORM_WORKER);
-    if (WorkerPool->Workers == NULL) {
+    //
+    // Allocate enough space for the pool and worker structs.
+    //
+    const size_t WorkerPoolSize =
+        sizeof(CXPLAT_WORKER_POOL) +
+        sizeof(CXPLAT_WORKER) * ProcessorCount;
+    CXPLAT_WORKER_POOL* WorkerPool =
+        CXPLAT_ALLOC_PAGED(WorkerPoolSize, QUIC_POOL_PLATFORM_WORKER);
+    if (WorkerPool == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_WORKER",
-            WorkersSize);
-        WorkerPool->WorkerCount = 0;
-        goto Error;
+            "CXPLAT_WORKER_POOL",
+            WorkerPoolSize);
+        return NULL;
     }
+    CxPlatZeroMemory(WorkerPool, WorkerPoolSize);
+    WorkerPool->WorkerCount = ProcessorCount;
 
+    //
+    // Build up the configuration for creating the worker threads.
+    //
     uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     if (Config) {
         if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC) {
@@ -214,7 +215,6 @@ CxPlatWorkerPoolStart(
     // creates the event queue and all the SQEs used to shutdown, wake and poll
     // the worker.
     //
-    CxPlatZeroMemory(WorkerPool->Workers, WorkersSize);
     for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         CxPlatLockInitialize(&Worker->ECLock);
@@ -265,63 +265,16 @@ CxPlatWorkerPoolStart(
 
     CxPlatRundownInitialize(&WorkerPool->Rundown);
 
-    CxPlatLockRelease(&WorkerPool->WorkerLock);
-
-    return TRUE;
+    return WorkerPool;
 
 Error:
 
-    if (WorkerPool->Workers) {
-        for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
-            CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
-            if (Worker->InitializedThread) {
-                Worker->StoppingThread = TRUE;
-                CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
-                CxPlatThreadWait(&Worker->Thread);
-                CxPlatThreadDelete(&Worker->Thread);
-#if DEBUG
-                CXPLAT_DBG_ASSERT(Worker->ThreadStarted);
-                CXPLAT_DBG_ASSERT(Worker->ThreadFinished);
-#endif
-                Worker->DestroyedThread = TRUE;
-            }
-            if (Worker->InitializedUpdatePollSqe) {
-                CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
-            }
-            if (Worker->InitializedWakeSqe) {
-                CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
-            }
-            if (Worker->InitializedShutdownSqe) {
-                CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
-            }
-            if (Worker->InitializedEventQ) {
-                CxPlatEventQCleanup(&Worker->EventQ);
-            }
-            if (Worker->InitializedECLock) {
-                CxPlatLockUninitialize(&Worker->ECLock);
-            }
-        }
-
-        CXPLAT_FREE(WorkerPool->Workers, QUIC_POOL_PLATFORM_WORKER);
-        WorkerPool->Workers = NULL;
-    }
-
-    CxPlatLockRelease(&WorkerPool->WorkerLock);
-    return FALSE;
-}
-#pragma warning(pop)
-
-void
-CxPlatWorkerPoolUninit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    )
-{
-    CXPLAT_DBG_ASSERT(WorkerPool);
-    if (WorkerPool->Workers != NULL) {
-        CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
-
-        for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
-            CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
+    //
+    // On failure, clean up all the workers that did get started.
+    //
+    for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+        CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
+        if (Worker->InitializedThread) {
             Worker->StoppingThread = TRUE;
             CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
             CxPlatThreadWait(&Worker->Thread);
@@ -331,88 +284,87 @@ CxPlatWorkerPoolUninit(
             CXPLAT_DBG_ASSERT(Worker->ThreadFinished);
 #endif
             Worker->DestroyedThread = TRUE;
+        }
+        if (Worker->InitializedUpdatePollSqe) {
             CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+        }
+        if (Worker->InitializedWakeSqe) {
             CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+        }
+        if (Worker->InitializedShutdownSqe) {
             CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+        }
+        if (Worker->InitializedEventQ) {
             CxPlatEventQCleanup(&Worker->EventQ);
-            CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&Worker->DynamicPoolList));
+        }
+        if (Worker->InitializedECLock) {
             CxPlatLockUninitialize(&Worker->ECLock);
         }
-
-        CXPLAT_FREE(WorkerPool->Workers, QUIC_POOL_PLATFORM_WORKER);
-        WorkerPool->Workers = NULL;
-
-        CxPlatRundownUninitialize(&WorkerPool->Rundown);
     }
 
-    CxPlatLockUninitialize(&WorkerPool->WorkerLock);
+    return NULL;
 }
-
-#define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
-#define DYNAMIC_POOL_PRUNE_COUNT        8
+#pragma warning(pop)
 
 void
-CxPlatAddDynamicPoolAllocator(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Inout_ CXPLAT_POOL_EX* Pool,
-    _In_ uint16_t Index // Into the execution config processor array
+CxPlatWorkerPoolDelete(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
     CXPLAT_DBG_ASSERT(WorkerPool);
-    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
-    CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
-    Pool->Owner = Worker;
-    CxPlatLockAcquire(&Worker->ECLock);
-    CxPlatListInsertTail(&Worker->DynamicPoolList, &Pool->Link);
-    CxPlatLockRelease(&Worker->ECLock);
-}
 
-void
-CxPlatRemoveDynamicPoolAllocator(
-    _Inout_ CXPLAT_POOL_EX* Pool
-    )
-{
-    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Pool->Owner;
-    CxPlatLockAcquire(&Worker->ECLock);
-    CxPlatListEntryRemove(&Pool->Link);
-    CxPlatLockRelease(&Worker->ECLock);
-}
+    CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
 
-void
-CxPlatProcessDynamicPoolAllocator(
-    _Inout_ CXPLAT_POOL_EX* Pool
-    )
-{
-    for (uint32_t i = 0; i < DYNAMIC_POOL_PRUNE_COUNT; ++i) {
-        if (!CxPlatPoolPrune((CXPLAT_POOL*)Pool)) {
-            return;
-        }
+    for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+        CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
+        Worker->StoppingThread = TRUE;
+        CxPlatEventQEnqueue(&Worker->EventQ, &Worker->ShutdownSqe);
+        CxPlatThreadWait(&Worker->Thread);
+        CxPlatThreadDelete(&Worker->Thread);
+#if DEBUG
+        CXPLAT_DBG_ASSERT(Worker->ThreadStarted);
+        CXPLAT_DBG_ASSERT(Worker->ThreadFinished);
+#endif
+        Worker->DestroyedThread = TRUE;
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+        CxPlatEventQCleanup(&Worker->EventQ);
+        CXPLAT_DBG_ASSERT(CxPlatListIsEmpty(&Worker->DynamicPoolList));
+        CxPlatLockUninitialize(&Worker->ECLock);
     }
+
+    CxPlatRundownUninitialize(&WorkerPool->Rundown);
+    CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+}
+
+uint32_t
+CxPlatWorkerPoolGetCount(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    )
+{
+    return WorkerPool->WorkerCount;
+}
+
+BOOLEAN
+CxPlatWorkerPoolAddRef(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    )
+{
+    return CxPlatRundownAcquire(&WorkerPool->Rundown);
 }
 
 void
-CxPlatProcessDynamicPoolAllocators(
-    _In_ CXPLAT_WORKER* Worker
+CxPlatWorkerPoolRelease(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    QuicTraceLogVerbose(
-        PlatformWorkerProcessPools,
-        "[ lib][%p] Processing pools",
-        Worker);
-
-    CxPlatLockAcquire(&Worker->ECLock);
-    CXPLAT_LIST_ENTRY* Entry = Worker->DynamicPoolList.Flink;
-    while (Entry != &Worker->DynamicPoolList) {
-        CXPLAT_POOL_EX* Pool = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_POOL_EX, Link);
-        Entry = Entry->Flink;
-        CxPlatProcessDynamicPoolAllocator(Pool);
-    }
-    CxPlatLockRelease(&Worker->ECLock);
+    CxPlatRundownRelease(&WorkerPool->Rundown);
 }
 
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
-    _In_ const CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint16_t Index
     )
 {
@@ -422,7 +374,7 @@ CxPlatWorkerPoolGetEventQ(
 }
 
 void
-CxPlatAddExecutionContext(
+CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
     _In_ uint16_t Index
@@ -531,6 +483,68 @@ CxPlatRunExecutionContexts(
     } else {
         State->WaitTime = UINT32_MAX;
     }
+}
+
+#define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
+#define DYNAMIC_POOL_PRUNE_COUNT        8
+
+void
+CxPlatAddDynamicPoolAllocator(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_POOL_EX* Pool,
+    _In_ uint16_t Index // Into the execution config processor array
+    )
+{
+    CXPLAT_DBG_ASSERT(WorkerPool);
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+    CXPLAT_WORKER* Worker = &WorkerPool->Workers[Index];
+    Pool->Owner = Worker;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListInsertTail(&Worker->DynamicPoolList, &Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatRemoveDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Pool->Owner;
+    CxPlatLockAcquire(&Worker->ECLock);
+    CxPlatListEntryRemove(&Pool->Link);
+    CxPlatLockRelease(&Worker->ECLock);
+}
+
+void
+CxPlatProcessDynamicPoolAllocator(
+    _Inout_ CXPLAT_POOL_EX* Pool
+    )
+{
+    for (uint32_t i = 0; i < DYNAMIC_POOL_PRUNE_COUNT; ++i) {
+        if (!CxPlatPoolPrune((CXPLAT_POOL*)Pool)) {
+            return;
+        }
+    }
+}
+
+void
+CxPlatProcessDynamicPoolAllocators(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+    QuicTraceLogVerbose(
+        PlatformWorkerProcessPools,
+        "[ lib][%p] Processing pools",
+        Worker);
+
+    CxPlatLockAcquire(&Worker->ECLock);
+    CXPLAT_LIST_ENTRY* Entry = Worker->DynamicPoolList.Flink;
+    while (Entry != &Worker->DynamicPoolList) {
+        CXPLAT_POOL_EX* Pool = CXPLAT_CONTAINING_RECORD(Entry, CXPLAT_POOL_EX, Link);
+        Entry = Entry->Flink;
+        CxPlatProcessDynamicPoolAllocator(Pool);
+    }
+    CxPlatLockRelease(&Worker->ECLock);
 }
 
 void

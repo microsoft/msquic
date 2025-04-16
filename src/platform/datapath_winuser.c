@@ -794,7 +794,7 @@ DataPathInitialize(
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        WorkerPool->WorkerCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        CxPlatWorkerPoolGetCount(WorkerPool) * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -816,7 +816,7 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    Datapath->PartitionCount = (uint16_t)WorkerPool->WorkerCount;
+    Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
@@ -941,7 +941,7 @@ DataPathInitialize(
             &Datapath->Partitions[i].RioRecvPool);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
     *NewDatapath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -968,7 +968,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
         WSACleanup();
-        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
