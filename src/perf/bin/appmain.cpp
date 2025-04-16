@@ -294,11 +294,21 @@ main(
     bool PrivateTestLibrary = false;
     const char* FileName = nullptr;
 
-    MsQuicApi MsQuic; // used to initialize cx platform and system
+#ifdef QUIC_BUILD_STATIC
+    //
+    // We are statically linking to msquic. We cannot call CxPlatSystemLoad and
+    // CxPlatInitialize directly because they are touching the same set of global
+    // variables that are used inside msquic.
+    //
+    MsQuicApi MsQuic;
     
     if (QUIC_FAILED(MsQuic.GetInitStatus())) {
         goto Exit;
     }
+#else
+    CxPlatSystemLoad();
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
+#endif
 
     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
@@ -339,6 +349,11 @@ Exit:
     if (SelfSignedCredConfig) {
         CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
+
+#ifndef QUIC_BUILD_STATIC
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
+#endif
 
     return Status;
 }
