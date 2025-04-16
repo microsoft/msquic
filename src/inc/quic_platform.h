@@ -457,13 +457,13 @@ typedef struct CXPLAT_EXECUTION_STATE {
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
 
+typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
+
 #ifndef _KERNEL_MODE
 
 //
 // Worker pool API used for driving execution contexts
 //
-
-typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
 
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(

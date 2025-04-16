@@ -297,7 +297,9 @@ QuicMainStart(
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
+#ifndef _KERNEL_MODE
     WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+#endif
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
@@ -305,7 +307,9 @@ QuicMainStart(
     };
     Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
+#ifndef _KERNEL_MODE
         CxPlatWorkerPoolDelete(WorkerPool);
+#endif
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -349,7 +353,9 @@ QuicMainFree(
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
+#ifndef _KERNEL_MODE
         CxPlatWorkerPoolDelete(WorkerPool);
+#endif
         Datapath = nullptr;
     }
 
