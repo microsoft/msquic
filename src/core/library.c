@@ -710,7 +710,7 @@ QuicLibraryLazyInitialize(
     } else {
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
-        CxPlatWorkerPoolDelete(&MsQuicLib.WorkerPool);
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
         MsQuicLib.WorkerPool = NULL;
 #endif
         goto Exit;
