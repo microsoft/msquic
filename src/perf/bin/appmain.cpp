@@ -294,7 +294,7 @@ main(
     bool PrivateTestLibrary = false;
     const char* FileName = nullptr;
 
-    MsQuicApi MsQuic; // used to initialize cx platform and
+    MsQuicApi MsQuic; // used to initialize cx platform and system
     
     if (QUIC_FAILED(MsQuic.GetInitStatus())) {
         goto Exit;
