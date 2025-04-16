@@ -202,9 +202,7 @@ public:
 };
 
 static QUIC_API_TABLE MsQuic;
-//
-// This lock is used to protect concurrent MsQuic library open and close.
-//
+// This locks MsQuicOpen2 in RunThread when statically linked with libmsquic
 CXPLAT_LOCK RunThreadLock;
 
 const uint32_t MaxBufferSizes[] = { 0, 1, 2, 32, 50, 256, 500, 1000, 1024, 1400, 5000, 10000, 64000, 10000000 };
@@ -245,10 +243,7 @@ struct SpinQuicGlobals {
 #ifndef FUZZING
             DumpMsQuicPerfCounters(MsQuic);
 #endif
-
-            CxPlatLockAcquire(&RunThreadLock);
             MsQuicClose(MsQuic);
-            CxPlatLockRelease(&RunThreadLock);
         }
         delete [] SendBuffer;
     }
@@ -1369,9 +1364,13 @@ CXPLAT_THREAD_CALLBACK(RunThread, Context)
     do {
         Gbs Gb;
 
+#ifdef QUIC_BUILD_STATIC
         CxPlatLockAcquire(&RunThreadLock);
         QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
         CxPlatLockRelease(&RunThreadLock);
+#else
+        QUIC_STATUS Status = MsQuicOpen2(&Gb.MsQuic);
+#endif
         if (QUIC_FAILED(Status)) {
             break;
         }

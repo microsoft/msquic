@@ -290,9 +290,6 @@ main(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
-    const char* DriverName = nullptr;
-    bool PrivateTestLibrary = false;
-    const char* FileName = nullptr;
 
 #ifdef QUIC_BUILD_STATIC
     //
@@ -302,19 +299,20 @@ main(
     //
     MsQuicApi MsQuic;
     
-    if (QUIC_FAILED(MsQuic.GetInitStatus())) {
-        goto Exit;
-    }
+    CXPLAT_FRE_ASSERT(MsQuic.GetInitStatus());
 #else
     CxPlatSystemLoad();
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
 #endif
 
+    bool PrivateTestLibrary = false;
+    const char* DriverName = nullptr;
     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
 
+    const char* FileName = nullptr;
     TryGetValue(argc, argv, "extraOutputFile", &FileName);
 
     if (!TryGetTarget(argc, argv)) { // Only create certificate on server
