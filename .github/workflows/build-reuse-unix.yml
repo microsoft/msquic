@@ -3,6 +3,7 @@ name: Build Unix
 # The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
 
 on:
+  workflow_dispatch:
   workflow_call:
     inputs:
       ref:
