@@ -125,6 +125,9 @@ Upon successful handling of this event, the event handler should return one of `
 
 An array of `QUIC_BUFFER`s containing received data.
 
+The lifetime of the `Buffers` array itself is limited to the scope of the callback: if the received
+data is handled asynchronously (`QUIC_STATUS_PENDING`), the `QUIC_BUFFER` array must be copied.
+
 `BufferCount`
 
 Count of `QUIC_BUFFER`s in this payload.

@@ -318,15 +318,16 @@ NewPingConnection(
     TestScopeLogger logScope(__FUNCTION__);
 
     auto Connection = new(std::nothrow) TestConnection(Registration, ConnectionAcceptPingStream);
-    QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
-    if (PerConnSettings.QTIPEnabled != UseQTIP) {
-        TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
+    if (Connection == nullptr || !(Connection)->IsValid()) {
+        TEST_FAILURE("Failed to create new TestConnection.");
         delete Connection;
         return nullptr;
     }
 
-    if (Connection == nullptr || !(Connection)->IsValid()) {
-        TEST_FAILURE("Failed to create new TestConnection.");
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_SETTINGS PerConnSettings = Connection->GetSettings();
+    if (PerConnSettings.QTIPEnabled != UseQTIP) {
+        TEST_FAILURE("UseQTIP does not match global settings." "QTIPEnabled=%d, UseQTIP=%d", PerConnSettings.QTIPEnabled, UseQTIP);
         delete Connection;
         return nullptr;
     }
@@ -343,6 +344,13 @@ NewPingConnection(
             return nullptr;
         }
     }
+#else
+    if (SendUdpOverQtip) {
+        TEST_FAILURE("QTIP is not supported in this build.");
+        delete Connection;
+        return nullptr;
+    }
+#endif
 
     Connection->SetAutoDelete();
 
@@ -403,6 +411,13 @@ QuicTestConnectAndPing(
 
     PingStats ServerStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt, false, QUIC_STATUS_SUCCESS);
     PingStats ClientStats(Length, ConnectionCount, TotalStreamCount, FifoScheduling, UnidirectionalStreams, ServerInitiatedStreams, ClientZeroRtt && !ServerRejectZeroRtt);
+
+#if !defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+    if (SendUdpToQtipListener) {
+        TEST_FAILURE("QTIP is not supported in this build.");
+        return;
+    }
+#endif
 
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
@@ -538,6 +553,7 @@ QuicTestConnectAndPing(
                         Connections.get()[i]->SetLocalAddr(LocalAddr);
                     }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
                     if (SendUdpToQtipListener && (i % 2 == 1) && UseQTIP) {
                         // Test and make sure this connection's QTIP settings is opposite of UseQTIP.
                         QUIC_SETTINGS PerConnSettings = Connections.get()[i]->GetSettings();
@@ -553,6 +569,7 @@ QuicTestConnectAndPing(
                             return;
                         }
                     }
+#endif
 
                     TEST_QUIC_SUCCEEDED(
                         Connections.get()[i]->Start(

@@ -112,6 +112,9 @@ The app has the option of either processing the received data in the callback (s
 
 If the app wants to queue the data to a separate thread, the app must return `QUIC_STATUS_PENDING` from the receive callback. This informs MsQuic that the app still has an outstanding reference on the buffers, and it will not modify or free them. Once the app is done with the buffers it must call [StreamReceiveComplete](api/StreamReceiveComplete.md).
 
+The lifetime of the `QUIC_BUFFER`s themselves is limited to the scope of the callback: when handling the received data
+asynchronously, the `QUIC_BUFFER`s must be copied.
+
 ### Partial Data Acceptance
 
 Whenever the app gets the `QUIC_STREAM_EVENT_RECEIVE` event, it can partially accept/consume the received data.

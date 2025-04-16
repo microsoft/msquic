@@ -25,6 +25,8 @@ CX_PLATFORM CxPlatform = { NULL };
 CXPLAT_PROCESSOR_INFO* CxPlatProcessorInfo;
 CXPLAT_PROCESSOR_GROUP_INFO* CxPlatProcessorGroupInfo;
 uint32_t CxPlatProcessorCount;
+volatile short CxPlatSystemRef;
+volatile short CxPlatRef;
 #ifdef TIMERR_NOERROR
 TIMECAPS CxPlatTimerCapabilities;
 #endif // TIMERR_NOERROR
@@ -42,6 +44,10 @@ CxPlatSystemLoad(
     void
     )
 {
+    if (InterlockedIncrement16(&CxPlatSystemRef) != 1) {
+        return;
+    }
+
 #ifdef QUIC_EVENTS_MANIFEST_ETW
     EventRegisterMicrosoft_Quic();
 #endif
@@ -64,6 +70,10 @@ CxPlatSystemUnload(
     void
     )
 {
+    if (InterlockedDecrement16(&CxPlatSystemRef) != 0) {
+        return;
+    }
+
     QuicTraceLogInfo(
         WindowsUserUnloaded,
         "[ dll] Unloaded");
@@ -245,6 +255,12 @@ CxPlatInitialize(
     QUIC_STATUS Status;
     BOOLEAN CryptoInitialized = FALSE;
     BOOLEAN ProcInfoInitialized = FALSE;
+
+
+    if (InterlockedIncrement16(&CxPlatRef) != 1) {
+        return QUIC_STATUS_SUCCESS;
+    }
+
     MEMORYSTATUSEX memInfo;
     memInfo.dwLength = sizeof(MEMORYSTATUSEX);
 
@@ -361,6 +377,10 @@ CxPlatUninitialize(
     void
     )
 {
+    if (InterlockedDecrement16(&CxPlatRef) != 0) {
+        return;
+    }
+
     CxPlatCryptUninitialize();
     CXPLAT_DBG_ASSERT(CxPlatform.Heap);
 #ifdef TIMERR_NOERROR
