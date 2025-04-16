@@ -88,7 +88,7 @@ permissions: read-all
 jobs:
   build-unix-reuse:
     name: Build
-    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=ubuntu-20.04'']') || inputs.os }}
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=netperf-boosted-linux-pool'', ''1ES.ImageOverride=ubuntu-20.04'']') || inputs.os }}
     container:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     steps:
