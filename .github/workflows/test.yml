@@ -1,7 +1,6 @@
 name: Build Unix
 
 # The caller is responsible for making sure all options passed to this workflow are valid and compatible with each other.
-
 on:
   workflow_dispatch:
     inputs:
@@ -57,9 +56,6 @@ on:
         required: false
         default: '' # Empty string means build all
         type: string
-        required: false
-        default: '' # Empty string means build all
-        type: string
   workflow_call:
     inputs:
       ref:
@@ -110,6 +106,30 @@ on:
         # options:
         #   - openssl
         #   - openssl3
+      static:
+        required: false
+        default: ''
+        type: string
+      systemcrypto:
+        required: false
+        default: ''
+        type: string
+      clang:
+        required: false
+        default: ''
+        type: string
+      codecheck:
+        required: false
+        default: ''
+        type: string
+      xdp:
+        required: false
+        default: ''
+        type: string
+      sanitize:
+        required: false
+        default: ''
+        type: string
       build:
         required: false
         default: '' # Empty string means build all
