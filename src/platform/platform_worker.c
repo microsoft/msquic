@@ -302,6 +302,8 @@ Error:
         }
     }
 
+    CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+
     return NULL;
 }
 #pragma warning(pop)
