@@ -313,7 +313,7 @@ CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    if (WorkerPool) {
+    if (WorkerPool != NULL) {
         CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
 
         for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
