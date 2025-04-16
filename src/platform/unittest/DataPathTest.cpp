@@ -20,7 +20,6 @@ Abstract:
 #endif
 
 extern bool UseDuoNic;
-extern CXPLAT_WORKER_POOL* WorkerPool;
 
 //
 // Connect to the duonic address (if using duonic) or localhost (if not).
@@ -59,6 +58,7 @@ struct QuicAddr
     }
 
     void Resolve(QUIC_ADDRESS_FAMILY af, const char* hostname) {
+        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         CXPLAT_DATAPATH* Datapath = nullptr;
         if (QUIC_FAILED(
             CxPlatDataPathInitialize(
@@ -79,6 +79,7 @@ struct QuicAddr
             GTEST_FATAL_FAILURE_("Failed to resolve IP address.");
         }
         CxPlatDataPathUninitialize(Datapath);
+        CxPlatWorkerPoolDelete(WorkerPool);
     }
 };
 
@@ -450,6 +451,7 @@ QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
     QUIC_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
+    CXPLAT_WORKER_POOL* WorkerPool {nullptr};
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
     CxPlatDataPath(
@@ -462,6 +464,8 @@ struct CxPlatDataPath {
         if (UseDuoNic && Config == nullptr) {
             DefaultExecutionConfig.Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
         }
+        WorkerPool =
+            CxPlatWorkerPoolCreate(Config ? Config : &DefaultExecutionConfig);
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,
@@ -475,6 +479,7 @@ struct CxPlatDataPath {
         if (Datapath) {
             CxPlatDataPathUninitialize(Datapath);
         }
+        CxPlatWorkerPoolDelete(WorkerPool);
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
