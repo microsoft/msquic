@@ -582,7 +582,7 @@ MsQuicLibraryUninitialize(
         LibraryUninitialized,
         "[ lib] Uninitialized");
 
-#ifdef _KERNEL_MODE
+#ifndef _KERNEL_MODE
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool = NULL;
 #endif
@@ -685,7 +685,7 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
-#ifdef _KERNEL_MODE
+#ifndef _KERNEL_MODE
     MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
     if (!MsQuicLib.WorkerPool) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -709,7 +709,7 @@ QuicLibraryLazyInitialize(
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     } else {
         MsQuicLibraryFreePartitions();
-#ifdef _KERNEL_MODE
+#ifndef _KERNEL_MODE
         CxPlatWorkerPoolDelete(&MsQuicLib.WorkerPool);
         MsQuicLib.WorkerPool = NULL;
 #endif
