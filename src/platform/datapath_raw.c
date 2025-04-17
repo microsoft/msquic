@@ -51,7 +51,7 @@ RawDataPathInitialize(
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
 
     DataPath->WorkerPool = WorkerPool;
 
@@ -89,7 +89,7 @@ Error:
                 CxPlatSockPoolUninitialize(&DataPath->SocketPool);
             }
             CXPLAT_FREE(DataPath, QUIC_POOL_DATAPATH);
-            CxPlatRundownRelease(&WorkerPool->Rundown);
+            CxPlatWorkerPoolRelease(WorkerPool);
         }
     }
 
@@ -125,7 +125,7 @@ CxPlatDataPathUninitializeComplete(
     Datapath->Freed = TRUE;
 #endif
     CxPlatSockPoolUninitialize(&Datapath->SocketPool);
-    CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+    CxPlatWorkerPoolRelease(Datapath->WorkerPool);
     CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
 }
 

@@ -440,36 +440,6 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
-// Worker pool API used for driving execution contexts
-//
-
-typedef struct CXPLAT_WORKER CXPLAT_WORKER;
-
-typedef struct CXPLAT_WORKER_POOL {
-
-    CXPLAT_WORKER* Workers;
-    CXPLAT_LOCK WorkerLock;
-    CXPLAT_RUNDOWN_REF Rundown;
-    uint32_t WorkerCount;
-
-} CXPLAT_WORKER_POOL;
-
-#ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatWorkerPoolInit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
-#define CxPlatWorkerPoolUninit(WorkerPool) UNREFERENCED_PARAMETER(WorkerPool)
-#else
-void
-CxPlatWorkerPoolInit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-
-void
-CxPlatWorkerPoolUninit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-#endif
-
-//
 // General purpose execution context abstraction layer. Used for driving worker
 // loops.
 //
@@ -487,7 +457,51 @@ typedef struct CXPLAT_EXECUTION_STATE {
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
 
-#ifndef _KERNEL_MODE // Not supported on kernel mode
+typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
+
+#ifndef _KERNEL_MODE
+
+//
+// Worker pool API used for driving execution contexts
+//
+
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreate(
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    );
+
+void
+CxPlatWorkerPoolDelete(
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+uint32_t
+CxPlatWorkerPoolGetCount(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+BOOLEAN
+CxPlatWorkerPoolAddRef(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+void
+CxPlatWorkerPoolRelease(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+CXPLAT_EVENTQ*
+CxPlatWorkerPoolGetEventQ(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the config processor array
+    );
+
+void
+CxPlatWorkerPoolAddExecutionContext(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _In_ uint16_t Index // Into the execution config processor array
+    );
 
 //
 // Supports more dynamic operations, but must be submitted to the platform worker
@@ -511,7 +525,7 @@ CxPlatRemoveDynamicPoolAllocator(
     _Inout_ CXPLAT_POOL_EX* Pool
     );
 
-#endif
+#endif // !_KERNEL_MODE
 
 //
 // Returns FALSE when it's time to cleanup.
@@ -543,16 +557,8 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 } CXPLAT_EXECUTION_CONTEXT;
 
 #ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatAddExecutionContext(WorkerPool, Context, IdealProcessor) CXPLAT_FRE_ASSERT(FALSE)
 #define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
 #else
-void
-CxPlatAddExecutionContext(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t Index // Into the execution config processor array
-    );
-
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context

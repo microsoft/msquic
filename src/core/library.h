@@ -231,7 +231,7 @@ typedef struct QUIC_LIBRARY {
     //
     // The worker pool
     //
-    CXPLAT_WORKER_POOL WorkerPool;
+    CXPLAT_WORKER_POOL* WorkerPool;
 
 } QUIC_LIBRARY;
 
