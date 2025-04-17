@@ -2593,7 +2593,7 @@ CxPlatSendDataSendTcp(
                 SendData->SocketContext->SocketFd,
                 SendData->Buffer + SendData->TotalBytesSent,
                 SendData->TotalSize - SendData->TotalBytesSent,
-                0);
+                MSG_NOSIGNAL);
         if (BytesSent < 0) {
             return FALSE;
         }
