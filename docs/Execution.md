@@ -35,9 +35,9 @@ QUIC_STATUS
 
 The application must register a callback handler for every MsQuic object it creates, as well as for some objects automatically created by MsQuic (such as those created for [Peer Initiated Streams](Streams.md#Peer_Initiated_Streams) or [Server Connections](./api/QUIC_LISTENER_EVENT.md#New_Connection)).
 
-(TODO: add notes on Preview feature events)
-
 This handler must manage all the events MsQuic may indicate for that object. The handler must also return a status for each event indicating to MsQuic how the event was handled. This returned status is often success/failure, but sometimes indicates MsQuic that further processing is required.
+
+This handler must return `QUIC_STATUS_SUCCESS` for all events it currently does not handle (default case) to insulate the code from future additions to list of events for a specific object.
 
 This approach differs significantly from sockets and most networking libraries, where the application must make a call (e.g., `send` or `recv`) to determine if something happened.
 This design choice was made for several reasons:
