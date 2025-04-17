@@ -613,9 +613,9 @@ void
 PerfClientConnection::OnHandshakeComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
-        Shutdown();
         WorkerConnComplete = true;
         Worker.OnConnectionComplete();
+        Shutdown();
     } else {
         for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
