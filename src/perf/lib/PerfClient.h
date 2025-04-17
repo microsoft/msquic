@@ -152,6 +152,7 @@ struct PerfClient {
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
 
     UniquePtr<TcpEngine> Engine;
+    TcpSecConfig TcpSecurityConfig;
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
