@@ -693,6 +693,22 @@ void QuicTestValidateConnection()
     }
 
     //
+    // Invalid partition index.
+    //
+    {
+        TestScopeLogger logScope("Invalid partition index");
+        ConnectionScope Connection;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionOpenInPartition(
+                Registration,
+                UINT16_MAX,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+    }
+
+    //
     // Null connection parameter.
     //
     {

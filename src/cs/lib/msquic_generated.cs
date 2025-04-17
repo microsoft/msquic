@@ -3401,6 +3401,9 @@ namespace Microsoft.Quic
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
 
+        [NativeTypeName("QUIC_CONNECTION_OPEN_IN_PARTITION_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ushort, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpenInPartition;
+
         [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
 

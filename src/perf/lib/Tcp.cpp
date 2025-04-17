@@ -16,7 +16,7 @@ Abstract:
 #endif
 
 extern CXPLAT_DATAPATH* Datapath;
-extern CXPLAT_WORKER_POOL WorkerPool;
+extern CXPLAT_WORKER_POOL* WorkerPool;
 
 // ############################# HELPERS #############################
 
@@ -204,7 +204,7 @@ bool TcpWorker::Initialize(TcpEngine* _Engine, uint16_t PartitionIndex)
 
     #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (Engine->TcpExecutionProfile == TCP_EXECUTION_PROFILE_LOW_LATENCY) {
-        CxPlatAddExecutionContext(&WorkerPool, &ExecutionContext, PartitionIndex);
+        CxPlatWorkerPoolAddExecutionContext(WorkerPool, &ExecutionContext, PartitionIndex);
         Initialized = true;
         IsExternal = true;
         return true;
@@ -404,6 +404,7 @@ TcpConnection::TcpConnection(
         WriteOutput("SecConfig load FAILED\n");
         return;
     }
+    QuicAddrSetFamily(&Route.LocalAddress, QUIC_ADDRESS_FAMILY_UNSPEC);
     Initialized = true;
 }
 
@@ -422,7 +423,9 @@ TcpConnection::Start(
     }
     if (LocalAddress) {
         Family = QuicAddrGetFamily(LocalAddress);
+        Route.LocalAddress = *LocalAddress;
     }
+
     if (RemoteAddress) {
         Route.RemoteAddress = *RemoteAddress;
     } else {
@@ -437,15 +440,7 @@ TcpConnection::Start(
         }
     }
     QuicAddrSetPort(&Route.RemoteAddress, ServerPort);
-    if (QUIC_FAILED(
-        CxPlatSocketCreateTcp(
-            Datapath,
-            LocalAddress,
-            &Route.RemoteAddress,
-            this,
-            &Socket))) {
-        return false;
-    }
+    ConnStartQueued = true;
     Queue();
     return true;
 }
@@ -627,6 +622,19 @@ TcpConnection::TlsReceiveTicketCallback(
 
 void TcpConnection::Process()
 {
+    if (ConnStartQueued) {
+        ConnStartQueued = false;
+        if (QUIC_FAILED(
+            CxPlatSocketCreateTcp(
+                Datapath,
+                QuicAddrGetFamily(&Route.LocalAddress) == QUIC_ADDRESS_FAMILY_UNSPEC ?
+                    nullptr : &Route.LocalAddress,
+                &Route.RemoteAddress,
+                this,
+                &Socket))) {
+            Shutdown = true;
+        }
+    }
     if (IndicateAccept) {
         IndicateAccept = false;
         TcpServer* Server = (TcpServer*)Context;

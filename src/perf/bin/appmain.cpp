@@ -291,12 +291,23 @@ main(
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
 
+#ifdef QUIC_BUILD_STATIC
+    //
+    // We are statically linking to msquic. We cannot call CxPlatSystemLoad and
+    // CxPlatInitialize directly because they are touching the same set of global
+    // variables that are used inside msquic.
+    //
+    MsQuicApi MsQuic;
+    
+    CXPLAT_FRE_ASSERT(MsQuic.GetInitStatus());
+#else
     CxPlatSystemLoad();
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
+#endif
 
-    const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
-     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
+    const char* DriverName = nullptr;
+    if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
@@ -337,8 +348,10 @@ Exit:
         CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
+#ifndef QUIC_BUILD_STATIC
     CxPlatUninitialize();
     CxPlatSystemUnload();
+#endif
 
     return Status;
 }

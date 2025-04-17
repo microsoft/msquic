@@ -183,6 +183,7 @@ class TcpConnection {
     bool Closed{false};
     bool QueuedOnWorker{false};
     bool StartTls{false};
+    bool ConnStartQueued{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};

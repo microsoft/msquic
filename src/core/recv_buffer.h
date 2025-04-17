@@ -47,6 +47,11 @@ typedef struct QUIC_RECV_BUFFER {
     CXPLAT_LIST_ENTRY Chunks;
 
     //
+    // Optional, retired chunk waiting to no longer be referenced.
+    //
+    QUIC_RECV_CHUNK* RetiredChunk;
+
+    //
     // Optional, preallocated initial chunk.
     //
     QUIC_RECV_CHUNK* PreallocatedChunk;

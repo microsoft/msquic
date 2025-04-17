@@ -31,7 +31,6 @@
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
-static CXPLAT_WORKER_POOL WorkerPool;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -464,12 +463,12 @@ main(
         };
         CxPlatSystemLoad();
         CxPlatInitialize();
-        CxPlatWorkerPoolInit(&WorkerPool);
+        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
-            NULL,
+            WorkerPool,
             &DatapathFlags,
             &Datapath);
 
@@ -513,7 +512,7 @@ main(
 
         Error:
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

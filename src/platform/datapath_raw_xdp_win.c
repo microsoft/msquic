@@ -1154,7 +1154,8 @@ CxPlatDpRawInitialize(
             QueueCount);
         UNREFERENCED_PARAMETER(QueueCount);
 
-        CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
+        CxPlatWorkerPoolAddExecutionContext(
+            WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
 

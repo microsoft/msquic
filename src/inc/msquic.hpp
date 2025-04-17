@@ -1076,6 +1076,29 @@ struct MsQuicConnection {
     }
 
     MsQuicConnection(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ uint16_t PartitionIndex,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        if (!Registration.IsValid()) {
+            InitStatus = Registration.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->ConnectionOpenInPartition(
+                    Registration,
+                    PartitionIndex,
+                    (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicConnection(
         _In_ HQUIC ConnectionHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
         _In_ MsQuicConnectionCallback* Callback,

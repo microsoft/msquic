@@ -64,10 +64,10 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerProcessPools,
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_WORKER",
-            WorkersSize);
-// arg2 = arg2 = "CXPLAT_WORKER" = arg2
-// arg3 = arg3 = WorkersSize = arg3
+            "CXPLAT_WORKER_POOL",
+            WorkerPoolSize);
+// arg2 = arg2 = "CXPLAT_WORKER_POOL" = arg2
+// arg3 = arg3 = WorkerPoolSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, AllocFailure,
     TP_ARGS(

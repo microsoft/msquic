@@ -5697,6 +5697,15 @@ pub type QUIC_CONNECTION_OPEN_FN = ::std::option::Option<
         Connection: *mut HQUIC,
     ) -> ::std::os::raw::c_uint,
 >;
+pub type QUIC_CONNECTION_OPEN_IN_PARTITION_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Registration: HQUIC,
+        PartitionIndex: u16,
+        Handler: QUIC_CONNECTION_CALLBACK_HANDLER,
+        Context: *mut ::std::os::raw::c_void,
+        Connection: *mut HQUIC,
+    ) -> ::std::os::raw::c_uint,
+>;
 pub type QUIC_CONNECTION_CLOSE_FN = ::std::option::Option<unsafe extern "C" fn(Connection: HQUIC)>;
 pub type QUIC_CONNECTION_SHUTDOWN_FN = ::std::option::Option<
     unsafe extern "C" fn(
@@ -6367,12 +6376,13 @@ pub struct QUIC_API_TABLE {
     pub DatagramSend: QUIC_DATAGRAM_SEND_FN,
     pub ConnectionResumptionTicketValidationComplete: QUIC_CONNECTION_COMP_RESUMPTION_FN,
     pub ConnectionCertificateValidationComplete: QUIC_CONNECTION_COMP_CERT_FN,
+    pub ConnectionOpenInPartition: QUIC_CONNECTION_OPEN_IN_PARTITION_FN,
     pub StreamProvideReceiveBuffers: QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN,
     pub ConnectionPoolCreate: QUIC_CONN_POOL_CREATE_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 264usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 272usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6440,10 +6450,12 @@ const _: () = {
         QUIC_API_TABLE,
         ConnectionCertificateValidationComplete
     ) - 240usize];
+    ["Offset of field: QUIC_API_TABLE::ConnectionOpenInPartition"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenInPartition) - 248usize];
     ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 248usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 256usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 256usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 264usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 4294967294;

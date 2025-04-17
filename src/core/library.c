@@ -373,7 +373,6 @@ MsQuicLibraryInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error; // Cannot log anything if platform failed to initialize.
     }
-    CxPlatWorkerPoolInit(&MsQuicLib.WorkerPool);
     PlatformInitialized = TRUE;
 
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
@@ -471,7 +470,6 @@ Error:
             MsQuicLib.DefaultCompatibilityList = NULL;
         }
         if (PlatformInitialized) {
-            CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
             CxPlatUninitialize();
         }
     }
@@ -584,7 +582,10 @@ MsQuicLibraryUninitialize(
         LibraryUninitialized,
         "[ lib] Uninitialized");
 
-    CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
+#ifndef _KERNEL_MODE
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    MsQuicLib.WorkerPool = NULL;
+#endif
     CxPlatUninitialize();
 }
 
@@ -684,12 +685,21 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
+#ifndef _KERNEL_MODE
+    MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+    if (!MsQuicLib.WorkerPool) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        MsQuicLibraryFreePartitions();
+        goto Exit;
+    }
+#endif
+
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
-            &MsQuicLib.WorkerPool,
+            MsQuicLib.WorkerPool,
             MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
@@ -699,6 +709,10 @@ QuicLibraryLazyInitialize(
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
     } else {
         MsQuicLibraryFreePartitions();
+#ifndef _KERNEL_MODE
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+        MsQuicLib.WorkerPool = NULL;
+#endif
         goto Exit;
     }
 
@@ -1439,7 +1453,7 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *(CXPLAT_WORKER_POOL**)Buffer = &MsQuicLib.WorkerPool;
+        *(CXPLAT_WORKER_POOL**)Buffer = MsQuicLib.WorkerPool;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -1787,6 +1801,7 @@ MsQuicOpenVersion(
     Api->ListenerStop = MsQuicListenerStop;
 
     Api->ConnectionOpen = MsQuicConnectionOpen;
+    Api->ConnectionOpenInPartition = MsQuicConnectionOpenInPartition;
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;

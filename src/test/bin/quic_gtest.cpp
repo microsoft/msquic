@@ -21,7 +21,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
@@ -33,8 +33,12 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
+//
+// These are explicitly passed in as the name of the GitHub/Azure runners.
+//
 bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
+bool IsWindows2025() { return OsRunner && strcmp(OsRunner, "windows-2025") == 0; }
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -45,7 +49,7 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
-        CxPlatWorkerPoolInit(&WorkerPool);
+        WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
@@ -155,7 +159,7 @@ public:
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;
@@ -365,6 +369,7 @@ TEST(ParameterValidation, ValidateConnection) {
     }
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(ParameterValidation, ValidateConnectionPoolCreate) {
     TestLogger Logger("QuicTestValidateConnectionPoolCreate");
     if (TestingKernelMode) {
@@ -373,6 +378,7 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
         QuicTestValidateConnectionPoolCreate();
     }
 }
+#endif
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
@@ -1392,7 +1398,7 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
 
 TEST(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+    if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -1807,6 +1813,7 @@ TEST_P(WithSendArgs1, Send) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 TEST_P(WithSendArgs1, SendQtip) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
     if (!TestingKernelMode && UseQTIP) {
@@ -1828,6 +1835,7 @@ TEST_P(WithSendArgs1, SendQtip) {
             true); // SendUdpToQtipListener
     }
 }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithSendArgs2, SendLarge) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());

@@ -25,9 +25,9 @@ extern "C" {
 }
 
 #ifndef _KERNEL_MODE
-extern CXPLAT_WORKER_POOL WorkerPool;
+extern CXPLAT_WORKER_POOL* WorkerPool;
 #else
-static CXPLAT_WORKER_POOL WorkerPool;
+static CXPLAT_WORKER_POOL* WorkerPool;
 #endif
 
 void
@@ -147,7 +147,7 @@ struct DrillSender {
                 0,
                 &DatapathCallbacks,
                 NULL,
-                &WorkerPool,
+                WorkerPool,
                 NULL,
                 &Datapath);
         if (QUIC_FAILED(Status)) {

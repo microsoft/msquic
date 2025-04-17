@@ -55,6 +55,23 @@ jobs:
       static: ${{ matrix.static }}
       repo: ${{ github.repository }}
 
+  build-windows-official:
+    name: WinUser-Official
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: 'windows'
+      os: 'windows-2022'
+      arch: 'x64'
+      tls: 'schannel'
+      official: '-OfficialRelease'
+      repo: ${{ github.repository }}
+
   build-windows-kernel:
     name: WinKernel
     needs: []
@@ -239,7 +256,7 @@ jobs:
   Complete:
     name: Build Complete
     if: always()
-    needs: [build-windows, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
+    needs: [build-windows, build-windows-official, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
     runs-on: ubuntu-latest
     permissions: {} # No need for any permissions.
     steps:

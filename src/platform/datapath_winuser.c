@@ -753,26 +753,22 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ QUIC_EXECUTION_CONFIG* Config, // TODO:: If we move RIO to a per-socket option, we can remove this from all datapaths
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
     int WsaError;
     QUIC_STATUS Status;
     WSADATA WsaData;
-    uint32_t PartitionCount = CxPlatProcCount();
     uint32_t DatapathLength;
     CXPLAT_DATAPATH* Datapath = NULL;
-    BOOLEAN WsaInitialized = FALSE;
 
     if (NewDatapath == NULL) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (UdpCallbacks != NULL) {
         if (UdpCallbacks->Receive == NULL || UdpCallbacks->Unreachable == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
     if (TcpCallbacks != NULL) {
@@ -780,17 +776,11 @@ DataPathInitialize(
             TcpCallbacks->Connect == NULL ||
             TcpCallbacks->Receive == NULL ||
             TcpCallbacks->SendComplete == NULL) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Exit;
+            return QUIC_STATUS_INVALID_PARAMETER;
         }
     }
     if (WorkerPool == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (!CxPlatWorkerPoolLazyStart(WorkerPool, Config)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
     }
 
     if ((WsaError = WSAStartup(MAKEWORD(2, 2), &WsaData)) != 0) {
@@ -799,18 +789,12 @@ DataPathInitialize(
             "[ lib] ERROR, %u, %s.",
             WsaError,
             "WSAStartup");
-        Status = HRESULT_FROM_WIN32(WsaError);
-        goto Exit;
-    }
-    WsaInitialized = TRUE;
-
-    if (Config && Config->ProcessorCount) {
-        PartitionCount = Config->ProcessorCount;
+        return HRESULT_FROM_WIN32(WsaError);
     }
 
     DatapathLength =
         sizeof(CXPLAT_DATAPATH) +
-        PartitionCount * sizeof(CXPLAT_DATAPATH_PARTITION);
+        CxPlatWorkerPoolGetCount(WorkerPool) * sizeof(CXPLAT_DATAPATH_PARTITION);
 
     Datapath = (CXPLAT_DATAPATH*)CXPLAT_ALLOC_PAGED(DatapathLength, QUIC_POOL_DATAPATH);
     if (Datapath == NULL) {
@@ -832,7 +816,7 @@ DataPathInitialize(
     }
     Datapath->WorkerPool = WorkerPool;
 
-    Datapath->PartitionCount = (uint16_t)PartitionCount;
+    Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
@@ -957,7 +941,7 @@ DataPathInitialize(
             &Datapath->Partitions[i].RioRecvPool);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
     *NewDatapath = Datapath;
     Status = QUIC_STATUS_SUCCESS;
 
@@ -967,12 +951,8 @@ Error:
         if (Datapath != NULL) {
             CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
         }
-        if (WsaInitialized) {
-            (void)WSACleanup();
-        }
+        (void)WSACleanup();
     }
-
-Exit:
 
     return Status;
 }
@@ -988,7 +968,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
         WSACleanup();
-        CxPlatRundownRelease(&Datapath->WorkerPool->Rundown);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }
