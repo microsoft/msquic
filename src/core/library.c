@@ -686,11 +686,13 @@ QuicLibraryLazyInitialize(
     }
 
 #ifndef _KERNEL_MODE
-    MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
-    if (!MsQuicLib.WorkerPool) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        MsQuicLibraryFreePartitions();
-        goto Exit;
+    if (MsQuicLib.WorkerPool == NULL) {
+        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+        if (!MsQuicLib.WorkerPool) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            MsQuicLibraryFreePartitions();
+            goto Exit;
+        }
     }
 #endif
 
@@ -1820,7 +1822,7 @@ MsQuicOpenVersion(
     Api->StreamProvideReceiveBuffers = MsQuicStreamProvideReceiveBuffers;
 
     Api->DatagramSend = MsQuicDatagramSend;
-    
+
 #ifndef _KERNEL_MODE
     Api->ExecutionCreate = MsQuicExecutionCreate;
     Api->ExecutionDelete = MsQuicExecutionDelete;
@@ -2429,7 +2431,25 @@ MsQuicExecutionCreate(
     _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
     )
 {
-    
+    if (MsQuicLib.LazyInitComplete) {
+        //
+        // Not allowed to change the execution config after we've already
+        // started running the library.
+        //
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    //
+    // Clean up any previous worker pool and create a new one.
+    //
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    MsQuicLib.WorkerPool =
+        CxPlatWorkerPoolCreateExternal(Count, Configs);
+    if (MsQuicLib.WorkerPool == NULL) {
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2440,7 +2460,7 @@ MsQuicExecutionDelete(
     _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
     )
 {
-    
+
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2450,7 +2470,7 @@ MsQuicExecutionPoll(
     _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
     )
 {
-    
+
 }
 
 #endif

@@ -470,6 +470,12 @@ CxPlatWorkerPoolCreate(
     _In_opt_ QUIC_EXECUTION_CONFIG* Config
     );
 
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreateExternal(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs
+    );
+
 void
 CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
