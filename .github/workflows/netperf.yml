@@ -15,6 +15,7 @@ on:
     - scripts/xdp.json
     - src/bin/**
     - src/core/**
+    - src/inc/**
     - src/platform/**
     - src/perf/**
     - submodules/openssl/**
