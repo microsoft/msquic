@@ -459,6 +459,7 @@ void
 PerfClientWorker::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&ConnectionsCompleted);
     InterlockedDecrement64((int64_t*)&ConnectionsActive);
+
     if (Client->RepeatConnections) {
         QueueNewConnection();
     } else {
@@ -613,9 +614,9 @@ void
 PerfClientConnection::OnHandshakeComplete() {
     InterlockedIncrement64((int64_t*)&Worker.ConnectionsConnected);
     if (!Client.StreamCount) {
-        Shutdown();
         WorkerConnComplete = true;
         Worker.OnConnectionComplete();
+        Shutdown();
     } else {
         for (uint32_t i = 0; i < Client.StreamCount; ++i) {
             StartNewStream();
