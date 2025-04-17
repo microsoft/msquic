@@ -459,7 +459,6 @@ void
 PerfClientWorker::OnConnectionComplete() {
     InterlockedIncrement64((int64_t*)&ConnectionsCompleted);
     InterlockedDecrement64((int64_t*)&ConnectionsActive);
-
     if (Client->RepeatConnections) {
         QueueNewConnection();
     } else {
