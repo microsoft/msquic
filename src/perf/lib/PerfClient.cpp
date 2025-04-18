@@ -479,9 +479,8 @@ PerfClientConnection::~PerfClientConnection() {
 void
 PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
-        auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
         TcpConn = // TODO: replace new/delete with pool alloc/free
-            new (std::nothrow) TcpConnection(Client.Engine.get(), &CredConfig, this);
+            new (std::nothrow) TcpConnection(Client.Engine.get(), &Client.TcpConfig, this);
         if (!TcpConn->IsInitialized()) {
             Worker.ConnectionPool.Free(this);
             return;

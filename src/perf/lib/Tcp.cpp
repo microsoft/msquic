@@ -49,44 +49,45 @@ const uint8_t FixedIv[CXPLAT_MAX_IV_LENGTH] = { 0 };
 
 const QUIC_HKDF_LABELS TcpHkdfLabels = { "tcp key", "tcp iv", "tcp hp", "tcp ku" };
 
-struct LoadSecConfigHelper {
-    LoadSecConfigHelper() : SecConfig(nullptr) { CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE); }
-    ~LoadSecConfigHelper() { CxPlatEventUninitialize(CallbackEvent); }
-    CXPLAT_SEC_CONFIG* Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) {
-        if (QUIC_FAILED(
-            CxPlatTlsSecConfigCreate(
-                CredConfig,
-                CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
-                &TcpEngine::TlsCallbacks,
-                this,
-                SecConfigCallback))) {
-            return nullptr;
-        }
-        CxPlatEventWaitForever(CallbackEvent);
-        return SecConfig;
+TcpConfiguration::TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
+{
+    CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE);
+    if (QUIC_FAILED(
+        CxPlatTlsSecConfigCreate(
+            CredConfig,
+            CXPLAT_TLS_CREDENTIAL_FLAG_NONE,
+            &TcpEngine::TlsCallbacks,
+            this,
+            SecConfigCallback))) {
+        CXPLAT_DBG_ASSERT(false);
     }
-private:
-    static
-    _IRQL_requires_max_(PASSIVE_LEVEL)
-    _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
-    void
-    QUIC_API
-    SecConfigCallback(
-        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
-        _In_opt_ void* Context,
-        _In_ QUIC_STATUS Status,
-        _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
-        )
-    {
-        LoadSecConfigHelper* This = (LoadSecConfigHelper*)Context;
-        if (QUIC_SUCCEEDED(Status)) {
-            This->SecConfig = SecurityConfig;
-        }
-        CxPlatEventSet(This->CallbackEvent);
+    CxPlatEventWaitForever(CallbackEvent);
+    CXPLAT_DBG_ASSERT(SecConfig != nullptr);
+}
+
+TcpConfiguration::~TcpConfiguration() noexcept
+{
+    if (SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig);
     }
-    CXPLAT_EVENT CallbackEvent;
-    CXPLAT_SEC_CONFIG* SecConfig;
-};
+    CxPlatEventUninitialize(CallbackEvent);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
+void TcpConfiguration::SecConfigCallback(
+    _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
+    _In_opt_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
+    )
+{
+    TcpConfiguration* This = (TcpConfiguration*)Context;
+    if (QUIC_SUCCEEDED(Status)) {
+        This->SecConfig = SecurityConfig;
+    }
+    CxPlatEventSet(This->CallbackEvent);
+}
 
 // ############################# ENGINE #############################
 
@@ -327,14 +328,10 @@ bool TcpWorker::QueueConnection(TcpConnection* Connection)
 
 // ############################# SERVER #############################
 
-TcpServer::TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context) :
-    Initialized(false), Engine(Engine), SecConfig(nullptr), Listener(nullptr), Context(Context)
+TcpServer::TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context) :
+    Initialized(false), Engine(Engine), SecConfig(Config->SecConfig), Listener(nullptr), Context(Context)
 {
     if (!Engine->IsInitialized()) {
-        return;
-    }
-    LoadSecConfigHelper Helper;
-    if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
         return;
     }
     Initialized = true;
@@ -384,9 +381,9 @@ TcpServer::AcceptCallback(
 
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
-    const QUIC_CREDENTIAL_CONFIG* CredConfig,
+    const TcpConfiguration* Config,
     void* Context) :
-    IsServer(false), Engine(Engine), Context(Context)
+    IsServer(false), Engine(Engine), SecConfig(Config->SecConfig), Context(Context)
 {
     CxPlatRefInitialize(&Ref);
     CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
@@ -397,11 +394,6 @@ TcpConnection::TcpConnection(
         "[perf][tcp][%p] Client created",
         this);
     if (!Engine->IsInitialized()) {
-        return;
-    }
-    LoadSecConfigHelper Helper;
-    if ((SecConfig = Helper.Load(CredConfig)) == nullptr) {
-        WriteOutput("SecConfig load FAILED\n");
         return;
     }
     QuicAddrSetFamily(&Route.LocalAddress, QUIC_ADDRESS_FAMILY_UNSPEC);
@@ -493,9 +485,6 @@ TcpConnection::~TcpConnection()
         }
 
         CxPlatSocketDelete(Socket);
-    }
-    if (!IsServer && SecConfig) {
-        CxPlatTlsSecConfigDelete(SecConfig);
     }
     CXPLAT_DBG_ASSERT(!QueuedOnWorker);
     Engine->RemoveConnection(this);
@@ -762,7 +751,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             &BufferLength,
             &TlsState);
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
-        WriteOutput("CxPlatTlsProcessData FAILED\n");
+        //WriteOutput("CxPlatTlsProcessData FAILED, Alert=0x%hx\n", TlsState.AlertCode);
         return false;
     }
 

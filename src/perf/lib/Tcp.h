@@ -135,23 +135,31 @@ class TcpWorker {
     );
 };
 
-class TcpServer {
-    friend class TcpEngine;
-    bool Initialized;
-    TcpEngine* Engine;
-    CXPLAT_SEC_CONFIG* SecConfig;
-    CXPLAT_SOCKET* Listener;
+class TcpConfiguration {
+    CXPLAT_EVENT CallbackEvent;
     static
     _IRQL_requires_max_(PASSIVE_LEVEL)
     _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
     void
     QUIC_API
     SecConfigCallback(
-        _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS Status,
         _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
         );
+public:
+    CXPLAT_SEC_CONFIG* SecConfig{nullptr};
+    TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
+    ~TcpConfiguration() noexcept;
+};
+
+class TcpServer {
+    friend class TcpEngine;
+    bool Initialized;
+    TcpEngine* Engine;
+    CXPLAT_SEC_CONFIG* SecConfig;
+    CXPLAT_SOCKET* Listener;
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
@@ -164,7 +172,7 @@ class TcpServer {
         );
 public:
     void* Context; // App context
-    TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context = nullptr);
+    TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context = nullptr);
     ~TcpServer();
     bool IsInitialized() const { return Initialized; }
     bool Start(const QUIC_ADDR* LocalAddress);
@@ -274,7 +282,7 @@ public:
     void* Context{nullptr}; // App context
     TcpConnection(
         _In_ TcpEngine* Engine,
-        _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ const TcpConfiguration* Config,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();
