@@ -227,11 +227,6 @@ PerfClient::Init(
                 PerfClientConnection::TcpReceiveCallback,
                 PerfClientConnection::TcpSendCompleteCallback,
                 TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
-        auto CredConfig = MsQuicCredentialConfig(QUIC_CREDENTIAL_FLAG_CLIENT | QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION);
-        if (!TcpSecurityConfig.Load(&CredConfig)) {
-            WriteOutput("Failed to load TCP SecConfig!\n");
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
     } else {
         if (UseSendBuffering || !UsePacing || UseQtip) { // Update settings if non-default
             MsQuicSettings Settings;
@@ -485,7 +480,7 @@ void
 PerfClientConnection::Initialize() {
     if (Client.UseTCP) {
         TcpConn = // TODO: replace new/delete with pool alloc/free
-            new (std::nothrow) TcpConnection(Client.Engine.get(), &Client.TcpSecurityConfig, this);
+            new (std::nothrow) TcpConnection(Client.Engine.get(), &Client.TcpConfig, this);
         if (!TcpConn->IsInitialized()) {
             Worker.ConnectionPool.Free(this);
             return;

@@ -135,7 +135,7 @@ class TcpWorker {
     );
 };
 
-class TcpSecConfig {
+class TcpConfiguration {
     CXPLAT_EVENT CallbackEvent;
     static
     _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -150,10 +150,8 @@ class TcpSecConfig {
         );
 public:
     CXPLAT_SEC_CONFIG* SecConfig{nullptr};
-    TcpSecConfig() noexcept;
-    TcpSecConfig(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
-    ~TcpSecConfig() noexcept;
-    bool Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
+    TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
+    ~TcpConfiguration() noexcept;
 };
 
 class TcpServer {
@@ -174,7 +172,7 @@ class TcpServer {
         );
 public:
     void* Context; // App context
-    TcpServer(TcpEngine* Engine, TcpSecConfig* SecConfig, void* Context = nullptr);
+    TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context = nullptr);
     ~TcpServer();
     bool IsInitialized() const { return Initialized; }
     bool Start(const QUIC_ADDR* LocalAddress);
@@ -284,7 +282,7 @@ public:
     void* Context{nullptr}; // App context
     TcpConnection(
         _In_ TcpEngine* Engine,
-        _In_ TcpSecConfig* SecConfig,
+        _In_ TcpConfiguration* Config,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();

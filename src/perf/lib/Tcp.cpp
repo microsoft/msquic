@@ -49,29 +49,9 @@ const uint8_t FixedIv[CXPLAT_MAX_IV_LENGTH] = { 0 };
 
 const QUIC_HKDF_LABELS TcpHkdfLabels = { "tcp key", "tcp iv", "tcp hp", "tcp ku" };
 
-TcpSecConfig::TcpSecConfig() noexcept
+TcpConfiguration::TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
 {
     CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE);
-}
-
-TcpSecConfig::TcpSecConfig(_In_ const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
-{
-    CxPlatEventInitialize(&CallbackEvent, TRUE, FALSE);
-    if (!Load(CredConfig)) {
-        CXPLAT_DBG_ASSERT(false);
-    }
-}
-
-TcpSecConfig::~TcpSecConfig() noexcept
-{
-    if (SecConfig) {
-        CxPlatTlsSecConfigDelete(SecConfig);
-    }
-    CxPlatEventUninitialize(CallbackEvent);
-}
-
-bool TcpSecConfig::Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
-{
     if (QUIC_FAILED(
         CxPlatTlsSecConfigCreate(
             CredConfig,
@@ -79,22 +59,30 @@ bool TcpSecConfig::Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
             &TcpEngine::TlsCallbacks,
             this,
             SecConfigCallback))) {
-        return false;
+        CXPLAT_DBG_ASSERT(false);
     }
     CxPlatEventWaitForever(CallbackEvent);
-    return SecConfig != nullptr;
+    CXPLAT_DBG_ASSERT(SecConfig != nullptr);
+}
+
+TcpConfiguration::~TcpConfiguration() noexcept
+{
+    if (SecConfig) {
+        CxPlatTlsSecConfigDelete(SecConfig);
+    }
+    CxPlatEventUninitialize(CallbackEvent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
-void TcpSecConfig::SecConfigCallback(
+void TcpConfiguration::SecConfigCallback(
     _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
     _In_opt_ void* Context,
     _In_ QUIC_STATUS Status,
     _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
     )
 {
-    TcpSecConfig* This = (TcpSecConfig*)Context;
+    TcpConfiguration* This = (TcpConfiguration*)Context;
     if (QUIC_SUCCEEDED(Status)) {
         This->SecConfig = SecurityConfig;
     }
@@ -340,8 +328,8 @@ bool TcpWorker::QueueConnection(TcpConnection* Connection)
 
 // ############################# SERVER #############################
 
-TcpServer::TcpServer(TcpEngine* Engine, TcpSecConfig* SecConfig, void* Context) :
-    Initialized(false), Engine(Engine), SecConfig(SecConfig->SecConfig), Listener(nullptr), Context(Context)
+TcpServer::TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context) :
+    Initialized(false), Engine(Engine), SecConfig(Config->SecConfig), Listener(nullptr), Context(Context)
 {
     if (!Engine->IsInitialized()) {
         return;
@@ -393,9 +381,9 @@ TcpServer::AcceptCallback(
 
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
-    TcpSecConfig* SecConfig,
+    TcpConfiguration* Config,
     void* Context) :
-    IsServer(false), Engine(Engine), SecConfig(SecConfig->SecConfig), Context(Context)
+    IsServer(false), Engine(Engine), SecConfig(Config->SecConfig), Context(Context)
 {
     CxPlatRefInitialize(&Ref);
     CxPlatEventInitialize(&CloseComplete, TRUE, FALSE);
@@ -497,9 +485,6 @@ TcpConnection::~TcpConnection()
         }
 
         CxPlatSocketDelete(Socket);
-    }
-    if (!IsServer && SecConfig) {
-        CxPlatTlsSecConfigDelete(SecConfig);
     }
     CXPLAT_DBG_ASSERT(!QueuedOnWorker);
     Engine->RemoveConnection(this);

@@ -190,7 +190,7 @@ private:
     uint8_t PrintStats {FALSE};
 
     TcpEngine Engine;
-    TcpSecConfig TcpSecurityConfig;
+    TcpConfiguration TcpSecurityConfig;
     TcpServer Server;
 
     uint32_t DelayMicroseconds {0};

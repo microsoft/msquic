@@ -152,7 +152,10 @@ struct PerfClient {
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
 
     UniquePtr<TcpEngine> Engine;
-    TcpSecConfig TcpSecurityConfig {};
+    MsQuicCredentialConfig CredentialConfig {
+        QUIC_CREDENTIAL_FLAG_CLIENT |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION};
+    TcpConfiguration TcpConfig {&CredentialConfig};
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
@@ -167,9 +170,7 @@ struct PerfClient {
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
-        MsQuicCredentialConfig(
-            QUIC_CREDENTIAL_FLAG_CLIENT |
-            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
+        CredentialConfig};
     // Target parameters
     UniquePtr<char[]> Target;
     QUIC_ADDRESS_FAMILY TargetFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
