@@ -563,8 +563,6 @@ CxPlatSocketContextSqeInitialize(
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
-    BOOLEAN FlushTxInitialized = FALSE;
-
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -609,22 +607,17 @@ CxPlatSocketContextSqeInitialize(
             "CxPlatSqeInitialize failed");
         goto Exit;
     }
-    FlushTxInitialized = TRUE;
 
     SocketContext->SqeInitialized = TRUE;
+    return QUIC_STATUS_SUCCESS;
 
 Exit:
 
-    if (QUIC_FAILED(Status)) {
-        if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
-        }
-        if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
-        }
-        if (FlushTxInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
-        }
+    if (ShutdownSqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
+    }
+    if (IoSqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
     }
 
     return Status;
@@ -655,8 +648,8 @@ CxPlatSocketContextInitialize(
     SocketContext->DatapathPartition = &Datapath->Partitions[PartitionIndex];
     CxPlatRefIncrement(&SocketContext->DatapathPartition->RefCount);
 
-    if (QUIC_FAILED(CxPlatSocketContextSqeInitialize(SocketContext)) ||
-        SocketType == CXPLAT_SOCKET_TCP_SERVER) {
+    Status = CxPlatSocketContextSqeInitialize(SocketContext);
+    if (QUIC_FAILED(Status) || SocketType == CXPLAT_SOCKET_TCP_SERVER) {
         goto Exit;
     }
 
