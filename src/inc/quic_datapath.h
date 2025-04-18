@@ -926,8 +926,8 @@ typedef struct CXPLAT_RDMA_CONFIG {
     //
     // Memory related configuration
     //
-    size_t SendRingBufferSize;        // Send Memory Buffer Size
-    size_t RecvRingBufferSize;        // Receive Memory Buffer Size
+    uint32_t SendRingBufferSize;        // Send Memory Buffer Size
+    uint32_t RecvRingBufferSize;        // Receive Memory Buffer Size
 
     //
     // Completion Queue related configuration

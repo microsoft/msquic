@@ -24,61 +24,29 @@ Abstract:
 //
 QUIC_STATUS
 RdmaSendRingBufferInitialize(
+    _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ uint8_t* Buffer,
     _In_ uint32_t Capacity,
-    _Inout_ RDMA_SEND_RING_BUFFER** SendRingBuffer
+    _In_ uint32_t LocalToken
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (Buffer == NULL ||
-        Capacity == 0)
-    {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
-    }
-
-    if (*SendRingBuffer == NULL)
-    {
-        *SendRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_SEND_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
-        if (*SendRingBuffer == NULL)
-        {
-            QuicTraceEvent(
-                SendRingBufferAllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "RDMA_SEND_RING_BUFFER",
-                sizeof(RDMA_SEND_RING_BUFFER));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Exit;
-        }
-    }
-
-    (*SendRingBuffer)->Buffer = Buffer;
-    (*SendRingBuffer)->Capacity = Capacity;
-    (*SendRingBuffer)->Size = 0;
-    (*SendRingBuffer)->Head = 0;
-    (*SendRingBuffer)->Tail = 0;
-
-    memset((*SendRingBuffer)->Buffer, 0, Capacity);
-
-Exit:
-    return Status;
-}
-
-//
-// UnInitialize a new RDMA Ring Buffer
-//
-QUIC_STATUS
-RdmaSendRingBufferUnInitialize(
-    _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer
-    )
-{
-    if (SendRingBuffer == NULL)
+    if (SendRingBuffer == NULL ||
+        Buffer == NULL ||
+        Capacity == 0 ||
+        LocalToken == 0)
     {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_FREE(SendRingBuffer, QUIC_POOL_PLATFORM_GENERIC);
+    SendRingBuffer->Buffer = Buffer;
+    SendRingBuffer->Capacity = Capacity;
+    SendRingBuffer->CurSize = 0;
+    SendRingBuffer->Head = 0;
+    SendRingBuffer->Tail = 0;
+    SendRingBuffer->LocalToken = LocalToken;
+
+    memset(SendRingBuffer->Buffer, 0, Capacity);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -88,73 +56,80 @@ RdmaSendRingBufferUnInitialize(
 //
 QUIC_STATUS
 RdmaRecvRingBufferInitialize(
+    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t*  Buffer,
     _In_ uint32_t Capacity,
     _In_opt_ uint8_t* OffsetBuffer,
     _In_ uint32_t  OffsetBufferSize,
-    _Inout_ RDMA_RECV_RING_BUFFER** RecvRingBuffer
+    _In_ uint32_t LocalToken
     )
 
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (Buffer == NULL ||
-        Capacity == 0)
+    if (RecvRingBuffer == NULL ||
+        Buffer == NULL ||
+        Capacity == 0 ||
+        LocalToken == 0)
     {
         Status = QUIC_STATUS_INVALID_PARAMETER;
         goto Exit;
     }
 
-    if (*RecvRingBuffer == NULL)
-    {
-        *RecvRingBuffer = CXPLAT_ALLOC_NONPAGED(sizeof(RDMA_RECV_RING_BUFFER), QUIC_POOL_PLATFORM_GENERIC);
-        if (*RecvRingBuffer == NULL) {
-            QuicTraceEvent(
-                RecvRingBufferAllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "RDMA_RECV_RING_BUFFER",
-                sizeof(RDMA_RECV_RING_BUFFER));
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Exit;
-        }
-    }
+    RecvRingBuffer->Buffer = Buffer;
+    RecvRingBuffer->Capacity = Capacity;
+    RecvRingBuffer->CurSize = 0;
+    RecvRingBuffer->OffsetBuffer = OffsetBuffer;
+    RecvRingBuffer->OffsetBufferSize = OffsetBufferSize;
+    RecvRingBuffer->Head = 0;
+    RecvRingBuffer->Tail = 0;
+    RecvRingBuffer->LocalToken = LocalToken;
+    RecvRingBuffer->RemoteToken = 0;
+    RecvRingBuffer->OffsetBufferToken = 0;
 
-    (*RecvRingBuffer)->Buffer = Buffer;
-    (*RecvRingBuffer)->Capacity = Capacity;
-    (*RecvRingBuffer)->Size = 0;
-    (*RecvRingBuffer)->OffsetBuffer = OffsetBuffer;
-    (*RecvRingBuffer)->OffsetBufferSize = OffsetBufferSize;
-    (*RecvRingBuffer)->Head = 0;
-    (*RecvRingBuffer)->Tail = 0;
 
-    memset((*RecvRingBuffer)->Buffer, 0, Capacity);
+    memset(RecvRingBuffer->Buffer, 0, Capacity);
 
     if (OffsetBuffer)
     {
-        memset((*RecvRingBuffer)->OffsetBuffer, 0, OffsetBufferSize);
+        memset(RecvRingBuffer->OffsetBuffer, 0, OffsetBufferSize);
     }
 
 Exit:
     return Status;       
 }
-
-//
-// UnInitialize a new RDMA Ring Buffer
-//
+  
 QUIC_STATUS
-RdmaRecvRingBufferUnInitialize(
-    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer
+RdmaRemoteRingBufferInitialize(
+    _In_ RDMA_REMOTE_RING_BUFFER* RemoteRingBuffer,
+    _In_ uint8_t* OffsetBuffer,
+    _In_ uint32_t OffsetBufferSize
     )
 {
-    if (RecvRingBuffer == NULL)
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (OffsetBuffer == NULL ||
+        OffsetBufferSize == 0 ||
+        RemoteRingBuffer == NULL)
     {
-        return QUIC_STATUS_INVALID_PARAMETER;
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
     }
 
-    CXPLAT_FREE(RecvRingBuffer, QUIC_POOL_PLATFORM_GENERIC);
+    RemoteRingBuffer->RemoteAddress = 0;
+    RemoteRingBuffer->Capacity = 0;
+    RemoteRingBuffer->RemoteToken = 0;
+    RemoteRingBuffer->RemoteOffsetBufferAddress = 0;
+    RemoteRingBuffer->RemoteOffsetBufferToken = 0;
+    RemoteRingBuffer->Head = 0;
+    RemoteRingBuffer->Tail = 0;
+    RemoteRingBuffer->OffsetBuffer = OffsetBuffer;
+    RemoteRingBuffer->OffsetBufferSize = OffsetBufferSize;
 
-    return QUIC_STATUS_SUCCESS;
-}    
+    memset(RemoteRingBuffer->OffsetBuffer, 0, OffsetBufferSize);
+}
+
+    
 
 //
 // Reserve Buffer from Send Ring for Performing RDMA Write
@@ -181,13 +156,12 @@ RdmaSendRingBufferReserve(
     {
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
-    else if (SendRingBuffer->Size != 0)
+    else if (SendRingBuffer->CurSize != 0)
     {
-        uint32_t AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->Size;
+        uint32_t AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->CurSize;
 
         if (AvailableSpace < Length || AvailableSpace < MIN_FREE_BUFFER_THRESHOLD)
         {
-
             //
             // If Head Offset is greater than Tail Offset, then
             // return error since it cannot wrap around the buffer
@@ -202,9 +176,9 @@ RdmaSendRingBufferReserve(
             // wrap around 
             //
             SendRingBuffer->Tail = 0;
-            SendRingBuffer->Size += SendRingBuffer->Capacity - SendRingBuffer->Size;
+            SendRingBuffer->CurSize += SendRingBuffer->Capacity - SendRingBuffer->CurSize;
 
-            if (SendRingBuffer->Size == SendRingBuffer->Capacity)
+            if (SendRingBuffer->CurSize == SendRingBuffer->Capacity)
             {
                 return QUIC_STATUS_BUFFER_TOO_SMALL;
             }
@@ -213,7 +187,7 @@ RdmaSendRingBufferReserve(
             // Update Available Space for reserving the memory
             // and check
             //
-            AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->Size;
+            AvailableSpace = SendRingBuffer->Capacity - SendRingBuffer->CurSize;
             if (AvailableSpace < Length)
             {
                 return QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -221,11 +195,11 @@ RdmaSendRingBufferReserve(
         }
     }
 
-    *Buffer = SendRingBuffer->Buffer + SendRingBuffer->Tail + Length;
+    *Buffer = SendRingBuffer->Buffer + SendRingBuffer->Tail;
     *AllocLength = Length;
 
-    SendRingBuffer->Tail = (SendRingBuffer->Tail + Length) % SendRingBuffer->Capacity;
-    SendRingBuffer->Size += Length;
+    SendRingBuffer->Tail = (SendRingBuffer->Tail + Length);
+    SendRingBuffer->CurSize += Length;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -250,7 +224,7 @@ RdmaSendRingBufferRelease(
 
     memset(Buffer, 0, Length);
     SendRingBuffer->Head = (SendRingBuffer->Head + Length) % SendRingBuffer->Capacity;
-    SendRingBuffer->Size -= Length;
+    SendRingBuffer->CurSize -= Length;
 
     //
     // Check if the Tail offset has wrapped around
@@ -269,7 +243,7 @@ RdmaSendRingBufferRelease(
 // Reserve Buffer on the Remote Ring for Performing RDMA Write
 //
 QUIC_STATUS
-RdmaRemoteRecvRingBufferReserve(
+RdmaPeerRecvRingBufferReserve(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint32_t Length,
     _Out_ uint8_t** Buffer,
@@ -290,11 +264,11 @@ RdmaRemoteRecvRingBufferReserve(
     {
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
-    else if (RecvRingBuffer->Size != 0)
+    else if (RecvRingBuffer->CurSize != 0)
     {
-        uint32_t AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->Size;
+        uint32_t AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
 
-        if (AvailableSpace < Length || AvailableSpace < MIN_FREE_BUFFER_THRESHOLD)
+        if (AvailableSpace < Length)
         {
             //
             // If Head Offset is greater than Tail Offset, then
@@ -310,9 +284,9 @@ RdmaRemoteRecvRingBufferReserve(
             // wrap around 
             //
             RecvRingBuffer->Tail = 0;
-            RecvRingBuffer->Size += RecvRingBuffer->Capacity - RecvRingBuffer->Size;
+            RecvRingBuffer->CurSize += RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
 
-            if (RecvRingBuffer->Size == RecvRingBuffer->Capacity)
+            if (RecvRingBuffer->CurSize == RecvRingBuffer->Capacity)
             {
                 return QUIC_STATUS_BUFFER_TOO_SMALL;
             }
@@ -321,7 +295,7 @@ RdmaRemoteRecvRingBufferReserve(
             // Update Available Space for reserving the memory
             // and check
             //
-            AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->Size;
+            AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
             if (AvailableSpace < Length)
             {
                 return QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -329,11 +303,11 @@ RdmaRemoteRecvRingBufferReserve(
         }
     }
 
-    *Buffer = RecvRingBuffer->Buffer + RecvRingBuffer->Tail + Length;
+    *Buffer = RecvRingBuffer->Buffer + RecvRingBuffer->Tail;
     *AllocLength = Length;
 
-    RecvRingBuffer->Tail = (RecvRingBuffer->Tail + Length) % RecvRingBuffer->Capacity;
-    RecvRingBuffer->Size += Length;
+    RecvRingBuffer->Tail = (RecvRingBuffer->Tail + Length);
+    RecvRingBuffer->CurSize += Length;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -344,6 +318,30 @@ RdmaRemoteRecvRingBufferReserve(
 QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
+    _In_ uint8_t* Buffer,
+    _In_ uint32_t Length
+    )
+{
+    if (RecvRingBuffer == NULL ||
+        Buffer == NULL ||
+        Length == 0 ||
+        Length > RecvRingBuffer->Capacity)
+    {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    memset(Buffer, 0, Length);
+    RecvRingBuffer->Head += Length;
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+//
+// Release Buffer to Receive Ring after Reading the Data
+//
+QUIC_STATUS
+RdmaRemoteReceiveRingBufferRelease(
+    _In_ RDMA_REMOTE_RING_BUFFER* RemoteRingBuffer,
     _In_ uint8_t* Buffer,
     _In_ uint32_t Length
     )

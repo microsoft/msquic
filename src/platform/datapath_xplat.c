@@ -288,11 +288,20 @@ CxPlatSendDataAlloc(
 {
     CXPLAT_SEND_DATA* SendData = NULL;
     // TODO: fallback?
-    if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Socket->UseRdma)
+    {
+        CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER);
+        CXPLAT_DBG_ASSERT(Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RDMA);
+        SendData = RdmaSendDataAlloc(Socket, Config);
+    }
+    else if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
-        Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress))) {
+        Socket->RawSocketAvailable && !IS_LOOPBACK(Config->Route->RemoteAddress)))
+    {
         SendData = RawSendDataAlloc(CxPlatSocketToRaw(Socket), Config);
-    } else {
+    }
+    else
+    {
         SendData = SendDataAlloc(Socket, Config);
     }
     return SendData;
@@ -321,10 +330,19 @@ CxPlatSendDataAllocBuffer(
 {
     CXPLAT_DBG_ASSERT(
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-        SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW ||
+        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RDMA);
+
+        if (SendData->DatapathType == CXPLAT_DATAPATH_TYPE_RDMA)
+        {
+            return RdmaSendDataAllocBuffer(SendData, MaxBufferLength);
+        }
+        else
+        {
+            return
+            DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
+            SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);
+        }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -362,12 +380,19 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL) {
+    if (Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER)
+    {
+        RdmaSocketSend(Socket, Route, SendData);
+    }
+    else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL)
+    {
         SocketSend(Socket, Route, SendData);
-     } else {
+    }
+    else
+    {
         CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
         RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
-     }
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

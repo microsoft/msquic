@@ -123,6 +123,7 @@ typedef enum CXPLAT_DATAPATH_TYPE {
     CXPLAT_DATAPATH_TYPE_UNKNOWN = 0,
     CXPLAT_DATAPATH_TYPE_NORMAL,
     CXPLAT_DATAPATH_TYPE_RAW, // currently raw == xdp
+    CXPLAT_DATAPATH_TYPE_RDMA,
 } CXPLAT_DATAPATH_TYPE;
 
 typedef enum CXPLAT_SOCKET_TYPE {
@@ -418,6 +419,16 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     //
     CXPLAT_POOL RioRecvPool;
 
+    //
+    // Pool of send contexts to be shared by all RDMA sockets on this core.
+    //
+    CXPLAT_POOL RdmaSendDataPool;
+
+    //
+    // Pool of receive datagram contexts for RDMA connections and SGEs to be
+    // shared by all sockets on this core.
+    //
+    CXPLAT_POOL_EX RecvRdmaDatagramPool;
 } CXPLAT_DATAPATH_PARTITION;
 
 //
@@ -557,6 +568,18 @@ typedef struct CXPLAT_DATAPATH {
     // context.
     //
     uint32_t RecvPayloadOffset;
+
+    //
+    // The size of each receive datagram array element, including client context,
+    // internal context, and padding.
+    //
+    uint32_t RdmaDatagramStride;
+
+    //
+    // The offset of the receive payload buffer from the start of the receive
+    // context.
+    //
+    uint32_t RecvRdmaPayloadContext;
 
     //
     // The number of processors.
@@ -1187,6 +1210,22 @@ SendDataFree(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
+CXPLAT_SEND_DATA*
+RdmaSendDataAlloc(
+    _In_ CXPLAT_SOCKET* Socket,
+    _Inout_ CXPLAT_SEND_CONFIG* Config
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+QUIC_BUFFER*
+RdmaSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t MaxBufferLength
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
 QUIC_BUFFER*
 SendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
@@ -1214,6 +1253,14 @@ SocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+SocketRdmaSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const CXPLAT_ROUTE* Route,
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+    
 CXPLAT_SOCKET*
 CxPlatRawToSocket(
     _In_ CXPLAT_SOCKET_RAW* Socket
@@ -1405,5 +1452,20 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSocketRdmaRelease(
     _In_ CXPLAT_SOCKET* Socket
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatCreateRdmaRecvPool(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t ClientRecvDataLength,
+    _In_ uint16_t Index
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatCreateRdmaSendPool(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint16_t Index
     );
 #endif // CX_PLATFORM_LINUX || _WIN32

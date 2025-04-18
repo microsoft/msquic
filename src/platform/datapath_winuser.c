@@ -1010,6 +1010,12 @@ DataPathInitialize(
             RioRecvBufferAllocate,
             RioRecvBufferFree,
             &Datapath->Partitions[i].RioRecvPool);
+
+        if (Datapath->UseRdma)
+        {
+            CxPlatCreateRdmaSendPool(Datapath, i);
+            CxPlatCreateRdmaRecvPool(Datapath, ClientRecvDataLength, i);
+        }
     }
 
     CXPLAT_FRE_ASSERT(CxPlatRundownAcquire(&WorkerPool->Rundown));
@@ -2717,7 +2723,9 @@ CxPlatSocketContextRelease(
 {
     CXPLAT_DBG_ASSERT(!SocketProc->Freed);
     if (CxPlatRefDecrement(&SocketProc->RefCount)) {
-        if (SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER) {
+        if (SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER && 
+            SocketProc->Parent->Type != CXPLAT_SOCKET_RDMA_LISTENER)
+        {
             CXPLAT_DBG_ASSERT(SocketProc->RioRecvCount == 0);
             CXPLAT_DBG_ASSERT(SocketProc->RioSendCount == 0);
             CXPLAT_DBG_ASSERT(SocketProc->RioNotifyArmed == FALSE);
