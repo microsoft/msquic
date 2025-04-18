@@ -970,6 +970,42 @@ CxPlatSocketContextInitialize(
                 "setsockopt(SO_REUSEPORT) failed");
             goto Exit;
         }
+
+        //
+        // Prevent the socket from entering TIME_WAIT state when closed.
+        //
+        struct linger LingerOpt;
+        LingerOpt.l_onoff = TRUE;   // Enable linger
+        LingerOpt.l_linger = 0;     // Linger time of 0 seconds (immediate reset)
+        Result = setsockopt(SocketContext->SocketFd, SOL_SOCKET, SO_LINGER, &LingerOpt, sizeof(LingerOpt));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_LINGER) failed");
+            goto Exit;
+        }
+    } else if (SocketType == CXPLAT_SOCKET_TCP) {
+        //
+        // Prevent the socket from entering TIME_WAIT state when closed.
+        //
+        struct linger LingerOpt;
+        LingerOpt.l_onoff = TRUE;   // Enable linger
+        LingerOpt.l_linger = 0;     // Linger time of 0 seconds (immediate reset)
+        Result = setsockopt(SocketContext->SocketFd, SOL_SOCKET, SO_LINGER, &LingerOpt, sizeof(LingerOpt));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_LINGER) failed");
+            goto Exit;
+        }
     }
 
     CxPlatCopyMemory(&MappedAddress, &Binding->LocalAddress, sizeof(MappedAddress));
