@@ -751,7 +751,7 @@ bool TcpConnection::ProcessTls(const uint8_t* Buffer, uint32_t BufferLength)
             &BufferLength,
             &TlsState);
     if (Results & CXPLAT_TLS_RESULT_ERROR) {
-        WriteOutput("CxPlatTlsProcessData FAILED\n");
+        //WriteOutput("CxPlatTlsProcessData FAILED, Alert=0x%hx\n", TlsState.AlertCode);
         return false;
     }
 
