@@ -1740,7 +1740,7 @@ CxPlatSocketHandleErrors(
             SocketContext->Binding,
             errno,
             "getsockopt(SO_ERROR) failed");
-    } else {
+    } else if (ErrNum != 0) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -1763,11 +1763,7 @@ CxPlatSocketHandleErrors(
                         &SocketContext->Binding->RemoteAddress);
                 }
             }
-        } else if (ErrNum == ENOTSOCK ||
-                   ErrNum == EINTR ||
-                   ErrNum == ECANCELED ||
-                   ErrNum == ECONNABORTED ||
-                   ErrNum == ECONNRESET) {
+        } else {
             if (!SocketContext->Binding->DisconnectIndicated) {
                 SocketContext->Binding->DisconnectIndicated = TRUE;
                 SocketContext->Binding->Datapath->TcpHandlers.Connect(
