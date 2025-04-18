@@ -23,6 +23,13 @@ typedef enum QUIC_CONNECTION_EVENT_TYPE {
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+#endif
+
 } QUIC_CONNECTION_EVENT_TYPE;
 ```
 
@@ -96,6 +103,25 @@ typedef struct QUIC_CONNECTION_EVENT {
             QUIC_STATUS DeferredStatus;
             QUIC_CERTIFICATE_CHAIN* Chain;
         } PEER_CERTIFICATE_RECEIVED;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
+        struct {
+           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
+           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+           uint64_t SmoothedRTT;                // Smoothed RTT value
+           uint32_t CongestionWindow;           // Congestion Window
+           uint64_t Bandwidth;                  // Estimated bandwidth
+        } NETWORK_STATISTICS;
+#endif
+
     };
 } QUIC_CONNECTION_EVENT;
 ```
@@ -342,7 +368,7 @@ The resumption ticket data previously sent to the client via [ConnectionSendResu
 
 ## QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED
 
-This event indicates the client that a TLS resumption ticket has been received from the server.
+This event indicates to the client that a TLS resumption ticket has been received from the server.
 
 ### RESUMPTION_TICKET_RECEIVED
 
@@ -384,6 +410,73 @@ Pointer to a platform/TLS specific certificate chain. Valid only during the call
 
 If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md), this will be a `QUIC_BUFFER` containing the PKCS #7 DER (binary) encoded certificate chain.
 
+## QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event indicates the result of reliable reset negotiation. This is only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+
+### RELIABLE_RESET_NEGOTIATED
+
+Result of reliable reset negotiation is passed in the `RELIABLE_RESET_NEGOTIATED` struct/union.
+
+`IsNegotiated`
+
+If TRUE, reliable reset has been negotiated.
+
+## QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event indicates the result of one way delay negotiation. This is only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+
+### ONE_WAY_DELAY_NEGOTIATED
+
+Details of the one way delay negotiation are passed in the `ONE_WAY_DELAY_NEGOTIATED` struct/union.
+
+`SendNegotiated`
+
+If TRUE, sending one-way delay timestamps has been negotiated.
+
+`ReceiveNegotiated`
+
+If TRUE, receiving one-way delay timestamps has been negotiated.
+
+## QUIC_CONNECTION_EVENT_NETWORK_STATISTICS
+
+**Preview feature**: This event is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.
+
+### NETWORK_STATISTICS
+
+Detailed networking statistics are passed in the `NETWORK_STATISTICS` struct/union.
+
+`BytesInFlight`
+
+Bytes that were sent on the wire, but not yet acked
+
+`PostedBytes`
+
+Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.
+
+`IdealBytes`
+
+Ideal number of bytes required to be available to avoid limiting throughput.
+
+`SmoothedRTT`
+
+Smoothed RTT value
+
+`CongestionWindow`
+
+Congestion Window
+
+`Bandwidth`
+
+Estimated bandwidth
+
+
 # See Also
 
 [ConnectionOpen](ConnectionOpen.md)<br>
@@ -391,3 +484,4 @@ If `QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES` was specified in the [QUIC_C
 [SetCallbackHandler](SetCallbackHandler.md)<br>
 [SetContext](SetContext.md)<br>
 [QUIC_CREDENTIAL_CONFIG](QUIC_CREDENTIAL_CONFIG.md)<br>
+[Preview Features](../PreviewFeatures.md)<br>

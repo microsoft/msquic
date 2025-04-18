@@ -1,7 +1,7 @@
 StreamProvideReceiveBuffers function
 ======
 
-**Preview feature**: This API is in preview. It should be considered unstable and can be subject to breaking changes.
+**Preview feature**: This API is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
 
 Provide application-owned buffers to MsQuic to store received data.
 It should be called only for a stream in app-owned buffer mode.
@@ -34,3 +34,4 @@ If called inline when handling a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` eve
 
 [Streams](../Streams.md)<br>
 [StreamOpen](StreamOpen.md)<br>
+[Preview Features](../PreviewFeatures.md)<br>
