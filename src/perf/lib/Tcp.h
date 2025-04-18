@@ -282,7 +282,7 @@ public:
     void* Context{nullptr}; // App context
     TcpConnection(
         _In_ TcpEngine* Engine,
-        _In_ TcpConfiguration* Config,
+        _In_ const TcpConfiguration* Config,
         _In_ void* Context = nullptr);
     bool IsInitialized() const { return Initialized; }
     void Close();

@@ -381,7 +381,7 @@ TcpServer::AcceptCallback(
 
 TcpConnection::TcpConnection(
     TcpEngine* Engine,
-    TcpConfiguration* Config,
+    const TcpConfiguration* Config,
     void* Context) :
     IsServer(false), Engine(Engine), SecConfig(Config->SecConfig), Context(Context)
 {
