@@ -370,7 +370,7 @@ PerfClient::Wait(
         return QUIC_STATUS_CONNECTION_REFUSED;
     }
 
-    unsigned long long CompletedConnections = GetConnectionsCompleted();
+    unsigned long long CompletedConnections = GetConnectedConnections();
     unsigned long long CompletedStreams = GetStreamsCompleted();
 
     if (PrintIoRate) {
@@ -383,11 +383,11 @@ PerfClient::Wait(
             WriteOutput("Result: %llu RPS\n", RPS);
         }
     } else if (PrintThroughput) {
-        auto UploadRate = GetUploadRate();
+        unsigned long long UploadRate = GetUploadRate();
         if (UploadRate) {
             WriteOutput("Result: Upload %llu kbps.\n", UploadRate);
         }
-        auto DownloadRate = GetDownloadRate();
+        unsigned long long DownloadRate = GetDownloadRate();
         if (DownloadRate) {
             WriteOutput("Result: Download %llu kbps.\n", DownloadRate);
         }
