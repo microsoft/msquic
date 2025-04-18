@@ -85,6 +85,8 @@ bool TcpSecConfig::Load(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept
     return SecConfig != nullptr;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
 void TcpSecConfig::SecConfigCallback(
     _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
     _In_opt_ void* Context,
