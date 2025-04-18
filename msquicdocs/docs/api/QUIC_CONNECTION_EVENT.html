@@ -106,6 +106,13 @@
     QUIC_CONNECTION_EVENT_RESUMED                           = 13,   // Server-only; provides resumption data, if any.
     QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED        = 14,   // Client-only; provides ticket to persist, if any.
     QUIC_CONNECTION_EVENT_PEER_CERTIFICATE_RECEIVED         = 15    // Only with QUIC_CREDENTIAL_FLAG_INDICATE_CERTIFICATE_RECEIVED set
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED         = 16,   // Only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED          = 17,   // Only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.
+    QUIC_CONNECTION_EVENT_NETWORK_STATISTICS                = 18,   // Only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE.
+#endif
+
 } QUIC_CONNECTION_EVENT_TYPE;
 </code></pre>
 <p>The payload for QUIC connection events.</p>
@@ -176,6 +183,25 @@
             QUIC_STATUS DeferredStatus;
             QUIC_CERTIFICATE_CHAIN* Chain;
         } PEER_CERTIFICATE_RECEIVED;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            BOOLEAN IsNegotiated;
+        } RELIABLE_RESET_NEGOTIATED;
+        struct {
+            BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
+            BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
+        } ONE_WAY_DELAY_NEGOTIATED;
+        struct {
+           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
+           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+           uint64_t SmoothedRTT;                // Smoothed RTT value
+           uint32_t CongestionWindow;           // Congestion Window
+           uint64_t Bandwidth;                  // Estimated bandwidth
+        } NETWORK_STATISTICS;
+#endif
+
     };
 } QUIC_CONNECTION_EVENT;
 </code></pre>
@@ -371,7 +397,7 @@
 <p><code>ResumptionState</code></p>
 <p>The resumption ticket data previously sent to the client via <a href="ConnectionSendResumptionTicket.html">ConnectionSendResumptionTicket</a>.</p>
 <h2 id="quic_connection_event_resumption_ticket_received">QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED</h2>
-<p>This event indicates the client that a TLS resumption ticket has been received from the server.</p>
+<p>This event indicates to the client that a TLS resumption ticket has been received from the server.</p>
 <h3 id="resumption_ticket_received">RESUMPTION_TICKET_RECEIVED</h3>
 <p>Resumption ticket state is passed in the <code>RESUMPTION_TICKET_RECEIVED</code> struct/union.</p>
 <p><code>ResumptionTicketLength</code></p>
@@ -392,12 +418,46 @@
 <p><code>Chain</code></p>
 <p>Pointer to a platform/TLS specific certificate chain. Valid only during the callback.</p>
 <p>If <code>QUIC_CREDENTIAL_FLAG_USE_PORTABLE_CERTIFICATES</code> was specified in the <a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a>, this will be a <code>QUIC_BUFFER</code> containing the PKCS #7 DER (binary) encoded certificate chain.</p>
+<h2 id="quic_connection_event_reliable_reset_negotiated">QUIC_CONNECTION_EVENT_RELIABLE_RESET_NEGOTIATED</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event indicates the result of reliable reset negotiation. This is only indicated if QUIC_SETTINGS.ReliableResetEnabled is TRUE.</p>
+<h3 id="reliable_reset_negotiated">RELIABLE_RESET_NEGOTIATED</h3>
+<p>Result of reliable reset negotiation is passed in the <code>RELIABLE_RESET_NEGOTIATED</code> struct/union.</p>
+<p><code>IsNegotiated</code></p>
+<p>If TRUE, reliable reset has been negotiated.</p>
+<h2 id="quic_connection_event_one_way_delay_negotiated">QUIC_CONNECTION_EVENT_ONE_WAY_DELAY_NEGOTIATED</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event indicates the result of one way delay negotiation. This is only indicated if QUIC_SETTINGS.OneWayDelayEnabled is TRUE.</p>
+<h3 id="one_way_delay_negotiated">ONE_WAY_DELAY_NEGOTIATED</h3>
+<p>Details of the one way delay negotiation are passed in the <code>ONE_WAY_DELAY_NEGOTIATED</code> struct/union.</p>
+<p><code>SendNegotiated</code></p>
+<p>If TRUE, sending one-way delay timestamps has been negotiated.</p>
+<p><code>ReceiveNegotiated</code></p>
+<p>If TRUE, receiving one-way delay timestamps has been negotiated.</p>
+<h2 id="quic_connection_event_network_statistics">QUIC_CONNECTION_EVENT_NETWORK_STATISTICS</h2>
+<p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
+<p>This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.</p>
+<h3 id="network_statistics">NETWORK_STATISTICS</h3>
+<p>Detailed networking statistics are passed in the <code>NETWORK_STATISTICS</code> struct/union.</p>
+<p><code>BytesInFlight</code></p>
+<p>Bytes that were sent on the wire, but not yet acked</p>
+<p><code>PostedBytes</code></p>
+<p>Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.</p>
+<p><code>IdealBytes</code></p>
+<p>Ideal number of bytes required to be available to avoid limiting throughput.</p>
+<p><code>SmoothedRTT</code></p>
+<p>Smoothed RTT value</p>
+<p><code>CongestionWindow</code></p>
+<p>Congestion Window</p>
+<p><code>Bandwidth</code></p>
+<p>Estimated bandwidth</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="ConnectionOpen.html">ConnectionOpen</a><br>
 <a href="QUIC_CONNECTION_CALLBACK.html">QUIC_CONNECTION_CALLBACK</a><br>
 <a href="SetCallbackHandler.html">SetCallbackHandler</a><br>
 <a href="SetContext.html">SetContext</a><br>
-<a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a><br></p>
+<a href="QUIC_CREDENTIAL_CONFIG.html">QUIC_CREDENTIAL_CONFIG</a><br>
+<a href="../PreviewFeatures.html">Preview Features</a><br></p>
 
 </article>
 

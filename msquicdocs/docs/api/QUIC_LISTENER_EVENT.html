@@ -108,6 +108,10 @@
             BOOLEAN AppCloseInProgress  : 1;
             BOOLEAN RESERVED            : 7;
         } STOP_COMPLETE;
+        struct {
+            BOOLEAN DosModeEnabled : 1;
+            BOOLEAN RESERVED       : 7;
+        } DOS_MODE_CHANGED;
     };
 } QUIC_LISTENER_EVENT;
 </code></pre>
@@ -129,6 +133,14 @@
 <p>Details of the listener stopping are indicated in <code>STOP_COMPLETE</code> struct/union.</p>
 <p><code>AppCloseInProgress</code></p>
 <p>This flag indicates the server has called <a href="ListenerClose.html">ListenerClose</a>.</p>
+<p><code>RESERVED</code></p>
+<p>This field reserved for future use. Do not use.</p>
+<h2 id="quic_listener_event_dos_mode_changed">QUIC_LISTENER_EVENT_DOS_MODE_CHANGED</h2>
+<p>This event indicates an automated change in the DoS mode on the listener object in the MsQuic library. This event is delivered only for listener objects that have opted in for DoS mode change events. Refer to the <a href="../Settings.html#Listener_Parameters">Listener Parameters</a> documentation for further information.</p>
+<h3 id="dos_mode_changed">DOS_MODE_CHANGED</h3>
+<p>Details of the DoS mode change is indicated in the <code>DOS_MODE_CHANGED</code> struct/union.</p>
+<p><code>DosModeEnabled</code></p>
+<p>If TRUE, DoS mode is currently enabled on the listener object, else DoS mode is currently disabled on the listener object.</p>
 <p><code>RESERVED</code></p>
 <p>This field reserved for future use. Do not use.</p>
 <h1 id="see-also">See Also</h1>

@@ -151,12 +151,14 @@ The app should always have at least two sends pending at a time: If only a singl
 The application can optimize its processing for that case but should be ready to handle any number of <code>QUIC_BUFFER</code>s.</p>
 <p>When the buffer count is 0, it signifies the reception of a QUIC frame with empty data, which also indicates the end of stream data.</p>
 <h2 id="summary---common-handling-of-receive-data-events">Summary - Common handling of receive data events</h2>
+<p>Here is a quick overview of receiving data in <em>some</em> common scenarios.</p>
 <p>If the application...</p>
 <ul>
 <li>processes all the received data synchronously in the stream event handler, <code>QUIC_STREAM_EVENT.RECEIVE.TotalBufferLength</code> parameter must be left unchanged and <code>QUIC_STATUS_SUCCESS</code> must be returned from the handler.</li>
 <li>could process only part of the received buffer synchronously in the stream event handler call and wants to process the remaining data in a subsequent event handler call, it <strong>must</strong> be indicated to MsQuic by setting this parameter to the byte count processed and returning <code>QUIC_STATUS_CONTINUE</code> from this call.</li>
 <li>desires to process the received data asynchronously, it should return <code>QUIC_STATUS_PENDING</code> from the event handler call.</li>
 </ul>
+<p>Read on further for details on all possible scenarios of receiving data using the MsQuic library.</p>
 <h2 id="handling-a-receive-event">Handling a receive event</h2>
 <p>The app then may respond to the event in a number of ways:</p>
 <h3 id="synchronous-vs-asynchronous">Synchronous vs Asynchronous</h3>

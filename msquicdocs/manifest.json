@@ -152,6 +152,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/PreviewFeatures.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/PreviewFeatures.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/QTIP.md",
       "output": {
         ".html": {
