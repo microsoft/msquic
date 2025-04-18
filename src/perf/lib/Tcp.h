@@ -104,6 +104,10 @@ public:
         TcpSendCompleteHandler SendCompleteHandler,
         TCP_EXECUTION_PROFILE TcpExecutionProfile) noexcept;
     ~TcpEngine() noexcept;
+    TcpEngine(const TcpEngine&) = delete;
+    TcpEngine(TcpEngine&&) = delete;
+    TcpEngine& operator=(const TcpEngine&) = delete;
+    TcpEngine& operator=(TcpEngine&&) = delete;
     bool IsInitialized() const { return Initialized; }
     bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
     void RemoveConnection(TcpConnection* Connection);
@@ -124,6 +128,10 @@ class TcpWorker {
     TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
+    TcpWorker(const TcpWorker&) = delete;
+    TcpWorker(TcpWorker&&) = delete;
+    TcpWorker& operator=(const TcpWorker&) = delete;
+    TcpWorker& operator=(TcpWorker&&) = delete;
     bool Initialize(TcpEngine* _Engine, uint16_t PartitionIndex);
     void Shutdown();
     void WakeWorkerThread();
@@ -152,6 +160,10 @@ public:
     CXPLAT_SEC_CONFIG* SecConfig{nullptr};
     TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
     ~TcpConfiguration() noexcept;
+    TcpConfiguration(const TcpConfiguration&) = delete;
+    TcpConfiguration(TcpConfiguration&&) = delete;
+    TcpConfiguration& operator=(const TcpConfiguration&) = delete;
+    TcpConfiguration& operator=(TcpConfiguration&&) = delete;
 };
 
 class TcpServer {
@@ -174,6 +186,10 @@ public:
     void* Context; // App context
     TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context = nullptr);
     ~TcpServer();
+    TcpServer(const TcpServer&) = delete;
+    TcpServer(TcpServer&&) = delete;
+    TcpServer& operator=(const TcpServer&) = delete;
+    TcpServer& operator=(TcpServer&&) = delete;
     bool IsInitialized() const { return Initialized; }
     bool Start(const QUIC_ADDR* LocalAddress);
 };
@@ -284,6 +300,10 @@ public:
         _In_ TcpEngine* Engine,
         _In_ const TcpConfiguration* Config,
         _In_ void* Context = nullptr);
+    TcpConnection(const TcpConnection&) = delete;
+    TcpConnection(TcpConnection&&) = delete;
+    TcpConnection& operator=(const TcpConnection&) = delete;
+    TcpConnection& operator=(TcpConnection&&) = delete;
     bool IsInitialized() const { return Initialized; }
     void Close();
     bool Start(
