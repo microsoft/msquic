@@ -38,7 +38,7 @@ Abstract:
 #pragma warning(pop)
 #endif
 #ifdef QUIC_CLOG
-#include "tls_openssl.c.clog.h"
+#include "tls_quictls.c.clog.h"
 #endif
 
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;

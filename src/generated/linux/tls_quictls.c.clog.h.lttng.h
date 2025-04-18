@@ -14,7 +14,7 @@
 // arg3 = arg3 = Alert = arg3
 // arg4 = arg4 = (uint32_t)Level = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslAlert,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
@@ -39,7 +39,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslQuicDataErrorStr,
     TP_ARGS(
         const void *, arg1,
         const char *, arg3), 
@@ -66,7 +66,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
 // arg4 = arg4 = (strlen(file) > OpenSslFilePrefixLength ? file + OpenSslFilePrefixLength : file) = arg4
 // arg5 = arg5 = line = arg5
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslHandshakeErrorStr,
     TP_ARGS(
         const void *, arg1,
         const char *, arg3,
@@ -93,7 +93,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeErrorStr,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Err = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslHandshakeError,
     TP_ARGS(
         const void *, arg1,
         int, arg3), 
@@ -114,7 +114,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
                     "Failed to negotiate ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslAlpnNegotiationFailure,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -133,7 +133,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
                     "Invalid negotiated ALPN length");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslInvalidAlpnLength,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -152,7 +152,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
                     "Failed to find a matching ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslNoMatchingAlpn,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -171,7 +171,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
                     "No transport parameters received");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslMissingTransportParameters,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -192,7 +192,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = TlsState->BufferOffsetHandshake = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslHandshakeDataStart,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -215,7 +215,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeDataStart,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = TlsState->BufferOffset1Rtt = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSsl1RttDataStart,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -238,7 +238,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSsl1RttDataStart,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = (uint32_t)Length = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslOnRecvTicket,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -261,7 +261,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnRecvTicket,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = Config->ResumptionTicketLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslOnSetTicket,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -282,7 +282,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
             "TLS Handshake complete");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslHandshakeComplete,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -301,7 +301,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
                 "TLS Handshake resumed");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslHandshakeResumed,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -322,7 +322,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = (uint32_t)Level = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslNewEncryptionSecrets,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -347,7 +347,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
 // arg3 = arg3 = (uint64_t)Length = arg3
 // arg4 = arg4 = (uint32_t)Level = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslAddHandshakeData,
     TP_ARGS(
         const void *, arg1,
         unsigned long long, arg3,
@@ -372,7 +372,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = (uint32_t)status = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslTickedDecrypted,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -395,7 +395,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslTickedDecrypted,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = (uint32_t)Length = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslRecvTicketData,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -416,7 +416,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslRecvTicketData,
         "TLS context Created");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslContextCreated,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -435,7 +435,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCreated,
             "Cleaning up");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslContextCleaningUp,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -456,7 +456,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslContextCleaningUp,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslSendTicketData,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -479,7 +479,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, OpenSslProcessData,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -502,7 +502,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
 // arg2 = arg2 = TlsContext->Connection = arg2
 // arg3 = arg3 = "No certificate passed" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, TlsError,
     TP_ARGS(
         const void *, arg2,
         const char *, arg3), 
@@ -523,7 +523,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
                     "i2d_X509 failed");
 // arg2 = arg2 = "i2d_X509 failed" = arg2
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, LibraryError,
     TP_ARGS(
         const char *, arg2), 
     TP_FIELDS(
@@ -544,7 +544,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
 // arg2 = arg2 = "New crypto buffer" = arg2
 // arg3 = arg3 = NewBufferAllocLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
         unsigned long long, arg3), 
@@ -569,7 +569,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
 // arg3 = arg3 = ERR_get_error() = arg3
 // arg4 = arg4 = "PEM_write_bio_SSL_SESSION failed" = arg4
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, TlsErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
@@ -594,7 +594,7 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsErrorStatus,
 // arg2 = arg2 = CredConfig->AllowedCipherSuites = arg2
 // arg3 = arg3 = "No valid cipher suites presented" = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryErrorStatus,
+TRACEPOINT_EVENT(CLOG_TLS_QUICTLS_C, LibraryErrorStatus,
     TP_ARGS(
         unsigned int, arg2,
         const char *, arg3), 

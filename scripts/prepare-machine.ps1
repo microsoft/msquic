@@ -485,8 +485,8 @@ function Install-Clog2Text {
 
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
-    git rm $RootDir/submodules/openssl
-    git rm $RootDir/submodules/openssl3
+    git rm $RootDir/submodules/quictls
+    git rm $RootDir/submodules/quictls3
 }
 
 if ($ForBuild -or $ForContainerBuild) {
@@ -498,14 +498,14 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule init $RootDir/submodules/xdp-for-windows
     }
 
-    if ($Tls -eq "openssl") {
-        Write-Host "Initializing openssl submodule"
-        git submodule init $RootDir/submodules/openssl
+    if ($Tls -eq "quictls") {
+        Write-Host "Initializing quictls submodule"
+        git submodule init $RootDir/submodules/quictls
     }
 
-    if ($Tls -eq "openssl3") {
-        Write-Host "Initializing openssl3 submodule"
-        git submodule init $RootDir/submodules/openssl3
+    if ($Tls -eq "quictls3") {
+        Write-Host "Initializing quictls3 submodule"
+        git submodule init $RootDir/submodules/quictls3
     }
 
     if (!$DisableTest) {
