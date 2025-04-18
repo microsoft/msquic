@@ -150,6 +150,7 @@ PerfClient::Init(
     TryGetValue(argc, argv, "pacing", &UsePacing);
     TryGetValue(argc, argv, "sendbuf", &UseSendBuffering);
     TryGetValue(argc, argv, "ptput", &PrintThroughput);
+    TryGetValue(argc, argv, "pctput", &PrintConnThroughput);
     TryGetValue(argc, argv, "prate", &PrintIoRate);
     TryGetValue(argc, argv, "pconnection", &PrintConnections);
     TryGetValue(argc, argv, "pconn", &PrintConnections);
@@ -381,6 +382,16 @@ PerfClient::Wait(
             unsigned long long RPS = CompletedStreams * 1000 * 1000 / RunTime;
             WriteOutput("Result: %llu RPS\n", RPS);
         }
+    } else if (PrintThroughput) {
+        auto UploadRate = GetUploadRate();
+        if (UploadRate) {
+            WriteOutput("Result: Upload %llu kbps.\n", UploadRate);
+        }
+        auto DownloadRate = GetDownloadRate();
+        if (DownloadRate) {
+            WriteOutput("Result: Download %llu kbps.\n", DownloadRate);
+        }
+
     } else if (!PrintThroughput && !PrintLatency) {
         if (CompletedConnections && CompletedStreams) {
             WriteOutput(
@@ -952,15 +963,20 @@ PerfClientStream::OnShutdown() {
             SendSuccess = false;
         }
 
-        if (Client.PrintThroughput && SendSuccess) {
+        if (SendSuccess) {
             const auto ElapsedMicroseconds = CXPLAT_MAX(SendEndTime - StartTime, RecvEndTime - StartTime);
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-            WriteOutput(
-                "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)TotalBytes,
-                Rate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
+            if (Client.PrintConnThroughput) {
+                WriteOutput(
+                    "Result: Upload %llu bytes @ %u kbps (%u.%03u ms).\n",
+                    (unsigned long long)TotalBytes,
+                    Rate,
+                    (uint32_t)(ElapsedMicroseconds / 1000),
+                    (uint32_t)(ElapsedMicroseconds % 1000));
+            }
+            InterlockedExchangeAdd64(
+                (int64_t*)&Connection.Worker.UploadRate,
+                Rate);
         }
     }
 
@@ -971,16 +987,21 @@ PerfClientStream::OnShutdown() {
             RecvSuccess = false;
         }
 
-        if (Client.PrintThroughput && RecvSuccess) {
+        if (RecvSuccess) {
             //const auto ElapsedMicroseconds = RecvEndTime - (RecvEndTime == RecvStartTime ? StartTime : RecvStartTime);
             const auto ElapsedMicroseconds = RecvEndTime - StartTime;
             const auto Rate = (uint32_t)((TotalBytes * 1000 * 1000 * 8) / (1000 * ElapsedMicroseconds));
-            WriteOutput(
-                "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
-                (unsigned long long)TotalBytes,
-                Rate,
-                (uint32_t)(ElapsedMicroseconds / 1000),
-                (uint32_t)(ElapsedMicroseconds % 1000));
+            if (Client.PrintConnThroughput) {
+                WriteOutput(
+                    "Result: Download %llu bytes @ %u kbps (%u.%03u ms).\n",
+                    (unsigned long long)TotalBytes,
+                    Rate,
+                    (uint32_t)(ElapsedMicroseconds / 1000),
+                    (uint32_t)(ElapsedMicroseconds % 1000));
+            }
+            InterlockedExchangeAdd64(
+                (int64_t*)&Connection.Worker.DownloadRate,
+                Rate);
         }
     }
 
