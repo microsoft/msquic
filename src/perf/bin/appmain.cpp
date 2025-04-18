@@ -299,7 +299,7 @@ main(
     //
     MsQuicApi MsQuic;
     
-    CXPLAT_FRE_ASSERT(MsQuic.GetInitStatus());
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(MsQuic.GetInitStatus()));
 #else
     CxPlatSystemLoad();
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
