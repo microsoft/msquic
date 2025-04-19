@@ -1642,24 +1642,18 @@ QuicSettingsDumpNew(
     }
 }
 
-#define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
-    (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
-
-#define SETTING_HAS_FIELD(SettingsType, Size, Field) \
-    (Size >= SETTINGS_SIZE_THRU_FIELD(SettingsType, Field))
-
 #define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
     InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
     InternalSettings->Field = Settings->Field;
 
 #define SETTING_COPY_TO_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings)   \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         InternalSettings->IsSet.Field = Settings->IsSet.Field;                                          \
         InternalSettings->Field = Settings->Field;                                                      \
     }
 
 #define SETTING_COPY_FLAG_TO_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)    \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
         InternalSettings->IsSet.Flag = !!Settings->IsSet.Flag;                                                          \
         InternalSettings->Flag = !!Settings->Flag;                                                                      \
     }
@@ -1673,7 +1667,7 @@ QuicSettingsGlobalSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!SETTING_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1775,7 +1769,7 @@ QuicSettingsSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!SETTING_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1920,13 +1914,13 @@ QuicSettingsSettingsToInternal(
     Settings->Field = InternalSettings->Field;
 
 #define SETTING_COPY_FROM_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings) \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
         Settings->Field = InternalSettings->Field;                                                      \
     }
 
 #define SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)  \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
         Settings->IsSet.Flag = InternalSettings->IsSet.Flag;                                                            \
         Settings->Flag = InternalSettings->Flag;                                                                        \
     }
@@ -1940,7 +1934,7 @@ QuicSettingsGetSettings(
         QUIC_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_SETTINGS);
@@ -2103,7 +2097,7 @@ QuicSettingsGetGlobalSettings(
         QUIC_GLOBAL_SETTINGS* Settings
     )
 {
-    const uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+    const uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);

@@ -41,6 +41,10 @@ Abstract:
 #include "tls_openssl.c.clog.h"
 #endif
 
+#ifdef IS_OPENSSL_3
+__owur uint16_t tls1_nid2group_id(int nid); // Not currently public API
+#endif
+
 extern EVP_CIPHER *CXPLAT_AES_256_CBC_ALG_HANDLE;
 
 uint16_t CxPlatTlsTPHeaderSize = 0;
@@ -2300,7 +2304,7 @@ CxPlatTlsParamGet(
     switch (Param) {
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
-            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+            if (*BufferLength < CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_HANDSHAKE_INFO, CipherSuite)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
                 Status = QUIC_STATUS_BUFFER_TOO_SMALL;
                 break;
@@ -2312,6 +2316,7 @@ CxPlatTlsParamGet(
             }
 
             QUIC_HANDSHAKE_INFO* HandshakeInfo = (QUIC_HANDSHAKE_INFO*)Buffer;
+            CxPlatZeroMemory(HandshakeInfo, *BufferLength);
             HandshakeInfo->TlsProtocolVersion =
                 CxPlatMapVersion(
                     SSL_get_version(TlsContext->Ssl));
@@ -2328,6 +2333,13 @@ CxPlatTlsParamGet(
             }
             HandshakeInfo->CipherSuite = SSL_CIPHER_get_protocol_id(Cipher);
             Status = CxPlatMapCipherSuite(HandshakeInfo);
+#ifdef IS_OPENSSL_3
+            if (CXPLAT_STRUCT_HAS_FIELD(QUIC_HANDSHAKE_INFO, *BufferLength, TlsGroup)) {
+                HandshakeInfo->TlsGroup =
+                    tls1_nid2group_id(
+                        SSL_get_negotiated_group(TlsContext->Ssl));
+            }
+#endif
             break;
         }
 
