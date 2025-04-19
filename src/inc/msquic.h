@@ -430,6 +430,23 @@ typedef enum QUIC_KEY_EXCHANGE_ALGORITHM {
     QUIC_KEY_EXCHANGE_ALGORITHM_NONE  = 0,
 } QUIC_KEY_EXCHANGE_ALGORITHM;
 
+//
+// See the following IANA registry for the TLS groups:
+//   https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
+//
+typedef enum QUIC_TLS_GROUP{
+    QUIC_TLS_GROUP_NONE                 = 0,
+    QUIC_TLS_GROUP_SECP256R1            = 23,
+    QUIC_TLS_GROUP_SECP384R1            = 24,
+    QUIC_TLS_GROUP_X25519               = 29,
+    QUIC_TLS_GROUP_MLKEM512             = 512,
+    QUIC_TLS_GROUP_MLKEM768             = 513,
+    QUIC_TLS_GROUP_MLKEM1024            = 514,
+    QUIC_TLS_GROUP_SECP256R1MLKEM768    = 4587,
+    QUIC_TLS_GROUP_X25519MLKEM768       = 4588,
+    QUIC_TLS_GROUP_SECP384R1MLKEM1024   = 4589,
+} QUIC_TLS_GROUP;
+
 typedef enum QUIC_CIPHER_SUITE {
     QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256        = 0x1301,
     QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384        = 0x1302,
@@ -456,6 +473,7 @@ typedef struct QUIC_HANDSHAKE_INFO {
     QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
     int32_t KeyExchangeStrength;
     QUIC_CIPHER_SUITE CipherSuite;
+    QUIC_TLS_GROUP TlsGroup;            // Added in v2.5
 } QUIC_HANDSHAKE_INFO;
 
 //

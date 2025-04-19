@@ -193,6 +193,29 @@ QuicPrintConnectionStatistics(
         (unsigned long long)Stats.RecvDroppedPackets,
         (unsigned long long)Stats.RecvDuplicatePackets,
         (unsigned long long)Stats.RecvDecryptionFailures);
+    QUIC_HANDSHAKE_INFO HandshakeInfo = {0};
+    uint32_t HandshakeInfoSize = sizeof(HandshakeInfo);
+    ApiTable->GetParam(Connection, QUIC_PARAM_TLS_HANDSHAKE_INFO, &HandshakeInfoSize, &HandshakeInfo);
+    WriteOutput(
+        "Connection TLS Info:\n"
+        "  TlsProtocolVersion        0x%x\n"
+        "  CipherAlgorithm           0x%x\n"
+        "  CipherStrength            %u\n"
+        "  Hash                      0x%x\n"
+        "  HashStrength              %u\n"
+        "  KeyExchangeAlgorithm      %u\n"
+        "  KeyExchangeStrength       %u\n"
+        "  CipherSuite               0x%x\n"
+        "  TlsGroup                  %u\n",
+        HandshakeInfo.TlsProtocolVersion,
+        HandshakeInfo.CipherAlgorithm,
+        HandshakeInfo.CipherStrength,
+        HandshakeInfo.Hash,
+        HandshakeInfo.HashStrength,
+        HandshakeInfo.KeyExchangeAlgorithm,
+        HandshakeInfo.KeyExchangeStrength,
+        HandshakeInfo.CipherSuite,
+        HandshakeInfo.TlsGroup);
 }
 
 inline
