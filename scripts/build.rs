@@ -43,7 +43,8 @@ fn cmake_build() {
 
     // Disable parallel builds on Windows, as they seems to break manifest builds.
     if cfg!(windows) {
-        env::set_var("CMAKE_BUILD_PARALLEL_LEVEL", "1");
+        // cmake-rs uses this cargo env var to pass "--parallel" arg to cmake
+        std::env::remove_var("NUM_JOBS");
     }
 
     // By default enable schannel on windows, unless openssl feature is selected.
