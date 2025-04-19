@@ -434,7 +434,7 @@ typedef enum QUIC_KEY_EXCHANGE_ALGORITHM {
 // See the following IANA registry for the TLS groups:
 //   https://www.iana.org/assignments/tls-parameters/tls-parameters.xhtml#tls-parameters-8
 //
-typedef enum QUIC_TLS_GROUP{
+typedef enum QUIC_TLS_GROUP {
     QUIC_TLS_GROUP_NONE                 = 0,
     QUIC_TLS_GROUP_SECP256R1            = 23,
     QUIC_TLS_GROUP_SECP384R1            = 24,
