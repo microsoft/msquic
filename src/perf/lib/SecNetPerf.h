@@ -193,7 +193,7 @@ QuicPrintConnectionStatistics(
         (unsigned long long)Stats.RecvDroppedPackets,
         (unsigned long long)Stats.RecvDuplicatePackets,
         (unsigned long long)Stats.RecvDecryptionFailures);
-    QUIC_HANDSHAKE_INFO HandshakeInfo = {0};
+    QUIC_HANDSHAKE_INFO HandshakeInfo = {};
     uint32_t HandshakeInfoSize = sizeof(HandshakeInfo);
     ApiTable->GetParam(Connection, QUIC_PARAM_TLS_HANDSHAKE_INFO, &HandshakeInfoSize, &HandshakeInfo);
     WriteOutput(

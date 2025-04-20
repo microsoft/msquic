@@ -1218,6 +1218,21 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
+    /* TODO - This is a WIP to configure OpenSSL to the same defaults as Schannel
+    Ret =
+        SSL_CTX_set1_groups_list(
+            SecurityConfig->SSLCtx,
+            "X25519:P-256:P-384");
+    if (Ret != 1) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            ERR_get_error(),
+            "SSL_CTX_set1_groups_list failed");
+        Status = QUIC_STATUS_TLS_ERROR;
+        goto Exit;
+    }*/
+
     if (SecurityConfig->Flags & QUIC_CREDENTIAL_FLAG_USE_TLS_BUILTIN_CERTIFICATE_VALIDATION) {
         Ret = SSL_CTX_set_default_verify_paths(SecurityConfig->SSLCtx);
         if (Ret != 1) {
