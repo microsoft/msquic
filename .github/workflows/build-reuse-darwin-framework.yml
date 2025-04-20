@@ -20,11 +20,11 @@ on:
         #   - Release
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
       static:
         required: false
         default: ''
@@ -126,17 +126,17 @@ jobs:
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-13-x64-quictls
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-quictls
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-openssl
+        name: Framework-${{ inputs.config }}-macos-macos-13-universal-quictls
         path: artifacts
     - name: Build XCFramework
       shell: pwsh

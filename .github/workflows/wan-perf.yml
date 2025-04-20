@@ -18,7 +18,7 @@ on:
 #    - src/core/*
 #    - src/platform/*
 #    - src/perf/*
-#    - submodules/openssl/*
+#    - submodules/quictls/*
 concurrency:
   # Cancel any workflow currently in progress for the same PR.
   # Allow running concurrently with any other commits.

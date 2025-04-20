@@ -49,8 +49,8 @@ on:
         default: 'schannel'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
         #   - schannel
       static:
         required: false

@@ -48,11 +48,11 @@ on:
         #   - arm64
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
       static:
         required: false
         default: ''
