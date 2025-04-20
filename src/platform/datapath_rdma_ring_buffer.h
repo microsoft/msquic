@@ -13,8 +13,20 @@
 #define MAX_IMMEDIATE_RING_BUFFER_SIZE 0x8000   // 64 KB
 #define MIN_RING_BUFFER_SIZE 0x1000             // 4 KB
 #define MAX_RING_BUFFER_SIZE 0x100000000        // 4 GB
-#define MIN_FREE_BUFFER_THRESHOLD 0x20          // 32 Bytes
+#define MIN_FREE_BUFFER_THRESHOLD 0x80          // 128 Bytes
+#define MAX_PAYLOAD_SIZE 0x1000000              // 16 MB
 #define DEFAULT_OFFSET_BUFFER_SIZE 0x4          // 4 Bytes
+
+typedef struct _RDMA_IO_COMPLETION_BUFFER
+{
+    uint32_t Offset;
+
+    uint32_t Length;
+    //
+    // Hash table entry in the completion table.
+    //
+    CXPLAT_HASHTABLE_ENTRY TableEntry;
+} RDMA_IO_COMPLETION_BUFFER;
 
 //
 // RDMA Ring Buffer
@@ -27,6 +39,8 @@ typedef struct _RDMA_SEND_RING_BUFFER
     uint32_t Head;
     uint32_t Tail;
     uint32_t LocalToken;
+    CXPLAT_POOL SendCompletionPool;
+    CXPLAT_HASHTABLE* SendCompletionTable;
 } RDMA_SEND_RING_BUFFER;
 
 typedef struct _RDMA_RECV_RING_BUFFER
@@ -41,6 +55,8 @@ typedef struct _RDMA_RECV_RING_BUFFER
     uint32_t LocalToken;
     uint32_t RemoteToken;
     uint32_t RemoteOffsetBufferToken;
+    CXPLAT_POOL RecvCompletionPool;
+    CXPLAT_HASHTABLE* RecvCompletionTable;
 } RDMA_RECV_RING_BUFFER;
 
 
@@ -53,6 +69,7 @@ typedef struct _RDMA_REMOTE_RING_BUFFER
     uint32_t RemoteOffsetBufferToken;
     uint8_t* OffsetBuffer; // Caches the offset information of the remote peer using 1-sided RDMA
     uint32_t OffsetBufferSize;
+    uint32_t CurSize;
     uint32_t Head;
     uint32_t Tail;
 } RDMA_REMOTE_RING_BUFFER;
@@ -107,6 +124,7 @@ RdmaSendRingBufferReserve(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ uint32_t Length,
     _Out_ uint8_t** Buffer,
+    _Out_ uint32_t* Offset,
     _Out_ uint32_t* AllocLength
     );
 
@@ -117,6 +135,7 @@ QUIC_STATUS
 RdmaSendRingBufferRelease(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ uint32_t Length,
+    _In_ uint32_t Offset,
     _In_ uint8_t* Buffer
     );
 
@@ -127,6 +146,7 @@ QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t* Buffer,
+    _In_ uint32_t Offset,
     _In_ uint32_t Length
     );
 
@@ -135,9 +155,10 @@ RdmaLocalReceiveRingBufferRelease(
 //
 QUIC_STATUS
 RdmaRemoteRecvRingBufferReserve(
-    _In_ RDMA_REMOTE_RING_BUFFER* RecvRingBuffer,
+    _In_ RDMA_REMOTE_RING_BUFFER* RemoteRingBuffer,
     _In_ uint32_t Length,
-    _Out_ uint8_t** Buffer,
+    _Out_ uint64_t* RemoteBuffer,
+    _Out_ uint32_t* Offset,
     _Out_ uint32_t* AllocLength
     );
 

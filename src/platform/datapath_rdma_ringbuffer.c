@@ -48,6 +48,22 @@ RdmaSendRingBufferInitialize(
 
     memset(SendRingBuffer->Buffer, 0, Capacity);
 
+    if (!CxPlatHashtableInitialize(&SendRingBuffer->SendCompletionTable, CXPLAT_HASH_MIN_SIZE))
+    {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "SendCompletionTable",
+            0);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    CxPlatPoolInitialize(
+        FALSE,
+        sizeof(RDMA_IO_COMPLETION_BUFFER),
+        QUIC_POOL_DATAPATH,
+        &SendRingBuffer->SendCompletionPool);
+
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -59,21 +75,18 @@ RdmaRecvRingBufferInitialize(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t*  Buffer,
     _In_ uint32_t Capacity,
-    _In_opt_ uint8_t* OffsetBuffer,
+    _In_ uint8_t* OffsetBuffer,
     _In_ uint32_t  OffsetBufferSize,
     _In_ uint32_t LocalToken
     )
 
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
     if (RecvRingBuffer == NULL ||
         Buffer == NULL ||
         Capacity == 0 ||
         LocalToken == 0)
     {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     RecvRingBuffer->Buffer = Buffer;
@@ -85,8 +98,7 @@ RdmaRecvRingBufferInitialize(
     RecvRingBuffer->Tail = 0;
     RecvRingBuffer->LocalToken = LocalToken;
     RecvRingBuffer->RemoteToken = 0;
-    RecvRingBuffer->OffsetBufferToken = 0;
-
+    RecvRingBuffer->RemoteOffsetBufferToken = 0;
 
     memset(RecvRingBuffer->Buffer, 0, Capacity);
 
@@ -95,8 +107,23 @@ RdmaRecvRingBufferInitialize(
         memset(RecvRingBuffer->OffsetBuffer, 0, OffsetBufferSize);
     }
 
-Exit:
-    return Status;       
+    if (!CxPlatHashtableInitialize(&RecvRingBuffer->RecvCompletionTable, CXPLAT_HASH_MIN_SIZE))
+    {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RecvCompletionTable",
+            0);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    CxPlatPoolInitialize(
+        FALSE,
+        sizeof(RDMA_IO_COMPLETION_BUFFER),
+        QUIC_POOL_DATAPATH,
+        &RecvRingBuffer->RecvCompletionPool);
+
+    return QUIC_STATUS_SUCCESS;       
 }
   
 QUIC_STATUS
@@ -106,14 +133,12 @@ RdmaRemoteRingBufferInitialize(
     _In_ uint32_t OffsetBufferSize
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (OffsetBuffer == NULL ||
         OffsetBufferSize == 0 ||
         RemoteRingBuffer == NULL)
     {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        goto Exit;
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     RemoteRingBuffer->RemoteAddress = 0;
@@ -125,11 +150,12 @@ RdmaRemoteRingBufferInitialize(
     RemoteRingBuffer->Tail = 0;
     RemoteRingBuffer->OffsetBuffer = OffsetBuffer;
     RemoteRingBuffer->OffsetBufferSize = OffsetBufferSize;
+    RemoteRingBuffer->CurSize = 0;
 
     memset(RemoteRingBuffer->OffsetBuffer, 0, OffsetBufferSize);
-}
 
-    
+    return QUIC_STATUS_SUCCESS;
+}
 
 //
 // Reserve Buffer from Send Ring for Performing RDMA Write
@@ -139,6 +165,7 @@ RdmaSendRingBufferReserve(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ uint32_t Length,
     _Out_ uint8_t** Buffer,
+    _Out_ uint32_t* Offset,
     _Out_ uint32_t *AllocLength
     )
 {
@@ -172,11 +199,33 @@ RdmaSendRingBufferReserve(
             }
 
             //
+            // Add an entry in Send Completion Table for the Head Offset. This would ensure that
+            // the head offset will wrap around when it hits this tail offset since there is no data
+            //
+            RDMA_IO_COMPLETION_BUFFER *buf = CxPlatPoolAlloc(&SendRingBuffer->SendCompletionPool);
+            CXPLAT_DBG_ASSERT(buf != NULL);
+            
+            if (buf == NULL)
+            {
+                return QUIC_STATUS_OUT_OF_MEMORY;
+            }
+    
+            buf->Offset = SendRingBuffer->Tail;
+            buf->Length = SendRingBuffer->Capacity - SendRingBuffer->CurSize;
+    
+            CxPlatHashtableInsert(
+                SendRingBuffer->SendCompletionTable,
+                &buf->TableEntry,
+                (uint32_t)SendRingBuffer->Tail,
+                NULL);
+
+
             // In this case, Head Offset is trailing Tail Offset and so it's safe to
             // wrap around 
             //
             SendRingBuffer->Tail = 0;
             SendRingBuffer->CurSize += SendRingBuffer->Capacity - SendRingBuffer->CurSize;
+
 
             if (SendRingBuffer->CurSize == SendRingBuffer->Capacity)
             {
@@ -196,6 +245,7 @@ RdmaSendRingBufferReserve(
     }
 
     *Buffer = SendRingBuffer->Buffer + SendRingBuffer->Tail;
+    *Offset = SendRingBuffer->Tail;
     *AllocLength = Length;
 
     SendRingBuffer->Tail = (SendRingBuffer->Tail + Length);
@@ -211,6 +261,7 @@ QUIC_STATUS
 RdmaSendRingBufferRelease(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
     _In_ uint32_t Length,
+    _In_ uint32_t Offset,
     _In_ uint8_t* Buffer
     )
 {
@@ -223,91 +274,52 @@ RdmaSendRingBufferRelease(
     }
 
     memset(Buffer, 0, Length);
-    SendRingBuffer->Head = (SendRingBuffer->Head + Length) % SendRingBuffer->Capacity;
-    SendRingBuffer->CurSize -= Length;
 
-    //
-    // Check if the Tail offset has wrapped around
-    // the buffer and set the Head offset accordingly
-    //
-    if (SendRingBuffer->Tail < SendRingBuffer->Head &&
-        *(SendRingBuffer->Buffer + SendRingBuffer->Head) == 0)
+    if (Offset == SendRingBuffer->Head)
     {
-        SendRingBuffer->Head = 0;
-    }
+        SendRingBuffer->Head = (SendRingBuffer->Head + Length);
+        SendRingBuffer->CurSize -= Length;
 
-    return QUIC_STATUS_SUCCESS;
-}
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+        CXPLAT_HASHTABLE_ENTRY* Entry =
+        CxPlatHashtableLookup(SendRingBuffer->SendCompletionTable, (uint32_t)Offset, &Context);
 
-//
-// Reserve Buffer on the Remote Ring for Performing RDMA Write
-//
-QUIC_STATUS
-RdmaPeerRecvRingBufferReserve(
-    _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
-    _In_ uint32_t Length,
-    _Out_ uint8_t** Buffer,
-    _Out_ uint32_t* AllocLength
-    )
-{
-    if (RecvRingBuffer == NULL ||
-        Length == 0 ||
-        Buffer == NULL)
-    {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    *Buffer = NULL;
-    *AllocLength = 0;
-
-    if (Length > RecvRingBuffer->Capacity)
-    {
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-    else if (RecvRingBuffer->CurSize != 0)
-    {
-        uint32_t AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
-
-        if (AvailableSpace < Length)
+        while (Entry != NULL)
         {
-            //
-            // If Head Offset is greater than Tail Offset, then
-            // return error since it cannot wrap around the buffer
-            //
-            if (RecvRingBuffer->Head >= RecvRingBuffer->Tail)
-            {
-                return QUIC_STATUS_BUFFER_TOO_SMALL;
-            }
+            RDMA_IO_COMPLETION_BUFFER* buf =
+            CXPLAT_CONTAINING_RECORD(Entry, RDMA_IO_COMPLETION_BUFFER, TableEntry);
 
-            //
-            // In this case, Head Offset is trailing Tail Offset and so it's safe to
-            // wrap around 
-            //
-            RecvRingBuffer->Tail = 0;
-            RecvRingBuffer->CurSize += RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
+            memset(SendRingBuffer->Buffer + buf->Offset, 0, Length);
 
-            if (RecvRingBuffer->CurSize == RecvRingBuffer->Capacity)
-            {
-                return QUIC_STATUS_BUFFER_TOO_SMALL;
-            }
+            SendRingBuffer->Head = buf->Offset + Length;
+            SendRingBuffer->CurSize -= Length;
+            Entry = CxPlatHashtableLookup(SendRingBuffer->SendCompletionTable, (uint32_t)SendRingBuffer->Head, &Context);
+        }
 
-            //
-            // Update Available Space for reserving the memory
-            // and check
-            //
-            AvailableSpace = RecvRingBuffer->Capacity - RecvRingBuffer->CurSize;
-            if (AvailableSpace < Length)
-            {
-                return QUIC_STATUS_BUFFER_TOO_SMALL;
-            }
+        if (SendRingBuffer->Head == SendRingBuffer->Capacity)
+        {
+            SendRingBuffer->Head = 0;
         }
     }
+    else
+    {
+        RDMA_IO_COMPLETION_BUFFER *buf = CxPlatPoolAlloc(&SendRingBuffer->SendCompletionPool);
+        CXPLAT_DBG_ASSERT(buf != NULL);
+        
+        if (buf == NULL)
+        {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
 
-    *Buffer = RecvRingBuffer->Buffer + RecvRingBuffer->Tail;
-    *AllocLength = Length;
+        buf->Offset = Offset;
+        buf->Length = Length;
 
-    RecvRingBuffer->Tail = (RecvRingBuffer->Tail + Length);
-    RecvRingBuffer->CurSize += Length;
+        CxPlatHashtableInsert(
+            SendRingBuffer->SendCompletionTable,
+            &buf->TableEntry,
+            (uint32_t)Offset,
+            NULL);
+    }
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -319,6 +331,7 @@ QUIC_STATUS
 RdmaLocalReceiveRingBufferRelease(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t* Buffer,
+    _In_ uint32_t Offset,
     _In_ uint32_t Length
     )
 {
@@ -331,7 +344,129 @@ RdmaLocalReceiveRingBufferRelease(
     }
 
     memset(Buffer, 0, Length);
-    RecvRingBuffer->Head += Length;
+
+    if (Offset == RecvRingBuffer->Head)
+    {
+        RecvRingBuffer->Head = (RecvRingBuffer->Head + Length);
+        RecvRingBuffer->CurSize -= Length;
+
+        CXPLAT_HASHTABLE_LOOKUP_CONTEXT Context;
+        CXPLAT_HASHTABLE_ENTRY* Entry =
+        CxPlatHashtableLookup(RecvRingBuffer->RecvCompletionTable, (uint32_t)Offset, &Context);
+        while (Entry != NULL)
+        {
+            RDMA_IO_COMPLETION_BUFFER* buf =
+            CXPLAT_CONTAINING_RECORD(Entry, RDMA_IO_COMPLETION_BUFFER, TableEntry);
+
+            memset(RecvRingBuffer->Buffer + buf->Offset, 0, Length);
+
+            RecvRingBuffer->Head = buf->Offset + Length;
+            RecvRingBuffer->CurSize -= Length;
+            
+            Entry = CxPlatHashtableLookup(RecvRingBuffer->RecvCompletionTable, (uint32_t)RecvRingBuffer->Head, &Context);
+        }
+
+        if (RecvRingBuffer->Head == RecvRingBuffer->Capacity)
+        {
+            RecvRingBuffer->Head = 0;
+        }
+    }
+    else
+    {
+        RDMA_IO_COMPLETION_BUFFER *buf = CxPlatPoolAlloc(&RecvRingBuffer->RecvCompletionPool);
+        CXPLAT_DBG_ASSERT(buf != NULL);
+        
+        if (buf == NULL)
+        {
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        buf->Offset = Offset;
+        buf->Length = Length;
+
+        CxPlatHashtableInsert(
+            RecvRingBuffer->RecvCompletionTable,
+            &buf->TableEntry,
+            (uint32_t)Offset,
+            NULL);
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+//
+// Reserve Buffer on the Remote Ring for Performing RDMA Write
+//
+QUIC_STATUS
+RdmaRemoteRecvRingBufferReserve(
+    _In_ RDMA_REMOTE_RING_BUFFER* RemoteRingBuffer,
+    _In_ uint32_t Length,
+    _Out_ uint64_t* RemoteBuffer,
+    _Out_ uint32_t* Offset,
+    _Out_ uint32_t* AllocLength
+    )
+{
+    if (RemoteRingBuffer == NULL ||
+        Length == 0 ||
+        RemoteBuffer == NULL ||
+        AllocLength == NULL)
+    {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    *RemoteBuffer = 0;
+    *Offset = 0;
+    *AllocLength = 0;
+
+    if (Length > RemoteRingBuffer->Capacity)
+    {
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+    else if (RemoteRingBuffer->CurSize != 0)
+    {
+        uint32_t AvailableSpace = RemoteRingBuffer->Capacity - RemoteRingBuffer->CurSize;
+
+        if (AvailableSpace < Length)
+        {
+            //
+            // If Head Offset is greater than Tail Offset, then
+            // return error since it cannot wrap around the buffer
+            //
+            if (RemoteRingBuffer->Head >= RemoteRingBuffer->Tail)
+            {
+                return QUIC_STATUS_BUFFER_TOO_SMALL;
+            }
+
+            //
+            // In this case, Head Offset is trailing Tail Offset and so it's safe to
+            // wrap around 
+            //
+            RemoteRingBuffer->Tail = 0;
+            RemoteRingBuffer->CurSize += RemoteRingBuffer->Capacity - RemoteRingBuffer->CurSize;
+
+            if (RemoteRingBuffer->CurSize == RemoteRingBuffer->Capacity)
+            {
+                return QUIC_STATUS_BUFFER_TOO_SMALL;
+            }
+
+            //
+            // Update Available Space for reserving the memory
+            // and check
+            //
+            AvailableSpace = RemoteRingBuffer->Capacity - RemoteRingBuffer->CurSize;
+            if (AvailableSpace < Length)
+            {
+                return QUIC_STATUS_BUFFER_TOO_SMALL;
+            }
+        }
+    }
+
+    *RemoteBuffer = RemoteRingBuffer->RemoteAddress + RemoteRingBuffer->Tail;
+    *Offset = RemoteRingBuffer->Tail;
+    *AllocLength = Length;
+
+    RemoteRingBuffer->Tail = (RemoteRingBuffer->Tail + Length);
+    RemoteRingBuffer->CurSize += Length;
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -346,16 +481,17 @@ RdmaRemoteReceiveRingBufferRelease(
     _In_ uint32_t Length
     )
 {
-    if (RecvRingBuffer == NULL ||
+    if (RemoteRingBuffer == NULL ||
         Buffer == NULL ||
         Length == 0 ||
-        Length > RecvRingBuffer->Capacity)
+        Length > RemoteRingBuffer->Capacity)
     {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     memset(Buffer, 0, Length);
-    RecvRingBuffer->Head += Length;
+    RemoteRingBuffer->Head += Length;
+    RemoteRingBuffer->CurSize -= Length;
 
     return QUIC_STATUS_SUCCESS;
 }

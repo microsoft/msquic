@@ -255,6 +255,11 @@ typedef struct CXPLAT_RECV_DATA {
     uint8_t HopLimitTTL;
 
     //
+    // Receive Ring buffer offset for 
+    //
+    uint32_t RingBufferOffset;
+
+    //
     // Flags.
     //
     uint16_t Allocated : 1;          // Used for debugging. Set to FALSE on free.

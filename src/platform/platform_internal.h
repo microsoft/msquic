@@ -1209,19 +1209,18 @@ SendDataFree(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+RdmaSendDataFree(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RdmaSendDataAlloc(
     _In_ CXPLAT_SOCKET* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Success_(return != NULL)
-QUIC_BUFFER*
-RdmaSendDataAllocBuffer(
-    _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ uint16_t MaxBufferLength
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1238,10 +1237,31 @@ SendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     );
+    
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != NULL)
+QUIC_BUFFER*
+RdmaSendDataAllocBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ uint16_t MaxBufferLength
+    );
+    
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+RdmaSendDataFreeBuffer(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ QUIC_BUFFER* Buffer
+    );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 SendDataIsFull(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+RdmaSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
@@ -1341,6 +1361,12 @@ RawSocketGetLocalMtu(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RawRecvDataReturn(
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+RdmaRecvDataReturn(
     _In_ CXPLAT_RECV_DATA* RecvDataChain
     );
 
@@ -1446,6 +1472,14 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 SocketConnectRdma(
     _Out_ CXPLAT_SOCKET* Socket
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+RdmaSocketSend(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ const CXPLAT_ROUTE* Route,
+    _In_ CXPLAT_SEND_DATA* SendData
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

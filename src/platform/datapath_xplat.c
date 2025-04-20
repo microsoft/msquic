@@ -271,11 +271,25 @@ CxPlatRecvDataReturn(
     if (RecvDataChain == NULL) {
         return;
     }
-    CXPLAT_DBG_ASSERT(
-        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_RAW);
-    RecvDataChain->DatapathType == CXPLAT_DATAPATH_TYPE_NORMAL ?
-        RecvDataReturn(RecvDataChain) : RawRecvDataReturn(RecvDataChain);
+
+    switch (RecvDataChain->DatapathType)
+    {
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+        RecvDataReturn(RecvDataChain);
+        break;
+
+        case CXPLAT_DATAPATH_TYPE_RAW:
+        RawRecvDataReturn(RecvDataChain);
+        break;  
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
+        RdmaRecvDataReturn(RecvDataChain);
+        break;  
+
+        default:
+        CXPLAT_DBG_ASSERT(FALSE);
+        break;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -313,11 +327,25 @@ CxPlatSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-    SendDataFree(SendData) : RawSendDataFree(SendData);
+
+    switch(DatapathType(SendData))
+    {
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+            SendDataFree(SendData);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RAW:
+            RawSendDataFree(SendData);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
+            RdmaSendDataFree(SendData);
+            break;
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
+            break;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -327,22 +355,23 @@ CxPlatSendDataAllocBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint16_t MaxBufferLength
     )
-{
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RDMA);
+{    
+    switch(DatapathType(SendData))
+    {
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+            return SendDataAllocBuffer(SendData, MaxBufferLength);
 
-        if (SendData->DatapathType == CXPLAT_DATAPATH_TYPE_RDMA)
-        {
+        case CXPLAT_DATAPATH_TYPE_RAW:
+            return RawSendDataAllocBuffer(SendData, MaxBufferLength);
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
             return RdmaSendDataAllocBuffer(SendData, MaxBufferLength);
-        }
-        else
-        {
-            return
-            DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-            SendDataAllocBuffer(SendData, MaxBufferLength) : RawSendDataAllocBuffer(SendData, MaxBufferLength);
-        }
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
+            return NULL;
+            break;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -351,25 +380,49 @@ CxPlatSendDataFreeBuffer(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ QUIC_BUFFER* Buffer
     )
-{
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-    SendDataFreeBuffer(SendData, Buffer) : RawSendDataFreeBuffer(SendData, Buffer);
+{    
+    switch(DatapathType(SendData))
+    {
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+            SendDataFreeBuffer(SendData, Buffer);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RAW:
+            RawSendDataFreeBuffer(SendData, Buffer);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
+            RdmaSendDataFreeBuffer(SendData, Buffer);
+            break;
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
+            break;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-CxPlatSendDataIsFull(
+CxPlatSendDataIsFull( 
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    CXPLAT_DBG_ASSERT(
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ||
-        DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-    return DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-        SendDataIsFull(SendData) : RawSendDataIsFull(SendData);
+    switch(DatapathType(SendData))
+    {
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+            return SendDataIsFull(SendData);
+
+        case CXPLAT_DATAPATH_TYPE_RAW:
+            return RawSendDataIsFull(SendData);
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
+            return RdmaSendDataIsFull(SendData);
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
+            return FALSE;
+            break;
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -380,18 +433,23 @@ CxPlatSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-    if (Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER)
+    switch(DatapathType(SendData))
     {
-        RdmaSocketSend(Socket, Route, SendData);
-    }
-    else if (DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL)
-    {
-        SocketSend(Socket, Route, SendData);
-    }
-    else
-    {
-        CXPLAT_DBG_ASSERT(DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
-        RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+        case CXPLAT_DATAPATH_TYPE_NORMAL:
+            SocketSend(Socket, Route, SendData);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RAW:
+            RawSocketSend(CxPlatSocketToRaw(Socket), Route, SendData);
+            break;
+
+        case CXPLAT_DATAPATH_TYPE_RDMA:
+            RdmaSocketSend(Socket, Route, SendData);
+            break;
+
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
+            break;
     }
 }
 
