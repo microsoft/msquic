@@ -16,7 +16,7 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "quictls", "quictls3")]
+    [ValidateSet("schannel", "quictls")]
     [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]

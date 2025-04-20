@@ -27,7 +27,7 @@ param (
     [string]$Arch,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("schannel", "quictls", "quictls3")]
+    [ValidateSet("schannel", "quictls")]
     [string]$Tls
 )
 

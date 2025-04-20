@@ -30,18 +30,15 @@ jobs:
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2022']
         arch: [x86, x64, arm64]
-        tls: [schannel, quictls, quictls3]
+        tls: [schannel, quictls]
         static: ['', '-Static']
         exclude:
         # OpenSSL doesn't support arm64
         - tls: quictls
           arch: arm64
-        # OpenSSL3 doesn't support arm64
-        - tls: quictls3
-          arch: arm64
-        # TODO: FIX: OpenSSL3 build fails with UWP
+        # TODO: FIX: OpenSSL build fails with UWP
         - plat: uwp
-          tls: quictls3
+          tls: quictls
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
@@ -102,7 +99,7 @@ jobs:
         plat: [linux]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
-        tls: [quictls, quictls3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -124,7 +121,7 @@ jobs:
         plat: [linux, android]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
-        tls: [quictls, quictls3]
+        tls: [quictls]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
@@ -199,7 +196,7 @@ jobs:
         plat: [macos, ios]
         os: ['macos-13']
         arch: [x64, arm64]
-        tls: [quictls, quictls3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:

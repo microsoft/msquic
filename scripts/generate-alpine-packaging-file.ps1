@@ -15,10 +15,10 @@ class Version
 
 $submodules = git submodule
 
-$processedSubmodules = @("clog", "quictls3", "googletest")
+$processedSubmodules = @("clog", "quictls", "googletest")
 $placeholderVariables = @{
     "clog" = "CLOG_COMMIT_HASH"
-    "quictls3" = "QUICTLS3_COMMIT_HASH"
+    "quictls" = "QUICTLS_COMMIT_HASH"
     "googletest" = "GOOGLETEST_COMMIT_HASH"
 }
 $versionPlaceholder = "VERSION_PLACEHOLDER"
