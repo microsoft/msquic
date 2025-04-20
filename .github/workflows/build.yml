@@ -33,10 +33,10 @@ jobs:
         tls: [schannel, quictls]
         static: ['', '-Static']
         exclude:
-        # OpenSSL doesn't support arm64
+        # OpenSSL/quictls doesn't support arm64
         - tls: quictls
           arch: arm64
-        # TODO: FIX: OpenSSL build fails with UWP
+        # TODO: FIX: OpenSSL/quictls build fails with UWP
         - plat: uwp
           tls: quictls
         # TODO: FIX: Static builds fail with UWP

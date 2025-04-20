@@ -13,17 +13,11 @@ project(OpenSSLQuic)
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 
-if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "quictls3")
-    if(QUIC_TLS_LIB STREQUAL "quictls")
-        message(STATUS "Configuring for OpenSSL 1.1")
-        set(EXPECTED_OPENSSL_VERSION 1.1.1)
-        set(QUIC_OPENSSL quictls)
-    else()
-        set(QUIC_USE_OPENSSL3 ON)
-        message(STATUS "Configuring for OpenSSL 3.x")
-        set(EXPECTED_OPENSSL_VERSION 3.0)
-        set(QUIC_OPENSSL quictls3)
-    endif()
+if(QUIC_TLS_LIB STREQUAL "quictls")
+    set(QUIC_USE_OPENSSL3 ON)
+    message(STATUS "Configuring for OpenSSL 3.x")
+    set(EXPECTED_OPENSSL_VERSION 3.0)
+    set(QUIC_OPENSSL quictls3)
 else()
     message(FATAL_ERROR "Unsupported QUIC_TLS_LIB ${QUIC_TLS_LIB}")
 endif()
@@ -298,10 +292,10 @@ else()
         COMMENT "OpenSSL build"
     )
 
-    if (QUIC_USE_OPENSSL3 AND QUIC_USE_SYSTEM_LIBCRYPTO)
+    if (QUIC_USE_SYSTEM_LIBCRYPTO)
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see quictls3/ssl/build.info
+        # To fix that we need little hackery - see quictls/ssl/build.info
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
@@ -347,7 +341,7 @@ else()
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
             string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJOR)
-            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR 
+            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
                 # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
                 (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
                 target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)

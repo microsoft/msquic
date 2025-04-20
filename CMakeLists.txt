@@ -371,7 +371,7 @@ if(QUIC_TLS_LIB STREQUAL "schannel")
 endif()
 
 if(QUIC_TLS_LIB STREQUAL "quictls")
-    message(STATUS "Enabling OpenSsl configuration tests")
+    message(STATUS "Enabling quictls/openssl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     if (NOT WIN32)
        message(STATUS "Enabling CA file tests")
