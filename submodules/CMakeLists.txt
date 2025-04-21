@@ -285,7 +285,6 @@ else()
         DEPENDS ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/Makefile
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
         COMMAND make install_dev -j${NPROCS}
-        COMMAND git clean -fdx
         COMMENT "OpenSSL build"
     )
 
