@@ -31,7 +31,7 @@ set(OPENSSL_CONFIG_FLAGS
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt no-seed
-    no-weak-ssl-ciphers no-shared no-tests no-docs
+    no-weak-ssl-ciphers no-shared no-tests
     no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
 
 if (WIN32)
@@ -286,6 +286,13 @@ else()
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
         COMMAND make install_dev -j${NPROCS}
         COMMENT "OpenSSL build"
+    )
+
+    # Run `git clean` in the doc directory to remove the generated files
+    add_custom_command(
+        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/doc
+        COMMAND git clean -f
+        COMMENT "OpenSSL docs clean"
     )
 
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
