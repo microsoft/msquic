@@ -24,6 +24,7 @@ include = [
     "/submodules/quictls/Configure",
     "/submodules/quictls/Configurations",
     "/submodules/quictls/crypto",
+    "/submodules/quictls/doc",
     "/submodules/quictls/engines",
     "/submodules/quictls/exporters",
     "/submodules/quictls/external",
