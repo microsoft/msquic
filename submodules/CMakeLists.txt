@@ -290,8 +290,10 @@ else()
 
     # Run `git clean` in the doc directory to remove the generated files
     add_custom_command(
+        DEPENDS ${LIBSSL_PATH}
+        OUTPUT ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/doc
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/doc
-        COMMAND git clean -f
+        COMMAND git clean -fd
         COMMENT "OpenSSL docs clean"
     )
 
