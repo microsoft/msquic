@@ -285,16 +285,8 @@ else()
         DEPENDS ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/Makefile
         WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}
         COMMAND make install_dev -j${NPROCS}
-        COMMENT "OpenSSL build"
-    )
-
-    # Run `git clean` in the doc directory to remove the generated files
-    add_custom_command(
-        DEPENDS ${LIBSSL_PATH}
-        OUTPUT ${LIBSSL_PATH}
-        WORKING_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/doc
         COMMAND git clean -fd
-        COMMENT "OpenSSL docs clean"
+        COMMENT "OpenSSL build"
     )
 
     if (QUIC_USE_SYSTEM_LIBCRYPTO)
