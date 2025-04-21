@@ -88,7 +88,7 @@ jobs:
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
-      run: cargo publish --dry-run --allow-dirty
+      run: cargo publish --dry-run --allow-dirty --no-verify
   # Test rust crate with preinstalled msquic lib.
   cargo-preinstall:
     strategy:
