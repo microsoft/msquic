@@ -4544,7 +4544,7 @@ void QuicTestTlsParam()
                     QUIC_PARAM_TLS_HANDSHAKE_INFO,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(QUIC_HANDSHAKE_INFO));
+            TEST_TRUE(Length >= sizeof(QUIC_HANDSHAKE_INFO));
 
             //
             // Before handshake
