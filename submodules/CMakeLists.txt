@@ -14,7 +14,6 @@ set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
 option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 
 if(QUIC_TLS_LIB STREQUAL "quictls")
-    set(QUIC_USE_OPENSSL3 ON)
     message(STATUS "Configuring for OpenSSL 3.x")
     set(EXPECTED_OPENSSL_VERSION 3.0)
     set(QUIC_OPENSSL quictls)
@@ -32,10 +31,8 @@ set(OPENSSL_CONFIG_FLAGS
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt no-seed
-    no-weak-ssl-ciphers no-shared no-tests)
-
-if (QUIC_USE_OPENSSL3)
-    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
+    no-weak-ssl-ciphers no-shared no-tests no-docs
+    no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
 endif()
 
 if (WIN32)
