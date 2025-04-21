@@ -30,6 +30,7 @@ include = [
     "/submodules/quictls/ms",
     "/submodules/quictls/os-dep",
     "/submodules/quictls/ssl",
+    "/submodules/quictls/tools",
     "/submodules/quictls/util",
     "/submodules/quictls/VMS",
     "/submodules/xdp-for-windows/published/external",
@@ -54,8 +55,8 @@ src = [ "dep:cmake" ]
 # Find prebuilt msquic. Use vcpkg installed location on Windows,
 # while use system installed location on linux.
 # MacOs is not supported.
-find = [] 
-# Windows uses schannel, and linux uses quictls by default. 
+find = []
+# Windows uses schannel, and linux uses quictls by default.
 # This feature enables quictls on windows, and has no effect on linux.
 quictls = []
 static = []
