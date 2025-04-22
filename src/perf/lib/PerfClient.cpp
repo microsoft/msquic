@@ -392,7 +392,7 @@ PerfClient::Wait(
             WriteOutput("Result: Download %llu kbps.\n", DownloadRate);
         }
 
-    } else if (!PrintThroughput && !PrintLatency) {
+    } else if (!PrintConnThroughput && !PrintLatency) {
         if (CompletedConnections && CompletedStreams) {
             WriteOutput(
                 "Completed %llu connections and %llu streams!\n",
