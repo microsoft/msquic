@@ -545,7 +545,7 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
-    } else {
+    } elseif (@("", "Unix Makefiles") -contains $Generator) {
         $Arguments += " -- VERBOSE=1"
     }
 
