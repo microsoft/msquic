@@ -545,7 +545,7 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
-    } else {
+    } elseif (@("", "cmake") -contains $Generator) {
         $Arguments += " -- VERBOSE=1"
     }
 
