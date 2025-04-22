@@ -956,9 +956,18 @@ Exit:
 
 #if __linux__
 
+#define CXPLAT_USE_IO_URING 1
 #if CXPLAT_USE_IO_URING // liburing
+#define IOURINGINLINE
 
+#if defined(__cplusplus)
+extern "C++" {
+#endif
 #include <liburing.h>
+#if defined(__cplusplus)
+} // extern "C++"
+#endif
+
 typedef struct io_uring CXPLAT_EVENTQ;
 typedef struct io_uring_cqe* CXPLAT_CQE;
 typedef
@@ -1067,7 +1076,7 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     )
 {
-    return (CXPLAT_SQE*)(uintptr_t)cqe->user_data;
+    return (CXPLAT_SQE*)(uintptr_t)(*cqe)->user_data;
 }
 
 #else // epoll
