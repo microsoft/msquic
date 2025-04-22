@@ -235,6 +235,7 @@ jobs:
         path: artifacts
     - name: Download Build Artifacts
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      if: matrix.vec.tls != 'quictls' # TODO: Remove once quictls is supported
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
@@ -244,7 +245,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
 
   Complete:
