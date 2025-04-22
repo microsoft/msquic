@@ -142,7 +142,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN ReceiveMultiple         : 1;    // The app supports multiple parallel receive indications.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -414,14 +413,10 @@ typedef struct QUIC_STREAM {
 
     //
     // The number of received bytes the app has completed but not yet processed
-    // by MsQuic.
+    // by MsQuic. The top bit of RecvPendingLength is used to indicate that
+    // there is an active receive to the app.
     //
     volatile uint64_t RecvCompletionLength;
-
-    //
-    // This RW lock protects `Flags.ReceiveCallActive`.
-    //
-    CXPLAT_RW_LOCK ReceiveCompleteInlineLock;
 
     //
     // The error code for why the receive path was shutdown.

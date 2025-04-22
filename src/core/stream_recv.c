@@ -873,14 +873,10 @@ QuicStreamRecvFlush(
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
 
-        CxPlatRwLockAcquireExclusive(&Stream->ReceiveCompleteInlineLock);
-        Stream->Flags.ReceiveCallActive = TRUE;
         //
-        // Save the current value of RecvCompletionLength to check if it has
-        // changed during the app callback.
+        // Set the top bit of RecvCompletionLength to indicate that there is an active receive.
         //
-        uint64_t RecvCompletionLength = Stream->RecvCompletionLength;
-        CxPlatRwLockReleaseExclusive(&Stream->ReceiveCompleteInlineLock);
+        InterlockedExchangeAdd64((int64_t*)&Stream->RecvCompletionLength, 0x8000000000000000);
 
         QUIC_BUFFER RecvBuffers[3];
         QUIC_STREAM_EVENT Event = {0};
@@ -944,24 +940,15 @@ QuicStreamRecvFlush(
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
 
-        CxPlatRwLockAcquireExclusive(&Stream->ReceiveCompleteInlineLock);
-        Stream->Flags.ReceiveCallActive = FALSE;
-        //
-        // Check if the app has called the receive complete API.
-        //
-        BOOLEAN ReceiveCompleteCalled = (Stream->RecvCompletionLength > RecvCompletionLength);
-        //
-        // Save the current value of RecvCompletionLength to determine the length of
-        // data which will be processed in current iteration.
-        //
-        RecvCompletionLength = Stream->RecvCompletionLength;
-
-        CxPlatRwLockReleaseExclusive(&Stream->ReceiveCompleteInlineLock);
+        uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
+            (int64_t*)&Stream->RecvCompletionLength,
+            -0x8000000000000000);
+        RecvCompletionLength &= ~0x8000000000000000;
 
         if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
             InterlockedExchangeAdd64(
-                (int64_t*)&RecvCompletionLength,
+                (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
             FlushRecv = TRUE;
             //
@@ -971,7 +958,11 @@ QuicStreamRecvFlush(
             Stream->Flags.ReceiveEnabled = TRUE;
 
         } else if (Status == QUIC_STATUS_PENDING) {
-            FlushRecv = ReceiveCompleteCalled;
+            //
+            // The app called the receive complete API
+            // if RecvCompletionLength is non-zero.
+            //
+            FlushRecv = (RecvCompletionLength != 0);
         } else {
             //
             // All failure status returns shouldn't be used by the app are
@@ -984,7 +975,7 @@ QuicStreamRecvFlush(
                 Status, 0);
 
             InterlockedExchangeAdd64(
-                (int64_t*)&RecvCompletionLength,
+                (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
             FlushRecv = TRUE;
         }

@@ -1321,14 +1321,12 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
-    CxPlatRwLockAcquireShared(&Stream->ReceiveCompleteInlineLock);
-    BOOLEAN ReceiveCompleteInline = Stream->Flags.ReceiveCallActive;
-    InterlockedExchangeAdd64(
-        (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
-    CxPlatRwLockReleaseShared(&Stream->ReceiveCompleteInlineLock);
+    uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
+        (int64_t*)&Stream->RecvCompletionLength,
+        (int64_t)BufferLength);
 
-    if (ReceiveCompleteInline) {
-        goto Exit; // No need to queue a completion operation when run inline
+    if ((RecvCompletionLength & 0x8000000000000000) != 0) {
+        goto Exit; // No need to queue a completion operation when there is an active receive
     }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);
