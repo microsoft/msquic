@@ -193,8 +193,8 @@ sudo dnf install libatomic
 ```
 
 #### Linux XDP
-Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-Commands below install dependencies and setup runtime environment.  
+Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.
+Commands below install dependencies and setup runtime environment.
 **<span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by `-ForceXdpInstall` </span>**
 ```sh
 $ pwsh ./scripts/prepare-machine.ps1 -UseXdp
@@ -231,12 +231,12 @@ Test
 # You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket
-sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+sudo ./artifacts/bin/linux/x64_Debug_quictls/msquictest --duoNic
 ```
 
 **Q&A**
-- Q: Is this workload really running on XDP?  
-A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
+- Q: Is this workload really running on XDP?
+A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.
 ```
 $ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
 Interface        Prio  Program name      Mode     ID   Tag               Chain actions
@@ -244,13 +244,13 @@ Interface        Prio  Program name      Mode     ID   Tag               Chain a
 lo                     <No XDP program loaded!>
 eth0                   <No XDP program loaded!>
 docker0                <No XDP program loaded!>
-duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711 
+duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711
  =>              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
-duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711 
+duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
  =>              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
 ```
 
-- Q: Is Ubuntu 20.04LTS supported?  
+- Q: Is Ubuntu 20.04LTS supported?
 A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the **upgrade**.
 
 ### macOS

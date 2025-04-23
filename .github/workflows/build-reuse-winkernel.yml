@@ -47,7 +47,6 @@ on:
         type: string
         # options:
         #   - quictls
-        #   - quictls3
         #   - schannel
       build:
         required: false

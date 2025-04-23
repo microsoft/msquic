@@ -12,7 +12,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "quictls", "quictls3")]
+    [ValidateSet("schannel", "quictls")]
     [string]$Tls = ""
 )
 

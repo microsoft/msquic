@@ -4,10 +4,6 @@
 [submodule "submodules/quictls"]
 	path = submodules/quictls
 	url = https://github.com/quictls/openssl.git
-	branch = OpenSSL_1_1_1w+quic
-[submodule "submodules/quictls3"]
-	path = submodules/quictls3
-	url = https://github.com/quictls/openssl.git
 	branch = openssl-3.1.4+quic
 [submodule "submodules/clog"]
 	path = submodules/clog

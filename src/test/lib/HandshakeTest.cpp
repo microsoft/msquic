@@ -4066,7 +4066,7 @@ QuicTestHandshakeSpecificLossPatterns(
     _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     )
 {
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicSettings Settings;
