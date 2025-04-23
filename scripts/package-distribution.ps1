@@ -178,9 +178,6 @@ foreach ($Build in $AllBuilds) {
         $OldLoc = Get-Location
         Set-Location $RootDir
         $Tls = "quictls"
-        if ($BuildBaseName -like "*quictls3*") {
-            $Tls = "quictls3"
-        }
 
         if ($BuildBaseName -like "*arm64_*") {
             & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro

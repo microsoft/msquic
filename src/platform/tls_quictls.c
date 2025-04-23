@@ -12,20 +12,13 @@ Abstract:
 #include "platform_internal.h"
 
 #include "openssl/opensslv.h"
-#if OPENSSL_VERSION_MAJOR >= 3
-#define IS_OPENSSL_3
-#endif
 
 #ifdef _WIN32
 #pragma warning(push)
 #pragma warning(disable:4100) // Unreferenced parameter errcode in inline function
 #endif
 #include "openssl/bio.h"
-#ifdef IS_OPENSSL_3
 #include "openssl/core_names.h"
-#else
-#include "openssl/hmac.h"
-#endif
 #include "openssl/err.h"
 #include "openssl/kdf.h"
 #include "openssl/pem.h"
@@ -765,17 +758,11 @@ CxPlatTlsOnSessionTicketKeyNeeded(
     _When_(!enc, _In_reads_bytes_(EVP_MAX_IV_LENGTH))
         unsigned char iv[EVP_MAX_IV_LENGTH],
     _Inout_ EVP_CIPHER_CTX *ctx,
-#ifdef IS_OPENSSL_3
     _Inout_ EVP_MAC_CTX *hctx,
-#else
-    _Inout_ HMAC_CTX *hctx,
-#endif
     _In_ int enc // Encryption or decryption
     )
 {
-#ifdef IS_OPENSSL_3
     OSSL_PARAM params[3];
-#endif
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
     QUIC_TICKET_KEY_CONFIG* TicketKey = TlsContext->SecConfig->TicketKey;
 
@@ -800,7 +787,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
         CxPlatCopyMemory(key_name, TicketKey->Id, 16);
         EVP_EncryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
 
-#ifdef IS_OPENSSL_3
         params[0] =
             OSSL_PARAM_construct_octet_string(
                 OSSL_MAC_PARAM_KEY,
@@ -811,9 +797,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
         params[2] =
             OSSL_PARAM_construct_end();
          EVP_MAC_CTX_set_params(hctx, params);
-#else
-        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
-#endif
     } else {
         if (memcmp(key_name, TicketKey->Id, 16) != 0) {
             QuicTraceEvent(
@@ -823,7 +806,6 @@ CxPlatTlsOnSessionTicketKeyNeeded(
                 "Ticket key_name mismatch");
             return 0; // No match
         }
-#ifdef IS_OPENSSL_3
         params[0] =
             OSSL_PARAM_construct_octet_string(
                 OSSL_MAC_PARAM_KEY,
@@ -833,10 +815,7 @@ CxPlatTlsOnSessionTicketKeyNeeded(
             OSSL_PARAM_construct_utf8_string(OSSL_MAC_PARAM_DIGEST, "sha256", 0);
         params[2] =
             OSSL_PARAM_construct_end();
-         EVP_MAC_CTX_set_params(hctx, params);
-#else
-        HMAC_Init_ex(hctx, TicketKey->Material, 32, EVP_sha256(), NULL);
-#endif
+        EVP_MAC_CTX_set_params(hctx, params);
         EVP_DecryptInit_ex(ctx, CXPLAT_AES_256_CBC_ALG_HANDLE, NULL, TicketKey->Material, iv);
     }
 
@@ -1642,15 +1621,9 @@ CxPlatTlsSecConfigSetTicketKeys(
         KeyConfig,
         sizeof(QUIC_TICKET_KEY_CONFIG));
 
-#ifdef IS_OPENSSL_3
     SSL_CTX_set_tlsext_ticket_key_evp_cb(
         SecurityConfig->SSLCtx,
         CxPlatTlsOnSessionTicketKeyNeeded);
-#else
-    SSL_CTX_set_tlsext_ticket_key_cb(
-        SecurityConfig->SSLCtx,
-        CxPlatTlsOnSessionTicketKeyNeeded);
-#endif
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -2001,11 +1974,7 @@ CxPlatTlsProcessData(
                 char buf[256];
                 const char* file;
                 int line;
-#ifdef IS_OPENSSL_3
                 ERR_error_string_n(ERR_get_error_all(&file, &line, NULL, NULL, NULL), buf, sizeof(buf));
-#else
-                ERR_error_string_n(ERR_get_error_line(&file, &line), buf, sizeof(buf));
-#endif
                 QuicTraceLogConnError(
                     OpenSslHandshakeErrorStr,
                     TlsContext->Connection,

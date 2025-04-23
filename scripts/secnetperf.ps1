@@ -57,7 +57,7 @@ param (
     [string]$arch = "x64",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("quictls", "quictls3", "schannel")]
+    [ValidateSet("quictls", "schannel")]
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $false)]

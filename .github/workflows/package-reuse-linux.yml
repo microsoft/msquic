@@ -33,7 +33,6 @@ on:
         type: string
         # options:
         #   - quictls
-        #   - quictls3
       static:
         required: false
         default: ''

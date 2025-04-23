@@ -24,7 +24,6 @@ on:
         type: string
         # options:
         #   - quictls
-        #   - quictls3
       static:
         required: false
         default: ''
@@ -53,7 +52,7 @@ jobs:
       repo: ${{ inputs.repo }}
 
   build-darwin-universal:
-    name: Build Universal Binaries 
+    name: Build Universal Binaries
     needs: [build-darwin]
     runs-on: macos-13
     steps:
