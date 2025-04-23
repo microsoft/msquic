@@ -1339,7 +1339,7 @@ MsQuicStreamReceiveComplete(
         (int64_t)BufferLength);
     if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
         (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
-        // overflow detected
+        // overflow detected            
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -1349,7 +1349,7 @@ MsQuicStreamReceiveComplete(
         goto Exit;
     }
 
-    if ((RecvCompletionLength & QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG) != 0) {
+    if ((RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG) != 0) {
         goto Exit; // No need to queue a completion operation when there is an active receive
     }
 

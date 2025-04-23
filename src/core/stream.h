@@ -471,8 +471,14 @@ typedef struct QUIC_STREAM {
     } BlockedTimings;
 } QUIC_STREAM;
 
-#define QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG            0x8000000000000000
-#define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT    0x800000000000000
+//
+// There is an active receive to the app
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG 0x8000000000000000
+//
+// The second highest bit is used to detect overflow
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT               0x4000000000000000
 
 inline
 QUIC_STREAM_SEND_STATE
