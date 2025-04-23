@@ -432,7 +432,7 @@ typedef struct QUIC_STREAM {
 
     //
     // The number of received bytes the app has completed but not yet processed
-    // by MsQuic. The top bit of RecvPendingLength is used to indicate that
+    // by MsQuic. The top bit of RecvCompletionLength is used to indicate that
     // there is an active receive to the app. This structure allows us to 
     // synchronize both the receive indication flag and the number of bytes completed
     // in a single atomic operation, for a lock-free implementation
