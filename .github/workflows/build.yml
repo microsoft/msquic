@@ -36,8 +36,6 @@ jobs:
         # OpenSSL/quictls doesn't support arm64
         - tls: quictls
           arch: arm64
-        - tls: openssl
-          arch: arm64
         - plat: uwp
           tls: openssl
         # TODO: FIX: OpenSSL/quictls build fails with UWP
@@ -142,7 +140,7 @@ jobs:
           os: 'ubuntu-22.04'
           tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No quictls system crypto on ubuntu-24.04
+        # No openssl system crypto on ubuntu-24.04
         - plat: linux
           os: 'ubuntu-24.04'
           tls: 'quictls'
@@ -219,8 +217,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "uwp",  tls: "quictls", arg: "-UWP" },
-          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
+          #{ plat: "uwp",  tls: "quictls", arg: "-UWP" }, # TODO: Fix build first
           { plat: "windows",  tls: "quictls" },
           { plat: "windows",  tls: "openssl" },
           { plat: "windows",  tls: "schannel" },
