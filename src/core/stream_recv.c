@@ -990,7 +990,7 @@ QuicStreamRecvFlush(
         } else if (Status == QUIC_STATUS_PENDING) {
             //
             // The app called the receive complete API
-            // if RecvCompletionLength is non-zero.
+            // (inline or concurrently) before the callback returned if RecvCompletionLength is non-zero.
             //
             FlushRecv = (RecvCompletionLength != 0);
         } else {
