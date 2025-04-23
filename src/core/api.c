@@ -1325,7 +1325,8 @@ MsQuicStreamReceiveComplete(
 
     QUIC_CONN_VERIFY(Connection,
         (Stream->RecvPendingLength == 0) || // Stream might have been shutdown already
-        BufferLength <= Stream->RecvPendingLength);
+        BufferLength <= Stream->RecvPendingLength ||
+        BufferLength <= (UINT64_MAX >> 2));
 
     QuicTraceEvent(
         StreamAppReceiveCompleteCall,
@@ -1336,6 +1337,17 @@ MsQuicStreamReceiveComplete(
     uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
         (int64_t*)&Stream->RecvCompletionLength,
         (int64_t)BufferLength);
+    if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
+        (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
+        // overflow detected
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "RecvCompletionLength is overflow");
+        QuicConnSilentlyAbort(Connection);
+        goto Exit;
+    }
 
     if ((RecvCompletionLength & QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG) != 0) {
         goto Exit; // No need to queue a completion operation when there is an active receive
