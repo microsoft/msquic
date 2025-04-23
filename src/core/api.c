@@ -1340,11 +1340,10 @@ MsQuicStreamReceiveComplete(
     if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
         (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
         QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
             "RecvCompletionLength is overflow");
-        QuicConnSilentlyAbort(Connection);
         goto Exit;
     }
 
