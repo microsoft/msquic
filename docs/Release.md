@@ -80,23 +80,17 @@ MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but
 1. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
 1. Download the `distribution` packages from the artifacts and upload them to the GitHub release:
    - msquic_gamecore_console_x64_Release_schannel.zip
-   - msquic_linux_x64_Release_openssl.zip
-   - msquic_linux_x64_Release_openssl_test.zip
-   - msquic_linux_x64_Release_openssl3.zip
-   - msquic_linux_x64_Release_openssl3_test.zip
-   - msquic_windows_arm64_Release_openssl3.zip
+   - msquic_linux_x64_Release_quictls.zip
+   - msquic_linux_x64_Release_quictls_test.zip
+   - msquic_windows_arm64_Release_quictls.zip
    - msquic_windows_arm64_Release_schannel.zip
-   - msquic_windows_arm_Release_openssl.zip
-   - msquic_windows_arm_Release_openssl3.zip
+   - msquic_windows_arm_Release_quictls.zip
    - msquic_windows_arm_Release_schannel.zip
-   - msquic_windows_x64_Release_openssl.zip
-   - msquic_windows_x64_Release_openssl_test.zip
-   - msquic_windows_x64_Release_openssl3.zip
-   - msquic_windows_x64_Release_openssl3_test.zip
+   - msquic_windows_x64_Release_quictls.zip
+   - msquic_windows_x64_Release_quictls_test.zip
    - msquic_windows_x64_Release_schannel.zip
    - msquic_windows_x64_Release_schannel_test.zip
-   - msquic_windows_x86_Release_openssl.zip
-   - msquic_windows_x86_Release_openssl3.zip
+   - msquic_windows_x86_Release_quictls.zip
    - msquic_windows_x86_Release_schannel.zip
 1. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
 

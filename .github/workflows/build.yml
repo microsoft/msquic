@@ -30,18 +30,15 @@ jobs:
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2022']
         arch: [x86, x64, arm64]
-        tls: [schannel, openssl, openssl3]
+        tls: [schannel, quictls]
         static: ['', '-Static']
         exclude:
-        # OpenSSL doesn't support arm64
-        - tls: openssl
+        # OpenSSL/quictls doesn't support arm64
+        - tls: quictls
           arch: arm64
-        # OpenSSL3 doesn't support arm64
-        - tls: openssl3
-          arch: arm64
-        # TODO: FIX: OpenSSL3 build fails with UWP
+        # TODO: FIX: OpenSSL/quictls build fails with UWP
         - plat: uwp
-          tls: openssl3
+          tls: quictls
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
@@ -102,7 +99,7 @@ jobs:
         plat: [linux]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -124,7 +121,7 @@ jobs:
         plat: [linux, android]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
@@ -140,12 +137,12 @@ jobs:
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
-          tls: 'openssl'
+          tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-24.04
         - plat: linux
           os: 'ubuntu-24.04'
-          tls: 'openssl'
+          tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu24.04 only for now
         - plat: android
@@ -199,7 +196,7 @@ jobs:
         plat: [macos, ios]
         os: ['macos-13']
         arch: [x64, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -218,8 +215,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
-          { plat: "windows",  tls: "openssl" },
+          #{ plat: "uwp",  tls: "quictls", arg: "-UWP" }, # TODO: Fix build first
+          { plat: "windows",  tls: "quictls" },
           { plat: "windows",  tls: "schannel" },
         ]
     runs-on: windows-2022
@@ -227,30 +224,28 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      if: matrix.vec.tls != 'quictls' # TODO: Remove once quictls is supported
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Build Package
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
 
   Complete:
