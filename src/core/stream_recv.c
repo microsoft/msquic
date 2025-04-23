@@ -886,7 +886,11 @@ QuicStreamRecvFlush(
         //
         // Set the top bit of RecvCompletionLength to indicate that there is an active receive.
         //
-        InterlockedExchangeAdd64((int64_t*)&Stream->RecvCompletionLength, 0x8000000000000000);
+        uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
+            (int64_t*)&Stream->RecvCompletionLength,
+            0x8000000000000000);
+        CXPLAT_DBG_ASSERT(RecvCompletionLength == 0 ||
+            Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
 
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
@@ -970,7 +974,7 @@ QuicStreamRecvFlush(
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
 
-        uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
+        RecvCompletionLength = InterlockedExchangeAdd64(
             (int64_t*)&Stream->RecvCompletionLength,
             -0x8000000000000000);
         RecvCompletionLength &= ~0x8000000000000000;
