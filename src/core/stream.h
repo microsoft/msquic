@@ -471,6 +471,8 @@ typedef struct QUIC_STREAM {
     } BlockedTimings;
 } QUIC_STREAM;
 
+#define QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG    0x8000000000000000
+
 inline
 QUIC_STREAM_SEND_STATE
 QuicStreamSendGetState(

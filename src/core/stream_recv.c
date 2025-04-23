@@ -888,7 +888,7 @@ QuicStreamRecvFlush(
         //
         uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
             (int64_t*)&Stream->RecvCompletionLength,
-            0x8000000000000000);
+            QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG);
         CXPLAT_DBG_ASSERT(RecvCompletionLength == 0 ||
             Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
 
@@ -976,8 +976,8 @@ QuicStreamRecvFlush(
 
         RecvCompletionLength = InterlockedExchangeAdd64(
             (int64_t*)&Stream->RecvCompletionLength,
-            -0x8000000000000000);
-        RecvCompletionLength &= ~0x8000000000000000;
+            -QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG);
+        RecvCompletionLength &= ~QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG;
 
         if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);

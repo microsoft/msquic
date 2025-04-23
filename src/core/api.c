@@ -1337,7 +1337,7 @@ MsQuicStreamReceiveComplete(
         (int64_t*)&Stream->RecvCompletionLength,
         (int64_t)BufferLength);
 
-    if ((RecvCompletionLength & 0x8000000000000000) != 0) {
+    if ((RecvCompletionLength & QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG) != 0) {
         goto Exit; // No need to queue a completion operation when there is an active receive
     }
 
