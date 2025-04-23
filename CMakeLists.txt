@@ -7,6 +7,8 @@ else()
     cmake_minimum_required(VERSION 3.16)
 endif()
 
+add_compile_options("$<$<COMPILE_LANGUAGE:CXX>:-std=c++20>")
+
 # Disable in-source builds to prevent source tree corruption.
 if("${CMAKE_CURRENT_SOURCE_DIR}" STREQUAL "${CMAKE_BINARY_DIR}")
   message(FATAL_ERROR "
