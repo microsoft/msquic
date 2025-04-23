@@ -10,6 +10,7 @@ Abstract:
 --*/
 
 #include "platform_internal.h"
+#include "datapath_linux.h"
 
 #ifdef QUIC_CLOG
 #include "datapath_linux.c.clog.h"
@@ -41,4 +42,165 @@ CxPlatUpdateRoute(
         !IS_LOOPBACK(SrcRoute->RemoteAddress))) {
         RawUpdateRoute(DstRoute, SrcRoute);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+DataPathUpdateConfig(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ QUIC_EXECUTION_CONFIG* Config
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(Config);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+DataPathGetSupportedFeatures(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    return Datapath->Features;
+}
+
+BOOLEAN
+DataPathIsPaddingPreferred(
+    _In_ CXPLAT_DATAPATH* Datapath
+    )
+{
+    return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
+}
+
+void
+CxPlatDataPathCalculateFeatureSupport(
+    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t ClientRecvDataLength
+    )
+{
+#ifdef UDP_SEGMENT
+    //
+    // Open up two sockets and send with GSO and receive with GRO, and make sure
+    // everything **actually** works, so that we can be sure we can leverage
+    // GRO.
+    //
+    int SendSocket = INVALID_SOCKET, RecvSocket = INVALID_SOCKET;
+    struct sockaddr_in RecvAddr = {0}, RecvAddr2 = {0};
+    socklen_t RecvAddrSize = sizeof(RecvAddr), RecvAddr2Size = sizeof(RecvAddr2);
+    int PktInfoEnabled = 1, TosEnabled = 1, GroEnabled = 1;
+    uint8_t Buffer[8 * 1476] = {0};
+    struct iovec IoVec;
+    IoVec.iov_base = Buffer;
+    IoVec.iov_len = sizeof(Buffer);
+    char SendControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(uint16_t))] = {0};
+    struct msghdr SendMsg = {0};
+    SendMsg.msg_name = &RecvAddr;
+    SendMsg.msg_namelen = RecvAddrSize;
+    SendMsg.msg_iov = &IoVec;
+    SendMsg.msg_iovlen = 1;
+    SendMsg.msg_control = SendControlBuffer;
+    SendMsg.msg_controllen = sizeof(SendControlBuffer);
+    struct cmsghdr *CMsg = CMSG_FIRSTHDR(&SendMsg);
+    CMsg->cmsg_level = IPPROTO_IP;
+    CMsg->cmsg_type = IP_TOS;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(int));
+    *(int*)CMSG_DATA(CMsg) = 0x1;
+    CMsg = CMSG_NXTHDR(&SendMsg, CMsg);
+    CMsg->cmsg_level = SOL_UDP;
+    CMsg->cmsg_type = UDP_SEGMENT;
+    CMsg->cmsg_len = CMSG_LEN(sizeof(uint16_t));
+    *((uint16_t*)CMSG_DATA(CMsg)) = 1476;
+    RecvAddr.sin_family = AF_INET;
+    RecvAddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+    char RecvControlBuffer[CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(int)) + CMSG_SPACE(sizeof(struct in6_pktinfo))] = {0};
+    struct msghdr RecvMsg = {0};
+    RecvMsg.msg_name = &RecvAddr2;
+    RecvMsg.msg_namelen = RecvAddr2Size;
+    RecvMsg.msg_iov = &IoVec;
+    RecvMsg.msg_iovlen = 1;
+    RecvMsg.msg_control = RecvControlBuffer;
+    RecvMsg.msg_controllen = sizeof(RecvControlBuffer);
+#define VERIFY(X) if (!(X)) { goto Error; }
+    SendSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    VERIFY(SendSocket != INVALID_SOCKET)
+    RecvSocket = socket(AF_INET, SOCK_DGRAM | SOCK_NONBLOCK, IPPROTO_UDP);
+    VERIFY(RecvSocket != INVALID_SOCKET)
+    VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_PKTINFO, &PktInfoEnabled, sizeof(PktInfoEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(SendSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
+    VERIFY(setsockopt(RecvSocket, IPPROTO_IP, IP_RECVTOS, &TosEnabled, sizeof(TosEnabled)) != SOCKET_ERROR)
+    VERIFY(bind(RecvSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
+#ifdef UDP_GRO
+    VERIFY(setsockopt(RecvSocket, SOL_UDP, UDP_GRO, &GroEnabled, sizeof(GroEnabled)) != SOCKET_ERROR)
+#endif
+    VERIFY(getsockname(RecvSocket, (struct sockaddr*)&RecvAddr, &RecvAddrSize) != SOCKET_ERROR)
+    VERIFY(connect(SendSocket, (struct sockaddr*)&RecvAddr, RecvAddrSize) != SOCKET_ERROR)
+    VERIFY(sendmsg(SendSocket, &SendMsg, 0) == sizeof(Buffer))
+    //
+    // We were able to at least send successfully, so indicate the send
+    // segmentation feature as available.
+    //
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION;
+#ifdef UDP_GRO
+    VERIFY(recvmsg(RecvSocket, &RecvMsg, 0) == sizeof(Buffer))
+    BOOLEAN FoundPKTINFO = FALSE, FoundTOS = FALSE, FoundGRO = FALSE;
+    for (CMsg = CMSG_FIRSTHDR(&RecvMsg); CMsg != NULL; CMsg = CMSG_NXTHDR(&RecvMsg, CMsg)) {
+        if (CMsg->cmsg_level == IPPROTO_IP) {
+            if (CMsg->cmsg_type == IP_PKTINFO) {
+                FoundPKTINFO = TRUE;
+            } else if (CMsg->cmsg_type == IP_TOS) {
+                CXPLAT_DBG_ASSERT_CMSG(CMsg, uint8_t);
+                VERIFY(0x1 == *(uint8_t*)CMSG_DATA(CMsg))
+                FoundTOS = TRUE;
+            }
+        } else if (CMsg->cmsg_level == IPPROTO_UDP) {
+            if (CMsg->cmsg_type == UDP_GRO) {
+                CXPLAT_DBG_ASSERT_CMSG(CMsg, uint16_t);
+                VERIFY(1476 == *(uint16_t*)CMSG_DATA(CMsg))
+                FoundGRO = TRUE;
+            }
+        }
+    }
+    VERIFY(FoundPKTINFO)
+    VERIFY(FoundTOS)
+    VERIFY(FoundGRO)
+    //
+    // We were able receive everything successfully so we can indicate the
+    // receive coalescing feature as available.
+    //
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_COALESCING;
+#endif // UDP_GRO
+Error:
+    if (RecvSocket != INVALID_SOCKET) { close(RecvSocket); }
+    if (SendSocket != INVALID_SOCKET) { close(SendSocket); }
+#endif // UDP_SEGMENT
+
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION) {
+        Datapath->SendDataSize = sizeof(CXPLAT_SEND_DATA);
+        Datapath->SendIoVecCount = 1;
+    } else {
+        const uint32_t SendDataSize =
+            sizeof(CXPLAT_SEND_DATA) + (CXPLAT_MAX_IO_BATCH_SIZE - 1) * sizeof(struct iovec);
+        Datapath->SendDataSize = SendDataSize;
+        Datapath->SendIoVecCount = CXPLAT_MAX_IO_BATCH_SIZE;
+    }
+
+    Datapath->RecvBlockStride =
+        sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength;
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
+        Datapath->RecvBlockBufferOffset =
+            sizeof(DATAPATH_RX_IO_BLOCK) +
+            CXPLAT_MAX_IO_BATCH_SIZE * Datapath->RecvBlockStride;
+        Datapath->RecvBlockSize =
+            Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE;
+    } else {
+        Datapath->RecvBlockBufferOffset =
+            sizeof(DATAPATH_RX_IO_BLOCK) + Datapath->RecvBlockStride;
+        Datapath->RecvBlockSize =
+            Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE;
+    }
+
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
 }
