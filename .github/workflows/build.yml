@@ -30,18 +30,18 @@ jobs:
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2022']
         arch: [x86, x64, arm64]
-        tls: [schannel, openssl, openssl3]
+        tls: [schannel, quictls, quictls3]
         static: ['', '-Static']
         exclude:
         # OpenSSL doesn't support arm64
-        - tls: openssl
+        - tls: quictls
           arch: arm64
         # OpenSSL3 doesn't support arm64
-        - tls: openssl3
+        - tls: quictls3
           arch: arm64
         # TODO: FIX: OpenSSL3 build fails with UWP
         - plat: uwp
-          tls: openssl3
+          tls: quictls3
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
@@ -53,6 +53,23 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
+      repo: ${{ github.repository }}
+
+  build-windows-official:
+    name: WinUser-Official
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: 'windows'
+      os: 'windows-2022'
+      arch: 'x64'
+      tls: 'schannel'
+      official: '-OfficialRelease'
       repo: ${{ github.repository }}
 
   build-windows-kernel:
@@ -83,9 +100,9 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls, quictls3]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -105,9 +122,9 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [linux, android]
-        os: ['ubuntu-20.04', 'ubuntu-22.04', 'ubuntu-24.04']
+        os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
-        tls: [openssl, openssl3]
+        tls: [quictls, quictls3]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
@@ -120,28 +137,18 @@ jobs:
         # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # TODO: android to support ubuntu-24.04
-        - plat: android
-          os: 'ubuntu-24.04'
-        # No openssl3 system crypto on ubuntu-20.04
-        - plat: linux
-          os: 'ubuntu-20.04'
-          tls: 'openssl3'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
-          tls: 'openssl'
+          tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-24.04
         - plat: linux
           os: 'ubuntu-24.04'
-          tls: 'openssl'
+          tls: 'quictls'
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # linux xdp is for ubuntu24.04 only for now
         - plat: android
-          xdp: "-UseXdp"
-        - os: 'ubuntu-20.04'
           xdp: "-UseXdp"
         - os: 'ubuntu-22.04'
           xdp: "-UseXdp"
@@ -192,7 +199,7 @@ jobs:
         plat: [macos, ios]
         os: ['macos-13']
         arch: [x64, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls, quictls3]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -211,8 +218,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
-          { plat: "windows",  tls: "openssl" },
+          { plat: "uwp",  tls: "quictls", arg: "-UWP" },
+          { plat: "windows",  tls: "quictls" },
           { plat: "windows",  tls: "schannel" },
         ]
     runs-on: windows-2022
@@ -220,20 +227,23 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
+        run_id: ${{github.run_id}}
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
+        run_id: ${{github.run_id}}
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@80620a5d27ce0ae443b965134db88467fc607b43
+      uses: dawidd6/action-download-artifact@07ab29fd4a977ae4d2b275087cf67563dfdf0295
       with:
+        run_id: ${{github.run_id}}
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
         if_no_artifact_found: ignore
@@ -241,7 +251,7 @@ jobs:
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
@@ -249,7 +259,7 @@ jobs:
   Complete:
     name: Build Complete
     if: always()
-    needs: [build-windows, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
+    needs: [build-windows, build-windows-official, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
     runs-on: ubuntu-latest
     permissions: {} # No need for any permissions.
     steps:

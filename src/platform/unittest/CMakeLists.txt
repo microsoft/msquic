@@ -7,6 +7,7 @@ set(SOURCES
     DataPathTest.cpp
     PlatformTest.cpp
     # StorageTest.cpp
+    ToeplitzTest.cpp
     TlsTest.cpp
 )
 
@@ -24,6 +25,10 @@ if (BUILD_SHARED_LIBS)
 endif()
 
 target_link_libraries(msquicplatformtest inc gtest warnings logging base_link)
+
+if (WIN32)
+    target_link_libraries(msquicplatformtest oldnames)
+endif()
 
 add_test(NAME msquicplatformtest
          COMMAND msquicplatformtest

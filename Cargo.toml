@@ -1,7 +1,7 @@
 [package]
 name = "msquic"
 version = "2.5.0-beta"
-edition = "2018"
+edition = "2021"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
 readme = "README.md"
@@ -17,21 +17,21 @@ include = [
     "/CMakeLists.txt",
     "/LICENSE",
     "/submodules/CMakeLists.txt",
-    "/submodules/openssl/*.*",
-    "/submodules/openssl/apps",
-    "/submodules/openssl/CHANGES",
-    "/submodules/openssl/config",
-    "/submodules/openssl/Configure",
-    "/submodules/openssl/Configurations",
-    "/submodules/openssl/crypto",
-    "/submodules/openssl/engines",
-    "/submodules/openssl/external",
-    "/submodules/openssl/include",
-    "/submodules/openssl/ms",
-    "/submodules/openssl/os-dep",
-    "/submodules/openssl/ssl",
-    "/submodules/openssl/util",
-    "/submodules/openssl/VMS",
+    "/submodules/quictls/*.*",
+    "/submodules/quictls/apps",
+    "/submodules/quictls/CHANGES",
+    "/submodules/quictls/config",
+    "/submodules/quictls/Configure",
+    "/submodules/quictls/Configurations",
+    "/submodules/quictls/crypto",
+    "/submodules/quictls/engines",
+    "/submodules/quictls/external",
+    "/submodules/quictls/include",
+    "/submodules/quictls/ms",
+    "/submodules/quictls/os-dep",
+    "/submodules/quictls/ssl",
+    "/submodules/quictls/util",
+    "/submodules/quictls/VMS",
     "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/**/*.rs",
@@ -44,22 +44,32 @@ include = [
     "/THIRD-PARTY-NOTICES",
 ]
 
+[lib]
+path = "src/rs/lib.rs"
+
 [features]
-default = []
-schannel = []
+default = ["src"]
+# Build c code from source
+src = [ "dep:cmake" ]
+# Find prebuilt msquic. Use vcpkg installed location on Windows,
+# while use system installed location on linux.
+# MacOs is not supported.
+find = [] 
+# Windows uses schannel, and linux uses quictls by default. 
+# This feature enables quictls on windows, and has no effect on linux.
+quictls = []
 static = []
 preview-api = []
 # Overwrite generated binding by reruning the bindgen
 overwrite = [ "dep:bindgen" ]
 
 [build-dependencies]
-cmake = "0.1"
+cmake = { version = "0.1", optional = true }
 bindgen = { version = "0.71", optional = true }
 
 [dependencies]
-bitfield = "0.17.0"
-libc = "0.2.0"
-c-types = "4.0.0"
-serde = { version = "1.0.117", features = ["derive"] }
-ctor = "0.2.9"
-socket2 = "0.5.8"
+bitflags = "2.9"
+libc = "0.2"
+c-types = "4.0"
+ctor = "0.4"
+socket2 = "0.5"

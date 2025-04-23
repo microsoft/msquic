@@ -396,7 +396,8 @@ QuicLossDetectionOnPacketSent(
     //
     QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
-            &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
+            &Connection->Partition->SentPacketPool,
+            TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
         //
         // We can't allocate the memory to permanently track this packet so just
@@ -840,7 +841,8 @@ QuicLossDetectionRetransmitFrames(
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
-                    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
+                    QuicPerfCounterIncrement(
+                        Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
                     QuicPathRemove(Connection, PathIndex);
                 } else {
                     Path->SendChallenge = TRUE;
@@ -1024,7 +1026,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             Connection->Stats.Send.SuspectedLostPackets++;
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+            QuicPerfCounterIncrement(
+                Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
             if (Packet->Flags.IsAckEliciting) {
                 LossDetection->PacketsInFlight--;
                 LostRetransmittableBytes += Packet->PacketLength;
@@ -1332,6 +1335,13 @@ QuicLossDetectionProcessAckBlocks(
         // which would mean we mistakenly classified those packets as lost.
         //
         if (*LostPacketsStart != NULL) {
+            QUIC_SENT_PACKET_METADATA* LastLostPacket =
+                CXPLAT_CONTAINING_RECORD(
+                    LossDetection->LostPacketsTail, QUIC_SENT_PACKET_METADATA,
+                    Next);
+            if (LastLostPacket->PacketNumber < AckBlock->Low) {
+                goto CheckSentPackets;
+            }
             while (*LostPacketsStart && (*LostPacketsStart)->PacketNumber < AckBlock->Low) {
                 LostPacketsStart = &((*LostPacketsStart)->Next);
             }
@@ -1344,7 +1354,8 @@ QuicLossDetectionProcessAckBlocks(
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
-                QuicPerfCounterDecrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+                QuicPerfCounterDecrement(
+                    Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
                 //
                 // NOTE: we don't increment AckedRetransmittableBytes here
                 // because we already told the congestion control module that
@@ -1380,6 +1391,7 @@ QuicLossDetectionProcessAckBlocks(
             }
         }
 
+CheckSentPackets:
         //
         // Now find all the acknowledged packets in the SentPackets list.
         //

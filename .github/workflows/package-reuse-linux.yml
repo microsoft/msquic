@@ -16,10 +16,10 @@ on:
       os:
         required: false
         type: string
-        default: 'ubuntu-20.04'
+        default: 'ubuntu-22.04'
         # options:
-        #   - ubuntu-20.04
         #   - ubuntu-22.04
+        #   - ubuntu-24.04
       arch:
         required: false
         default: 'x64'
@@ -29,11 +29,11 @@ on:
         #   - x64
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
       static:
         required: false
         default: ''
@@ -90,7 +90,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts
@@ -103,7 +103,7 @@ jobs:
       shell: pwsh
       run: scripts/package-distribution.ps1 ${{ inputs.time64 }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts/dist

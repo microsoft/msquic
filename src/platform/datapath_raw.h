@@ -62,7 +62,7 @@ typedef struct CXPLAT_DATAPATH_RAW {
     BOOLEAN Uninitialized : 1;
     BOOLEAN Freed : 1;
 #endif
-    BOOLEAN UseTcp;
+    BOOLEAN ReserveAuxTcpSock; // Whether or not we create an auxiliary TCP socket.
 
 } CXPLAT_DATAPATH_RAW;
 
@@ -187,8 +187,7 @@ typedef struct HEADER_BACKFILL {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 HEADER_BACKFILL
 CxPlatDpRawCalculateHeaderBackFill(
-    _In_ QUIC_ADDRESS_FAMILY Family,
-    _In_ BOOLEAN UseTcp
+    _In_ CXPLAT_ROUTE* Route
     );
 
 //
@@ -231,7 +230,6 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 
@@ -377,6 +375,7 @@ CxPlatFramingWriteHeaders(
     _In_ const CXPLAT_ROUTE* Route,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
+    _In_ uint8_t DSCP,
     _In_ BOOLEAN SkipNetworkLayerXsum,
     _In_ BOOLEAN SkipTransportLayerXsum,
     _In_ uint32_t TcpSeqNum,

@@ -10,7 +10,10 @@ Abstract:
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1 // TODO - Remove
+#define XDP_API_VERSION 3
+#define XDP_INCLUDE_WINCOMMON
 
+#include <xdp/wincommon.h>
 #include "datapath_raw_win.h"
 #include "datapath_raw_xdp.h"
 #include <wbemidl.h>
@@ -42,9 +45,6 @@ typedef struct XDP_DATAPATH {
     BOOLEAN TxAlwaysPoke;
     BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop partitions.
-    XDP_LOAD_API_CONTEXT XdpApiLoadContext;
-    const XDP_API_TABLE *XdpApi;
-    XDP_QEO_SET_FN *XdpQeoSet;
 
     XDP_PARTITION Partitions[0];
 } XDP_DATAPATH;
@@ -163,7 +163,6 @@ CreateNoOpEthernetPacket(
 
 QUIC_STATUS
 CxPlatGetRssQueueProcessors(
-    _In_ XDP_DATAPATH* Xdp,
     _In_ uint32_t InterfaceIndex,
     _Inout_ uint16_t* Count,
     _Out_writes_to_(*Count, *Count) uint32_t* Queues
@@ -175,26 +174,32 @@ CxPlatGetRssQueueProcessors(
 
     for (uint16_t i = 0; i < *Count; ++i) {
         HANDLE TxXsk = NULL;
-        QUIC_STATUS Status = Xdp->XdpApi->XskCreate(&TxXsk);
+        QUIC_STATUS Status = XskCreate(&TxXsk);
         if (QUIC_FAILED(Status)) { return Status; }
 
         XSK_UMEM_REG TxUmem = {0};
+        UINT32 EnableAffinity = TRUE;
         TxUmem.Address = &TxPacket;
         TxUmem.ChunkSize = sizeof(XDP_TX_PACKET);
         TxUmem.Headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         TxUmem.TotalSize = sizeof(XDP_TX_PACKET);
 
-        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
+        Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
+        Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
-        Status = Xdp->XdpApi->XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
+        Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &TxRingSize, sizeof(TxRingSize));
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
+
+        //
+        // This is best effort, as the option isn't available on all versions of XDP.
+        //
+        Status = XskSetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &EnableAffinity, sizeof(EnableAffinity));
 
         uint32_t Flags = XSK_BIND_FLAG_TX;
-        Status = Xdp->XdpApi->XskBind(TxXsk, InterfaceIndex, i, Flags);
+        Status = XskBind(TxXsk, InterfaceIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             CloseHandle(TxXsk);
             if (Status == E_INVALIDARG) { // No more queues. Break out.
@@ -209,7 +214,7 @@ CxPlatGetRssQueueProcessors(
             return Status;
         }
 
-        Status = Xdp->XdpApi->XskActivate(TxXsk, 0);
+        Status = XskActivate(TxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -222,7 +227,7 @@ CxPlatGetRssQueueProcessors(
 
         XSK_RING_INFO_SET TxRingInfo;
         uint32_t TxRingInfoSize = sizeof(TxRingInfo);
-        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
+        Status = XskGetSockopt(TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         XSK_RING TxRing, TxCompletionRing;
@@ -239,7 +244,7 @@ CxPlatGetRssQueueProcessors(
         XskRingProducerSubmit(&TxRing, 1);
 
         XSK_NOTIFY_RESULT_FLAGS OutFlags;
-        Status = Xdp->XdpApi->XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX|XSK_NOTIFY_FLAG_WAIT_TX, XDP_MAX_SYNC_WAIT_TIMEOUT_MS, &OutFlags);
+        Status = XskNotifySocket(TxXsk, XSK_NOTIFY_FLAG_POKE_TX|XSK_NOTIFY_FLAG_WAIT_TX, XDP_MAX_SYNC_WAIT_TIMEOUT_MS, &OutFlags);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         uint32_t CompIndex;
@@ -251,7 +256,7 @@ CxPlatGetRssQueueProcessors(
 
         PROCESSOR_NUMBER ProcNumber;
         uint32_t ProcNumberSize = sizeof(PROCESSOR_NUMBER);
-        Status = Xdp->XdpApi->XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
+        Status = XskGetSockopt(TxXsk, XSK_SOCKOPT_TX_PROCESSOR_AFFINITY, &ProcNumber, &ProcNumberSize);
         if (QUIC_FAILED(Status)) { CloseHandle(TxXsk); return Status; }
 
         const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
@@ -404,7 +409,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = Xdp->XdpApi->XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
+    Status = XdpInterfaceOpen(Interface->ActualIfIndex, &Interface->XdpHandle);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -414,7 +419,7 @@ CxPlatDpRawInterfaceInitialize(
         goto Error;
     }
 
-    Status = CxPlatGetRssQueueProcessors(Xdp, Interface->ActualIfIndex, &Interface->QueueCount, Processors);
+    Status = CxPlatGetRssQueueProcessors(Interface->ActualIfIndex, &Interface->QueueCount, Processors);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,
@@ -479,7 +484,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = Xdp->XdpApi->XskCreate(&Queue->RxXsk);
+        Status = XskCreate(&Queue->RxXsk);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -495,7 +500,7 @@ CxPlatDpRawInterfaceInitialize(
         RxUmem.Headroom = RxHeadroom;
         RxUmem.TotalSize = Xdp->RxBufferCount * RxPacketSize;
 
-        Status = Xdp->XdpApi->XskSetSockopt(Queue->RxXsk, XSK_SOCKOPT_UMEM_REG, &RxUmem, sizeof(RxUmem));
+        Status = XskSetSockopt(Queue->RxXsk, XSK_SOCKOPT_UMEM_REG, &RxUmem, sizeof(RxUmem));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -506,7 +511,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Status =
-            Xdp->XdpApi->XskSetSockopt(
+            XskSetSockopt(
                 Queue->RxXsk, XSK_SOCKOPT_RX_FILL_RING_SIZE, &Xdp->RxRingSize,
                 sizeof(Xdp->RxRingSize));
         if (QUIC_FAILED(Status)) {
@@ -519,7 +524,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Status =
-            Xdp->XdpApi->XskSetSockopt(
+            XskSetSockopt(
                 Queue->RxXsk, XSK_SOCKOPT_RX_RING_SIZE, &Xdp->RxRingSize, sizeof(Xdp->RxRingSize));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -531,7 +536,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         uint32_t Flags = XSK_BIND_FLAG_RX;
-        Status = Xdp->XdpApi->XskBind(Queue->RxXsk, Interface->ActualIfIndex, i, Flags);
+        Status = XskBind(Queue->RxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -541,7 +546,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = Xdp->XdpApi->XskActivate(Queue->RxXsk, 0);
+        Status = XskActivate(Queue->RxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -553,7 +558,7 @@ CxPlatDpRawInterfaceInitialize(
 
         XSK_RING_INFO_SET RxRingInfo;
         uint32_t RxRingInfoSize = sizeof(RxRingInfo);
-        Status = Xdp->XdpApi->XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RING_INFO, &RxRingInfo, &RxRingInfoSize);
+        Status = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RING_INFO, &RxRingInfo, &RxRingInfoSize);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -602,7 +607,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = Xdp->XdpApi->XskCreate(&Queue->TxXsk);
+        Status = XskCreate(&Queue->TxXsk);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -618,7 +623,7 @@ CxPlatDpRawInterfaceInitialize(
         TxUmem.Headroom = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         TxUmem.TotalSize = Xdp->TxBufferCount * sizeof(XDP_TX_PACKET);
 
-        Status = Xdp->XdpApi->XskSetSockopt(Queue->TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
+        Status = XskSetSockopt(Queue->TxXsk, XSK_SOCKOPT_UMEM_REG, &TxUmem, sizeof(TxUmem));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -629,7 +634,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Status =
-            Xdp->XdpApi->XskSetSockopt(
+            XskSetSockopt(
                 Queue->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -641,7 +646,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Status =
-            Xdp->XdpApi->XskSetSockopt(
+            XskSetSockopt(
                 Queue->TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &Xdp->TxRingSize,
                 sizeof(Xdp->TxRingSize));
         if (QUIC_FAILED(Status)) {
@@ -654,7 +659,7 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
-        Status = Xdp->XdpApi->XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
+        Status = XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -664,7 +669,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status = Xdp->XdpApi->XskActivate(Queue->TxXsk, 0);
+        Status = XskActivate(Queue->TxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -676,7 +681,7 @@ CxPlatDpRawInterfaceInitialize(
 
         XSK_RING_INFO_SET TxRingInfo;
         uint32_t TxRingInfoSize = sizeof(TxRingInfo);
-        Status = Xdp->XdpApi->XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
+        Status = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_RING_INFO, &TxRingInfo, &TxRingInfoSize);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -767,7 +772,7 @@ CxPlatDpRawInterfaceUpdateRules(
 
         HANDLE NewRxProgram;
         QUIC_STATUS Status =
-            Interface->Xdp->XdpApi->XdpCreateProgram(
+            XdpCreateProgram(
                 Interface->ActualIfIndex,
                 &RxHook,
                 i,
@@ -939,19 +944,13 @@ CxPlatDpRawInitialize(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
     PMIB_IF_TABLE2 pIfTable = NULL;
-    QUIC_STATUS Status;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (WorkerPool == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    if (QUIC_FAILED(XdpLoadApi(XDP_API_VERSION_1, &Xdp->XdpApiLoadContext, &Xdp->XdpApi))) {
-        Status = QUIC_STATUS_NOT_SUPPORTED;
-        goto Error;
-    }
-
-    Xdp->XdpQeoSet = (XDP_QEO_SET_FN *)Xdp->XdpApi->XdpGetRoutine(XDP_QEO_SET_FN_NAME);
 
     CxPlatXdpReadConfig(Xdp);
     Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
@@ -967,12 +966,6 @@ CxPlatDpRawInitialize(
             Xdp->Partitions[i].Processor = (uint16_t)i;
         }
     }
-
-    QuicTraceLogVerbose(
-        XdpInitialize,
-        "[ xdp][%p] XDP initialized, %u procs",
-        Xdp,
-        Xdp->PartitionCount);
 
     if (GetIfTable2(&pIfTable) != NO_ERROR) {
         Status = QUIC_STATUS_INTERNAL_ERROR;
@@ -1067,7 +1060,13 @@ CxPlatDpRawInitialize(
                 Status =
                     CxPlatDpRawInterfaceInitialize(
                         Xdp, Interface, ClientRecvContextLength);
-                if (QUIC_FAILED(Status)) {
+                if (Status == QUIC_STATUS_FILE_NOT_FOUND && CxPlatListIsEmpty(&Xdp->Interfaces)) {
+                    //
+                    // FILE_NOT_FOUND for the first interface means that XDP is not available on this system.
+                    //
+                    Status = QUIC_STATUS_NOT_SUPPORTED;
+                    break;
+                } else if (QUIC_FAILED(Status)) {
                     QuicTraceEvent(
                         LibraryErrorStatus,
                         "[ lib] ERROR, %u, %s.",
@@ -1090,11 +1089,18 @@ CxPlatDpRawInitialize(
     }
 
     if (CxPlatListIsEmpty(&Xdp->Interfaces)) {
-        QuicTraceEvent(
-            LibraryError,
-            "[ lib] ERROR, %s.",
-            "no XDP capable interface");
-        Status = QUIC_STATUS_NOT_FOUND;
+        if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "XDP is not supported on this system");
+        } else {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "no XDP capable interface");
+            Status = QUIC_STATUS_NOT_FOUND;
+        }
         goto Error;
     }
 
@@ -1148,9 +1154,16 @@ CxPlatDpRawInitialize(
             QueueCount);
         UNREFERENCED_PARAMETER(QueueCount);
 
-        CxPlatAddExecutionContext(WorkerPool, &Partition->Ec, Partition->PartitionIndex);
+        CxPlatWorkerPoolAddExecutionContext(
+            WorkerPool, &Partition->Ec, Partition->PartitionIndex);
     }
     Status = QUIC_STATUS_SUCCESS;
+
+    QuicTraceLogVerbose(
+        XdpInitialize,
+        "[ xdp][%p] XDP initialized, %u procs",
+        Xdp,
+        Xdp->PartitionCount);
 
 Error:
     if (pIfTable != NULL) {
@@ -1163,10 +1176,6 @@ Error:
                 CONTAINING_RECORD(CxPlatListRemoveHead(&Xdp->Interfaces), XDP_INTERFACE, Link);
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
-        }
-
-        if (Xdp->XdpApi) {
-            XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         }
     }
 
@@ -1194,7 +1203,6 @@ CxPlatDpRawRelease(
             CxPlatDpRawInterfaceUninitialize(Interface);
             CxPlatFree(Interface, IF_TAG);
         }
-        XdpUnloadApi(Xdp->XdpApiLoadContext, Xdp->XdpApi);
         CxPlatDataPathUninitializeComplete((CXPLAT_DATAPATH_RAW*)Xdp);
     }
 }
@@ -1282,15 +1290,11 @@ RawSocketUpdateQeo(
 
     BOOLEAN AtLeastOneSucceeded = FALSE;
     for (CXPLAT_LIST_ENTRY* Entry = Xdp->Interfaces.Flink; Entry != &Xdp->Interfaces; Entry = Entry->Flink) {
-        if (Xdp->XdpQeoSet != NULL) {
-            Status =
-                Xdp->XdpQeoSet(
-                    CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
-                    Connections,
-                    sizeof(Connections));
-        } else {
-            Status = E_NOINTERFACE;
-        }
+        Status =
+            XdpQeoSet(
+                CONTAINING_RECORD(Entry, XDP_INTERFACE, Link)->XdpHandle,
+                Connections,
+                sizeof(Connections));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -1334,10 +1338,10 @@ CxPlatDpRawPlumbRulesOnSocket(
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Socket->RawDatapath;
     if (Socket->Wildcard) {
-        XDP_RULE Rules[3] = {0};
+        XDP_RULE Rules[5] = {0};
         uint8_t RulesSize = 0;
         if (Socket->CibirIdLength) {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_SRC_CID : XDP_MATCH_QUIC_FLOW_SRC_CID;
+            Rules[0].Match = XDP_MATCH_QUIC_FLOW_SRC_CID;
             Rules[0].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[0].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
@@ -1345,7 +1349,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
 
-            Rules[1].Match = Socket->UseTcp ? XDP_MATCH_TCP_QUIC_FLOW_DST_CID : XDP_MATCH_QUIC_FLOW_DST_CID;
+            Rules[1].Match = XDP_MATCH_QUIC_FLOW_DST_CID;
             Rules[1].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
             Rules[1].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
             Rules[1].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
@@ -1353,27 +1357,50 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[1].Redirect.Target = NULL;
 
+            Rules[2].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
+            Rules[2].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[2].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[2].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetSrc;
+            Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[2].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[2].Redirect.Target = NULL;
+
+            Rules[3].Match = XDP_MATCH_TCP_QUIC_FLOW_DST_CID;
+            Rules[3].Pattern.QuicFlow.UdpPort = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[3].Pattern.QuicFlow.CidLength = Socket->CibirIdLength;
+            Rules[3].Pattern.QuicFlow.CidOffset = Socket->CibirIdOffsetDst;
+            Rules[3].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[3].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[3].Redirect.Target = NULL;
+
+
             memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[2].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            memcpy(Rules[3].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
 
-            RulesSize = 2;
-            if (Socket->UseTcp) {
-                Rules[2].Match = XDP_MATCH_TCP_CONTROL_DST;
-                Rules[2].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
-                Rules[2].Action = XDP_PROGRAM_ACTION_REDIRECT;
-                Rules[2].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
-                Rules[2].Redirect.Target = NULL;
-                ++RulesSize;
-            }
+            Rules[4].Match = XDP_MATCH_TCP_CONTROL_DST;
+            Rules[4].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[4].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[4].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[4].Redirect.Target = NULL;
+            RulesSize = 5;
+
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
-            Rules[0].Match = Socket->UseTcp ? XDP_MATCH_TCP_DST : XDP_MATCH_UDP_DST;
+            Rules[0].Match = XDP_MATCH_TCP_DST;
             Rules[0].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
             Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
 
-            RulesSize = 1;
+            Rules[1].Match = XDP_MATCH_UDP_DST;
+            Rules[1].Pattern.Port = Socket->LocalAddress.Ipv4.sin_port;
+            Rules[1].Action = XDP_PROGRAM_ACTION_REDIRECT;
+            Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
+            Rules[1].Redirect.Target = NULL;
+
+            RulesSize = 2;
         }
 
         CXPLAT_LIST_ENTRY* Entry;
@@ -1395,11 +1422,11 @@ CxPlatDpRawPlumbRulesOnSocket(
         uint8_t* IpAddress;
         size_t IpAddressSize;
         if (Socket->LocalAddress.si_family == QUIC_ADDRESS_FAMILY_INET) {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
+            MatchType = Socket->ReserveAuxTcpSock ? XDP_MATCH_IPV4_TCP_PORT_SET : XDP_MATCH_IPV4_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv4.sin_addr;
             IpAddressSize = sizeof(IN_ADDR);
         } else {
-            MatchType = Socket->UseTcp ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
+            MatchType = Socket->ReserveAuxTcpSock ? XDP_MATCH_IPV6_TCP_PORT_SET : XDP_MATCH_IPV6_UDP_PORT_SET;
             IpAddress = (uint8_t*)&Socket->LocalAddress.Ipv6.sin6_addr;
             IpAddressSize = sizeof(IN6_ADDR);
         }
@@ -1547,7 +1574,7 @@ CxPlatXdpRx(
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = Xdp->XdpApi->XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
+        XskStatus = XskGetSockopt(Queue->RxXsk, XSK_SOCKOPT_RX_ERROR, &ErrorStatus, &ErrorSize);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1601,23 +1628,22 @@ CxPlatDpRawRxFree(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_SEND_DATA*
 CxPlatDpRawTxAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     XDP_QUEUE* Queue = Config->Route->Queue;
     CXPLAT_DBG_ASSERT(Queue != NULL);
     CXPLAT_DBG_ASSERT(&Queue->TxPool != NULL);
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)InterlockedPopEntrySList(&Queue->TxPool);
 
     if (Packet) {
-        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Family, Socket->UseTcp); // TODO - Cache in Route?
+        HEADER_BACKFILL HeaderBackfill = CxPlatDpRawCalculateHeaderBackFill(Config->Route); // TODO - Cache in Route?
         CXPLAT_DBG_ASSERT(Config->MaxPacketSize <= sizeof(Packet->FrameBuffer) - HeaderBackfill.AllLayer);
         Packet->Queue = Queue;
         Packet->Buffer.Length = Config->MaxPacketSize;
         Packet->Buffer.Buffer = &Packet->FrameBuffer[HeaderBackfill.AllLayer];
         Packet->ECN = Config->ECN;
+        Packet->DSCP = Config->DSCP;
         Packet->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RAW;
     }
 
@@ -1706,7 +1732,7 @@ CxPlatXdpTx(
         MemoryBarrier();
         if (Xdp->TxAlwaysPoke || XskRingProducerNeedPoke(&Queue->TxRing)) {
             XSK_NOTIFY_RESULT_FLAGS OutFlags;
-            QUIC_STATUS Status = Xdp->XdpApi->XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
+            QUIC_STATUS Status = XskNotifySocket(Queue->TxXsk, XSK_NOTIFY_FLAG_POKE_TX, 0, &OutFlags);
             CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
             UNREFERENCED_PARAMETER(Status);
         }
@@ -1716,7 +1742,7 @@ CxPlatXdpTx(
         XSK_ERROR ErrorStatus;
         QUIC_STATUS XskStatus;
         uint32_t ErrorSize = sizeof(ErrorStatus);
-        XskStatus = Xdp->XdpApi->XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
+        XskStatus = XskGetSockopt(Queue->TxXsk, XSK_SOCKOPT_TX_ERROR, &ErrorStatus, &ErrorSize);
         QuicTraceEvent(
             LibraryErrorStatus,
             "[ lib] ERROR, %u, %s.",
@@ -1785,7 +1811,7 @@ CxPlatXdpExecute(
                     CxPlatIoXdpWaitRxEventComplete,
                     &Queue->RxIoSqe);
                 HRESULT hr =
-                    Xdp->XdpApi->XskNotifyAsync(
+                    XskNotifyAsync(
                         Queue->RxXsk, XSK_NOTIFY_FLAG_WAIT_RX,
                         &Queue->RxIoSqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
@@ -1809,7 +1835,7 @@ CxPlatXdpExecute(
                     CxPlatIoXdpWaitTxEventComplete,
                     &Queue->TxIoSqe);
                 HRESULT hr =
-                    Xdp->XdpApi->XskNotifyAsync(
+                    XskNotifyAsync(
                         Queue->TxXsk, XSK_NOTIFY_FLAG_WAIT_TX,
                         &Queue->TxIoSqe.Overlapped);
                 if (hr == HRESULT_FROM_WIN32(ERROR_IO_PENDING)) {
@@ -1877,4 +1903,128 @@ CxPlatIoXdpShutdownEventComplete(
         "[ xdp][%p] XDP partition shutdown complete",
         Partition);
     CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    uint32_t RssConfigSize = 0;
+    XDP_RSS_CONFIGURATION *RawRssConfig = NULL;
+
+    CXPLAT_DBG_ASSERT(RssConfig != NULL);
+
+    *RssConfig = NULL;
+
+    HANDLE InterfaceHandle = NULL;
+    HRESULT Result = XdpInterfaceOpen(InterfaceIndex, &InterfaceHandle);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpInterfaceOpen");
+        Status = Result;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, NULL, &RssConfigSize);
+    if (Result != HRESULT_FROM_WIN32(ERROR_MORE_DATA)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet size");
+        Status = FAILED(Result) ? Result : QUIC_STATUS_INTERNAL_ERROR;
+        goto Error;
+    }
+
+    RawRssConfig = CXPLAT_ALLOC_PAGED(RssConfigSize, QUIC_POOL_TMP_ALLOC);
+    if (RawRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "XDP RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    Result = XdpRssGet(InterfaceHandle, RawRssConfig, &RssConfigSize);
+    if (FAILED(Result)) {
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Result,
+            "XdpRssGet");
+        Status = Result;
+        goto Error;
+    }
+
+    CXPLAT_STATIC_ASSERT(sizeof(uint32_t) == sizeof(PROCESSOR_NUMBER), "Ensure same size");
+    RssConfigSize = sizeof(CXPLAT_RSS_CONFIG) +
+        RawRssConfig->HashSecretKeySize +
+        RawRssConfig->IndirectionTableSize;
+    CXPLAT_RSS_CONFIG* NewRssConfig =
+        (CXPLAT_RSS_CONFIG*)CXPLAT_ALLOC_PAGED(
+            RssConfigSize,
+            QUIC_POOL_DATAPATH_RSS_CONFIG);
+    if (NewRssConfig == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT RSS Config",
+            RssConfigSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Error;
+    }
+
+    NewRssConfig->HashTypes = RawRssConfig->HashType;
+
+    NewRssConfig->RssSecretKey = (uint8_t*)(NewRssConfig + 1);
+    NewRssConfig->RssSecretKeyLength = RawRssConfig->HashSecretKeySize;
+    CxPlatCopyMemory(
+        NewRssConfig->RssSecretKey,
+        RTL_PTR_ADD(RawRssConfig, RawRssConfig->HashSecretKeyOffset),
+        NewRssConfig->RssSecretKeyLength);
+
+    NewRssConfig->RssIndirectionTable =
+        (uint32_t*)(NewRssConfig->RssSecretKey + NewRssConfig->RssSecretKeyLength);
+    NewRssConfig->RssIndirectionTableCount = RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER);
+
+    CXPLAT_DBG_ASSERT(
+        RawRssConfig->IndirectionTableSize ==
+        NewRssConfig->RssIndirectionTableCount * sizeof(PROCESSOR_NUMBER));
+
+    PROCESSOR_NUMBER* IndirectionTable =
+        (PROCESSOR_NUMBER*)RTL_PTR_ADD(
+            RawRssConfig,
+            RawRssConfig->IndirectionTableOffset);
+
+    for (uint32_t i = 0; i < RawRssConfig->IndirectionTableSize / sizeof(PROCESSOR_NUMBER); i++) {
+        NewRssConfig->RssIndirectionTable[i] = CxPlatProcNumberToIndex(&IndirectionTable[i]);
+    }
+
+    *RssConfig = NewRssConfig;
+    NewRssConfig = NULL;
+
+Error:
+    if (RawRssConfig != NULL) {
+        CXPLAT_FREE(RawRssConfig, QUIC_POOL_TMP_ALLOC);
+    }
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    CXPLAT_FREE(RssConfig, QUIC_POOL_DATAPATH_RSS_CONFIG);
 }

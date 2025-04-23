@@ -307,12 +307,6 @@ function Start-RemoteServer {
     throw "Server failed to start!"
 }
 
-# Passively starts the server on the remote machine by queuing up a new script to execute.
-function Start-RemoteServerPassive {
-    param ($Command)
-    NetperfSendCommand $Command
-}
-
 # Sends a special UDP packet to tell the remote secnetperf to shutdown, and then
 # waits for the job to complete. Finally, it returns the console output of the
 # job.
@@ -480,7 +474,7 @@ function Get-TestOutput {
         $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match "@ (\d+) kbps" | Out-Null
+        $Output -match "(\d+) kbps" | Out-Null
         return $matches[1]
     }
 }
@@ -554,7 +548,21 @@ function Invoke-Secnetperf {
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
     $serverArgs = "-scenario:$Scenario -io:$io"
-    $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+
+    if ($env:collect_cpu_traces) {
+        $updated_runtime_for_cpu_traces = @{
+            "upload"=12 * 1000 * 1000
+            "download"=12 * 1000 * 1000
+            "hps"=6 * 1000 * 1000
+            "rps"=5 * 1000 * 1000
+            "rps-multi"=5 * 1000 * 1000
+            "latency"=5 * 1000 * 1000
+        }
+        $new_runtime = $updated_runtime_for_cpu_traces[$Scenario]
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -runtime:$new_runtime -trimout -watchdog:25000"
+    } else {
+        $clientArgs = "-target:$RemoteName -scenario:$Scenario -io:$io -tcp:$tcp -trimout -watchdog:25000"
+    }
     if ($io -eq "xdp" -or $io -eq "qtip") {
         $serverArgs += " -pollidle:10000"
         $clientArgs += " -pollidle:10000"
@@ -609,6 +617,11 @@ function Invoke-Secnetperf {
         try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and ($Session -eq "NOT_SUPPORTED")) {
+        NetperfSendCommand "Start_Server_Msquic_Logging;$LogProfile"
+        NetperfWaitServerFinishExecution
+        .\scripts\log.ps1 -Start -Profile $LogProfile
+    }
 
     Write-Host "::group::> secnetperf $clientArgs"
 
@@ -622,7 +635,7 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
-        Start-RemoteServerPassive "$RemoteDir/$SecNetPerfPath $serverArgs"
+        NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
     } else {
         $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
@@ -689,6 +702,14 @@ function Invoke-Secnetperf {
             }
             try { Copy-Item -FromSession $Session "$remoteArtifactDir/*" $artifactDir -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
+        }
+
+        # For Azure scenarios, without remote powershell, stop logging on the client / server.
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and $Session -eq "NOT_SUPPORTED") {
+            try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
+            NetperfSendCommand "Stop_Server_Msquic_Logging;$artifactName"
+            NetperfWaitServerFinishExecution
         }
 
         # Grab any crash dumps that were generated.

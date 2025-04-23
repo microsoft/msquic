@@ -51,8 +51,7 @@ CxPlatPoolAlloc(
 
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
+    _In_ void* Memory
     );
 
 BOOLEAN
@@ -87,6 +86,12 @@ void
 CxPlatListInsertTail(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead,
     _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* Entry
+    );
+
+void
+CxPlatListInsertAfter(
+    _Inout_ CXPLAT_LIST_ENTRY* ListEntry,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* NewEntry
     );
 
 CXPLAT_LIST_ENTRY*
@@ -397,6 +402,15 @@ void
 CxPlatToeplitzHashComputeAddr(
     _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
     _In_ const QUIC_ADDR* Addr,
+    _Inout_ uint32_t* Key,
+    _Out_ uint32_t* Offset
+    );
+
+void
+CxPlatToeplitzHashComputeRss(
+    _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
+    _In_ const QUIC_ADDR* SrcAddr,
+    _In_ const QUIC_ADDR* DestAddr,
     _Inout_ uint32_t* Key,
     _Out_ uint32_t* Offset
     );

@@ -12,7 +12,7 @@ PKGARCH=${ARCH}
 FPM=`which fpm` 2>/dev/null
 CONFIG=Release
 NAME=libmsquic
-TLS=openssl
+TLS=quictls
 TLSVERSION=1.1
 TIME64DISTRO="False"
 XDP="False"
@@ -99,9 +99,9 @@ while :; do
             shift
             TLS=$1
             case $TLS in
-                'openssl')
+                'quictls')
                     ;;
-                'openssl3')
+                'quictls3')
                     TLSVERSION=3
                     ;;
                 *)

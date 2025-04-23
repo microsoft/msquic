@@ -1,6 +1,7 @@
 name: Cargo
 
 on:
+  workflow_dispatch:
   push:
     branches:
     - main
@@ -10,59 +11,117 @@ on:
     - main
     - release/*
 
-permissions: read-all
+permissions:
+  contents: read
+  pull-requests: write
 
 jobs:
   cargo:
     strategy:
+      fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features schannel", "--features schannel,static", "--features overwrite"]
-        exclude:
-          - os: ubuntu-latest
-            features: "--features schannel"
-          - os: ubuntu-latest
-            features: "--features schannel,static"
-          - os: macos-latest
-            features: "--features schannel"
-          - os: macos-latest
-            features: "--features schannel,static"
-          - os: macos-latest-xlarge
-            features: "--features schannel"
-          - os: macos-latest-xlarge
-            features: "--features schannel,static"
+        features: ["", "--features static", "--features quictls", "--features quictls,static", "--features overwrite"]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Harden Runner
-      uses: step-security/harden-runner@0080882f6c36860b6ba35c610c98ce87d4e2f26f
+      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
       with:
         egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild
+      run: scripts/prepare-machine.ps1 -Tls quictls -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@98dfedee230bcf1ee68d5b021931fc8d63f2016e
+      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
       with:
         perl-version: '5.34'
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
-    - name: Install Cargo
-      if: runner.os == 'Linux'
-      run: curl https://sh.rustup.rs -sSf | sh -s -- -y
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      with:
+        toolchain: 1.86.0
+        components: rustfmt, clippy
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
-      run: cargo clippy --all-targets -- -D warnings
+      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
     - name: Cargo build
       run: cargo build --all ${{ matrix.features }}
     - name: Check all generated files with git
-      run: git diff --exit-code
+      id: bindings_diff
+      shell: bash
+      run: |
+        if git diff --exit-code >> cargo_generated_diff.txt; then
+          echo "diff-found=false" >> $GITHUB_OUTPUT
+        else
+          echo "diff-found=true" >> $GITHUB_OUTPUT
+          {
+            echo 'diff-content<<@@@'
+            echo "$(cat cargo_generated_diff.txt)"
+            echo '@@@'
+          } >> $GITHUB_OUTPUT
+        fi
+    - name: Post a comment on PR on mismatch
+      if: |
+        !github.event.pull_request.head.repo.fork &&
+        steps.bindings_diff.outputs.diff-found == 'true'
+      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+        issue-number: ${{ github.event.number }}
+        body: |
+          ## ${{ github.workflow }}
+          The rust bindings need to be updated. Please apply (`git apply`) this diff:
+          ```diff
+          ${{ steps.bindings_diff.outputs.diff-content }}
+          ```
+        edit-mode: replace
+    - name: Fail if generated files are not up to date
+      if: steps.bindings_diff.outputs.diff-found == 'true'
+      run: exit 1
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty
+  # Test rust crate with preinstalled msquic lib.
+  cargo-preinstall:
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest]
+        features: ["--no-default-features --features find"]
+    runs-on: ${{ matrix.os }}
+    name: Cargo-Preinstall
+    steps:
+    - name: Harden Runner
+      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
+      with:
+        egress-policy: audit
+    - name: Checkout repository
+      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+    - name: Install Rust
+      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      with:
+        toolchain: 1.86.0
+        components: rustfmt, clippy
+    - name: Install msquic from apt
+      run: |
+        wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
+        sudo dpkg -i packages-microsoft-prod.deb;
+        sudo apt-get update;
+        sudo apt-get install libmsquic;
+        dpkg -L libmsquic;
+    - name: Cargo fmt
+      run: cargo fmt --all -- --check
+    - name: Cargo clippy
+      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+    - name: Cargo build
+      run: cargo build --all ${{ matrix.features }}
+    - name: Cargo test
+      run: cargo test --all ${{ matrix.features }}

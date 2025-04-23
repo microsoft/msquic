@@ -92,6 +92,8 @@ This script runs the MsQuic tests.
     test.ps1 -Filter ParameterValidation* -NumIterations 10
 #>
 
+#Requires -Version 7.2
+
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
@@ -102,7 +104,7 @@ param (
     [string]$Arch = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "quictls3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]

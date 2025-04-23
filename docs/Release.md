@@ -37,12 +37,22 @@ This table describes all officially supported MsQuic releases.
 
 | [Type](Release.md#release-support-policies) | Branch | Consumer | Fork Date | Release Date | End of Support | Supported Platforms |
 | -- | -- | -- | -- | -- | -- | -- |
-| SAC | [release/2.2](https://github.com/microsoft/msquic/tree/release/2.2) | [Windows Server 2022](https://docs.microsoft.com/en-us/windows/release-health/status-windows-server-2022)<br>[Windows 11](https://www.microsoft.com/software-download/windows11) | Apr 18 2023 | June 1 2023 | Dec 1 2024 | Windows, Linux |
 | SAC | [release/2.3](https://github.com/microsoft/msquic/tree/release/2.3) | [Windows Server 2025](https://techcommunity.microsoft.com/t5/windows-server-news-and-best/introducing-windows-server-2025/ba-p/4026374)<br>[Windows 11](https://www.microsoft.com/software-download/windows11) | Jan 26 2024 | Mar 12 2024 | Sept 12 2025 | Windows, Linux |
 | SAC | [release/2.4](https://github.com/microsoft/msquic/tree/release/2.4) | [Windows Server 2025](https://techcommunity.microsoft.com/t5/windows-server-news-and-best/introducing-windows-server-2025/ba-p/4026374)<br>[Windows 11](https://www.microsoft.com/software-download/windows11)<br>[.NET 9.0](https://dotnet.microsoft.com/en-us/download/dotnet/9.0) | Aug 5 2024 | Aug 16 2024 | Feb 16 2026 | Windows, Linux |
 
 <br>\* Future **Release Dates** are subject to change.
 <br>\** **End of Support** dates do not include possible [extended support](https://docs.microsoft.com/en-us/windows-server/get-started-19/servicing-channels-19#long-term-servicing-channel-ltsc) extensions.
+
+## Platforms
+
+We officially support the following operating systems and architectures.
+
+| OS | Architectures |
+| -- | -- |
+| Windows | x64, arm64 |
+| Linux | x64, arm64, arm32 |
+
+MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but is not currently *officially* supported.
 
 # Publishing a Release
 
@@ -88,8 +98,6 @@ This table describes all officially supported MsQuic releases.
    - msquic_windows_x86_Release_openssl.zip
    - msquic_windows_x86_Release_openssl3.zip
    - msquic_windows_x86_Release_schannel.zip
-1. From Linux (use GitHub Codespace) to publish the latest Rust Crate. (CURRENTLY BROKEN)
-   - Run `cargo publish` from the `release/X.Y` branch.
 1. Update (via PR) `main` branch's `test-down-level.yml` to point the newly uploaded `*_test.zip` release binaries.
 
 > **Note** - NuGet packages are automatically published to nuget.org by the pipeline.
@@ -109,7 +117,7 @@ Prerequisites:
 - Powershell
 
 1. Checkout to release tag. (e.g. `git checkout v2.4.7`)
-1. Run `generate-alpine-packaging-file.ps1` script on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
+1. Run `generate-alpine-packaging-file.ps1` script from the repository root on host computer to create `APKBUILD` file for the release. (This script can run on any Linux distro, and this script will create a docker alpine container to calculate hash keys in APKBUILD file)
 1. If you don't have account for [AlpineLinux GitLab](https://gitlab.alpinelinux.org). Create an account and [configure your SSH](https://docs.gitlab.com/ee/user/ssh.html).
 1. If you didn't fork `aports` repository yet, Fork `https://gitlab.alpinelinux.org/alpine/aports`.
 1. Clone `https://gitlab.alpinelinux.org/<your_username>/aports` repository.
@@ -120,6 +128,21 @@ Prerequisites:
 1. Owners of the `aports` repository will respond to the PR or merge it in couple of days/hours.
 
 For future reference: [Official documentation](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package)
+
+### Publishing the Rust Crate
+
+The following are the complete (manual) steps for publishing the Rust crate.
+
+1. Create a (Linux) GitHub CodeSpace.
+1. `sudo apt update`
+1. `sudo apt install curl`
+1. `curl https://sh.rustup.rs -sSf | sh`
+1. Restart bash.
+1. `cargo login`
+1. Create an API token on https://crates.io/settings/tokens (with `publish-update` scope).
+1. Paste the token into bash.
+1. If doing a beta release, update `Cargo.toml` to add a # after `beta` in the version.
+1. `cargo publish` or `cargo publish --allow-dirty` if beta release
 
 ## Synchronizing with Windows
 

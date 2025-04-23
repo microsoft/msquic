@@ -46,8 +46,8 @@ on:
         default: 'schannel'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
         #   - schannel
       build:
         required: false
@@ -92,7 +92,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

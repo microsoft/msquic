@@ -1,7 +1,7 @@
 <h1 align="center"><img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"/></h1>
 
 [![Documentation](https://img.shields.io/static/v1?label=Documentation&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/msquicdocs/docs/API.html)
-[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/msquic/)
+[![Perf Dashboard](https://img.shields.io/static/v1?label=Performance&message=Dashboard&color=blue)](https://microsoft.github.io/netperf/dist/)
 [![Build Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?query=branch%3Amain&label=Build)](https://github.com/microsoft/msquic/actions/workflows/build.yml?query=branch%3Amain)
 [![Test Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?query=branch%3Amain&label=Test)](https://github.com/microsoft/msquic/actions/workflows/test.yml?query=branch%3Amain)
 [![Stress Status](https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&label=Stress)](https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain)
@@ -14,6 +14,10 @@
 
 MsQuic is a Microsoft implementation of the [IETF QUIC](https://datatracker.ietf.org/wg/quic/about/)
 protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both Rust and C#.
+
+> [!TIP]
+> You are using MsQuic? Let us know! Knowing our users lets us prioritize work and keep improving MsQuic in the best possible direction.
+> Post in the [Discussion](https://github.com/microsoft/msquic/discussions/4963) to say hello and give us a wave on [Discord](https://discord.gg/YGAtCwTSsc)!
 
 ## Protocol Features
 

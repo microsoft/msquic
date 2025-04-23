@@ -141,7 +141,7 @@ QuicStreamRecvQueueFlush(
                 "Queuing recv flush");
 
             QUIC_OPERATION* Oper;
-            if ((Oper = QuicOperationAlloc(Stream->Connection->Worker, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
+            if ((Oper = QuicConnAllocOperation(Stream->Connection, QUIC_OPER_TYPE_FLUSH_STREAM_RECV)) != NULL) {
                 Oper->FLUSH_STREAM_RECEIVE.Stream = Stream;
                 QuicStreamAddRef(Stream, QUIC_STREAM_REF_OPERATION);
                 QuicConnQueueOper(Stream->Connection, Oper);
@@ -766,9 +766,12 @@ QuicStreamOnBytesDelivered(
 
         //
         // Limit stream FC window growth by the connection FC window size.
+        // When using app-owned buffers, skip this: the virtual buffer length is entirely based
+        // on the amount of buffer space provided by the app.
         //
-        if (Stream->RecvBuffer.VirtualBufferLength <
-            Stream->Connection->Settings.ConnFlowControlWindow) {
+        if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
+            !Stream->Flags.UseAppOwnedRecvBuffers) {
 
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
@@ -793,6 +796,10 @@ QuicStreamOnBytesDelivered(
                 // low.
                 //
 
+                QuicRecvBufferIncreaseVirtualBufferLength(
+                    &Stream->RecvBuffer,
+                    Stream->RecvBuffer.VirtualBufferLength * 2);
+
                 QuicTraceLogStreamVerbose(
                     IncreaseRxBuffer,
                     Stream,
@@ -801,10 +808,6 @@ QuicStreamOnBytesDelivered(
                     Stream->Connection->Paths[0].MinRtt,
                     TimeNow,
                     Stream->RecvWindowLastUpdate);
-
-                QuicRecvBufferIncreaseVirtualBufferLength(
-                    &Stream->RecvBuffer,
-                    Stream->RecvBuffer.VirtualBufferLength * 2);
             }
         }
 
@@ -830,7 +833,7 @@ QuicStreamOnBytesDelivered(
         "Updating flow control window");
 
     CXPLAT_DBG_ASSERT(
-        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >
+        Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength >=
         Stream->MaxAllowedRecvOffset);
 
     Stream->MaxAllowedRecvOffset =
@@ -869,6 +872,13 @@ QuicStreamRecvFlush(
         return;
     }
 
+    //
+    // Have 3 buffers one the stack, it's enough for most use cases.
+    //
+    QUIC_BUFFER StackRecvBuffers[3];
+    QUIC_BUFFER *RecvBuffers = StackRecvBuffers;
+    uint32_t RecvBufferCount = ARRAYSIZE(StackRecvBuffers);
+
     BOOLEAN FlushRecv = TRUE;
     while (FlushRecv) {
         CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
@@ -878,24 +888,44 @@ QuicStreamRecvFlush(
         //
         InterlockedExchangeAdd64((int64_t*)&Stream->RecvCompletionLength, 0x8000000000000000);
 
-        QUIC_BUFFER RecvBuffers[3];
         QUIC_STREAM_EVENT Event = {0};
         Event.Type = QUIC_STREAM_EVENT_RECEIVE;
-        Event.RECEIVE.BufferCount = ARRAYSIZE(RecvBuffers);
-        Event.RECEIVE.Buffers = RecvBuffers;
+        Event.RECEIVE.BufferCount = ARRAYSIZE(StackRecvBuffers);
+        Event.RECEIVE.Buffers = StackRecvBuffers;
 
         //
         // Try to read the next available buffers.
         //
         BOOLEAN DataAvailable = QuicRecvBufferHasUnreadData(&Stream->RecvBuffer);
         if (DataAvailable) {
+            uint32_t NumBuffersNeeded = QuicRecvBufferReadBufferNeededCount(&Stream->RecvBuffer);
+            if (NumBuffersNeeded > RecvBufferCount) {
+                //
+                // We need more buffer than what we have currently, allocate them.
+                // If the allocation fails, we read what we can with the buffers we have.
+                //
+                QUIC_BUFFER* NewRecvBuffers =
+                    CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BUFFER) * NumBuffersNeeded, QUIC_POOL_RECVBUF);
+
+                if (NewRecvBuffers != NULL) {
+                    if (RecvBuffers != StackRecvBuffers) {
+                        CXPLAT_FREE(RecvBuffers, QUIC_POOL_RECVBUF);
+                    }
+                    RecvBuffers = NewRecvBuffers;
+                    RecvBufferCount = NumBuffersNeeded;
+                }
+            }
+
+            Event.RECEIVE.Buffers = RecvBuffers;
+            Event.RECEIVE.BufferCount = RecvBufferCount;
+
             QuicRecvBufferRead(
                 &Stream->RecvBuffer,
                 &Event.RECEIVE.AbsoluteOffset,
                 &Event.RECEIVE.BufferCount,
                 RecvBuffers);
             for (uint32_t i = 0; i < Event.RECEIVE.BufferCount; ++i) {
-                Event.RECEIVE.TotalBufferLength += RecvBuffers[i].Length;
+                Event.RECEIVE.TotalBufferLength += Event.RECEIVE.Buffers[i].Length;
             }
             CXPLAT_DBG_ASSERT(Event.RECEIVE.TotalBufferLength != 0);
 
@@ -988,6 +1018,13 @@ QuicStreamRecvFlush(
             FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
         }
     }
+
+    //
+    // Cleanup receive buffers if needed
+    //
+    if (RecvBuffers != StackRecvBuffers) {
+        CXPLAT_FREE(RecvBuffers, QUIC_POOL_RECVBUF);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1049,7 +1086,10 @@ QuicStreamReceiveComplete(
 
     if (BufferLength != 0) {
         Stream->RecvPendingLength -= BufferLength;
-        QuicPerfCounterAdd(QUIC_PERF_COUNTER_APP_RECV_BYTES, BufferLength);
+        QuicPerfCounterAdd(
+            Stream->Connection->Partition,
+            QUIC_PERF_COUNTER_APP_RECV_BYTES,
+            BufferLength);
         QuicStreamOnBytesDelivered(Stream, BufferLength);
     }
 

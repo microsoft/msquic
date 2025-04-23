@@ -54,11 +54,12 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_TYPE Type
     )
 {
-    QUIC_OPERATION* Oper = (QUIC_OPERATION*)CxPlatPoolAlloc(&Worker->OperPool);
+    QUIC_OPERATION* Oper =
+        (QUIC_OPERATION*)CxPlatPoolAlloc(&Partition->OperPool);
     if (Oper != NULL) {
 #if DEBUG
         Oper->Link.Flink = NULL;
@@ -68,9 +69,9 @@ QuicOperationAlloc(
 
         if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
             Oper->API_CALL.Context =
-                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Worker->ApiContextPool);
+                (QUIC_API_CONTEXT*)CxPlatPoolAlloc(&Partition->ApiContextPool);
             if (Oper->API_CALL.Context == NULL) {
-                CxPlatPoolFree(&Worker->OperPool, Oper);
+                CxPlatPoolFree(Oper);
                 Oper = NULL;
             } else {
                 Oper->API_CALL.Context->Status = NULL;
@@ -84,7 +85,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -119,8 +119,18 @@ QuicOperationFree(
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_RECV_SET_ENABLED) {
             QuicStreamRelease(ApiCtx->STRM_RECV_SET_ENABLED.Stream, QUIC_STREAM_REF_OPERATION);
+        } else if (ApiCtx->Type == QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS) {
+            while (!CxPlatListIsEmpty(&ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks)) {
+                CXPLAT_FREE(
+                    CXPLAT_CONTAINING_RECORD(
+                        CxPlatListRemoveHead(&ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Chunks),
+                        QUIC_RECV_CHUNK,
+                        Link),
+                    QUIC_POOL_RECVBUF);
+            }
+            QuicStreamRelease(ApiCtx->STRM_PROVIDE_RECV_BUFFERS.Stream, QUIC_STREAM_REF_OPERATION);
         }
-        CxPlatPoolFree(&Worker->ApiContextPool, ApiCtx);
+        CxPlatPoolFree(ApiCtx);
     } else if (Oper->Type == QUIC_OPER_TYPE_FLUSH_STREAM_RECV) {
         QuicStreamRelease(Oper->FLUSH_STREAM_RECEIVE.Stream, QUIC_STREAM_REF_OPERATION);
     } else if (Oper->Type >= QUIC_OPER_TYPE_VERSION_NEGOTIATION) {
@@ -128,13 +138,14 @@ QuicOperationFree(
             QuicBindingReleaseStatelessOperation(Oper->STATELESS.Context, TRUE);
         }
     }
-    CxPlatPoolFree(&Worker->OperPool, Oper);
+    CxPlatPoolFree(Oper);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -146,8 +157,8 @@ QuicOperationEnqueue(
     StartProcessing = CxPlatListIsEmpty(&OperQ->List) && !OperQ->ActivelyProcessing;
     CxPlatListInsertTail(&OperQ->List, &Oper->Link);
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
@@ -155,6 +166,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueuePriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -167,8 +179,8 @@ QuicOperationEnqueuePriority(
     CxPlatListInsertTail(*OperQ->PriorityTail, &Oper->Link);
     OperQ->PriorityTail = &Oper->Link.Flink;
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
@@ -176,6 +188,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     )
 {
@@ -190,15 +203,16 @@ QuicOperationEnqueueFront(
         OperQ->PriorityTail = &Oper->Link.Flink;
     }
     CxPlatDispatchLockRelease(&OperQ->Lock);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUED);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUED, 1);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, 1);
     return StartProcessing;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationDequeue(
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     )
 {
     QUIC_OPERATION* Oper;
@@ -221,7 +235,7 @@ QuicOperationDequeue(
     CxPlatDispatchLockRelease(&OperQ->Lock);
 
     if (Oper != NULL) {
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH);
+        QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, -1);
     }
     return Oper;
 }
@@ -229,8 +243,8 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     )
 {
     CXPLAT_LIST_ENTRY OldList;
@@ -272,7 +286,7 @@ QuicOperationQueueClear(
                         0);
                 }
             }
-            QuicOperationFree(Worker, Oper);
+            QuicOperationFree(Oper);
         } else {
             CXPLAT_DBG_ASSERT(Oper->Type == QUIC_OPER_TYPE_API_CALL);
             if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
@@ -287,5 +301,5 @@ QuicOperationQueueClear(
             }
         }
     }
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_CONN_OPER_QUEUE_DEPTH, OperationsDequeued);
 }

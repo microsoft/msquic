@@ -341,6 +341,13 @@ typedef struct QUIC_CONNECTION {
     QUIC_WORKER* Worker;
 
     //
+    // The partition this connection is currently assigned to. It is changed at
+    // the same time as the worker, but doesn't always need to stay in sync with
+    // the worker.
+    //
+    QUIC_PARTITION* Partition;
+
+    //
     // The top level registration this connection is a part of.
     //
     QUIC_REGISTRATION* Registration;
@@ -461,6 +468,12 @@ typedef struct QUIC_CONNECTION {
     // acknowledgment (ACK) is triggered.
     //
     uint8_t PeerReorderingThreshold;
+
+    //
+    // DSCP value to set on all sends from this connection.
+    // Default value of 0.
+    //
+    uint8_t DSCP;
 
     //
     // The ACK frequency sequence number we are currently using to send.
@@ -703,6 +716,9 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 #else
 #define QUIC_CONN_VERIFY(Connection, Expr)
 #endif
+
+#define QuicConnAllocOperation(Connection, Type) \
+    QuicOperationAlloc((Connection)->Partition, (Type))
 
 //
 // Helper to determine if a connection is server side.
@@ -995,6 +1011,7 @@ _Success_(return == QUIC_STATUS_SUCCESS)
 QUIC_STATUS
 QuicConnAlloc(
     _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_PARTITION* Partition,
     _In_opt_ QUIC_WORKER* Worker,
     _In_opt_ const QUIC_RX_PACKET* Packet,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem))
@@ -1181,6 +1198,25 @@ void
 QuicConnQueueHighestPriorityOper(
     _In_ QUIC_CONNECTION* Connection,
     _In_ QUIC_OPERATION* Oper
+    );
+
+typedef enum QUIC_CONN_START_FLAGS {
+    QUIC_CONN_START_FLAG_NONE =              0x00000000U,
+    QUIC_CONN_START_FLAG_FAIL_SILENTLY =     0x00000001U // Don't send notification to API client
+} QUIC_CONN_START_FLAGS;
+
+//
+// Starts the connection. Shouldn't be called directly in most instances.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnStart(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_ADDRESS_FAMILY Family,
+    _In_opt_z_ const char* ServerName,
+    _In_ uint16_t ServerPort, // Host byte order
+    _In_ QUIC_CONN_START_FLAGS StartFlags
     );
 
 //
@@ -1642,7 +1678,7 @@ QuicConnGetMaxMtuForPath(
     //
     uint16_t LocalMtu = Path->LocalMtu;
     if (LocalMtu == 0) {
-        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket);
+        LocalMtu = CxPlatSocketGetLocalMtu(Path->Binding->Socket, &Path->Route);
         Path->LocalMtu = LocalMtu;
     }
     uint16_t RemoteMtu = 0xFFFF;

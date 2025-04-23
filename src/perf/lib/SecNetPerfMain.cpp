@@ -15,7 +15,7 @@ Abstract:
 #include "Tcp.h"
 
 const MsQuicApi* MsQuic;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 CXPLAT_DATAPATH* Datapath;
 CxPlatWatchdog* Watchdog;
 PerfServer* Server;
@@ -79,6 +79,10 @@ PrintHelp(
         "  -port:<####>             The UDP port of the server. Ignored if \"bind\" is passed. (def:%u)\n"
         "  -serverid:<####>         The ID of the server (used for load balancing).\n"
         "  -cibir:<hex_bytes>       A CIBIR well-known idenfitier.\n"
+        "  -delay:<####>[unit]      Delay, with an optional unit (def unit is us), to be introduced before the server responds to a request.\n"
+        "  -delayType:<fixed/variable>    Optional delay type can be specified in conjunction with the 'delay' argument.\n"
+        "                                 'fixed' - introduce the specified delay for each request (default).\n"
+        "                                 'variable'- introduce a statistical variability to the specified delay (user mode only).\n"
         "\n"
         "Client: secnetperf -target:<hostname/ip> [options]\n"
         "\n"
@@ -128,12 +132,12 @@ PrintHelp(
         "  -pollidle:<time_us>      Amount of time to poll while idle before sleeping (default: 0).\n"
         "  -ecn:<0/1>               Enables/disables sender-side ECN support. (def:0)\n"
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
-#ifdef _KERNEL_MODE
+#ifndef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {iocp, rio, xdp, qtip, wsk, epoll, kqueue}\n"
+        "                            - {iocp, rio, xdp, qtip, epoll, kqueue}\n"
 #else
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {xdp}\n"
+        "                            - {wsk}\n"
 #endif // _KERNEL_MODE
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
@@ -180,10 +184,6 @@ QuicMainStart(
     const char* IoMode = GetValue(argc, argv, "io");
 
 #ifndef _KERNEL_MODE
-    if (IoMode && IsValue(IoMode, "qtip")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
-        SetConfig = true;
-    }
 
     if (IoMode && IsValue(IoMode, "rio")) {
         Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
@@ -297,15 +297,19 @@ QuicMainStart(
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
     }
 
-    CxPlatWorkerPoolInit(&WorkerPool);
+#ifndef _KERNEL_MODE
+    WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+#endif
 
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, &WorkerPool, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, nullptr, &Datapath);
     if (QUIC_FAILED(Status)) {
-        CxPlatWorkerPoolUninit(&WorkerPool);
+#ifndef _KERNEL_MODE
+        CxPlatWorkerPoolDelete(WorkerPool);
+#endif
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
     }
@@ -349,7 +353,9 @@ QuicMainFree(
 
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolUninit(&WorkerPool);
+#ifndef _KERNEL_MODE
+        CxPlatWorkerPoolDelete(WorkerPool);
+#endif
         Datapath = nullptr;
     }
 
@@ -370,3 +376,109 @@ QuicMainGetExtraData(
     CXPLAT_FRE_ASSERT(Client);
     Client->GetExtraData(Data, Length);
 }
+
+const char* TimeUnits[] = { "m", "ms", "us", "s" };
+const uint64_t TimeMult[] = { 60 * 1000 * 1000, 1000, 1, 1000 * 1000 };
+const char* SizeUnits[] = { "gb", "mb", "kb", "b" };
+const uint64_t SizeMult[] = { 1000 * 1000 * 1000, 1000 * 1000, 1000, 1 };
+const char* CountUnits[] = { "cpu" };
+uint64_t CountMult[] = { 1 };
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed
+    )
+{
+    if (isTimed) *isTimed = false; // Default
+
+    // Search for the first matching name.
+    char* value = nullptr;
+    while (*names && (value = (char*)GetValue(argc, argv, *names)) == nullptr) {
+        names++;
+    }
+    if (!value) { return false; }
+
+    // Search to see if the value has a time unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(TimeUnits); ++i) {
+        size_t len = strlen(TimeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, TimeUnits[i], len) == 0) {
+            if (isTimed) *isTimed = true;
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * TimeMult[i]);
+            return true;
+        }
+    }
+
+    // Search to see if the value has a size unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(SizeUnits); ++i) {
+        size_t len = strlen(SizeUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, SizeUnits[i], len) == 0) {
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * SizeMult[i]);
+            return true;
+        }
+    }
+
+    // Search to see if the value has a count unit specified at the end.
+    for (uint32_t i = 0; i < ARRAYSIZE(CountUnits); ++i) {
+        size_t len = strlen(CountUnits[i]);
+        if (len < strlen(value) &&
+            _strnicmp(value + strlen(value) - len, CountUnits[i], len) == 0) {
+            value[strlen(value) - len] = '\0';
+            *pValue = (T)(atoi(value) * CountMult[i]);
+            return true;
+        }
+    }
+
+    // Default to bytes if no unit is specified.
+    *pValue = (T)atoi(value);
+    return true;
+}
+
+_Success_(return != false)
+template <typename T>
+bool
+TryGetVariableUnitValue(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ T * pValue,
+    _Out_opt_ bool* isTimed
+    )
+{
+    const char* names[] = { name, nullptr };
+    return TryGetVariableUnitValue(argc, argv, names, pValue, isTimed);
+}
+
+/// <summary>
+/// Explicit template instantiation
+/// </summary>
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint32_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char* name,
+    _Out_ uint32_t * pValue,
+    _Out_opt_ bool* isTimed
+    );
+
+_Success_(return != false)
+template
+bool
+TryGetVariableUnitValue<uint64_t>(
+    _In_ int argc,
+    _In_reads_(argc) _Null_terminated_ char* argv[],
+    _In_z_ const char** names,
+    _Out_ uint64_t * pValue,
+    _Out_opt_ bool* isTimed
+    );

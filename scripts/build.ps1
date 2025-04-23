@@ -113,6 +113,8 @@ This script provides helpers for building msquic.
 
 #>
 
+#Requires -Version 7.2
+
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
@@ -130,7 +132,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "quictls3")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -266,8 +268,8 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
-        Write-Error "Arm64EC does not support openssl"
+    if ($Tls -eq "quictls" -Or $Tls -eq "quictls3") {
+        Write-Error "Arm64EC does not support quictls"
     }
 }
 
@@ -422,7 +424,7 @@ function CMake-Generate {
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
-    $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_TLS_LIB=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
 
     if ($IsLinux) {
@@ -505,8 +507,14 @@ function CMake-Generate {
         $Arguments += " -DQUIC_HIGH_RES_TIMERS=on"
     }
     if ($Platform -eq "android") {
-        $NDK = $env:ANDROID_NDK_LATEST_HOME -replace '26\.\d+\.\d+', '25.2.9519653' # Temporary work around. Use RegEx to replace newer version.
+        $NDK = $env:ANDROID_NDK_LATEST_HOME
         $env:PATH = "$NDK/toolchains/llvm/prebuilt/linux-x86_64/bin:$env:PATH"
+        $env:ANDROID_NDK_HOME = $NDK
+        $env:ANDROID_NDK_ROOT = $NDK  # Set ANDROID_NDK_ROOT to ensure consistency
+        Write-Host "Set ANDROID_NDK_HOME: $env:ANDROID_NDK_HOME"
+        Write-Host "Set ANDROID_NDK_ROOT: $env:ANDROID_NDK_ROOT"
+        Write-Host "Set ANDROID_NDK_LATEST_HOME: $env:ANDROID_NDK_LATEST_HOME"
+
         switch ($Arch) {
             "x86"   { $Arguments += " -DANDROID_ABI=x86"}
             "x64"   { $Arguments += " -DANDROID_ABI=x86_64" }
@@ -514,7 +522,6 @@ function CMake-Generate {
             "arm64" { $Arguments += " -DANDROID_ABI=arm64-v8a" }
         }
         $Arguments += " -DANDROID_PLATFORM=android-29"
-        $env:ANDROID_NDK_HOME = $NDK
         $NdkToolchainFile = "$NDK/build/cmake/android.toolchain.cmake"
         $Arguments += " -DANDROID_NDK=""$NDK"""
         $Arguments += " -DCMAKE_TOOLCHAIN_FILE=""$NdkToolchainFile"""

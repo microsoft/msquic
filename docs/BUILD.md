@@ -1,7 +1,8 @@
 # Building MsQuic
 
-First, clone the repo recursively or run `git submodule update --init --recursive`
-to get all the submodules.
+First, clone the repo recursively: `git clone --recurse-submodules https://github.com/microsoft/msquic.git`
+
+For existing repositories, run `git submodule update --init --recursive` to get all the submodules.
 
 # Source Code
 
@@ -33,19 +34,29 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 You can find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
-```PowerShell
-# Download the Microsoft repository GPG keys
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-
-# Register the Microsoft repository GPG keys
-sudo dpkg -i packages-microsoft-prod.deb
-
-# Update the list of products
+```sh
+# Update the list of packages
 sudo apt-get update
 
-# Enable the "universe" repositories
-sudo add-apt-repository universe
+# Install pre-requisite packages.
+sudo apt-get install -y wget apt-transport-https software-properties-common
 
+# Get the version of Ubuntu
+source /etc/os-release
+
+# Download the Microsoft repository keys
+wget -q https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb
+
+# Register the Microsoft repository keys
+sudo dpkg -i packages-microsoft-prod.deb
+
+# Delete the Microsoft repository keys file
+rm packages-microsoft-prod.deb
+
+# Update the list of packages after we added packages.microsoft.com
+sudo apt-get update
+
+###################################
 # Install PowerShell
 sudo apt-get install -y powershell
 
@@ -85,11 +96,11 @@ Then you will need to manually run "pwsh" to continue.
 
 ## Install Dependencies
 
-In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
+In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK (or newer, such as .NET 9 SDK), is required. Go to the following location and find the install page for your platform.
 
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
 
-After installing .NET Core, you will need to restart your terminal.
+After installing .NET \[Core\] SDK, you may need to restart your terminal.
 
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
 

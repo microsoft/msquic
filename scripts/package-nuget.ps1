@@ -16,8 +16,8 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
-    [string]$Tls = "openssl",
+    [ValidateSet("schannel", "quictls", "quictls3")]
+    [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]
     [switch]$UWP = $false,
@@ -128,7 +128,7 @@ foreach ($Header in $Headers) {
 }
 
 Copy-Item (Join-Path $RootDir LICENSE) $PackagingDir
-if ($Tls -like "openssl") {
+if ($Tls -like "quictls") {
     # Only need license, no 3rd party code
     Copy-Item -Path (Join-Path $RootDir "THIRD-PARTY-NOTICES") -Destination $PackagingDir
 }

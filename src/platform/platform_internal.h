@@ -99,6 +99,11 @@ typedef struct CXPLAT_SEND_DATA_COMMON {
     uint8_t ECN; // CXPLAT_ECN_TYPE
 
     //
+    // The DSCP value to use for this send.
+    //
+    uint8_t DSCP;
+
+    //
     // The total buffer size for WsaBuffers.
     //
     uint32_t TotalSize;
@@ -137,6 +142,11 @@ typedef struct CX_PLATFORM {
     // Random number algorithm loaded for DISPATCH_LEVEL usage.
     //
     BCRYPT_ALG_HANDLE RngAlgorithm;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -194,7 +204,12 @@ typedef struct CXPLAT_SOCKET {
         UCHAR IrpBuffer[sizeof(IRP) + sizeof(IO_STACK_LOCATION)];
     };
 
-    uint8_t UseTcp : 1; // always false?
+    uint8_t ReserveAuxTcpSock : 1; // always false?
+
+    //
+    // Flag indicates the socket has a default remote destination.
+    //
+    uint8_t HasFixedRemoteAddress : 1;
     uint8_t RawSocketAvailable : 1;
 
     CXPLAT_RUNDOWN_REF Rundown[0]; // Per-proc
@@ -268,7 +283,7 @@ typedef struct CXPLAT_DATAPATH {
     //
     uint32_t ProcCount;
 
-    uint8_t UseTcp : 1; // Not supported. always false
+    uint8_t ReserveAuxTcpSock : 1; // Not supported. always false
 
     //
     // Per-processor completion contexts.
@@ -304,6 +319,11 @@ typedef struct CX_PLATFORM {
     // Heap used for all allocations.
     //
     HANDLE Heap;
+
+    //
+    // Current Windows build number
+    //
+    DWORD dwBuildNumber;
 
 #ifdef DEBUG
     //
@@ -551,7 +571,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;
+    uint8_t ReserveAuxTcpSock : 1;
 
     //
     // Per-processor completion contexts.
@@ -618,7 +638,13 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Uninitialized : 1;
     uint8_t Freed : 1;
 
-    uint8_t UseTcp : 1;                  // Quic over TCP
+    //
+    // This flag determines whether or not we instantiate an auxiliary TCP
+    // socket in XDP mode. For clients, we either only create an auxiliary
+    // TCP socket, or per-proc UDP sockets. For servers, we always create
+    // per-proc UDP sockets, and optionally create an auxiliary TCP socket.
+    //
+    uint8_t ReserveAuxTcpSock : 1;
 
     uint8_t RawSocketAvailable : 1;
 
@@ -743,28 +769,6 @@ CxPlatCryptInitialize(
 void
 CxPlatCryptUninitialize(
     void
-    );
-
-//
-// Platform Worker APIs
-// 
-
-BOOLEAN
-CxPlatWorkerPoolLazyStart(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
-    );
-
-CXPLAT_EVENTQ*
-CxPlatWorkerPoolGetEventQ(
-    _In_ const CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ uint16_t Index // Into the config processor array
-    );
-
-BOOLEAN // Returns FALSE no work was done.
-CxPlatDataPathPoll(
-    _In_ void* Context,
-    _Out_ BOOLEAN* RemoveFromPolling
     );
 
 //
@@ -902,7 +906,7 @@ typedef struct CXPLAT_SOCKET {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t UseTcp : 1;                  // Quic over TCP
+    uint8_t ReserveAuxTcpSock : 1;                  // Quic over TCP
 
     uint8_t RawSocketAvailable : 1;
 
@@ -1009,7 +1013,7 @@ typedef struct CXPLAT_DATAPATH {
     uint8_t Freed : 1;
 #endif
 
-    uint8_t UseTcp : 1;
+    uint8_t ReserveAuxTcpSock : 1;
 
     //
     // The per proc datapath contexts.
@@ -1216,7 +1220,7 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_ROUTE* Route
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1229,7 +1233,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     );
 

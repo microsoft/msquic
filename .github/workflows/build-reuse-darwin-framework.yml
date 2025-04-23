@@ -20,11 +20,11 @@ on:
         #   - Release
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - quictls3
       static:
         required: false
         default: ''
@@ -63,12 +63,12 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: ${{ inputs.config }}-macos-macos-13-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: ${{ inputs.config }}-macos-macos-13-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -76,7 +76,7 @@ jobs:
       shell: pwsh
       run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -100,7 +100,7 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
         name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -108,7 +108,7 @@ jobs:
       shell: pwsh
       run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
@@ -124,25 +124,25 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-13-x64-quictls
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-quictls
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
-      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
+      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-openssl
+        name: Framework-${{ inputs.config }}-macos-macos-13-universal-quictls
         path: artifacts
     - name: Build XCFramework
       shell: pwsh
       run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: XCFramework-${{ inputs.config }}
         path: artifacts/frameworks

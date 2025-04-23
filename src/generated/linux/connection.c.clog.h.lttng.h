@@ -2,6 +2,45 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegotiation
+// [C][RX][-] VN
+// QuicTraceLogVerbose(
+        PacketRxVersionNegotiation,
+        "[C][RX][-] VN");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegotiation,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegVer
+// [C][RX][-]   Ver[%d]: 0x%x
+// QuicTraceLogVerbose(
+            PacketRxVersionNegVer,
+            "[C][RX][-]   Ver[%d]: 0x%x",
+            (int32_t)i,
+            CxPlatByteSwapUint32(ServerVersion));
+// arg2 = arg2 = (int32_t)i = arg2
+// arg3 = arg3 = CxPlatByteSwapUint32(ServerVersion) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegVer,
+    TP_ARGS(
+        int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
@@ -900,6 +939,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnDscpSet
+// [conn][%p] Connection DSCP set to %hhu
+// QuicTraceLogConnInfo(
+            ConnDscpSet,
+            Connection,
+            "Connection DSCP set to %hhu",
+            Connection->DSCP);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->DSCP = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDscpSet,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApplySettings
 // [conn][%p] Applying new settings
 // QuicTraceLogConnInfo(
@@ -1290,52 +1352,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RecvVerNeg
-// [conn][%p] Received Version Negotation:
-// QuicTraceLogConnVerbose(
-        RecvVerNeg,
-        Connection,
-        "Received Version Negotation:");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNeg,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for VerNegItem
-// [conn][%p]   Ver[%d]: 0x%x
-// QuicTraceLogConnVerbose(
-            VerNegItem,
-            Connection,
-            "  Ver[%d]: 0x%x",
-            (int32_t)i,
-            CxPlatByteSwapUint32(ServerVersion));
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (int32_t)i = arg3
-// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion) = arg4
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, VerNegItem,
-    TP_ARGS(
-        const void *, arg1,
-        int, arg3,
-        unsigned int, arg4), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(int, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 
@@ -2015,10 +2031,10 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnEcnCapable,
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnVersionSet
-// [conn][%p] QUIC Version: %u
+// [conn][%p] QUIC Version: 0x%x
 // QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] QUIC Version: %u",
+            "[conn][%p] QUIC Version: 0x%x",
             Connection,
             Connection->Stats.QuicVersion);
 // arg2 = arg2 = Connection = arg2

@@ -46,6 +46,32 @@ QuicAddrSetToDuoNic(
     }
 }
 
+//
+// Set a QUIC_ADDR to the duonic "client" address.
+//
+inline
+void
+QuicAddrSetToDuoNicClient(
+    _Inout_ QUIC_ADDR* Addr
+    )
+{
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
+        // 192.168.1.12
+        ((uint32_t*)&(Addr->Ipv4.sin_addr))[0] = 201435328;
+    } else {
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET6);
+        // fc00::1:12
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[0] = 252;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[1] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[2] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[3] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[4] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[5] = 0;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[6] = 256;
+        ((uint16_t*)&(Addr->Ipv6.sin6_addr))[7] = 4608;
+    }
+}
+
 inline
 uint32_t
 QuitTestGetDatapathFeatureFlags() {
@@ -193,6 +219,17 @@ void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, voi
             return;
         }
     }
+
+    //
+    // Call with correct length now, but NULL buffer for added coverage.
+    //
+    TEST_QUIC_STATUS(
+        QUIC_STATUS_INVALID_PARAMETER,
+        MsQuic->GetParam(
+            Handle,
+            Param,
+            &Length,
+            nullptr));
 
     Length = (uint32_t)ExpectedLength; // Only query the expected size, which might be less.
     void* Value = CXPLAT_ALLOC_NONPAGED(Length, QUIC_POOL_TEST);
@@ -920,7 +957,8 @@ struct LoadBalancerHelper : public DatapathHook
     uint32_t PrivateAddressesCount;
     LoadBalancerHelper(const QUIC_ADDR& Public, const QUIC_ADDR* Private, uint32_t PrivateCount) :
         PublicAddress(Public), PrivateAddresses(Private), PrivateAddressesCount(PrivateCount) {
-        CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+        CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+        Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
         CxPlatToeplitzHashInitialize(&Toeplitz);
         DatapathHooks::Instance->AddHook(this);
     }

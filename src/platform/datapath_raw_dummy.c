@@ -126,10 +126,10 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Route);
     return 1500;
 }
 
@@ -146,11 +146,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Config);
     return NULL;
 }
@@ -253,4 +251,27 @@ RawUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(InterfaceIndex);
+    UNREFERENCED_PARAMETER(RssConfig);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(RssConfig);
+    CXPLAT_FRE_ASSERTMSG(FALSE, "CxPlatDataPathRssConfigFree not supported");
 }

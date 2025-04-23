@@ -98,6 +98,7 @@ typedef UINT64 uint64_t;
 #define QUIC_STATUS_INVALID_STATE           STATUS_INVALID_DEVICE_STATE         // 0xc0000184
 #define QUIC_STATUS_NOT_SUPPORTED           STATUS_NOT_SUPPORTED                // 0xc00000bb
 #define QUIC_STATUS_NOT_FOUND               STATUS_NOT_FOUND                    // 0xc0000225
+#define QUIC_STATUS_FILE_NOT_FOUND          QUIC_STATUS_NOT_FOUND               // 0xc0000225
 #define QUIC_STATUS_BUFFER_TOO_SMALL        STATUS_BUFFER_TOO_SMALL             // 0xc0000023
 #define QUIC_STATUS_HANDSHAKE_FAILURE       STATUS_QUIC_HANDSHAKE_FAILURE       // 0xc0240000
 #define QUIC_STATUS_ABORTED                 STATUS_CANCELLED                    // 0xc0000120
@@ -254,9 +255,11 @@ QuicAddrSetToLoopback(
     )
 {
     if (Addr->si_family == QUIC_ADDRESS_FAMILY_INET) {
+        Addr->Ipv4.sin_addr.s_addr = 0UL;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b1 = 127;
         Addr->Ipv4.sin_addr.S_un.S_un_b.s_b4 = 1;
     } else {
+        memset(&Addr->Ipv6.sin6_addr, 0, sizeof(Addr->Ipv6.sin6_addr));
         Addr->Ipv6.sin6_addr.u.Byte[15] = 1;
     }
 }

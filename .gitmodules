@@ -1,12 +1,12 @@
 [submodule "submodules/googletest"]
 	path = submodules/googletest
 	url = https://github.com/google/googletest
-[submodule "submodules/openssl"]
-	path = submodules/openssl
+[submodule "submodules/quictls"]
+	path = submodules/quictls
 	url = https://github.com/quictls/openssl.git
 	branch = OpenSSL_1_1_1w+quic
-[submodule "submodules/openssl3"]
-	path = submodules/openssl3
+[submodule "submodules/quictls3"]
+	path = submodules/quictls3
 	url = https://github.com/quictls/openssl.git
 	branch = openssl-3.1.4+quic
 [submodule "submodules/clog"]
@@ -15,4 +15,4 @@
 [submodule "submodules/xdp-for-windows"]
 	path = submodules/xdp-for-windows
 	url = https://github.com/microsoft/xdp-for-windows.git
-	branch = release/1.0
+	branch = release/1.1

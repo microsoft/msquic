@@ -59,7 +59,7 @@ QUIC_STATUS
 QuicWorkerInitialize(
     _In_ const QUIC_REGISTRATION* Registration,
     _In_ QUIC_EXECUTION_PROFILE ExecProfile,
-    _In_ uint16_t PartitionIndex,
+    _In_ QUIC_PARTITION* Partition,
     _Inout_ QUIC_WORKER* Worker
     )
 {
@@ -67,24 +67,17 @@ QuicWorkerInitialize(
         WorkerCreated,
         "[wrkr][%p] Created, IdealProc=%hu Owner=%p",
         Worker,
-        QuicLibraryGetPartitionProcessor(PartitionIndex),
+        Partition->Processor,
         Registration);
 
     Worker->Enabled = TRUE;
-    Worker->PartitionIndex = PartitionIndex;
+    Worker->Partition = Partition;
     CxPlatDispatchLockInitialize(&Worker->Lock);
     CxPlatEventInitialize(&Worker->Done, TRUE, FALSE);
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
     CxPlatListInitializeHead(&Worker->Operations);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STREAM), QUIC_POOL_STREAM, &Worker->StreamPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK)+QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE, QUIC_POOL_SBUF, &Worker->DefaultReceiveBufferPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_SEND_REQUEST), QUIC_POOL_SEND_REQUEST, &Worker->SendRequestPool);
-    QuicSentPacketPoolInitialize(&Worker->SentPacketPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_API_CONTEXT), QUIC_POOL_API_CTX, &Worker->ApiContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_STATELESS_CONTEXT), QUIC_POOL_STATELESS_CTX, &Worker->StatelessContextPool);
-    CxPlatPoolInitialize(FALSE, sizeof(QUIC_OPERATION), QUIC_POOL_OPER, &Worker->OperPool);
 
     QUIC_STATUS Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
     if (QUIC_FAILED(Status)) {
@@ -99,7 +92,10 @@ QuicWorkerInitialize(
 #ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
-        CxPlatAddExecutionContext(&MsQuicLib.WorkerPool, &Worker->ExecutionContext, PartitionIndex);
+        CxPlatWorkerPoolAddExecutionContext(
+            MsQuicLib.WorkerPool,
+            &Worker->ExecutionContext,
+            Partition->Index);
     } else
 #endif // _KERNEL_MODE
     {
@@ -129,7 +125,7 @@ QuicWorkerInitialize(
 
         CXPLAT_THREAD_CONFIG ThreadConfig = {
             ThreadFlags,
-            QuicLibraryGetPartitionProcessor(PartitionIndex),
+            Partition->Processor,
             "quic_worker",
             QuicWorkerThread,
             Worker
@@ -193,13 +189,6 @@ QuicWorkerUninitialize(
     Worker->PriorityConnectionsTail = NULL;
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
 
-    CxPlatPoolUninitialize(&Worker->StreamPool);
-    CxPlatPoolUninitialize(&Worker->DefaultReceiveBufferPool);
-    CxPlatPoolUninitialize(&Worker->SendRequestPool);
-    QuicSentPacketPoolUninitialize(&Worker->SentPacketPool);
-    CxPlatPoolUninitialize(&Worker->ApiContextPool);
-    CxPlatPoolUninitialize(&Worker->StatelessContextPool);
-    CxPlatPoolUninitialize(&Worker->OperPool);
     CxPlatDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
 
@@ -218,6 +207,7 @@ QuicWorkerAssignConnection(
 {
     CXPLAT_DBG_ASSERT(Connection->Worker != Worker);
     Connection->Worker = Worker;
+    Connection->Partition = Worker->Partition;
     QuicTraceEvent(
         ConnAssignWorker,
         "[conn][%p] Assigned worker: %p",
@@ -269,7 +259,7 @@ QuicWorkerQueueConnection(
         if (WakeWorkerThread) {
             QuicWorkerThreadWake(Worker);
         }
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
 
@@ -313,7 +303,7 @@ QuicWorkerQueuePriorityConnection(
         if (WakeWorkerThread) {
             QuicWorkerThreadWake(Worker);
         }
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
     }
 }
 
@@ -370,8 +360,8 @@ QuicWorkerQueueOperation(
         CxPlatListInsertTail(&Worker->Operations, &Operation->Link);
         Worker->OperationCount++;
         Operation = NULL;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUED);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUED);
     } else {
         WakeWorkerThread = FALSE;
         Worker->DroppedOperationCount++;
@@ -383,7 +373,7 @@ QuicWorkerQueueOperation(
         const QUIC_BINDING* Binding = Operation->STATELESS.Context->Binding;
         const QUIC_RX_PACKET* Packet = Operation->STATELESS.Context->Packet;
         QuicPacketLogDrop(Binding, Packet, "Worker operation limit reached");
-        QuicOperationFree(Worker, Operation);
+        QuicOperationFree(Operation);
     } else if (WakeWorkerThread) {
         QuicWorkerThreadWake(Worker);
     }
@@ -441,7 +431,7 @@ QuicWorkerGetNextConnection(
             Connection->HasQueuedWork = FALSE;
             Connection->HasPriorityWork = FALSE;
             Connection->WorkerProcessing = TRUE;
-            QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
+            QuicPerfCounterDecrement(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH);
         }
         CxPlatDispatchLockRelease(&Worker->Lock);
     }
@@ -466,7 +456,7 @@ QuicWorkerGetNextOperation(
         Operation->Link.Flink = NULL;
 #endif
         Worker->OperationCount--;
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
+        QuicPerfCounterDecrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH);
         CxPlatDispatchLockRelease(&Worker->Lock);
     }
 
@@ -560,8 +550,8 @@ QuicWorkerProcessConnection(
         //
         QUIC_CONNECTION_EVENT Event;
         Event.Type = QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED;
-        Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = QuicLibraryGetPartitionProcessor(Worker->PartitionIndex);
-        Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex = Worker->PartitionIndex;
+        Event.IDEAL_PROCESSOR_CHANGED.IdealProcessor = Worker->Partition->Processor;
+        Event.IDEAL_PROCESSOR_CHANGED.PartitionIndex = Worker->Partition->Index;
         QuicTraceLogConnVerbose(
             IndicateIdealProcChanged,
             Connection,
@@ -673,7 +663,7 @@ QuicWorkerLoopCleanup(
         QuicConnRelease(Connection, QUIC_CONN_REF_WORKER);
         --Dequeue;
     }
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
+    QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
 
     Dequeue = 0;
     while (!CxPlatListIsEmpty(&Worker->Operations)) {
@@ -683,10 +673,10 @@ QuicWorkerLoopCleanup(
 #if DEBUG
         Operation->Link.Flink = NULL;
 #endif
-        QuicOperationFree(Worker, Operation);
+        QuicOperationFree(Operation);
         --Dequeue;
     }
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
+    QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_QUEUE_DEPTH, Dequeue);
 }
 
 //
@@ -747,8 +737,8 @@ QuicWorkerLoop(
         QuicBindingProcessStatelessOperation(
             Operation->Type,
             Operation->STATELESS.Context);
-        QuicOperationFree(Worker, Operation);
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
+        QuicOperationFree(Operation);
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_WORK_OPER_COMPLETED);
         Worker->ExecutionContext.Ready = TRUE;
         State->NoWorkCount = 0;
     }
@@ -867,7 +857,12 @@ QuicWorkerPoolInitialize(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     for (uint16_t i = 0; i < WorkerCount; i++) {
-        Status = QuicWorkerInitialize(Registration, ExecProfile, i, &WorkerPool->Workers[i]);
+        Status =
+            QuicWorkerInitialize(
+                Registration,
+                ExecProfile,
+                &MsQuicLib.Partitions[i],
+                &WorkerPool->Workers[i]);
         if (QUIC_FAILED(Status)) {
             for (uint16_t j = 0; j < i; j++) {
                 QuicWorkerUninitialize(&WorkerPool->Workers[j]);

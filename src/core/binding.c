@@ -37,7 +37,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
@@ -219,9 +219,7 @@ QuicBindingUninitialize(
             &StatelessCtx->TableEntry,
             NULL);
         CXPLAT_DBG_ASSERT(StatelessCtx->IsProcessed);
-        CxPlatPoolFree(
-            &StatelessCtx->Worker->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
     CXPLAT_DBG_ASSERT(Binding->StatelessOperCount == 0);
     CXPLAT_DBG_ASSERT(Binding->StatelessOperTable.NumEntries == 0);
@@ -413,11 +411,10 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     )
 {
-    UNREFERENCED_PARAMETER(Connection);
     QUIC_LISTENER* Listener = NULL;
 
     const QUIC_ADDR* Addr = Info->LocalAddress;
@@ -474,7 +471,7 @@ Done:
             "[conn][%p] No listener matching ALPN: %!ALPN!",
             Connection,
             CASTED_CLOG_BYTEARRAY(Info->ClientAlpnListLength, Info->ClientAlpnList));
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_NO_ALPN);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_NO_ALPN);
     }
 
     return Listener;
@@ -669,9 +666,7 @@ QuicBindingCreateStatelessOperation(
         // If it's also processed, free it.
         //
         if (OldStatelessCtx->IsProcessed) {
-            CxPlatPoolFree(
-                &OldStatelessCtx->Worker->StatelessContextPool,
-                OldStatelessCtx);
+            CxPlatPoolFree(OldStatelessCtx);
         }
     }
 
@@ -706,7 +701,7 @@ QuicBindingCreateStatelessOperation(
     //
 
     StatelessCtx =
-        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&Worker->StatelessContextPool);
+        (QUIC_STATELESS_CONTEXT*)CxPlatPoolAlloc(&Worker->Partition->StatelessContextPool);
     if (StatelessCtx == NULL) {
         QuicPacketLogDrop(Binding, Packet, "Alloc failure for stateless oper ctx");
         goto Exit;
@@ -766,7 +761,7 @@ QuicBindingQueueStatelessOperation(
         return FALSE;
     }
 
-    QUIC_OPERATION* Oper = QuicOperationAlloc(Worker, OperType);
+    QUIC_OPERATION* Oper = QuicOperationAlloc(Worker->Partition, OperType);
     if (Oper == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -793,6 +788,8 @@ QuicBindingProcessStatelessOperation(
 {
     QUIC_BINDING* Binding = StatelessCtx->Binding;
     QUIC_RX_PACKET* RecvPacket = StatelessCtx->Packet;
+    QUIC_PARTITION* Partition =
+        &MsQuicLib.Partitions[StatelessCtx->Packet->PartitionIndex];
     QUIC_BUFFER* SendDatagram = NULL;
 
     CXPLAT_DBG_ASSERT(RecvPacket->ValidatedHeaderInv);
@@ -803,7 +800,7 @@ QuicBindingProcessStatelessOperation(
         Binding,
         OperationType);
 
-    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0 };
+    CXPLAT_SEND_CONFIG SendConfig = { RecvPacket->Route, 0, CXPLAT_ECN_NON_ECT, 0, CXPLAT_DSCP_CS0 };
     CXPLAT_SEND_DATA* SendData = CxPlatSendDataAlloc(Binding->Socket, &SendConfig);
     if (SendData == NULL) {
         QuicTraceEvent(
@@ -945,6 +942,7 @@ QuicBindingProcessStatelessOperation(
         ResetPacket->FixedBit = 1;
         ResetPacket->KeyPhase = RecvPacket->SH->KeyPhase;
         QuicLibraryGenerateStatelessResetToken(
+            Partition,
             RecvPacket->DestCid,
             SendDatagram->Buffer + PacketLength - QUIC_STATELESS_RESET_TOKEN_LENGTH);
 
@@ -956,7 +954,7 @@ QuicBindingProcessStatelessOperation(
                 QUIC_STATELESS_RESET_TOKEN_LENGTH
             ).Buffer);
 
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_SEND_STATELESS_RESET);
+        QuicPerfCounterIncrement(Partition, QUIC_PERF_COUNTER_SEND_STATELESS_RESET);
 
     } else if (OperationType == QUIC_OPER_TYPE_RETRY) {
 
@@ -998,11 +996,12 @@ QuicBindingProcessStatelessOperation(
             CxPlatCopyMemory(Iv, NewDestCid, MsQuicLib.CidTotalLength);
         }
 
-        CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockAcquire(&Partition->StatelessRetryKeysLock);
 
-        CXPLAT_KEY* StatelessRetryKey = QuicLibraryGetCurrentStatelessRetryKey();
+        CXPLAT_KEY* StatelessRetryKey =
+            QuicPartitionGetCurrentStatelessRetryKey(Partition);
         if (StatelessRetryKey == NULL) {
-            CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+            CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
             goto Exit;
         }
 
@@ -1013,7 +1012,7 @@ QuicBindingProcessStatelessOperation(
                 sizeof(Token.Authenticated), (uint8_t*) &Token.Authenticated,
                 sizeof(Token.Encrypted) + sizeof(Token.EncryptionTag), (uint8_t*)&(Token.Encrypted));
 
-        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
@@ -1042,7 +1041,7 @@ QuicBindingProcessStatelessOperation(
             QuicCidBufToStr(RecvPacket->DestCid, RecvPacket->DestCidLen).Buffer,
             (uint16_t)sizeof(Token));
 
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_SEND_STATELESS_RETRY);
+        QuicPerfCounterIncrement(Partition, QUIC_PERF_COUNTER_SEND_STATELESS_RETRY);
 
     } else {
         CXPLAT_TEL_ASSERT(FALSE); // Should be unreachable code.
@@ -1051,6 +1050,7 @@ QuicBindingProcessStatelessOperation(
 
     QuicBindingSend(
         Binding,
+        Partition,
         RecvPacket->Route,
         SendData,
         SendDatagram->Length,
@@ -1090,9 +1090,7 @@ QuicBindingReleaseStatelessOperation(
     }
 
     if (FreeCtx) {
-        CxPlatPoolFree(
-            &StatelessCtx->Worker->StatelessContextPool,
-            StatelessCtx);
+        CxPlatPoolFree(StatelessCtx);
     }
 }
 
@@ -1272,6 +1270,7 @@ QuicBindingCreateConnection(
     QUIC_STATUS Status =
         QuicConnAlloc(
             MsQuicLib.StatelessRegistration,
+            Worker->Partition,
             Worker,
             Packet,
             &NewConnection);
@@ -1620,8 +1619,9 @@ QuicBindingReceive(
     // connection it was delivered to.
     //
 
-    const uint16_t Partition = DatagramChain->PartitionIndex;
-    const uint64_t PartitionShifted = ((uint64_t)Partition + 1) << 40;
+    CXPLAT_DBG_ASSERT(DatagramChain->PartitionIndex < MsQuicLib.PartitionCount);
+    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[DatagramChain->PartitionIndex];
+    const uint64_t PartitionShifted = ((uint64_t)Partition->Index + 1) << 40;
 
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = DatagramChain) != NULL) {
@@ -1636,7 +1636,7 @@ QuicBindingReceive(
 
         QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET*)Datagram;
         Packet->PacketId =
-            PartitionShifted | InterlockedIncrement64((int64_t*)&QuicLibraryGetPerProc()->ReceivePacketId);
+            PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->ReceivePacketId);
         Packet->PacketNumber = 0;
         Packet->SendTimestamp = UINT64_MAX;
         Packet->AvailBuffer = Datagram->Buffer;
@@ -1751,9 +1751,9 @@ QuicBindingReceive(
         CxPlatRecvDataReturn(ReleaseChain);
     }
 
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV, TotalChainLength);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_RECV_BYTES, TotalDatagramBytes);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_RECV_EVENTS);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_RECV, TotalChainLength);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_RECV_BYTES, TotalDatagramBytes);
+    QuicPerfCounterIncrement(Partition, QUIC_PERF_COUNTER_UDP_RECV_EVENTS);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1786,6 +1786,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_PARTITION* Partition,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
@@ -1820,7 +1821,25 @@ QuicBindingSend(
     }
 #endif
 
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
-    QuicPerfCounterAdd(QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_UDP_SEND_CALLS);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_SEND, DatagramsToSend);
+    QuicPerfCounterAdd(Partition, QUIC_PERF_COUNTER_UDP_SEND_BYTES, BytesToSend);
+    QuicPerfCounterIncrement(Partition, QUIC_PERF_COUNTER_UDP_SEND_CALLS);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicBindingHandleDosModeStateChange(
+    _In_ QUIC_BINDING* Binding,
+    _In_ BOOLEAN DosModeEnabled
+    )
+{
+    CxPlatDispatchRwLockAcquireShared(&Binding->RwLock, PrevIrql);
+    for (CXPLAT_LIST_ENTRY* ListenerLink = Binding->Listeners.Flink;
+            ListenerLink != &Binding->Listeners;
+            ListenerLink = ListenerLink->Flink) {
+
+        QUIC_LISTENER* Listener = CXPLAT_CONTAINING_RECORD(ListenerLink, QUIC_LISTENER, Link);
+        QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled);
+    }
+    CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
 }
