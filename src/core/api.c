@@ -1339,7 +1339,6 @@ MsQuicStreamReceiveComplete(
         (int64_t)BufferLength);
     if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
         (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
-        // overflow detected            
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
