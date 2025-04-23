@@ -974,9 +974,11 @@ QuicStreamRecvFlush(
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
 
+        RecvCompletionLength = Stream->RecvCompletionLength;
+        uint64_t NewRecvCompletionLength = RecvCompletionLength & ~QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG;
         RecvCompletionLength = InterlockedExchangeAdd64(
             (int64_t*)&Stream->RecvCompletionLength,
-            -(int64_t)QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG);
+            NewRecvCompletionLength - RecvCompletionLength);
         RecvCompletionLength &= ~QUIC_STREAM_RECEIVE_CALL_ACTIVE_FLAG;
 
         if (Status == QUIC_STATUS_CONTINUE) {
