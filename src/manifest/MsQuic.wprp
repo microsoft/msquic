@@ -116,6 +116,11 @@
       </Keywords>
     </EventProvider>
     <EventProvider Id="EP_XdpEtwPerFrame" Name="Microsoft-XDP" Level="25" />
+    <EventProvider Id="EP_Capi2" Name="Microsoft-Windows-CAPI2" Level="4">
+      <Keywords>
+        <Keyword Value="0x7ff" />
+      </Keywords>
+    </EventProvider>
 
     <Profile Id="Stacks.Light.File" Name="Stacks" Description="CPU Stacks" LoggingMode="File" DetailLevel="Light">
       <Collectors>
@@ -279,6 +284,7 @@
             <EventProviderId Value="EP_NCryptWpp" />
             <EventProviderId Value="EP_XdpEtwPerFrame" />
             <EventProviderId Value="EP_XdpWpp" />
+            <EventProviderId Value="EP_Capi2" />
           </EventProviders>
         </EventCollectorId>
       </Collectors>
