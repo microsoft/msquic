@@ -986,6 +986,7 @@ QuicStreamRecvFlush(
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
+            RecvCompletionLength += Event.RECEIVE.TotalBufferLength;
             FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
@@ -1013,6 +1014,7 @@ QuicStreamRecvFlush(
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
                 (int64_t)Event.RECEIVE.TotalBufferLength);
+            RecvCompletionLength += Event.RECEIVE.TotalBufferLength;
             FlushRecv = TRUE;
         }
 
