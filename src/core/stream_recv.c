@@ -974,11 +974,17 @@ QuicStreamRecvFlush(
 
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
 
+        //
+        // To clear the top bit of RecvCompletionLength (the active receive call flag),
+        // we cannot subtract QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG
+        // because of overflow warning. Instead, we need to calcurate the difference between
+        // the actual number of complete bytes and RecvCompletionLength.
+        //
         RecvCompletionLength = Stream->RecvCompletionLength;
-        uint64_t NewRecvCompletionLength = RecvCompletionLength & ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG;
+        uint64_t NumCompletedBytes = RecvCompletionLength & ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG;
         RecvCompletionLength = InterlockedExchangeAdd64(
             (int64_t*)&Stream->RecvCompletionLength,
-            NewRecvCompletionLength - RecvCompletionLength);
+            NumCompletedBytes - RecvCompletionLength);
         RecvCompletionLength &= ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG;
 
         if (Status == QUIC_STATUS_CONTINUE) {
