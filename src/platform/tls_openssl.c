@@ -2955,10 +2955,6 @@ CxPlatTlsProcessData(
     TlsContext->State = State;
     TlsContext->ResultFlags = 0;
 
-    if (Buffer != NULL) {
-        ProcessNewMessage(TlsContext->Ssl, Buffer, *BufferLength);
-    }
-
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
             OpenSslSendTicketData,
@@ -3011,6 +3007,10 @@ CxPlatTlsProcessData(
         }
 
         goto Exit;
+    }
+
+    if (Buffer != NULL) {
+        ProcessNewMessage(TlsContext->Ssl, Buffer, *BufferLength);
     }
 
     if (!State->HandshakeComplete) {
