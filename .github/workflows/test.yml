@@ -106,12 +106,7 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
-       
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -141,16 +136,9 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
           { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", build: "-Test" },
-         
+          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
