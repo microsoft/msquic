@@ -9,6 +9,10 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
     [string]$Config = "Debug"
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("quictls", "openssl")]
+    [string]$Tls = "quictls",
 )
 
 Set-StrictMode -Version 'Latest'
@@ -23,9 +27,9 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 $FrameworkDir = Join-Path $RootDir artifacts frameworks
 
-$IosSimulatorFramework = Join-Path $FrameworkDir ios x64_$($Config)_quictls msquic.framework
-$IosFramework = Join-Path $FrameworkDir ios arm64_$($Config)_quictls msquic.framework
-$MacFramework = Join-Path $FrameworkDir macos universal_$($Config)_quictls msquic.framework
+$IosSimulatorFramework = Join-Path $FrameworkDir ios x64_$($Config)_$(Tls) msquic.framework
+$IosFramework = Join-Path $FrameworkDir ios arm64_$($Config)_$(Tls) msquic.framework
+$MacFramework = Join-Path $FrameworkDir macos universal_$($Config)_$(Tls) msquic.framework
 
 $OutputDirectory = Join-Path $FrameworkDir msquic.xcframework
 
