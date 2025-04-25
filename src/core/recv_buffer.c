@@ -43,6 +43,121 @@ Abstract:
 #include "recv_buffer.c.clog.h"
 #endif
 
+typedef struct QUIC_RECV_CHUNK_ITERATOR {
+    QUIC_RECV_CHUNK* CurrentChunk;
+    CXPLAT_LIST_ENTRY* IteratorEnd;
+    uint32_t StartOffset; // Offset of the first byte to read in the current chunk.
+    uint32_t EndOffset;   // Offset of the last byte to read in the current chunk (inclusive!).
+} QUIC_RECV_CHUNK_ITERATOR;
+
+//
+// Create an iterator over the receive buffer chunks, skipping `Offset` bytes from `ReadStart`.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_RECV_CHUNK_ITERATOR
+QuicRecvBufferGetChunkIterator(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer,
+    _In_ uint64_t Offset
+    )
+{
+    QUIC_RECV_CHUNK_ITERATOR Iterator = { 0 };
+    Iterator.CurrentChunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    Iterator.IteratorEnd = &RecvBuffer->Chunks;
+
+    if (Offset < RecvBuffer->Capacity) {
+        //
+        // The offset is in the first chunk. Make sure to handle a wrap-around.
+        //
+        Iterator.StartOffset =
+            (RecvBuffer->ReadStart + Offset) % Iterator.CurrentChunk->AllocLength;
+        Iterator.EndOffset =
+            (RecvBuffer->ReadStart + RecvBuffer->Capacity - 1) % Iterator.CurrentChunk->AllocLength;
+        return Iterator;
+    }
+
+    //
+    // Walk through chunks to skip the offset.
+    //
+    Offset -= RecvBuffer->Capacity;
+    Iterator.CurrentChunk =
+        CXPLAT_CONTAINING_RECORD(
+            Iterator.CurrentChunk->Link.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+    while (Offset >= Iterator.CurrentChunk->AllocLength) {
+        CXPLAT_DBG_ASSERT(Iterator.CurrentChunk->Link.Flink != &RecvBuffer->Chunks);
+        Offset -= Iterator.CurrentChunk->AllocLength;
+        Iterator.CurrentChunk =
+            CXPLAT_CONTAINING_RECORD(
+                Iterator.CurrentChunk->Link.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+    }
+    Iterator.StartOffset = (uint32_t)Offset;
+    Iterator.EndOffset = Iterator.CurrentChunk->AllocLength - 1;
+
+    return Iterator;
+}
+
+//
+// Provides the next contiguous span of data in the chunk list.
+// Return FALSE if there is no data to read anymore.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return == TRUE)
+BOOLEAN
+QuicRecvChunkIteratorNext(
+    _Inout_ QUIC_RECV_CHUNK_ITERATOR* Iterator,
+    _In_ BOOLEAN ReferenceChunk,
+    _Out_ QUIC_BUFFER* Buffer
+    )
+{
+    if (Iterator->CurrentChunk == NULL) {
+        return FALSE;
+    }
+
+    if (ReferenceChunk) {
+        Iterator->CurrentChunk->ExternalReference = TRUE;
+    }
+
+    Buffer->Buffer = Iterator->CurrentChunk->Buffer + Iterator->StartOffset;
+
+    if (Iterator->StartOffset > Iterator->EndOffset) {
+        Buffer->Length = Iterator->CurrentChunk->AllocLength - Iterator->StartOffset;
+        //
+        // Wrap around case - next buffer start from the beginning of the chunk.
+        //
+        Iterator->StartOffset = 0;
+    } else {
+        Buffer->Length = Iterator->EndOffset - Iterator->StartOffset + 1;
+
+        if (Iterator->CurrentChunk->Link.Flink == Iterator->IteratorEnd) {
+            //
+            // No more chunks to iterate over.
+            //
+            Iterator->CurrentChunk = NULL;
+            return TRUE;
+        }
+
+        //
+        // Move to the next chunk.
+        //
+        Iterator->CurrentChunk =
+            CXPLAT_CONTAINING_RECORD(
+                Iterator->CurrentChunk->Link.Flink,
+                QUIC_RECV_CHUNK,
+                Link);
+        Iterator->StartOffset = 0;
+        Iterator->EndOffset = Iterator->CurrentChunk->AllocLength - 1;
+    }
+
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvChunkInitialize(
@@ -75,6 +190,63 @@ QuicRecvChunkFree(
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
     }
 }
+
+#if DEBUG
+//
+// Validate the receive buffer invariants.
+// No-op in release builds.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRecvBufferValidate(
+    _In_ const QUIC_RECV_BUFFER* RecvBuffer
+    )
+{
+    QUIC_RECV_CHUNK* FirstChunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+
+    //
+    // In Single and Circular modes, there is only ever one chunk in the list.
+    //
+    CXPLAT_DBG_ASSERT(
+        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_CIRCULAR) ||
+        FirstChunk->Link.Flink == &RecvBuffer->Chunks);
+
+    //
+    // In Multiple and App-owned modes, there never is a retired buffer.
+    //
+    CXPLAT_DBG_ASSERT(
+        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE &&
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) ||
+        RecvBuffer->RetiredChunk == NULL);
+
+    //
+    // In Single mode, data always starts from the beginning of the chunk.
+    //
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE ||
+        RecvBuffer->ReadStart == 0);
+
+    //
+    // In Single and App-owned modes, the first chunk is never used in a circular way.
+    //
+    CXPLAT_DBG_ASSERT(
+        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) ||
+        RecvBuffer->ReadStart + RecvBuffer->ReadLength <= FirstChunk->AllocLength);
+
+    //
+    // There can be a retired chunk only when a read is pending.
+    //
+    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL || RecvBuffer->ReadPendingLength != 0);
+}
+#else
+#define QuicRecvBufferValidate(RecvBuffer)
+#endif
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
@@ -455,9 +627,10 @@ QuicRecvBufferCopyIntoChunks(
     )
 {
     //
-    // Copy the data into the correct chunk(s). In multiple/app-owned mode this
-    // may result in copies to multiple chunks.
-    // For single/circular modes, data will always be copied to a single chunk.
+    // Copy the data into the correct chunk(s).
+    // The caller is resonsible for ensuring there is enough space for the copy.
+    // In single/circular modes, data will always be copied to a single chunk.
+    // In multiple/app-owned mode this may result in copies to multiple chunks.
     //
 
     //
@@ -472,144 +645,29 @@ QuicRecvBufferCopyIntoChunks(
         WriteBuffer += Diff;
     }
 
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink, // First chunk
-                QUIC_RECV_CHUNK,
-                Link);
-        uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
-        CXPLAT_DBG_ASSERT(Chunk->Link.Flink == &RecvBuffer->Chunks); // Should only have one chunk
-        CXPLAT_DBG_ASSERT(RelativeOffset + WriteLength <= Chunk->AllocLength); // Should always fit in the first chunk
-        uint32_t ChunkOffset = (RecvBuffer->ReadStart + RelativeOffset) % Chunk->AllocLength;
+    const uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
 
-        if (ChunkOffset + WriteLength > Chunk->AllocLength) {
-            uint32_t Part1Len = Chunk->AllocLength - ChunkOffset;
-            CxPlatCopyMemory(Chunk->Buffer + ChunkOffset, WriteBuffer, Part1Len);
-            CxPlatCopyMemory(Chunk->Buffer, WriteBuffer + Part1Len, WriteLength - Part1Len);
-        } else {
-            CxPlatCopyMemory(Chunk->Buffer + ChunkOffset, WriteBuffer, WriteLength);
-        }
+    //
+    // Iterate over the list of chunk, copying the data.
+    //
+    QUIC_RECV_CHUNK_ITERATOR Iterator = QuicRecvBufferGetChunkIterator(RecvBuffer, RelativeOffset);
+    QUIC_BUFFER Buffer;
+    while (WriteLength != 0 && QuicRecvChunkIteratorNext(&Iterator, FALSE, &Buffer)) {
+        const uint32_t CopyLength = CXPLAT_MIN(Buffer.Length, WriteLength);
+        CxPlatCopyMemory(Buffer.Buffer, WriteBuffer, CopyLength);
+        WriteBuffer += CopyLength;
+        WriteLength -= (uint16_t)CopyLength;
+    }
+    CXPLAT_DBG_ASSERT(WriteLength == 0); // Should always have enough room to copy everything
 
-        if (Chunk->Link.Flink == &RecvBuffer->Chunks) {
-            RecvBuffer->ReadLength =
-                (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-        }
-    } else {
-        //
-        // In multiple/app-owned mode we may have to write to multiple chunks.
-        // We need to find the first chunk to start writing at and then
-        // continue copying data into the chunks until we run out.
-        //
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink, // First chunk
-                QUIC_RECV_CHUNK,
-                Link);
-
-        uint32_t ChunkLength;
-        BOOLEAN IsFirstChunk = TRUE;
-        uint64_t RelativeOffset = WriteOffset - RecvBuffer->BaseOffset;
-        uint32_t ChunkOffset = RecvBuffer->ReadStart;
-        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE &&
-            Chunk->Link.Flink == &RecvBuffer->Chunks) {
-            //
-            // In multiple mode, when there is only one chunk, it is used as a circular buffer:
-            // the whole allocated length is usable.
-            //
-            CXPLAT_DBG_ASSERT(WriteLength <= Chunk->AllocLength); // Should always fit if we only have one
-            ChunkLength = Chunk->AllocLength;
-            RecvBuffer->ReadLength =
-                (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-        } else {
-            //
-            // The first buffer might be partially drained and only the remaining capacity
-            // can be used.
-            //
-            ChunkLength = RecvBuffer->Capacity;
-
-            if (RelativeOffset < RecvBuffer->Capacity) {
-                //
-                // The write starts from the first chunk. The write spans to the next chunk.
-                //
-                RecvBuffer->ReadLength =
-                    (uint32_t)(QuicRangeGet(&RecvBuffer->WrittenRanges, 0)->Count - RecvBuffer->BaseOffset);
-                if (RecvBuffer->Capacity < RecvBuffer->ReadLength) {
-                    RecvBuffer->ReadLength = RecvBuffer->Capacity;
-                }
-            } else {
-                //
-                // When the RelativeOffset is larger than the Capacity, the write starts from later chunk.
-                // Shrink RelativeOffset to represent the offset from beginning of the other chunk.
-                //
-                while (ChunkLength <= RelativeOffset) {
-                    RelativeOffset -= ChunkLength;
-                    IsFirstChunk = FALSE;
-                    Chunk =
-                        CXPLAT_CONTAINING_RECORD(
-                            Chunk->Link.Flink,
-                            QUIC_RECV_CHUNK,
-                            Link);
-                    ChunkLength = Chunk->AllocLength;
-                }
-            }
-        }
-
-        BOOLEAN IsFirstLoop = TRUE;
-        do {
-            uint32_t ChunkWriteOffset = (ChunkOffset + RelativeOffset) % Chunk->AllocLength;
-            if (!IsFirstChunk) {
-                // This RelativeOffset is already shrunk to represent the offset from beginning of the current chunk.
-                ChunkWriteOffset = (uint32_t)RelativeOffset;
-            }
-            if (!IsFirstLoop) {
-                // We continue writing from the previous chunk. So, start from the beginning of the current chunk.
-                ChunkWriteOffset = 0;
-            }
-
-            uint32_t ChunkWriteLength = WriteLength;
-            if (IsFirstChunk) {
-                if (RecvBuffer->Capacity < RelativeOffset + ChunkWriteLength) {
-                    //
-                    // Trying to write beyond the capacity of the first chunk.
-                    // Limit the write length to the capacity of the first chunk.
-                    //
-                    ChunkWriteLength = RecvBuffer->Capacity - (uint32_t)RelativeOffset;
-                }
-                if (Chunk->AllocLength < ChunkWriteOffset + ChunkWriteLength) {
-                    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED); // App-owned mode capacity will never allow a wrap around
-                    // Circular buffer wrap around case.
-                    CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, Chunk->AllocLength - ChunkWriteOffset);
-                    CxPlatCopyMemory(Chunk->Buffer, WriteBuffer + Chunk->AllocLength - ChunkWriteOffset, ChunkWriteLength - (Chunk->AllocLength - ChunkWriteOffset));
-                } else {
-                    CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, ChunkWriteLength);
-                }
-            } else {
-                if (ChunkWriteOffset + ChunkWriteLength >= ChunkLength) {
-                    ChunkWriteLength = ChunkLength - ChunkWriteOffset;
-                }
-                CxPlatCopyMemory(Chunk->Buffer + ChunkWriteOffset, WriteBuffer, ChunkWriteLength);
-            }
-
-            if (WriteLength == ChunkWriteLength) {
-                // Run out of data to write. Exit the loop.
-                break;
-            }
-            WriteOffset += ChunkWriteLength;
-            WriteLength -= (uint16_t)ChunkWriteLength;
-            WriteBuffer += ChunkWriteLength;
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    Chunk->Link.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-            ChunkOffset = 0;
-            ChunkLength = Chunk->AllocLength;
-            IsFirstChunk = FALSE;
-            IsFirstLoop = FALSE;
-
-        } while (TRUE);
+    //
+    // Update the amount of data readable in the first chunk.
+    //
+    QUIC_SUBRANGE* FirstRange = QuicRangeGet(&RecvBuffer->WrittenRanges, 0);
+    if (FirstRange->Low == 0) {
+        RecvBuffer->ReadLength = (uint32_t)CXPLAT_MIN(
+            RecvBuffer->Capacity,
+            FirstRange->Count - RecvBuffer->BaseOffset);
     }
 }
 
@@ -726,6 +784,7 @@ QuicRecvBufferWrite(
     //
     QuicRecvBufferCopyIntoChunks(RecvBuffer, WriteOffset, WriteLength, WriteBuffer);
 
+    QuicRecvBufferValidate(RecvBuffer);
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -766,7 +825,7 @@ QuicRecvBufferReadBufferNeededCount(
     // Determine how much data is readable
     //
     const QUIC_SUBRANGE* FirstRange = QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0);
-    if (!FirstRange) {
+    if (!FirstRange || FirstRange->Low != 0) {
         return 0;
     }
     const uint64_t ReadableData = FirstRange->Count - RecvBuffer->BaseOffset;
@@ -802,7 +861,7 @@ QuicRecvBufferRead(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
     _Inout_ uint32_t* BufferCount,
-    _Out_writes_all_(*BufferCount)
+    _Out_writes_to_(*BufferCount, *BufferCount)
         QUIC_BUFFER* Buffers
     )
 {
@@ -814,14 +873,6 @@ QuicRecvBufferRead(
     CXPLAT_DBG_ASSERT(
         RecvBuffer->ReadPendingLength == 0 ||
         RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE);
-    //
-    // Only multiple and app-owned modes can have multiple chunks at read time.
-    // Other modes would coalesce chunks during a write or drain.
-    //
-    CXPLAT_DBG_ASSERT(
-        RecvBuffer->Chunks.Flink->Flink == &RecvBuffer->Chunks ||
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE ||
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED );
 
     //
     // Find the length of the data written in the front, after the BaseOffset.
@@ -830,192 +881,39 @@ QuicRecvBufferRead(
     CXPLAT_DBG_ASSERT(FirstRange->Low == 0 || FirstRange->Count > RecvBuffer->BaseOffset);
     const uint64_t ContiguousLength = FirstRange->Count - RecvBuffer->BaseOffset;
 
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE) {
-        //
-        // In single mode, when a read occurs there should be no outstanding
-        // reads/refences and only one chunk currently available.
-        //
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
-        CXPLAT_DBG_ASSERT(RecvBuffer->ReadStart == 0);
-        CXPLAT_DBG_ASSERT(*BufferCount >= 1);
-        CXPLAT_DBG_ASSERT(ContiguousLength <= (uint64_t)Chunk->AllocLength);
-
-        *BufferCount = 1;
-        *BufferOffset = RecvBuffer->BaseOffset;
-        RecvBuffer->ReadPendingLength += ContiguousLength;
-        Buffers[0].Length = (uint32_t)ContiguousLength;
-        Buffers[0].Buffer = Chunk->Buffer;
-        Chunk->ExternalReference = TRUE;
-
-    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
-        //
-        // In circular mode, when a read occurs there should be no outstanding
-        // reads/refences and only one chunk currently available, but the start
-        // offset may not be 0, so we may have to return it as two buffers.
-        //
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        CXPLAT_DBG_ASSERT(!Chunk->ExternalReference);
-        CXPLAT_DBG_ASSERT(*BufferCount >= 2);
-        CXPLAT_DBG_ASSERT(ContiguousLength <= (uint64_t)Chunk->AllocLength);
-
-        *BufferOffset = RecvBuffer->BaseOffset;
-        RecvBuffer->ReadPendingLength += ContiguousLength;
-        Chunk->ExternalReference = TRUE;
-
-        const uint64_t ReadStart = RecvBuffer->ReadStart;
-        if (ReadStart + ContiguousLength > (uint64_t)Chunk->AllocLength) {
-            *BufferCount = 2; // Circular buffer wrap around case.
-            Buffers[0].Length = (uint32_t)(Chunk->AllocLength - ReadStart);
-            Buffers[0].Buffer = Chunk->Buffer + ReadStart;
-            Buffers[1].Length = (uint32_t)ContiguousLength - Buffers[0].Length;
-            Buffers[1].Buffer = Chunk->Buffer;
-        } else {
-            *BufferCount = 1;
-            Buffers[0].Length = (uint32_t)ContiguousLength;
-            Buffers[0].Buffer = Chunk->Buffer + ReadStart;
+    //
+    // Iterate over the chunks, reading as much data as possible.
+    //
+    QUIC_RECV_CHUNK_ITERATOR Iterator =
+        QuicRecvBufferGetChunkIterator(RecvBuffer, RecvBuffer->ReadPendingLength);
+    uint64_t ReadableDataLeft = ContiguousLength - RecvBuffer->ReadPendingLength;
+    uint32_t CurrentBufferId = 0;
+    while (CurrentBufferId < *BufferCount &&
+            ReadableDataLeft > 0 &&
+            QuicRecvChunkIteratorNext(&Iterator, TRUE, &Buffers[CurrentBufferId])) {
+        if (Buffers[CurrentBufferId].Length > ReadableDataLeft) {
+            Buffers[CurrentBufferId].Length = (uint32_t)ReadableDataLeft;
         }
-
-    } else if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
-        CXPLAT_DBG_ASSERT(RecvBuffer->ReadPendingLength < ContiguousLength); // Shouldn't call read if there is nothing new to read
-        uint64_t UnreadLength = ContiguousLength - RecvBuffer->ReadPendingLength;
-        CXPLAT_DBG_ASSERT(UnreadLength > 0);
-
-        //
-        // Walk the chunks to find the data after ReadPendingLength, up to
-        // UnreadLength, to return.
-        //
-        uint64_t ChunkReadOffset = RecvBuffer->ReadPendingLength;
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        BOOLEAN IsFirstChunk = TRUE;
-        uint32_t ChunkReadLength = RecvBuffer->ReadLength;
-        while ((uint64_t)ChunkReadLength <= ChunkReadOffset) {
-            CXPLAT_DBG_ASSERT(ChunkReadLength);
-            CXPLAT_DBG_ASSERT(Chunk->ExternalReference);
-            CXPLAT_DBG_ASSERT(Chunk->Link.Flink != &RecvBuffer->Chunks);
-            ChunkReadOffset -= ChunkReadLength;
-            IsFirstChunk = FALSE;
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    Chunk->Link.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-            ChunkReadLength = Chunk->AllocLength;
-        }
-        CXPLAT_DBG_ASSERT(*BufferCount >= 3);
-        CXPLAT_DBG_ASSERT(ChunkReadOffset <= UINT32_MAX);
-
-        ChunkReadLength -= (uint32_t)ChunkReadOffset;
-        if (IsFirstChunk) {
-            //
-            // Only the first chunk may be used in a circular buffer fashion and
-            // therefore use the RecvBuffer->ReadStart offset.
-            //
-            ChunkReadOffset = (RecvBuffer->ReadStart + ChunkReadOffset) % Chunk->AllocLength;
-            CXPLAT_DBG_ASSERT(ChunkReadLength <= UnreadLength);
-        } else if (ChunkReadLength > UnreadLength) {
-            //
-            // Subsequent chunks do not use ReadStart or ReadLength, so we start
-            // with a chunk length up to the entire length of the chunk.
-            //
-            ChunkReadLength = (uint32_t)UnreadLength;
-        }
-
-        CXPLAT_DBG_ASSERT(ChunkReadLength <= Chunk->AllocLength);
-        if (ChunkReadOffset + ChunkReadLength > Chunk->AllocLength) {
-            *BufferCount = 2; // Circular buffer wrap around case.
-            Buffers[0].Length = (uint32_t)(Chunk->AllocLength - ChunkReadOffset);
-            Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
-            Buffers[1].Length = ChunkReadLength - Buffers[0].Length;
-            Buffers[1].Buffer = Chunk->Buffer;
-        } else {
-            *BufferCount = 1;
-            Buffers[0].Length = ChunkReadLength;
-            Buffers[0].Buffer = Chunk->Buffer + ChunkReadOffset;
-        }
-        Chunk->ExternalReference = TRUE;
-
-        if (UnreadLength > ChunkReadLength) {
-            CXPLAT_DBG_ASSERT(Chunk->Link.Flink != &RecvBuffer->Chunks); // There must be another chunk to read from
-            ChunkReadLength = (uint32_t)UnreadLength - ChunkReadLength;
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    Chunk->Link.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-            CXPLAT_DBG_ASSERT(ChunkReadLength <= Chunk->AllocLength); // Shouldn't be able to read more than the chunk size
-            Buffers[*BufferCount].Length = ChunkReadLength;
-            Buffers[*BufferCount].Buffer = Chunk->Buffer;
-            *BufferCount = *BufferCount + 1;
-            Chunk->ExternalReference = TRUE;
-        }
-
-        *BufferOffset = RecvBuffer->BaseOffset + RecvBuffer->ReadPendingLength;
-        RecvBuffer->ReadPendingLength += UnreadLength;
-
-#if DEBUG
-        uint64_t TotalBuffersLength = 0;
-        for (uint32_t i = 0; i < *BufferCount; ++i) {
-            TotalBuffersLength += Buffers[i].Length;
-        }
-        CXPLAT_DBG_ASSERT(TotalBuffersLength <= RecvBuffer->ReadPendingLength);
-#endif
-    } else { // RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED
-
-        uint64_t RemainingDataToRead = ContiguousLength;
-        const uint32_t ProvidedBufferCount = *BufferCount;
-        *BufferCount = 0;
-
-        //
-        // Read from the first chunk.
-        //
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        Chunk->ExternalReference = TRUE;
-        Buffers[*BufferCount].Buffer = Chunk->Buffer + RecvBuffer->ReadStart;
-        Buffers[*BufferCount].Length = RecvBuffer->ReadLength;
-        RemainingDataToRead -= RecvBuffer->ReadLength;
-        (*BufferCount)++;
-
-        //
-        // Continue reading from the next chunks until we run out of buffers or data.
-        //
-        while (*BufferCount < ProvidedBufferCount && RemainingDataToRead > 0) {
-            Chunk =
-                CXPLAT_CONTAINING_RECORD(
-                    Chunk->Link.Flink,
-                    QUIC_RECV_CHUNK,
-                    Link);
-
-            Chunk->ExternalReference = TRUE;
-            uint32_t ChunkReadLength =
-                (uint32_t)(Chunk->AllocLength < RemainingDataToRead ?
-                    Chunk->AllocLength :
-                    RemainingDataToRead);
-
-            Buffers[*BufferCount].Buffer = Chunk->Buffer;
-            Buffers[*BufferCount].Length = ChunkReadLength;
-            RemainingDataToRead -= ChunkReadLength;
-            (*BufferCount)++;
-        }
-        *BufferOffset = RecvBuffer->BaseOffset;
-        RecvBuffer->ReadPendingLength = ContiguousLength - RemainingDataToRead;
+        ReadableDataLeft -= Buffers[CurrentBufferId].Length;
+        CurrentBufferId++;
     }
+    *BufferCount = CurrentBufferId;
+    *BufferOffset = RecvBuffer->BaseOffset + RecvBuffer->ReadPendingLength;
+    RecvBuffer->ReadPendingLength = ContiguousLength - ReadableDataLeft;
+
+    //
+    // Check that the invariants on the number of receive buffer are respected.
+    //
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED || ReadableDataLeft == 0);
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE || *BufferCount <= 1);
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_CIRCULAR || *BufferCount <= 2);
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_MULTIPLE || *BufferCount <= 3);
+
+    QuicRecvBufferValidate(RecvBuffer);
 }
 
 //
