@@ -74,7 +74,7 @@ jobs:
         path: artifacts
     - name: Build Package
       shell: pwsh
-      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
+      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
