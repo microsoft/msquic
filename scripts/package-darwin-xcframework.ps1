@@ -8,11 +8,11 @@
 param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("Debug", "Release")]
-    [string]$Config = "Debug"
+    [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("quictls", "openssl")]
-    [string]$Tls = "quictls",
+    [string]$Tls = "quictls"
 )
 
 Set-StrictMode -Version 'Latest'
