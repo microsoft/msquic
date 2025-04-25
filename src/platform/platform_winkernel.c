@@ -72,10 +72,7 @@ CxPlatSystemLoad(
     PAGED_CODE();
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    QUIC_SILO PrevSilo = QuicSiloAttach(QuicSiloGetHostServer());
-    CXPLAT_DBG_ASSERT(!QuicSiloIsServer());
     EventRegisterMicrosoft_Quic();
-    QuicSiloDetatch(PrevSilo);
 #endif
 
     (VOID)KeQueryPerformanceCounter((LARGE_INTEGER*)&CxPlatPerfFreq);
@@ -105,10 +102,7 @@ CxPlatSystemUnload(
         "[ sys] Unloaded");
 
 #ifdef QUIC_EVENTS_MANIFEST_ETW
-    QUIC_SILO PrevSilo = QuicSiloAttach(QuicSiloGetHostServer());
-    CXPLAT_DBG_ASSERT(!QuicSiloIsServer());
     EventUnregisterMicrosoft_Quic();
-    QuicSiloDetatch(PrevSilo);
 #endif
 }
 
