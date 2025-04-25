@@ -126,23 +126,23 @@ jobs:
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-quictls
+        name: Framework-${{ inputs.config }}-ios-macos-13-x64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-quictls
+        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
       uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-quictls
+        name: Framework-${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}
         path: artifacts
     - name: Build XCFramework
       shell: pwsh
-      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
+      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }} -Tls {{ inputs.tls }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: XCFramework-${{ inputs.config }}
+        name: XCFramework-${{ inputs.config }}-${{ inputs.tls }}
         path: artifacts/frameworks
