@@ -1334,9 +1334,10 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
-    uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
-        (int64_t*)&Stream->RecvCompletionLength,
-        (int64_t)BufferLength);
+    uint64_t RecvCompletionLength =
+        InterlockedExchangeAdd64(
+            (int64_t*)&Stream->RecvCompletionLength,
+            (int64_t)BufferLength);
     if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
         (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
         QuicTraceEvent(
