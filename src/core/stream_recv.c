@@ -886,7 +886,7 @@ QuicStreamRecvFlush(
         //
         // Set the top bit of RecvCompletionLength to indicate that there is an active receive.
         //
-        uint64_t RecvCompletionLength = InterlockedExchangeAdd64(
+        uint64_t RecvCompletionLength = InterlockedOr64(
             (int64_t*)&Stream->RecvCompletionLength,
             QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG);
         CXPLAT_DBG_ASSERT(RecvCompletionLength == 0 ||
@@ -975,24 +975,18 @@ QuicStreamRecvFlush(
         QUIC_STATUS Status = QuicStreamIndicateEvent(Stream, &Event);
 
         //
-        // To clear the top bit of RecvCompletionLength (the active receive call flag),
-        // we cannot subtract QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG
-        // because of overflow warning. Instead, we need to calcurate the difference between
-        // the actual number of complete bytes and RecvCompletionLength.
+        // Clear the active receive flag.
         //
-        RecvCompletionLength = Stream->RecvCompletionLength;
-        uint64_t NumCompletedBytes = RecvCompletionLength & ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG;
-        RecvCompletionLength = InterlockedExchangeAdd64(
+        RecvCompletionLength = InterlockedAnd64(
             (int64_t*)&Stream->RecvCompletionLength,
-            NumCompletedBytes - RecvCompletionLength);
+            ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG);
         RecvCompletionLength &= ~QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG;
 
+        uint64_t BufferLength = RecvCompletionLength;
+        
         if (Status == QUIC_STATUS_CONTINUE) {
             CXPLAT_DBG_ASSERT(!Stream->Flags.SentStopSending);
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
-            RecvCompletionLength += Event.RECEIVE.TotalBufferLength;
+            BufferLength += Event.RECEIVE.TotalBufferLength;
             FlushRecv = TRUE;
             //
             // The app has explicitly indicated it wants to continue to
@@ -1016,19 +1010,14 @@ QuicStreamRecvFlush(
                 "App failed recv callback",
                 Stream->Connection->Registration->AppName,
                 Status, 0);
-
-            InterlockedExchangeAdd64(
-                (int64_t*)&Stream->RecvCompletionLength,
-                (int64_t)Event.RECEIVE.TotalBufferLength);
-            RecvCompletionLength += Event.RECEIVE.TotalBufferLength;
+            BufferLength += Event.RECEIVE.TotalBufferLength;
             FlushRecv = TRUE;
         }
 
         if (FlushRecv) {
-            uint64_t BufferLength = RecvCompletionLength;
             InterlockedExchangeAdd64(
                 (int64_t*)&Stream->RecvCompletionLength,
-                -(int64_t)BufferLength);
+                -(int64_t)RecvCompletionLength);
             FlushRecv = QuicStreamReceiveComplete(Stream, BufferLength);
         }
     }
