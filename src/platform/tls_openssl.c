@@ -2484,11 +2484,26 @@ CxPlatTlsInitialize(
     // as it installs null bios for us
     //
     AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_GENERIC);
-    CXPLAT_DBG_ASSERT(AData != NULL);
+    if (AData == NULL) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "Adata",
+            sizeof(struct AUX_DATA));
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
     memset(AData, 0, sizeof(struct AUX_DATA));
     CxPlatListInitializeHead(&AData->RecordList);
     ossl_bio = BIO_new(BIO_s_null());
-    CXPLAT_DBG_ASSERT(ossl_bio != NULL);
+    if (ossl_bio == NULL) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Unable to allocate BIO");
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit; 
+    }
     BIO_set_app_data(ossl_bio, AData);
     BIO_set_callback_ex(ossl_bio, FreeBioAuxData);
     SSL_set_bio(TlsContext->Ssl, ossl_bio, ossl_bio);
