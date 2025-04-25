@@ -681,7 +681,9 @@ static int QuicTlsGotTp(SSL *S, const unsigned char *Params,
 
     AData->PeerTp = CXPLAT_ALLOC_NONPAGED(ParamsLen,
                                            QUIC_POOL_TLS_TRANSPARAMS);
-    CXPLAT_DBG_ASSERT(AData->PeerTp != NULL);
+    if (AData->PeerTp == NULL) {
+        return 0;
+    }
     memcpy(AData->PeerTp, Params, ParamsLen);
     AData->PeerTpLen = ParamsLen;
     if (!TlsContext->IsServer && TlsContext->PeerTPReceived == FALSE) {
@@ -2885,9 +2887,11 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
             //
             CxPlatListEntryRemove(&entry->Link);
             TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
-            CXPLAT_DBG_ASSERT(TmpRec != NULL);
+            if (TmpRec == NULL) {
+                free(entry);
+                return NULL;
+            }
             entry->Record = TmpRec;
-            CXPLAT_DBG_ASSERT(entry->Record != NULL);
             memcpy(&entry->Record[entry->RecLen], NewRecord, NewRecLen);
             entry->RecLen += NewRecLen;
             entry->Incomplete = 0; // need to recheck this for splitting
