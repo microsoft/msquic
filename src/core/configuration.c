@@ -116,7 +116,7 @@ MsQuicConfigurationOpen(
     //
 
 #ifdef QUIC_SILO
-    Configuration->Silo = QuicSiloGetCurrentServer();
+    Configuration->Silo = QuicSiloGetCurrentServerSilo();
     QuicSiloAddRef(Configuration->Silo);
     if (Configuration->Silo != NULL) {
         //
