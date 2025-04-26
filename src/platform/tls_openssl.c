@@ -2735,7 +2735,8 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 // @param[in,out] entry
 //     Pointer to the TLS record entry to inspect and split if needed.
 //
-// @returns 1 if an incomplete record was left on the list, 0 otherwise
+// @returns 1 if an incomplete record was left on the list, -1 if an error
+// occured, or 0 if a complete record was made.
 //
 // @note Message lengths are read from the first 3 bytes of a 4-byte field
 //       (TLS handshake header). The total length includes a 1-byte type and
@@ -2777,7 +2778,14 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
         //
         //make sure our message type is valid
         //
-        CXPLAT_DBG_ASSERT(message_type <= 20);
+        if (message_type > 20) {
+            //
+            // This is not a real handshake record
+            //
+            free(Entry->Record);
+            free(Entry);
+            return -1;
+        }
         //
         // If this message is larger then the total record length
         // then we need to create an Incomplete record as its remainder
@@ -2938,6 +2946,7 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
 static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
 {
     RECORD_ENTRY *this_rec;
+    int SplitRet;
 
     this_rec = GetIncompleteRecord(Record, RecLen, Ssl);
     if (this_rec == NULL) {
@@ -2947,8 +2956,12 @@ static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
         this_rec = MakeNewRecord(Record, RecLen, Ssl);
     }
 
-    if (SplitAddRecord(this_rec)) {
+    SplitRet = SplitAddRecord(this_rec);
+
+    if (SplitRet == 1) {
         return 2;
+    } else if (SplitRet == -1) {
+        return 0;
     }
     return 1;
 }
