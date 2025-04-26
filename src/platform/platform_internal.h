@@ -1208,7 +1208,6 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RdmaSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
@@ -1474,7 +1473,6 @@ SocketConnectRdma(
     _Out_ CXPLAT_SOCKET* Socket
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RdmaSocketSend(
     _In_ CXPLAT_SOCKET* Socket,

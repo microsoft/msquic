@@ -365,6 +365,7 @@ CxPlatSocketContextRelease(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID
 CxPlatStartDatapathIo(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
@@ -377,6 +378,7 @@ CxPlatStartDatapathIo(
     CxPlatRefIncrement(&SocketProc->RefCount);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 VOID
 CxPlatCancelDatapathIo(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -887,7 +889,7 @@ DataPathInitialize(
 
         Status = CxPlatRdmaAdapterInitialize(Config->RdmaAdapterAddress, &Datapath->RdmaAdapter);
         if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
+            QuicTraceLogError(
                 RdmaAdapterInitFailed,
                 "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
                 Datapath,
@@ -1472,6 +1474,7 @@ CxPlatSocketArmRioNotify(
     }
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatSocketEnqueueSqe(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,

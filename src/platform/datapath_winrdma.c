@@ -82,9 +82,10 @@ typedef enum _RDMA_CONNECTION_STATE
     RdmaConnectionStateUninitialized = 0,
     RdmaConnectionStateRingBufferRegistered,
     RdmaConnectionStateConnecting,
+    RdmaConnectionStateCompleteConnect,
+    RdmaConnectionStateConnected,
     RdmaConnectionStateWaitingForGetConnRequest,
     RdmaConnectionStateWaitingForAccept,
-    RdmaConnectionStateConnected,
     RdmaConnectionStateTokenExchangeInitiated,
     RdmaConnectionStateTokenExchangeComplete,
     RdmaConnectionStateReady,
@@ -223,6 +224,7 @@ typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) RDMA_DATAPATH_RX_PACK
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaRecvEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaSendEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaConnectEventComplete;
+CXPLAT_EVENT_COMPLETION CxPlatIoRdmaConnectCompletionEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaGetConnectionRequestEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaAcceptEventComplete;
 CXPLAT_EVENT_COMPLETION CxPlatIoRdmaTokenExchangeInitEventComplete;
@@ -318,38 +320,32 @@ ByteBufferToUInt64(
     return Value;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaStartAccept(
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaExchangeTokensInit(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaRecvRemoteTokens(
     _In_ RDMA_CONNECTION* RdmaConnection
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSendRemoteTokens(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ RDMA_CONNECTION* RdmaConnection
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSendRingBufferOffsets(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaRecvRingBufferOffsets(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -392,13 +388,9 @@ CxPlatRdmaSendDataComplete(
 //
 // Try to start a new receive. Returns TRUE if the receive completed inline.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _Out_opt_ ULONG* IoResult,
-    _Out_opt_ uint16_t* InlineBytesTransferred,
-    _Out_opt_ RDMA_DATAPATH_RX_IO_BLOCK** IoBlock
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     );
 
 void
@@ -419,18 +411,20 @@ NdspiCreateOverlappedFile(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (!NdAdapter || !NdAdapter->Adapter)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateOverlappedFileFailed,
-            "CreateOverlappedFile failed, adapter is NULL");
+            "[ ndspi] CreateOverlappedFile failed, status: %d", Status);
+             
         return QUIC_STATUS_INVALID_STATE;
     }
 
     Status = NdAdapter->Adapter->lpVtbl->CreateOverlappedFile(NdAdapter->Adapter, OverlappedFile);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateOverlappedFileFailed,
-            "CreateOverlappedFile failed, status:%d", Status);
+            "[ ndspi] CreateOverlappedFile failed, status: %d", Status);
     }
 
     return Status;
@@ -452,9 +446,10 @@ NdspiCreateMemoryRegion(
 
     if (!NdAdapter || !NdAdapter->Adapter)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateMemoryRegionFailed,
-            "CreateMemoryRegion failed, adapter is NULL");
+            "[ ndspi] CreateMemoryRegion failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -465,9 +460,9 @@ NdspiCreateMemoryRegion(
         MemoryRegion);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateMemoryRegionFailed,
-            "CreateMemoryRegion failed, status:%d", Status);
+            "[ ndspi] CreateMemoryRegion failed, status: %d", Status);
     }
 
     return Status;
@@ -493,9 +488,10 @@ NdspiRegisterMemory(
         !BufferLength ||
         !Overlapped)
     {
-        QuicTraceEvent(
-            RegisterDataBufferFailed,
-            "RegisterDataBuffer failed, invalid parameters");
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
+            RegisterMemoryFailed,
+            "[ ndspi] RegisterMemory failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -513,6 +509,12 @@ NdspiRegisterMemory(
             Overlapped,
             TRUE);
     }
+    else if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            RegisterMemoryFailed,
+            "[ ndspi] RegisterMemory failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -529,17 +531,28 @@ NdspiDeRegisterMemory(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (!MemoryRegion || !Overlapped) {
-        QuicTraceEvent(
-            DeRegisterDataBufferFailed,
-            "DeRegisterDataBuffer failed, invalid parameters");
+    if (!MemoryRegion || !Overlapped)
+    {
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
+            DeRegisterMemoryFailed,
+            "[ ndspi] DeRegisterMemory failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     Status = MemoryRegion->lpVtbl->Deregister(MemoryRegion, Overlapped);
     if (Status == ND_PENDING)
     {
-        Status = MemoryRegion->lpVtbl->GetOverlappedResult(MemoryRegion, Overlapped, TRUE);
+        Status = MemoryRegion->lpVtbl->GetOverlappedResult(
+            MemoryRegion,
+            Overlapped,
+            TRUE);
+    }
+    else if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            DeRegisterMemoryFailed,
+            "[ ndspi] DeRegisterMemory failed, status: %d", Status);
     }
 
     return Status;
@@ -560,9 +573,10 @@ NdspiCreateMemoryWindow(
 
     if (!NdAdapter || !NdAdapter->Adapter)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateMemoryWindowFailed,
-            "CreateMemoryWindow failed, Adapter is NULL");
+            "[ ndspi] CreateMemoryWindow failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -572,9 +586,9 @@ NdspiCreateMemoryWindow(
         MemoryWindow);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateMemoryWindowFailed,
-            "CreateMemoryWindow failed, status:%d", Status);
+            "[ ndspi] CreateMemoryWindow failed, status: %d", Status);
     }
 
     return Status;
@@ -601,9 +615,10 @@ NdspiCreateCompletionQueue(
         !NdAdapter->Adapter ||
         !queueDepth)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateCompletionQueueFailed,
-            "CreateCompletionQueue failed, Adapter is NULL");
+            "[ ndspi] CreateCompletionQueueFailed failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -615,6 +630,14 @@ NdspiCreateCompletionQueue(
         group,
         affinity,
         (VOID**)CompletionQueue);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            CreateCompletionQueueFailed,
+            "[ ndspi] CreateCompletionQueueFailed failed, status: %d", Status);
+    }
+
+    return Status;
 }
 
 //
@@ -633,9 +656,10 @@ NdspiCreateConnector(
 
     if (!NdAdapter || !NdAdapter->Adapter)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateConnectorFailed,
-            "CreateConnector failed, Adapter is NULL");
+            "[ ndspi] CreateConnector failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -646,9 +670,9 @@ NdspiCreateConnector(
         (VOID**)Connector);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateConnectorFailed,
-            "CreateConnector failed, status:%d", Status);
+            "[ ndspi] CreateConnector failed, status: %d", Status);
     }
 
     return Status;
@@ -671,9 +695,10 @@ NdspiCreateListener(
     if (!NdAdapter ||
         !NdAdapter->Adapter)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateListenerFailed,
-            "CreateListener failed, Adapter is NULL");
+            "[ ndspi] CreateListener failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -684,9 +709,9 @@ NdspiCreateListener(
         (VOID**)Listener);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateListenerFailed,
-            "CreateListener failed, status:%d", Status);
+            "[ ndspi] CreateListener failed, status: %d", Status);
     }
 
     return Status;
@@ -699,38 +724,30 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 NdspiStartListener(
     _In_ RDMA_NDSPI_LISTENER* NdListener,
-    _In_bytecount_(AddressSize) const struct sockaddr* Address,
-    _In_ ULONG AddressSize
+    _In_ ULONG Backlog
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (!NdListener ||
-        !NdListener->Listener ||
-        !Address ||
-        !AddressSize)
+        !NdListener->Listener)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             StartListenerFailed,
-            "StartListener failed, invalid parameters");
+            "[ ndspi] StartListener failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    Status = NdListener->Listener->lpVtbl->Bind(
-        NdListener->Listener,
-        Address,
-        AddressSize);
-
-    if (QUIC_FAILED(Status))
-    {
-        QuicTraceEvent(
-            StartListenerFailed,
-            "StartListener Bind failed, status:%d", Status);
     }
 
     Status = NdListener->Listener->lpVtbl->Listen(
         NdListener->Listener,
-        0);
+        Backlog);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            StartListenerFailed,
+            "[ ndspi] StartListener failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -759,9 +776,10 @@ NdspiCreateQueuePair(
         !NdAdapter->Adapter ||
         !CompletionQueue)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CreateQueuePairFailed,
-            "CreateQueuePair failed, invalid parameters");
+            "[ ndspi] CreateQueuePair failed, status: %d", Status);
         return QUIC_STATUS_INVALID_STATE;
     }
 
@@ -777,6 +795,12 @@ NdspiCreateQueuePair(
         MaxInitiatorRequestSge,
         InlineDataSize,
         (VOID**)QueuePair);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            CreateQueuePairFailed,
+            "[ ndspi] CreateQueuePair failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -793,7 +817,7 @@ NdspiAccept(
     _In_ ULONG OutboundReadLimit,
     _In_bytecount_(PrivateDataSize) const VOID* PrivateData,
     _In_ ULONG PrivateDataSize,
-    _In_ OVERLAPPED Ov
+    _In_ OVERLAPPED* Ov
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -801,9 +825,10 @@ NdspiAccept(
     if (!Connector || !QueuePair ||
         !PrivateData || !PrivateDataSize)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             AcceptFailed,
-            "Accept failed, invalid parameters");
+            "[ ndspi] Accept failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -814,7 +839,13 @@ NdspiAccept(
         OutboundReadLimit,
         PrivateData,
         PrivateDataSize,
-        &Ov);
+        Ov);
+    if (QUIC_FAILED(Status) && Status != ND_PENDING)
+    {
+        QuicTraceLogError(
+            AcceptFailed,
+            "[ ndspi] Accept failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -824,7 +855,7 @@ NdspiAccept(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-NdspiBind(
+NdspiBindConnector(
     _In_ IND2Connector* Connector,
     _In_bytecount_ (SrcAddressSize) const struct sockaddr* SrcAddress,
     _In_ ULONG SrcAddressSize)
@@ -835,9 +866,10 @@ NdspiBind(
         !SrcAddress ||
         !SrcAddressSize)
     {
-        QuicTraceEvent(
-            BindFailed,
-            "Bind failed, invalid parameters");
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
+            ConnectorBindFailed,
+            "[ ndspi]  Connector Bind failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -850,10 +882,9 @@ NdspiBind(
         SrcAddressSize);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
-            ConnectFailed,
-            "Connect Bind failed, status:%d", Status);
-        return Status;
+        QuicTraceLogError(
+            ConnectorBindFailed,
+            "[ ndspi]  Connector Bind failed, status: %d", Status);
     } 
 
     return Status;
@@ -875,9 +906,10 @@ NdspiBindListener(
         !SrcAddress ||
         !SrcAddressSize)
     {
-        QuicTraceEvent(
-            BindListenerFailed,
-            "BindListener failed, invalid parameters");
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
+            ListenerBindFailed,
+            "[ ndspi]  Listener Bind failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -890,10 +922,9 @@ NdspiBindListener(
         SrcAddressSize);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
-            BindListenerFailed,
-            "BindListener failed, status:%d", Status);
-        return Status;
+        QuicTraceLogError(
+            ListenerBindFailed,
+            "[ ndspi]  Listener Bind failed, status: %d", Status);
     }
 
     return Status;
@@ -907,7 +938,6 @@ QUIC_STATUS
 NdspiConnect(
     _In_ IND2Connector* Connector,
     _In_ IND2ManaQueuePair *QueuePair,
-    _In_ OVERLAPPED Ov,
     _In_bytecount_ (SrcAddressSize) const struct sockaddr* SrcAddress,
     _In_ ULONG SrcAddressSize,
     _In_bytecount_ (DestAddressSize) const struct sockaddr* DestAddress,
@@ -915,7 +945,8 @@ NdspiConnect(
     _In_ ULONG InboundReadLimit,
     _In_ ULONG OutboundReadLimit,
     _In_bytecount_(PrivateDataSize) const VOID* PrivateData,
-    _In_ ULONG PrivateDataSize
+    _In_ ULONG PrivateDataSize,
+    _In_ OVERLAPPED *Ov
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -925,24 +956,25 @@ NdspiConnect(
         !DestAddress || !DestAddressSize ||
         !PrivateData || !PrivateDataSize)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             ConnectFailed,
-            "Connect failed, invalid parameters");
+            "[ ndspi] Connect failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }  
 
     //
     // Bind the connector to the source address
     //
-    Status = Connector->lpVtbl->Bind(
+    Status = NdspiBindConnector(
         Connector,
         SrcAddress,
         SrcAddressSize);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ConnectFailed,
-            "Connect Bind failed, status:%d", Status);
+            "[ ndspi] Connect failed, status: %d", Status);
         return Status;
     }
 
@@ -958,7 +990,13 @@ NdspiConnect(
         OutboundReadLimit,
         PrivateData,
         PrivateDataSize,
-        &Ov);
+        Ov);
+    if (QUIC_FAILED(Status) && Status != ND_PENDING)
+    {
+        QuicTraceLogError(
+            ListenerBindFailed,
+            "[ ndspi] Connect failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -970,34 +1008,27 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 NdspiCompleteConnect(
     _In_ IND2Connector* Connector,
-    _In_ OVERLAPPED Ov)
+    _In_ OVERLAPPED *Ov)
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     if (!Connector)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             CompleteConnectFailed,
-            "CompleteConnect failed, invalid parameters");
+            "[ ndspi] CompleteConnect failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     Status = Connector->lpVtbl->CompleteConnect(
         Connector,
-        &Ov);
-    if (Status == ND_PENDING)
+        Ov);
+    if (QUIC_FAILED(Status) && Status != ND_PENDING)
     {
-        Status = Connector->lpVtbl->GetOverlappedResult(
-            Connector,
-            &Ov,
-            TRUE);
-    }
-
-    if(QUIC_FAILED(Status))
-    {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CompleteConnectFailed,
-            "CompleteConnect failed, status:%d", Status);
+            "[ ndspi] CompleteConnect failed, status: %d", Status);
     }
 
     return Status;
@@ -1027,9 +1058,10 @@ NdspiBindMemoryWindow(
         !Buffer ||
         !BufferSize)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             BindMemoryWindowFailed,
-            "BindMemoryWindow failed, invalid parameters");
+            "[ ndspi] BindMemoryWindow failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1041,6 +1073,12 @@ NdspiBindMemoryWindow(
         Buffer,
         BufferSize,
         Flags);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            BindMemoryWindowFailed,
+            "[ ndspi] BindMemoryWindow failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -1062,9 +1100,10 @@ NdspiInvalidateMemoryWindow(
     if (!QueuePair ||
         !MemoryWindow)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             InvalidateMemoryWindowFailed,
-            "InvalidateMemoryWindow failed, invalid parameters");
+            "[ ndspi] InvalidateMemoryWindow failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1073,10 +1112,15 @@ NdspiInvalidateMemoryWindow(
         Context,
         (IUnknown *)MemoryWindow,
         Flags);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            InvalidateMemoryWindowFailed,
+            "[ ndspi] InvalidateMemoryWindow failed, status: %d", Status);
+    }
 
     return Status;
 }
-
 
 //
 // RDMA Write
@@ -1100,9 +1144,10 @@ NdspiWrite(
         !SgeSize ||
         !RemoteAddress || !RemoteToken)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiWriteFailed,
-            "Ndspi Write Failed, invalid parameters");
+            "[ ndspi] NdspiWrite failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1117,9 +1162,9 @@ NdspiWrite(
 
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             NDSPIWriteFailed,
-            "NDSPI Write failed, status:%d", Status);
+            "[ ndspi] NdspiWrite failed, status: %d", Status);
     }
 
     return Status;
@@ -1151,9 +1196,10 @@ NdspiWriteWithImmediate(
         !RemoteToken ||
         !ImmediateData)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiWriteWithImmediateFailed,
-            "Ndspi WriteWithImmediate Failed, invalid parameters");
+            "[ ndspi] NdspiWriteWithImmediate failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1169,9 +1215,9 @@ NdspiWriteWithImmediate(
 
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             NDSPIWriteWithImmediateFailed,
-            "NDSPI WriteWithImmediate failed, status:%d", Status);
+            "[ ndspi] NdspiWriteWithImmediate failed, status: %d", Status);
     }
 
     return Status;
@@ -1200,9 +1246,10 @@ NdspiRead(
         !RemoteAddress ||
         !RemoteToken)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiReadFailed,
-            "Ndspi Read Failed, invalid parameters");
+            "[ ndspi] NdspiRead failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1217,9 +1264,9 @@ NdspiRead(
 
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             NDSPIReadFailed,
-            "NDSPI Read failed, status:%d", Status);
+            "NDSPI Read failed, status: %d", Status);
     }
 
     return Status;
@@ -1244,9 +1291,10 @@ NdspiSend(
         !Sge ||
         !SgeSize)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiSendFailed,
-            "Ndspi Send Failed, invalid parameters");
+            "[ ndspi] NdspiRead failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1256,6 +1304,12 @@ NdspiSend(
         Sge,
         SgeSize,
         Flags);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            NDSPIReadFailed,
+            "[ ndspi] NdspiSend failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -1281,9 +1335,10 @@ NdspiSendWithImmediate(
         !Sge ||
         !SgeSize)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiSendWithImmediateFailed,
-            "NdspiSendWithImmediate Failed, invalid parameters");
+            "[ ndspi] NdspiSendWithImmediate failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1294,6 +1349,12 @@ NdspiSendWithImmediate(
         SgeSize,
         Flags,
         ImmediateData);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            NDSPIReadFailed,
+            "[ ndspi] NdspiSendWithImmediate failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -1305,7 +1366,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 NdspiPostReceive(
     _Inout_ RDMA_CONNECTION* RdmaConnection,
-    _Inout_ VOID* Context,
+    _In_opt_ VOID* Context,
     __in_ecount_opt(SgeSize) const ND2_SGE *Sge,
     _In_ ULONG SgeSize
     )
@@ -1315,9 +1376,10 @@ NdspiPostReceive(
     if (!RdmaConnection ||
         !RdmaConnection->QueuePair)
     {
-        QuicTraceEvent(
+        Status = ND_INVALID_PARAMETER;
+        QuicTraceLogError(
             NdspiPostReceiveFailed,
-            "Ndspi PostReceive Failed, invalid parameters");
+            "[ ndspi] NdspiSendWithImmediate failed, status: %d", Status);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1326,6 +1388,12 @@ NdspiPostReceive(
         Context,
         Sge,
         SgeSize);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceLogError(
+            NDSPIReadFailed,
+            "[ ndspi] NdspiPostReceive failed, status: %d", Status);
+    }
 
     return Status;
 }
@@ -1361,14 +1429,14 @@ CxPlatRdmaAdapterInitialize(
     }
 
     RdmaAdapter = (RDMA_NDSPI_ADAPTER*)CXPLAT_ALLOC_PAGED(sizeof(RDMA_NDSPI_ADAPTER), QUIC_POOL_DATAPATH);
-    if (RdmaAdapter == NULL) {
+    if (RdmaAdapter == NULL)
+    {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
+            "RDMA_NDSPI_ADAPTER",
             sizeof(RDMA_NDSPI_ADAPTER));
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto ErrorExit;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
     Status = NdOpenAdapter(
@@ -1378,17 +1446,17 @@ CxPlatRdmaAdapterInitialize(
         &RdmaAdapter->Adapter);
 
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
+        QuicTraceLogError(
             NdOpenAdapterFailed,
-            "NdOpenAdapter failed, status:%d", Status);
+            "NdOpenAdapter failed, status: %d", Status);
         goto ErrorExit;
     }
 
     Status = NdspiCreateOverlappedFile(RdmaAdapter, &RdmaAdapter->OverlappedFile);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            CreateAdapterOverlappedFileFailed,
-            "CreateAdapterOverlappedFile failed, status:%d", Status);
+        QuicTraceLogError(
+            CreateOverlappedFile,
+            "CreateAdapterOverlappedFile failed, status: %d", Status);
         goto ErrorExit;
     }
 
@@ -1438,9 +1506,9 @@ CxPlatRdmaAdapterInitialize(
         &RdmaAdapter->AdapterInfo,
         &AdapterInfoSize);
     if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
+        QuicTraceLogError(
             QueryAdapterInfoFailed,
-            "QueryAdapterInfo failed, status:%d", Status);
+            "QueryAdapterInfo failed, status: %d", Status);
         goto ErrorExit;
     }
 
@@ -1457,12 +1525,10 @@ ErrorExit:
 // Cleanup an RDMA context
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 CxPlatRdmaAdapterRelease(
     _In_ void* Adapter)
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-
     RDMA_NDSPI_ADAPTER* NdAdapter = (RDMA_NDSPI_ADAPTER*) Adapter;
     if (NdAdapter)
     {
@@ -1483,11 +1549,7 @@ CxPlatRdmaAdapterRelease(
 
         CXPLAT_FREE(NdAdapter, QUIC_POOL_DATAPATH);
     }
-
-    return Status;
 }
-
-
 
 //
 // Free Child Objects allocated within an RDMA_CONNECTION object
@@ -1647,7 +1709,7 @@ SocketCreateRdmaInternal(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_SOCKET_TYPE Type,
     _In_opt_ const QUIC_ADDR* LocalAddress,
-    _In_ const QUIC_ADDR* RemoteAddress,
+    _In_opt_ const QUIC_ADDR* RemoteAddress,
     _In_opt_ void* CallbackContext,
     _In_ const CXPLAT_RDMA_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
@@ -1675,7 +1737,7 @@ SocketCreateRdmaInternal(
         Config->SendRingBufferSize < MIN_RING_BUFFER_SIZE ||
         Config->RecvRingBufferSize < MIN_RING_BUFFER_SIZE)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateRdmaSocketFailed,
             "CreateRdmaSocket failed, invalid address family");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1692,8 +1754,7 @@ SocketCreateRdmaInternal(
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_SOCKET",
             RawSocketLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto ErrorExit;
+        return QUIC_STATUS_OUT_OF_MEMORY;
     }
     CXPLAT_SOCKET* Socket = CxPlatRawToSocket(RawSocket);
 
@@ -1740,7 +1801,7 @@ SocketCreateRdmaInternal(
     NdAdapter = (RDMA_NDSPI_ADAPTER*) Datapath->RdmaAdapter;
     if (!NdAdapter)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateRdmaSocketFailed,
             "CreateRdmaSocket failed, invalid RDMA adapter");
         Status = QUIC_STATUS_INVALID_STATE;
@@ -1850,7 +1911,7 @@ SocketCreateRdmaInternal(
         &RdmaConnection->OverlappedConnFile);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateOverlappedConnFileFailed,
             "CreateOverConnlappedFile failed, status:%d", Status);
         goto ErrorExit;
@@ -1862,9 +1923,9 @@ SocketCreateRdmaInternal(
         &RdmaConnection->MemoryRegion);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateMemoryRegionFailed,
-            "CreateMemoryRegion failed, status:%d", Status);
+            "CreateMemoryRegion failed, status: %d", Status);
         goto ErrorExit;
     }
 
@@ -1879,7 +1940,7 @@ SocketCreateRdmaInternal(
         &RdmaConnection->Ov);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             RegisterSendBufferFailed,
             "RegisterSendBuffer failed, status:%d", Status);
         goto ErrorExit;
@@ -1916,9 +1977,9 @@ SocketCreateRdmaInternal(
         RdmaConnection->MemoryRegion->lpVtbl->GetLocalToken(RdmaConnection->MemoryRegion));
     if (Status != QUIC_STATUS_SUCCESS)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             SendRingBufferInitFailed,
-            "SendRingBufferInit failed, status:%d", Status);
+            "SendRingBufferInit failed, status: %d", Status);
         Status = QUIC_STATUS_INVALID_STATE;
         goto ErrorExit;
     }
@@ -1947,7 +2008,7 @@ SocketCreateRdmaInternal(
         RdmaConnection->MemoryRegion->lpVtbl->GetLocalToken(RdmaConnection->MemoryRegion));
     if (Status != QUIC_STATUS_SUCCESS)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             RecvRingBufferInitFailed,
             "RecvRingBufferInit failed, status:%d", Status);
         Status = QUIC_STATUS_INVALID_STATE;
@@ -1978,7 +2039,7 @@ SocketCreateRdmaInternal(
         RemoteOffsetBuffer != NULL ? DEFAULT_OFFSET_BUFFER_SIZE : 0);
     if (Status != QUIC_STATUS_SUCCESS)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             RecvRingBufferInitFailed,
             "RemoteRingBufferInit failed, status:%d", Status);
         Status = QUIC_STATUS_INVALID_STATE;
@@ -1997,7 +2058,7 @@ SocketCreateRdmaInternal(
         &RdmaConnection->CompletionQueue);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateSharedCompletionQueueFailed,
             "Create CompletionQueue failed, status:%d", Status);
         goto ErrorExit;
@@ -2018,7 +2079,7 @@ SocketCreateRdmaInternal(
         &RdmaConnection->QueuePair);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateQueuePairFailed,
             "Create QueuePair failed, status:%d", Status);
         goto ErrorExit;
@@ -2030,7 +2091,7 @@ SocketCreateRdmaInternal(
         &RdmaConnection->Connector);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateConnectorFailed,
             "Create Connector failed, status:%d", Status);
         goto ErrorExit;
@@ -2044,7 +2105,7 @@ SocketCreateRdmaInternal(
         Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->RecvMemoryWindow);
         if (QUIC_FAILED(Status))
         {
-            QuicTraceEvent(
+            QuicTraceLogError(
                 CreateRecvMemoryWindowFailed,
                 "Create RecvMemoryWindow failed, status:%d", Status);
             goto ErrorExit;
@@ -2055,7 +2116,7 @@ SocketCreateRdmaInternal(
             Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->OffsetMemoryWindow);
             if (QUIC_FAILED(Status))
             {
-                QuicTraceEvent(
+                QuicTraceLogError(
                     CreateSendMemoryWindowFailed,
                     "Create SendMemoryWindow failed, status:%d", Status);
                 goto ErrorExit;
@@ -2113,21 +2174,6 @@ SocketCreateRdmaInternal(
             goto ErrorExit;
         }
 
-        Status = NdspiBind(
-            RdmaConnection->Connector,
-            (PSOCKADDR)&Socket->LocalAddress,
-            sizeof(Socket->LocalAddress));
-        if (QUIC_FAILED(Status))
-        {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Socket,
-                Status,
-                "bind");
-            goto ErrorExit;
-        }
-
         if (RemoteAddress != NULL)
         {
             SOCKADDR_INET MappedRemoteAddress = { 0 };
@@ -2138,9 +2184,11 @@ SocketCreateRdmaInternal(
                 &SocketProc->IoSqe,
                 CxPlatIoRdmaConnectEventComplete);
    
-            Status = RdmaConnection->Connector->lpVtbl->Connect(
+            Status = NdspiConnect(
                 RdmaConnection->Connector,
-                (IUnknown *)RdmaConnection->QueuePair,
+                RdmaConnection->QueuePair,
+                (PSOCKADDR)&Socket->LocalAddress,
+                sizeof(Socket->LocalAddress),
                 (PSOCKADDR)&MappedRemoteAddress,
                 sizeof(MappedRemoteAddress),
                 RdmaConnection->Adapter->AdapterInfo.MaxInboundReadLimit,
@@ -2174,6 +2222,7 @@ SocketCreateRdmaInternal(
             }
 
             SocketProc->IoStarted = TRUE;
+            RdmaConnection->State = RdmaConnectionStateConnecting;
         }
 
         //
@@ -2280,7 +2329,7 @@ SocketCreateRdmaListener(
         !Datapath->RdmaAdapter ||
         !Config)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateRdmaSocketFailed,
             "CreateRdmaSocket failed, invalid address family");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -2346,7 +2395,7 @@ SocketCreateRdmaListener(
     NdAdapter = (RDMA_NDSPI_ADAPTER*) Datapath->RdmaAdapter;
     if (!NdAdapter)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateRdmaSocketFailed,
             "CreateRdmaSocket failed, invalid RDMA adapter");
         Status = QUIC_STATUS_INVALID_STATE;
@@ -2376,7 +2425,7 @@ SocketCreateRdmaListener(
         &RdmaListener->OverlappedListenerFile);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateOverlappedListenerFileFailed,
             "CreateOverlappedListenerFile failed, status:%d", Status);
         goto ErrorExit;
@@ -2391,7 +2440,7 @@ SocketCreateRdmaListener(
         &RdmaListener->Listener);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             CreateListenerFailed,
             "CreateListener failed, status:%d", Status);
         goto ErrorExit;
@@ -2486,7 +2535,7 @@ SocketCreateRdmaListener(
 
     CxPlatConvertFromMappedV6(&Socket->LocalAddress, &Socket->LocalAddress);
 
-    Status = RdmaListener->Listener->lpVtbl->Listen(RdmaListener->Listener, 100);
+    Status = NdspiStartListener(RdmaListener, 100);
     if (QUIC_FAILED(Status))
     {
         QuicTraceEvent(
@@ -2524,7 +2573,6 @@ ErrorExit:
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 RdmaSocketSendInline(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
@@ -2670,16 +2718,17 @@ ErrorExit:
     {
         RdmaRemoteReceiveRingBufferRelease(
             RdmaConnection->RemoteRingBuffer,
-            RemoteRecvBuffer,
             SendData->Buffer.Length);
     }
 
-    CxPlatPoolFree(&RdmaConnection->SgePool, SendSge);
+    if (SendSge != NULL)
+    {
+        CxPlatPoolFree(&RdmaConnection->SgePool, SendSge);
+    }
 
     return Status;
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 RdmaSocketSend(
     _In_ CXPLAT_SOCKET* Socket,
@@ -2690,8 +2739,6 @@ RdmaSocketSend(
     CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
     CXPLAT_DBG_ASSERT(Route->Queue);
     CXPLAT_SOCKET_PROC* SocketProc = Route->Queue;
-    uint8_t* RemoteRecvBuffer = NULL;
-    uint32_t RemoteRecvBufferLength = 0;
 
     CXPLAT_DBG_ASSERT(SocketProc->Parent && SocketProc->Parent->RdmaContext);
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
@@ -2707,7 +2754,6 @@ RdmaSocketSend(
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
-    
     QuicTraceEvent(
         DatapathSend,
         "[data][%p] Send %u bytes in %hhu buffers (segment=%hu) Dst=%!ADDR!, Src=%!ADDR!",
@@ -2721,7 +2767,6 @@ RdmaSocketSend(
     return RdmaSocketSendInline(SocketProc, SendData);
 }
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 RdmaSocketPendingSend(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -2732,7 +2777,7 @@ RdmaSocketPendingSend(
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "RdmaSocketPendingSend failed, invalid parameters");
         return;
@@ -2836,12 +2881,13 @@ RdmaSendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
-
     //
     // Release the memory by moving the Head pointer
     //
-
-    CxPlatPoolFree(SendData->SendDataPool, SendData);
+    if (SendData)
+    {
+        CxPlatPoolFree(SendData->SendDataPool, SendData);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2938,7 +2984,6 @@ CxPlatCreateRdmaSendPool(
 //
 // Free Child Objects allocated within an RDMA_CONNECTION object
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaStartAccept(
     _In_ CXPLAT_SOCKET_PROC* ListenerSocketProc
@@ -2951,7 +2996,7 @@ CxPlatRdmaStartAccept(
         !ListenerSocketProc->Parent->Datapath ||
         !ListenerSocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             StartAcceptFailed,
             "StartAccept failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -2996,7 +3041,7 @@ CxPlatRdmaStartAccept(
     {
         if (Status != ND_PENDING)
         {
-            QuicTraceEvent(
+            QuicTraceLogError(
                 GetConnectionRequestFailed,
                 "GetConnectionRequest failed, status:%d", Status);
             CxPlatCancelDatapathIo(ListenerSocketProc);
@@ -3034,13 +3079,12 @@ CxPlatRdmaExchangeTokensInit(
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
 
@@ -3060,7 +3104,7 @@ CxPlatRdmaExchangeTokensInit(
         ND_OP_FLAG_ALLOW_WRITE | ND_OP_FLAG_ALLOW_READ);
     if (QUIC_FAILED(Status))
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             BindRecvMemoryWindowFailed,
             "BindRecvMemoryWindow failed, status:%d", Status);
         goto ErrorExit; 
@@ -3082,7 +3126,7 @@ CxPlatRdmaExchangeTokensInit(
             ND_OP_FLAG_ALLOW_READ);
         if (QUIC_FAILED(Status))
         {
-            QuicTraceEvent(
+            QuicTraceLogError(
                 BindRecvMemoryWindowFailed,
                 "BindRecvMemoryWindow failed, status:%d", Status);
             goto ErrorExit;
@@ -3193,7 +3237,6 @@ ErrorExit:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSendRingBufferOffsets(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -3201,7 +3244,6 @@ CxPlatRdmaSendRingBufferOffsets(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD BytesRecv = 0;
-    ND2_SGE *RecvSge = NULL;
     uint32_t ImmediateData = 0;
 
     if (!SocketProc ||
@@ -3209,13 +3251,12 @@ CxPlatRdmaSendRingBufferOffsets(
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
 
@@ -3305,7 +3346,6 @@ ErrorExit:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaRecvRingBufferOffsets(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -3313,21 +3353,18 @@ CxPlatRdmaRecvRingBufferOffsets(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD BytesRecv = 0;
-    ND2_SGE *RecvSge = NULL;
-    uint32_t ImmediateData = 0;
 
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
 
@@ -3392,7 +3429,6 @@ ErrorExit:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaReadRingBufferOffsets(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
@@ -3401,21 +3437,19 @@ CxPlatRdmaReadRingBufferOffsets(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD BytesRecv = 0;
     ND2_SGE *RecvSge = NULL;
-    uint32_t ImmediateData = 0;
 
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
 
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
 
@@ -3502,58 +3536,149 @@ ErrorExit:
 }
 
 void
-CxPlatDataPathRdmaProcessConnectCompletion(
+CxPlatDataPathRdmaProcessConnect(   
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _In_ ULONG IoResult
-    )
-
+    _In_ ULONG IoResult)
 {
-    if (IoResult == WSA_OPERATION_ABORTED) {
-        //
-        // Error from shutdown, silently ignore. Return immediately so the
-        // receive doesn't get reposted.
-        //
-        return;
-    }
-
-    if (!CxPlatRundownAcquire(&SocketProc->RundownRef)) {
-        return;
-    }
-
-    if (IoResult == QUIC_STATUS_SUCCESS) {
-
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketProc->Parent,
-            0,
-            "ConnectEx Completed!");
-
-        SocketProc->Parent->Datapath->RdmaHandlers.Connect(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            TRUE);
-
-        //
-        // Try to start a new receive.
-        //
-        //CxPlatDataPathStartReceiveAsync(SocketProc);
-
-    } else {
+    if (IoResult != ND_SUCCESS && IoResult != ND_PENDING)
+    {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             SocketProc->Parent,
             IoResult,
-            "ConnectEx completion");
+            "CxPlatDataPathRdmaProcessConnect");
 
-        SocketProc->Parent->Datapath->TcpHandlers.Connect(
-            SocketProc->Parent,
-            SocketProc->Parent->ClientContext,
-            FALSE);
+        return;
     }
 
-    CxPlatRundownRelease(&SocketProc->RundownRef);
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    DWORD BytesRecv = 0;
+
+    if (!SocketProc ||
+        !SocketProc->Parent ||
+        !SocketProc->Parent->Datapath ||
+        !SocketProc->Parent->RdmaContext)
+    {
+        QuicTraceLogError(
+            ProcessConnectFailed,
+            "ProcessConnect failed, invalid parameters");
+        return;
+    }
+
+    CXPLAT_SOCKET *Socket = SocketProc->Parent;
+    RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
+    CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER);
+    CXPLAT_DBG_ASSERT(RdmaConnection->State == RdmaConnectionStateConnecting);
+
+    CxPlatStartDatapathIo(
+        SocketProc,
+        &SocketProc->IoSqe,
+        CxPlatIoRdmaConnectCompletionEventComplete);
+
+    //
+    // At this point the peer has acked the connection.
+    // Invoke ConnectComplete to transition to connected state.
+    //
+    Status = NdspiCompleteConnect(
+        RdmaConnection->Connector,
+        &SocketProc->IoSqe.Overlapped);
+    if (Status != ND_SUCCESS)
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "CxPlatDataPathRdmaProcessConnect::NdspiCompleteConnect");
+        goto ErrorExit;
+    }
+
+    Status = RdmaConnection->CompletionQueue->lpVtbl->Notify(
+        RdmaConnection->CompletionQueue,
+        ND_CQ_NOTIFY_ANY,
+        &SocketProc->IoSqe.Overlapped);
+    if (QUIC_FAILED(Status))   
+    {
+        if (Status != ND_PENDING)
+        {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                SocketProc->Parent,
+                Status,
+                "CxPlatDataPathRdmaProcessConnect::Notify");
+            goto ErrorExit;
+        }
+    }
+    else
+    {
+        //
+        // Manually post IO completion if accept completed synchronously.
+        //
+        Status = CxPlatSocketEnqueueSqe(SocketProc, &SocketProc->IoSqe, BytesRecv);
+        if (QUIC_FAILED(Status)) {
+            CxPlatCancelDatapathIo(SocketProc);
+            goto ErrorExit;
+        }
+    } 
+
+    RdmaConnection->State = RdmaConnectionStateCompleteConnect;
+
+ErrorExit:
+    return;
+}
+
+void
+CxPlatDataPathRdmaProcessConnectCompletion(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc,
+    _In_ ULONG IoResult
+    )
+{
+    if (IoResult != ND_SUCCESS && IoResult != ND_PENDING)
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            IoResult,
+            "CxPlatDataPathRdmaProcessConnectCompletion");
+
+        return;
+    }
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!SocketProc ||
+        !SocketProc->Parent ||
+        !SocketProc->Parent->Datapath ||
+        !SocketProc->Parent->RdmaContext)
+    {
+        QuicTraceLogError(
+            ExchangeTokensFailed,
+            "CxPlatDataPathRdmaProcessConnectCompletion invalid parameters");
+        return;
+    }
+
+    CXPLAT_SOCKET *Socket = SocketProc->Parent;
+    RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
+
+    CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER);
+    CXPLAT_DBG_ASSERT(RdmaConnection->State == RdmaConnectionStateCompleteConnect);
+
+    //
+    // Initiatiate token exchange with peer before data can be sent
+    //
+    Status = CxPlatRdmaExchangeTokensInit(SocketProc);
+    if (QUIC_FAILED(Status))
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "CxPlatRdmaExchangeTokensInit");
+    }
 }
 
 void
@@ -3566,11 +3691,15 @@ CxPlatDataPathRdmaProcessGetConnectionRequestCompletion(
     RDMA_CONNECTION* RdmaConnection = NULL;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (IoResult == WSA_OPERATION_ABORTED) {
-        //
-        // Error from shutdown, silently ignore. Return immediately so the
-        // receive doesn't get reposted.
-        //
+    if (IoResult != ND_SUCCESS && IoResult != ND_PENDING)
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            ListenerSocketProc->Parent,
+            IoResult,
+            "CxPlatDataPathRdmaProcessGetConnectionRequestCompletion");
+
         return;
     }
 
@@ -3639,9 +3768,9 @@ CxPlatDataPathRdmaProcessGetConnectionRequestCompletion(
             RdmaConnection->OffsetMemoryWindow = NULL;
         }
 
-        Status = RdmaConnection->Connector->lpVtbl->Accept(
+        Status = NdspiAccept(
             RdmaConnection->Connector,
-            (IUnknown *)RdmaConnection->QueuePair,
+            RdmaConnection->QueuePair,
             RdmaConnection->Adapter->AdapterInfo.MaxInboundReadLimit,
             RdmaConnection->Adapter->AdapterInfo.MaxOutboundReadLimit,
             NULL,
@@ -3773,7 +3902,7 @@ CxPlatDataPathRdmaProcessAcceptCompletion(
             &ListenerSocketProc->AcceptSocket->RemoteAddress,
             &ListenerSocketProc->AcceptSocket->RemoteAddress);
 
-        QuicTraceEvent(
+            QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             ListenerSocketProc->Parent,
@@ -3837,10 +3966,6 @@ CxPlatDataPathRdmaProcessAcceptCompletion(
                 goto ErrorExit;
             }
         }
-        else
-        {
-
-        }
     }
     else
     {
@@ -3869,7 +3994,6 @@ ErrorExit:
     (void)CxPlatRdmaStartAccept(ListenerSocketProc);
 
     CxPlatRundownRelease(&ListenerSocketProc->RundownRef);
-
 }
 
 void
@@ -3880,20 +4004,20 @@ CxPlatDataPathRdmaProcessExchangeInitCompletion(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD BytesRecv = 0;
-    ND2_SGE *SendSge = NULL;
+
+    UNREFERENCED_PARAMETER(IoResult);
 
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
 
@@ -4009,21 +4133,20 @@ CxPlatDataPathRdmaProcessExchangeFinalCompletion(
 )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BytesRecv = 0;
-    ND2_SGE *SendSge = NULL;
+
+    UNREFERENCED_PARAMETER(IoResult);
 
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
 
@@ -4086,7 +4209,8 @@ CxPlatRdmaSendDataComplete(
     )
 {
     CXPLAT_SOCKET_PROC* SocketProc = SendData->SocketProc;
-    RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)SocketProc->Parent->RdmaContext;
+
+    UNREFERENCED_PARAMETER(IoResult);
 
     if (IoResult != QUIC_STATUS_SUCCESS)
     {
@@ -4121,6 +4245,8 @@ CxPlatRdmaDataPathSocketProcessReceive(
     CXPLAT_SOCKET* Socket = SocketProc->Parent;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
 
+    UNREFERENCED_PARAMETER(IoResult);
+
     CXPLAT_DBG_ASSERT(!SocketProc->Uninitialized);
     CXPLAT_DBG_ASSERT(RdmaConnection != NULL && RdmaConnection->State == RdmaConnectionStateReady);
 
@@ -4140,6 +4266,16 @@ CxPlatRdmaDataPathSocketProcessReceive(
         RdmaConnection->CompletionQueue,
         &ManaResult,
         1);
+    if (Count == 0)
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            SocketProc->Parent,
+            0,
+            "CxPlatRdmaRecvRemoteTokens GetManaResults");
+        goto ErrorExit;
+    }
 
     if (ManaResult.Status != ND_SUCCESS)
     {
@@ -4243,7 +4379,7 @@ CxPlatRdmaDataPathSocketProcessReceive(
     RxIoBlock->ReferenceCount++;
     RxIoBlock = NULL;
 
-    SocketProc->Parent->Datapath->RdmaHandlers.Receive(
+    Datapath->RdmaHandlers.Receive(
         SocketProc->Parent,
         SocketProc->Parent->ClientContext,
         Data);
@@ -4252,9 +4388,8 @@ ErrorExit:
     if (RxIoBlock != NULL)
     {
         CxPlatRdmaSocketFreeRxIoBlock(RxIoBlock);
+        CxPlatRundownRelease(&RxIoBlock->SocketProc->RundownRef);
     }
-
-    CxPlatRundownRelease(&RxIoBlock->SocketProc->RundownRef);
 }
 
 void
@@ -4263,21 +4398,19 @@ CxPlatDataPathRdmaSendRingBufferOffsetsCompletion(
     _In_ ULONG IoResult
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BytesRecv = 0;
-
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "CxPlatDataPathRdmaSendRingBufferOffsetsCompletion failed, invalid parameters");
         return;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    UNREFERENCED_PARAMETER(IoResult);
+
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
 
@@ -4313,23 +4446,20 @@ CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
     _In_ ULONG IoResult
     )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BytesRecv = 0;
-    ND2_SGE *SendSge = NULL;
-
+{    
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion failed, invalid parameters");
         return;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    UNREFERENCED_PARAMETER(IoResult);
+
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
 
@@ -4395,22 +4525,19 @@ CxPlatDataPathRdmaReadRingBufferOffsetsCompletion(
     _In_ ULONG IoResult
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    DWORD BytesRecv = 0;
-    ND2_SGE *SendSge = NULL;
-
     if (!SocketProc ||
         !SocketProc->Parent ||
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion failed, invalid parameters");
         return;
     }
 
-    CXPLAT_DATAPATH* Datapath = SocketProc->Parent->Datapath;
+    UNREFERENCED_PARAMETER(IoResult);
+
     CXPLAT_SOCKET *Socket = SocketProc->Parent;
     RDMA_CONNECTION* RdmaConnection = (RDMA_CONNECTION*)Socket->RdmaContext;
 
@@ -4454,6 +4581,20 @@ CxPlatDataPathRdmaReadRingBufferOffsetsCompletion(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatIoRdmaConnectEventComplete(
+    _In_ CXPLAT_CQE* Cqe
+    )
+{
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(Cqe);
+    CXPLAT_DBG_ASSERT(Sqe->Overlapped.Internal != 0x103); // STATUS_PENDING
+    CXPLAT_SOCKET_PROC* SocketProc = CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_PROC, IoSqe);
+    ULONG IoResult = RtlNtStatusToDosError((NTSTATUS)Cqe->Internal);
+    CxPlatDataPathRdmaProcessConnect(SocketProc, IoResult);
+    CxPlatSocketContextRelease(SocketProc);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatIoRdmaConnectCompletionEventComplete(
     _In_ CXPLAT_CQE* Cqe
     )
 {
@@ -4593,7 +4734,6 @@ CxPlatIoRdmaReadRingBufferOffsetsEventComplete(
     CxPlatSocketContextRelease(SocketProc); 
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaRecvRemoteTokens(
     _In_ RDMA_CONNECTION* RdmaConnection
@@ -4601,7 +4741,7 @@ CxPlatRdmaRecvRemoteTokens(
 {
     if (!RdmaConnection)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -4652,7 +4792,6 @@ CxPlatRdmaRecvRemoteTokens(
     return QUIC_STATUS_SUCCESS;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSendRemoteTokens(
     _In_ CXPLAT_SOCKET_PROC* SocketProc,
@@ -4665,7 +4804,7 @@ CxPlatRdmaSendRemoteTokens(
 
     if (!SocketProc || !RdmaConnection)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -4791,7 +4930,7 @@ CxPlatRdmaSocketAllocRxIoBlock(
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return NULL;
@@ -4815,13 +4954,9 @@ CxPlatRdmaSocketAllocRxIoBlock(
 //
 // Try to start a new receive. Returns TRUE if the receive completed inline.
 //
-_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatRdmaSocketStartReceive(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc,
-    _Out_opt_ ULONG* IoResult,
-    _Out_opt_ uint16_t* BytesReceived,
-    _Out_opt_ RDMA_DATAPATH_RX_IO_BLOCK** RdmaIoBlock
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -4834,7 +4969,7 @@ CxPlatRdmaSocketStartReceive(
         !SocketProc->Parent->Datapath ||
         !SocketProc->Parent->RdmaContext)
     {
-        QuicTraceEvent(
+        QuicTraceLogError(
             ExchangeTokensFailed,
             "ExchangeTokens failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -4856,7 +4991,7 @@ CxPlatRdmaSocketStartReceive(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "Socket Receive Buffer",
-            SocketProc->Parent->Datapath->RecvPayloadOffset + SocketProc->Parent->RecvBufLen);
+            Datapath->RecvPayloadOffset + SocketProc->Parent->RecvBufLen);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
@@ -4948,7 +5083,7 @@ CxPlatDataPathRdmaStartReceiveAsync(
     _In_ CXPLAT_SOCKET_PROC* SocketProc
     )
 {
-    CxPlatRdmaSocketStartReceive(SocketProc, NULL, NULL, NULL);
+    CxPlatRdmaSocketStartReceive(SocketProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -93,7 +93,7 @@ RdmaRecvRingBufferInitialize(
     _In_ RDMA_RECV_RING_BUFFER* RecvRingBuffer,
     _In_ uint8_t*  Buffer,
     _In_ uint32_t Capacity,
-    _In_ uint8_t* OffsetBuffer,
+    _In_opt_ uint8_t* OffsetBuffer,
     _In_ uint32_t OffsetBufferSize,
     _In_ uint32_t LocalToken
     );
@@ -104,7 +104,7 @@ RdmaRecvRingBufferInitialize(
 QUIC_STATUS
 RdmaRemoteRingBufferInitialize(
     _In_ RDMA_REMOTE_RING_BUFFER* RemoteRingBuffer,
-    _In_ uint8_t* OffsetBuffer,
+    _In_opt_ uint8_t* OffsetBuffer,
     _In_ uint32_t  OffsetBufferSize
     );
 
@@ -134,9 +134,9 @@ RdmaSendRingBufferReserve(
 QUIC_STATUS
 RdmaSendRingBufferRelease(
     _In_ RDMA_SEND_RING_BUFFER* SendRingBuffer,
+    _In_ uint8_t* Buffer,
     _In_ uint32_t Length,
-    _In_ uint32_t Offset,
-    _In_ uint8_t* Buffer
+    _In_ uint32_t Offset
     );
 
 //
@@ -165,6 +165,5 @@ RdmaRemoteRecvRingBufferReserve(
 QUIC_STATUS
 RdmaRemoteReceiveRingBufferRelease(
     _In_ RDMA_REMOTE_RING_BUFFER* RecvRingBuffer,
-    _In_ uint8_t* Buffer,
     _In_ uint32_t Length
     );

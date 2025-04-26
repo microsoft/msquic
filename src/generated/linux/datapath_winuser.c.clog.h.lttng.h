@@ -284,6 +284,29 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RdmaAdapterInitFailed
+// [Datapath][%p] RdmaAdapterInitFailed, 0x%x
+// QuicTraceLogError(
+                RdmaAdapterInitFailed,
+                "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
+                Datapath,
+                Status);
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, RdmaAdapterInitFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
@@ -347,29 +370,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, AllocFailure,
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RdmaAdapterInitFailed
-// [Datapath][%p] RdmaAdapterInitFailed, 0x%x
-// QuicTraceEvent(
-                RdmaAdapterInitFailed,
-                "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
-                Datapath,
-                Status);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, RdmaAdapterInitFailed,
-    TP_ARGS(
-        const void *, arg2,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

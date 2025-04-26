@@ -292,6 +292,26 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, DatapathTooLarge , arg2, arg3_len, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RdmaAdapterInitFailed
+// [Datapath][%p] RdmaAdapterInitFailed, 0x%x
+// QuicTraceLogError(
+                RdmaAdapterInitFailed,
+                "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
+                Datapath,
+                Status);
+// arg2 = arg2 = Datapath = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_RdmaAdapterInitFailed
+#define _clog_4_ARGS_TRACE_RdmaAdapterInitFailed(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_DATAPATH_WINUSER_C, RdmaAdapterInitFailed , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for DatapathResolveHostNameFailed
 // [%p] Couldn't resolve hostname '%s' to an IP address
 // QuicTraceLogError(
@@ -345,26 +365,6 @@ tracepoint(CLOG_DATAPATH_WINUSER_C, LibraryErrorStatus , arg2, arg3);\
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
 tracepoint(CLOG_DATAPATH_WINUSER_C, AllocFailure , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RdmaAdapterInitFailed
-// [Datapath][%p] RdmaAdapterInitFailed, 0x%x
-// QuicTraceEvent(
-                RdmaAdapterInitFailed,
-                "[Datapath][%p] RdmaAdapterInitFailed, 0x%x",
-                Datapath,
-                Status);
-// arg2 = arg2 = Datapath = arg2
-// arg3 = arg3 = Status = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_RdmaAdapterInitFailed
-#define _clog_4_ARGS_TRACE_RdmaAdapterInitFailed(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_WINUSER_C, RdmaAdapterInitFailed , arg2, arg3);\
 
 #endif
 

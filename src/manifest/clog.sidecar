@@ -25,6 +25,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "AcceptFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] Accept failed, status: %d",
+      "UniqueId": "AcceptFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "AckCrypto": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Received ack for %u crypto bytes, offset=%u",
@@ -439,6 +451,30 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "BindMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] BindMemoryWindow failed, status: %d",
+      "UniqueId": "BindMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "BindRecvMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "BindRecvMemoryWindow failed, status:%d",
+      "UniqueId": "BindRecvMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "CertCapiFormattedChain": {
       "ModuleProperites": {},
       "TraceString": "[cert] Successfully formatted chain of %u certificate(s)",
@@ -846,6 +882,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "CompleteConnectFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CompleteConnect failed, status: %d",
+      "UniqueId": "CompleteConnectFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "ConfigurationCleanup": {
       "ModuleProperites": {},
@@ -1318,6 +1366,30 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "ConnectFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] Connect failed, status: %d",
+      "UniqueId": "ConnectFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "ConnectorBindFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi]  Connector Bind failed, status: %d",
+      "UniqueId": "ConnectorBindFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "ConnError": {
       "ModuleProperites": {},
@@ -2230,6 +2302,169 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "CreateCompletionQueueFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateCompletionQueueFailed failed, status: %d",
+      "UniqueId": "CreateCompletionQueueFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateConnectorFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateConnector failed, status: %d",
+      "UniqueId": "CreateConnectorFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateListenerFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateListener failed, status: %d",
+      "UniqueId": "CreateListenerFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateMemoryRegionFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateMemoryRegion failed, status: %d",
+      "UniqueId": "CreateMemoryRegionFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateMemoryWindow failed, status: %d",
+      "UniqueId": "CreateMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateOverlappedConnFileFailed": {
+      "ModuleProperites": {},
+      "TraceString": "CreateOverConnlappedFile failed, status:%d",
+      "UniqueId": "CreateOverlappedConnFileFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateOverlappedFile": {
+      "ModuleProperites": {},
+      "TraceString": "CreateAdapterOverlappedFile failed, status: %d",
+      "UniqueId": "CreateOverlappedFile",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateOverlappedFileFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateOverlappedFile failed, status: %d",
+      "UniqueId": "CreateOverlappedFileFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateOverlappedListenerFileFailed": {
+      "ModuleProperites": {},
+      "TraceString": "CreateOverlappedListenerFile failed, status:%d",
+      "UniqueId": "CreateOverlappedListenerFileFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateQueuePairFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] CreateQueuePair failed, status: %d",
+      "UniqueId": "CreateQueuePairFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateRdmaSocketFailed": {
+      "ModuleProperites": {},
+      "TraceString": "CreateRdmaSocket failed, invalid address family",
+      "UniqueId": "CreateRdmaSocketFailed",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateRecvMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "Create RecvMemoryWindow failed, status:%d",
+      "UniqueId": "CreateRecvMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateSendMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "Create SendMemoryWindow failed, status:%d",
+      "UniqueId": "CreateSendMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "CreateSharedCompletionQueueFailed": {
+      "ModuleProperites": {},
+      "TraceString": "Create CompletionQueue failed, status:%d",
+      "UniqueId": "CreateSharedCompletionQueueFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "CryptoDump": {
       "ModuleProperites": {},
@@ -3611,6 +3846,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DeRegisterMemoryFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] DeRegisterMemory failed, status: %d",
+      "UniqueId": "DeRegisterMemoryFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "Disable1RttEncrytionUpdated": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Updated disable 1-RTT encrytption to %hhu",
@@ -4134,6 +4381,13 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
+    },
+    "ExchangeTokensFailed": {
+      "ModuleProperites": {},
+      "TraceString": "RdmaSocketPendingSend failed, invalid parameters",
+      "UniqueId": "ExchangeTokensFailed",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
     },
     "FailedRouteResolution": {
       "ModuleProperites": {},
@@ -5572,6 +5826,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "GetConnectionRequestFailed": {
+      "ModuleProperites": {},
+      "TraceString": "GetConnectionRequest failed, status:%d",
+      "UniqueId": "GetConnectionRequestFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "GetPacketTypeFailure": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Failed to get packet type for control frames, 0x%x",
@@ -6312,6 +6578,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "InvalidateMemoryWindowFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] InvalidateMemoryWindow failed, status: %d",
+      "UniqueId": "InvalidateMemoryWindowFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "InvalidCongestionControlAlgorithm": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic",
@@ -6631,6 +6909,18 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "ListenerBindFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi]  Listener Bind failed, status: %d",
+      "UniqueId": "ListenerBindFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "ListenerCibirIdSet": {
       "ModuleProperites": {},
@@ -7307,6 +7597,90 @@
         }
       ],
       "macroName": "QuicTraceLogStreamInfo"
+    },
+    "NdOpenAdapterFailed": {
+      "ModuleProperites": {},
+      "TraceString": "NdOpenAdapter failed, status: %d",
+      "UniqueId": "NdOpenAdapterFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiPostReceiveFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiSendWithImmediate failed, status: %d",
+      "UniqueId": "NdspiPostReceiveFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiReadFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiRead failed, status: %d",
+      "UniqueId": "NdspiReadFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiSendFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiRead failed, status: %d",
+      "UniqueId": "NdspiSendFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiSendWithImmediateFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiSendWithImmediate failed, status: %d",
+      "UniqueId": "NdspiSendWithImmediateFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiWriteFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiWrite failed, status: %d",
+      "UniqueId": "NdspiWriteFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "NdspiWriteWithImmediateFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] NdspiWriteWithImmediate failed, status: %d",
+      "UniqueId": "NdspiWriteWithImmediateFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "NegotiatedDisable1RttEncryption": {
       "ModuleProperites": {},
@@ -8998,6 +9372,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "QueryAdapterInfoFailed": {
+      "ModuleProperites": {},
+      "TraceString": "QueryAdapterInfo failed, status: %d",
+      "UniqueId": "QueryAdapterInfoFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "QueueDatagrams": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Queuing %u UDP datagrams",
@@ -9136,7 +9522,7 @@
           "MacroVariableName": "arg3"
         }
       ],
-      "macroName": "QuicTraceEvent"
+      "macroName": "QuicTraceLogError"
     },
     "Receive": {
       "ModuleProperites": {},
@@ -9274,6 +9660,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "RecvRingBufferInitFailed": {
+      "ModuleProperites": {},
+      "TraceString": "RecvRingBufferInit failed, status:%d",
+      "UniqueId": "RecvRingBufferInitFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "RecvStatelessReset": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Received stateless reset",
@@ -9321,6 +9719,30 @@
         }
       ],
       "macroName": "QuicTraceLogConnError"
+    },
+    "RegisterMemoryFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] RegisterMemory failed, status: %d",
+      "UniqueId": "RegisterMemoryFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "RegisterSendBufferFailed": {
+      "ModuleProperites": {},
+      "TraceString": "RegisterSendBuffer failed, status:%d",
+      "UniqueId": "RegisterSendBufferFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "RegistrationCleanup": {
       "ModuleProperites": {},
@@ -10117,6 +10539,18 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
+    },
+    "SendRingBufferInitFailed": {
+      "ModuleProperites": {},
+      "TraceString": "SendRingBufferInit failed, status: %d",
+      "UniqueId": "SendRingBufferInitFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "ServerResumptionTicketDecodeFailAlpnLengthEncodedWrong": {
       "ModuleProperites": {},
@@ -11162,6 +11596,13 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "StartAcceptFailed": {
+      "ModuleProperites": {},
+      "TraceString": "StartAccept failed, invalid parameters",
+      "UniqueId": "StartAcceptFailed",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
+    },
     "StartAckDelayTimer": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Starting ACK_DELAY timer for %u ms",
@@ -11177,6 +11618,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
+    },
+    "StartListenerFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[ ndspi] StartListener failed, status: %d",
+      "UniqueId": "StartListenerFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "StillInTimerWheel": {
       "ModuleProperites": {},
@@ -13483,6 +13936,11 @@
         "EncodingString": "[conn][%p] Abandoning on shutdown"
       },
       {
+        "UniquenessHash": "413ba562-b00d-cb24-4096-8315ae63e55f",
+        "TraceID": "AcceptFailed",
+        "EncodingString": "[ ndspi] Accept failed, status: %d"
+      },
+      {
         "UniquenessHash": "60f13d90-f6b5-d1e2-41fd-0a5662d602e6",
         "TraceID": "AckCrypto",
         "EncodingString": "[conn][%p] Received ack for %u crypto bytes, offset=%u"
@@ -13606,6 +14064,16 @@
         "UniquenessHash": "8419ad0b-e226-53e3-837c-4eebd4cc6619",
         "TraceID": "BindingSendTestDrop",
         "EncodingString": "[bind][%p] Test dropped packet"
+      },
+      {
+        "UniquenessHash": "e5ecd079-c693-575d-0273-e12b700d0c3b",
+        "TraceID": "BindMemoryWindowFailed",
+        "EncodingString": "[ ndspi] BindMemoryWindow failed, status: %d"
+      },
+      {
+        "UniquenessHash": "308b75cf-942c-34e0-ac68-90c285840407",
+        "TraceID": "BindRecvMemoryWindowFailed",
+        "EncodingString": "BindRecvMemoryWindow failed, status:%d"
       },
       {
         "UniquenessHash": "bc118133-e7f5-68c2-fd22-5dba9202e2eb",
@@ -13743,6 +14211,11 @@
         "EncodingString": "[conn][%p] Compatible version upgrade! Old: 0x%x, New: 0x%x"
       },
       {
+        "UniquenessHash": "c869a534-55b4-0d89-e29b-4d1377209a4a",
+        "TraceID": "CompleteConnectFailed",
+        "EncodingString": "[ ndspi] CompleteConnect failed, status: %d"
+      },
+      {
         "UniquenessHash": "c4fb9ea0-c592-0ce3-51af-47689a0b2d11",
         "TraceID": "ConfigurationCleanup",
         "EncodingString": "[cnfg][%p] Cleaning up"
@@ -13866,6 +14339,16 @@
         "UniquenessHash": "5d7016bf-5f7f-7469-48f6-6212e8c8572b",
         "TraceID": "ConnEcnFailed",
         "EncodingString": "[conn][%p][%d] ECN failed: EctCnt %llu CeCnt %llu TxEct %llu DeltaSum %lld State %hu"
+      },
+      {
+        "UniquenessHash": "38c65dac-a626-953a-9381-63726f1a6b19",
+        "TraceID": "ConnectFailed",
+        "EncodingString": "[ ndspi] Connect failed, status: %d"
+      },
+      {
+        "UniquenessHash": "73bad9c8-5f8d-32ee-8970-087e2faba345",
+        "TraceID": "ConnectorBindFailed",
+        "EncodingString": "[ ndspi]  Connector Bind failed, status: %d"
       },
       {
         "UniquenessHash": "0ebbffbe-69d8-3f2b-949d-d93cdd7f8b99",
@@ -14111,6 +14594,76 @@
         "UniquenessHash": "15379a50-c581-3086-043e-53167a6b3fd6",
         "TraceID": "ConnWriteKeyUpdated",
         "EncodingString": "[conn][%p] Write Key Updated, %hhu."
+      },
+      {
+        "UniquenessHash": "8a0bd98a-8ebe-41c1-b667-bffb1da83078",
+        "TraceID": "CreateCompletionQueueFailed",
+        "EncodingString": "[ ndspi] CreateCompletionQueueFailed failed, status: %d"
+      },
+      {
+        "UniquenessHash": "98bd5153-6007-cf35-cf76-c29147ffb220",
+        "TraceID": "CreateConnectorFailed",
+        "EncodingString": "[ ndspi] CreateConnector failed, status: %d"
+      },
+      {
+        "UniquenessHash": "dc6891f1-8869-a93c-b118-3bdb3d234cb8",
+        "TraceID": "CreateListenerFailed",
+        "EncodingString": "[ ndspi] CreateListener failed, status: %d"
+      },
+      {
+        "UniquenessHash": "5510f3e6-cd35-face-1e5a-78868a18fe68",
+        "TraceID": "CreateMemoryRegionFailed",
+        "EncodingString": "[ ndspi] CreateMemoryRegion failed, status: %d"
+      },
+      {
+        "UniquenessHash": "10e31ec8-c756-d7c0-a28f-cd4935b70120",
+        "TraceID": "CreateMemoryWindowFailed",
+        "EncodingString": "[ ndspi] CreateMemoryWindow failed, status: %d"
+      },
+      {
+        "UniquenessHash": "25ea5735-e783-613a-00a4-2be0dcc39d4a",
+        "TraceID": "CreateOverlappedConnFileFailed",
+        "EncodingString": "CreateOverConnlappedFile failed, status:%d"
+      },
+      {
+        "UniquenessHash": "839bb1ca-2a81-16b2-2d5d-df3ab9fef737",
+        "TraceID": "CreateOverlappedFile",
+        "EncodingString": "CreateAdapterOverlappedFile failed, status: %d"
+      },
+      {
+        "UniquenessHash": "1c787c4d-14a8-e370-6b2e-a14aef67c9fc",
+        "TraceID": "CreateOverlappedFileFailed",
+        "EncodingString": "[ ndspi] CreateOverlappedFile failed, status: %d"
+      },
+      {
+        "UniquenessHash": "38089042-52cc-7749-f46f-db926adc813c",
+        "TraceID": "CreateOverlappedListenerFileFailed",
+        "EncodingString": "CreateOverlappedListenerFile failed, status:%d"
+      },
+      {
+        "UniquenessHash": "e1e25048-40e7-2e26-481f-f1598196bdff",
+        "TraceID": "CreateQueuePairFailed",
+        "EncodingString": "[ ndspi] CreateQueuePair failed, status: %d"
+      },
+      {
+        "UniquenessHash": "9de169ac-f0e7-6b50-2870-b26c256e1cf6",
+        "TraceID": "CreateRdmaSocketFailed",
+        "EncodingString": "CreateRdmaSocket failed, invalid address family"
+      },
+      {
+        "UniquenessHash": "b4d19a9e-4ab2-71f6-0104-ca6201a16e6c",
+        "TraceID": "CreateRecvMemoryWindowFailed",
+        "EncodingString": "Create RecvMemoryWindow failed, status:%d"
+      },
+      {
+        "UniquenessHash": "a6f711ee-03ae-ecd2-2d33-2fb7850b1da6",
+        "TraceID": "CreateSendMemoryWindowFailed",
+        "EncodingString": "Create SendMemoryWindow failed, status:%d"
+      },
+      {
+        "UniquenessHash": "97b992fa-5ed6-7da4-3cf0-68223eb2decd",
+        "TraceID": "CreateSharedCompletionQueueFailed",
+        "EncodingString": "Create CompletionQueue failed, status:%d"
       },
       {
         "UniquenessHash": "4e785757-b1de-e65c-a7b1-7ac868748434",
@@ -14553,6 +15106,11 @@
         "EncodingString": "[conn][%p] Deferring datagram (type=%hu)"
       },
       {
+        "UniquenessHash": "441082e3-c96c-245f-9269-8a87c79b537e",
+        "TraceID": "DeRegisterMemoryFailed",
+        "EncodingString": "[ ndspi] DeRegisterMemory failed, status: %d"
+      },
+      {
         "UniquenessHash": "b5551d75-2b95-b9d9-98f7-36215d5364b0",
         "TraceID": "Disable1RttEncrytionUpdated",
         "EncodingString": "[conn][%p] Updated disable 1-RTT encrytption to %hhu"
@@ -14721,6 +15279,11 @@
         "UniquenessHash": "21a2e517-42a5-1d18-885f-8b57b79a2fba",
         "TraceID": "EventSilentDiscard",
         "EncodingString": "[strm][%p] Event silently discarded"
+      },
+      {
+        "UniquenessHash": "94dd2f88-108a-c479-27eb-f528f5d6bc7d",
+        "TraceID": "ExchangeTokensFailed",
+        "EncodingString": "RdmaSocketPendingSend failed, invalid parameters"
       },
       {
         "UniquenessHash": "fff5ef57-9005-a7ec-fcbc-d630c6c812fa",
@@ -15048,6 +15611,11 @@
         "EncodingString": "[%c][%cX][%llu]   unknown frame (%llu)"
       },
       {
+        "UniquenessHash": "1c1c54ed-0410-ce14-dc4b-56259e4d96a1",
+        "TraceID": "GetConnectionRequestFailed",
+        "EncodingString": "GetConnectionRequest failed, status:%d"
+      },
+      {
         "UniquenessHash": "03e79f57-89b7-b2d2-b13f-cb2f995b47cd",
         "TraceID": "GetPacketTypeFailure",
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
@@ -15268,6 +15836,11 @@
         "EncodingString": "[ntrp] Test Stop, Server: %s, Port: %hu, Tests: 0x%x, Negotiated Alpn: %s, Passed: %s."
       },
       {
+        "UniquenessHash": "363bcd9f-638a-db3b-22e4-c5c9f78eee45",
+        "TraceID": "InvalidateMemoryWindowFailed",
+        "EncodingString": "[ ndspi] InvalidateMemoryWindow failed, status: %d"
+      },
+      {
         "UniquenessHash": "84d80052-65e2-9ca0-e282-dd91296c0987",
         "TraceID": "InvalidCongestionControlAlgorithm",
         "EncodingString": "[conn][%p] Unknown congestion control algorithm: %hu, fallback to Cubic"
@@ -15421,6 +15994,11 @@
         "UniquenessHash": "c5092562-eb73-dded-1d42-ad7fdd896841",
         "TraceID": "LibraryVersion",
         "EncodingString": "[ lib] Version %u.%u.%u.%u"
+      },
+      {
+        "UniquenessHash": "23718a2e-0d81-ed9b-aa4d-002a4934c19c",
+        "TraceID": "ListenerBindFailed",
+        "EncodingString": "[ ndspi]  Listener Bind failed, status: %d"
       },
       {
         "UniquenessHash": "d1af42ed-141c-9600-a11e-61b6bfce2853",
@@ -15581,6 +16159,41 @@
         "UniquenessHash": "7c8ed181-6e73-0552-43f1-7e00ce4948af",
         "TraceID": "MultipleReliableResetSendNotSupported",
         "EncodingString": "[strm][%p] Multiple RELIABLE_RESET frames sending not supported."
+      },
+      {
+        "UniquenessHash": "e0e9d275-e552-bb77-256b-b15f3116f0c8",
+        "TraceID": "NdOpenAdapterFailed",
+        "EncodingString": "NdOpenAdapter failed, status: %d"
+      },
+      {
+        "UniquenessHash": "6bbbc6d4-ec4e-d2a4-9160-875b295713b4",
+        "TraceID": "NdspiPostReceiveFailed",
+        "EncodingString": "[ ndspi] NdspiSendWithImmediate failed, status: %d"
+      },
+      {
+        "UniquenessHash": "87baf5fc-f59c-627e-e565-99f237382098",
+        "TraceID": "NdspiReadFailed",
+        "EncodingString": "[ ndspi] NdspiRead failed, status: %d"
+      },
+      {
+        "UniquenessHash": "3d79e435-8cbe-0c07-5e47-1a6f3585f99c",
+        "TraceID": "NdspiSendFailed",
+        "EncodingString": "[ ndspi] NdspiRead failed, status: %d"
+      },
+      {
+        "UniquenessHash": "42e20186-80f0-47a5-f2c4-6b5766d8690b",
+        "TraceID": "NdspiSendWithImmediateFailed",
+        "EncodingString": "[ ndspi] NdspiSendWithImmediate failed, status: %d"
+      },
+      {
+        "UniquenessHash": "25953ee1-4320-8535-502c-eb3b94f88cbb",
+        "TraceID": "NdspiWriteFailed",
+        "EncodingString": "[ ndspi] NdspiWrite failed, status: %d"
+      },
+      {
+        "UniquenessHash": "bd27220d-d118-4aee-55fb-c4c29236f346",
+        "TraceID": "NdspiWriteWithImmediateFailed",
+        "EncodingString": "[ ndspi] NdspiWriteWithImmediate failed, status: %d"
       },
       {
         "UniquenessHash": "270621d6-25e4-9741-4f15-ed4a5b3d4f33",
@@ -16158,6 +16771,11 @@
         "EncodingString": "[ nmr][%p] Client detached"
       },
       {
+        "UniquenessHash": "0cb2f4e5-2890-3f51-1fb6-7cbbb284b5a1",
+        "TraceID": "QueryAdapterInfoFailed",
+        "EncodingString": "QueryAdapterInfo failed, status: %d"
+      },
+      {
         "UniquenessHash": "18ef147d-5376-d7f2-f624-3b27af96dd05",
         "TraceID": "QueueDatagrams",
         "EncodingString": "[conn][%p] Queuing %u UDP datagrams"
@@ -16198,7 +16816,7 @@
         "EncodingString": "[sock] Failed to create raw socket, status:%d"
       },
       {
-        "UniquenessHash": "9d1fff3d-5e54-15a2-01d2-6bee46f255ea",
+        "UniquenessHash": "e6c4ca9a-cd64-ddb9-03ed-357937a6d35b",
         "TraceID": "RdmaAdapterInitFailed",
         "EncodingString": "[Datapath][%p] RdmaAdapterInitFailed, 0x%x"
       },
@@ -16243,6 +16861,11 @@
         "EncodingString": "[conn][%p] Received %hu crypto bytes, offset=%llu Ready=%hhu"
       },
       {
+        "UniquenessHash": "fbbe3ff2-292f-f18b-1722-bc1d8c77324c",
+        "TraceID": "RecvRingBufferInitFailed",
+        "EncodingString": "RecvRingBufferInit failed, status:%d"
+      },
+      {
         "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
         "TraceID": "RecvStatelessReset",
         "EncodingString": "[conn][%p] Received stateless reset"
@@ -16261,6 +16884,16 @@
         "UniquenessHash": "c9015186-9937-78ff-24f3-2f08dc9d3c95",
         "TraceID": "RecvVerNegNoMatch",
         "EncodingString": "[conn][%p] Version Negotation contained no supported versions"
+      },
+      {
+        "UniquenessHash": "9e5dd08f-f206-6068-8f9f-09a5eaa46cf7",
+        "TraceID": "RegisterMemoryFailed",
+        "EncodingString": "[ ndspi] RegisterMemory failed, status: %d"
+      },
+      {
+        "UniquenessHash": "4f389e22-182a-8261-fb0d-61fe9d52e838",
+        "TraceID": "RegisterSendBufferFailed",
+        "EncodingString": "RegisterSendBuffer failed, status:%d"
       },
       {
         "UniquenessHash": "a4c92ffa-ea52-8ddc-f2d9-abc3de718bac",
@@ -16501,6 +17134,11 @@
         "UniquenessHash": "bd391397-df8d-a396-230b-c7846fcbda3b",
         "TraceID": "SendQueueDrained",
         "EncodingString": "[strm][%p] Send queue completely drained"
+      },
+      {
+        "UniquenessHash": "a419653b-78ab-cf68-9962-3425e9c4bc9d",
+        "TraceID": "SendRingBufferInitFailed",
+        "EncodingString": "SendRingBufferInit failed, status: %d"
       },
       {
         "UniquenessHash": "10a2af3e-b6e9-d046-42b5-49a1f96ef4f2",
@@ -16888,9 +17526,19 @@
         "EncodingString": "[sock] Failed to create socket, status:%d"
       },
       {
+        "UniquenessHash": "f7643bcd-3630-9f84-d43a-5f25957358f7",
+        "TraceID": "StartAcceptFailed",
+        "EncodingString": "StartAccept failed, invalid parameters"
+      },
+      {
         "UniquenessHash": "3811b30b-84d6-43cc-8312-918d88c99d3e",
         "TraceID": "StartAckDelayTimer",
         "EncodingString": "[conn][%p] Starting ACK_DELAY timer for %u ms"
+      },
+      {
+        "UniquenessHash": "4465b47b-9419-4126-5d72-597c3fec5dcd",
+        "TraceID": "StartListenerFailed",
+        "EncodingString": "[ ndspi] StartListener failed, status: %d"
       },
       {
         "UniquenessHash": "badaa7e5-aa9e-7979-b334-154a884827b6",

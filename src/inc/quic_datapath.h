@@ -1000,7 +1000,7 @@ CxPlatRdmaAdapterInitialize(
 // Cleanup an RDMA context
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 CxPlatRdmaAdapterRelease(
     _In_ void* Adapter  
     );
