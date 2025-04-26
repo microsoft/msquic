@@ -3,6 +3,11 @@
 .SYNOPSIS
     This script assembles darwin frameworks into an xcframework
 
+.PARAMETER Config
+    The debug or release configuration to build for.
+
+.PARAMETER Tls
+    The TLS library to use.
 #>
 
 param (
@@ -27,9 +32,9 @@ $RootDir = Split-Path $PSScriptRoot -Parent
 
 $FrameworkDir = Join-Path $RootDir artifacts frameworks
 
-$IosSimulatorFramework = Join-Path $FrameworkDir ios x64_$($Config)_$(Tls) msquic.framework
-$IosFramework = Join-Path $FrameworkDir ios arm64_$($Config)_$(Tls) msquic.framework
-$MacFramework = Join-Path $FrameworkDir macos universal_$($Config)_$(Tls) msquic.framework
+$IosSimulatorFramework = Join-Path $FrameworkDir ios x64_$($Config)_$($Tls) msquic.framework
+$IosFramework = Join-Path $FrameworkDir ios arm64_$($Config)_$($Tls) msquic.framework
+$MacFramework = Join-Path $FrameworkDir macos universal_$($Config)_$($Tls) msquic.framework
 
 $OutputDirectory = Join-Path $FrameworkDir msquic.xcframework
 
