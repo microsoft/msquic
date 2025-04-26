@@ -2947,6 +2947,7 @@ static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
 {
     RECORD_ENTRY *this_rec;
     int SplitRet;
+    int Ret = 1;
 
     this_rec = GetIncompleteRecord(Record, RecLen, Ssl);
     if (this_rec == NULL) {
@@ -2959,11 +2960,11 @@ static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
     SplitRet = SplitAddRecord(this_rec);
 
     if (SplitRet == 1) {
-        return 2;
+        Ret = 2;
     } else if (SplitRet == -1) {
-        return 0;
+        Ret = 0;
     }
-    return 1;
+    return Ret;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
