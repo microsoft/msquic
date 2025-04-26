@@ -867,7 +867,7 @@ FindCertificate(
             &FriendlyNamePropId,
             Cert))) {
 
-        BYTE FriendlyName[200];
+        BYTE FriendlyName[200] = { 0 };
         DWORD NameSize = sizeof(FriendlyName);
 
 #pragma prefast(suppress:6054, "SAL doesn't track null terminator correctly")
