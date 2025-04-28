@@ -2427,8 +2427,8 @@ MsQuicExecutionCreate(
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
-    _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION* Executions
     )
 {
     if (MsQuicLib.LazyInitComplete) {
@@ -2444,7 +2444,7 @@ MsQuicExecutionCreate(
     //
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool =
-        CxPlatWorkerPoolCreateExternal(Count, Configs);
+        CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
     if (MsQuicLib.WorkerPool == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
@@ -2457,20 +2457,23 @@ void
 QUIC_API
 MsQuicExecutionDelete(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION* Executions
     )
 {
-
+    UNREFERENCED_PARAMETER(Count);
+    UNREFERENCED_PARAMETER(Executions);
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    MsQuicLib.WorkerPool = NULL;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QUIC_API
 MsQuicExecutionPoll(
-    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
+    _In_ QUIC_EXECUTION* Execution
     )
 {
-
+    return CxPlatWorkerPoolWorkerPoll(Execution);
 }
 
 #endif

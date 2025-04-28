@@ -155,9 +155,9 @@ Once the app has the event queue, it may create the execution context with the `
 
 ```c++
 HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
-QUIC_EXECUTION_CONTEXT_CONFIG ExecConfig = { 0, &IOCP };
+QUIC_EXECUTION_CONFIG_2 ExecConfig = { 0, &IOCP };
 
-QUIC_EXECUTION_CONTEXT* ExecContext = nullptr;
+QUIC_EXECUTION* ExecContext = nullptr;
 QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext);
 ```
 

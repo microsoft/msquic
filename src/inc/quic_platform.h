@@ -444,8 +444,9 @@ CxPlatGetAllocFailDenominator(
 // loops.
 //
 
+typedef struct QUIC_EXECUTION QUIC_EXECUTION;
 typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
-
+typedef struct QUIC_EXECUTION_CONFIG_2 QUIC_EXECUTION_CONFIG_2;
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
@@ -473,7 +474,8 @@ CxPlatWorkerPoolCreate(
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreateExternal(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
     );
 
 void
@@ -507,6 +509,11 @@ CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
     _In_ uint16_t Index // Into the execution config processor array
+    );
+
+uint32_t
+CxPlatWorkerPoolWorkerPoll(
+    _In_ QUIC_EXECUTION* Execution
     );
 
 //

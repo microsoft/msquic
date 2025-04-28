@@ -12,8 +12,8 @@ MsQuicExecutionCreate(
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
-    _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION* Executions
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -21,14 +21,14 @@ void
 QUIC_API
 MsQuicExecutionDelete(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION* Executions
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 QUIC_API
 MsQuicExecutionPoll(
-    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
+    _In_ QUIC_EXECUTION* Execution
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

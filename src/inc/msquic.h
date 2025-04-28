@@ -306,12 +306,12 @@ typedef struct QUIC_EXECUTION_CONFIG {
 // completely control execution of all MsQuic work.
 //
 
-typedef struct QUIC_EXECUTION_CONTEXT_CONFIG {
+typedef struct QUIC_EXECUTION_CONFIG_2 {
     uint32_t IdealProcessor;
     QUIC_EVENTQ* EventQ;
-} QUIC_EXECUTION_CONTEXT_CONFIG;
+} QUIC_EXECUTION_CONFIG_2;
 
-typedef struct QUIC_EXECUTION_CONTEXT QUIC_EXECUTION_CONTEXT;
+typedef struct QUIC_EXECUTION QUIC_EXECUTION;
 
 //
 // This is called to create the execution contexts.
@@ -323,8 +323,8 @@ QUIC_STATUS
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT_CONFIG* Configs,
-    _Out_writes_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
     );
 
 //
@@ -336,7 +336,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 (QUIC_API * QUIC_EXECUTION_SHUTDOWN_FN)(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION** Executions
     );
 
 //
@@ -347,7 +347,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 (QUIC_API * QUIC_EXECUTION_DELETE_FN)(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONTEXT** ExecutionContexts
+    _In_reads_(Count) QUIC_EXECUTION** Executions
     );
 
 //
@@ -360,7 +360,7 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 (QUIC_API * QUIC_EXECUTION_POLL_FN)(
-    _In_ QUIC_EXECUTION_CONTEXT* ExecutionContext
+    _In_ QUIC_EXECUTION* Execution
     );
 
 #endif // _KERNEL_MODE
