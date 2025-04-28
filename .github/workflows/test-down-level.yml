@@ -42,6 +42,14 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -DisableTest
       shell: pwsh
+    - name: Install Perl
+      if: runner.os == 'Windows'
+      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
+      with:
+        perl-version: '5.34'
+    - name: Install NASM
+      if: runner.os == 'Windows'
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Build Release
       shell: pwsh
       run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
