@@ -1345,6 +1345,24 @@ MsQuicStreamReceiveComplete(
             "[strm][%p] ERROR, %s.",
             Stream,
             "RecvCompletionLength is overflow");
+
+        //
+        // We're just going to abort the whole connection.
+        //
+        if (InterlockedCompareExchange16(
+            (short*)&Connection->BackUpOperUsed, 1, 0) != 0) {
+            goto Exit; // It's already started the shutdown.
+        }
+        Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = (QUIC_VAR_INT)QUIC_STATUS_INVALID_STATE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
         goto Exit;
     }
 
