@@ -177,10 +177,7 @@ foreach ($Build in $AllBuilds) {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
-        $Tls = "openssl"
-        if ($BuildBaseName -like "*openssl3*") {
-            $Tls = "openssl3"
-        }
+        $Tls = "quictls"
 
         if ($BuildBaseName -like "*arm64_*") {
             & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro

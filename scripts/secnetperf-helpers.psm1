@@ -474,7 +474,7 @@ function Get-TestOutput {
         $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match "@ (\d+) kbps" | Out-Null
+        $Output -match "(\d+) kbps" | Out-Null
         return $matches[1]
     }
 }

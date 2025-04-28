@@ -563,8 +563,6 @@ CxPlatSocketContextSqeInitialize(
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
     BOOLEAN ShutdownSqeInitialized = FALSE;
     BOOLEAN IoSqeInitialized = FALSE;
-    BOOLEAN FlushTxInitialized = FALSE;
-
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -609,22 +607,17 @@ CxPlatSocketContextSqeInitialize(
             "CxPlatSqeInitialize failed");
         goto Exit;
     }
-    FlushTxInitialized = TRUE;
 
     SocketContext->SqeInitialized = TRUE;
+    return QUIC_STATUS_SUCCESS;
 
 Exit:
 
-    if (QUIC_FAILED(Status)) {
-        if (ShutdownSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
-        }
-        if (IoSqeInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
-        }
-        if (FlushTxInitialized) {
-            CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
-        }
+    if (ShutdownSqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
+    }
+    if (IoSqeInitialized) {
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
     }
 
     return Status;
@@ -655,8 +648,8 @@ CxPlatSocketContextInitialize(
     SocketContext->DatapathPartition = &Datapath->Partitions[PartitionIndex];
     CxPlatRefIncrement(&SocketContext->DatapathPartition->RefCount);
 
-    if (QUIC_FAILED(CxPlatSocketContextSqeInitialize(SocketContext)) ||
-        SocketType == CXPLAT_SOCKET_TCP_SERVER) {
+    Status = CxPlatSocketContextSqeInitialize(SocketContext);
+    if (QUIC_FAILED(Status) || SocketType == CXPLAT_SOCKET_TCP_SERVER) {
         goto Exit;
     }
 
@@ -975,6 +968,42 @@ CxPlatSocketContextInitialize(
                 Binding,
                 Status,
                 "setsockopt(SO_REUSEPORT) failed");
+            goto Exit;
+        }
+
+        //
+        // Prevent the socket from entering TIME_WAIT state when closed.
+        //
+        struct linger LingerOpt;
+        LingerOpt.l_onoff = TRUE;   // Enable linger
+        LingerOpt.l_linger = 0;     // Linger time of 0 seconds (immediate reset)
+        Result = setsockopt(SocketContext->SocketFd, SOL_SOCKET, SO_LINGER, &LingerOpt, sizeof(LingerOpt));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_LINGER) failed");
+            goto Exit;
+        }
+    } else if (SocketType == CXPLAT_SOCKET_TCP) {
+        //
+        // Prevent the socket from entering TIME_WAIT state when closed.
+        //
+        struct linger LingerOpt;
+        LingerOpt.l_onoff = TRUE;   // Enable linger
+        LingerOpt.l_linger = 0;     // Linger time of 0 seconds (immediate reset)
+        Result = setsockopt(SocketContext->SocketFd, SOL_SOCKET, SO_LINGER, &LingerOpt, sizeof(LingerOpt));
+        if (Result == SOCKET_ERROR) {
+            Status = errno;
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "setsockopt(SO_LINGER) failed");
             goto Exit;
         }
     }
@@ -1740,7 +1769,7 @@ CxPlatSocketHandleErrors(
             SocketContext->Binding,
             errno,
             "getsockopt(SO_ERROR) failed");
-    } else {
+    } else if (ErrNum != 0) {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
@@ -1763,11 +1792,7 @@ CxPlatSocketHandleErrors(
                         &SocketContext->Binding->RemoteAddress);
                 }
             }
-        } else if (ErrNum == ENOTSOCK ||
-                   ErrNum == EINTR ||
-                   ErrNum == ECANCELED ||
-                   ErrNum == ECONNABORTED ||
-                   ErrNum == ECONNRESET) {
+        } else {
             if (!SocketContext->Binding->DisconnectIndicated) {
                 SocketContext->Binding->DisconnectIndicated = TRUE;
                 SocketContext->Binding->Datapath->TcpHandlers.Connect(
@@ -2593,7 +2618,7 @@ CxPlatSendDataSendTcp(
                 SendData->SocketContext->SocketFd,
                 SendData->Buffer + SendData->TotalBytesSent,
                 SendData->TotalSize - SendData->TotalBytesSent,
-                0);
+                MSG_NOSIGNAL);
         if (BytesSent < 0) {
             return FALSE;
         }

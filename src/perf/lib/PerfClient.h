@@ -95,6 +95,8 @@ struct QUIC_CACHEALIGN PerfClientWorker {
     uint64_t ConnectionsCompleted {0};
     uint64_t StreamsStarted {0};
     uint64_t StreamsCompleted {0};
+    uint64_t UploadRate {0};
+    uint64_t DownloadRate {0};
     UniquePtr<char[]> Target;
     QuicAddr LocalAddr;
     QuicAddr RemoteAddr;
@@ -152,6 +154,10 @@ struct PerfClient {
     PerfClientWorker Workers[PERF_MAX_THREAD_COUNT];
 
     UniquePtr<TcpEngine> Engine;
+    MsQuicCredentialConfig CredentialConfig {
+        QUIC_CREDENTIAL_FLAG_CLIENT |
+        QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION};
+    TcpConfiguration TcpConfig {&CredentialConfig};
     MsQuicRegistration Registration {
         "perf-client",
         PerfDefaultExecutionProfile,
@@ -166,9 +172,7 @@ struct PerfClient {
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed),
-        MsQuicCredentialConfig(
-            QUIC_CREDENTIAL_FLAG_CLIENT |
-            QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION)};
+        CredentialConfig};
     // Target parameters
     UniquePtr<char[]> Target;
     QUIC_ADDRESS_FAMILY TargetFamily {QUIC_ADDRESS_FAMILY_UNSPEC};
@@ -190,6 +194,7 @@ struct PerfClient {
     uint8_t UsePacing {TRUE};
     uint8_t UseSendBuffering {FALSE};
     uint8_t PrintThroughput {FALSE};
+    uint8_t PrintConnThroughput {FALSE};
     uint8_t PrintIoRate {FALSE};
     uint8_t PrintConnections {FALSE};
     uint8_t PrintStreams {FALSE};
@@ -255,6 +260,20 @@ struct PerfClient {
             StreamsCompleted += Workers[i].StreamsCompleted;
         }
         return StreamsCompleted;
+    }
+    uint64_t GetUploadRate() const {
+        uint64_t UploadRate = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            UploadRate += Workers[i].UploadRate;
+        }
+        return UploadRate;
+    }
+    uint64_t GetDownloadRate() const {
+        uint64_t DownloadRate = 0;
+        for (uint32_t i = 0; i < WorkerCount; ++i) {
+            DownloadRate += Workers[i].DownloadRate;
+        }
+        return DownloadRate;
     }
 
     void OnConnectionsComplete() { // Called when a worker has completed its set of connections

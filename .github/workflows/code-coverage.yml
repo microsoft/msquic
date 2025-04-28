@@ -26,7 +26,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -46,8 +46,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test", xdp: "-UseXdp" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
         ]
     runs-on:
      - self-hosted
@@ -90,7 +90,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -140,7 +140,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
         ]
     runs-on:
     - self-hosted
@@ -194,39 +194,39 @@ jobs:
     - name: Create Folder for Artifacts
       shell: pwsh
       run: |
-        New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_openssl
+        New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_quictls
     - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       name: Download BVT Coverage Results
       with:
-        name: BVT-Debug-windows-windows-2022-x64-openssl
-        path: artifacts\coverage\windows\x64_Debug_openssl
+        name: BVT-Debug-windows-windows-2022-x64-quictls
+        path: artifacts\coverage\windows\x64_Debug_quictls
     - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       name: Download BVT (XDP) Coverage Results
       with:
-        name: BVT-Debug-windows-windows-2022-x64-openssl-UseXdp
-        path: artifacts\coverage\windows\x64_Debug_openssl
+        name: BVT-Debug-windows-windows-2022-x64-quictls-UseXdp
+        path: artifacts\coverage\windows\x64_Debug_quictls
     - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       name: Download SpinQuic Coverage Results
       with:
-        name: Spin-Debug-windows-windows-2022-x64-openssl
-        path: artifacts\coverage\windows\x64_Debug_openssl
+        name: Spin-Debug-windows-windows-2022-x64-quictls
+        path: artifacts\coverage\windows\x64_Debug_quictls
     - uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
       name: Download RecvFuzz Coverage Results
       with:
-        name: RecvFuzz-Debug-windows-windows-2022-x64-openssl
-        path: artifacts\coverage\windows\x64_Debug_openssl
+        name: RecvFuzz-Debug-windows-windows-2022-x64-quictls
+        path: artifacts\coverage\windows\x64_Debug_quictls
     - name: Dir Folder for Artifacts
       shell: pwsh
       run: |
-        dir artifacts\coverage\windows\x64_Debug_openssl
+        dir artifacts\coverage\windows\x64_Debug_quictls
     - name: Merge
       shell: pwsh
-      run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls openssl
+      run: scripts/merge-coverage.ps1 -Config Debug -Arch x64 -Tls quictls
     - name: Upload Results
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: merged
-        path: artifacts\coverage\windows\x64_Debug_openssl\msquiccoverage.xml
+        path: artifacts\coverage\windows\x64_Debug_quictls\msquiccoverage.xml
 
   publish-coverage:
     name: Generate Summary
@@ -240,7 +240,7 @@ jobs:
       with:
         name: merged
     - name: Upload coverage reports to Codecov
-      uses: codecov/codecov-action@0565863a31f2c772f9f0395002a31e3f06189574
+      uses: codecov/codecov-action@ad3126e916f78f00edff4ed0317cf185271ccc2d
       with:
         fail_ci_if_error: true
         files: msquiccoverage.xml

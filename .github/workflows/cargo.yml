@@ -21,7 +21,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features openssl", "--features openssl,static", "--features overwrite"]
+        features: ["", "--features static", "--features quictls", "--features quictls,static", "--features overwrite"]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
@@ -32,11 +32,11 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls openssl -ForBuild -InstallTestCertificates
+      run: scripts/prepare-machine.ps1 -Tls quictls -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
+      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -88,7 +88,7 @@ jobs:
     - name: Cargo test
       run: cargo test --all ${{ matrix.features }}
     - name: Cargo Publish (dry run)
-      run: cargo publish --dry-run --allow-dirty
+      run: cargo publish --dry-run --allow-dirty --no-verify
   # Test rust crate with preinstalled msquic lib.
   cargo-preinstall:
     strategy:

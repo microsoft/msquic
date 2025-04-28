@@ -29,11 +29,10 @@ on:
         #   - x64
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
       static:
         required: false
         default: ''

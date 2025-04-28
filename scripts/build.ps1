@@ -132,7 +132,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -268,8 +268,8 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
-        Write-Error "Arm64EC does not support openssl"
+    if ($Tls -eq "quictls") {
+        Write-Error "Arm64EC does not support quictls"
     }
 }
 
@@ -424,7 +424,7 @@ function CMake-Generate {
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
-    $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_TLS_LIB=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
 
     if ($IsLinux) {
@@ -545,7 +545,7 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
-    } else {
+    } elseif (@("", "Unix Makefiles") -contains $Generator) {
         $Arguments += " -- VERBOSE=1"
     }
 
