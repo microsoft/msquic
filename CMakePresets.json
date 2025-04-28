@@ -64,7 +64,7 @@
         },
         {
             "name": "linux-quictls-debug",
-            "displayName": "Linux OpenSSL Debug",
+            "displayName": "Linux quictls Debug",
             "inherits": "lin-base",
             "binaryDir": "${sourceDir}/build/linux/x64_quictls",
             "architecture": {

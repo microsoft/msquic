@@ -29,7 +29,6 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls3", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -49,10 +48,9 @@ jobs:
       matrix:
         vec: [
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls3", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", build: "-Test", xdp: "-UseXdp" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -74,17 +72,14 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", build: "-Test", xdp: "-UseXdp"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp"  },
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls3", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
@@ -147,8 +142,6 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls3", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}

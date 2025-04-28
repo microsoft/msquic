@@ -27,12 +27,12 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls3" },
-          { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls3" },
-          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls3" },
-          { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls3", time64: "-Time64Distro" },
-          { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls3", time64: "-Time64Distro" },
-          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", xdp: "-UseXdp", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm", tls: "quictls" },
+          { config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls" },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm", tls: "quictls", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", time64: "-Time64Distro" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp", time64: "-Time64Distro" },
         ]
     uses: ./.github/workflows/package-reuse-linux.yml
     with:
@@ -50,8 +50,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls3" },
-          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", xdp: "-UseXdp" },
+          { config: "Release", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
+          { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
@@ -85,26 +85,24 @@ jobs:
       matrix:
         vec: [
           # Ubuntu 24.04
-          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-amd64", xdp: "-UseXdp", dotnetVersion: "9.0" },
-          { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm32v7", dotnetVersion: "9.0" },
-          { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm64v8", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 24.04 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-amd64", xdp: "-UseXdp", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 24.04 ARM32", config: "Release", os: "ubuntu-24.04", arch: "arm",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm32v7", dotnetVersion: "9.0" },
+          { friendlyName: "Ubuntu 24.04 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-noble-arm64v8", dotnetVersion: "9.0" },
           # Debian 12
-          { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-amd64", dotnetVersion: "9.0" },
-          { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm32v7", dotnetVersion: "9.0" },
-          { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm64v8", dotnetVersion: "9.0" },
+          { friendlyName: "Debian 12 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Debian 12 ARM32", config: "Release", os: "ubuntu-22.04", arch: "arm",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm32v7", dotnetVersion: "9.0" },
+          { friendlyName: "Debian 12 ARM64", config: "Release", os: "ubuntu-22.04", arch: "arm64", tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-bookworm-slim-arm64v8", dotnetVersion: "9.0" },
           # Azure Linux 3.0
-          { friendlyName: "AzureLinux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-amd64", dotnetVersion: "9.0", xdp: "-UseXdp" },
-          { friendlyName: "AzureLinux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-arm64v8", dotnetVersion: "9.0" },
+          { friendlyName: "AzureLinux 3.0 x64", config: "Release", os: "ubuntu-24.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-amd64", dotnetVersion: "9.0", xdp: "-UseXdp" },
+          { friendlyName: "AzureLinux 3.0 ARM64", config: "Release", os: "ubuntu-24.04", arch: "arm64",   tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-azurelinux3.0-arm64v8", dotnetVersion: "9.0" },
           # Centos Stream 9
-          { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:centos-stream9-helix", dotnetVersion: "9.0" },
+          { friendlyName: "CentOS Stream 9 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:centos-stream9-helix", dotnetVersion: "9.0" },
           # Fedora 39 - 40
-          { friendlyName: "Fedora 39 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-39", dotnetVersion: "9.0" },
-          { friendlyName: "Fedora 40 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls3", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-40", dotnetVersion: "9.0" },
-          # OpenSuse 15.4
-          #{ friendlyName: "OpenSuse 15.4 x64", config: "Release", os: "ubuntu-20.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:opensuse-15.4-helix-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Fedora 39 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-39", dotnetVersion: "9.0" },
+          { friendlyName: "Fedora 40 x64", config: "Release", os: "ubuntu-22.04", arch: "x64",   tls: "quictls", image: "mcr.microsoft.com/dotnet-buildtools/prereqs:fedora-40", dotnetVersion: "9.0" },
           # RHEL 8 - 9
-          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", image: "redhat/ubi8-minimal:latest" },
-          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls3", image: "redhat/ubi9-minimal:latest" },
+          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "redhat/ubi8-minimal:latest" },
+          # { config: "Release", os: "ubuntu-24.04", arch: "x64", tls: "quictls", image: "redhat/ubi9-minimal:latest" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:

@@ -132,7 +132,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "quictls", "quictls3")]
+    [ValidateSet("schannel", "quictls")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -268,7 +268,7 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "quictls" -Or $Tls -eq "quictls3") {
+    if ($Tls -eq "quictls") {
         Write-Error "Arm64EC does not support quictls"
     }
 }
@@ -545,7 +545,7 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
-    } else {
+    } elseif (@("", "Unix Makefiles") -contains $Generator) {
         $Arguments += " -- VERBOSE=1"
     }
 
