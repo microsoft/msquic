@@ -249,7 +249,11 @@ function Update-Path($NewPath) {
 
 # Installs NASM from the public release.
 function Install-NASM {
-    if (!$IsWindows) { return } # Windows only
+    if (!$IsWindows) {
+        Write-Host "NASM is not supported on non-Windows platforms."
+        return
+    } # Windows only
+    Write-Host "Attempting to install NASM"
     $NasmVersion = "2.16.01"
     $NasmPath = Join-Path $env:Programfiles "nasm-$NasmVersion"
     $NasmExe = Join-Path $NasmPath "nasm.exe"
@@ -269,6 +273,8 @@ function Install-NASM {
         Expand-Archive -Path "artifacts\nasm.zip" -DestinationPath $env:Programfiles -Force
         Remove-Item -Path "artifacts\nasm.zip"
         Update-Path $NasmPath
+    } else {
+        Write-Host "NASM already installed"
     }
 }
 
