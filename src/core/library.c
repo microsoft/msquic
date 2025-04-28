@@ -1013,13 +1013,13 @@ QuicLibrarySetGlobalParam(
             return QUIC_STATUS_SUCCESS;
         }
 
-        if (Buffer == NULL || BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE) {
+        if (Buffer == NULL || BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Buffer;
+        QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Buffer;
 
-        if (BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
+        if (BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -1051,7 +1051,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        QUIC_EXECUTION_CONFIG* NewConfig =
+        QUIC_GLOBAL_EXECUTION_CONFIG* NewConfig =
             CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_EXECUTION_CONFIG);
         if (NewConfig == NULL) {
             QuicTraceEvent(
@@ -1340,7 +1340,7 @@ QuicLibraryGetGlobalParam(
         }
 
         const uint32_t ConfigLength =
-            QUIC_EXECUTION_CONFIG_MIN_SIZE +
+            QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE +
             sizeof(uint16_t) * MsQuicLib.ExecutionConfig->ProcessorCount;
 
         if (*BufferLength < ConfigLength) {

@@ -22,7 +22,7 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
@@ -47,7 +47,7 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (Config && Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_XDP) {
+    if (Config && Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP) {
         Status =
             RawDataPathInitialize(
                 ClientRecvContextLength,
@@ -86,7 +86,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     DataPathUpdateConfig(Datapath, Config);

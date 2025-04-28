@@ -22,7 +22,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
@@ -133,7 +133,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     CxPlatDpRawUpdateConfig(Datapath, Config);;
