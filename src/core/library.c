@@ -1015,13 +1015,13 @@ QuicLibrarySetGlobalParam(
             return QUIC_STATUS_SUCCESS;
         }
 
-        if (Buffer == NULL || BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE) {
+        if (Buffer == NULL || BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Buffer;
+        QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Buffer;
 
-        if (BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
+        if (BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -1053,7 +1053,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
-        QUIC_EXECUTION_CONFIG* NewConfig =
+        QUIC_GLOBAL_EXECUTION_CONFIG* NewConfig =
             CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_EXECUTION_CONFIG);
         if (NewConfig == NULL) {
             QuicTraceEvent(
@@ -1342,7 +1342,7 @@ QuicLibraryGetGlobalParam(
         }
 
         const uint32_t ConfigLength =
-            QUIC_EXECUTION_CONFIG_MIN_SIZE +
+            QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE +
             sizeof(uint16_t) * MsQuicLib.ExecutionConfig->ProcessorCount;
 
         if (*BufferLength < ConfigLength) {
@@ -2427,8 +2427,8 @@ MsQuicExecutionCreate(
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
-    _Out_writes_(Count) QUIC_EXECUTION* Executions
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
     )
 {
     if (MsQuicLib.LazyInitComplete) {
@@ -2457,7 +2457,7 @@ void
 QUIC_API
 MsQuicExecutionDelete(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION* Executions
+    _In_reads_(Count) QUIC_EXECUTION** Executions
     )
 {
     UNREFERENCED_PARAMETER(Count);

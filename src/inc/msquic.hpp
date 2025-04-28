@@ -449,15 +449,17 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
 struct MsQuicExecution {
-    QUIC_EXECUTION* Executions {nullptr};
+    QUIC_EXECUTION** Executions {nullptr};
     uint32_t Count {0};
     MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
-        QUIC_EXECUTION_CONFIG_2 Config = { 0, EventQ };
+        QUIC_EXECUTION_CONFIG Config = { 0, EventQ };
         Initialize(Flags, PollingIdleTimeoutUs, &Config);
     }
     MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
-        auto Configs = new(std::nothrow) QUIC_EXECUTION_CONFIG_2[Count];
+        auto Configs = new(std::nothrow) QUIC_EXECUTION_CONFIG[Count];
         if (Configs != nullptr) {
             for (uint32_t i = 0; i < Count; ++i) {
                 Configs[i].IdealProcessor = i;
@@ -470,10 +472,10 @@ struct MsQuicExecution {
     void Initialize(
         _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
         _In_ uint32_t PollingIdleTimeoutUs,
-        _In_reads_(this->Count) QUIC_EXECUTION_CONFIG_2* Configs
+        _In_reads_(this->Count) QUIC_EXECUTION_CONFIG* Configs
         )
     {
-        Executions = new(std::nothrow) MsQuicExecutionContext[Count];
+        Executions = new(std::nothrow) QUIC_EXECUTION*[Count];
         if (Executions != nullptr) {
             auto Status =
                 MsQuic->ExecutionCreate(
@@ -481,7 +483,7 @@ struct MsQuicExecution {
                     PollingIdleTimeoutUs,
                     Count,
                     Configs,
-                    &Executions);
+                    Executions);
             if (QUIC_FAILED(Status)) {
                 delete [] Executions;
                 Executions = nullptr;
@@ -489,10 +491,12 @@ struct MsQuicExecution {
         }
     }
     bool IsValid() const noexcept { return Executions != nullptr; }
-    QUIC_EXECUTION& operator[](size_t i) const {
-        return *(Executions + i);
+    QUIC_EXECUTION* operator[](size_t i) const {
+        return Executions[i];
     }
 };
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};

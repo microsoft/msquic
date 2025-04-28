@@ -286,7 +286,7 @@ DEFINE_ENUM_FLAG_OPERATORS(QUIC_EXECUTION_CONFIG_FLAGS)
 //
 // A custom configuration for thread execution in QUIC.
 //
-typedef struct QUIC_EXECUTION_CONFIG {
+typedef struct QUIC_GLOBAL_EXECUTION_CONFIG {
 
     QUIC_EXECUTION_CONFIG_FLAGS Flags;
     uint32_t PollingIdleTimeoutUs;      // Time before a polling thread, with no work to do, sleeps.
@@ -294,10 +294,10 @@ typedef struct QUIC_EXECUTION_CONFIG {
     _Field_size_(ProcessorCount)
     uint16_t ProcessorList[1];          // List of processors to use for threads.
 
-} QUIC_EXECUTION_CONFIG;
+} QUIC_GLOBAL_EXECUTION_CONFIG;
 
-#define QUIC_EXECUTION_CONFIG_MIN_SIZE \
-    (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)
+#define QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE \
+    (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList)
 
 #ifndef _KERNEL_MODE
 
@@ -306,10 +306,10 @@ typedef struct QUIC_EXECUTION_CONFIG {
 // completely control execution of all MsQuic work.
 //
 
-typedef struct QUIC_EXECUTION_CONFIG_2 {
+typedef struct QUIC_EXECUTION_CONFIG {
     uint32_t IdealProcessor;
     QUIC_EVENTQ* EventQ;
-} QUIC_EXECUTION_CONFIG_2;
+} QUIC_EXECUTION_CONFIG;
 
 typedef struct QUIC_EXECUTION QUIC_EXECUTION;
 
@@ -323,7 +323,7 @@ QUIC_STATUS
     _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
     _Out_writes_(Count) QUIC_EXECUTION** Executions
     );
 
@@ -931,7 +931,7 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH              0x01000008  // char[64]
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-#define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_EXECUTION_CONFIG
+#define QUIC_PARAM_GLOBAL_EXECUTION_CONFIG              0x01000009  // QUIC_GLOBAL_EXECUTION_CONFIG
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH

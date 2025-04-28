@@ -177,8 +177,8 @@ QuicMainStart(
         return Status;
     }
 
-    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
-    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    uint8_t RawConfig[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + 256 * sizeof(uint16_t)] = {0};
+    QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
     const char* IoMode = GetValue(argc, argv, "io");
@@ -235,7 +235,7 @@ QuicMainStart(
         MsQuic->SetParam(
             nullptr,
             QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-            (uint32_t)QUIC_EXECUTION_CONFIG_MIN_SIZE + Config->ProcessorCount * sizeof(uint16_t),
+            (uint32_t)QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + Config->ProcessorCount * sizeof(uint16_t),
             Config))) {
         WriteOutput("Failed to set execution config %d\n", Status);
         return Status;

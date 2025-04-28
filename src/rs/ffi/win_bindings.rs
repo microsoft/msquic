@@ -426,7 +426,7 @@ pub const QUIC_EXECUTION_CONFIG_FLAGS_QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE:
 pub type QUIC_EXECUTION_CONFIG_FLAGS = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
-pub struct QUIC_EXECUTION_CONFIG {
+pub struct QUIC_GLOBAL_EXECUTION_CONFIG {
     pub Flags: QUIC_EXECUTION_CONFIG_FLAGS,
     pub PollingIdleTimeoutUs: u32,
     pub ProcessorCount: u32,
@@ -434,17 +434,17 @@ pub struct QUIC_EXECUTION_CONFIG {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_EXECUTION_CONFIG"][::std::mem::size_of::<QUIC_EXECUTION_CONFIG>() - 16usize];
-    ["Alignment of QUIC_EXECUTION_CONFIG"]
-        [::std::mem::align_of::<QUIC_EXECUTION_CONFIG>() - 4usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::Flags"]
-        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, Flags) - 0usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::PollingIdleTimeoutUs"]
-        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, PollingIdleTimeoutUs) - 4usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::ProcessorCount"]
-        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, ProcessorCount) - 8usize];
-    ["Offset of field: QUIC_EXECUTION_CONFIG::ProcessorList"]
-        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, ProcessorList) - 12usize];
+    ["Size of QUIC_GLOBAL_EXECUTION_CONFIG"][::std::mem::size_of::<QUIC_GLOBAL_EXECUTION_CONFIG>() - 16usize];
+    ["Alignment of QUIC_GLOBAL_EXECUTION_CONFIG"]
+        [::std::mem::align_of::<QUIC_GLOBAL_EXECUTION_CONFIG>() - 4usize];
+    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::Flags"]
+        [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, Flags) - 0usize];
+    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::PollingIdleTimeoutUs"]
+        [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, PollingIdleTimeoutUs) - 4usize];
+    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorCount"]
+        [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorCount) - 8usize];
+    ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorList"]
+        [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList) - 12usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]

@@ -67,7 +67,7 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;

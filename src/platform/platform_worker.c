@@ -255,7 +255,7 @@ CxPlatWorkerPoolDestroyWorker(
 
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     //
@@ -351,10 +351,11 @@ Error:
     return NULL;
 }
 
+_Success_(return != NULL)
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreateExternal(
     _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION_CONFIG_2* Configs,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
     _Out_writes_(Count) QUIC_EXECUTION** Executions
     )
 {
@@ -389,7 +390,7 @@ CxPlatWorkerPoolCreateExternal(
 
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         if (!CxPlatWorkerPoolInitWorker(
-                Worker, IdealProcessor, &Configs[i].EventQ, NULL)) {
+                Worker, IdealProcessor, Configs[i].EventQ, NULL)) {
             goto Error;
         }
         Executions[i] = (QUIC_EXECUTION*)Worker;

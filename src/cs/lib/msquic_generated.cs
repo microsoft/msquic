@@ -223,7 +223,7 @@ namespace Microsoft.Quic
         AFFINITIZE = 0x0020,
     }
 
-    internal unsafe partial struct QUIC_EXECUTION_CONFIG
+    internal unsafe partial struct QUIC_GLOBAL_EXECUTION_CONFIG
     {
         internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
 
@@ -237,7 +237,7 @@ namespace Microsoft.Quic
         internal fixed ushort ProcessorList[1];
     }
 
-    internal unsafe partial struct QUIC_EXECUTION_CONFIG_2
+    internal unsafe partial struct QUIC_EXECUTION_CONFIG
     {
         [NativeTypeName("uint32_t")]
         internal uint IdealProcessor;
@@ -3411,7 +3411,7 @@ namespace Microsoft.Quic
         internal delegate* unmanaged[Cdecl]<QUIC_CONNECTION_POOL_CONFIG*, QUIC_HANDLE**, int> ConnectionPoolCreate;
 
         [NativeTypeName("QUIC_EXECUTION_CREATE_FN")]
-        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONFIG_FLAGS, uint, uint, QUIC_EXECUTION_CONFIG_2*, QUIC_EXECUTION**, int> ExecutionCreate;
+        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONFIG_FLAGS, uint, uint, QUIC_EXECUTION_CONFIG*, QUIC_EXECUTION**, int> ExecutionCreate;
 
         [NativeTypeName("QUIC_EXECUTION_DELETE_FN")]
         internal delegate* unmanaged[Cdecl]<uint, QUIC_EXECUTION**, void> ExecutionDelete;
@@ -3441,8 +3441,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATELESS_RESET_KEY_LENGTH 32")]
         internal const uint QUIC_STATELESS_RESET_KEY_LENGTH = 32;
 
-        [NativeTypeName("#define QUIC_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)")]
-        internal static readonly uint QUIC_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_EXECUTION_CONFIG>("ProcessorList"))));
+        [NativeTypeName("#define QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList)")]
+        internal static readonly uint QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_GLOBAL_EXECUTION_CONFIG>("ProcessorList"))));
 
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;
