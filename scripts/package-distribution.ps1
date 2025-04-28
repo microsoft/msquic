@@ -19,7 +19,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.3.10"
+$Version = "2.3.11"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
