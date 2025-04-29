@@ -25,13 +25,16 @@ jobs:
       matrix:
         vec: [
           # v2.3
-          { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.3.11",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
           # v2.4
-          { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "ubuntu-24.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "quictls", imgtls: "openssl3" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
