@@ -327,10 +327,10 @@ tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "connection pools",
-            PerProcSize);
-// arg2 = arg2 = "connection pools" = arg2
-// arg3 = arg3 = PerProcSize = arg3
+            "Library Partitions",
+            PartitionsSize);
+// arg2 = arg2 = "Library Partitions" = arg2
+// arg3 = arg3 = PartitionsSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -567,26 +567,6 @@ tracepoint(CLOG_LIBRARY_C, DataPathRundown , arg2);\
 #ifndef _clog_3_ARGS_TRACE_LibrarySendRetryStateUpdated
 #define _clog_3_ARGS_TRACE_LibrarySendRetryStateUpdated(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
-// QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Create stateless retry key");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Create stateless retry key" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryErrorStatus , arg2, arg3);\
 
 #endif
 

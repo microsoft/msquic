@@ -51,8 +51,7 @@ CxPlatPoolAlloc(
 
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
+    _In_ void* Memory
     );
 
 BOOLEAN
@@ -142,6 +141,18 @@ long
 InterlockedOr(
     _Inout_ _Interlocked_operand_ long volatile *Destination,
     _In_ long Value
+    );
+
+int64_t
+InterlockedOr64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t Value
+    );
+
+int64_t
+InterlockedExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Target,
+    _In_ int64_t Value
     );
 
 int64_t
@@ -403,6 +414,15 @@ void
 CxPlatToeplitzHashComputeAddr(
     _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
     _In_ const QUIC_ADDR* Addr,
+    _Inout_ uint32_t* Key,
+    _Out_ uint32_t* Offset
+    );
+
+void
+CxPlatToeplitzHashComputeRss(
+    _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
+    _In_ const QUIC_ADDR* SrcAddr,
+    _In_ const QUIC_ADDR* DestAddr,
     _Inout_ uint32_t* Key,
     _Out_ uint32_t* Offset
     );

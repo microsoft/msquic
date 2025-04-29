@@ -273,7 +273,6 @@ typedef enum QUIC_DATAGRAM_SEND_STATE {
 typedef enum QUIC_EXECUTION_CONFIG_FLAGS {
     QUIC_EXECUTION_CONFIG_FLAG_NONE             = 0x0000,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_EXECUTION_CONFIG_FLAG_QTIP             = 0x0001,
     QUIC_EXECUTION_CONFIG_FLAG_RIO              = 0x0002,
     QUIC_EXECUTION_CONFIG_FLAG_XDP              = 0x0004,
     QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC    = 0x0008,
@@ -697,7 +696,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled                     : 1;
             uint64_t NetStatsEventEnabled                   : 1;
             uint64_t StreamMultiReceiveEnabled              : 1;
-            uint64_t RESERVED                               : 21;
+            uint64_t QTIPEnabled                            : 1;
+            uint64_t RESERVED                               : 20;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -748,7 +748,8 @@ typedef struct QUIC_SETTINGS {
             uint64_t OneWayDelayEnabled        : 1;
             uint64_t NetStatsEventEnabled      : 1;
             uint64_t StreamMultiReceiveEnabled : 1;
-            uint64_t ReservedFlags             : 58;
+            uint64_t QTIPEnabled               : 1;
+            uint64_t ReservedFlags             : 57;
 #else
             uint64_t ReservedFlags             : 63;
 #endif
@@ -1280,7 +1281,7 @@ typedef struct QUIC_CONNECTION_EVENT {
         } ONE_WAY_DELAY_NEGOTIATED;
         struct {
            uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
-           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have portentially lost too.
+           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
            uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
            uint64_t SmoothedRTT;                // Smoothed RTT value
            uint32_t CongestionWindow;           // Congestion Window
@@ -1310,6 +1311,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_CONNECTION_OPEN_FN)(
     _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC* Connection
+    );
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONNECTION_OPEN_IN_PARTITION_FN)(
+    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -1617,6 +1629,55 @@ QUIC_STATUS
     );
 
 //
+// Connection Pool API
+//
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+typedef enum QUIC_CONNECTION_POOL_FLAGS {
+    QUIC_CONNECTION_POOL_FLAG_NONE =                            0x00000000,
+    QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE =                0x00000001,
+} QUIC_CONNECTION_POOL_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(QUIC_CONNECTION_POOL_FLAGS);
+
+typedef struct QUIC_CONNECTION_POOL_CONFIG {
+    HQUIC Registration;
+    HQUIC Configuration;
+    QUIC_CONNECTION_CALLBACK_HANDLER Handler;
+    _Field_size_opt_(NumberOfConnections)
+        void** Context;                         // Optional
+    _Field_z_ const char* ServerName;
+    const QUIC_ADDR* ServerAddress;             // Optional
+    QUIC_ADDRESS_FAMILY Family;
+    uint16_t ServerPort;
+    uint16_t NumberOfConnections;
+    _At_buffer_(_Curr_, _Iter_, NumberOfConnections, _Field_size_(CibirIdLength))
+    _Field_size_opt_(NumberOfConnections)
+        uint8_t** CibirIds;                     // Optional
+    uint8_t CibirIdLength;                      // Zero if not using CIBIR
+    QUIC_CONNECTION_POOL_FLAGS Flags;
+} QUIC_CONNECTION_POOL_CONFIG;
+
+//
+// Creates a simple pool of NumberOfConnections connections, all with the same
+// Handler, and puts them in the caller-supplied array.
+// Connections are spread evenly across RSS CPUs as much as possible.
+// If NumberOfConnections is more than the number of RSS cores, then multiple
+// connections will be put on the same CPU.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_CONN_POOL_CREATE_FN)(
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
+    );
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+//
 // Version 2 API Function Table. Returned from MsQuicOpenVersion when Version
 // is 2. Also returned from MsQuicOpen2.
 //
@@ -1664,10 +1725,16 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_COMP_RESUMPTION_FN  ConnectionResumptionTicketValidationComplete; // Available from v2.2
     QUIC_CONNECTION_COMP_CERT_FN        ConnectionCertificateValidationComplete;      // Available from v2.2
 
+    QUIC_CONNECTION_OPEN_IN_PARTITION_FN
+                                        ConnectionOpenInPartition;   // Available from v2.5
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
                                         StreamProvideReceiveBuffers; // Available from v2.5
+
+    QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
 #endif
+
 } QUIC_API_TABLE;
 
 #define QUIC_API_VERSION_1      1 // Not supported any more

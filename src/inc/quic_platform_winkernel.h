@@ -256,6 +256,10 @@ extern uint64_t CxPlatTotalMemory;
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
+    CXPLAT_POOL* Owner;
+} CXPLAT_POOL_HEADER;
+
 #define CxPlatPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
         Pool, \
@@ -263,14 +267,35 @@ typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
         NULL, \
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
-        Size, \
+        (Size) + sizeof(CXPLAT_POOL_HEADER), \
         Tag, \
         1024)
 
 #define CxPlatPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
-#define CxPlatPoolAlloc(Pool) ExAllocateFromLookasideListEx(Pool)
-#define CxPlatPoolFree(Pool, Entry) ExFreeToLookasideListEx(Pool, Entry)
-
+inline
+void*
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Header =
+        (CXPLAT_POOL_HEADER*)ExAllocateFromLookasideListEx(Pool);
+    if (Header == NULL) {
+        return NULL;
+    }
+    Header->Owner = Pool;
+    return (void*)(Header + 1);
+}
+inline
+void
+CxPlatPoolFree(
+    _In_ void* Memory
+    )
+{
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
+    ExFreeToLookasideListEx(Pool, Header);
+}
 #define CxPlatZeroMemory RtlZeroMemory
 #define CxPlatCopyMemory RtlCopyMemory
 #define CxPlatMoveMemory RtlMoveMemory
@@ -930,7 +955,9 @@ CxPlatRandom(
 #define QUIC_SILO PESILO
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
-#define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
+#define QuicSiloGetHostSilo() PsGetHostSilo()
+#define QuicSiloIsServerSilo() PsIsCurrentThreadInServerSilo()
+#define QuicSiloGetCurrentServerSilo() PsGetCurrentServerSilo()
 #define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)

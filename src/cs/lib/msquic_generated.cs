@@ -216,7 +216,6 @@ namespace Microsoft.Quic
     internal enum QUIC_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
-        QTIP = 0x0001,
         RIO = 0x0002,
         XDP = 0x0004,
         NO_IDEAL_PROC = 0x0008,
@@ -1371,6 +1370,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong QTIPEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.QTIPEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.QTIPEnabled = value;
+            }
+        }
+
         internal ulong ReservedFlags
         {
             get
@@ -2001,17 +2013,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 21")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 43) & 0x1FFFFFUL;
+                        return (_bitfield >> 43) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1FFFFFUL << 43)) | ((value & 0x1FFFFFUL) << 43);
+                        _bitfield = (_bitfield & ~(0x1UL << 43)) | ((value & 0x1UL) << 43);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 20")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 44) & 0xFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0xFFFFFUL << 44)) | ((value & 0xFFFFFUL) << 44);
                     }
                 }
             }
@@ -2116,17 +2142,31 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 58")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 6) & 0x3FFFFFFUL;
+                        return (_bitfield >> 6) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x3FFFFFFUL << 6)) | ((value & 0x3FFFFFFUL) << 6);
+                        _bitfield = (_bitfield & ~(0x1UL << 6)) | ((value & 0x1UL) << 6);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 57")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 7) & 0x1FFFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1FFFFFFUL << 7)) | ((value & 0x1FFFFFFUL) << 7);
                     }
                 }
             }
@@ -3209,6 +3249,50 @@ namespace Microsoft.Quic
         }
     }
 
+    [System.Flags]
+    internal enum QUIC_CONNECTION_POOL_FLAGS
+    {
+        QUIC_CONNECTION_POOL_FLAG_NONE = 0x00000000,
+        QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE = 0x00000001,
+    }
+
+    internal unsafe partial struct QUIC_CONNECTION_POOL_CONFIG
+    {
+        [NativeTypeName("HQUIC")]
+        internal QUIC_HANDLE* Registration;
+
+        [NativeTypeName("HQUIC")]
+        internal QUIC_HANDLE* Configuration;
+
+        [NativeTypeName("QUIC_CONNECTION_CALLBACK_HANDLER")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int> Handler;
+
+        internal void** Context;
+
+        [NativeTypeName("const char *")]
+        internal sbyte* ServerName;
+
+        [NativeTypeName("const QUIC_ADDR *")]
+        internal QuicAddr* ServerAddress;
+
+        [NativeTypeName("QUIC_ADDRESS_FAMILY")]
+        internal ushort Family;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort ServerPort;
+
+        [NativeTypeName("uint16_t")]
+        internal ushort NumberOfConnections;
+
+        [NativeTypeName("uint8_t **")]
+        internal byte** CibirIds;
+
+        [NativeTypeName("uint8_t")]
+        internal byte CibirIdLength;
+
+        internal QUIC_CONNECTION_POOL_FLAGS Flags;
+    }
+
     internal unsafe partial struct QUIC_API_TABLE
     {
         [NativeTypeName("QUIC_SET_CONTEXT_FN")]
@@ -3304,8 +3388,14 @@ namespace Microsoft.Quic
         [NativeTypeName("QUIC_CONNECTION_COMP_CERT_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, byte, QUIC_TLS_ALERT_CODES, int> ConnectionCertificateValidationComplete;
 
+        [NativeTypeName("QUIC_CONNECTION_OPEN_IN_PARTITION_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, ushort, delegate* unmanaged[Cdecl]<QUIC_HANDLE*, void*, QUIC_CONNECTION_EVENT*, int>, void*, QUIC_HANDLE**, int> ConnectionOpenInPartition;
+
         [NativeTypeName("QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, uint, QUIC_BUFFER*, int> StreamProvideReceiveBuffers;
+
+        [NativeTypeName("QUIC_CONN_POOL_CREATE_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_CONNECTION_POOL_CONFIG*, QUIC_HANDLE**, int> ConnectionPoolCreate;
     }
 
     internal static unsafe partial class MsQuic

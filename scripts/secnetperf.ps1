@@ -20,7 +20,7 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
     The architecture being tested (i.e., x64).
 
 .PARAMETER tls
-    The TLS library being used (openssl or schannel). Not all libraries are supported on all platforms.
+    The TLS library being used (quictls or schannel). Not all libraries are supported on all platforms.
 
 .PARAMETER io
     The network IO interface to be used (not all are supported on all platforms).
@@ -57,7 +57,7 @@ param (
     [string]$arch = "x64",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("openssl", "openssl3", "schannel")]
+    [ValidateSet("quictls", "schannel")]
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $false)]

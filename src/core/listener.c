@@ -72,7 +72,7 @@ MsQuicListenerOpen(
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
-    Listener->Silo = QuicSiloGetCurrentServer();
+    Listener->Silo = QuicSiloGetCurrentServerSilo();
     QuicSiloAddRef(Listener->Silo);
 #endif
 
@@ -328,6 +328,10 @@ MsQuicListenerStart(
             UdpConfig.CibirId,
             &Listener->CibirId[2],
             UdpConfig.CibirIdLength);
+    }
+
+    if (MsQuicLib.Settings.QTIPEnabled) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
@@ -715,7 +719,7 @@ QuicListenerAcceptConnection(
             Connection,
             QUIC_ERROR_CONNECTION_REFUSED);
         Listener->TotalRejectedConnections++;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_LOAD_REJECT);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_LOAD_REJECT);
         return;
     }
 
@@ -740,7 +744,7 @@ QuicListenerAcceptConnection(
 
     if (!QuicListenerClaimConnection(Listener, Connection, Info)) {
         Listener->TotalRejectedConnections++;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_APP_REJECT);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_APP_REJECT);
         return;
     }
 

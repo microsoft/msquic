@@ -279,7 +279,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     );
 
 //
@@ -330,7 +330,7 @@ _Success_(return != NULL)
 QUIC_LISTENER*
 QuicBindingGetListener(
     _In_ QUIC_BINDING* Binding,
-    _In_opt_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONNECTION* Connection,
     _Inout_ QUIC_NEW_CONNECTION_INFO* Info
     );
 
@@ -459,6 +459,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicBindingSend(
     _In_ QUIC_BINDING* Binding,
+    _In_ QUIC_PARTITION* Partition,
     _In_ const CXPLAT_ROUTE* Route,
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ uint32_t BytesToSend,
@@ -489,6 +490,11 @@ QuicRetryTokenDecrypt(
     _Out_ QUIC_TOKEN_CONTENTS* Token
     )
 {
+#ifdef __cplusplus
+    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->_.PartitionIndex];
+#else
+    QUIC_PARTITION* Partition = &MsQuicLib.Partitions[Packet->PartitionIndex];
+#endif
     //
     // Copy the token locally so as to not effect the original packet buffer,
     //
@@ -505,13 +511,13 @@ QuicRetryTokenDecrypt(
         CxPlatCopyMemory(Iv, Packet->DestCid, MsQuicLib.CidTotalLength);
     }
 
-    CxPlatDispatchLockAcquire(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockAcquire(&Partition->StatelessRetryKeysLock);
 
     CXPLAT_KEY* StatelessRetryKey =
-        QuicLibraryGetStatelessRetryKeyForTimestamp(
-            (int64_t)Token->Authenticated.Timestamp);
+        QuicPartitionGetStatelessRetryKeyForTimestamp(
+            Partition, (int64_t)Token->Authenticated.Timestamp);
     if (StatelessRetryKey == NULL) {
-        CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+        CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
         return FALSE;
     }
 
@@ -524,6 +530,6 @@ QuicRetryTokenDecrypt(
             sizeof(Token->Encrypted) + sizeof(Token->EncryptionTag),
             (uint8_t*)&Token->Encrypted);
 
-    CxPlatDispatchLockRelease(&MsQuicLib.StatelessRetryKeysLock);
+    CxPlatDispatchLockRelease(&Partition->StatelessRetryKeysLock);
     return QUIC_SUCCEEDED(Status);
 }

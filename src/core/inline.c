@@ -139,18 +139,13 @@ QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
     );
 
-uint16_t
+QUIC_PARTITION*
+QuicLibraryGetPartitionFromProcessorIndex(
+    uint32_t ProcessorIndex
+    );
+
+QUIC_PARTITION*
 QuicLibraryGetCurrentPartition(
-    void
-    );
-
-uint16_t
-QuicLibraryGetPartitionProcessor(
-    uint16_t PartitionIndex
-    );
-
-QUIC_LIBRARY_PP*
-QuicLibraryGetPerProc(
     void
     );
 
@@ -173,9 +168,20 @@ QuicPartitionIndexDecrement(
     uint16_t Decrement
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicPartitionUpdateStatelessResetKey(
+    _Inout_ QUIC_PARTITION* Partition,
+    _In_ CXPLAT_HASH_TYPE HashType,
+    _In_reads_(ResetHashKeyLength)
+        const uint8_t* const ResetHashKey,
+    _In_ uint32_t ResetHashKeyLength
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicPerfCounterAdd(
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_PERFORMANCE_COUNTERS Type,
     _In_ int64_t Value
     );

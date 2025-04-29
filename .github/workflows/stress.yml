@@ -28,8 +28,7 @@ jobs:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -48,11 +47,10 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp" },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -74,17 +72,14 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl3", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp"  },
+          { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
@@ -98,12 +93,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-    - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -130,7 +125,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Upload on Failure
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure()
       with:
         name: stress-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
@@ -145,10 +140,8 @@ jobs:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
@@ -158,12 +151,12 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-    - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os == 'WinServerPrerelease' && 'windows-2022' || matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
-    - uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'linux' || matrix.vec.plat == 'macos'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
@@ -186,7 +179,7 @@ jobs:
       shell: pwsh
       run: scripts/recvfuzz.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -timeout ${{ env.main-timeout }} ${{ matrix.vec.xdp }}
     - name: Upload on Failure
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure()
       with:
         name: recvfuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}

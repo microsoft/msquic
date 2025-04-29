@@ -111,6 +111,18 @@ MsQuicConnectionOpen(
         HQUIC *Connection
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *Connection
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
@@ -286,4 +298,13 @@ MsQuicConnectionCertificateValidationComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ BOOLEAN Result,
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionPoolCreate(
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
     );

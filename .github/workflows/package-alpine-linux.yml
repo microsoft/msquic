@@ -27,7 +27,7 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/dotnet/sdk:8.0-alpine3.20-amd64" },
         ]
     runs-on: ubuntu-latest
     steps:
@@ -47,7 +47,7 @@ jobs:
                 -v $(pwd):/msquic \
                 ${{ matrix.vec.image }} /msquic/scripts/package-build.sh
     - name: Upload Package
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ matrix.vec.friendlyName }}-package
         path: packages/*.apk
@@ -59,21 +59,21 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "openssl3", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
+          { friendlyName: "Alpine-3.20-x64", config: "Release", arch: "x64", tls: "quictls", image: "mcr.microsoft.com/dotnet/runtime:9.0-alpine3.20-amd64", dotnetVersion: "9.0" },
         ]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Package
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
         name: ${{ matrix.vec.friendlyName }}-package
         path: artifacts
     - name: Set up QEMU
       uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
     - name: Set up .NET 9.0
-      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
       with:
         dotnet-version: ${{ matrix.vec.dotnetVersion }}
     - name: Build .NET QUIC Test Project

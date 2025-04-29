@@ -1,7 +1,8 @@
 # Building MsQuic
 
-First, clone the repo recursively or run `git submodule update --init --recursive`
-to get all the submodules.
+First, clone the repo recursively: `git clone --recurse-submodules https://github.com/microsoft/msquic.git`
+
+For existing repositories, run `git submodule update --init --recursive` to get all the submodules.
 
 # Source Code
 
@@ -33,19 +34,29 @@ Then you will need to **manually** launch "PowerShell 7" to continue. This insta
 
 You can find the full installation instructions for PowerShell on Linux [here](https://docs.microsoft.com/en-us/powershell/scripting/install/installing-powershell-core-on-linux?). For Ubuntu you can run the following:
 
-```PowerShell
-# Download the Microsoft repository GPG keys
-wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb
-
-# Register the Microsoft repository GPG keys
-sudo dpkg -i packages-microsoft-prod.deb
-
-# Update the list of products
+```sh
+# Update the list of packages
 sudo apt-get update
 
-# Enable the "universe" repositories
-sudo add-apt-repository universe
+# Install pre-requisite packages.
+sudo apt-get install -y wget apt-transport-https software-properties-common
 
+# Get the version of Ubuntu
+source /etc/os-release
+
+# Download the Microsoft repository keys
+wget -q https://packages.microsoft.com/config/ubuntu/$VERSION_ID/packages-microsoft-prod.deb
+
+# Register the Microsoft repository keys
+sudo dpkg -i packages-microsoft-prod.deb
+
+# Delete the Microsoft repository keys file
+rm packages-microsoft-prod.deb
+
+# Update the list of packages after we added packages.microsoft.com
+sudo apt-get update
+
+###################################
 # Install PowerShell
 sudo apt-get install -y powershell
 
@@ -85,11 +96,11 @@ Then you will need to manually run "pwsh" to continue.
 
 ## Install Dependencies
 
-In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK is required. Go to the following location and find the install page for your platform.
+In order to install the necessary dependencies, a copy of the .NET Core 3.1 SDK (or newer, such as .NET 9 SDK), is required. Go to the following location and find the install page for your platform.
 
  * [.NET Core](https://docs.microsoft.com/en-us/dotnet/core/install/)
 
-After installing .NET Core, you will need to restart your terminal.
+After installing .NET \[Core\] SDK, you may need to restart your terminal.
 
 For the very first time you build, it's recommend to make sure you have all the dependencies installed. You can ensure this by running:
 
@@ -182,8 +193,8 @@ sudo dnf install libatomic
 ```
 
 #### Linux XDP
-Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.  
-Commands below install dependencies and setup runtime environment.  
+Linux XDP is experimentally supported on amd64 && Ubuntu 22.04LTS.
+Commands below install dependencies and setup runtime environment.
 **<span style="color:red;">WARN: This might break your system by installing Ubuntu 24.04LTS packages on ubuntu 22.04.Do not run on production environment and need to understand the side effect. You can workaround this prompt by `-ForceXdpInstall` </span>**
 ```sh
 $ pwsh ./scripts/prepare-machine.ps1 -UseXdp
@@ -220,12 +231,12 @@ Test
 # You can explicitly specify directory of datapath_raw_xdp_kern.o by MSQUIC_XDP_OBJECT_PATH
 # By default, libmsquic.so searchs for same directory as its executable
 # If something failed, fallback to normal socket
-sudo ./artifacts/bin/linux/x64_Debug_openssl3/msquictest --duoNic
+sudo ./artifacts/bin/linux/x64_Debug_quictls/msquictest --duoNic
 ```
 
 **Q&A**
-- Q: Is this workload really running on XDP?  
-A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.   
+- Q: Is this workload really running on XDP?
+A: If you have the `xdp-dump` command, try using `sudo xdp-dump --list-interfaces`. The `xdp_main` function is located in `src/platform/datapath_raw_xdp_linux_kern.c`. If none of the interfaces load the XDP program, something must be wrong.
 ```
 $ sudo ./xdp-tools/xdp-dump/xdpdump --list-interfaces
 Interface        Prio  Program name      Mode     ID   Tag               Chain actions
@@ -233,13 +244,13 @@ Interface        Prio  Program name      Mode     ID   Tag               Chain a
 lo                     <No XDP program loaded!>
 eth0                   <No XDP program loaded!>
 docker0                <No XDP program loaded!>
-duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711 
+duo2                   xdp_dispatcher    native   608211 4d7e87c0d30db711
  =>              50     xdp_main                  608220 c8fcabdd9e3895f3  XDP_PASS
-duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711 
+duo1                   xdp_dispatcher    native   608225 4d7e87c0d30db711
  =>              50     xdp_main                  608228 c8fcabdd9e3895f3  XDP_PASS
 ```
 
-- Q: Is Ubuntu 20.04LTS supported?  
+- Q: Is Ubuntu 20.04LTS supported?
 A: Not officially, but you can still **build** it by running `apt-get upgrade linux-libc-dev`. Please be aware of potential side effects from the **upgrade**.
 
 ### macOS

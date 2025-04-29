@@ -31,7 +31,6 @@
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
-static CXPLAT_WORKER_POOL WorkerPool;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -161,7 +160,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
     uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
-    
+
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
         if (CxPlatTimeDiff64(BucketTime, CurTime) > 1000) {
@@ -214,9 +213,9 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
-        
+
         if (TCP) {
             CxPlatSendDataFree(SendData);
             Route.LocalAddress.Ipv4.sin_port++;
@@ -283,7 +282,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             BucketTime = CurTime;
             BucketCount = 0;
         }
-        
+
         if (BucketCount >= BucketThreshold) {
             continue;
         }
@@ -352,7 +351,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
     }
 }
@@ -449,7 +448,7 @@ main(
         PrintUsageList();
         ErrorCode = 0;
     } else if (!TryGetValue(argc, argv, "type", &AttackType) ||
-        (AttackType < 0 || AttackType > 4)) {
+        (AttackType <= 0 || AttackType > 4)) {
         PrintUsage();
     } else {
         const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -458,18 +457,18 @@ main(
         };
         // flag
         QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
+
         QUIC_EXECUTION_CONFIG DatapathFlags = {
             Flags,
         };
         CxPlatSystemLoad();
         CxPlatInitialize();
-        CxPlatWorkerPoolInit(&WorkerPool);
+        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
-            NULL,
+            WorkerPool,
             &DatapathFlags,
             &Datapath);
 
@@ -513,7 +512,7 @@ main(
 
         Error:
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

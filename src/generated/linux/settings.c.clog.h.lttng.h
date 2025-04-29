@@ -779,6 +779,22 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingReliableResetEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingQTIPEnabled
+// [sett] QTIPEnabled            = %hhu
+// QuicTraceLogVerbose(SettingQTIPEnabled,                 "[sett] QTIPEnabled            = %hhu", Settings->QTIPEnabled);
+// arg2 = arg2 = Settings->QTIPEnabled = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingQTIPEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingOneWayDelayEnabled
 // [sett] OneWayDelayEnabled     = %hhu
 // QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);

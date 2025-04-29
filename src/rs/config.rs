@@ -350,11 +350,11 @@ pub enum Credential {
     CertificateHashStore(CertificateHashStore),
     /// windows user mode only
     CertificateContext(*const crate::ffi::QUIC_CERTIFICATE),
-    /// openssl only
+    /// quictls only
     CertificateFile(CertificateFile),
-    /// openssl only
+    /// quictls only
     CertificateFileProtected(CertificateFileProtected),
-    /// openssl only
+    /// quictls only
     CertificatePkcs12(CertificatePkcs12),
 }
 
@@ -441,7 +441,7 @@ mod tests {
         let registration = Registration::new(&RegistrationConfig::default()).unwrap();
 
         let alpn = [BufferRef::from("h3")];
-        let configuration = Configuration::new(
+        let configuration = Configuration::open(
             &registration,
             &alpn,
             Some(
@@ -486,7 +486,7 @@ mod tests {
                 .unwrap_err()
                 .try_as_status_code()
                 .unwrap();
-            if cfg!(windows) && !cfg!(feature = "openssl") {
+            if cfg!(windows) && !cfg!(feature = "quictls") {
                 // schannel does not support load from file.
                 assert_eq!(load_err, StatusCode::QUIC_STATUS_NOT_SUPPORTED);
             } else {

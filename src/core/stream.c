@@ -28,9 +28,8 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&Connection->Partition->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -48,7 +47,7 @@ QuicStreamInitialize(
     CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
@@ -130,7 +129,8 @@ QuicStreamInitialize(
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvChunk =
+            CxPlatPoolAlloc(&Connection->Partition->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -154,7 +154,6 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
-            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -178,13 +177,13 @@ Exit:
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+        QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        CxPlatPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(Stream);
     }
     if (PreallocatedRecvChunk) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
+        CxPlatPoolFree(PreallocatedRecvChunk);
     }
 
     return Status;
@@ -198,7 +197,6 @@ QuicStreamFree(
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
     QUIC_CONNECTION* Connection = Stream->Connection;
-    QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
@@ -218,7 +216,7 @@ QuicStreamFree(
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
@@ -226,13 +224,11 @@ QuicStreamFree(
     CxPlatRefUninitialize(&Stream->RefCount);
 
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
     }
 
     Stream->Flags.Freed = TRUE;
-    CxPlatPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(Stream);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -397,12 +393,6 @@ QuicStreamClose(
     if (!Stream->Flags.ShutdownComplete) {
 
         if (Stream->Flags.Started && !Stream->Flags.HandleShutdown) {
-            //
-            // TODO - If the stream hasn't been aborted already, then this is a
-            // fatal error for the connection. The QUIC transport cannot "just
-            // pick an error" to shutdown the stream with. It must abort the
-            // entire connection.
-            //
             QuicTraceLogStreamWarning(
                 CloseWithoutShutdown,
                 Stream,
@@ -989,12 +979,9 @@ QuicStreamSwitchToAppOwnedBuffers(
     //
     // Reset the current receive buffer and preallocated chunk.
     //
-    QUIC_WORKER* Worker = Stream->Connection->Worker;
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
+        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
         Stream->RecvBuffer.PreallocatedChunk = NULL;
     }
 
@@ -1006,7 +993,6 @@ QuicStreamSwitchToAppOwnedBuffers(
         0,
         0,
         QUIC_RECV_BUF_MODE_APP_OWNED,
-        &Worker->AppBufferChunkPool,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }
