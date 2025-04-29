@@ -94,7 +94,10 @@ param (
     [switch]$DisableTest,
 
     [Parameter(Mandatory = $false)]
-    [switch]$InstallCoreNetCiDeps
+    [switch]$InstallCoreNetCiDeps,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$InstallNetworkDirect
 )
 
 # Admin is required because a lot of things are installed to the local machine
@@ -144,6 +147,11 @@ if ($ForBuild) {
     $InstallNasm = $true
     $InstallJom = $true
     $InstallCoreNetCiDeps = $true; # For kernel signing certs
+
+    if (!$IsLinux && !$IsMacOS)
+    {
+        $InstallNetworkDirect = $true
+    }
 }
 
 if ($ForTest) {
@@ -162,6 +170,11 @@ if ($ForTest) {
     if ($UseXdp) {
         $InstallXdpDriver = $true;
         $InstallDuoNic = $true;
+    }
+
+    if (!$IsLinux && !$IsMacOS)
+    {
+        $InstallNetworkDirect = $true
     }
 
     #$InstallCodeCoverage = $true # Ideally we'd enable this by default, but it
@@ -472,6 +485,12 @@ function Install-Clog2Text {
     Install-DotnetTool -ToolName "Microsoft.Logging.CLOG2Text.Lttng" -Version "0.0.1" -NuGetPath $NuGetPath
 }
 
+function Install-NetworkDirect {
+    Write-Host "Install NetworkDirect"
+    Install-Package NetworkDirect  -ProviderName NuGet -Destination $RootDir -ExcludeVersion  -Force
+}
+
+
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
     git rm $RootDir/submodules/openssl
@@ -515,6 +534,7 @@ if ($InstallJOM) { Install-JOM }
 if ($InstallPerl) { Install-Perl }
 if ($InstallCodeCoverage) { Install-OpenCppCoverage }
 if ($InstallTestCertificates) { Install-TestCertificates }
+if ($InstallNetworkDirect) { Install-NetworkDirect }
 
 if ($IsLinux) {
     if ($InstallClog2Text) {
