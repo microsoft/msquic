@@ -10,6 +10,7 @@
 #include <fcntl.h>
 #include <linux/filter.h>
 #include <linux/in6.h>
+#include <linux/stddef.h>
 #include <netinet/udp.h>
 
 //
@@ -45,6 +46,11 @@ const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
 
 void
 CxPlatDataPathCalculateFeatureSupport(
-    _Inout_ CXPLAT_DATAPATH* Datapath,
-    _In_ uint32_t ClientRecvDataLength
+    _Inout_ CXPLAT_DATAPATH* Datapath
+    );
+
+QUIC_STATUS
+CxPlatSocketConfigureRss(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ uint32_t SocketCount
     );

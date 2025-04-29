@@ -556,16 +556,18 @@ CxPlatProcessEvents(
     )
 {
     CXPLAT_CQE Cqes[16];
+    CXPLAT_CQE* CurrentCqe = Cqes;
     uint32_t CqeCount = CxPlatEventQDequeue(&Worker->EventQ, Cqes, ARRAYSIZE(Cqes), State->WaitTime);
+    uint32_t CurrentCqeCount = CqeCount;
     InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
 #if DEBUG // Debug statistics
         Worker->CqeCount += CqeCount;
 #endif
         State->NoWorkCount = 0;
-        for (uint32_t i = 0; i < CqeCount; ++i) {
-            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqes[i]);
-            Sqe->Completion(&Cqes[i]);
+        while (CqeCount > 0) {
+            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(CurrentCqe);
+            Sqe->Completion(&CurrentCqe, &CurrentCqeCount);
         }
         CxPlatEventQReturn(&Worker->EventQ, CqeCount);
     }

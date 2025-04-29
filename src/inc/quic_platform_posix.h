@@ -443,6 +443,25 @@ CxPlatListPopEntry(
     _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     );
 
+typedef struct CXPLAT_POOL CXPLAT_POOL;
+typedef struct CXPLAT_POOL_HEADER CXPLAT_POOL_HEADER;
+
+typedef
+CXPLAT_POOL_HEADER*
+(*CXPLAT_POOL_ALLOC_FN)(
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
+typedef
+void
+(*CXPLAT_POOL_FREE_FN)(
+    _In_ CXPLAT_POOL_HEADER* Entry,
+    _In_ uint32_t Tag,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
 typedef struct CXPLAT_POOL {
 
     //
@@ -476,6 +495,16 @@ typedef struct CXPLAT_POOL {
 
     uint32_t Tag;
 
+    //
+    // Optional allocator override function.
+    //
+    CXPLAT_POOL_ALLOC_FN Allocate;
+
+    //
+    // Optional free override function.
+    //
+    CXPLAT_POOL_FREE_FN Free;
+
 } CXPLAT_POOL;
 
 typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
@@ -505,10 +534,12 @@ CxPlatGetAllocFailDenominator(
 
 inline
 void
-CxPlatPoolInitialize(
+CxPlatPoolInitializeEx(
     _In_ BOOLEAN IsPaged,
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
+    _In_opt_ CXPLAT_POOL_ALLOC_FN Allocate,
+    _In_opt_ CXPLAT_POOL_FREE_FN Free,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
@@ -517,21 +548,21 @@ CxPlatPoolInitialize(
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
     CxPlatZeroMemory(&Pool->ListHead, sizeof(Pool->ListHead));
+    Pool->Allocate = Allocate;
+    Pool->Free = Free;
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
 inline
 void
-CxPlatPoolUninitialize(
+CxPlatPoolInitialize(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    CXPLAT_POOL_HEADER* Entry;
-    while ((Entry = (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
-        CxPlatFree(Entry, Pool->Tag);
-    }
-    CxPlatLockUninitialize(&Pool->Lock);
+    CxPlatPoolInitializeEx(IsPaged, Size, Tag, NULL, NULL, Pool);
 }
 
 inline
@@ -553,7 +584,11 @@ CxPlatPoolAlloc(
     }
     CxPlatLockRelease(&Pool->Lock);
     if (Header == NULL) {
-        Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
+        if (Pool->Allocate == NULL) {
+            Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
+        } else {
+            Header = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        }
         if (Header == NULL) {
             return NULL;
         }
@@ -576,19 +611,41 @@ CxPlatPoolFree(
 #if DEBUG
     CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
-        CxPlatFree(Header, Pool->Tag);
+        if (Pool->Free == NULL) {
+            CxPlatFree(Header, Pool->Tag);
+        } else {
+            Pool->Free(Header, Pool->Tag, Pool);
+        }
         return;
     }
     Header->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
-        CxPlatFree(Header, Pool->Tag);
+        if (Pool->Free == NULL) {
+            CxPlatFree(Header, Pool->Tag);
+        } else {
+            Pool->Free(Header, Pool->Tag, Pool);
+        }
     } else {
         CxPlatLockAcquire(&Pool->Lock);
         CxPlatListPushEntry(&Pool->ListHead, &Header->Entry);
         Pool->ListDepth++;
         CxPlatLockRelease(&Pool->Lock);
     }
+}
+
+inline
+void
+CxPlatPoolUninitialize(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Entry;
+    while ((Entry = (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+        CxPlatPoolFree((void*)((uint8_t*)Entry + sizeof(CXPLAT_POOL_HEADER)));
+    }
+    CxPlatLockUninitialize(&Pool->Lock);
 }
 
 inline
@@ -968,7 +1025,19 @@ extern "C++" {
 } // extern "C++"
 #endif
 
-typedef struct io_uring CXPLAT_EVENTQ;
+typedef struct CXPLAT_EVENTQ {
+    struct io_uring Ring;
+    //
+    // For rapid prototyping, use a lock to implement SQE single producer and
+    // validate CQE single consumer. If io_uring shows performance benefits,
+    // this can be optimized to use a different mechanism for multi-producer
+    // queueing.
+    //
+    CXPLAT_LOCK Lock;
+#if DEBUG
+    uint32_t ContentionCount;
+#endif
+} CXPLAT_EVENTQ;
 typedef struct io_uring_cqe* CXPLAT_CQE;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -977,73 +1046,148 @@ void
     _In_ CXPLAT_CQE* Cqe
     );
 typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_BATCH_COMPLETION)(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    );
+typedef CXPLAT_EVENT_BATCH_COMPLETION *CXPLAT_EVENT_BATCH_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
-    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+    CXPLAT_EVENT_COMPLETION_HANDLER ClassicCompletion;
+    CXPLAT_EVENT_BATCH_COMPLETION* Completion;
+    void* Context; // Review: create an encapsulating structure for this?
 } CXPLAT_SQE;
+
+typedef enum {
+    CxPlatIoRingBufGroupSend,
+    CxPlatIoRingBufGroupRecv,
+} CXPLAT_IO_RING_BUF_GROUP;
 
 inline
 BOOLEAN
 CxPlatEventQInitialize(
-    _Out_ CXPLAT_EVENTQ* queue
+    _Out_ CXPLAT_EVENTQ* Queue
     )
 {
-    return 0 == io_uring_queue_init(256, queue, 0); // TODO - make size configurable
+    CxPlatZeroMemory(Queue, sizeof(*Queue));
+    CxPlatLockInitialize(&Queue->Lock);
+    struct io_uring_params params;
+	memset(&params, 0, sizeof(params));
+	params.flags = IORING_SETUP_SUBMIT_ALL | IORING_SETUP_COOP_TASKRUN;
+    return 0 == io_uring_queue_init_params(256, &Queue->Ring, &params); // TODO - make size configurable
 }
 
 inline
 void
 CxPlatEventQCleanup(
-    _In_ CXPLAT_EVENTQ* queue
+    _In_ CXPLAT_EVENTQ* Queue
     )
 {
-    io_uring_queue_exit(queue);
+    io_uring_queue_exit(&Queue->Ring);
 }
 
 inline
 BOOLEAN
 CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
     )
 {
-    struct io_uring_sqe *io_sqe = io_uring_get_sqe(queue);
-    if (io_sqe == NULL) return FALSE; // OOM
+    BOOLEAN Enqueued = FALSE;
+    CxPlatLockAcquire(&Queue->Lock);
+    struct io_uring_sqe *io_sqe = io_uring_get_sqe(&Queue->Ring);
+    if (io_sqe == NULL) {
+        goto Exit; // OOM
+    }
     io_uring_prep_nop(io_sqe);
-    io_uring_sqe_set_data(io_sqe, sqe);
-    io_uring_submit(queue); // TODO - Extract to separate function?
-    return TRUE;
+    io_uring_sqe_set_data(io_sqe, Sqe);
+    io_uring_submit(&Queue->Ring); // TODO - Extract to separate function?
+    Enqueued = TRUE;
+Exit:
+    CxPlatLockRelease(&Queue->Lock);
+    return Enqueued;
 }
 
 inline
 uint32_t
 CxPlatEventQDequeue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
-    _In_ uint32_t count,
-    _In_ uint32_t wait_time // milliseconds
+    _In_ CXPLAT_EVENTQ* Queue,
+    _Out_ CXPLAT_CQE* Events,
+    _In_ uint32_t Count,
+    _In_ uint32_t WaitTime // milliseconds
     )
 {
-    int result = io_uring_peek_batch_cqe(queue, events, count);
-    if (result > 0 || wait_time == 0) return result;
-    if (wait_time != UINT32_MAX) {
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    int result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
+    if (result > 0 || WaitTime == 0) return result;
+    if (WaitTime != UINT32_MAX) {
         struct __kernel_timespec timeout;
-        timeout.tv_sec = (wait_time / 1000);
-        timeout.tv_nsec = ((wait_time % 1000) * 1000000);
-        (void)io_uring_wait_cqe_timeout(queue, events, &timeout);
+        timeout.tv_sec = (WaitTime / 1000);
+        timeout.tv_nsec = ((WaitTime % 1000) * 1000000);
+        (void)io_uring_wait_cqe_timeout(&Queue->Ring, Events, &timeout);
     } else {
-        (void)io_uring_wait_cqe(queue, events);
+        (void)io_uring_wait_cqe(&Queue->Ring, Events);
     }
-    return io_uring_peek_batch_cqe(queue, events, count);
+    result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    return result;
 }
 
 inline
 void
 CxPlatEventQReturn(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ uint32_t count
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ uint32_t Count
     )
 {
-    io_uring_cq_advance(queue, count);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    io_uring_cq_advance(&Queue->Ring, Count);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+}
+
+inline
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (CXPLAT_SQE*)(uintptr_t)(*cqe)->user_data;
+}
+
+inline
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSqeClassicCompletion(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    )
+{
+    //
+    // TODO: If perf is good, clean this up.
+    //
+    CXPLAT_DBG_ASSERT(*Count > 1);
+    CXPLAT_SQE *Sqe = CxPlatCqeGetSqe(*Cqes);
+    Sqe->ClassicCompletion(*Cqes);
+    (*Cqes)++;
+    (*Count)--;
 }
 
 inline
@@ -1055,7 +1199,23 @@ CxPlatSqeInitialize(
     )
 {
     UNREFERENCED_PARAMETER(queue);
+    sqe->ClassicCompletion = completion;
+    sqe->Completion = CxPlatSqeClassicCompletion;
+    return TRUE;
+}
+
+inline
+BOOLEAN
+CxPlatSqeInitialize2(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_BATCH_COMPLETION_HANDLER completion,
+    _In_opt_ void* Context,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
     sqe->Completion = completion;
+    sqe->Context = Context;
     return TRUE;
 }
 
@@ -1068,15 +1228,6 @@ CxPlatSqeCleanup(
 {
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
-}
-
-inline
-CXPLAT_SQE*
-CxPlatCqeGetSqe(
-    _In_ const CXPLAT_CQE* cqe
-    )
-{
-    return (CXPLAT_SQE*)(uintptr_t)(*cqe)->user_data;
 }
 
 #else // epoll

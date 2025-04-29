@@ -68,7 +68,7 @@ TEST(PlatformTest, EventQueue)
             ASSERT_TRUE(((my_sqe*)Sqe)->data == 0x90);
         }
     };
-    
+
     CXPLAT_EVENTQ queue;
     ASSERT_TRUE(CxPlatEventQInitialize(&queue));
 
@@ -146,7 +146,7 @@ TEST(PlatformTest, EventQueueWorker)
                 uint32_t count = CxPlatEventQDequeue(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
                 for (uint32_t i = 0; i < count; i++) {
                     auto sqe = CxPlatCqeGetSqe(&events[i]);
-                    sqe->Completion(&events[i]);
+                    sqe->ClassicCompletion(&events[i]);
                 }
             }
             CXPLAT_THREAD_RETURN(0);
@@ -168,7 +168,7 @@ TEST(PlatformTest, EventQueueWorker)
     CXPLAT_THREAD_CONFIG config = { 0, 0, NULL, EventQueueContext::EventQueueCallback, &context };
     CXPLAT_THREAD thread;
     ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatThreadCreate(&config, &thread)));
-    
+
     my_sqe shutdown, sqe1, sqe2, sqe3;
     shutdown.context = &context;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::shutdown_completion, &shutdown));
