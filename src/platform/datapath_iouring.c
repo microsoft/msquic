@@ -2114,7 +2114,13 @@ CxPlatSocketContextIoEventCompleteInternal(
 
         (*Cqes)++;
         (*CqeCount)--;
+
+        //
+        // TODO: break loop if CQE mismatches.
+        //
     } while (*CqeCount > 0);
+
+    CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
 }
 
 void
