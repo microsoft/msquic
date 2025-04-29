@@ -118,9 +118,6 @@ jobs:
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
         # TODO: android to support ubuntu-24.04
-        - plat: android
-          os: 'ubuntu-24.04'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
         # No openssl system crypto on ubuntu-22.04
         - plat: linux
           os: 'ubuntu-22.04'
@@ -209,23 +206,21 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@bf251b5aa9c2f7eeb574a96ee720e24f801b7c11
+      if: matrix.vec.tls != 'openssl'
+      uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Build Package
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
@@ -234,3 +229,4 @@ jobs:
       with:
         name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
+
