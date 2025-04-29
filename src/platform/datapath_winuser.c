@@ -627,28 +627,25 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-    if (Datapath->UseRio) {
-        Result =
-            WSAIoctl(
-                UdpSocket,
-                SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
-                &RioGuid,
-                sizeof(RioGuid),
-                &Datapath->RioDispatch,
-                sizeof(Datapath->RioDispatch),
-                &BytesReturned,
-                NULL,
-                NULL);
-        if (Result != NO_ERROR) {
-            int WsaError = WSAGetLastError();
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                WsaError,
-                "SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER (RIO)");
-            Status = HRESULT_FROM_WIN32(WsaError);
-            goto Error;
-        }
+    Result =
+        WSAIoctl(
+            UdpSocket,
+            SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER,
+            &RioGuid,
+            sizeof(RioGuid),
+            &Datapath->RioDispatch,
+            sizeof(Datapath->RioDispatch),
+            &BytesReturned,
+            NULL,
+            NULL);
+    if (Result != NO_ERROR) {
+        int WsaError = WSAGetLastError();
+        QuicTraceLogWarning(
+            DatapathQueryRioDispatchFailed,
+            "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
+            WsaError);
+    } else {
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RIO;
     }
 
 {
@@ -753,7 +750,6 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config, // TODO:: If we move RIO to a per-socket option, we can remove this from all datapaths
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
@@ -818,7 +814,6 @@ DataPathInitialize(
 
     Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
-    Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
@@ -1013,13 +1008,13 @@ DataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-DataPathUpdateConfig(
+DataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1429,6 +1424,15 @@ SocketCreateUdp(
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
     CXPLAT_DBG_ASSERT(IsServerSocket || Config->PartitionIndex < Datapath->PartitionCount);
 
+    if ((Config->Flags & CXPLAT_SOCKET_FLAG_RIO) &&
+        !(Datapath->Features & CXPLAT_DATAPATH_FEATURE_RIO)) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "RIO not supported on this platform");
+        return QUIC_STATUS_NOT_SUPPORTED;
+    }
+
     const uint32_t RawSocketLength = CxPlatGetRawSocketSize() + SocketCount * sizeof(CXPLAT_SOCKET_PROC);
     CXPLAT_SOCKET_RAW* RawSocket = CXPLAT_ALLOC_PAGED(RawSocketLength, QUIC_POOL_SOCKET);
     if (RawSocket == NULL) {
@@ -1455,7 +1459,7 @@ SocketCreateUdp(
     Socket->NumPerProcessorSockets = NumPerProcessorSockets;
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
-    Socket->UseRio = Datapath->UseRio;
+    Socket->UseRio = Config->Flags & CXPLAT_SOCKET_FLAG_RIO ? TRUE : FALSE;
     Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
 
     if (Config->LocalAddress) {

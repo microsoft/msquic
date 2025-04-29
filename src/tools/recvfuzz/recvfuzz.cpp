@@ -955,7 +955,6 @@ void start() {
             &DatapathCallbacks,
             NULL,
             WorkerPool,
-            NULL,
             &Datapath);
     if (QUIC_FAILED(Status)) {
         printf("Datapath init failed 0x%x", Status);

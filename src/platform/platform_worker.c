@@ -364,6 +364,17 @@ CxPlatWorkerPoolRelease(
     CxPlatRundownRelease(&WorkerPool->Rundown);
 }
 
+uint32_t
+CxPlatWorkerPoolGetIdealProcessor(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint32_t Index
+    )
+{
+    CXPLAT_DBG_ASSERT(WorkerPool);
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+    return WorkerPool->Workers[Index].IdealProcessor;
+}
+
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,

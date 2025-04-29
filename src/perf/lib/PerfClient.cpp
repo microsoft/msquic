@@ -229,18 +229,24 @@ PerfClient::Init(
                 PerfClientConnection::TcpSendCompleteCallback,
                 TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
-        if (UseSendBuffering || !UsePacing || UseQtip) { // Update settings if non-default
-            MsQuicSettings Settings;
-            Configuration.GetSettings(Settings);
-            if (UseSendBuffering) {
-                Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
-            }
-            if (!UsePacing) {
-                Settings.SetPacingEnabled(UsePacing != 0);
-            }
-            if (UseQtip) {
-                Settings.SetQtipEnabled(UseQtip != 0);
-            }
+        const char* IoMode = GetValue(argc, argv, "io");
+        MsQuicSettings Settings;
+        if (UseSendBuffering) {
+            Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
+        }
+        if (!UsePacing) {
+            Settings.SetPacingEnabled(UsePacing != 0);
+        }
+        if (IoMode && IsValue(IoMode, "xdp")) {
+            Settings.SetXdpEnabled(true);
+        }
+        if (UseQtip) {
+            Settings.SetQtipEnabled(UseQtip != 0);
+        }
+        if (IoMode && IsValue(IoMode, "rio")) {
+            Settings.SetRioEnabled(true);
+        }
+        if (Settings.IsSetFlags != 0) {
             Configuration.SetSettings(Settings);
         }
     }

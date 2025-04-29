@@ -447,7 +447,6 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -461,13 +460,13 @@ CxPlatDataPathUninitialize(
     );
 
 //
-// Updates the execution configuration of a datapath.
+// Updates the polling idle timeout of a datapath.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     );
 
 #define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
@@ -479,6 +478,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
 #define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
 #define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
+#define CXPLAT_DATAPATH_FEATURE_RIO                   0x0100
 
 //
 // Queries the currently supported features of the datapath.
@@ -565,7 +565,9 @@ CxPlatDataPathGetGatewayAddresses(
 #define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
 #define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
 #define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
-#define CXPLAT_SOCKET_FLAG_QTIP     0x00000008  // Socket will support QTIP
+#define CXPLAT_SOCKET_FLAG_XDP      0x00000008  // Socket will use XDP
+#define CXPLAT_SOCKET_FLAG_QTIP     0x00000010  // Socket will use QTIP
+#define CXPLAT_SOCKET_FLAG_RIO      0x00000020  // Socket will use RIP
 
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional

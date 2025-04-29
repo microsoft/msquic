@@ -67,7 +67,6 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
@@ -93,14 +92,8 @@ public:
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseDuoNic) {
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-            }
-#endif
             QUIC_TEST_CONFIGURATION_PARAMS Params {
                 UseDuoNic,
-                Config,
             };
 
 #ifdef _WIN32
@@ -115,20 +108,15 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+            if (UseDuoNic) {
+                MsQuicSettings Settings;
+                Settings.SetXdpEnabled(true);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
+            }
             if (UseQTIP) {
-                Config.PollingIdleTimeoutUs = 10000;
                 MsQuicSettings Settings;
                 Settings.SetQtipEnabled(true);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
-            }
-            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
-            if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
-                ASSERT_TRUE(QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        sizeof(Config),
-                        &Config)));
             }
 #endif
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));

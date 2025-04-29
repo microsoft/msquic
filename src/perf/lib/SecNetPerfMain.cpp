@@ -27,6 +27,7 @@ TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LAT
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
+uint8_t PerfDefaultRioAllowed = false;
 uint8_t PerfDefaultHighPriority = false;
 uint8_t PerfDefaultAffinitizeThreads = false;
 
@@ -181,21 +182,6 @@ QuicMainStart(
     QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
-    const char* IoMode = GetValue(argc, argv, "io");
-
-#ifndef _KERNEL_MODE
-
-    if (IoMode && IsValue(IoMode, "rio")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
-        SetConfig = true;
-    }
-
-#endif // _KERNEL_MODE
-
-    if (IoMode && IsValue(IoMode, "xdp")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        SetConfig = true;
-    }
 
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
@@ -292,6 +278,11 @@ QuicMainStart(
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
 
+    const char* IoMode = GetValue(argc, argv, "io");
+    if (IoMode && IsValue(IoMode, "rio")) {
+        PerfDefaultRioAllowed = true;
+    }
+
     uint32_t WatchdogTimeout = 0;
     if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
         Watchdog = new(std::nothrow) CxPlatWatchdog(WatchdogTimeout, "perf_watchdog", true);
@@ -305,7 +296,7 @@ QuicMainStart(
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, &Datapath);
     if (QUIC_FAILED(Status)) {
 #ifndef _KERNEL_MODE
         CxPlatWorkerPoolDelete(WorkerPool);

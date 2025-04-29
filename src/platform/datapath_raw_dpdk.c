@@ -126,10 +126,10 @@ CxPlatDpdkReadConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(WorkerPool);
     return sizeof(DPDK_DATAPATH);
 }
 
@@ -138,8 +138,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
     UNREFERENCED_PARAMETER(WorkerPool);
@@ -212,13 +211,13 @@ CxPlatDpRawUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawUpdateConfig(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+CxPlatDpRawUpdatePollingIdleTimeout(
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

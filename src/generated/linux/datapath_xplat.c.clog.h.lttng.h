@@ -20,24 +20,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, DatapathInitFail,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RawDatapathInitFail
-// [ raw] Failed to initialize raw datapath, status:%d
-// QuicTraceLogVerbose(
-                RawDatapathInitFail,
-                "[ raw] Failed to initialize raw datapath, status:%d", Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_XPLAT_C, RawDatapathInitFail,
-    TP_ARGS(
-        int, arg2), 
-    TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SockCreateFail
 // [sock] Failed to create socket, status:%d
 // QuicTraceLogVerbose(

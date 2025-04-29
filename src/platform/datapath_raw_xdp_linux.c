@@ -646,11 +646,10 @@ CxPlatDpRawInterfaceUpdateRules(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    const uint32_t PartitionCount =
-        (Config && Config->ProcessorCount) ? Config->ProcessorCount : CxPlatProcCount();
+    const uint32_t PartitionCount = CxPlatWorkerPoolGetCount(WorkerPool);
     return sizeof(XDP_DATAPATH) + (PartitionCount * sizeof(XDP_PARTITION));
 }
 
@@ -675,32 +674,20 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
-    if (WorkerPool == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    CxPlatXdpReadConfig(Xdp);
     CxPlatListInitializeHead(&Xdp->Interfaces);
-    Xdp->PollingIdleTimeoutUs = Config ? Config->PollingIdleTimeoutUs : 0;
-
-    if (Config && Config->ProcessorCount) {
-        Xdp->PartitionCount = Config->ProcessorCount;
-        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
-            Xdp->Partitions[i].Processor = Config->ProcessorList[i];
-        }
-    } else {
-        Xdp->PartitionCount = CxPlatProcCount();
-        for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
-            Xdp->Partitions[i].Processor = (uint16_t)i;
-        }
+    Xdp->PollingIdleTimeoutUs = 0;
+    Xdp->PartitionCount = CxPlatWorkerPoolGetCount(WorkerPool);
+    for (uint32_t i = 0; i < Xdp->PartitionCount; i++) {
+        Xdp->Partitions[i].Processor = (uint16_t)
+            CxPlatWorkerPoolGetIdealProcessor(WorkerPool, i);
     }
+
+    //CxPlatXdpReadConfig(Xdp); // TODO - Make this more secure
 
     QuicTraceLogVerbose(
         XdpInitialize,
@@ -711,6 +698,7 @@ CxPlatDpRawInitialize(
     struct ifaddrs *ifaddr, *ifa;
     int family;
 
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     if (getifaddrs(&ifaddr) == -1) {
         return QUIC_STATUS_INTERNAL_ERROR;
     }
@@ -912,13 +900,13 @@ CxPlatDpRawUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawUpdateConfig(
+CxPlatDpRawUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
-    Xdp->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
+    Xdp->PollingIdleTimeoutUs = PollingIdleTimeoutUs;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

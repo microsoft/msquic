@@ -159,8 +159,14 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.ReliableResetEnabled) {
         Settings->ReliableResetEnabled = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
     }
+    if (!Settings->IsSet.XdpEnabled) {
+        Settings->XdpEnabled = QUIC_DEFAULT_XDP_ENABLED;
+    }
     if (!Settings->IsSet.QTIPEnabled) {
         Settings->QTIPEnabled = QUIC_DEFAULT_QTIP_ENABLED;
+    }
+    if (!Settings->IsSet.RioEnabled) {
+        Settings->RioEnabled = QUIC_DEFAULT_RIO_ENABLED;
     }
     if (!Settings->IsSet.OneWayDelayEnabled) {
         Settings->OneWayDelayEnabled = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
@@ -330,8 +336,14 @@ QuicSettingsCopy(
     if (!Destination->IsSet.ReliableResetEnabled) {
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
     }
+    if (!Destination->IsSet.XdpEnabled) {
+        Destination->XdpEnabled = Source->XdpEnabled;
+    }
     if (!Destination->IsSet.QTIPEnabled) {
         Destination->QTIPEnabled = Source->QTIPEnabled;
+    }
+    if (!Destination->IsSet.RioEnabled) {
+        Destination->RioEnabled = Source->RioEnabled;
     }
     if (!Destination->IsSet.OneWayDelayEnabled) {
         Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
@@ -706,9 +718,19 @@ QuicSettingApply(
         Destination->IsSet.ReliableResetEnabled = TRUE;
     }
 
+    if (Source->IsSet.XdpEnabled && (!Destination->IsSet.XdpEnabled || OverWrite)) {
+        Destination->XdpEnabled = Source->XdpEnabled;
+        Destination->IsSet.XdpEnabled = TRUE;
+    }
+
     if (Source->IsSet.QTIPEnabled && (!Destination->IsSet.QTIPEnabled || OverWrite)) {
         Destination->QTIPEnabled = Source->QTIPEnabled;
         Destination->IsSet.QTIPEnabled = TRUE;
+    }
+
+    if (Source->IsSet.RioEnabled && (!Destination->IsSet.RioEnabled || OverWrite)) {
+        Destination->RioEnabled = Source->RioEnabled;
+        Destination->IsSet.RioEnabled = TRUE;
     }
 
     if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
@@ -1363,6 +1385,16 @@ VersionSettingsFail:
             &ValueLen);
         Settings->ReliableResetEnabled = !!Value;
     }
+    if (!Settings->IsSet.XdpEnabled) {
+        Value = QUIC_DEFAULT_XDP_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_XDP_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->XdpEnabled = !!Value;
+    }
     if (!Settings->IsSet.QTIPEnabled) {
         Value = QUIC_DEFAULT_QTIP_ENABLED;
         ValueLen = sizeof(Value);
@@ -1372,6 +1404,16 @@ VersionSettingsFail:
             (uint8_t*)&Value,
             &ValueLen);
         Settings->QTIPEnabled = !!Value;
+    }
+    if (!Settings->IsSet.RioEnabled) {
+        Value = QUIC_DEFAULT_RIO_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RIO_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->RioEnabled = !!Value;
     }
     if (!Settings->IsSet.OneWayDelayEnabled) {
         Value = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
@@ -1469,7 +1511,9 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
     QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+    QuicTraceLogVerbose(SettingXdpEnabled,                  "[sett] XdpEnabled             = %hhu", Settings->XdpEnabled);
     QuicTraceLogVerbose(SettingQTIPEnabled,                 "[sett] QTIPEnabled            = %hhu", Settings->QTIPEnabled);
+    QuicTraceLogVerbose(SettingRioEnabled,                  "[sett] RioEnabled             = %hhu", Settings->RioEnabled);
     QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
     QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
     QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
@@ -1628,8 +1672,14 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.ReliableResetEnabled) {
         QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled       = %hhu", Settings->ReliableResetEnabled);
     }
+    if (Settings->IsSet.XdpEnabled) {
+        QuicTraceLogVerbose(SettingXdpEnabled,                      "[sett] XdpEnabled                 = %hhu", Settings->XdpEnabled);
+    }
     if (Settings->IsSet.QTIPEnabled) {
         QuicTraceLogVerbose(SettingQTIPEnabled,                     "[sett] QTIPEnabled                = %hhu", Settings->QTIPEnabled);
+    }
+    if (Settings->IsSet.RioEnabled) {
+        QuicTraceLogVerbose(SettingRioEnabled,                      "[sett] RioEnabled                 = %hhu", Settings->RioEnabled);
     }
     if (Settings->IsSet.OneWayDelayEnabled) {
         QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
@@ -1861,7 +1911,23 @@ QuicSettingsSettingsToInternal(
 
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
+        XdpEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
         QTIPEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        RioEnabled,
         QUIC_SETTINGS,
         Settings,
         SettingsSize,
@@ -2038,7 +2104,23 @@ QuicSettingsGetSettings(
 
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
+        XdpEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
         QTIPEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        RioEnabled,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

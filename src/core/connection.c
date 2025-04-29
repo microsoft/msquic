@@ -1850,8 +1850,14 @@ QuicConnStart(
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
 
+    if (Connection->Settings.XdpEnabled) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
+    }
     if (Connection->Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+    }
+    if (Connection->Settings.RioEnabled) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
     }
 
     //
@@ -6236,8 +6242,14 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
+            if (Connection->Settings.XdpEnabled) {
+                UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
+            }
             if (Connection->Settings.QTIPEnabled) {
                 UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+            }
+            if (Connection->Settings.RioEnabled) {
+                UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
             }
             Status =
                 QuicLibraryGetBinding(

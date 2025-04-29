@@ -158,15 +158,13 @@ QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
     _In_ QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_ADDR* LocalAddress,
-    _In_ BOOLEAN UseQTIP
+    _In_ uint32_t SocketFlags
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_UDP_CONFIG UdpConfig;
     CxPlatZeroMemory(&UdpConfig, sizeof(UdpConfig));
-    if (UseQTIP) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
-    }
+    UdpConfig.Flags = SocketFlags;
     UdpConfig.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
@@ -462,17 +460,41 @@ MsQuicConnectionPoolCreate(
     // Copying how Connection Settings flow downwards. It will first inherit the global settings,
     // if a global setting field is not set, but the configuration setting is set, override the global.
     //
-    BOOLEAN UseQTIP = MsQuicLib.Settings.QTIPEnabled;
-    if (!MsQuicLib.Settings.IsSet.QTIPEnabled
-        && ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.IsSet.QTIPEnabled) {
-        UseQTIP = ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.QTIPEnabled;
+    QUIC_CONFIGURATION* ConnectionConfig =
+        (QUIC_CONFIGURATION*)Config->Configuration;
+    uint32_t SocketFlags = 0;
+
+    if (MsQuicLib.Settings.IsSet.XdpEnabled) {
+        if (MsQuicLib.Settings.XdpEnabled) {
+            SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
+        }
+    }
+    if (ConnectionConfig->Settings.IsSet.XdpEnabled) {
+        if (ConnectionConfig->Settings.XdpEnabled) {
+            SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
+        } else {
+            SocketFlags &= ~CXPLAT_SOCKET_FLAG_XDP;
+        }
+    }
+
+    if (MsQuicLib.Settings.IsSet.QTIPEnabled) {
+        if (MsQuicLib.Settings.QTIPEnabled) {
+            SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
+        }
+    }
+    if (ConnectionConfig->Settings.IsSet.QTIPEnabled) {
+        if (ConnectionConfig->Settings.QTIPEnabled) {
+            SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
+        } else {
+            SocketFlags &= ~CXPLAT_SOCKET_FLAG_QTIP;
+        }
     }
 
     //
     // Get the local address and a port to start from.
     //
     QUIC_ADDR LocalAddress;
-    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress, UseQTIP);
+    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress, SocketFlags);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

@@ -700,13 +700,18 @@ QuicLibraryLazyInitialize(
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
-            MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
             CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+        if (MsQuicLib.ExecutionConfig &&
+            MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0) {
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath,
+                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs);
+        }
     } else {
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
@@ -1040,13 +1045,9 @@ QuicLibrarySetGlobalParam(
             CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
             CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
-            if (MsQuicLib.ExecutionConfig == NULL) {
-                Status = QUIC_STATUS_INVALID_STATE;
-            } else {
-                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
-                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig);
-                Status = QUIC_STATUS_SUCCESS;
-            }
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath, Config->PollingIdleTimeoutUs);
+            Status = QUIC_STATUS_SUCCESS;
             CxPlatLockRelease(&MsQuicLib.Lock);
             break;
         }

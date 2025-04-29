@@ -183,7 +183,9 @@ private:
             .SetCongestionControlAlgorithm(PerfDefaultCongestionControl)
             .SetEcnEnabled(PerfDefaultEcnEnabled)
             .SetEncryptionOffloadAllowed(PerfDefaultQeoAllowed)
-            .SetOneWayDelayEnabled(true)};
+            .SetOneWayDelayEnabled(true)
+            .SetXdpEnabled(true)
+            .SetRioEnabled(PerfDefaultRioAllowed)};
     MsQuicListener Listener {Registration, CleanUpManual, ListenerCallbackStatic, this};
     QUIC_ADDR LocalAddr;
     CXPLAT_EVENT* StopEvent {nullptr};

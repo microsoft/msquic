@@ -701,15 +701,7 @@ QuicTestCtlEvtIoDeviceControl(
                 STRSAFE_NULL_ON_FAILURE);
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
-        if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
-            Status =
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    sizeof(Config),
-                    &Config);
-        }
+        // TODO - XDP stuff, if/when supported
 #endif
 
         break;
