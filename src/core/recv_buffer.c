@@ -205,20 +205,6 @@ QuicRecvBufferValidate(
     _In_ const QUIC_RECV_BUFFER* RecvBuffer
     )
 {
-    QUIC_RECV_CHUNK* FirstChunk =
-        CXPLAT_CONTAINING_RECORD(
-            RecvBuffer->Chunks.Flink,
-            QUIC_RECV_CHUNK,
-            Link);
-
-    //
-    // In Single and Circular modes, there is only ever one chunk in the list.
-    //
-    CXPLAT_DBG_ASSERT(
-        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
-        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_CIRCULAR) ||
-        FirstChunk->Link.Flink == &RecvBuffer->Chunks);
-
     //
     // In Multiple and App-owned modes, there never is a retired buffer.
     //
@@ -235,17 +221,41 @@ QuicRecvBufferValidate(
         RecvBuffer->ReadStart == 0);
 
     //
+    // There can be a retired chunk only when a read is pending.
+    //
+    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL || RecvBuffer->ReadPendingLength != 0);
+
+    //
+    // Except for App-owned mode, there is always at least one chunk in the list.
+    //
+    CXPLAT_DBG_ASSERT(
+        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED ||
+        !CxPlatListIsEmpty(&RecvBuffer->Chunks));
+
+    if (CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
+        return;
+    }
+
+    QUIC_RECV_CHUNK* FirstChunk =
+        CXPLAT_CONTAINING_RECORD(
+            RecvBuffer->Chunks.Flink,
+            QUIC_RECV_CHUNK,
+            Link);
+
+    //
+    // In Single and Circular modes, there is only ever one chunk in the list.
+    //
+    CXPLAT_DBG_ASSERT(
+        (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
+        RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_CIRCULAR) ||
+        FirstChunk->Link.Flink == &RecvBuffer->Chunks);
+    //
     // In Single and App-owned modes, the first chunk is never used in a circular way.
     //
     CXPLAT_DBG_ASSERT(
         (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_SINGLE &&
         RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) ||
         RecvBuffer->ReadStart + RecvBuffer->ReadLength <= FirstChunk->AllocLength);
-
-    //
-    // There can be a retired chunk only when a read is pending.
-    //
-    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL || RecvBuffer->ReadPendingLength != 0);
 }
 #else
 #define QuicRecvBufferValidate(RecvBuffer)
@@ -1027,9 +1037,10 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRecvBufferDrain(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
-    _In_ const uint64_t DrainLength
+    _In_ uint64_t DrainLength
     )
 {
+    CXPLAT_DBG_ASSERT(QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0) != NULL);
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
 
@@ -1067,7 +1078,7 @@ QuicRecvBufferDrain(
     //
     // Drain chunks that are entirely covered by the drain.
     //
-    QuicRecvBufferDrainFullChunks(RecvBuffer, DrainLength);
+    QuicRecvBufferDrainFullChunks(RecvBuffer, &DrainLength);
 
     if (CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
         //
@@ -1102,6 +1113,7 @@ QuicRecvBufferDrain(
         FirstChunk->ExternalReference = RecvBuffer->ReadPendingLength != 0;
     }
 
+    QuicRecvBufferValidate(RecvBuffer);
     return RecvBuffer->ReadLength == 0;
 }
 
