@@ -213,7 +213,7 @@ namespace Microsoft.Quic
     }
 
     [System.Flags]
-    internal enum QUIC_EXECUTION_CONFIG_FLAGS
+    internal enum QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
         RIO = 0x0002,
@@ -223,9 +223,9 @@ namespace Microsoft.Quic
         AFFINITIZE = 0x0020,
     }
 
-    internal unsafe partial struct QUIC_EXECUTION_CONFIG
+    internal unsafe partial struct QUIC_GLOBAL_EXECUTION_CONFIG
     {
-        internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
+        internal QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags;
 
         [NativeTypeName("uint32_t")]
         internal uint PollingIdleTimeoutUs;
@@ -3419,8 +3419,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_STATELESS_RESET_KEY_LENGTH 32")]
         internal const uint QUIC_STATELESS_RESET_KEY_LENGTH = 32;
 
-        [NativeTypeName("#define QUIC_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_EXECUTION_CONFIG, ProcessorList)")]
-        internal static readonly uint QUIC_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_EXECUTION_CONFIG>("ProcessorList"))));
+        [NativeTypeName("#define QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList)")]
+        internal static readonly uint QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE = unchecked((uint)((int)(Marshal.OffsetOf<QUIC_GLOBAL_EXECUTION_CONFIG>("ProcessorList"))));
 
         [NativeTypeName("#define QUIC_MAX_TICKET_KEY_COUNT 16")]
         internal const uint QUIC_MAX_TICKET_KEY_COUNT = 16;

@@ -646,7 +646,7 @@ CxPlatDpRawInterfaceUpdateRules(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ const QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     const uint32_t PartitionCount =
@@ -676,7 +676,7 @@ CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ const QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;
@@ -914,7 +914,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatDpRawUpdateConfig(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     XDP_DATAPATH* Xdp = (XDP_DATAPATH*)Datapath;

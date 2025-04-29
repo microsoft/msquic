@@ -67,7 +67,7 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = {QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
@@ -95,7 +95,7 @@ public:
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
             if (UseDuoNic) {
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+                Config.Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
             }
 #endif
             QUIC_TEST_CONFIGURATION_PARAMS Params {
@@ -121,8 +121,8 @@ public:
                 Settings.SetQtipEnabled(true);
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
-            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
-            if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
+            Config.Flags |= UseDuoNic ? QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP : QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE;
+            if (Config.Flags != QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE) {
                 ASSERT_TRUE(QUIC_SUCCEEDED(
                     MsQuic->SetParam(
                         nullptr,
