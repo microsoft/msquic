@@ -1168,12 +1168,12 @@ RawSocketDelete(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH_RAW** DataPath
+    _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

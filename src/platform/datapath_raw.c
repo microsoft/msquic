@@ -19,18 +19,20 @@ Abstract:
 
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
+    _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     const size_t DatapathSize = CxPlatDpRawGetDatapathSize(WorkerPool);
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
+
+    *NewDataPath = NULL;
 
     CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (DataPath == NULL) {
@@ -39,7 +41,7 @@ RawDataPathInitialize(
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        return;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
     CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
@@ -83,8 +85,6 @@ Error:
             CxPlatWorkerPoolRelease(WorkerPool);
         }
     }
-
-    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
