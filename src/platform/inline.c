@@ -144,6 +144,18 @@ InterlockedOr(
     );
 
 int64_t
+InterlockedOr64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t Value
+    );
+
+int64_t
+InterlockedExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Target,
+    _In_ int64_t Value
+    );
+
+int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
     _In_ int64_t Value

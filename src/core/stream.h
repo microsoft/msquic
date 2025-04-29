@@ -144,7 +144,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -433,7 +432,11 @@ typedef struct QUIC_STREAM {
 
     //
     // The number of received bytes the app has completed but not yet processed
-    // by MsQuic.
+    // by MsQuic. The top bit of RecvCompletionLength is used to indicate that
+    // there is an active receive to the app. The second highest bit is used to
+    // detect overflow. This structure allows us to synchronize both the receive
+    // indication flag and the number of bytes completed in a single atomic operation,
+    // for a lock-free implementation
     //
     volatile uint64_t RecvCompletionLength;
 
@@ -468,6 +471,15 @@ typedef struct QUIC_STREAM {
         uint64_t CachedConnFlowControlUs;
     } BlockedTimings;
 } QUIC_STREAM;
+
+//
+// There is an active receive to the app
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG 0x8000000000000000
+//
+// The second highest bit is used to detect overflow
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT               0x4000000000000000
 
 inline
 QUIC_STREAM_SEND_STATE
