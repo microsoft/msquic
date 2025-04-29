@@ -216,6 +216,7 @@ jobs:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
     - name: Download Build Artifacts
+      if: matrix.vec.tls != 'openssl'
       uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
