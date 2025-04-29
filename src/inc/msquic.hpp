@@ -1745,4 +1745,4 @@ struct QuicBufferScope {
 
 static_assert(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
 
-#endif  //  _WIN32
+#endif  //  _MSQUIC_HPP_

@@ -2596,13 +2596,13 @@ void QuicTestGlobalParam()
                         nullptr));
             }
 
-            uint8_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
+            uint8_t Data[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
             uint32_t DataLength = sizeof(Data);
-            QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
+            QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Data;
             Config->ProcessorCount = 4;
             if (CxPlatProcCount() < Config->ProcessorCount) {
                 Config->ProcessorCount = CxPlatProcCount();
-                DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
+                DataLength = QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
             }
             for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {
                 Config->ProcessorList[i] = i;

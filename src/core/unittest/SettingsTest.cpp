@@ -563,8 +563,8 @@ TEST(SettingsTest, GlobalLoadBalancingServerIDSet)
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 {
-    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
-    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    uint8_t RawConfig[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
+    QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)RawConfig;
     Config->ProcessorCount = 2;
     if (CxPlatProcCount() < 2) {
         Config->ProcessorCount = CxPlatProcCount();
@@ -590,7 +590,7 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
             nullptr));
     ASSERT_EQ((uint32_t)sizeof(RawConfig), BufferLength);
     uint16_t GetRawConfig[sizeof(RawConfig)] = {0};
-    QUIC_EXECUTION_CONFIG* GetConfig = (QUIC_EXECUTION_CONFIG*)GetRawConfig;
+    QUIC_GLOBAL_EXECUTION_CONFIG* GetConfig = (QUIC_GLOBAL_EXECUTION_CONFIG*)GetRawConfig;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         QuicLibraryGetGlobalParam(
@@ -633,8 +633,8 @@ TEST(SettingsTest, GlobalExecutionConfigSetAndGet)
 
 TEST(SettingsTest, GlobalRawDataPathProcsSetAfterDataPathInit)
 {
-    uint8_t RawConfig[QUIC_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
-    QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)RawConfig;
+    uint8_t RawConfig[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + 2 * sizeof(uint16_t)] = {0};
+    QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)RawConfig;
     Config->ProcessorCount = 2;
     Config->ProcessorList[0] = 0;
     Config->ProcessorList[1] = 1;

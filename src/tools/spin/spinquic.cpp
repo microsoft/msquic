@@ -28,7 +28,7 @@
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
-QUIC_EXECUTION_CONFIG* ExecConfig = nullptr;
+QUIC_GLOBAL_EXECUTION_CONFIG* ExecConfig = nullptr;
 uint32_t ExecConfigSize = 0;
 
 class FuzzingData {
@@ -1557,8 +1557,8 @@ void start() {
                     1 :
                     1 + GetRandom(CxPlatProcCount() - 1);
             printf("Using %u partitions...\n", ProcCount);
-            ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
-            ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
+            ExecConfigSize = QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
+            ExecConfig = (QUIC_GLOBAL_EXECUTION_CONFIG*)malloc(ExecConfigSize);
             ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
             ExecConfig->ProcessorCount = ProcCount;
             for (uint32_t i = 0; i < ProcCount; ++i) {
