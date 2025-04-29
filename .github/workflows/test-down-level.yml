@@ -40,24 +40,32 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@b4ffde65f46336ab88eb53be808477a3936bae11
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.tls }} -DisableTest
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -DisableTest
       shell: pwsh
+    - name: Install Perl
+      if: runner.os == 'Windows'
+      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
+      with:
+        perl-version: '5.34'
+    - name: Install NASM
+      if: runner.os == 'Windows'
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Build Release
       shell: pwsh
-      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
+      run: scripts/build.ps1 -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -UseSystemOpenSSLCrypto -DisableTest -DisableTools -DisablePerf
     - name: Download Tests
       shell: pwsh
       run: |
         $osName = "${{runner.os}}".ToLower()
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.release}}/msquic_${{runner.os}}_${{matrix.arch}}_Release_${{matrix.tls}}_test.zip" -OutFile "artifacts/test.zip"
-        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.arch}}_Release_${{matrix.tls}}
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}_test.zip" -OutFile "artifacts/test.zip"
+        Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'
       shell: pwsh
       run: |
-        chmod +x artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}/msquictest
-        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.arch}}_Release_${{matrix.tls}}"
-        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+        chmod +x artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}/msquictest
+        $env:LD_LIBRARY_PATH = Join-Path (Get-Location).Path "artifacts/bin/linux/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}"
+        scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*CredValidation*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
     - name: Run Tests (Windows)
       if: runner.os == 'Windows'
-      run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.arch }} -Tls ${{ matrix.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
+      run: scripts/test.ps1 -AZP -Config Release -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -SkipUnitTests -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ConnectClientCertificate*:Basic.StartTwoListenersSameALPN:ParameterValidation.ValidateGlobalParam
