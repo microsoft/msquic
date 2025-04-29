@@ -133,7 +133,7 @@ CxPlatCryptInitialize(
 {
     EVP_MAC *mac = NULL;
 
-    if (OPENSSL_init_ssl(0, NULL) == 0) {
+    if (OPENSSL_init_ssl(OPENSSL_INIT_LOAD_CONFIG, NULL) == 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
