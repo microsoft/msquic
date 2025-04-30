@@ -2951,6 +2951,9 @@ static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
         //No imcomplete Records, just create a new one
         //
         this_rec = MakeNewRecord(Record, RecLen, Ssl);
+        if (this_rec == NULL) {
+            return 0;
+        }
     }
 
     SplitRet = SplitAddRecord(this_rec);
