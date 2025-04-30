@@ -421,6 +421,34 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 
 } CXPLAT_TCP_DATAPATH_CALLBACKS;
 
+typedef enum CXPLAT_DATAPATH_FEATURES {
+    CXPLAT_DATAPATH_FEATURE_NONE               = 0x00000000,
+    CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING  = 0x00000001,
+    CXPLAT_DATAPATH_FEATURE_RECV_COALESCING    = 0x00000002,
+    CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION  = 0x00000004,
+    CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING = 0x00000008,
+    CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS  = 0x00000010,
+    CXPLAT_DATAPATH_FEATURE_TCP                = 0x00000020,
+    CXPLAT_DATAPATH_FEATURE_RAW                = 0x00000040,
+    CXPLAT_DATAPATH_FEATURE_TTL                = 0x00000080,
+    CXPLAT_DATAPATH_FEATURE_SEND_DSCP          = 0x00000100,
+    CXPLAT_DATAPATH_FEATURE_RIO                = 0x00000200,
+} CXPLAT_DATAPATH_FEATURES;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)
+
+typedef enum CXPLAT_SOCKET_FLAGS {
+    CXPLAT_SOCKET_FLAG_NONE     = 0x00000000,
+    CXPLAT_SOCKET_FLAG_PCP      = 0x00000001, // Socket is used for internal PCP support
+    CXPLAT_SOCKET_FLAG_SHARE    = 0x00000002, // Forces sharing of the address and port
+    CXPLAT_SOCKET_SERVER_OWNED  = 0x00000004, // Indicates socket is a listener socket
+    CXPLAT_SOCKET_FLAG_XDP      = 0x00000008, // Socket will use XDP
+    CXPLAT_SOCKET_FLAG_QTIP     = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_RIO      = 0x00000020, // Socket will use RIO
+} CXPLAT_SOCKET_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_SOCKET_FLAGS)
+
 //
 // Function pointer type for send complete callbacks.
 //
@@ -469,24 +497,15 @@ CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ uint32_t PollingIdleTimeoutUs
     );
 
-#define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
-#define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
-#define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
-#define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
-#define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
-#define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
-#define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
-#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
-#define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
-#define CXPLAT_DATAPATH_FEATURE_RIO                   0x0100
-
 //
-// Queries the currently supported features of the datapath.
+// Queries the currently supported features of the datapath for the given type
+// of socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
     );
 
 //
@@ -561,18 +580,10 @@ CxPlatDataPathGetGatewayAddresses(
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
-
-#define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
-#define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
-#define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
-#define CXPLAT_SOCKET_FLAG_XDP      0x00000008  // Socket will use XDP
-#define CXPLAT_SOCKET_FLAG_QTIP     0x00000010  // Socket will use QTIP
-#define CXPLAT_SOCKET_FLAG_RIO      0x00000020  // Socket will use RIP
-
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
     const QUIC_ADDR* RemoteAddress;     // optional
-    uint32_t Flags;                     // CXPLAT_SOCKET_FLAG_*
+    CXPLAT_SOCKET_FLAGS Flags;
     uint32_t InterfaceIndex;            // 0 means any/all
     uint16_t PartitionIndex;            // Client-only
     void* CallbackContext;              // optional

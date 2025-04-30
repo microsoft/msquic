@@ -88,10 +88,11 @@ CxPlatDataPathUpdatePollingIdleTimeout(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatDataPathGetSupportedFeatures(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
     )
 {
-    if (Datapath->RawDataPath) {
+    if (Datapath->RawDataPath && (SocketFlags & CXPLAT_SOCKET_FLAG_XDP)) {
         return DataPathGetSupportedFeatures(Datapath) |
                RawDataPathGetSupportedFeatures(Datapath->RawDataPath);
     }

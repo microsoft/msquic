@@ -481,8 +481,19 @@ struct CxPlatDataPath {
     CxPlatDataPath(CxPlatDataPath& other) = delete;
     CxPlatDataPath operator=(CxPlatDataPath& Other) = delete;
     operator CXPLAT_DATAPATH* () const noexcept { return Datapath; }
-    uint32_t GetSupportedFeatures() const noexcept { return CxPlatDataPathGetSupportedFeatures(Datapath); }
-    bool IsSupported(uint32_t feature) const noexcept { return static_cast<bool>(GetSupportedFeatures() & feature); }
+    CXPLAT_DATAPATH_FEATURES
+    GetSupportedFeatures(
+        CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE
+        ) const noexcept {
+        return CxPlatDataPathGetSupportedFeatures(Datapath, SocketFlags);
+    }
+    bool
+    IsSupported(
+        CXPLAT_DATAPATH_FEATURES feature,
+        CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE
+        ) const noexcept {
+        return static_cast<bool>(GetSupportedFeatures(SocketFlags) & feature);
+    }
 };
 
 static
@@ -514,7 +525,7 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ uint32_t InternalFlags = 0
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
         ) noexcept // UDP
     {
         CreateUdp(
@@ -539,7 +550,7 @@ struct CxPlatSocket {
         _In_opt_ const QUIC_ADDR* LocalAddress = nullptr,
         _In_opt_ const QUIC_ADDR* RemoteAddress = nullptr,
         _In_opt_ void* CallbackContext = nullptr,
-        _In_ uint32_t InternalFlags = 0
+        _In_ CXPLAT_SOCKET_FLAGS InternalFlags = CXPLAT_SOCKET_FLAG_NONE
         ) noexcept
     {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
@@ -696,7 +707,7 @@ TEST_F(DataPathTest, Initialize)
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
-        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW));
+        ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW, CXPLAT_SOCKET_FLAG_XDP));
     }
 }
 
@@ -794,7 +805,7 @@ TEST_P(DataPathTest, UdpData)
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
-     RecvContext.Dscp = RecvContext.DscpSupported ? CXPLAT_DSCP_LE : CXPLAT_DSCP_CS0;
+    RecvContext.Dscp = RecvContext.DscpSupported ? CXPLAT_DSCP_LE : CXPLAT_DSCP_CS0;
 
     auto unspecAddress = GetNewUnspecAddr();
     CxPlatSocket Server(Datapath, &unspecAddress.SockAddr, nullptr, &RecvContext);

@@ -175,7 +175,7 @@ struct DrillSender {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = &ServerAddress;
-        UdpConfig.Flags = 0;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
 #ifdef QUIC_OWNING_PROCESS

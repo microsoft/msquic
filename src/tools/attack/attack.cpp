@@ -362,7 +362,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
     UdpConfig.RemoteAddress = &ServerAddress;
-    UdpConfig.Flags = 0;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
     QUIC_STATUS Status =
