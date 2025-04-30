@@ -27,7 +27,6 @@ TCP_EXECUTION_PROFILE TcpDefaultExecutionProfile = TCP_EXECUTION_PROFILE_LOW_LAT
 QUIC_CONGESTION_CONTROL_ALGORITHM PerfDefaultCongestionControl = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
 uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
-uint8_t PerfDefaultRioAllowed = false;
 uint8_t PerfDefaultHighPriority = false;
 uint8_t PerfDefaultAffinitizeThreads = false;
 
@@ -183,6 +182,20 @@ QuicMainStart(
     Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
 
+    const char* IoMode = GetValue(argc, argv, "io");
+    if (IoMode) {
+        if (IsValue(IoMode, "rio")) {
+            MsQuicSettings Settings;
+            Settings.SetRioEnabled(true);
+            Settings.SetGlobal();
+
+        } else if (IsValue(IoMode, "xdp")) {
+            MsQuicSettings Settings;
+            Settings.SetXdpEnabled(true);
+            Settings.SetGlobal();
+        }
+    }
+
     const char* CpuStr;
     if ((CpuStr = GetValue(argc, argv, "cpu")) != nullptr) {
         SetConfig = true;
@@ -277,11 +290,6 @@ QuicMainStart(
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
-
-    const char* IoMode = GetValue(argc, argv, "io");
-    if (IoMode && IsValue(IoMode, "rio")) {
-        PerfDefaultRioAllowed = true;
-    }
 
     uint32_t WatchdogTimeout = 0;
     if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
