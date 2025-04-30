@@ -49,7 +49,6 @@ RawDataPathInitialize(
     DataPath->WorkerPool = WorkerPool;
 
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
     SockPoolInitialized = TRUE;
