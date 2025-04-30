@@ -844,6 +844,8 @@ QuicLibrarySetGlobalParam(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SETTINGS_INTERNAL InternalSettings = {0};
 
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
+
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
 
@@ -1188,6 +1190,8 @@ QuicLibraryGetGlobalParam(
 {
     QUIC_STATUS Status;
     uint32_t GitHashLength;
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
