@@ -2772,7 +2772,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
         //
         //make sure our message type is valid
         //
-        if (message_type > 20) {
+        if (message_type > SSL3_MT_FINISHED) {
             //
             // This is not a real handshake record
             //
@@ -2783,7 +2783,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
         //
         // Stop processing if this is a handshake finished record
         //
-        if (message_type == 20) {
+        if (message_type == SSL3_MT_FINISHED) {
             //
             // Trim the buffer so we end on a record boundary
             // Everything after the HandShakeFinished record
