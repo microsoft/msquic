@@ -1414,11 +1414,6 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
-        if (MsQuicLib.Settings.XdpEnabled) {
-            SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
-        }
-
         *BufferLength = sizeof(uint32_t);
         *(uint32_t*)Buffer = QuicLibraryGetDatapathFeatures();
 

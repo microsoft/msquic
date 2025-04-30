@@ -158,7 +158,7 @@ QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
     _In_ QUIC_ADDR* RemoteAddress,
     _Out_ QUIC_ADDR* LocalAddress,
-    _In_ uint32_t SocketFlags
+    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
@@ -462,7 +462,7 @@ MsQuicConnectionPoolCreate(
     //
     QUIC_CONFIGURATION* ConnectionConfig =
         (QUIC_CONFIGURATION*)Config->Configuration;
-    uint32_t SocketFlags = 0;
+    CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
 
     if (MsQuicLib.Settings.IsSet.XdpEnabled) {
         if (MsQuicLib.Settings.XdpEnabled) {

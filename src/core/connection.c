@@ -1840,7 +1840,7 @@ QuicConnStart(
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
     UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
-    UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
     UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
@@ -1850,6 +1850,9 @@ QuicConnStart(
     UdpConfig.OwningProcess = Configuration->OwningProcess;
 #endif
 
+    if (Connection->State.ShareBinding) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_SHARE;
+    }
     if (Connection->Settings.XdpEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
     }
@@ -6234,7 +6237,7 @@ QuicConnParamSet(
             CXPLAT_UDP_CONFIG UdpConfig = {0};
             UdpConfig.LocalAddress = LocalAddress;
             UdpConfig.RemoteAddress = &Connection->Paths[0].Route.RemoteAddress;
-            UdpConfig.Flags = Connection->State.ShareBinding ? CXPLAT_SOCKET_FLAG_SHARE : 0;
+            UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
             UdpConfig.InterfaceIndex = 0;
 #ifdef QUIC_COMPARTMENT_ID
             UdpConfig.CompartmentId = Connection->Configuration->CompartmentId;
@@ -6242,6 +6245,9 @@ QuicConnParamSet(
 #ifdef QUIC_OWNING_PROCESS
             UdpConfig.OwningProcess = Connection->Configuration->OwningProcess;
 #endif
+            if (Connection->State.ShareBinding) {
+                UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_SHARE;
+            }
             if (Connection->Settings.XdpEnabled) {
                 UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_XDP;
             }
