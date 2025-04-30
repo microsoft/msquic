@@ -1015,6 +1015,7 @@ Exit:
 
 #if CXPLAT_USE_IO_URING // liburing
 #define IOURINGINLINE inline
+#define LIBURING_INTERNAL
 
 #if defined(__cplusplus)
 extern "C++" {
