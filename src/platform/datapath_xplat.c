@@ -86,7 +86,7 @@ CxPlatDataPathUpdatePollingIdleTimeout(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_SOCKET_FLAGS SocketFlags
@@ -163,7 +163,7 @@ CxPlatSocketCreateUdp(
                     continue;
                 }
                 if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    Status = QUIC_STATUS_SUCCESS; // TODO - Consider this stuff again...
+                    Status = QUIC_STATUS_SUCCESS; // Silently fail non-QTIP raw socket creation.
                 } else {
                     CxPlatSocketDelete(*NewSocket);
                 }

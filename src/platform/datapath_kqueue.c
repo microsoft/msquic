@@ -552,7 +552,7 @@ CxPlatDataPathUpdatePollingIdleTimeout(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ CXPLAT_SOCKET_FLAGS SocketFlags
