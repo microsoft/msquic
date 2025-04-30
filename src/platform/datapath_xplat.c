@@ -47,7 +47,7 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (Config && Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_XDP) {
+    if (Config && Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP) {
         Status =
             RawDataPathInitialize(
                 ClientRecvContextLength,

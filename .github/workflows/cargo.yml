@@ -25,10 +25,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
-      with:
-        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
@@ -99,10 +95,6 @@ jobs:
     runs-on: ${{ matrix.os }}
     name: Cargo-Preinstall
     steps:
-    - name: Harden Runner
-      uses: step-security/harden-runner@c6295a65d1254861815972266d5933fd6e532bdf
-      with:
-        egress-policy: audit
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Rust

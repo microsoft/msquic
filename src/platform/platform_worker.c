@@ -297,13 +297,13 @@ CxPlatWorkerPoolCreate(
     //
     uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     if (Config) {
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC) {
             ThreadFlags &= ~CXPLAT_THREAD_FLAG_SET_IDEAL_PROC; // Remove the flag
         }
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
             ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
         }
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
             ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         }
     }

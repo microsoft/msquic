@@ -450,7 +450,7 @@ QuicAddr DataPathTest::UnspecIPv4;
 QuicAddr DataPathTest::UnspecIPv6;
 
 struct CxPlatDataPath {
-    QUIC_GLOBAL_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
+    QUIC_GLOBAL_EXECUTION_CONFIG DefaultExecutionConfig { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0} };
     CXPLAT_WORKER_POOL* WorkerPool {nullptr};
     CXPLAT_DATAPATH* Datapath {nullptr};
     QUIC_STATUS InitStatus;
@@ -462,7 +462,7 @@ struct CxPlatDataPath {
         ) noexcept
     {
         if (UseDuoNic && Config == nullptr) {
-            DefaultExecutionConfig.Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+            DefaultExecutionConfig.Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
         }
         WorkerPool =
             CxPlatWorkerPoolCreate(Config ? Config : &DefaultExecutionConfig);
@@ -679,25 +679,25 @@ TEST_F(DataPathTest, Initialize)
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     {
-        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     {
-        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0 };
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 0 };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     {
-        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 1, {0} };
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     if (UseDuoNic) {
-        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
+        QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
         CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
@@ -832,7 +832,7 @@ TEST_P(DataPathTest, UdpData)
 
 TEST_P(DataPathTest, UdpDataPolling)
 {
-    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
+    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
@@ -1060,7 +1060,7 @@ TEST_P(DataPathTest, MultiBindListener) {
 
 TEST_P(DataPathTest, MultiBindListenerSingleProcessor) {
     UdpRecvContext RecvContext;
-    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC, UINT32_MAX, 1, 0 };
+    QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC, UINT32_MAX, 1, 0 };
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);

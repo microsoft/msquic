@@ -186,14 +186,14 @@ QuicMainStart(
 #ifndef _KERNEL_MODE
 
     if (IoMode && IsValue(IoMode, "rio")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_RIO;
+        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_RIO;
         SetConfig = true;
     }
 
 #endif // _KERNEL_MODE
 
     if (IoMode && IsValue(IoMode, "xdp")) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
         SetConfig = true;
     }
 
@@ -215,13 +215,13 @@ QuicMainStart(
 
     TryGetValue(argc, argv, "highpri", &PerfDefaultHighPriority);
     if (PerfDefaultHighPriority) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY;
+        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY;
         SetConfig = true;
     }
 
     TryGetValue(argc, argv, "affinitize", &PerfDefaultAffinitizeThreads);
     if (PerfDefaultHighPriority) {
-        Config->Flags |= QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE;
+        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_AFFINITIZE;
         SetConfig = true;
     }
 

@@ -456,7 +456,7 @@ main(
             UdpUnreachCallback,
         };
         // flag
-        QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
+        QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
 
         QUIC_GLOBAL_EXECUTION_CONFIG DatapathFlags = {
             Flags,

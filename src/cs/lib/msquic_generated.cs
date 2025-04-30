@@ -213,7 +213,7 @@ namespace Microsoft.Quic
     }
 
     [System.Flags]
-    internal enum QUIC_EXECUTION_CONFIG_FLAGS
+    internal enum QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
         RIO = 0x0002,
@@ -225,7 +225,7 @@ namespace Microsoft.Quic
 
     internal unsafe partial struct QUIC_GLOBAL_EXECUTION_CONFIG
     {
-        internal QUIC_EXECUTION_CONFIG_FLAGS Flags;
+        internal QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags;
 
         [NativeTypeName("uint32_t")]
         internal uint PollingIdleTimeoutUs;

@@ -80,7 +80,7 @@ Invoke-Expression "$ToolExe $FullArgs"
     -replace "  QUIC_RECEIVE_FLAG_", "  " `
     -replace "  QUIC_SEND_FLAG_", "  " `
     -replace "  QUIC_DATAGRAM_SEND_", "  " `
-    -replace "  QUIC_EXECUTION_CONFIG_FLAG_", "  " `
+    -replace "  QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_", "  " `
     -replace "QUIC_TLS_PROTOCOL_1_3", "TLS_1_3" `
     -replace "  QUIC_TLS_PROTOCOL_", "  " `
     -replace "  QUIC_CIPHER_ALGORITHM_", "  " `

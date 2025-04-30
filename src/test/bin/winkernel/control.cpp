@@ -702,7 +702,7 @@ QuicTestCtlEvtIoDeviceControl(
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
         QUIC_GLOBAL_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
-        if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
+        if (Config.Flags != QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE) {
             Status =
                 MsQuic->SetParam(
                     nullptr,

@@ -115,10 +115,10 @@ QuicWorkerInitialize(
         }
 
         if (MsQuicLib.ExecutionConfig) {
-            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
                 ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
             }
-            if (MsQuicLib.ExecutionConfig->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+            if (MsQuicLib.ExecutionConfig->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
                 ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
             }
         }
