@@ -619,6 +619,9 @@ public:
 
     QUIC_STATUS
     SetGlobal() const noexcept {
+        if (IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* Settings = this;
         return
             MsQuic->SetParam(
@@ -785,6 +788,9 @@ struct MsQuicConfiguration {
     }
     QUIC_STATUS
     SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        if (Settings.IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* QSettings = &Settings;
         return
             MsQuic->SetParam(

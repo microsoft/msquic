@@ -184,16 +184,16 @@ QuicMainStart(
 
     const char* IoMode = GetValue(argc, argv, "io");
     if (IoMode) {
+        MsQuicSettings Settings;
         if (IsValue(IoMode, "rio")) {
-            MsQuicSettings Settings;
             Settings.SetRioEnabled(true);
-            Settings.SetGlobal();
-
         } else if (IsValue(IoMode, "xdp")) {
-            MsQuicSettings Settings;
             Settings.SetXdpEnabled(true);
-            Settings.SetGlobal();
+        } else if (IsValue(IoMode, "qtip")) {
+            Settings.SetXdpEnabled(true);
+            Settings.SetQtipEnabled(true);
         }
+        Settings.SetGlobal();
     }
 
     const char* CpuStr;
