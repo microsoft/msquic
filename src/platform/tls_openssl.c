@@ -2779,6 +2779,20 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
             CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
             return -1;
         }
+
+        //
+        // Stop processing if this is a handshake finished record
+        //
+        if (message_type == 20) {
+            //
+            // Trim the buffer so we end on a record boundary
+            // Everything after the HandShakeFinished record
+            // Is just padding
+            //
+            Entry->RecLen = total_message_size + message_size + 4;
+            goto insert_now;
+        }
+
         //
         // If this message is larger then the total record length
         // then we need to create an Incomplete record as its remainder
@@ -2825,6 +2839,8 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
     //
     //Add the Entry, and potentially the leftover record
     //
+
+insert_now:
     CxPlatListInsertTail(&AData->RecordList, &Entry->Link);
     if (leftover != NULL) {
         //
