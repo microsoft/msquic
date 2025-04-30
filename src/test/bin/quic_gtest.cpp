@@ -102,7 +102,6 @@ public:
             strcat_s(Params.CurrentDirectory, "\\");
 #endif
 
-
             ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_TEST_CONFIGURATION, Params));
 
         } else {
