@@ -2710,7 +2710,7 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
     new->RecLen = RecLen;
     new->Ssl = Ssl;
     new->FreeMe = 0;
-    new->Incomplete = 0;
+    new->Incomplete = 0;;
     return new;
 }
 
@@ -2742,7 +2742,7 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 // @warning Assumes the record buffer contains valid TLS handshake formatting.
 // @warning The function asserts that the message type is <= 20.
 //
-static int SplitAddRecord(RECORD_ENTRY *Entry)
+static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
     RECORD_ENTRY *leftover = NULL;
     const uint8_t *idx;
@@ -2841,6 +2841,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
     //
 
 insert_now:
+    *Consumed -= Entry->RecLen;
     CxPlatListInsertTail(&AData->RecordList, &Entry->Link);
     if (leftover != NULL) {
         //
@@ -2848,7 +2849,7 @@ insert_now:
         // Do so by recursively calling this function.  This will
         // Also add the leftover record to the list
         //
-        return SplitAddRecord(leftover);
+        return SplitAddRecord(leftover, Consumed);
     }
     return Incomplete;
 }
@@ -2885,7 +2886,7 @@ insert_now:
 //
 static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
                                          size_t NewRecLen,
-                                         SSL *NewSsl)
+                                         SSL *NewSsl, size_t *Consumed)
 {
     RECORD_ENTRY *entry;
     struct AUX_DATA *AData;
@@ -2911,6 +2912,7 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
             memcpy(MergedEntry->Record, entry->Record, entry->RecLen);
             memcpy(&MergedEntry->Record[entry->RecLen], NewRecord, NewRecLen);
             MergedEntry->RecLen = entry->RecLen + NewRecLen;
+            *Consumed += entry->RecLen;
             MergedEntry->Incomplete = 0;
             MergedEntry->FreeMe = 0;
             MergedEntry->Ssl = entry->Ssl;
@@ -2955,13 +2957,13 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
 //
 // @warning Assumes valid TLS handshake record formatting.
 //
-static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
+static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen, size_t *Consumed)
 {
     RECORD_ENTRY *this_rec;
     int SplitRet;
     int Ret = 1;
 
-    this_rec = GetIncompleteRecord(Record, RecLen, Ssl);
+    this_rec = GetIncompleteRecord(Record, RecLen, Ssl, Consumed);
     if (this_rec == NULL) {
         //
         //No imcomplete Records, just create a new one
@@ -2972,7 +2974,7 @@ static int ProcessNewMessage(SSL *Ssl, const uint8_t *Record, size_t RecLen)
         }
     }
 
-    SplitRet = SplitAddRecord(this_rec);
+    SplitRet = SplitAddRecord(this_rec, Consumed);
 
     if (SplitRet == 1) {
         Ret = 2;
@@ -2997,7 +2999,7 @@ CxPlatTlsProcessData(
     struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
     RECORD_ENTRY *entry;
     CXPLAT_LIST_ENTRY* lentry;
-
+    size_t Consumed = 0;
     CXPLAT_DBG_ASSERT(Buffer != NULL || *BufferLength == 0);
 
     TlsContext->State = State;
@@ -3058,7 +3060,9 @@ CxPlatTlsProcessData(
     }
 
     if (Buffer != NULL) {
-        ProcessNewMessage(TlsContext->Ssl, Buffer, *BufferLength);
+        Consumed = *BufferLength;
+        ProcessNewMessage(TlsContext->Ssl, Buffer, *BufferLength, &Consumed);
+        *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
 
     if (!State->HandshakeComplete) {
