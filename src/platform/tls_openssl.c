@@ -2331,7 +2331,7 @@ static long FreeBioAuxData(BIO *B, int Oper,
         AData = BIO_get_app_data(B);
         CXPLAT_FREE(AData->Tp, QUIC_POOL_TLS_TRANSPARAMS);
         CXPLAT_FREE(AData->PeerTp, QUIC_POOL_TLS_TRANSPARAMS);
-        CXPLAT_FREE(AData, QUIC_POOL_GENERIC);
+        CXPLAT_FREE(AData, QUIC_POOL_TLS_AUX_DATA);
         BIO_set_app_data(B, NULL);
     }
     return Ret;
@@ -2484,7 +2484,7 @@ CxPlatTlsInitialize(
     // Note This has to happen after the SSL_set_quic_tls_cbs call
     // as it installs null bios for us
     //
-    AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_GENERIC);
+    AData = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
     if (AData == NULL) {
         QuicTraceEvent(
             AllocFailure,
