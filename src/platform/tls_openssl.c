@@ -1695,7 +1695,6 @@ CxPlatTlsSecConfigCreate(
         goto Exit;
     }
 
-    SSL_CTX_set1_groups_list(SecurityConfig->SSLCtx, "X25519");
     //
     // Configure the SSL context with the defaults.
     //
