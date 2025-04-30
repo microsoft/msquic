@@ -62,7 +62,7 @@ RawDataPathInitialize(
     UNREFERENCED_PARAMETER(ClientRecvContextLength);
     UNREFERENCED_PARAMETER(ParentDataPath);
     UNREFERENCED_PARAMETER(WorkerPool);
-    UNREFERENCED_PARAMETER(DataPath);
+    *DataPath = NULL;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -542,7 +542,7 @@ CxPlatDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-cxPlatDataPathUpdatePollingIdleTimeout(
+CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t PollingIdleTimeoutUs
     )
