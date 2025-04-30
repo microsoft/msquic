@@ -2698,10 +2698,8 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
     //
     // Allocate a new structure, make sure its zeroed out
     //
-    fprintf(stderr, "Allocating new record entry\n");
     new = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + RecLen, QUIC_POOL_TLS_RECORD_ENTRY);
     if (new == NULL) {
-        fprintf(stderr, "New record entry allocation failed\n");
         return NULL;
     }
     //
@@ -2889,11 +2887,9 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
             // merge them
             //
             CxPlatListEntryRemove(&entry->Link);
-            fprintf(stderr, "Reallocating record buffer\n");
             MergedEntry = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + entry->RecLen + NewRecLen, QUIC_POOL_TLS_RECORD_ENTRY);
             //TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
             if (MergedEntry == NULL) {
-                fprintf(stderr, "Record buffer reallocation failed\n");
                 return NULL;
             }
             memcpy(MergedEntry->Record, entry->Record, entry->RecLen);
