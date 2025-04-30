@@ -1183,7 +1183,7 @@ CxPlatSqeClassicCompletion(
     //
     // TODO: If perf is good, clean this up.
     //
-    CXPLAT_DBG_ASSERT(*Count > 1);
+    CXPLAT_DBG_ASSERT(*Count >= 1);
     CXPLAT_SQE *Sqe = CxPlatCqeGetSqe(*Cqes);
     Sqe->ClassicCompletion(*Cqes);
     (*Cqes)++;
