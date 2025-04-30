@@ -601,7 +601,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         //
         // We pass our Secrets one at a time instead of together
         // So we need to map which Secret we're assigning based
-        // on wether we are a server, what type of key we're writing
+        // on whether we are a server, what type of key we're writing
         // and the Direction (1 for write, 0 for read)
         //
         switch(KeyType) {
