@@ -294,7 +294,7 @@ CxPlatTlsNegotiatedCiphers(
 // @param[out] consumed    Number of bytes successfully consumed from @p buf.
 // @param[in]  arg         Unused argument (typically NULL).
 //
-// @return 1 on success, 0 on failure.
+// @return 1 on success, -1 on failure.
 //
 static int QuicTlsSend(SSL *s, const unsigned char *Buf,
                          size_t BufLen, size_t *Consumed,
@@ -577,7 +577,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         }
 
     }
-    if (ProtLevel == 3) {
+    if (ProtLevel == OSSL_RECORD_PROTECTION_LEVEL_APPLICATION) {
         AData->SecretSet[Dir] = 1;
         if (AData->SecretSet[!Dir] == 1) {
             AData->Level = ProtLevel;
@@ -598,58 +598,57 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     //
     // If we are installing initial Secrets TlsSecrets aren't allocated yet
     //
-    if (TlsContext->TlsSecrets == NULL) {
-        return 1;
-    }
-    //
-    // We pass our Secrets one at a time instead of together
-    // So we need to map which Secret we're assigning based
-    // on weather we are a server, what type of key we're writing
-    // and the Direction (1 for write, 0 for read)
-    //
-    switch(KeyType) {
-    case QUIC_PACKET_KEY_HANDSHAKE:
-        if (TlsContext->IsServer) {
-            if (Dir == 1) {
-                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+    if (TlsContext->TlsSecrets != NULL) {
+        //
+        // We pass our Secrets one at a time instead of together
+        // So we need to map which Secret we're assigning based
+        // on weather we are a server, what type of key we're writing
+        // and the Direction (1 for write, 0 for read)
+        //
+        switch(KeyType) {
+        case QUIC_PACKET_KEY_HANDSHAKE:
+            if (TlsContext->IsServer) {
+                if (Dir == 1) {
+                    memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                } else {
+                    memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                }
             } else {
-                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                if (Dir == 1) {
+                    memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
+                } else {
+                    memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
+                }
             }
-        } else {
-            if (Dir == 1) {
-                memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
-            } else {
-                memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
-            }
-        }
 
-        break;
-    case QUIC_PACKET_KEY_0_RTT:
-        if (TlsContext->IsServer) {
-            if (Dir == 0) {
-                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+            break;
+        case QUIC_PACKET_KEY_0_RTT:
+            if (TlsContext->IsServer) {
+                if (Dir == 0) {
+                    memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
+            } else {
+                if (Dir == 1) {
+                    memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
+                           NewSecret, SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
+                }
             }
-        } else {
-            if (Dir == 1) {
-                memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                       NewSecret, SecretLen);
-                TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
-            }
+            break;
+        case QUIC_PACKET_KEY_1_RTT:
+        default:
+            break;
         }
-        break;
-    case QUIC_PACKET_KEY_1_RTT:
-    default:
-        break;
     }
 
     return 1;
