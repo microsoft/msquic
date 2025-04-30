@@ -165,11 +165,6 @@ typedef struct RECORD_ENTRY {
     CXPLAT_LIST_ENTRY Link;
 
     //
-    // Pointer to the raw SSL record data.
-    //
-    uint8_t *Record;
-
-    //
     // Length of the SSL record.
     //
     size_t RecLen;
@@ -188,6 +183,11 @@ typedef struct RECORD_ENTRY {
     // Non-zero if the record memory should be freed.
     //
     unsigned char FreeMe;
+
+    //
+    // The raw SSL record data.
+    //
+    uint8_t Record[0];
 } RECORD_ENTRY;
 
 //
@@ -488,8 +488,7 @@ static int QuicTlsRlsRec(SSL *S, size_t BytesRead,
       lentry = lentry->Flink;
       if ((entry->FreeMe == 1) && (entry->RecLen == BytesRead)) {
         CxPlatListEntryRemove(&entry->Link);
-        free(entry->Record);
-        free(entry);
+        CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
         return 1;
       }
     }
@@ -2699,13 +2698,10 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
     //
     // Allocate a new structure, make sure its zeroed out
     //
-    new = calloc(1, sizeof(RECORD_ENTRY));
+    fprintf(stderr, "Allocating new record entry\n");
+    new = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + RecLen, QUIC_POOL_TLS_RECORD_ENTRY);
     if (new == NULL) {
-        return NULL;
-    }
-    new->Record = malloc(RecLen);
-    if (new->Record == NULL) {
-        free(new);
+        fprintf(stderr, "New record entry allocation failed\n");
         return NULL;
     }
     //
@@ -2715,6 +2711,8 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
     memcpy(new->Record, Record, RecLen);
     new->RecLen = RecLen;
     new->Ssl = Ssl;
+    new->FreeMe = 0;
+    new->Incomplete = 0;
     return new;
 }
 
@@ -2780,8 +2778,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry)
             //
             // This is not a real handshake record
             //
-            free(Entry->Record);
-            free(Entry);
+            CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
             return -1;
         }
         //
@@ -2878,7 +2875,7 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
 {
     RECORD_ENTRY *entry;
     struct AUX_DATA *AData;
-    uint8_t *TmpRec;
+    RECORD_ENTRY *MergedEntry;
     CXPLAT_LIST_ENTRY* lentry;
 
     AData = GetSslAuxData(NewSsl);
@@ -2892,16 +2889,21 @@ static RECORD_ENTRY *GetIncompleteRecord(const uint8_t *NewRecord,
             // merge them
             //
             CxPlatListEntryRemove(&entry->Link);
-            TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
-            if (TmpRec == NULL) {
-                free(entry);
+            fprintf(stderr, "Reallocating record buffer\n");
+            MergedEntry = CXPLAT_ALLOC_NONPAGED(sizeof(RECORD_ENTRY) + entry->RecLen + NewRecLen, QUIC_POOL_TLS_RECORD_ENTRY);
+            //TmpRec = realloc(entry->Record, entry->RecLen + NewRecLen);
+            if (MergedEntry == NULL) {
+                fprintf(stderr, "Record buffer reallocation failed\n");
                 return NULL;
             }
-            entry->Record = TmpRec;
-            memcpy(&entry->Record[entry->RecLen], NewRecord, NewRecLen);
-            entry->RecLen += NewRecLen;
-            entry->Incomplete = 0; // need to recheck this for splitting
-            return entry;
+            memcpy(MergedEntry->Record, entry->Record, entry->RecLen);
+            memcpy(&MergedEntry->Record[entry->RecLen], NewRecord, NewRecLen);
+            MergedEntry->RecLen = entry->RecLen + NewRecLen;
+            MergedEntry->Incomplete = 0;
+            MergedEntry->FreeMe = 0;
+            MergedEntry->Ssl = entry->Ssl;
+            CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
+            return MergedEntry;
         }
         //
         //current record is complete, nothing to coalesce
