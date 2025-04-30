@@ -58,7 +58,7 @@ typedef struct CXPLAT_DATAPATH_COMMON {
     //
     // Set of supported features.
     //
-    uint32_t Features;
+    CXPLAT_DATAPATH_FEATURES Features;
 
     CXPLAT_DATAPATH_RAW* RawDataPath;
 } CXPLAT_DATAPATH_COMMON;
@@ -1080,7 +1080,7 @@ DataPathUpdatePollingIdleTimeout(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 DataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH* Datapath
     );
@@ -1190,7 +1190,7 @@ RawDataPathUpdatePollingIdleTimeout(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     );

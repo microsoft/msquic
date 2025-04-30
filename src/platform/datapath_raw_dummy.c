@@ -86,13 +86,13 @@ RawDataPathUpdatePollingIdleTimeout(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return 0;
+    return CXPLAT_DATAPATH_FEATURE_NONE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
