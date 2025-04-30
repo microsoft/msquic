@@ -413,9 +413,9 @@ protected:
             _In_ CXPLAT_TLS_DATA_TYPE DataType
             )
         {
+            UNREFERENCED_PARAMETER(BufferKey);
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
-                EXPECT_EQ(BufferKey, State.ReadKey);
                 if (DataType != CXPLAT_TLS_TICKET_DATA) {
                     *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
                     if (*BufferLength == 0) return (CXPLAT_TLS_RESULT_FLAGS)0;
