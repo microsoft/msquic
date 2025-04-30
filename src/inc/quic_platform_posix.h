@@ -137,6 +137,26 @@ InterlockedOr(
 
 inline
 int64_t
+InterlockedOr64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t Value
+    )
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+inline
+int64_t
+InterlockedExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Target,
+    _In_ int64_t Value
+    )
+{
+    return __sync_lock_test_and_set(Target, Value);
+}
+
+inline
+int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
     _In_ int64_t Value

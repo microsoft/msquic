@@ -778,7 +778,7 @@ CxPlatCryptUninitialize(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ const QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
 #if defined(CX_PLATFORM_LINUX)
@@ -1068,7 +1068,7 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -1082,7 +1082,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 DataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1177,7 +1177,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Out_ CXPLAT_DATAPATH_RAW** DataPath
@@ -1193,7 +1193,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 RawDataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

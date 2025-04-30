@@ -753,7 +753,7 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config, // TODO:: If we move RIO to a per-socket option, we can remove this from all datapaths
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config, // TODO:: If we move RIO to a per-socket option, we can remove this from all datapaths
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
@@ -818,7 +818,7 @@ DataPathInitialize(
 
     Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
-    Datapath->UseRio = Config && !!(Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_RIO);
+    Datapath->UseRio = Config && !!(Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_RIO);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
     Status = CxPlatDataPathQuerySockoptSupport(Datapath);
@@ -1015,7 +1015,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 DataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     UNREFERENCED_PARAMETER(Datapath);

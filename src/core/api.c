@@ -1325,7 +1325,8 @@ MsQuicStreamReceiveComplete(
 
     QUIC_CONN_VERIFY(Connection,
         (Stream->RecvPendingLength == 0) || // Stream might have been shutdown already
-        BufferLength <= Stream->RecvPendingLength);
+        BufferLength <= Stream->RecvPendingLength ||
+        BufferLength <= (UINT64_MAX >> 2));
 
     QuicTraceEvent(
         StreamAppReceiveCompleteCall,
@@ -1333,12 +1334,40 @@ MsQuicStreamReceiveComplete(
         Stream,
         BufferLength);
 
-    InterlockedExchangeAdd64(
-        (int64_t*)&Stream->RecvCompletionLength, (int64_t)BufferLength);
+    uint64_t RecvCompletionLength =
+        InterlockedExchangeAdd64(
+            (int64_t*)&Stream->RecvCompletionLength,
+            (int64_t)BufferLength);
+    if ((BufferLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0 &&
+        (RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT) != 0) {
+        QuicTraceEvent(
+            StreamError,
+            "[strm][%p] ERROR, %s.",
+            Stream,
+            "RecvCompletionLength is overflow");
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID() &&
-        Stream->Flags.ReceiveCallActive) {
-        goto Exit; // No need to queue a completion operation when run inline
+        //
+        // We're just going to abort the whole connection.
+        //
+        if (InterlockedCompareExchange16(
+            (short*)&Connection->BackUpOperUsed, 1, 0) != 0) {
+            goto Exit; // It's already started the shutdown.
+        }
+        Oper = &Connection->BackUpOper;
+        Oper->FreeAfterProcess = FALSE;
+        Oper->Type = QUIC_OPER_TYPE_API_CALL;
+        Oper->API_CALL.Context = &Connection->BackupApiContext;
+        Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SHUTDOWN;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.Flags = QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode = (QUIC_VAR_INT)QUIC_STATUS_INVALID_STATE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.RegistrationShutdown = FALSE;
+        Oper->API_CALL.Context->CONN_SHUTDOWN.TransportShutdown = TRUE;
+        QuicConnQueueHighestPriorityOper(Connection, Oper);
+        goto Exit;
+    }
+
+    if ((RecvCompletionLength & QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG) != 0) {
+        goto Exit; // No need to queue a completion operation when there is an active receive
     }
 
     Oper = InterlockedFetchAndClearPointer((void**)&Stream->ReceiveCompleteOperation);

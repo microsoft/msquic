@@ -532,6 +532,7 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
+        sudo apt-get install -y babeltrace
         sudo apt-get install -y libssl-dev
         sudo apt-get install -y libnuma-dev
         if ($InstallArm64Toolchain) {
