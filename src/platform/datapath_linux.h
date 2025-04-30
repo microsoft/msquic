@@ -29,8 +29,7 @@
 // This is calculated base on the number of the smallest possible single
 // packet/datagram payloads (i.e. IPv6) that can fit in the large buffer.
 //
-const uint16_t CXPLAT_MAX_IO_BATCH_SIZE =
-    (CXPLAT_LARGE_IO_BUFFER_SIZE / (1280 - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE));
+#define CXPLAT_MAX_IO_BATCH_SIZE ((uint16_t)(CXPLAT_LARGE_IO_BUFFER_SIZE / (1280 - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)))
 
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type) \

@@ -24,6 +24,14 @@ CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Length) <= sizeof(size_t
 CXPLAT_STATIC_ASSERT((SIZEOF_STRUCT_MEMBER(QUIC_BUFFER, Buffer) == sizeof(void*)), "(sizeof(QUIC_BUFFER.Buffer) == sizeof(void*) must be TRUE.");
 
 //
+// Context value within the IoSqe to indicate the type of IO operation.
+//
+typedef enum DATAPATH_CONTEXT_TYPE {
+    DatapathContextRecv,
+    DatapathContextSend,
+} DATAPATH_CONTEXT_TYPE;
+
+//
 // Contains all the info for a single RX IO operation. Multiple RX packets may
 // come from a single IO operation.
 //
@@ -74,6 +82,11 @@ typedef struct CXPLAT_SEND_DATA {
     // The socket context owning this send.
     //
     struct CXPLAT_SOCKET_CONTEXT* SocketContext;
+
+    //
+    // The submission queue entry for the send.
+    //
+    CXPLAT_SQE Sqe;
 
     //
     // Entry in the pending send list.
@@ -128,6 +141,11 @@ typedef struct CXPLAT_SEND_DATA {
     uint8_t SegmentationSupported : 1;
 
     //
+    // The message header for the send.
+    //
+    struct msghdr MsgHdr;
+
+    //
     // Space for ancillary control data.
     //
     alignas(8)
@@ -168,20 +186,13 @@ typedef struct CXPLAT_RECV_MSG_CONTROL_BUFFER {
 } CXPLAT_RECV_MSG_CONTROL_BUFFER;
 
 CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
-CXPLAT_EVENT_COMPLETION CxPlatSocketContextFlushTxEventComplete;
 CXPLAT_EVENT_BATCH_COMPLETION CxPlatSocketContextIoEventComplete;
-CXPLAT_EVENT_COMPLETION CxPlatDontCareCompletion;
-CXPLAT_POOL_ALLOC_FN CxPlatSendDataPoolAlloc;
-CXPLAT_POOL_FREE_FN CxPlatSendDataPoolFree;
-CXPLAT_POOL_ALLOC_FN CxPlatRecvBlockPoolAlloc;
-CXPLAT_POOL_FREE_FN CxPlatRecvBlockPoolFree;
 
 const struct msghdr CxPlatRecvMsgHdr = {
     .msg_namelen = sizeof(QUIC_ADDR),
     .msg_controllen = CXPLAT_FIELD_SIZE(CXPLAT_RECV_MSG_CONTROL_BUFFER, Data),
 };
 const uint32_t RecvBufCount = 1024;
-const uint32_t SendBufCount = 1024;
 
 struct io_uring_sqe*
 CxPlatAllocSqe(
@@ -196,6 +207,102 @@ CxPlatAllocSqe(
     return io_sqe;
 }
 
+uint32_t
+CxPlatGetBufferPoolBufferSize(
+    _In_ const CXPLAT_REGISTERED_BUFFER_POOL* Pool
+    )
+{
+    return Pool->BufferSize;
+}
+
+uint8_t*
+CxPlatGetBufferPoolBuffer(
+    _In_ const CXPLAT_REGISTERED_BUFFER_POOL* Pool,
+    _In_ uint32_t Index
+    )
+{
+    return Pool->Buffers + (Index * Pool->BufferSize);
+}
+
+void
+CxPlatFreeBufferPool(
+    _In_ CXPLAT_DATAPATH_PARTITION* DatapathPartition,
+    _In_ CXPLAT_IO_RING_BUF_GROUP BufferGroup,
+    _Inout_ CXPLAT_REGISTERED_BUFFER_POOL* Pool
+    )
+{
+    if (Pool->Buffers != NULL) {
+        io_uring_unregister_buf_ring(&DatapathPartition->EventQ->Ring, BufferGroup);
+        Pool->Buffers = NULL;
+    }
+    if (Pool->Ring != NULL) {
+        free(Pool->Ring);
+        Pool->Ring = NULL;
+    }
+}
+
+QUIC_STATUS
+CxPlatCreateBufferPool(
+    _In_ CXPLAT_DATAPATH_PARTITION* DatapathPartition,
+    _In_ uint32_t BufferSize,
+    _In_ uint32_t BufferCount,
+    _In_ CXPLAT_IO_RING_BUF_GROUP BufferGroup,
+    _Out_ CXPLAT_REGISTERED_BUFFER_POOL *Pool
+    )
+{
+    int Result;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CxPlatZeroMemory(Pool, sizeof(*Pool));
+
+    Pool->TotalSize = BufferCount * (sizeof(struct io_uring_buf) + BufferSize);
+    if (posix_memalign(&Pool->Ring, getpagesize(), Pool->TotalSize)) {
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "CXPLAT_REGISTERED_BUFFER_POOL",
+            Pool->TotalSize);
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        goto Exit;
+    }
+
+    io_uring_buf_ring_init(Pool->Ring);
+
+    struct io_uring_buf_reg reg = (struct io_uring_buf_reg) {
+        .ring_addr = (uint64_t)Pool->Ring,
+        .ring_entries = BufferCount,
+        .bgid = (uint16_t)BufferGroup
+    };
+
+    Result = io_uring_register_buf_ring(&DatapathPartition->EventQ->Ring, &reg, 0);
+    if (Result) {
+        Status = errno;
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            DatapathPartition,
+            Status,
+            "io_uring_register_buf_ring failed");
+            goto Exit;
+    }
+
+    //
+    // Review: we may also want to io_uring_register_buffers for
+    // io_uring_prep_send_zc_fixed.
+    //
+
+    Pool->Buffers = (uint8_t*)Pool->Ring + sizeof(struct io_uring_buf) * BufferCount;
+    Pool->BufferSize = BufferSize;
+
+Exit:
+
+    if (QUIC_FAILED(Status)) {
+        CxPlatFreeBufferPool(DatapathPartition, BufferGroup, Pool);
+    }
+
+    return Status;
+}
+
 void
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
@@ -208,12 +315,24 @@ CxPlatProcessorContextInitialize(
     DatapathPartition->PartitionIndex = PartitionIndex;
     DatapathPartition->EventQ = CxPlatWorkerPoolGetEventQ(Datapath->WorkerPool, PartitionIndex);
     CxPlatRefInitialize(&DatapathPartition->RefCount);
-    CxPlatPoolInitializeEx(
-        TRUE, Datapath->RecvBlockSize, QUIC_POOL_DATA, CxPlatRecvBlockPoolAlloc,
-        CxPlatRecvBlockPoolFree, &DatapathPartition->RecvBlockPool);
-    CxPlatPoolInitializeEx(
-        TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, CxPlatSendDataPoolAlloc,
-        CxPlatSendDataPoolFree, &DatapathPartition->SendBlockPool);
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED( // TODO handle errors.
+        CxPlatCreateBufferPool(
+            DatapathPartition, Datapath->RecvBlockSize, RecvBufCount,
+            CxPlatIoRingBufGroupRecv, &DatapathPartition->RecvRegisteredBufferPool)));
+
+    for (uint32_t i = 0; i < RecvBufCount; i++) {
+        io_uring_buf_ring_add(
+            DatapathPartition->RecvRegisteredBufferPool.Ring,
+            CxPlatGetBufferPoolBuffer(&DatapathPartition->RecvRegisteredBufferPool, i) +
+                DatapathPartition->Datapath->RecvBlockBufferOffset,
+            CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
+                DatapathPartition->Datapath->RecvBlockBufferOffset,
+            i, io_uring_buf_ring_mask(RecvBufCount), i);
+    }
+    io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, RecvBufCount);
+
+    CxPlatPoolInitialize(
+        TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathPartition->SendBlockPool);
 }
 
 QUIC_STATUS
@@ -346,7 +465,6 @@ CxPlatProcessorContextRelease(
         DatapathPartition->Uninitialized = TRUE;
 #endif
         CxPlatPoolUninitialize(&DatapathPartition->SendBlockPool);
-        CxPlatPoolUninitialize(&DatapathPartition->RecvBlockPool);
         CxPlatDataPathRelease(DatapathPartition->Datapath);
     }
 }
@@ -396,7 +514,7 @@ CxPlatSocketContextSqeInitialize(
     if (!CxPlatSqeInitialize2(
             SocketContext->DatapathPartition->EventQ,
             CxPlatSocketContextIoEventComplete,
-            NULL,
+            (void *)DatapathContextRecv,
             &SocketContext->IoSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -408,20 +526,6 @@ CxPlatSocketContextSqeInitialize(
         goto Exit;
     }
     IoSqeInitialized = TRUE;
-
-    if (!CxPlatSqeInitialize(
-            SocketContext->DatapathPartition->EventQ,
-            CxPlatSocketContextFlushTxEventComplete,
-            &SocketContext->FlushTxSqe)) {
-        Status = errno;
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "CxPlatSqeInitialize failed");
-        goto Exit;
-    }
 
     SocketContext->SqeInitialized = TRUE;
     return QUIC_STATUS_SUCCESS;
@@ -949,7 +1053,6 @@ CxPlatSocketContextUninitializeComplete(
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
     }
 
-    CxPlatLockUninitialize(&SocketContext->TxQueueLock);
     CxPlatRundownUninitialize(&SocketContext->UpcallRundown);
 
     if (SocketContext->DatapathPartition) {
@@ -1035,8 +1138,8 @@ CxPlatSocketContextEnableRecv(
 
     io_uring_prep_recvmsg_multishot(
         Sqe, SocketContext->SocketFd, (struct msghdr *)&CxPlatRecvMsgHdr, MSG_TRUNC);
-	Sqe->flags |= IOSQE_BUFFER_SELECT;
-	Sqe->buf_group = CxPlatIoRingBufGroupRecv;
+    Sqe->flags |= IOSQE_BUFFER_SELECT;
+    Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, (void *)&SocketContext->IoSqe);
     io_uring_submit(&EventQ->Ring);
 
@@ -1106,7 +1209,6 @@ SocketCreateUdp(
         Binding->SocketContexts[i].Binding = Binding;
         Binding->SocketContexts[i].SocketFd = INVALID_SOCKET;
         CxPlatListInitializeHead(&Binding->SocketContexts[i].TxQueue);
-        CxPlatLockInitialize(&Binding->SocketContexts[i].TxQueueLock);
         CxPlatRundownInitialize(&Binding->SocketContexts[i].UpcallRundown);
     }
 
@@ -1444,73 +1546,66 @@ CxPlatSocketContextRecvComplete(
 }
 
 void
-CxPlatSocketReceive(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+CxPlatSocketReceiveComplete(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_CQE Cqe
     )
 {
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
-    DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
+    DATAPATH_RX_IO_BLOCK* IoBlock;
+    uint8_t* IoPayload;
     struct mmsghdr RecvMsgHdr;
-    CXPLAT_RECV_MSG_CONTROL_BUFFER RecvMsgControl;
     struct iovec RecvIov;
+    uint32_t BufferIndex;
+    struct io_uring_recvmsg_out *RecvMsgOut;
 
-    do {
-        uint32_t RetryCount = 0;
-        do {
-            IoBlock = CxPlatPoolAlloc(&DatapathPartition->RecvBlockPool);
-        } while (IoBlock == NULL && ++RetryCount < 10);
-        if (IoBlock == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "DATAPATH_RX_IO_BLOCK",
-                0);
-            goto Exit;
-        }
+    CXPLAT_FRE_ASSERT(Cqe->flags & IORING_CQE_F_MORE); // TODO: repost multi-shot recv if unset.
 
-        IoBlock->Route.State = RouteResolved;
-
-        struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
-        MsgHdr->msg_name = &IoBlock->Route.RemoteAddress;
-        MsgHdr->msg_namelen = sizeof(IoBlock->Route.RemoteAddress);
-        MsgHdr->msg_iov = &RecvIov;
-        MsgHdr->msg_iovlen = 1;
-        MsgHdr->msg_control = &RecvMsgControl.Data;
-        MsgHdr->msg_controllen = sizeof(RecvMsgControl.Data);
-        MsgHdr->msg_flags = 0;
-        RecvIov.iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
-        RecvIov.iov_len = CXPLAT_LARGE_IO_BUFFER_SIZE;
-
-        // todo: remove
-        int Ret =
-            recvmmsg(
-                SocketContext->SocketFd,
-                &RecvMsgHdr,
-                1,
-                0,
-                NULL);
-        if (Ret < 0) {
-            if (errno != EAGAIN && errno != EWOULDBLOCK) {
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
-                    errno,
-                    "recvmmsg failed");
-            }
-            break;
-        }
-
-        CXPLAT_DBG_ASSERT(Ret == 1);
-        CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, &RecvMsgHdr, Ret);
-
-    } while (TRUE);
-
-Exit:
-
-    if (IoBlock) {
-        CxPlatPoolFree(IoBlock);
+    if (Cqe->res == -ENOBUFS) {
+        //
+        // Ignore packet loss.
+        //
+        return;
     }
+
+    CXPLAT_FRE_ASSERT(Cqe->res > 0); // TODO: handle any other errors
+    CXPLAT_DBG_ASSERT(Cqe->flags & IORING_CQE_F_BUFFER);
+
+    BufferIndex = Cqe->flags >> 16;
+    IoBlock =
+        (DATAPATH_RX_IO_BLOCK*)CxPlatGetBufferPoolBuffer(
+            &DatapathPartition->RecvRegisteredBufferPool, BufferIndex);
+    IoPayload = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
+    RecvMsgOut = io_uring_recvmsg_validate(IoPayload, Cqe->res, (struct msghdr*)&CxPlatRecvMsgHdr);
+    CXPLAT_FRE_ASSERT(RecvMsgOut != NULL); // TODO: can this legally fail?
+
+    IoBlock->Route.State = RouteResolved;
+
+    struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
+    MsgHdr->msg_name = io_uring_recvmsg_name(RecvMsgOut);
+    MsgHdr->msg_namelen = RecvMsgOut->namelen;
+    MsgHdr->msg_iov = &RecvIov;
+    MsgHdr->msg_iovlen = 1;
+    MsgHdr->msg_control =
+        io_uring_recvmsg_cmsg_firsthdr(RecvMsgOut, (struct msghdr*)&CxPlatRecvMsgHdr);
+    MsgHdr->msg_controllen = RecvMsgOut->controllen;
+    MsgHdr->msg_flags = 0;
+    RecvIov.iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
+    RecvIov.iov_len = RecvMsgOut->payloadlen;
+
+    CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, &RecvMsgHdr, 1);
+
+    io_uring_buf_ring_add(
+        DatapathPartition->RecvRegisteredBufferPool.Ring,
+        IoPayload,
+        CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
+            DatapathPartition->Datapath->RecvBlockBufferOffset,
+        BufferIndex, io_uring_buf_ring_mask(RecvBufCount), 0);
+
+    //
+    // Review: could be moved to outer loop, or merged with io_uring_buf_ring_cq_advance.
+    //
+    io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, 1);
 }
 
 void
@@ -1677,7 +1772,8 @@ SendDataIsFull(
 
 QUIC_STATUS
 CxPlatSendDataSend(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN AlreadyLocked
     );
 
 void
@@ -1710,51 +1806,9 @@ SocketSend(
     SendData->LocalAddress = Route->LocalAddress;
 
     //
-    // Check to see if we need to pend because there's already queue.
-    //
-    BOOLEAN SendPending = FALSE, FlushTxQueue = FALSE;
-    CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
-    CxPlatLockAcquire(&SocketContext->TxQueueLock);
-    if (/*SendData->Flags & CXPLAT_SEND_FLAGS_MAX_THROUGHPUT ||*/
-        !CxPlatListIsEmpty(&SocketContext->TxQueue)) {
-        FlushTxQueue = CxPlatListIsEmpty(&SocketContext->TxQueue);
-        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
-        SendPending = TRUE;
-    }
-    CxPlatLockRelease(&SocketContext->TxQueueLock);
-    if (SendPending) {
-        if (FlushTxQueue) {
-            CXPLAT_FRE_ASSERT(
-                CxPlatEventQEnqueue(
-                    SocketContext->DatapathPartition->EventQ,
-                    &SocketContext->FlushTxSqe));
-        }
-        return;
-    }
-
-    //
     // Go ahead and try to send on the socket.
     //
-    QUIC_STATUS Status = CxPlatSendDataSend(SendData);
-    if (Status == QUIC_STATUS_PENDING) {
-        //
-        // Couldn't send right now, so queue up the send and wait for send
-        // (EPOLLOUT) to be ready.
-        //
-        CxPlatLockAcquire(&SocketContext->TxQueueLock);
-        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
-        CxPlatLockRelease(&SocketContext->TxQueueLock);
-        // TODO remove CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
-    } else {
-        if (Socket->Type != CXPLAT_SOCKET_UDP) {
-            SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
-                SocketContext->Binding,
-                SocketContext->Binding->ClientContext,
-                Status,
-                SendData->TotalSize);
-        }
-        CxPlatSendDataFree(SendData);
-    }
+    CxPlatSendDataSend(SendData, FALSE);
 }
 
 //
@@ -1820,103 +1874,66 @@ CxPlatSendDataPopulateAncillaryData(
     SendData->ControlBufferLength = (uint8_t)Mhdr->msg_controllen;
 }
 
-BOOLEAN
+QUIC_STATUS
 CxPlatSendDataSendSegmented(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN AlreadyLocked
     )
 {
-    struct msghdr msghdr;
-    msghdr.msg_name = (void*)&SendData->RemoteAddress;
-    msghdr.msg_namelen = sizeof(SendData->RemoteAddress);
-    msghdr.msg_iov = SendData->Iovs;
-    msghdr.msg_iovlen = 1;
-    msghdr.msg_flags = 0;
-    msghdr.msg_control = SendData->ControlBuffer;
-    msghdr.msg_controllen = SendData->ControlBufferLength;
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->SocketContext->DatapathPartition;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
+    struct io_uring_sqe* Sqe;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    if (!AlreadyLocked) { // Review: can we infer this from thread ID?
+        CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
+    }
+
+    if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
+        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+        Status = QUIC_STATUS_PENDING; // TODO clean this up.
+        goto Exit;
+    }
+
+    Sqe = CxPlatAllocSqe(DatapathPartition->EventQ);
+    if (Sqe == NULL) {
+        Status = QUIC_STATUS_PENDING; // TODO clean this up.
+        CxPlatListInsertTail(&SendData->SocketContext->TxQueue, &SendData->TxEntry);
+        goto Exit;
+    }
+
+    SendData->MsgHdr.msg_name = (void*)&SendData->RemoteAddress;
+    SendData->MsgHdr.msg_namelen = sizeof(SendData->RemoteAddress);
+    SendData->MsgHdr.msg_iov = SendData->Iovs;
+    SendData->MsgHdr.msg_iovlen = 1;
+    SendData->MsgHdr.msg_flags = 0;
+    SendData->MsgHdr.msg_control = SendData->ControlBuffer;
+    SendData->MsgHdr.msg_controllen = SendData->ControlBufferLength;
     if (SendData->ControlBufferLength == 0) {
-        CxPlatSendDataPopulateAncillaryData(SendData, &msghdr);
+        CxPlatSendDataPopulateAncillaryData(SendData, &SendData->MsgHdr);
     } else {
-        msghdr.msg_controllen = SendData->ControlBufferLength;
+        SendData->MsgHdr.msg_controllen = SendData->ControlBufferLength;
     }
 
-    if (sendmsg(SendData->SocketContext->SocketFd, &msghdr, 0) < 0) {
-        return FALSE;
+    io_uring_prep_sendmsg(Sqe, SendData->SocketContext->SocketFd, &SendData->MsgHdr, 0);
+    io_uring_sqe_set_data(Sqe, (void *)&SendData->Sqe);
+    CxPlatSqeInitialize2(
+        DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete,
+        (void *)DatapathContextSend, &SendData->Sqe);
+
+Exit:
+
+    if (!AlreadyLocked) {
+        CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
 
-    return TRUE;
-}
-
-#ifdef HAS_SENDMMSG
-#define cxplat_sendmmsg sendmmsg
-#else
-static
-int
-cxplat_sendmmsg_shim(
-    int fd,
-    struct mmsghdr* Messages,
-    unsigned int MessageLen,
-    int Flags
-    )
-{
-    unsigned int SuccessCount = 0;
-    while (SuccessCount < MessageLen) {
-        int Result = sendmsg(fd, &Messages[SuccessCount].msg_hdr, Flags);
-        if (Result < 0) {
-            return SuccessCount == 0 ? Result : (int)SuccessCount;
-        }
-        Messages[SuccessCount].msg_len = Result;
-        SuccessCount++;
-    }
-    return SuccessCount;
-}
-#define cxplat_sendmmsg cxplat_sendmmsg_shim
-#endif
-
-BOOLEAN
-CxPlatSendDataSendMessages(
-    _In_ CXPLAT_SEND_DATA* SendData
-    )
-{
-    struct mmsghdr Mhdrs[CXPLAT_MAX_IO_BATCH_SIZE];
-    for (uint16_t i = SendData->AlreadySentCount; i < SendData->BufferCount; ++i) {
-        struct msghdr* Mhdr = &Mhdrs[i].msg_hdr;
-        Mhdrs[i].msg_len = 0;
-        Mhdr->msg_name = (void*)&SendData->RemoteAddress;
-        Mhdr->msg_namelen = sizeof(SendData->RemoteAddress);
-        Mhdr->msg_iov = SendData->Iovs + i;
-        Mhdr->msg_iovlen = 1;
-        Mhdr->msg_flags = 0;
-        Mhdr->msg_control = SendData->ControlBuffer;
-        Mhdr->msg_controllen = SendData->ControlBufferLength;
-
-        if (SendData->ControlBufferLength == 0) {
-            CxPlatSendDataPopulateAncillaryData(SendData, Mhdr);
-        } else {
-            Mhdr->msg_controllen = SendData->ControlBufferLength;
-        }
-    }
-
-    while (SendData->AlreadySentCount < SendData->BufferCount) {
-        int SuccessfullySentMessages =
-            cxplat_sendmmsg(
-                SendData->SocketContext->SocketFd,
-                Mhdrs + SendData->AlreadySentCount,
-                (unsigned int)(SendData->BufferCount - SendData->AlreadySentCount),
-                0);
-        CXPLAT_FRE_ASSERT(SuccessfullySentMessages != 0);
-        if (SuccessfullySentMessages < 0) {
-            return FALSE;
-        }
-
-        SendData->AlreadySentCount += SuccessfullySentMessages;
-    }
-
-    return TRUE;
+    return Status;
 }
 
 QUIC_STATUS
 CxPlatSendDataSend(
-    _In_ CXPLAT_SEND_DATA* SendData
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN AlreadyLocked
     )
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
@@ -1925,37 +1942,19 @@ CxPlatSendDataSend(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
-    BOOLEAN Success;
 
-        Success =
-#ifdef UDP_SEGMENT
-            SendData->SegmentationSupported ?
-                CxPlatSendDataSendSegmented(SendData) : CxPlatSendDataSendMessages(SendData);
-#else
-            CxPlatSendDataSendMessages(SendData);
-#endif
+    Status = CxPlatSendDataSendSegmented(SendData, AlreadyLocked);
 
-    if (!Success) {
-        if (errno == EAGAIN || errno == EWOULDBLOCK) {
-            Status = QUIC_STATUS_PENDING;
-        } else {
+    if (QUIC_FAILED(Status)) {
+        if (Status != QUIC_STATUS_PENDING) {
             Status = errno;
             if (SocketType == CXPLAT_SOCKET_UDP) {
-#ifdef UDP_SEGMENT
                 QuicTraceEvent(
                     DatapathErrorStatus,
                     "[data][%p] ERROR, %u, %s.",
                     SocketContext->Binding,
                     Status,
                     "sendmsg (GSO) failed");
-#else
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    SocketContext->Binding,
-                    Status,
-                    "sendmmsg failed");
-#endif
             } else {
                 QuicTraceEvent(
                     DatapathErrorStatus,
@@ -2005,13 +2004,17 @@ CxPlatSendDataSend(
 // still pending sends.
 //
 void
-CxPlatSocketContextFlushTxQueue(
+CxPlatSocketContextSendComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
-    _In_ BOOLEAN SendAlreadyPending
+    _In_ CXPLAT_CQE Cqe
     )
 {
-    CXPLAT_SEND_DATA* SendData = NULL;
-    CxPlatLockAcquire(&SocketContext->TxQueueLock);
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqe);
+    CXPLAT_SEND_DATA* SendData = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
+
+    CxPlatSendDataFree(SendData);
+    SendData = NULL;
+
     if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
         SendData =
             CXPLAT_CONTAINING_RECORD(
@@ -2019,30 +2022,17 @@ CxPlatSocketContextFlushTxQueue(
                 CXPLAT_SEND_DATA,
                 TxEntry);
     }
-    CxPlatLockRelease(&SocketContext->TxQueueLock);
 
     while (SendData != NULL) {
-        QUIC_STATUS Status = CxPlatSendDataSend(SendData);
+        QUIC_STATUS Status = CxPlatSendDataSend(SendData, TRUE);
         if (Status == QUIC_STATUS_PENDING) {
-            if (!SendAlreadyPending) {
-                //
-                // Add the EPOLLOUT event since we have more pending sends.
-                //
-                CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN | EPOLLOUT);
-            }
+            //
+            // The io_uring is full. We'll get a completion when there's more space.
+            //
             return;
         }
 
-        CxPlatLockAcquire(&SocketContext->TxQueueLock);
         CxPlatListRemoveHead(&SocketContext->TxQueue);
-        if (SocketContext->Binding->Type != CXPLAT_SOCKET_UDP) {
-            SocketContext->Binding->Datapath->TcpHandlers.SendComplete(
-                SocketContext->Binding,
-                SocketContext->Binding->ClientContext,
-                Status,
-                SendData->TotalSize);
-        }
-        CxPlatSendDataFree(SendData);
         if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
             SendData =
                 CXPLAT_CONTAINING_RECORD(
@@ -2052,25 +2042,7 @@ CxPlatSocketContextFlushTxQueue(
         } else {
             SendData = NULL;
         }
-        CxPlatLockRelease(&SocketContext->TxQueueLock);
     }
-
-    if (SendAlreadyPending) {
-        //
-        // Remove the EPOLLOUT event since we don't have any more pending sends.
-        //
-        CxPlatSocketContextSetEvents(SocketContext, EPOLL_CTL_MOD, EPOLLIN);
-    }
-}
-
-void
-CxPlatSocketContextFlushTxEventComplete(
-    _In_ CXPLAT_CQE* Cqe
-    )
-{
-    CXPLAT_SOCKET_CONTEXT* SocketContext =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, FlushTxSqe);
-    CxPlatSocketContextFlushTxQueue(SocketContext, FALSE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2085,28 +2057,47 @@ CxPlatSocketGetTcpStatistics(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+
 void
-CxPlatSocketContextIoEventCompleteInternal(
-    _In_ CXPLAT_DATAPATH_PARTITION* DatapathPartition,
+CxPlatSocketContextIoEventComplete(
     _Inout_ CXPLAT_CQE** Cqes,
     _Inout_ uint32_t* CqeCount
     )
 {
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(*Cqes);
+    CXPLAT_SOCKET_CONTEXT* SocketContext;
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition;
+
+    switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
+    case DatapathContextRecv:
+        SocketContext = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+        break;
+    default:
+        CXPLAT_DBG_ASSERT(FALSE);
+    }
+
+    DatapathPartition = SocketContext->DatapathPartition;
+
     CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
 
-    do {
-        CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(*Cqes);
-        CXPLAT_SOCKET_CONTEXT* SocketContext =
-            CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
-
+    while (TRUE) {
         //
         // Review: this loop could be unrolled further to batch within a socket.
         //
         if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
-            if (Sqe->Context == &SocketContext->IoSqe) {
-                CxPlatSocketReceive(SocketContext);
-            } else {
-                CxPlatSocketContextFlushTxQueue(SocketContext, TRUE);
+            //
+            // Review: these functions could be unrolled to batch within an IO
+            // type on a socket.
+            //
+            switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
+            case DatapathContextRecv:
+                CxPlatSocketReceiveComplete(SocketContext, *Cqes[0]);
+                break;
+            case DatapathContextSend:
+                CxPlatSocketContextSendComplete(SocketContext, *Cqes[0]);
+                break;
+            default:
+                CXPLAT_DBG_ASSERT(FALSE);
             }
 
             CxPlatRundownRelease(&SocketContext->UpcallRundown);
@@ -2115,22 +2106,17 @@ CxPlatSocketContextIoEventCompleteInternal(
         (*Cqes)++;
         (*CqeCount)--;
 
-        //
-        // TODO: break loop if CQE mismatches.
-        //
-    } while (*CqeCount > 0);
+        if (*CqeCount == 0 ||
+            CxPlatCqeGetSqe(*Cqes)->Completion != CxPlatSocketContextIoEventComplete) {
+            break;
+        }
+
+        Sqe = CxPlatCqeGetSqe(*Cqes);
+        SocketContext =
+            CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+    }
+
+    io_uring_submit(&DatapathPartition->EventQ->Ring);
 
     CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
-}
-
-void
-CxPlatSocketContextIoEventComplete(
-    _Inout_ CXPLAT_CQE** Cqes,
-    _Inout_ uint32_t* CqeCount
-    )
-{
-    CXPLAT_SOCKET_CONTEXT* SocketContext =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(*Cqes), CXPLAT_SOCKET_CONTEXT, IoSqe);
-
-    CxPlatSocketContextIoEventCompleteInternal(SocketContext->DatapathPartition, Cqes, CqeCount);
 }

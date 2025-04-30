@@ -49,10 +49,10 @@ tracepoint(CLOG_DATAPATH_IOURING_C, DatapathRecvEmpty , arg2);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = DatapathLength = arg3
+            "CXPLAT_REGISTERED_BUFFER_POOL",
+            Pool->TotalSize);
+// arg2 = arg2 = "CXPLAT_REGISTERED_BUFFER_POOL" = arg2
+// arg3 = arg3 = Pool->TotalSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -69,12 +69,12 @@ tracepoint(CLOG_DATAPATH_IOURING_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            DatapathPartition,
             Status,
-            "CxPlatSqeInitialize failed");
-// arg2 = arg2 = Binding = arg2
+            "io_uring_register_buf_ring failed");
+// arg2 = arg2 = DatapathPartition = arg2
 // arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "CxPlatSqeInitialize failed" = arg4
+// arg4 = arg4 = "io_uring_register_buf_ring failed" = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
 #define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\

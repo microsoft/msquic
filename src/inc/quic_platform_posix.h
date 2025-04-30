@@ -1013,9 +1013,8 @@ Exit:
 
 #if __linux__
 
-#define CXPLAT_USE_IO_URING 1
 #if CXPLAT_USE_IO_URING // liburing
-#define IOURINGINLINE
+#define IOURINGINLINE inline
 
 #if defined(__cplusplus)
 extern "C++" {
@@ -1060,7 +1059,7 @@ typedef struct CXPLAT_SQE {
     void* Context; // Review: create an encapsulating structure for this?
 } CXPLAT_SQE;
 
-typedef enum {
+typedef enum CXPLAT_IO_RING_BUF_GROUP {
     CxPlatIoRingBufGroupSend,
     CxPlatIoRingBufGroupRecv,
 } CXPLAT_IO_RING_BUF_GROUP;

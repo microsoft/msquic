@@ -26,10 +26,10 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathRecvEmpty,
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = DatapathLength = arg3
+            "CXPLAT_REGISTERED_BUFFER_POOL",
+            Pool->TotalSize);
+// arg2 = arg2 = "CXPLAT_REGISTERED_BUFFER_POOL" = arg2
+// arg3 = arg3 = Pool->TotalSize = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, AllocFailure,
     TP_ARGS(
@@ -49,12 +49,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, AllocFailure,
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            DatapathPartition,
             Status,
-            "CxPlatSqeInitialize failed");
-// arg2 = arg2 = Binding = arg2
+            "io_uring_register_buf_ring failed");
+// arg2 = arg2 = DatapathPartition = arg2
 // arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "CxPlatSqeInitialize failed" = arg4
+// arg4 = arg4 = "io_uring_register_buf_ring failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathErrorStatus,
     TP_ARGS(

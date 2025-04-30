@@ -479,6 +479,22 @@ CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
     );
 
+void
+CxPlatSqeClassicCompletion(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    );
+
+void
+CxPlatPoolInitializeEx(
+    _In_ BOOLEAN IsPaged,
+    _In_ uint32_t Size,
+    _In_ uint32_t Tag,
+    _In_opt_ CXPLAT_POOL_ALLOC_FN Allocate,
+    _In_opt_ CXPLAT_POOL_FREE_FN Free,
+    _Inout_ CXPLAT_POOL* Pool
+    );
+
 struct clog_param;
 
 char *
