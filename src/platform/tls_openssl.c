@@ -2710,7 +2710,7 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
     new->RecLen = RecLen;
     new->Ssl = Ssl;
     new->FreeMe = 0;
-    new->Incomplete = 0;;
+    new->Incomplete = 0;
     return new;
 }
 
@@ -2996,6 +2996,7 @@ CxPlatTlsProcessData(
     )
 {
     int Ret;
+    int MRet;
     struct AUX_DATA *AData = GetSslAuxData(TlsContext->Ssl);
     RECORD_ENTRY *entry;
     CXPLAT_LIST_ENTRY* lentry;
@@ -3061,7 +3062,15 @@ CxPlatTlsProcessData(
 
     if (Buffer != NULL) {
         Consumed = *BufferLength;
-        ProcessNewMessage(TlsContext->Ssl, Buffer, *BufferLength, &Consumed);
+        MRet = ProcessNewMessage(TlsContext->Ssl, Buffer,
+                                 *BufferLength, &Consumed);
+        if (MRet == 0) {
+            //
+            // There was an allocation failure
+            // Indicate we consumed nothing
+            //
+            Consumed = 0;
+        }
         *BufferLength = *BufferLength - (uint32_t)Consumed;
     }
 
