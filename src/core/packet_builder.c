@@ -585,7 +585,6 @@ QuicPacketBuilderGetPacketTypeAndKeyForControlFrames(
         Builder->Connection,
         "Failed to get packet type for control frames, 0x%x",
         SendFlags);
-    CXPLAT_DBG_ASSERT(CxPlatIsRandomMemoryFailureEnabled()); // This shouldn't have been called then!
 
     return FALSE;
 }
