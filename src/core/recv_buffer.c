@@ -930,7 +930,7 @@ QuicRecvBufferRead(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-VOID
+void
 QuicRecvBufferDrainFullChunks(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _Inout_ uint64_t* DrainLength
@@ -992,7 +992,7 @@ QuicRecvBufferDrainFullChunks(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-VOID
+void
 QuicRecvBufferDrainFirstChunk(
     _Inout_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ uint64_t DrainLength
