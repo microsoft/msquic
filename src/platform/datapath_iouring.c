@@ -1391,8 +1391,7 @@ void
 CxPlatSocketContextRecvComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _Inout_ DATAPATH_RX_IO_BLOCK** IoBlocks,
-    _In_ struct mmsghdr* RecvMsgHdr,
-    _In_ int MessagesReceived
+    _In_ struct msghdr* RecvMsgHdr
     )
 {
     CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathPartition->Datapath);
@@ -1400,17 +1399,18 @@ CxPlatSocketContextRecvComplete(
     uint32_t BytesTransferred = 0;
     CXPLAT_RECV_DATA* DatagramHead = NULL;
     CXPLAT_RECV_DATA** DatagramTail = &DatagramHead;
-    for (int CurrentMessage = 0; CurrentMessage < MessagesReceived; CurrentMessage++) {
+    for (int CurrentMessage = 0; CurrentMessage < 1; CurrentMessage++) {
         DATAPATH_RX_IO_BLOCK* IoBlock = IoBlocks[CurrentMessage];
         IoBlocks[CurrentMessage] = NULL;
-        BytesTransferred += RecvMsgHdr[CurrentMessage].msg_len;
+        uint32_t MsgLen = (uint32_t)RecvMsgHdr->msg_iov->iov_len;
+        BytesTransferred += MsgLen;
 
         uint8_t TOS = 0;
         int HopLimitTTL = 0;
         uint16_t SegmentLength = 0;
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE, FoundTTL = FALSE;
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
-        QUIC_ADDR* RemoteAddr = &IoBlock->Route.RemoteAddress;
+        QUIC_ADDR* RemoteAddr = RecvMsgHdr->msg_name;
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
         IoBlock->Route.Queue = SocketContext;
 
@@ -1418,7 +1418,7 @@ CxPlatSocketContextRecvComplete(
         // Process the ancillary control messages to get the local address,
         // type of service and possibly the GRO segmentation length.
         //
-        struct msghdr* Msg = &RecvMsgHdr[CurrentMessage].msg_hdr;
+        struct msghdr* Msg = RecvMsgHdr;
         for (struct cmsghdr *CMsg = CMSG_FIRSTHDR(Msg); CMsg != NULL; CMsg = CMSG_NXTHDR(Msg, CMsg)) {
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
@@ -1474,25 +1474,24 @@ CxPlatSocketContextRecvComplete(
             DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
-            RecvMsgHdr[CurrentMessage].msg_len,
+            MsgLen,
             SegmentLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 
         if (SegmentLength == 0) {
-            SegmentLength = RecvMsgHdr[CurrentMessage].msg_len;
+            SegmentLength = MsgLen;
         }
 
         DATAPATH_RX_PACKET* Datagram = (DATAPATH_RX_PACKET*)(IoBlock + 1);
-        uint8_t* RecvBuffer =
-            (uint8_t*)IoBlock + SocketContext->DatapathPartition->Datapath->RecvBlockBufferOffset;
+        uint8_t* RecvBuffer = Msg->msg_iov->iov_base;
         IoBlock->RefCount = 0;
 
         //
         // Build up the chain of receive packets to indicate up to the app.
         //
         uint32_t Offset = 0;
-        while (Offset < RecvMsgHdr[CurrentMessage].msg_len &&
+        while (Offset < MsgLen &&
                IoBlock->RefCount < CXPLAT_MAX_IO_BATCH_SIZE) {
             IoBlock->RefCount++;
             Datagram->IoBlock = IoBlock;
@@ -1501,8 +1500,8 @@ CxPlatSocketContextRecvComplete(
             RecvData->Next = NULL;
             RecvData->Route = &IoBlock->Route;
             RecvData->Buffer = RecvBuffer + Offset;
-            if (RecvMsgHdr[CurrentMessage].msg_len - Offset < SegmentLength) {
-                RecvData->BufferLength = (uint16_t)(RecvMsgHdr[CurrentMessage].msg_len - Offset);
+            if (MsgLen - Offset < SegmentLength) {
+                RecvData->BufferLength = (uint16_t)(MsgLen - Offset);
             } else {
                 RecvData->BufferLength = SegmentLength;
             }
@@ -1554,7 +1553,7 @@ CxPlatSocketReceiveComplete(
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
     DATAPATH_RX_IO_BLOCK* IoBlock;
     uint8_t* IoPayload;
-    struct mmsghdr RecvMsgHdr;
+    struct msghdr RecvMsgHdrs[1];
     struct iovec RecvIov;
     uint32_t BufferIndex;
     struct io_uring_recvmsg_out *RecvMsgOut;
@@ -1581,7 +1580,10 @@ CxPlatSocketReceiveComplete(
 
     IoBlock->Route.State = RouteResolved;
 
-    struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
+    //
+    // Review: these can be batched by propagating the CQE array here.
+    //
+    struct msghdr* MsgHdr = &RecvMsgHdrs[0];
     MsgHdr->msg_name = io_uring_recvmsg_name(RecvMsgOut);
     MsgHdr->msg_namelen = RecvMsgOut->namelen;
     MsgHdr->msg_iov = &RecvIov;
@@ -1590,10 +1592,11 @@ CxPlatSocketReceiveComplete(
         io_uring_recvmsg_cmsg_firsthdr(RecvMsgOut, (struct msghdr*)&CxPlatRecvMsgHdr);
     MsgHdr->msg_controllen = RecvMsgOut->controllen;
     MsgHdr->msg_flags = 0;
-    RecvIov.iov_base = (char*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
-    RecvIov.iov_len = RecvMsgOut->payloadlen;
+    RecvIov.iov_base = io_uring_recvmsg_payload(RecvMsgOut, (struct msghdr*)&CxPlatRecvMsgHdr);
+    RecvIov.iov_len =
+        io_uring_recvmsg_payload_length(RecvMsgOut, Cqe->res, (struct msghdr*)&CxPlatRecvMsgHdr);
 
-    CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, &RecvMsgHdr, 1);
+    CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, RecvMsgHdrs);
 
     io_uring_buf_ring_add(
         DatapathPartition->RecvRegisteredBufferPool.Ring,
@@ -2071,6 +2074,9 @@ CxPlatSocketContextIoEventComplete(
     switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
     case DatapathContextRecv:
         SocketContext = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+        break;
+    case DatapathContextSend:
+        SocketContext = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe)->SocketContext;
         break;
     default:
         CXPLAT_DBG_ASSERT(FALSE);

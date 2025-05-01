@@ -1125,7 +1125,7 @@ CxPlatEventQDequeue(
     CxPlatLockRelease(&Queue->Lock);
 #endif
     int result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
-    if (result > 0 || WaitTime == 0) return result;
+    if (result > 0 || WaitTime == 0) goto Exit;
     if (WaitTime != UINT32_MAX) {
         struct __kernel_timespec timeout;
         timeout.tv_sec = (WaitTime / 1000);
@@ -1135,6 +1135,10 @@ CxPlatEventQDequeue(
         (void)io_uring_wait_cqe(&Queue->Ring, Events);
     }
     result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
+    if (result == -EAGAIN) {
+        result = 0;
+    }
+Exit:
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
     CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
