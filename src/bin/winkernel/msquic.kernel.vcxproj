@@ -155,6 +155,7 @@
     <Error Condition="!Exists('..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets')" Text="$([System.String]::Format('$(ErrorText)', '..\..\..\packages\Microsoft.SourceLink.AzureRepos.Git.1.0.0\build\Microsoft.SourceLink.AzureRepos.Git.targets'))" />
   </Target>
   <Target Name="CopyPgd" BeforeTargets="PrepareForBuild">
-    <Copy DestinationFolder="$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel" SourceFiles="$(SolutionDir)src\bin\winkernel\pgo_x64\msquic.pgd" />
+    <Copy DestinationFolder="$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel"
+      SourceFiles="$(SolutionDir)src\bin\winkernel\pgo_x64\msquic.pgd" />
   </Target>
 </Project>
