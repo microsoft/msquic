@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>QUIC_HANDSHAKE_INFO structure </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="QUIC_HANDSHAKE_INFO structure ">
+      
+      
+      <link rel="icon" href="../../favicon.ico">
+      <link rel="stylesheet" href="../../public/docfx.min.css">
+      <link rel="stylesheet" href="../../public/main.css">
+      <meta name="docfx:navrel" content="../../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_HANDSHAKE_INFO.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../../index.html">
+            <img id="logo" class="svg" src="../../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="quic_handshake_info-structure">QUIC_HANDSHAKE_INFO structure</h1>
+
+<p>Used to return the various algorithms negotiated during the TLS handshake.</p>
+<h1 id="syntax">Syntax</h1>
+<pre><code class="lang-C">typedef struct QUIC_HANDSHAKE_INFO {
+    QUIC_TLS_PROTOCOL_VERSION TlsProtocolVersion;
+    QUIC_CIPHER_ALGORITHM CipherAlgorithm;
+    int32_t CipherStrength;
+    QUIC_HASH_ALGORITHM Hash;
+    int32_t HashStrength;
+    QUIC_KEY_EXCHANGE_ALGORITHM KeyExchangeAlgorithm;
+    int32_t KeyExchangeStrength;
+    QUIC_CIPHER_SUITE CipherSuite;
+    QUIC_TLS_GROUP TlsGroup;            // Added in v2.5
+} QUIC_HANDSHAKE_INFO;
+</code></pre>
+<h1 id="members">Members</h1>
+<h4 id="tlsprotocolversion"><code>TlsProtocolVersion</code></h4>
+<p>Indicates which version of TLS was negotiated.</p>
+<p><code>QUIC_TLS_PROTOCOL_UNKNOWN</code></p>
+<p>An unknown or unexpected value was used.</p>
+<p><code>QUIC_TLS_PROTOCOL_1_3</code></p>
+<p>Version 1.3 was negotiated. This is currently the only expected value to be returned.</p>
+<h4 id="cipheralgorithm"><code>CipherAlgorithm</code></h4>
+<p>The <code>QUIC_CIPHER_ALGORITHM</code> negotiated.</p>
+<h4 id="cipherstrength"><code>CipherStrength</code></h4>
+<p>TODO</p>
+<h4 id="hash"><code>Hash</code></h4>
+<p>The <code>QUIC_HASH_ALGORITHM</code> negotiated.</p>
+<h4 id="hashstrength"><code>HashStrength</code></h4>
+<p>TODO</p>
+<h4 id="keyexchangealgorithm"><code>KeyExchangeAlgorithm</code></h4>
+<p>The <code>QUIC_KEY_EXCHANGE_ALGORITHM</code> negotiated.</p>
+<h4 id="keyexchangestrength"><code>KeyExchangeStrength</code></h4>
+<p>TODO</p>
+<h4 id="ciphersuite"><code>CipherSuite</code></h4>
+<p>The <code>QUIC_CIPHER_SUITE</code> negotiated.</p>
+<h4 id="tlsgroup"><code>TlsGroup</code></h4>
+<p>The <code>QUIC_TLS_GROUP</code> negotiated.</p>
+<blockquote>
+<p><strong>Note</strong> - This field is not supported before MsQuic version v2.5. Calls to older versions of MsQuic will indicate a final output length not including this field. Additionally, older callers that use the old version of the struct will still work, and MsQuic will not try to write this field.</p>
+</blockquote>
+<h1 id="remarks">Remarks</h1>
+<p>This may be queries for a connection after the handshake has completed via a call to <a href="GetParam.html">GetParam</a> by using the <code>QUIC_PARAM_TLS_HANDSHAKE_INFO</code> parameter.</p>
+<h1 id="see-also">See Also</h1>
+<p><a href="GetParam.html">GetParam</a><br></p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/QUIC_HANDSHAKE_INFO.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>
