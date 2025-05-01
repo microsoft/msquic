@@ -275,15 +275,6 @@ CxPlatXdpReadConfig(
     )
 {
     //
-    // Default config.
-    //
-    Xdp->RxBufferCount = 8192;
-    Xdp->RxRingSize = 256;
-    Xdp->TxBufferCount = 8192;
-    Xdp->TxRingSize = 256;
-    Xdp->TxAlwaysPoke = FALSE;
-
-    //
     // Read config from config file.
     //
     FILE *File = fopen("xdp.ini", "r");
@@ -950,6 +941,11 @@ CxPlatDpRawInitialize(
             CxPlatWorkerPoolGetIdealProcessor(WorkerPool, i);
     }
 
+    Xdp->RxBufferCount = 8192;
+    Xdp->RxRingSize = 256;
+    Xdp->TxBufferCount = 8192;
+    Xdp->TxRingSize = 256;
+    Xdp->TxAlwaysPoke = FALSE;
     //CxPlatXdpReadConfig(Xdp); // TODO - Make this more secure
 
     PMIB_IF_TABLE2 pIfTable = NULL;
