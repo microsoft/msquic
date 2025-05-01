@@ -472,6 +472,20 @@ namespace Microsoft.Quic
         NONE = 0,
     }
 
+    internal enum QUIC_TLS_GROUP
+    {
+        QUIC_TLS_GROUP_UNKNOWN = 0,
+        QUIC_TLS_GROUP_SECP256R1 = 23,
+        QUIC_TLS_GROUP_SECP384R1 = 24,
+        QUIC_TLS_GROUP_X25519 = 29,
+        QUIC_TLS_GROUP_MLKEM512 = 512,
+        QUIC_TLS_GROUP_MLKEM768 = 513,
+        QUIC_TLS_GROUP_MLKEM1024 = 514,
+        QUIC_TLS_GROUP_SECP256R1MLKEM768 = 4587,
+        QUIC_TLS_GROUP_X25519MLKEM768 = 4588,
+        QUIC_TLS_GROUP_SECP384R1MLKEM1024 = 4589,
+    }
+
     internal enum QUIC_CIPHER_SUITE
     {
         TLS_AES_128_GCM_SHA256 = 0x1301,
@@ -506,6 +520,8 @@ namespace Microsoft.Quic
         internal int KeyExchangeStrength;
 
         internal QUIC_CIPHER_SUITE CipherSuite;
+
+        internal QUIC_TLS_GROUP TlsGroup;
     }
 
     internal partial struct QUIC_STATISTICS

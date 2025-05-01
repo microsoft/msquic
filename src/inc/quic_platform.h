@@ -49,6 +49,12 @@ extern "C" {
 #define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
+#define CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field) \
+    (offsetof(Type, Field) + sizeof(((Type*)0)->Field))
+
+#define CXPLAT_STRUCT_HAS_FIELD(Type, Size, Field) \
+    (Size >= CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field))
+
 typedef struct CXPLAT_LIST_ENTRY {
     struct CXPLAT_LIST_ENTRY* Flink;
     struct CXPLAT_LIST_ENTRY* Blink;
