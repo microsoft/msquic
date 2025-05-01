@@ -47,5 +47,4 @@ TEST(PartitionTest, RandomPartitionId)
     }
 
     MsQuicLib.PartitionCount = OldPartitionCount;
-    MsQuicCalculatePartitionMask();
 }
