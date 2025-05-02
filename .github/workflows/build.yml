@@ -128,50 +128,39 @@ jobs:
         codecheck: ['', '-CodeCheck']
         xdp: ['', '-UseXdp']
         exclude:
-        # Android doesn't support x86
+        # Android doesn't support x86, XDP, Clang, CodeCheck or SystemCrypto
         - plat: android
           arch: x86
-        # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on ubuntu-22.04
-        - plat: linux
-          os: 'ubuntu-22.04'
-          tls: 'quictls'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on ubuntu-24.04
-        - plat: linux
-          os: 'ubuntu-24.04'
-          tls: 'quictls'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # linux xdp is for ubuntu24.04 only for now
         - plat: android
           xdp: "-UseXdp"
-        - os: 'ubuntu-22.04'
-          xdp: "-UseXdp"
-        - arch: x86
-          xdp: "-UseXdp"
-        # Android doesn't use Clang
         - plat: android
           clang: '-Clang'
-        # Android doesn't use CodeCheck
         - plat: android
           codecheck: '-CodeCheck'
-        # No need to combine SystemCrypto and CodeCheck
-        - systemcrypto: '-UseSystemOpenSSLCrypto'
-          codecheck: '-CodeCheck'
-        # No need to combine Static and CodeCheck
-        - static: '-Static'
-          codecheck: '-CodeCheck'
-        # No need to combine Clang and CodeCheck
-        - clang: '-Clang'
-          codecheck: '-CodeCheck'
-        # Release builds fail with CodeCheck
-        - config: 'Release'
-          codecheck: '-CodeCheck'
+        # CodeCheck doesn't work with SystemCrypto, Clang, Static or Release builds
+        - codecheck: '-CodeCheck'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - codecheck: '-Clang'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - codecheck: '-Static'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - codecheck: '-Release'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
         # Static build can't dynamically link to libcrypto
-        - systemcrypto: '-UseSystemOpenSSLCrypto'
-          static: '-Static'
+        - static: '-Static'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl system crypto on ubuntu 22.04 or 24.04
+        - os: 'ubuntu-22.04'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: 'ubuntu-24.04'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # Linux xdp is for x64 ubuntu24.04 only for now
+        - xdp: "-UseXdp"
+          os: 'ubuntu-22.04'
+        - xdp: "-UseXdp"
+          arch: x86
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ matrix.config }}
