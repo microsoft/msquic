@@ -51,6 +51,12 @@ extern "C" {
 
 #define CXPLAT_FIELD_SIZE(type, field) (sizeof(((type *)0)->field))
 
+#define CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field) \
+    (offsetof(Type, Field) + sizeof(((Type*)0)->Field))
+
+#define CXPLAT_STRUCT_HAS_FIELD(Type, Size, Field) \
+    (Size >= CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field))
+
 typedef struct CXPLAT_LIST_ENTRY {
     struct CXPLAT_LIST_ENTRY* Flink;
     struct CXPLAT_LIST_ENTRY* Blink;
@@ -446,7 +452,7 @@ CxPlatGetAllocFailDenominator(
 // loops.
 //
 
-typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
+typedef struct QUIC_GLOBAL_EXECUTION_CONFIG QUIC_GLOBAL_EXECUTION_CONFIG;
 
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
@@ -469,7 +475,7 @@ typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
 
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
 void

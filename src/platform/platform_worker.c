@@ -149,7 +149,7 @@ UpdatePollCompletion(
 #pragma warning(disable:6386) // SAL is confused about the worker size
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     )
 {
     //
@@ -191,13 +191,13 @@ CxPlatWorkerPoolCreate(
     //
     uint16_t ThreadFlags = CXPLAT_THREAD_FLAG_SET_IDEAL_PROC;
     if (Config) {
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC) {
             ThreadFlags &= ~CXPLAT_THREAD_FLAG_SET_IDEAL_PROC; // Remove the flag
         }
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_HIGH_PRIORITY) {
             ThreadFlags |= CXPLAT_THREAD_FLAG_HIGH_PRIORITY;
         }
-        if (Config->Flags & QUIC_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
+        if (Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_AFFINITIZE) {
             ThreadFlags |= CXPLAT_THREAD_FLAG_SET_AFFINITIZE;
         }
     }

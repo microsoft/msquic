@@ -72,7 +72,7 @@ MsQuicListenerOpen(
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
 
 #ifdef QUIC_SILO
-    Listener->Silo = QuicSiloGetCurrentServer();
+    Listener->Silo = QuicSiloGetCurrentServerSilo();
     QuicSiloAddRef(Listener->Silo);
 #endif
 

@@ -48,7 +48,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 DataPathUpdateConfig(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG * Config
     )
 {
     UNREFERENCED_PARAMETER(Datapath);

@@ -103,6 +103,7 @@
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;ndis.lib;netio.lib;uuid.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <AdditionalOptions>/kernel /NOOPTIDATA /pdbcompress /MERGE:.gfids=GFIDS /MERGE:.orpc=.text /MERGE:_PAGE=PAGE /MERGE:_RDATA=.rdata /MERGE:_TEXT=.text /section:GFIDS,d</AdditionalOptions>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
     <ResourceCompile>
       <AdditionalIncludeDirectories>..\..\inc;$(SolutionDir)build\winkernel\$(Platform)_$(Configuration)_schannel\inc;$(UM_IncludePath);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>

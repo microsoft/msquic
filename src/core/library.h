@@ -170,7 +170,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Configuration for execution of the library (optionally set by the app).
     //
-    QUIC_EXECUTION_CONFIG* ExecutionConfig;
+    QUIC_GLOBAL_EXECUTION_CONFIG* ExecutionConfig;
 
     //
     // Datapath instance for the library.
