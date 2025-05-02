@@ -953,14 +953,13 @@ QuicRecvBufferDrainFullChunks(
         NewFirstChunk = Iterator.NextChunk;
     }
 
-    if (&NewFirstChunk->Link == RecvBuffer->Chunks.Flink) {
+    if (NewFirstChunk != NULL && &NewFirstChunk->Link == RecvBuffer->Chunks.Flink) {
         //
         // The first chunk didn't change: there is nothing to fully drain.
         //
         return;
     }
 
-    CXPLAT_DBG_ASSERT(&NewFirstChunk->Link != RecvBuffer->Chunks.Flink);
     CXPLAT_DBG_ASSERT(RemainingDrainLength == 0 || NewFirstChunk != NULL);
     if (NewFirstChunk == NULL && RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
         //
@@ -974,7 +973,8 @@ QuicRecvBufferDrainFullChunks(
     // Delete fully drained chunks.
     //
     CXPLAT_LIST_ENTRY* ChunkIt = RecvBuffer->Chunks.Flink;
-    while (ChunkIt != &NewFirstChunk->Link && ChunkIt != &RecvBuffer->Chunks) {
+    CXPLAT_LIST_ENTRY* EndIt = NewFirstChunk != NULL ? &NewFirstChunk->Link : &RecvBuffer->Chunks;
+    while (ChunkIt != EndIt) {
         QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(ChunkIt, QUIC_RECV_CHUNK, Link);
         ChunkIt = ChunkIt->Flink;
 
