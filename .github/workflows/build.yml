@@ -147,7 +147,7 @@ jobs:
         - codecheck: '-CodeCheck'
           static: '-Static'
         - codecheck: '-CodeCheck'
-          config: '-Release'
+          config: Release
         # Static build can't dynamically link to libcrypto
         - static: '-Static'
           systemcrypto: '-UseSystemOpenSSLCrypto'
