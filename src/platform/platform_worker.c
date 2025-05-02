@@ -567,8 +567,14 @@ CxPlatProcessEvents(
         State->NoWorkCount = 0;
         while (CurrentCqeCount > 0) {
             CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(CurrentCqe);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
             Sqe->Completion(&CurrentCqe, &CurrentCqeCount);
         }
+#else
+            Sqe->Completion(CurrentCqe);
+            CurrentCqe++;
+            CurrentCqeCount--;
+#endif
         CxPlatEventQReturn(&Worker->EventQ, CqeCount);
     }
 }

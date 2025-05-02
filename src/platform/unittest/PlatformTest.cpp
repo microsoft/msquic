@@ -159,7 +159,11 @@ TEST(PlatformTest, EventQueueWorker)
                 uint32_t count = CxPlatEventQDequeueAndReturn(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
                 for (uint32_t i = 0; i < count; i++) {
                     auto sqe = CxPlatCqeGetSqe(&events[i]);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
                     sqe->ClassicCompletion(&events[i]);
+#else
+                    sqe->Completion(&events[i]);
+#endif
                 }
             }
             CXPLAT_THREAD_RETURN(0);

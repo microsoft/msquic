@@ -132,12 +132,12 @@ tracepoint(CLOG_DATAPATH_IOURING_C, DatapathDestroyed , arg2);\
             DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
-            RecvMsgHdr[CurrentMessage].msg_len,
+            MsgLen,
             SegmentLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketContext->Binding = arg2
-// arg3 = arg3 = RecvMsgHdr[CurrentMessage].msg_len = arg3
+// arg3 = arg3 = MsgLen = arg3
 // arg4 = arg4 = SegmentLength = arg4
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
