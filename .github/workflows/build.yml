@@ -142,12 +142,12 @@ jobs:
         # CodeCheck doesn't work with SystemCrypto, Clang, Static or Release builds
         - codecheck: '-CodeCheck'
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        - codecheck: '-Clang'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        - codecheck: '-Static'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        - codecheck: '-Release'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - codecheck: '-CodeCheck'
+          systemcrypto: '-Clang'
+        - codecheck: '-CodeCheck'
+          systemcrypto: '-Static'
+        - codecheck: '-CodeCheck'
+          systemcrypto: '-Release'
         # Static build can't dynamically link to libcrypto
         - static: '-Static'
           systemcrypto: '-UseSystemOpenSSLCrypto'
