@@ -19,7 +19,7 @@ param (
     [string]$Arch = "universal",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("quictls")]
+    [ValidateSet("quictls","openssl")]
     [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]
