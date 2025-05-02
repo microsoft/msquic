@@ -1958,7 +1958,20 @@ CxPlatSendDataSendSegmented(
 Exit:
 
     if (!AlreadyLocked) {
-        io_uring_submit(&DatapathPartition->EventQ->Ring);
+        //
+        // TODO: clean up.
+        //
+        // As an experiment with batching, instead of immediately submitting,
+        // mark the EventQ as needing a submit and do it when the EventQ is
+        // next dequeued. This only works if the caller is running on the
+        // socket's partition. There is not a good abstraction for that check
+        // right now.
+        //
+        if (DatapathPartition->OwningThreadID == CxPlatCurThreadID()) {
+            DatapathPartition->EventQ->NeedsSubmit = TRUE;
+        } else {
+            io_uring_submit(&DatapathPartition->EventQ->Ring);
+        }
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
 
@@ -2115,6 +2128,13 @@ CxPlatSocketContextIoEventComplete(
     CXPLAT_DATAPATH_PARTITION* DatapathPartition;
 
     DatapathPartition = SocketContext->DatapathPartition;
+
+    //
+    // TODO: big hack.
+    //
+    if (DatapathPartition->OwningThreadID == 0) {
+        DatapathPartition->OwningThreadID = CxPlatCurThreadID();
+    }
 
     CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
 

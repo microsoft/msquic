@@ -1061,6 +1061,7 @@ typedef struct CXPLAT_EVENTQ {
 #if DEBUG
     uint32_t ContentionCount;
 #endif
+    BOOLEAN NeedsSubmit;
 } CXPLAT_EVENTQ;
 typedef struct io_uring_cqe* CXPLAT_CQE;
 typedef
@@ -1148,6 +1149,13 @@ CxPlatEventQDequeue(
     CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
+    if (Queue->NeedsSubmit) {
+        //
+        // Review: can be batched with waits below.
+        //
+        io_uring_submit(&Queue->Ring);
+        Queue->NeedsSubmit = FALSE;
+    }
     int result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
     if (result > 0 || WaitTime == 0) goto Exit;
     if (WaitTime != UINT32_MAX) {

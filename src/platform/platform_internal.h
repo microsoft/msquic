@@ -980,6 +980,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
     CXPLAT_REGISTERED_BUFFER_POOL SendRegisteredBufferPool;
 #endif
 
+    //
+    // TODO: big hack for batching experiment.
+    //
+    CXPLAT_THREAD_ID OwningThreadID;
+
 } CXPLAT_DATAPATH_PARTITION;
 
 //
