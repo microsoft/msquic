@@ -1136,13 +1136,11 @@ CxPlatSocketContextUninitialize(
 }
 
 void
-CxPlatSocketContextEnableRecv(
+CxPlatSocketContextEnableRecvUnderLock(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
-
-    CxPlatLockAcquire(&EventQ->Lock);
 
     struct io_uring_sqe* Sqe = CxPlatAllocSqe(EventQ);
     if (Sqe == NULL) {
@@ -1152,7 +1150,11 @@ CxPlatSocketContextEnableRecv(
             SocketContext->Binding,
             errno,
             "CxPlatAllocSqe failed");
-        goto Exit;
+        //
+        // TODO: this will cause the receive data path to hang.
+        //
+        CXPLAT_FRE_ASSERT(FALSE);
+        return;
     }
 
     io_uring_prep_recvmsg_multishot(
@@ -1161,9 +1163,16 @@ CxPlatSocketContextEnableRecv(
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, (void *)&SocketContext->IoSqe);
     io_uring_submit(&EventQ->Ring);
+}
 
-Exit:
-
+void
+CxPlatSocketContextEnableRecv(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    )
+{
+    CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
+    CxPlatLockAcquire(&EventQ->Lock);
+    CxPlatSocketContextEnableRecvUnderLock(SocketContext);
     CxPlatLockRelease(&EventQ->Lock);
 }
 
@@ -1577,7 +1586,9 @@ CxPlatSocketReceiveComplete(
     uint32_t BufferIndex;
     struct io_uring_recvmsg_out *RecvMsgOut;
 
-    CXPLAT_FRE_ASSERT(Cqe->flags & IORING_CQE_F_MORE); // TODO: repost multi-shot recv if unset.
+    if (!(Cqe->flags & IORING_CQE_F_MORE)) {
+        CxPlatSocketContextEnableRecvUnderLock(SocketContext);
+    }
 
     if (Cqe->res == -ENOBUFS) {
         //

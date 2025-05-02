@@ -1100,7 +1100,7 @@ CxPlatEventQInitialize(
     struct io_uring_params params;
 	memset(&params, 0, sizeof(params));
 	params.flags = IORING_SETUP_SUBMIT_ALL | IORING_SETUP_COOP_TASKRUN;
-    return 0 == io_uring_queue_init_params(256, &Queue->Ring, &params); // TODO - make size configurable
+    return 0 == io_uring_queue_init_params(4096, &Queue->Ring, &params); // TODO - make size configurable
 }
 
 inline
