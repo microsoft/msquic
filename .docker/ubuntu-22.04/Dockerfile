@@ -36,6 +36,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     liblttng-ust-dev \
     libssl-dev \
     libnuma-dev \
+    liburing-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
@@ -103,4 +104,6 @@ RUN apt-get update \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    liburing-dev:arm64 \
+    liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*
