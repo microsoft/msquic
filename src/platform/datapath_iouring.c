@@ -1921,7 +1921,7 @@ CxPlatSendDataSendSegmented(
     Sqe = CxPlatAllocSqe(DatapathPartition->EventQ);
     if (Sqe == NULL) {
         Status = QUIC_STATUS_PENDING; // TODO clean this up.
-        CxPlatListInsertTail(&SendData->SocketContext->TxQueue, &SendData->TxEntry);
+        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
         goto Exit;
     }
 
@@ -2023,10 +2023,6 @@ CxPlatSendDataSend(
     return Status;
 }
 
-//
-// Returns TRUE if the queue was completely drained, and FALSE if there are
-// still pending sends.
-//
 void
 CxPlatSocketContextSendComplete(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
@@ -2081,6 +2077,21 @@ CxPlatSocketGetTcpStatistics(
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
+CXPLAT_SOCKET_CONTEXT*
+GetSocketContextFromSqe(
+    _In_ CXPLAT_SQE* Sqe
+    )
+{
+    switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
+    case DatapathContextRecv:
+        return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+    case DatapathContextSend:
+        return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe)->SocketContext;
+    default:
+        CXPLAT_DBG_ASSERT(FALSE);
+        return NULL;
+    }
+}
 
 void
 CxPlatSocketContextIoEventComplete(
@@ -2089,25 +2100,16 @@ CxPlatSocketContextIoEventComplete(
     )
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(*Cqes);
-    CXPLAT_SOCKET_CONTEXT* SocketContext;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = GetSocketContextFromSqe(Sqe);
     CXPLAT_DATAPATH_PARTITION* DatapathPartition;
-
-    switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
-    case DatapathContextRecv:
-        SocketContext = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
-        break;
-    case DatapathContextSend:
-        SocketContext = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe)->SocketContext;
-        break;
-    default:
-        CXPLAT_DBG_ASSERT(FALSE);
-    }
 
     DatapathPartition = SocketContext->DatapathPartition;
 
     CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
 
     while (TRUE) {
+        SocketContext = GetSocketContextFromSqe(Sqe);
+
         //
         // Review: this loop could be unrolled further to batch within a socket.
         //
