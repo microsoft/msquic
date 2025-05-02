@@ -2108,7 +2108,6 @@ CxPlatSocketContextIoEventComplete(
     CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
 
     while (TRUE) {
-        SocketContext = GetSocketContextFromSqe(Sqe);
 
         //
         // Review: this loop could be unrolled further to batch within a socket.
@@ -2141,8 +2140,7 @@ CxPlatSocketContextIoEventComplete(
         }
 
         Sqe = CxPlatCqeGetSqe(*Cqes);
-        SocketContext =
-            CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+        SocketContext = GetSocketContextFromSqe(Sqe);
     }
 
     io_uring_submit(&DatapathPartition->EventQ->Ring);
