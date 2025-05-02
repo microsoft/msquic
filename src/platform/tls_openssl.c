@@ -190,6 +190,11 @@ typedef struct RECORD_ENTRY {
     uint8_t Record[0];
 } RECORD_ENTRY;
 
+typedef struct SECRET_SET {
+    uint8_t *Secret;
+    size_t SecretLen;
+} SECRET_SET;
+
 //
 // @struct AUX_DATA
 // @brief holds auxilliary data we need for each ssl
@@ -222,7 +227,7 @@ typedef struct AUX_DATA {
 
     //
     // @brief state tracking for 1_rtt secrets
-    uint8_t SecretSet[2];
+    SECRET_SET SecretSet[4][2];
 } AUX_DATA;
 
 //
@@ -534,13 +539,35 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         "New encryption secrets (Level = %u)",
         ProtLevel);
 
+    if (AData->SecretSet[ProtLevel][Dir].Secret != NULL) {
+        return -1;
+    }
+    
+    AData->SecretSet[ProtLevel][Dir].Secret = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
+    if (AData->SecretSet[ProtLevel][Dir].Secret == NULL) {
+        return -1;
+    }
+    memcpy(AData->SecretSet[ProtLevel][Dir].Secret, NewSecret, SecretLen);
+    AData->SecretSet[ProtLevel][Dir].SecretLen = SecretLen;
+    //
+    //  Delay installation of keys until we have both, with the exceptions of
+    // 0-RTT as the client won't get a read key
+    // 1-RTT on the server as the write key won't be installed until after
+    // we process the handshake finished message, which may be in a subsequent
+    // pass through ProcessData
+    //
+    if ((ProtLevel != QUIC_PACKET_KEY_1_RTT && TlsContext->IsServer)
+         && ProtLevel != QUIC_PACKET_KEY_0_RTT && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+        return 1;
+    }
+
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
 
     //
     // Tx/Write Secret
     //
-    if (Dir == 1) {
-        CxPlatCopyMemory(Secret.Secret, NewSecret, SecretLen);
+    if (AData->SecretSet[ProtLevel][1].Secret != NULL && TlsState->WriteKeys[KeyType] == NULL) {
+        CxPlatCopyMemory(Secret.Secret, AData->SecretSet[ProtLevel][1].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
         CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
         Status =
             QuicPacketKeyDerive(
@@ -559,9 +586,11 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_EARLY_DATA_ACCEPT;
             TlsContext->State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_ACCEPTED;
         }
-    } else  {
-        CxPlatCopyMemory(Secret.Secret, NewSecret, SecretLen);
-        CXPLAT_DBG_ASSERT(TlsState->ReadKeys[KeyType] == NULL);
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
+        TlsState->WriteKey = KeyType;
+    }
+    if (AData->SecretSet[ProtLevel][0].Secret != NULL && TlsState->ReadKeys[KeyType] == NULL) {
+        CxPlatCopyMemory(Secret.Secret, AData->SecretSet[ProtLevel][0].Secret, AData->SecretSet[ProtLevel][0].SecretLen);
         Status =
             QuicPacketKeyDerive(
                 KeyType,
@@ -574,25 +603,10 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
         }
-
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
+        TlsState->ReadKey = KeyType;
     }
-    if (ProtLevel == OSSL_RECORD_PROTECTION_LEVEL_APPLICATION) {
-        AData->SecretSet[Dir] = 1;
-        if (AData->SecretSet[!Dir] == 1) {
-            AData->Level = ProtLevel;
-            TlsState->ReadKey = TlsState->WriteKey = KeyType;
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED | CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
-        }
-    } else {
-        AData->Level = ProtLevel;
-        if (Dir == 1) {
-            TlsState->WriteKey = KeyType;
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
-        } else {
-            TlsState->ReadKey = KeyType;
-            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
-        }
-    }
+    AData->Level = ProtLevel;
 
     //
     // If we are installing initial Secrets TlsSecrets aren't allocated yet
@@ -607,23 +621,25 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         switch(KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
             if (TlsContext->IsServer) {
-                if (Dir == 1) {
+                if (AData->SecretSet[ProtLevel][1].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][1].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
-                } else {
+                }
+                if (AData->SecretSet[ProtLevel][0].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][0].Secret, AData->SecretSet[ProtLevel][0].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
                 }
             } else {
-                if (Dir == 1) {
+                if (AData->SecretSet[ProtLevel][1].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][1].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
-                } else {
+                } 
+                if (AData->SecretSet[ProtLevel][0].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][0].Secret, AData->SecretSet[ProtLevel][0].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
                 }
             }
@@ -631,15 +647,15 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             break;
         case QUIC_PACKET_KEY_0_RTT:
             if (TlsContext->IsServer) {
-                if (Dir == 0) {
+                if (AData->SecretSet[ProtLevel][0].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][0].Secret, AData->SecretSet[ProtLevel][0].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
                 }
             } else {
-                if (Dir == 1) {
+                if (AData->SecretSet[ProtLevel][1].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ClientEarlyTrafficSecret,
-                           NewSecret, SecretLen);
+                           AData->SecretSet[ProtLevel][1].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ClientEarlyTrafficSecret = TRUE;
                 }
             }
@@ -2318,6 +2334,7 @@ static long FreeBioAuxData(BIO *B, int Oper,
                            size_t *Processed)
 {
     struct AUX_DATA *AData;
+    int i;
 
     UNREFERENCED_PARAMETER(*ArgP);
     UNREFERENCED_PARAMETER(Len);
@@ -2329,6 +2346,10 @@ static long FreeBioAuxData(BIO *B, int Oper,
         AData = BIO_get_app_data(B);
         CXPLAT_FREE(AData->Tp, QUIC_POOL_TLS_TRANSPARAMS);
         CXPLAT_FREE(AData->PeerTp, QUIC_POOL_TLS_TRANSPARAMS);
+        for (i = 0; i < 4; i++) {
+            CXPLAT_FREE(AData->SecretSet[i][0].Secret, QUIC_POOL_TLS_AUX_DATA);
+            CXPLAT_FREE(AData->SecretSet[i][1].Secret, QUIC_POOL_TLS_AUX_DATA);
+        }
         CXPLAT_FREE(AData, QUIC_POOL_TLS_AUX_DATA);
         BIO_set_app_data(B, NULL);
     }
@@ -3123,8 +3144,7 @@ more_handshake:
             }
         }
 
-        if (TlsContext->State->ReadKey == QUIC_PACKET_KEY_1_RTT &&
-            TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT) {
+        if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT) {
             QuicTraceLogConnInfo(
                 OpenSslHandshakeComplete,
                 TlsContext->Connection,
@@ -3217,6 +3237,7 @@ more_handshake:
             }
         }
     } else {
+        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
         SSL_read(TlsContext->Ssl, NULL, 0);
     }
 
