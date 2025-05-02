@@ -535,6 +535,7 @@ if ($IsLinux) {
         sudo apt-get install -y babeltrace
         sudo apt-get install -y libssl-dev
         sudo apt-get install -y libnuma-dev
+        sudo apt-get install -y liburing-dev
         if ($InstallArm64Toolchain) {
             sudo apt-get install -y gcc-aarch64-linux-gnu
             sudo apt-get install -y binutils-aarch64-linux-gnu
