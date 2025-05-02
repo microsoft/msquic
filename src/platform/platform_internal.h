@@ -922,6 +922,7 @@ typedef struct CXPLAT_REGISTERED_BUFFER_POOL {
     uint8_t *Buffers;
     uint32_t BufferSize;
     uint32_t TotalSize;
+    CXPLAT_LOCK Lock;
 } CXPLAT_REGISTERED_BUFFER_POOL;
 
 //

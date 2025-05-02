@@ -643,7 +643,11 @@ CxPlatPoolUninitialize(
     CXPLAT_POOL_HEADER* Entry;
     while ((Entry = (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
         CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
-        CxPlatPoolFree((void*)((uint8_t*)Entry + sizeof(CXPLAT_POOL_HEADER)));
+        if (Pool->Free == NULL) {
+            CxPlatFree(Entry, Pool->Tag);
+        } else {
+            Pool->Free(Entry, Pool->Tag, Pool);
+        }
     }
     CxPlatLockUninitialize(&Pool->Lock);
 }

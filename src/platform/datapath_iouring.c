@@ -47,6 +47,17 @@ typedef struct __attribute__((aligned(16))) DATAPATH_RX_IO_BLOCK {
     long RefCount;
 
     //
+    // The index of the buffer.
+    // Review: could be inferred?
+    //
+    uint32_t BufferIndex;
+
+    //
+    // The partition this packet is allocated from.
+    //
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition;
+
+    //
     // An array of packets to represent the datagram and metadata returned to
     // the app.
     //
@@ -254,6 +265,7 @@ CxPlatCreateBufferPool(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
     CxPlatZeroMemory(Pool, sizeof(*Pool));
+    CxPlatLockInitialize(&Pool->Lock);
 
     Pool->TotalSize = BufferCount * (sizeof(struct io_uring_buf) + BufferSize);
     if (posix_memalign(&Pool->Ring, getpagesize(), Pool->TotalSize)) {
@@ -321,10 +333,14 @@ CxPlatProcessorContextInitialize(
             CxPlatIoRingBufGroupRecv, &DatapathPartition->RecvRegisteredBufferPool)));
 
     for (uint32_t i = 0; i < RecvBufCount; i++) {
+        DATAPATH_RX_IO_BLOCK* IoBlock =
+            (DATAPATH_RX_IO_BLOCK*)CxPlatGetBufferPoolBuffer(
+                &DatapathPartition->RecvRegisteredBufferPool, i);
+        IoBlock->BufferIndex = i;
+        IoBlock->DatapathPartition = DatapathPartition;
         io_uring_buf_ring_add(
             DatapathPartition->RecvRegisteredBufferPool.Ring,
-            CxPlatGetBufferPoolBuffer(&DatapathPartition->RecvRegisteredBufferPool, i) +
-                DatapathPartition->Datapath->RecvBlockBufferOffset,
+            (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset,
             CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
                 DatapathPartition->Datapath->RecvBlockBufferOffset,
             i, io_uring_buf_ring_mask(RecvBufCount), i);
@@ -464,6 +480,9 @@ CxPlatProcessorContextRelease(
         CXPLAT_DBG_ASSERT(!DatapathPartition->Uninitialized);
         DatapathPartition->Uninitialized = TRUE;
 #endif
+        CxPlatFreeBufferPool(
+            DatapathPartition, CxPlatIoRingBufGroupRecv,
+            &DatapathPartition->RecvRegisteredBufferPool);
         CxPlatPoolUninitialize(&DatapathPartition->SendBlockPool);
         CxPlatDataPathRelease(DatapathPartition->Datapath);
     }
@@ -1411,7 +1430,7 @@ CxPlatSocketContextRecvComplete(
         BOOLEAN FoundLocalAddr = FALSE, FoundTOS = FALSE, FoundTTL = FALSE;
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
         QUIC_ADDR* RemoteAddr = RecvMsgHdr->msg_name;
-        CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
+        CxPlatConvertFromMappedV6(RemoteAddr, &IoBlock->Route.RemoteAddress);
         IoBlock->Route.Queue = SocketContext;
 
         //
@@ -1597,18 +1616,6 @@ CxPlatSocketReceiveComplete(
         io_uring_recvmsg_payload_length(RecvMsgOut, Cqe->res, (struct msghdr*)&CxPlatRecvMsgHdr);
 
     CxPlatSocketContextRecvComplete(SocketContext, &IoBlock, RecvMsgHdrs);
-
-    io_uring_buf_ring_add(
-        DatapathPartition->RecvRegisteredBufferPool.Ring,
-        IoPayload,
-        CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
-            DatapathPartition->Datapath->RecvBlockBufferOffset,
-        BufferIndex, io_uring_buf_ring_mask(RecvBufCount), 0);
-
-    //
-    // Review: could be moved to outer loop, or merged with io_uring_buf_ring_cq_advance.
-    //
-    io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, 1);
 }
 
 void
@@ -1619,10 +1626,23 @@ RecvDataReturn(
     CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
         RecvDataChain = RecvDataChain->Next;
-        DATAPATH_RX_PACKET* Packet =
-            CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data);
-        if (InterlockedDecrement(&Packet->IoBlock->RefCount) == 0) {
-            CxPlatPoolFree(Packet->IoBlock);
+        DATAPATH_RX_IO_BLOCK* IoBlock =
+            CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
+        if (InterlockedDecrement(&IoBlock->RefCount) == 0) {
+            CXPLAT_DATAPATH_PARTITION* DatapathPartition = IoBlock->DatapathPartition;
+            //
+            // Review: this is amenable to batching, but the added complexity
+            // may not be worth it.
+            //
+            CxPlatLockAcquire(&DatapathPartition->RecvRegisteredBufferPool.Lock);
+            io_uring_buf_ring_add(
+                DatapathPartition->RecvRegisteredBufferPool.Ring,
+                (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset,
+                CxPlatGetBufferPoolBufferSize(&DatapathPartition->RecvRegisteredBufferPool) -
+                    DatapathPartition->Datapath->RecvBlockBufferOffset,
+                IoBlock->BufferIndex, io_uring_buf_ring_mask(RecvBufCount), 0);
+            io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, 1);
+            CxPlatLockRelease(&DatapathPartition->RecvRegisteredBufferPool.Lock);
         }
     }
 }
@@ -1927,6 +1947,7 @@ CxPlatSendDataSendSegmented(
 Exit:
 
     if (!AlreadyLocked) {
+        io_uring_submit(&DatapathPartition->EventQ->Ring);
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
 
