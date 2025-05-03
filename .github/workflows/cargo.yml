@@ -39,7 +39,7 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: 1.86.0
         components: rustfmt, clippy
@@ -98,7 +98,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: 1.86.0
         components: rustfmt, clippy
