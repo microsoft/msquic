@@ -1172,11 +1172,11 @@ TEST(MultiRecvTest, PartialDrainGrow)
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
-    // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
+    // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLength:8, Ext:1
     RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
-    // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
+    // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
     RecvBuf.Drain(4);
-    // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
+    // [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, ...] ReadStart:0, ReadLengt:12, Ext:0
     ExternalReferences[0] = FALSE;
     RecvBuf.WriteAndCheck(8, 8, 0, 12, 1, ExternalReferences);
 
