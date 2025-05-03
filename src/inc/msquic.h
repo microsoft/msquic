@@ -581,6 +581,8 @@ typedef struct QUIC_STATISTICS_V2 {
 
     uint8_t  HandshakeHopLimitTTL;          // The TTL value in the initial packet of the handshake.
 
+    uint32_t RttVariance;                   // In microseconds
+
     // N.B. New fields must be appended to end
 
 } QUIC_STATISTICS_V2;
@@ -591,6 +593,7 @@ typedef struct QUIC_STATISTICS_V2 {
 #define QUIC_STATISTICS_V2_SIZE_1   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, KeyUpdateCount)         // v2.0 final size
 #define QUIC_STATISTICS_V2_SIZE_2   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, DestCidUpdateCount)     // v2.1 final size
 #define QUIC_STATISTICS_V2_SIZE_3   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, SendEcnCongestionCount) // v2.2 final size
+#define QUIC_STATISTICS_V2_SIZE_4   QUIC_STRUCT_SIZE_THRU_FIELD(QUIC_STATISTICS_V2, RttVariance)            // v2.3 final size
 
 typedef struct QUIC_LISTENER_STATISTICS {
 

@@ -910,6 +910,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("uint8_t")]
         internal byte HandshakeHopLimitTTL;
+
+        [NativeTypeName("uint32_t")]
+        internal uint RttVariance;
     }
 
     internal partial struct QUIC_LISTENER_STATISTICS
