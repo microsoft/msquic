@@ -62,7 +62,14 @@ jobs:
             echo "$(cat cargo_generated_diff.txt)"
             echo '@@@'
           } >> $GITHUB_OUTPUT
+          echo "$(cat cargo_generated_diff.txt)"
         fi
+    - name: Upload the diff file
+      if: steps.bindings_diff.outputs.diff-found == 'true'
+      uses: actions/upload-artifact@v3
+      with:
+        name: cargo_generated_diff_${{ matrix.os }}.txt
+        path: cargo_generated_diff.txt
     - name: Post a comment on PR on mismatch
       if: |
         !github.event.pull_request.head.repo.fork &&
