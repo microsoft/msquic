@@ -211,7 +211,7 @@ typedef union QUIC_CONNECTION_STATE {
 
         //
         // When true, this indicates that the connection is currently executing
-        // an API call QUIC_INLINE (from a reentrant call on a callback).
+        // an API call inline (from a reentrant call on a callback).
         //
         BOOLEAN InlineApiExecution : 1;
 
@@ -245,7 +245,7 @@ typedef union QUIC_CONNECTION_STATE {
     };
 } QUIC_CONNECTION_STATE;
 
-QUIC_INLINE
+inline
 ULONG64
 LinkEntryToType(
     _In_ ULONG64 LinkAddr,
@@ -413,7 +413,7 @@ struct HashTable : Struct {
 
 // End of magic
 
-QUIC_INLINE char QuicHalfByteToStr(UCHAR b)
+inline char QuicHalfByteToStr(UCHAR b)
 {
     return b < 10 ? ('0' + b) : ('A' + b - 10);
 }

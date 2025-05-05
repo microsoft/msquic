@@ -92,7 +92,7 @@ public:
 
 extern EXT_CLASS g_ExtInstance;
 
-QUIC_INLINE
+inline
 bool
 IsEqualPointer(
     _In_ ULONG64 Address1,
@@ -128,7 +128,7 @@ ReadTypeAtAddr(
 // Reads a pointer at the given address. The size of the pointer is
 // determined by the current target.
 //
-QUIC_INLINE
+inline
 bool
 ReadPointerAtAddr(
     _In_ ULONG64 Addr,
@@ -146,7 +146,7 @@ ReadPointerAtAddr(
 //
 // Reads a null-terminated string at the given address.
 //
-QUIC_INLINE
+inline
 size_t
 ReadStringAtAddr(
     _In_ ULONG64 Addr,
@@ -192,7 +192,7 @@ ReadTypeFromStructAddr(
 // Reads a pointer type from a struct at the given address. The size of
 // the pointer is determined by the current target.
 //
-QUIC_INLINE
+inline
 bool
 ReadPointerFromStructAddr(
     _In_ ULONG64 StructAddr,

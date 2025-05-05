@@ -4,7 +4,7 @@
  * as explained at http://creativecommons.org/publicdomain/zero/1.0/
  *
  * The source for the hdr_histogram utilises a few C99 constructs, specifically
- * the use of stdint/stdbool and QUIC_INLINE variable declaration.
+ * the use of stdint/stdbool and inline variable declaration.
  */
 
 #ifndef HDR_HISTOGRAM_H
