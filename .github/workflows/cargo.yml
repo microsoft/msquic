@@ -53,24 +53,24 @@ jobs:
       id: bindings_diff
       shell: bash
       run: |
-        if git diff --exit-code >> cargo_generated_diff.txt; then
+        if git diff --exit-code >> cargo_binding_update.patch; then
           echo "diff-found=false" >> $GITHUB_OUTPUT
         else
           echo "diff-found=true" >> $GITHUB_OUTPUT
           {
             echo 'diff-content<<@@@'
-            echo "$(cat cargo_generated_diff.txt)"
+            echo "$(cat cargo_binding_update.patch)"
             echo '@@@'
           } >> $GITHUB_OUTPUT
-          echo "$(cat cargo_generated_diff.txt)"
+          echo "$(cat cargo_binding_update.patch)"
         fi
     - name: Upload the patch file
       if: steps.bindings_diff.outputs.diff-found == 'true'
       id: upload_patch
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: cargo_generated_diff_${{ matrix.os }}.patch
-        path: cargo_generated_diff.txt
+        name: cargo_binding_update_${{ matrix.os }}
+        path: cargo_binding_update.patch
     - name: Post a comment on PR on mismatch
       if: |
         !github.event.pull_request.head.repo.fork &&
