@@ -464,10 +464,8 @@ MsQuicConnectionPoolCreate(
         (QUIC_CONFIGURATION*)Config->Configuration;
     CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
 
-    if (MsQuicLib.Settings.IsSet.XdpEnabled) {
-        if (MsQuicLib.Settings.XdpEnabled) {
-            SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
-        }
+    if (MsQuicLib.Settings.XdpEnabled) {
+        SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
     }
     if (ConnectionConfig->Settings.IsSet.XdpEnabled) {
         if (ConnectionConfig->Settings.XdpEnabled) {
@@ -477,10 +475,8 @@ MsQuicConnectionPoolCreate(
         }
     }
 
-    if (MsQuicLib.Settings.IsSet.QTIPEnabled) {
-        if (MsQuicLib.Settings.QTIPEnabled) {
-            SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
-        }
+    if (MsQuicLib.Settings.QTIPEnabled) {
+        SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
     if (ConnectionConfig->Settings.IsSet.QTIPEnabled) {
         if (ConnectionConfig->Settings.QTIPEnabled) {
