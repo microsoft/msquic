@@ -228,7 +228,7 @@ QuicPacketBuilderFinalize(
 // Returns TRUE if congestion control isn't currently blocking sends.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderHasAllowance(
     _In_ const QUIC_PACKET_BUILDER* Builder
@@ -243,7 +243,7 @@ QuicPacketBuilderHasAllowance(
 // Returns TRUE if the packet has run out of room for frames.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderAddFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,
@@ -261,7 +261,7 @@ QuicPacketBuilderAddFrame(
 // Returns TRUE if the packet has run out of room for frames.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicPacketBuilderAddStreamFrame(
     _Inout_ QUIC_PACKET_BUILDER* Builder,

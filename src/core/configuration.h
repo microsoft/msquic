@@ -103,7 +103,7 @@ QuicConfigurationUninitialize(
 //
 // Adds a new references to the configuration.
 //
-inline
+QUIC_INLINE
 void
 QuicConfigurationAddRef(
     _In_ QUIC_CONFIGURATION* Configuration
@@ -115,7 +115,7 @@ QuicConfigurationAddRef(
 //
 // Releases a reference to the configuration and cleans it up if it's the last.
 //
-inline
+QUIC_INLINE
 void
 QuicConfigurationRelease(
     _In_ QUIC_CONFIGURATION* Configuration

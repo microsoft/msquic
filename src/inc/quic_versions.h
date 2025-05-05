@@ -41,7 +41,7 @@ Abstract:
 #define QUIC_VERSION_LATEST     QUIC_VERSION_1
 #define QUIC_VERSION_LATEST_H   QUIC_VERSION_1_H
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicIsVersionSupported(
     _In_ uint32_t Version // Network Byte Order
@@ -58,7 +58,7 @@ QuicIsVersionSupported(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicIsVersionReserved(
     _In_ uint32_t Version // Either Byte Order

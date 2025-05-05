@@ -68,7 +68,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
 #else
-#define FORCEINLINE __inline
+#define FORCEINLINE QUIC_INLINE
 #endif
 #endif
 
@@ -352,7 +352,7 @@ CxPlatListEntryRemove(
     return (BOOLEAN)(Flink == Blink);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatListMoveItems(
     _Inout_ CXPLAT_LIST_ENTRY* Source,

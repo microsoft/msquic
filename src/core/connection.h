@@ -148,7 +148,7 @@ typedef union QUIC_CONNECTION_STATE {
 
         //
         // When true, this indicates that the connection is currently executing
-        // an API call inline (from a reentrant call on a callback).
+        // an API call QUIC_INLINE (from a reentrant call on a callback).
         //
         BOOLEAN InlineApiExecution : 1;
 
@@ -723,7 +723,7 @@ typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
 //
 // Helper to determine if a connection is server side.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicConnIsServer(
     _In_ const QUIC_CONNECTION * const Connection
@@ -735,7 +735,7 @@ QuicConnIsServer(
 //
 // Helper to determine if a connection is client side.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicConnIsClient(
     _In_ const QUIC_CONNECTION * const Connection
@@ -747,7 +747,7 @@ QuicConnIsClient(
 //
 // Helper for checking if a connection is currently closed.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicConnIsClosed(
     _In_ const QUIC_CONNECTION * const Connection
@@ -759,7 +759,7 @@ QuicConnIsClosed(
 //
 // Helper to get the owning QUIC_CONNECTION for the stream set module.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicStreamSetGetConnection(
@@ -772,7 +772,7 @@ QuicStreamSetGetConnection(
 //
 // Helper to get the owning QUIC_CONNECTION for the crypto module.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicCryptoGetConnection(
@@ -785,7 +785,7 @@ QuicCryptoGetConnection(
 //
 // Helper to get the owning QUIC_CONNECTION for the send module.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicSendGetConnection(
@@ -798,7 +798,7 @@ QuicSendGetConnection(
 //
 // Helper to get the owning QUIC_CONNECTION for the congestion control module.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicCongestionControlGetConnection(
@@ -811,7 +811,7 @@ QuicCongestionControlGetConnection(
 //
 // Helper to get the QUIC_PACKET_SPACE for a loss detection.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicLossDetectionGetConnection(
@@ -824,7 +824,7 @@ QuicLossDetectionGetConnection(
 //
 // Helper to get the owning QUIC_CONNECTION for datagram.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_CONNECTION*
 QuicDatagramGetConnection(
@@ -834,7 +834,7 @@ QuicDatagramGetConnection(
     return CXPLAT_CONTAINING_RECORD(Datagram, QUIC_CONNECTION, Datagram);
 }
 
-inline
+QUIC_INLINE
 void
 QuicConnLogOutFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
@@ -860,7 +860,7 @@ QuicConnLogOutFlowStats(
         SendWindow);
 }
 
-inline
+QUIC_INLINE
 void
 QuicConnLogInFlowStats(
     _In_ const QUIC_CONNECTION* const Connection
@@ -874,7 +874,7 @@ QuicConnLogInFlowStats(
         Connection->Stats.Recv.TotalBytes);
 }
 
-inline
+QUIC_INLINE
 void
 QuicConnLogStatistics(
     _In_ const QUIC_CONNECTION* const Connection
@@ -910,7 +910,7 @@ QuicConnLogStatistics(
         Connection->Stats.Recv.DecryptionFailures);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicConnAddOutFlowBlockedReason(
     _In_ QUIC_CONNECTION* Connection,
@@ -949,7 +949,7 @@ QuicConnAddOutFlowBlockedReason(
     return FALSE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicConnRemoveOutFlowBlockedReason(
     _In_ QUIC_CONNECTION* Connection,
@@ -1044,7 +1044,7 @@ QuicConnOnShutdownComplete(
 
 #if DEBUG
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnValidate(
     _In_ QUIC_CONNECTION* Connection
@@ -1060,7 +1060,7 @@ QuicConnValidate(
 // Adds a reference to the Connection.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnAddRef(
     _In_ QUIC_CONNECTION* Connection,
@@ -1085,7 +1085,7 @@ QuicConnAddRef(
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnRelease(
     _In_ __drv_freesMem(Mem) QUIC_CONNECTION* Connection,
@@ -1254,7 +1254,7 @@ QuicConnRetireCurrentDestCid(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-inline
+QUIC_INLINE
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
@@ -1295,7 +1295,7 @@ QuicConnGetSourceCidFromSeq(
 // Look up a source CID by data buffer.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 QUIC_CID_HASH_ENTRY*
 QuicConnGetSourceCidFromBuf(
     _In_ QUIC_CONNECTION* Connection,
@@ -1324,7 +1324,7 @@ QuicConnGetSourceCidFromBuf(
 // Look up a source CID by sequence number.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 QUIC_CID_LIST_ENTRY*
 QuicConnGetDestCidFromSeq(
     _In_ QUIC_CONNECTION* Connection,
@@ -1376,7 +1376,7 @@ QuicConnTimerSetEx(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnTimerSet(
     _Inout_ QUIC_CONNECTION* Connection,
@@ -1409,7 +1409,7 @@ QuicConnTimerExpired(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 uint64_t
 QuicConnGetAckDelay(
     _In_ const QUIC_CONNECTION* Connection
@@ -1530,7 +1530,7 @@ QuicConnCloseLocally(
 // Close the connection for a transport protocol error.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnTransportError(
     _In_ QUIC_CONNECTION* Connection,
@@ -1545,7 +1545,7 @@ QuicConnTransportError(
 // close in response to a fatal error.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnFatalError(
     _In_ QUIC_CONNECTION* Connection,
@@ -1565,7 +1565,7 @@ QuicConnFatalError(
 // down, independent of the current state.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicConnSilentlyAbort(
     _In_ QUIC_CONNECTION* Connection
@@ -1664,7 +1664,7 @@ QuicConnParamGet(
 // Get the max MTU for a specific path.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint16_t
 QuicConnGetMaxMtuForPath(
     _In_ QUIC_CONNECTION* Connection,
@@ -1697,7 +1697,7 @@ QuicConnGetMaxMtuForPath(
 // discovery.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicMtuDiscoveryCheckSearchCompleteTimeout(
     _In_ QUIC_CONNECTION* Connection,

@@ -7,7 +7,7 @@
 
 #define SEND_PACKET_SHORT_HEADER_TYPE 0xff
 
-inline
+QUIC_INLINE
 uint8_t
 QuicKeyTypeToPacketTypeV1(
     QUIC_PACKET_KEY_TYPE KeyType
@@ -22,7 +22,7 @@ QuicKeyTypeToPacketTypeV1(
     }
 }
 
-inline
+QUIC_INLINE
 uint8_t
 QuicKeyTypeToPacketTypeV2(
     QUIC_PACKET_KEY_TYPE KeyType
@@ -37,7 +37,7 @@ QuicKeyTypeToPacketTypeV2(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_PACKET_KEY_TYPE
 QuicPacketTypeToKeyTypeV1(
     uint8_t PacketType
@@ -52,7 +52,7 @@ QuicPacketTypeToKeyTypeV1(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_PACKET_KEY_TYPE
 QuicPacketTypeToKeyTypeV2(
     uint8_t PacketType
@@ -67,7 +67,7 @@ QuicPacketTypeToKeyTypeV2(
     }
 }
 
-inline
+QUIC_INLINE
 uint8_t
 QuicEncryptLevelToPacketTypeV1(
     QUIC_ENCRYPT_LEVEL Level
@@ -81,7 +81,7 @@ QuicEncryptLevelToPacketTypeV1(
     }
 }
 
-inline
+QUIC_INLINE
 uint8_t
 QuicEncryptLevelToPacketTypeV2(
     QUIC_ENCRYPT_LEVEL Level
@@ -95,7 +95,7 @@ QuicEncryptLevelToPacketTypeV2(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ENCRYPT_LEVEL
 QuicPacketTypeToEncryptLevelV1(
     uint8_t PacketType
@@ -108,7 +108,7 @@ QuicPacketTypeToEncryptLevelV1(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ENCRYPT_LEVEL
 QuicPacketTypeToEncryptLevelV2(
     uint8_t PacketType
@@ -216,7 +216,7 @@ QuicPacketTypeToEncryptLevelV2(
     QUIC_STREAM_SEND_FLAG_FIN \
 )
 
-inline BOOLEAN HasStreamControlFrames(uint32_t Flags)
+QUIC_INLINE BOOLEAN HasStreamControlFrames(uint32_t Flags)
 {
     return Flags &
         (QUIC_STREAM_SEND_FLAG_DATA_BLOCKED |
@@ -226,7 +226,7 @@ inline BOOLEAN HasStreamControlFrames(uint32_t Flags)
          QUIC_STREAM_SEND_FLAG_RELIABLE_ABORT);
 }
 
-inline BOOLEAN HasStreamDataFrames(uint32_t Flags)
+QUIC_INLINE BOOLEAN HasStreamDataFrames(uint32_t Flags)
 {
     return Flags &
         (QUIC_STREAM_SEND_FLAG_DATA |

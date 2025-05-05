@@ -705,7 +705,7 @@ CXPLAT_DATAPATH_RECEIVE_CALLBACK CxPlatPcpRecvCallback;
 //
 // Converts IPv6 or IPV4 address to a (possibly mapped) IPv6.
 //
-inline
+QUIC_INLINE
 void
 CxPlatConvertToMappedV6(
     _In_ const QUIC_ADDR* InAddr,
@@ -730,7 +730,7 @@ CxPlatConvertToMappedV6(
 //
 #pragma warning(push)
 #pragma warning(disable: 6101) // Intentially don't overwrite output if unable to convert
-inline
+QUIC_INLINE
 void
 CxPlatConvertFromMappedV6(
     _In_ const QUIC_ADDR* InAddr,

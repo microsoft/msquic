@@ -163,7 +163,7 @@ extern
 void //__attribute__((no_instrument_function, format(printf, 2, 3)))
 clog_stdout(struct clog_param * head, const char * format, ...);
 #else
-inline void //__attribute__((no_instrument_function, format(printf, 2, 3)))
+QUIC_INLINE void //__attribute__((no_instrument_function, format(printf, 2, 3)))
 clog_stdout(struct clog_param * head, const char * format, ...)
 {
     UNREFERENCED_PARAMETER(head);
@@ -200,7 +200,7 @@ casted_clog_bytearray(const uint8_t * const data,
                       const size_t len,
                       struct clog_param ** head);
 #else
-inline char *
+QUIC_INLINE char *
 #ifndef _WIN32
 __attribute__((no_instrument_function))
 #endif

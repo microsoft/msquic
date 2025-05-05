@@ -83,10 +83,10 @@ tracepoint(CLOG_TLS_SCHANNEL_C, SchannelAch );\
 
 /*----------------------------------------------------------
 // Decoder Ring for SchannelAchCompleteInline
-// [ tls] Invoking security config completion callback inline, 0x%x
+// [ tls] Invoking security config completion callback QUIC_INLINE, 0x%x
 // QuicTraceLogVerbose(
         SchannelAchCompleteInline,
-        "[ tls] Invoking security config completion callback inline, 0x%x",
+        "[ tls] Invoking security config completion callback QUIC_INLINE, 0x%x",
         Status);
 // arg2 = arg2 = Status = arg2
 ----------------------------------------------------------*/

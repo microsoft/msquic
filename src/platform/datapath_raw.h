@@ -289,7 +289,7 @@ CxPlatSockPoolUninitialize(
 // conjunction with the hash table lookup, which already compares local UDP port
 // so it assumes that matches already.
 //
-static inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,

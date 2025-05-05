@@ -88,7 +88,7 @@ QuicMainGetExtraData(
     _In_ uint32_t Length
     );
 
-inline
+QUIC_INLINE
 const char*
 TryGetTarget(
     _In_ int argc,
@@ -110,7 +110,7 @@ constexpr int BufferLength = 40 * 1024 * 1024;
 extern char Buffer[BufferLength];
 #endif // _KERNEL_MODE
 
-inline
+QUIC_INLINE
 int
 #ifndef _WIN32
  __attribute__((__format__(__printf__, 1, 2)))
@@ -155,7 +155,7 @@ WriteOutput(
 #endif
 }
 
-inline
+QUIC_INLINE
 void
 QuicPrintConnectionStatistics(
     _In_ const QUIC_API_TABLE* ApiTable,
@@ -218,7 +218,7 @@ QuicPrintConnectionStatistics(
         HandshakeInfo.TlsGroup);
 }
 
-inline
+QUIC_INLINE
 void
 QuicPrintStreamStatistics(
     _In_ const QUIC_API_TABLE* ApiTable,
