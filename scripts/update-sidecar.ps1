@@ -61,12 +61,22 @@ foreach ($File in $allFiles) {
     $allFiles = $allFiles + " " + $File
 }
 
-# Generate code for all different permutations we need
-Invoke-Expression "${ClogDir}/clog -p windows --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
-Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
-Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
-Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
-Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+#
+# Allow the sidecar to run on a newer .NET version.
+#
+$OriginalDOTNET_ROLL_FORWARD = $env:DOTNET_ROLL_FORWARD
+
+try {
+    $env:DOTNET_ROLL_FORWARD = "Major"
+    # Generate code for all different permutations we need
+    Invoke-Expression "${ClogDir}/clog -p windows --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+    Invoke-Expression "${ClogDir}/clog -p windows_kernel --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+    Invoke-Expression "${ClogDir}/clog -p stubs --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+    Invoke-Expression "${ClogDir}/clog -p linux --dynamicTracepointProvider --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory (Join-Path $OutputDir linux) --inputFiles $allFiles"
+    Invoke-Expression "${ClogDir}/clog -p macos --scopePrefix quic.clog -s $Sidecar -c $ConfigFile --outputDirectory $TmpOutputDir --inputFiles $allFiles"
+} finally {
+    $env:DOTNET_ROLL_FORWARD = $OriginalDOTNET_ROLL_FORWARD
+}
 
 # Return to where we started
 Set-Location $OrigDir
