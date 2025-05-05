@@ -10,7 +10,7 @@
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegotiation,
     TP_ARGS(
-),
+), 
     TP_FIELDS(
     )
 )
@@ -31,7 +31,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegotiation,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegVer,
     TP_ARGS(
         int, arg2,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -51,7 +51,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxVersionNegVer,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
     TP_ARGS(
-        const char *, arg2),
+        const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
     )
@@ -73,7 +73,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxStatelessReset,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxNotAcked,
     TP_ARGS(
         unsigned char, arg2,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned char, arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -93,7 +93,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketRxNotAcked,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, VersionInfoChosenVersionZero,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -118,7 +118,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -142,7 +142,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionInfoVersionMismatch,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, VersionInfoOtherVersionZero,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -168,7 +168,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInfoVersionMismatch,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -195,7 +195,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersi
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -219,7 +219,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientChosenVersionMismatchServerChosenVersi
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsChosenVersion,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -242,7 +242,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionIsCho
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ServerVersionInformationPreviousVersionInOtherVerList,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -268,7 +268,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationNotCompatible,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -295,7 +295,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionN
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -316,7 +316,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionNegotiationOriginalVersionN
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegNoMatch,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -335,7 +335,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegNoMatch,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegCryptoError,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -354,7 +354,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvVerNegCryptoError,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApiEventNoHandler,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -373,7 +373,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApiEventNoHandler,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NoReplacementCidForRetire,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -392,7 +392,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NoReplacementCidForRetire,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NonActivePathCidRetired,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -402,16 +402,16 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NonActivePathCidRetired,
 
 /*----------------------------------------------------------
 // Decoder Ring for IgnoreUnreachable
-// [conn][%p] Ignoring received unreachable event (QUIC_INLINE)
+// [conn][%p] Ignoring received unreachable event (inline)
 // QuicTraceLogConnWarning(
             IgnoreUnreachable,
             Connection,
-            "Ignoring received unreachable event (QUIC_INLINE)");
+            "Ignoring received unreachable event (inline)");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreUnreachable,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -437,7 +437,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreFrameAfterClose,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned long long, arg4),
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -458,7 +458,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IgnoreFrameAfterClose,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, InvalidInitialPackets,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -477,7 +477,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, InvalidInitialPackets,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableIgnore,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -496,7 +496,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableIgnore,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -515,7 +515,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UnreachableInvalid,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseComplete,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -537,7 +537,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseComplete,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Restart,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -557,7 +557,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Restart,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CryptoStateDiscard,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -579,7 +579,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CryptoStateDiscard,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, SetConfiguration,
     TP_ARGS(
         const void *, arg1,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -599,7 +599,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, SetConfiguration,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerTPSet,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -622,7 +622,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerPreferredAddress,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3_len,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3_len, arg3_len)
@@ -643,7 +643,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerPreferredAddress,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -662,7 +662,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NegotiatedDisable1RttEncryption,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -681,7 +681,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CustomCertValidationPending,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -700,7 +700,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RecvStatelessReset,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, HandshakeConfirmedFrame,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -722,7 +722,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, HandshakeConfirmedFrame,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePacketTolerance,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -745,7 +745,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePacketTolerance,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
     TP_ARGS(
         const void *, arg1,
-        const char *, arg3),
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_string(arg3, arg3)
@@ -768,7 +768,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FirstCidUsage,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -788,7 +788,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PathDiscarded,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -810,7 +810,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Unreachable,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, FailedRouteResolution,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -833,7 +833,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, FailedRouteResolution,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePeerPacketTolerance,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -856,7 +856,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdatePeerPacketTolerance,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateShareBinding,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -879,7 +879,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateShareBinding,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -902,7 +902,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateStreamSchedulingScheme,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, LocalInterfaceSet,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -928,7 +928,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned char, arg4),
+        unsigned char, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -952,7 +952,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CibirIdSet,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDscpSet,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -972,7 +972,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDscpSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -994,7 +994,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ApplySettings,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PhaseShiftUpdated,
     TP_ARGS(
         const void *, arg1,
-        long long, arg3),
+        long long, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(int64_t, arg3, arg3)
@@ -1029,7 +1029,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
         unsigned int, arg5,
         unsigned int, arg6,
         unsigned int, arg7,
-        unsigned int, arg8),
+        unsigned int, arg8), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1054,7 +1054,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, RttUpdatedV2,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, NewSrcCidNameCollision,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1073,7 +1073,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, NewSrcCidNameCollision,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ZeroLengthCidRetire,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1095,7 +1095,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ZeroLengthCidRetire,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByPeer,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1118,7 +1118,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByPeer,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByTransport,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1138,7 +1138,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateShutdownByTransport,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1157,7 +1157,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateConnectionShutdownComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1176,7 +1176,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, AbandonInternallyClosed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumed,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1195,7 +1195,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateResumptionTicketReceived,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1220,7 +1220,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ClientVersionNegotiationCompatibleVersionUpg
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1247,7 +1247,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1271,7 +1271,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, CompatibleVersionUpgradeComplete,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateReliableResetNegotiated,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1297,7 +1297,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicateOneWayDelayNegotiated,
     TP_ARGS(
         const void *, arg1,
         unsigned char, arg3,
-        unsigned char, arg4),
+        unsigned char, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1324,7 +1324,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerCertificateReceived,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1348,7 +1348,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerCertificateReceived,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1371,7 +1371,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, QueueDatagrams,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DeferDatagram,
     TP_ARGS(
         const void *, arg1,
-        unsigned short, arg3),
+        unsigned short, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
@@ -1391,7 +1391,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DeferDatagram,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DecryptOldKey,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1413,7 +1413,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DecryptOldKey,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PossiblePeerKeyUpdate,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1436,7 +1436,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PossiblePeerKeyUpdate,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateReadKeyPhase,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1459,7 +1459,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UpdateReadKeyPhase,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerConnFCBlocked,
     TP_ARGS(
         const void *, arg1,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1485,7 +1485,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerStreamFCBlocked,
     TP_ARGS(
         const void *, arg1,
         unsigned short, arg3,
-        unsigned long long, arg4),
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned short, arg3, arg3)
@@ -1510,7 +1510,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, PeerStreamFCBlocked,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2,
     TP_ARGS(
         const void *, arg1,
-        const char *, arg3),
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_string(arg3, arg3)
@@ -1530,7 +1530,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerAddrChanged,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1552,7 +1552,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePeerAddrChanged,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvBatch,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1575,7 +1575,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvBatch,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
     TP_ARGS(
         const void *, arg1,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1598,7 +1598,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1621,7 +1621,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, DatagramReceiveEnableUpdated,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
     TP_ARGS(
         const void *, arg1,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1641,7 +1641,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceKeyUpdate,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1660,7 +1660,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceKeyUpdate,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ForceCidUpdate,
     TP_ARGS(
-        const void *, arg1),
+        const void *, arg1), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
@@ -1685,7 +1685,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned short, arg4),
+        unsigned short, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
@@ -1709,7 +1709,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, TestTPSet,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, AllocFailure,
     TP_ARGS(
         const char *, arg2,
-        unsigned long long, arg3),
+        unsigned long long, arg3), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1735,7 +1735,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnCreated,
     TP_ARGS(
         const void *, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4),
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -1760,7 +1760,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrAdded,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
@@ -1785,7 +1785,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRemoteAddrAdded,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)
@@ -1813,7 +1813,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidAdded,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4_len,
-        const void *, arg4),
+        const void *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1842,7 +1842,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidAdded,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4_len,
-        const void *, arg4),
+        const void *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -1864,7 +1864,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSourceCidAdded,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -1883,7 +1883,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnInitializeComplete,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestroyed,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -1902,7 +1902,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestroyed,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -1924,7 +1924,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandleClosed,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -1947,7 +1947,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnUnregistered,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRegistered,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -1973,7 +1973,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRundown,
     TP_ARGS(
         const void *, arg2,
         unsigned short, arg3,
-        unsigned long long, arg4),
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
@@ -1997,7 +1997,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRundown,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
     TP_ARGS(
         const void *, arg2,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
@@ -2020,7 +2020,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAssignWorker,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnEcnCapable,
     TP_ARGS(
         const void *, arg2,
-        unsigned short, arg3),
+        unsigned short, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned short, arg3, arg3)
@@ -2043,7 +2043,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnEcnCapable,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnVersionSet,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -2063,7 +2063,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnVersionSet,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeComplete,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -2085,7 +2085,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeComplete,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnError,
     TP_ARGS(
         const void *, arg2,
-        const char *, arg3),
+        const char *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
@@ -2112,7 +2112,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDestCidRemoved,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned int, arg4_len,
-        const void *, arg4),
+        const void *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -2140,7 +2140,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSetTimer,
     TP_ARGS(
         const void *, arg2,
         unsigned char, arg3,
-        unsigned long long, arg4),
+        unsigned long long, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -2164,7 +2164,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnSetTimer,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExpiredTimer,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -2187,7 +2187,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExpiredTimer,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExecTimerOper,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3),
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -2210,7 +2210,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnExecTimerOper,
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnShutdownComplete,
     TP_ARGS(
         const void *, arg2,
-        unsigned char, arg3),
+        unsigned char, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned char, arg3, arg3)
@@ -2236,7 +2236,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnAppShutdown,
     TP_ARGS(
         const void *, arg2,
         unsigned long long, arg3,
-        unsigned char, arg4),
+        unsigned char, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -2266,7 +2266,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnTransportShutdown,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned char, arg4,
-        unsigned char, arg5),
+        unsigned char, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -2293,7 +2293,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        const char *, arg4),
+        const char *, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -2314,7 +2314,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnErrorStatus,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnServerResumeTicket,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -2333,7 +2333,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnServerResumeTicket,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -2352,7 +2352,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
     TP_ARGS(
-        unsigned long long, arg2),
+        unsigned long long, arg2), 
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
     )
@@ -2380,7 +2380,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
         const void *, arg2,
         unsigned long long, arg3,
         unsigned char, arg4,
-        unsigned short, arg5),
+        unsigned short, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(uint64_t, arg3, arg3)
@@ -2402,7 +2402,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnPacketRecv,
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnDelayCloseApplicationError,
     TP_ARGS(
-        const void *, arg2),
+        const void *, arg2), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
     )
@@ -2427,7 +2427,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnRecvUdpDatagrams,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3,
-        unsigned int, arg4),
+        unsigned int, arg4), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3, arg3)
@@ -2452,7 +2452,7 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnLocalAddrRemoved,
     TP_ARGS(
         const void *, arg2,
         unsigned int, arg3_len,
-        const void *, arg3),
+        const void *, arg3), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_integer(unsigned int, arg3_len, arg3_len)

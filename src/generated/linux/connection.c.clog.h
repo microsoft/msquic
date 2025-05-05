@@ -395,11 +395,11 @@ tracepoint(CLOG_CONNECTION_C, NonActivePathCidRetired , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for IgnoreUnreachable
-// [conn][%p] Ignoring received unreachable event (QUIC_INLINE)
+// [conn][%p] Ignoring received unreachable event (inline)
 // QuicTraceLogConnWarning(
             IgnoreUnreachable,
             Connection,
-            "Ignoring received unreachable event (QUIC_INLINE)");
+            "Ignoring received unreachable event (inline)");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_IgnoreUnreachable
