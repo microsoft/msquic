@@ -1037,6 +1037,9 @@ Exit:
 
 #if __linux__
 
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
 #if CXPLAT_USE_IO_URING // liburing
 #define IOURINGINLINE inline
 #define LIBURING_INTERNAL
@@ -1101,7 +1104,14 @@ CxPlatEventQInitialize(
     CxPlatLockInitialize(&Queue->Lock);
     struct io_uring_params params;
 	memset(&params, 0, sizeof(params));
-	params.flags = IORING_SETUP_SUBMIT_ALL | IORING_SETUP_COOP_TASKRUN;
+	params.flags = 0
+#ifdef IORING_SETUP_SUBMIT_ALL
+        | IORING_SETUP_SUBMIT_ALL
+#endif
+#ifdef IORING_SETUP_COOP_TASKRUN
+        | IORING_SETUP_COOP_TASKRUN
+#endif
+        ;
     return 0 == io_uring_queue_init_params(4096, &Queue->Ring, &params); // TODO - make size configurable
 }
 
@@ -1268,9 +1278,6 @@ CxPlatSqeCleanup(
 }
 
 #else // epoll
-
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
 
 typedef int CXPLAT_EVENTQ;
 typedef struct epoll_event CXPLAT_CQE;
