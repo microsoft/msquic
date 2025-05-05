@@ -66,7 +66,7 @@ jobs:
         fi
     - name: Upload the diff file
       if: steps.bindings_diff.outputs.diff-found == 'true'
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: cargo_generated_diff_${{ matrix.os }}.txt
         path: cargo_generated_diff.txt
