@@ -1746,6 +1746,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_OPEN_IN_PARTITION_FN
                                         ConnectionOpenInPartition;   // Available from v2.5
 
+    QUIC_CONNECTION_OPEN_IN_PARTITION_FN
+                                        Dummy;   // TODO guhetier: For testing CI, to remove
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
                                         StreamProvideReceiveBuffers; // Available from v2.5
