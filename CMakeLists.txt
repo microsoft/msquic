@@ -235,6 +235,8 @@ if (WIN32)
 
     if (QUIC_ENABLE_SANITIZERS)
         message(STATUS "Allowing non-system32 DLLs to be loaded for ASAN")
+    elseif (QUIC_GAMECORE_BUILD)
+        message(STATUS "Allowing non-system32 DLLs to be loaded for GameCore")
     else()
         # Configure linker to only load from the system directory.
         message(STATUS "Configuring linker to only load from the system directory")
