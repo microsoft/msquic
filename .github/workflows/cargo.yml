@@ -64,12 +64,13 @@ jobs:
           } >> $GITHUB_OUTPUT
           echo "$(cat cargo_generated_diff.txt)"
         fi
-    - name: Upload the diff file
+    - name: Upload the patch file
       if: steps.bindings_diff.outputs.diff-found == 'true'
+      id: upload_patch
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: cargo_generated_diff_${{ matrix.os }}.txt
-        path: cargo_generated_diff.txt
+      name: cargo_generated_diff_${{ matrix.os }}.patch
+      path: cargo_generated_diff.txt
     - name: Post a comment on PR on mismatch
       if: |
         !github.event.pull_request.head.repo.fork &&
@@ -80,7 +81,7 @@ jobs:
         issue-number: ${{ github.event.number }}
         body: |
           ## ${{ github.workflow }}
-          The rust bindings need to be updated. Please apply (`git apply`) this diff:
+          The rust bindings need to be updated. Please apply (`git apply`) this [patch](${{ steps.upload_patch.outputs.artifact-url }}):
           ```diff
           ${{ steps.bindings_diff.outputs.diff-content }}
           ```
