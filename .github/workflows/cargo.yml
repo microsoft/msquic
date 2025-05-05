@@ -69,8 +69,8 @@ jobs:
       id: upload_patch
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-      name: cargo_generated_diff_${{ matrix.os }}.patch
-      path: cargo_generated_diff.txt
+        name: cargo_generated_diff_${{ matrix.os }}.patch
+        path: cargo_generated_diff.txt
     - name: Post a comment on PR on mismatch
       if: |
         !github.event.pull_request.head.repo.fork &&
@@ -80,7 +80,7 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.number }}
         body: |
-          ## ${{ github.workflow }}
+          ## ${{ github.workflow }} - ${{ matrix.os }}
           The rust bindings need to be updated. Please apply (`git apply`) this [patch](${{ steps.upload_patch.outputs.artifact-url }}):
           ```diff
           ${{ steps.bindings_diff.outputs.diff-content }}
