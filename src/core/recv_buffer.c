@@ -167,13 +167,13 @@ QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
     _Inout_updates_(AllocLength) uint8_t* Buffer,
-    _In_ BOOLEAN AppOwnedBuffer
+    _In_ BOOLEAN AllocatedFromPool
     )
 {
     Chunk->AllocLength = AllocLength;
     Chunk->Buffer = Buffer;
     Chunk->ExternalReference = FALSE;
-    Chunk->AppOwnedBuffer = AppOwnedBuffer;
+    Chunk->AllocatedFromPool = AllocatedFromPool;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -183,11 +183,12 @@ QuicRecvChunkFree(
     _In_ QUIC_RECV_CHUNK* Chunk
     )
 {
-    if (Chunk == RecvBuffer->PreallocatedChunk) {
-        return;
-    }
-
-    if (Chunk->AppOwnedBuffer) {
+    //
+    // The data buffer of the chunk is allocated in the same allocation
+    // as the chunk itself if and only if it is owned by the receive buffer:
+    // freeing the chunk will free the data buffer as needed.
+    //
+    if (Chunk->AllocatedFromPool) {
         CxPlatPoolFree(Chunk);
     } else {
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
@@ -282,7 +283,6 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
-    RecvBuffer->PreallocatedChunk = PreallocatedChunk;
     RecvBuffer->RetiredChunk = NULL;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
