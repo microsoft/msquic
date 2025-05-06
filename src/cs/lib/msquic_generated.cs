@@ -3430,7 +3430,7 @@ namespace Microsoft.Quic
         internal delegate* unmanaged[Cdecl]<QUIC_CONNECTION_POOL_CONFIG*, QUIC_HANDLE**, int> ConnectionPoolCreate;
 
         [NativeTypeName("QUIC_EXECUTION_CREATE_FN")]
-        internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION_CONFIG_FLAGS, uint, uint, QUIC_EXECUTION_CONFIG*, QUIC_EXECUTION**, int> ExecutionCreate;
+        internal delegate* unmanaged[Cdecl]<QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS, uint, uint, QUIC_EXECUTION_CONFIG*, QUIC_EXECUTION**, int> ExecutionCreate;
 
         [NativeTypeName("QUIC_EXECUTION_DELETE_FN")]
         internal delegate* unmanaged[Cdecl]<uint, QUIC_EXECUTION**, void> ExecutionDelete;

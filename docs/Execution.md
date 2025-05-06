@@ -158,7 +158,7 @@ HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
 QUIC_EXECUTION_CONFIG ExecConfig = { 0, &IOCP };
 
 QUIC_EXECUTION* ExecContext = nullptr;
-QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext);
+QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, 0, 1, &ExecConfig, &ExecContext);
 ```
 
 The above code createa a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.

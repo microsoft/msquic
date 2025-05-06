@@ -9,7 +9,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicExecutionCreate(
-    _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
     _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,

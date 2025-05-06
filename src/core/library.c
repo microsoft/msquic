@@ -2428,32 +2428,46 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
 MsQuicExecutionCreate(
-    _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
     _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
     _Out_writes_(Count) QUIC_EXECUTION** Executions
     )
 {
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
     if (MsQuicLib.LazyInitComplete) {
         //
         // Not allowed to change the execution config after we've already
         // started running the library.
         //
-        return QUIC_STATUS_INVALID_STATE;
+        Status = QUIC_STATUS_INVALID_STATE;
+
+    } else {
+        //
+        // Clean up any previous worker pool and create a new one.
+        //
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+        MsQuicLib.WorkerPool =
+            CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
+        if (MsQuicLib.WorkerPool == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+        }
     }
 
-    //
-    // Clean up any previous worker pool and create a new one.
-    //
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
-    MsQuicLib.WorkerPool =
-        CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
-    if (MsQuicLib.WorkerPool == NULL) {
-        return QUIC_STATUS_OUT_OF_MEMORY;
-    }
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
 
-    return QUIC_STATUS_SUCCESS;
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2464,10 +2478,20 @@ MsQuicExecutionDelete(
     _In_reads_(Count) QUIC_EXECUTION** Executions
     )
 {
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_DELETE,
+        NULL);
+
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool = NULL;
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2477,7 +2501,19 @@ MsQuicExecutionPoll(
     _In_ QUIC_EXECUTION* Execution
     )
 {
-    return CxPlatWorkerPoolWorkerPoll(Execution);
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_POLL,
+        NULL);
+
+    uint32_t Result = CxPlatWorkerPoolWorkerPoll(Execution);
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+
+    return Result;
 }
 
 #endif

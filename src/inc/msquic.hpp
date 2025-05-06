@@ -454,11 +454,11 @@ extern const MsQuicApi* MsQuic;
 struct MsQuicExecution {
     QUIC_EXECUTION** Executions {nullptr};
     uint32_t Count {0};
-    MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
+    MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
         QUIC_EXECUTION_CONFIG Config = { 0, EventQ };
         Initialize(Flags, PollingIdleTimeoutUs, &Config);
     }
-    MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
+    MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
         auto Configs = new(std::nothrow) QUIC_EXECUTION_CONFIG[Count];
         if (Configs != nullptr) {
             for (uint32_t i = 0; i < Count; ++i) {
@@ -470,7 +470,7 @@ struct MsQuicExecution {
         }
     }
     void Initialize(
-        _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+        _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
         _In_ uint32_t PollingIdleTimeoutUs,
         _In_reads_(this->Count) QUIC_EXECUTION_CONFIG* Configs
         )

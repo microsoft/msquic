@@ -320,23 +320,11 @@ typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_EXECUTION_CREATE_FN)(
-    _In_ QUIC_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
     _In_ uint32_t PollingIdleTimeoutUs,
     _In_ uint32_t Count,
     _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
     _Out_writes_(Count) QUIC_EXECUTION** Executions
-    );
-
-//
-// This is called to stop any further usage of the execution contexts. MsQuic
-// will no longer queue any additional work to the contexts.
-//
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-(QUIC_API * QUIC_EXECUTION_SHUTDOWN_FN)(
-    _In_ uint32_t Count,
-    _In_reads_(Count) QUIC_EXECUTION** Executions
     );
 
 //

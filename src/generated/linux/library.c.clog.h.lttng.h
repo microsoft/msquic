@@ -561,3 +561,61 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated,
         ctf_integer(unsigned char, arg2, arg2)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
+// QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+// arg2 = arg2 = QUIC_TRACE_API_EXECUTION_CREATE = arg2
+// arg3 = arg3 = NULL = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiEnter,
+    TP_ARGS(
+        unsigned int, arg2,
+        const void *, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExitStatus
+// [ api] Exit %u
+// QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExitStatus,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExit,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
