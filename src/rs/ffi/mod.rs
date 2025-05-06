@@ -49,6 +49,9 @@ pub struct OVERLAPPED_ENTRY {
 #[cfg(target_os = "linux")]
 pub type epoll_event = libc::epoll_event;
 
+#[cfg(target_os = "macos")]
+pub type epoll_event = u32; // HACK: TODO - Fix once we have macOS support
+
 // TODO: macos currently is using the linux bindings.
 #[cfg(not(target_os = "windows"))]
 pub type sa_family_t = u16;
