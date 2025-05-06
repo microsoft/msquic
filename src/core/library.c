@@ -668,6 +668,7 @@ QuicLibraryLazyInitialize(
     };
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN CreatedWorkerPool = FALSE;
 
     if (AcquireLock) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
@@ -693,6 +694,7 @@ QuicLibraryLazyInitialize(
             MsQuicLibraryFreePartitions();
             goto Exit;
         }
+        CreatedWorkerPool = TRUE;
     }
 #endif
 
@@ -712,8 +714,10 @@ QuicLibraryLazyInitialize(
     } else {
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
-        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
-        MsQuicLib.WorkerPool = NULL;
+        if (CreatedWorkerPool) {
+            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+            MsQuicLib.WorkerPool = NULL;
+        }
 #endif
         goto Exit;
     }
