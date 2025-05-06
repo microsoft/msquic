@@ -2477,6 +2477,9 @@ MsQuicExecutionCreate(
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
 
+    UNREFERENCED_PARAMETER(Flags);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
+
     if (MsQuicLib.LazyInitComplete) {
         //
         // Not allowed to change the execution config after we've already
