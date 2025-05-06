@@ -54,7 +54,7 @@ struct RecvBuffer {
         if (PreallocatedChunk) {
                 PreallocChunk = (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
                     sizeof(QUIC_RECV_CHUNK) + AllocBufferLength,
-                    QUIC_POOL_RECVBUF); // Use the recv buffer pool as this memory is moved to it.
+                    QUIC_POOL_RECVBUF); // Use the recv buffer pool tag as this memory is moved to the recv buffer.
             QuicRecvChunkInitialize(PreallocChunk, AllocBufferLength, (uint8_t*)(PreallocChunk + 1), FALSE);
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
