@@ -354,12 +354,11 @@ RawSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         Route->TcpState.SequenceNumber,
         Route->TcpState.AckNumber,
         TH_ACK);
