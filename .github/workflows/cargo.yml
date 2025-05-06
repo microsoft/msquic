@@ -39,7 +39,7 @@ jobs:
       if: runner.os == 'Windows'
       uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: 1.86.0
         components: rustfmt, clippy
@@ -53,16 +53,24 @@ jobs:
       id: bindings_diff
       shell: bash
       run: |
-        if git diff --exit-code >> cargo_generated_diff.txt; then
+        if git diff --exit-code >> cargo_binding_update.patch; then
           echo "diff-found=false" >> $GITHUB_OUTPUT
         else
           echo "diff-found=true" >> $GITHUB_OUTPUT
           {
             echo 'diff-content<<@@@'
-            echo "$(cat cargo_generated_diff.txt)"
+            echo "$(cat cargo_binding_update.patch)"
             echo '@@@'
           } >> $GITHUB_OUTPUT
+          echo "$(cat cargo_binding_update.patch)"
         fi
+    - name: Upload the patch file
+      if: steps.bindings_diff.outputs.diff-found == 'true'
+      id: upload_patch
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      with:
+        name: cargo_binding_update_${{ matrix.os }}
+        path: cargo_binding_update.patch
     - name: Post a comment on PR on mismatch
       if: |
         !github.event.pull_request.head.repo.fork &&
@@ -72,8 +80,8 @@ jobs:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.number }}
         body: |
-          ## ${{ github.workflow }}
-          The rust bindings need to be updated. Please apply (`git apply`) this diff:
+          ## ${{ github.workflow }} - ${{ matrix.os }}
+          The rust bindings need to be updated. Please apply (`git apply`) this [patch](${{ steps.upload_patch.outputs.artifact-url }}):
           ```diff
           ${{ steps.bindings_diff.outputs.diff-content }}
           ```
@@ -98,7 +106,7 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Rust
-      uses: dtolnay/rust-toolchain@56f84321dbccf38fb67ce29ab63e4754056677e0
+      uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
         toolchain: 1.86.0
         components: rustfmt, clippy

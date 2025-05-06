@@ -719,6 +719,17 @@ pub type QUIC_HASH_ALGORITHM = ::std::os::raw::c_uint;
 pub const QUIC_KEY_EXCHANGE_ALGORITHM_QUIC_KEY_EXCHANGE_ALGORITHM_NONE:
     QUIC_KEY_EXCHANGE_ALGORITHM = 0;
 pub type QUIC_KEY_EXCHANGE_ALGORITHM = ::std::os::raw::c_uint;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_UNKNOWN: QUIC_TLS_GROUP = 0;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_SECP256R1: QUIC_TLS_GROUP = 23;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_SECP384R1: QUIC_TLS_GROUP = 24;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_X25519: QUIC_TLS_GROUP = 29;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_MLKEM512: QUIC_TLS_GROUP = 512;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_MLKEM768: QUIC_TLS_GROUP = 513;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_MLKEM1024: QUIC_TLS_GROUP = 514;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_SECP256R1MLKEM768: QUIC_TLS_GROUP = 4587;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_X25519MLKEM768: QUIC_TLS_GROUP = 4588;
+pub const QUIC_TLS_GROUP_QUIC_TLS_GROUP_SECP384R1MLKEM1024: QUIC_TLS_GROUP = 4589;
+pub type QUIC_TLS_GROUP = ::std::os::raw::c_uint;
 pub const QUIC_CIPHER_SUITE_QUIC_CIPHER_SUITE_TLS_AES_128_GCM_SHA256: QUIC_CIPHER_SUITE = 4865;
 pub const QUIC_CIPHER_SUITE_QUIC_CIPHER_SUITE_TLS_AES_256_GCM_SHA384: QUIC_CIPHER_SUITE = 4866;
 pub const QUIC_CIPHER_SUITE_QUIC_CIPHER_SUITE_TLS_CHACHA20_POLY1305_SHA256: QUIC_CIPHER_SUITE =
@@ -742,10 +753,11 @@ pub struct QUIC_HANDSHAKE_INFO {
     pub KeyExchangeAlgorithm: QUIC_KEY_EXCHANGE_ALGORITHM,
     pub KeyExchangeStrength: i32,
     pub CipherSuite: QUIC_CIPHER_SUITE,
+    pub TlsGroup: QUIC_TLS_GROUP,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_HANDSHAKE_INFO"][::std::mem::size_of::<QUIC_HANDSHAKE_INFO>() - 32usize];
+    ["Size of QUIC_HANDSHAKE_INFO"][::std::mem::size_of::<QUIC_HANDSHAKE_INFO>() - 36usize];
     ["Alignment of QUIC_HANDSHAKE_INFO"][::std::mem::align_of::<QUIC_HANDSHAKE_INFO>() - 4usize];
     ["Offset of field: QUIC_HANDSHAKE_INFO::TlsProtocolVersion"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, TlsProtocolVersion) - 0usize];
@@ -763,6 +775,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, KeyExchangeStrength) - 24usize];
     ["Offset of field: QUIC_HANDSHAKE_INFO::CipherSuite"]
         [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, CipherSuite) - 28usize];
+    ["Offset of field: QUIC_HANDSHAKE_INFO::TlsGroup"]
+        [::std::mem::offset_of!(QUIC_HANDSHAKE_INFO, TlsGroup) - 32usize];
 };
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -1128,6 +1142,7 @@ pub struct QUIC_STATISTICS_V2 {
     pub DestCidUpdateCount: u32,
     pub SendEcnCongestionCount: u32,
     pub HandshakeHopLimitTTL: u8,
+    pub RttVariance: u32,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -1197,6 +1212,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendEcnCongestionCount) - 196usize];
     ["Offset of field: QUIC_STATISTICS_V2::HandshakeHopLimitTTL"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeHopLimitTTL) - 200usize];
+    ["Offset of field: QUIC_STATISTICS_V2::RttVariance"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, RttVariance) - 204usize];
 };
 impl QUIC_STATISTICS_V2 {
     #[inline]

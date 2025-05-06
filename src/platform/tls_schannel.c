@@ -3058,7 +3058,7 @@ CxPlatTlsParamGet(
             break;
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
-            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+            if (*BufferLength < CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_HANDSHAKE_INFO, CipherSuite)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
                 Status = QUIC_STATUS_BUFFER_TOO_SMALL;
                 break;
@@ -3121,6 +3121,9 @@ CxPlatTlsParamGet(
             HandshakeInfo->KeyExchangeAlgorithm = ConnInfo.aiExch;
             HandshakeInfo->KeyExchangeStrength = ConnInfo.dwExchStrength;
             HandshakeInfo->CipherSuite = CipherInfo.dwCipherSuite;
+            if (CXPLAT_STRUCT_HAS_FIELD(QUIC_HANDSHAKE_INFO, *BufferLength, TlsGroup)) {
+                HandshakeInfo->TlsGroup = CipherInfo.dwKeyType;
+            }
             break;
         }
 
