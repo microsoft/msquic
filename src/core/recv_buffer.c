@@ -179,7 +179,6 @@ QuicRecvChunkInitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvChunkFree(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ QUIC_RECV_CHUNK* Chunk
     )
 {
@@ -330,11 +329,11 @@ QuicRecvBufferUninitialize(
                 CxPlatListRemoveHead(&RecvBuffer->Chunks),
                 QUIC_RECV_CHUNK,
                 Link);
-        QuicRecvChunkFree(RecvBuffer, Chunk);
+        QuicRecvChunkFree(Chunk);
     }
 
     if (RecvBuffer->RetiredChunk != NULL) {
-        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
+        QuicRecvChunkFree(RecvBuffer->RetiredChunk);
     }
 }
 
@@ -534,7 +533,7 @@ QuicRecvBufferResize(
 
         RecvBuffer->RetiredChunk = LastChunk;
     } else {
-        QuicRecvChunkFree(RecvBuffer, LastChunk);
+        QuicRecvChunkFree(LastChunk);
     }
 
     return TRUE;
@@ -910,7 +909,7 @@ QuicRecvBufferDrainFullChunks(
         ChunkIt = ChunkIt->Flink;
 
         CxPlatListEntryRemove(&Chunk->Link);
-        QuicRecvChunkFree(RecvBuffer, Chunk);
+        QuicRecvChunkFree(Chunk);
     }
 
     RecvBuffer->Capacity = NewFirstChunk != NULL ? NewFirstChunk->AllocLength : 0;
@@ -1002,7 +1001,7 @@ QuicRecvBufferDrain(
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR);
 
-        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
+        QuicRecvChunkFree(RecvBuffer->RetiredChunk);
         RecvBuffer->RetiredChunk = NULL;
     }
 
