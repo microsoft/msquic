@@ -199,6 +199,9 @@ param (
     [switch]$OfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$ForceOfficialRelease = $false,
+
+    [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $true,
 
     [Parameter(Mandatory = $false)]
@@ -299,6 +302,10 @@ if ($OfficialRelease) {
         }
     } catch { }
     $global:LASTEXITCODE = 0
+}
+
+if ($ForceOfficialRelease) {
+    $OfficialRelease = $true
 }
 
 # Root directory of the project.

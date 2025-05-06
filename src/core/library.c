@@ -30,6 +30,19 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
+CXPLAT_DATAPATH_FEATURES
+QuicLibraryGetDatapathFeatures(
+    void
+    )
+{
+    CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
+    if (MsQuicLib.Settings.XdpEnabled) {
+        SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
+    }
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
+    return CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath, SocketFlags);
+}
+
 //
 // Initializes all global variables if not already done.
 //
@@ -194,7 +207,7 @@ QuicLibraryInitializePartitions(
 #ifndef _KERNEL_MODE
                 ProcessorList ? ProcessorList[i] :
                     (MsQuicLib.CustomPartitions ?
-                        CxPlatWorkerPoolGetIdealProcessor(MsQuicLib.WorkerPool, i) :
+                        (uint16_t)CxPlatWorkerPoolGetIdealProcessor(MsQuicLib.WorkerPool, i) :
                         i),
 #else
                 ProcessorList ? ProcessorList[i] : i,
@@ -719,13 +732,18 @@ QuicLibraryLazyInitialize(
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
-            MsQuicLib.ExecutionConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            QuicLibraryGetDatapathFeatures());
+        if (MsQuicLib.ExecutionConfig &&
+            MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0) {
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath,
+                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs);
+        }
     } else {
         MsQuicLibraryFreePartitions();
 #ifndef _KERNEL_MODE
@@ -859,6 +877,8 @@ QuicLibrarySetGlobalParam(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SETTINGS_INTERNAL InternalSettings = {0};
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -1061,13 +1081,9 @@ QuicLibrarySetGlobalParam(
             CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
             CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
-            if (MsQuicLib.ExecutionConfig == NULL) {
-                Status = QUIC_STATUS_INVALID_STATE;
-            } else {
-                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
-                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig);
-                Status = QUIC_STATUS_SUCCESS;
-            }
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath, Config->PollingIdleTimeoutUs);
+            Status = QUIC_STATUS_SUCCESS;
             CxPlatLockRelease(&MsQuicLib.Lock);
             break;
         }
@@ -1208,6 +1224,8 @@ QuicLibraryGetGlobalParam(
 {
     QUIC_STATUS Status;
     uint32_t GitHashLength;
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -1400,7 +1418,7 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_DATAPATH_FEATURES:
+    case QUIC_PARAM_GLOBAL_DATAPATH_FEATURES: {
         if (*BufferLength < sizeof(uint32_t)) {
             *BufferLength = sizeof(uint32_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -1418,10 +1436,11 @@ QuicLibraryGetGlobalParam(
         }
 
         *BufferLength = sizeof(uint32_t);
-        *(uint32_t*)Buffer = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath);
+        *(uint32_t*)Buffer = QuicLibraryGetDatapathFeatures();
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
 
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
@@ -2067,7 +2086,7 @@ NewBinding:
     // one and already create the binding.
     //
 
-    if (CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
+    if (QuicLibraryGetDatapathFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
         //
         // The datapath supports multiple connected sockets on the same local
         // tuple, so we need to do collision detection based on the whole
@@ -2302,7 +2321,7 @@ QuicTraceRundown(
             QuicTraceEvent(
                 DataPathRundown,
                 "[data] Rundown, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+                QuicLibraryGetDatapathFeatures());
         }
 
         QuicTraceEvent(

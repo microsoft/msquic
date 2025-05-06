@@ -181,20 +181,19 @@ QuicMainStart(
     QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)RawConfig;
     Config->PollingIdleTimeoutUs = 0; // Default to no polling.
     bool SetConfig = false;
+
     const char* IoMode = GetValue(argc, argv, "io");
-
-#ifndef _KERNEL_MODE
-
-    if (IoMode && IsValue(IoMode, "rio")) {
-        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_RIO;
-        SetConfig = true;
-    }
-
-#endif // _KERNEL_MODE
-
-    if (IoMode && IsValue(IoMode, "xdp")) {
-        Config->Flags |= QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
-        SetConfig = true;
+    if (IoMode) {
+        MsQuicSettings Settings;
+        if (IsValue(IoMode, "rio")) {
+            Settings.SetRioEnabled(true);
+        } else if (IsValue(IoMode, "xdp")) {
+            Settings.SetXdpEnabled(true);
+        } else if (IsValue(IoMode, "qtip")) {
+            Settings.SetXdpEnabled(true);
+            Settings.SetQtipEnabled(true);
+        }
+        Settings.SetGlobal();
     }
 
     const char* CpuStr;
@@ -305,7 +304,7 @@ QuicMainStart(
         PerfServer::DatapathReceive,
         PerfServer::DatapathUnreachable
     };
-    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, nullptr, &Datapath);
+    Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, &Datapath);
     if (QUIC_FAILED(Status)) {
 #ifndef _KERNEL_MODE
         CxPlatWorkerPoolDelete(WorkerPool);

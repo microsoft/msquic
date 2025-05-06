@@ -453,8 +453,8 @@ tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
 // QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+            QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DataPathInitialized
 #define _clog_3_ARGS_TRACE_DataPathInitialized(uniqueId, encoded_arg_string, arg2)\
@@ -543,8 +543,8 @@ tracepoint(CLOG_LIBRARY_C, LibraryRundownV2 , arg2);\
 // QuicTraceEvent(
                 DataPathRundown,
                 "[data] Rundown, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+                QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DataPathRundown
 #define _clog_3_ARGS_TRACE_DataPathRundown(uniqueId, encoded_arg_string, arg2)\

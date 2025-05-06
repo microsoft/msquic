@@ -524,9 +524,19 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_RELIABLE_RESET_ENABLED          FALSE
 
 //
+// The default settings for allowing XDP support
+//
+#define QUIC_DEFAULT_XDP_ENABLED                     FALSE
+
+//
 // The default settings for allowing QTIP support
 //
 #define QUIC_DEFAULT_QTIP_ENABLED                    FALSE
+
+//
+// The default settings for allowing RIO support
+//
+#define QUIC_DEFAULT_RIO_ENABLED                     FALSE
 
 //
 // The default settings for allowing One-Way Delay support.
@@ -647,7 +657,9 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_HYSTART_ENABLED                "HyStartEnabled"
 #define QUIC_SETTING_ENCRYPTION_OFFLOAD_ALLOWED     "EncryptionOffloadAllowed"
 #define QUIC_SETTING_RELIABLE_RESET_ENABLED         "ReliableResetEnabled"
+#define QUIC_SETTING_XDP_ENABLED                    "XdpEnabled"
 #define QUIC_SETTING_QTIP_ENABLED                   "QTIPEnabled"
+#define QUIC_SETTING_RIO_ENABLED                    "RioEnabled"
 #define QUIC_SETTING_ONE_WAY_DELAY_ENABLED          "OneWayDelayEnabled"
 #define QUIC_SETTING_NET_STATS_EVENT_ENABLED        "NetStatsEventEnabled"
 #define QUIC_SETTING_STREAM_MULTI_RECEIVE_ENABLED   "StreamMultiReceiveEnabled"
