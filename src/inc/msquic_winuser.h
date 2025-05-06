@@ -380,30 +380,9 @@ QuicAddrToString(
 // Event Queue Abstraction
 //
 
-typedef struct QUIC_OVERLAPPED {
-    unsigned long long Internal;
-    unsigned long long InternalHigh;
-    union {
-        struct {
-            unsigned long Offset;
-            unsigned long OffsetHigh;
-        } DUMMYSTRUCTNAME;
-        void* Pointer;
-    } DUMMYUNIONNAME;
-
-    HANDLE  hEvent;
-} QUIC_OVERLAPPED;
-
-typedef struct QUIC_OVERLAPPED_ENTRY {
-    unsigned long long lpCompletionKey;
-    QUIC_OVERLAPPED* lpOverlapped;
-    unsigned long long Internal;
-    unsigned long dwNumberOfBytesTransferred;
-} QUIC_OVERLAPPED_ENTRY;
-
 typedef HANDLE QUIC_EVENTQ;
 
-typedef QUIC_OVERLAPPED_ENTRY QUIC_CQE;
+typedef OVERLAPPED_ENTRY QUIC_CQE;
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -414,7 +393,7 @@ void
 typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
 
 typedef struct QUIC_SQE {
-    QUIC_OVERLAPPED Overlapped;
+    OVERLAPPED Overlapped;
     QUIC_EVENT_COMPLETION_HANDLER Completion;
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.
