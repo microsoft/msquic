@@ -2494,6 +2494,8 @@ MsQuicExecutionCreate(
         if (MsQuicLib.WorkerPool == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
         }
+
+        MsQuicLib.CustomExecutions = TRUE;
     }
 
     QuicTraceEvent(

@@ -60,6 +60,7 @@ void QueueCleanupJob() {
     auto Sqe = new(std::nothrow) QUIC_SQE;
     ZeroMemory(&Sqe->Overlapped, sizeof(Sqe->Overlapped));
     Sqe->Completion = [](QUIC_CQE* Cqe) {
+        printf("Cleaning up...\n");
         AllDone = true;
         delete CONTAINING_RECORD(Cqe->lpOverlapped, QUIC_SQE, Overlapped);
     };
@@ -86,6 +87,8 @@ QUIC_STATUS QUIC_API ConnectionCallback(_In_ struct MsQuicConnection* Conn, _In_
         Conn->Shutdown(0);
     } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
         QueueCleanupJob();
+    } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+        MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
     }
     return QUIC_STATUS_SUCCESS;
 }
@@ -93,13 +96,15 @@ QUIC_STATUS QUIC_API ConnectionCallback(_In_ struct MsQuicConnection* Conn, _In_
 void ConnectJob(QUIC_CQE* Cqe) {
     bool Success = false;
 
+    printf("Connecting...\n");
+
     do {
         MsQuicSettings Settings;
         Settings.SetPeerUnidiStreamCount(3); // required for H3
-        MsQuicConfiguration Configuration(Registration, "h3", Settings, MsQuicCredentialConfig());
+        MsQuicConfiguration Configuration(*Registration, "h3", Settings, MsQuicCredentialConfig());
         if (!Configuration.IsValid()) { break; }
 
-        Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpAutoDelete, ConnectionCallback);
+        Connection = new(std::nothrow) MsQuicConnection(*Registration, CleanUpAutoDelete, ConnectionCallback);
         if (QUIC_FAILED(Connection->Start(Configuration, Host, 443))) {
             delete Connection;
             break;
@@ -157,6 +162,8 @@ main(
             }
         }
     }
+
+    printf("Done.\n");
 
     return 0;
 }

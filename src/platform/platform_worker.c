@@ -597,12 +597,15 @@ CxPlatWorkerPoolWorkerPoll(
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Execution;
     Worker->State.ThreadID = CxPlatCurThreadID();
+    Worker->State.TimeNow = CxPlatTimeUs64();
 
     CxPlatRunExecutionContexts(Worker);
     if (Worker->State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
         Worker->State.TimeNow = CxPlatTimeUs64();
         CxPlatRunExecutionContexts(Worker); // Run once more to handle race conditions
     }
+
+    Worker->State.ThreadID = UINT32_MAX;
 
     return Worker->State.WaitTime;
 }

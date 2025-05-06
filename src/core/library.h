@@ -56,6 +56,11 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN LazyInitComplete : 1;
 
     //
+    // Indicates the app has configured their own execution contexts.
+    //
+    BOOLEAN CustomExecutions : 1;
+
+    //
     // Indicates the app has configured non-default (per-processor) partitioning.
     //
     BOOLEAN CustomPartitions : 1;
