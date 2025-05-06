@@ -2154,7 +2154,8 @@ CxPlatSendDataFinalizeSendBuffer(
         struct iovec* IoVec = &SendData->Iovs[SendData->BufferCount - 1];
         IoVec->iov_base = SendData->ClientBuffer.Buffer;
         IoVec->iov_len = SendData->ClientBuffer.Length;
-        if (SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
+        if (SendData->SegmentSize == 0 ||
+            SendData->TotalSize + SendData->SegmentSize > sizeof(SendData->Buffer) ||
             SendData->BufferCount == SendData->SocketContext->DatapathPartition->Datapath->SendIoVecCount) {
             SendData->ClientBuffer.Buffer = NULL;
         } else {
