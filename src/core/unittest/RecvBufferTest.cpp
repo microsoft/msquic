@@ -22,18 +22,21 @@ Abstract:
 
 struct RecvBuffer {
     QUIC_RECV_BUFFER RecvBuf {0};
-    QUIC_RECV_CHUNK* PreallocChunk {nullptr};
     CXPLAT_POOL AppBufferChunkPool {};
     uint8_t* AppOwnedBuffer {nullptr};
+
+    RecvBuffer() = default;
+    RecvBuffer(const RecvBuffer&) = delete;
+    RecvBuffer(RecvBuffer&&) = delete;
+    RecvBuffer& operator=(const RecvBuffer&) = delete;
+    RecvBuffer& operator=(RecvBuffer&&) = delete;
+
     ~RecvBuffer() {
         if (RecvBuf.ReadPendingLength != 0) {
             Drain(RecvBuf.ReadPendingLength);
         }
         QuicRecvBufferUninitialize(&RecvBuf);
 
-        if (PreallocChunk) {
-            CXPLAT_FREE(PreallocChunk, QUIC_POOL_TEST);
-        }
         if (AppOwnedBuffer) {
             CXPLAT_FREE(AppOwnedBuffer, QUIC_POOL_TEST);
         }
@@ -46,11 +49,12 @@ struct RecvBuffer {
         _In_ uint32_t VirtualBufferLength = DEF_TEST_BUFFER_LENGTH
         ) {
         CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_TEST, &AppBufferChunkPool);
+
+        QUIC_RECV_CHUNK* PreallocChunk{nullptr};
         if (PreallocatedChunk) {
-            PreallocChunk =
-                (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
+                PreallocChunk = (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
                     sizeof(QUIC_RECV_CHUNK) + AllocBufferLength,
-                    QUIC_POOL_TEST);
+                    QUIC_POOL_RECVBUF); // Use the recv buffer pool as this memory is moved to it.
             QuicRecvChunkInitialize(PreallocChunk, AllocBufferLength, (uint8_t*)(PreallocChunk + 1), FALSE);
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
