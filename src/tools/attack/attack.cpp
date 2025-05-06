@@ -362,7 +362,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
     UdpConfig.RemoteAddress = &ServerAddress;
-    UdpConfig.Flags = 0;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
     QUIC_STATUS Status =
@@ -455,12 +455,6 @@ main(
             UdpRecvCallback,
             UdpUnreachCallback,
         };
-        // flag
-        QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP;
-
-        QUIC_GLOBAL_EXECUTION_CONFIG DatapathFlags = {
-            Flags,
-        };
         CxPlatSystemLoad();
         CxPlatInitialize();
         CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
@@ -469,7 +463,6 @@ main(
             &DatapathCallbacks,
             NULL,
             WorkerPool,
-            &DatapathFlags,
             &Datapath);
 
         TryGetValue(argc, argv, "ip", &IpAddress);

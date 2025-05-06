@@ -19,27 +19,20 @@ Abstract:
 
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH_RAW** NewDataPath
+    _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** NewDataPath
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(Config);
+    const size_t DatapathSize = CxPlatDpRawGetDatapathSize(WorkerPool);
     BOOLEAN DpRawInitialized = FALSE;
     BOOLEAN SockPoolInitialized = FALSE;
 
-    if (WorkerPool == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
-    if (NewDataPath == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    *NewDataPath = NULL;
 
     CXPLAT_DATAPATH_RAW* DataPath = CXPLAT_ALLOC_PAGED(DatapathSize, QUIC_POOL_DATAPATH);
     if (DataPath == NULL) {
@@ -48,7 +41,7 @@ RawDataPathInitialize(
             "Allocation of '%s' failed. (%llu bytes)",
             "CXPLAT_DATAPATH",
             DatapathSize);
-        return QUIC_STATUS_OUT_OF_MEMORY;
+        return;
     }
     CxPlatZeroMemory(DataPath, DatapathSize);
     CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
@@ -56,12 +49,11 @@ RawDataPathInitialize(
     DataPath->WorkerPool = WorkerPool;
 
     if (!CxPlatSockPoolInitialize(&DataPath->SocketPool)) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
     SockPoolInitialized = TRUE;
 
-    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerPool, Config);
+    Status = CxPlatDpRawInitialize(DataPath, ClientRecvContextLength, WorkerPool);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -92,8 +84,6 @@ Error:
             CxPlatWorkerPoolRelease(WorkerPool);
         }
     }
-
-    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -131,16 +121,16 @@ CxPlatDataPathUninitializeComplete(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-RawDataPathUpdateConfig(
+RawDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
-    CxPlatDpRawUpdateConfig(Datapath, Config);;
+    CxPlatDpRawUpdatePollingIdleTimeout(Datapath, PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     )

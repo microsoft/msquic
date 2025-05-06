@@ -609,7 +609,9 @@ public:
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
+    MsQuicSettings& SetXdpEnabled(bool value) { XdpEnabled = value; IsSet.XdpEnabled = TRUE; return *this; }
     MsQuicSettings& SetQtipEnabled(bool value) { QTIPEnabled = value; IsSet.QTIPEnabled = TRUE; return *this; }
+    MsQuicSettings& SetRioEnabled(bool value) { RioEnabled = value; IsSet.RioEnabled = TRUE; return *this; }
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
     MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }
@@ -617,6 +619,9 @@ public:
 
     QUIC_STATUS
     SetGlobal() const noexcept {
+        if (IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* Settings = this;
         return
             MsQuic->SetParam(
@@ -783,6 +788,9 @@ struct MsQuicConfiguration {
     }
     QUIC_STATUS
     SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        if (Settings.IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* QSettings = &Settings;
         return
             MsQuic->SetParam(

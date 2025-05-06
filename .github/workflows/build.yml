@@ -66,7 +66,7 @@ jobs:
       os: 'windows-2022'
       arch: 'x64'
       tls: 'schannel'
-      official: '-OfficialRelease'
+      official: '-ForceOfficialRelease'
       repo: ${{ github.repository }}
 
   build-windows-kernel:

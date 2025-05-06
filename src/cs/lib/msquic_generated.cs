@@ -216,8 +216,6 @@ namespace Microsoft.Quic
     internal enum QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS
     {
         NONE = 0x0000,
-        RIO = 0x0002,
-        XDP = 0x0004,
         NO_IDEAL_PROC = 0x0008,
         HIGH_PRIORITY = 0x0010,
         AFFINITIZE = 0x0020,
@@ -1389,6 +1387,19 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ulong XdpEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.XdpEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.XdpEnabled = value;
+            }
+        }
+
         internal ulong QTIPEnabled
         {
             get
@@ -1399,6 +1410,19 @@ namespace Microsoft.Quic
             set
             {
                 Anonymous2.Anonymous.QTIPEnabled = value;
+            }
+        }
+
+        internal ulong RioEnabled
+        {
+            get
+            {
+                return Anonymous2.Anonymous.RioEnabled;
+            }
+
+            set
+            {
+                Anonymous2.Anonymous.RioEnabled = value;
             }
         }
 
@@ -2033,7 +2057,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong QTIPEnabled
+                internal ulong XdpEnabled
                 {
                     get
                     {
@@ -2046,17 +2070,45 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 20")]
-                internal ulong RESERVED
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 44) & 0xFFFFFUL;
+                        return (_bitfield >> 44) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0xFFFFFUL << 44)) | ((value & 0xFFFFFUL) << 44);
+                        _bitfield = (_bitfield & ~(0x1UL << 44)) | ((value & 0x1UL) << 44);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong RioEnabled
+                {
+                    get
+                    {
+                        return (_bitfield >> 45) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 45)) | ((value & 0x1UL) << 45);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 18")]
+                internal ulong RESERVED
+                {
+                    get
+                    {
+                        return (_bitfield >> 46) & 0x3FFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x3FFFFUL << 46)) | ((value & 0x3FFFFUL) << 46);
                     }
                 }
             }
@@ -2162,7 +2214,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong QTIPEnabled
+                internal ulong XdpEnabled
                 {
                     get
                     {
@@ -2175,17 +2227,45 @@ namespace Microsoft.Quic
                     }
                 }
 
-                [NativeTypeName("uint64_t : 57")]
-                internal ulong ReservedFlags
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong QTIPEnabled
                 {
                     get
                     {
-                        return (_bitfield >> 7) & 0x1FFFFFFUL;
+                        return (_bitfield >> 7) & 0x1UL;
                     }
 
                     set
                     {
-                        _bitfield = (_bitfield & ~(0x1FFFFFFUL << 7)) | ((value & 0x1FFFFFFUL) << 7);
+                        _bitfield = (_bitfield & ~(0x1UL << 7)) | ((value & 0x1UL) << 7);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 1")]
+                internal ulong RioEnabled
+                {
+                    get
+                    {
+                        return (_bitfield >> 8) & 0x1UL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x1UL << 8)) | ((value & 0x1UL) << 8);
+                    }
+                }
+
+                [NativeTypeName("uint64_t : 55")]
+                internal ulong ReservedFlags
+                {
+                    get
+                    {
+                        return (_bitfield >> 9) & 0x7FFFFFUL;
+                    }
+
+                    set
+                    {
+                        _bitfield = (_bitfield & ~(0x7FFFFFUL << 9)) | ((value & 0x7FFFFFUL) << 9);
                     }
                 }
             }

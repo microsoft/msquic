@@ -22,7 +22,6 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config,
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
@@ -38,7 +37,6 @@ CxPlatDataPathInitialize(
             UdpCallbacks,
             TcpCallbacks,
             WorkerPool,
-            Config,
             NewDataPath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
@@ -47,23 +45,14 @@ CxPlatDataPathInitialize(
         goto Error;
     }
 
-    if (Config && Config->Flags & QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_XDP) {
-        Status =
-            RawDataPathInitialize(
-                ClientRecvContextLength,
-                Config,
-                (*NewDataPath),
-                WorkerPool,
-                &((*NewDataPath)->RawDataPath));
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                RawDatapathInitFail,
-                "[ raw] Failed to initialize raw datapath, status:%d", Status);
-            (*NewDataPath)->RawDataPath = NULL;
-            CxPlatDataPathUninitialize(*NewDataPath);
-            *NewDataPath = NULL;
-        }
-    }
+    //
+    // Best effort try to initialize the raw datapath.
+    //
+    RawDataPathInitialize(
+        ClientRecvContextLength,
+        *NewDataPath,
+        WorkerPool,
+        &((*NewDataPath)->RawDataPath));
 
 Error:
 
@@ -84,24 +73,26 @@ CxPlatDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
-    DataPathUpdateConfig(Datapath, Config);
+    DataPathUpdatePollingIdleTimeout(Datapath, PollingIdleTimeoutUs);
     if (Datapath->RawDataPath) {
-        RawDataPathUpdateConfig(Datapath->RawDataPath, Config);
+        RawDataPathUpdatePollingIdleTimeout(
+            Datapath->RawDataPath, PollingIdleTimeoutUs);
     }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
     )
 {
-    if (Datapath->RawDataPath) {
+    if (Datapath->RawDataPath && (SocketFlags & CXPLAT_SOCKET_FLAG_XDP)) {
         return DataPathGetSupportedFeatures(Datapath) |
                RawDataPathGetSupportedFeatures(Datapath->RawDataPath);
     }
@@ -132,6 +123,8 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN CreateRaw = Config->Flags & CXPLAT_SOCKET_FLAG_XDP;
+
     //
     // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
     // because server admins will ensure whatever port they are binding to is available.
@@ -144,8 +137,7 @@ CxPlatSocketCreateUdp(
             SocketCreateUdp(
                 Datapath,
                 Config,
-                NewSocket
-            );
+                NewSocket);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
                 SockCreateFail,
@@ -154,7 +146,7 @@ CxPlatSocketCreateUdp(
         }
 
         (*NewSocket)->RawSocketAvailable = 0;
-        if (Datapath->RawDataPath) {
+        if (CreateRaw && Datapath->RawDataPath) {
             Status =
                 RawSocketCreateUdp(
                     Datapath->RawDataPath,
@@ -171,7 +163,7 @@ CxPlatSocketCreateUdp(
                     continue;
                 }
                 if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    Status = QUIC_STATUS_SUCCESS;
+                    Status = QUIC_STATUS_SUCCESS; // Silently fail non-QTIP raw socket creation.
                 } else {
                     CxPlatSocketDelete(*NewSocket);
                 }

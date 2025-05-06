@@ -171,6 +171,10 @@
 #define _Out_opt_
 #endif
 
+#ifndef _Outptr_result_maybenull_
+#define _Outptr_result_maybenull_
+#endif
+
 #ifndef _Outptr_
 #define _Outptr_
 #endif

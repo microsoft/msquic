@@ -496,17 +496,23 @@ CxPlatWorkerPoolRelease(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+uint32_t
+CxPlatWorkerPoolGetIdealProcessor(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint32_t Index // Into the worker pool
+    );
+
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ uint16_t Index // Into the config processor array
+    _In_ uint16_t Index // Into the worker pool
     );
 
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t Index // Into the execution config processor array
+    _In_ uint16_t Index // Into the worker pool
     );
 
 //
