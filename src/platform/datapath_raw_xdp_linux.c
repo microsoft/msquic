@@ -1187,7 +1187,7 @@ CxPlatDpRawTxSetL4ChecksumOffload(
     _In_ CXPLAT_SEND_DATA* SendData,
     _In_ BOOLEAN IsIpv6,
     _In_ BOOLEAN IsTcp,
-    _In_ uint16_t L4HeaderLength
+    _In_ uint8_t L4HeaderLength
     )
 {
     UNREFERENCED_PARAMETER(SendData);
