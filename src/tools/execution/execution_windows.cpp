@@ -51,6 +51,7 @@ struct WindowsIOCP {
 
 char* Host = nullptr;
 WindowsIOCP* IOCP;
+const MsQuicApi* MsQuic;
 MsQuicRegistration* Registration;
 MsQuicConnection* Connection;
 bool AllDone = false;
@@ -79,13 +80,14 @@ void QueueConnectedJob() {
     IOCP->Enqueue(&Sqe->Overlapped);
 }
 
-QUIC_STATUS MsQuicConnectionCallback(_In_ struct MsQuicConnection* Connection, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+QUIC_STATUS QUIC_API ConnectionCallback(_In_ struct MsQuicConnection* Conn, _In_opt_ void*, _Inout_ QUIC_CONNECTION_EVENT* Event) {
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
         QueueConnectedJob();
-        Connection->Shutdown(0);
+        Conn->Shutdown(0);
     } else if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
         QueueCleanupJob();
     }
+    return QUIC_STATUS_SUCCESS;
 }
 
 void ConnectJob(QUIC_CQE* Cqe) {
@@ -97,7 +99,7 @@ void ConnectJob(QUIC_CQE* Cqe) {
         MsQuicConfiguration Configuration(Registration, "h3", Settings, MsQuicCredentialConfig());
         if (!Configuration.IsValid()) { break; }
 
-        Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpAutoDelete, MsQuicConnectionCallback);
+        Connection = new(std::nothrow) MsQuicConnection(Registration, CleanUpAutoDelete, ConnectionCallback);
         if (QUIC_FAILED(Connection->Start(Configuration, Host, 443))) {
             delete Connection;
             break;
@@ -144,7 +146,7 @@ main(
     QueueConnectJob();
 
     while (!AllDone) {
-        uint32_t WaitTime = Execution[0].Poll();
+        uint32_t WaitTime = MsQuic->ExecutionPoll(Execution[0]);
 
         ULONG OverlappedCount = 0;
         OVERLAPPED_ENTRY Overlapped[8];

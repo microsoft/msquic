@@ -125,7 +125,15 @@ QuicLibraryInitializePartitions(
     CXPLAT_FRE_ASSERT(MsQuicLib.PartitionCount > 0);
 
     uint16_t* ProcessorList = NULL;
-    if (MsQuicLib.ExecutionConfig &&
+#ifndef _KERNEL_MODE
+    if (MsQuicLib.WorkerPool != NULL) {
+        MsQuicLib.CustomPartitions = TRUE;
+        MsQuicLib.PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
+    } else if (
+#else
+    if (
+#endif
+        MsQuicLib.ExecutionConfig &&
         MsQuicLib.ExecutionConfig->ProcessorCount &&
         MsQuicLib.ExecutionConfig->ProcessorCount != MsQuicLib.PartitionCount) {
         //
@@ -183,7 +191,14 @@ QuicLibraryInitializePartitions(
             QuicPartitionInitialize(
                 &MsQuicLib.Partitions[i],
                 i,
+#ifndef _KERNEL_MODE
+                ProcessorList ? ProcessorList[i] :
+                    (MsQuicLib.CustomPartitions ?
+                        CxPlatWorkerPoolGetIdealProcessor(MsQuicLib.WorkerPool, i) :
+                        i),
+#else
                 ProcessorList ? ProcessorList[i] : i,
+#endif
                 CXPLAT_HASH_SHA256,
                 ResetHashKey,
                 sizeof(ResetHashKey));
