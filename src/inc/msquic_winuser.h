@@ -392,8 +392,22 @@ void
     );
 typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
 
+typedef struct QUIC_OVERLAPPED {
+    ULONG_PTR Internal;
+    ULONG_PTR InternalHigh;
+    union {
+        struct {
+            DWORD Offset;
+            DWORD OffsetHigh;
+        } DUMMYSTRUCTNAME;
+        PVOID Pointer;
+    } DUMMYUNIONNAME;
+
+    HANDLE  hEvent;
+} QUIC_OVERLAPPED;
+
 typedef struct QUIC_SQE {
-    OVERLAPPED Overlapped;
+    QUIC_OVERLAPPED Overlapped;
     QUIC_EVENT_COMPLETION_HANDLER Completion;
 #if DEBUG
     BOOLEAN IsQueued; // Debug flag to catch double queueing.

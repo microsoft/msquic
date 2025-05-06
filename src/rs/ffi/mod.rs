@@ -8,6 +8,12 @@
 
 pub type QUIC_ADDR = std::ffi::c_void;
 
+#[cfg(target_os = "windows")]
+pub type HANDLE = std::os::windows::raw::HANDLE;
+
+#[cfg(not(target_os = "windows"))]
+pub type epoll_event = libc::epoll_event;
+
 // TODO: macos currently is using the linux bindings.
 #[cfg(not(target_os = "windows"))]
 pub type sa_family_t = u16;
