@@ -411,11 +411,25 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Enable multi receive support</td>
 </tr>
 <tr>
+<td>XDP</td>
+<td>uint8_t</td>
+<td>XdpEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enable XDP.</td>
+</tr>
+<tr>
 <td>QTIP</td>
 <td>uint8_t</td>
 <td>QTIPEnabled</td>
 <td>0 (FALSE)</td>
 <td>Enable QTIP. XDP must be used. Clients will only send/recv QTIP xor UDP traffic, listeners accept both. <a href="QTIP.html">More info</a></td>
+</tr>
+<tr>
+<td>RIO</td>
+<td>uint8_t</td>
+<td>RioEnabled</td>
+<td>0 (FALSE)</td>
+<td>Enable RIO.</td>
 </tr>
 </tbody>
 </table>
