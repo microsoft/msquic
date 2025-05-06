@@ -46,7 +46,7 @@ pub struct OVERLAPPED_ENTRY {
     pub dwNumberOfBytesTransferred: ::std::os::raw::c_ulong,
 }
 
-#[cfg(not(target_os = "linux"))]
+#[cfg(target_os = "linux")]
 pub type epoll_event = libc::epoll_event;
 
 // TODO: macos currently is using the linux bindings.
