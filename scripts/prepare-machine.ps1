@@ -235,6 +235,11 @@ function Install-Xdp-Driver {
     Write-Host "Downloading XDP msi"
     $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
     Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
+    $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
+    Write-Host "Installing XDP driver certificate"
+    Get-AuthenticodeSignature 'xdp-for-windows.msi' | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
     Write-Host "Installing XDP driver"
     msiexec.exe /i $MsiPath /quiet | Out-Null
 }
