@@ -393,14 +393,14 @@ void
 typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
 
 typedef struct QUIC_OVERLAPPED {
-    ULONG_PTR Internal;
-    ULONG_PTR InternalHigh;
+    unsigned long long Internal;
+    unsigned long long InternalHigh;
     union {
         struct {
-            DWORD Offset;
-            DWORD OffsetHigh;
+            unsigned long Offset;
+            unsigned long OffsetHigh;
         } DUMMYSTRUCTNAME;
-        PVOID Pointer;
+        void* Pointer;
     } DUMMYUNIONNAME;
 
     HANDLE  hEvent;
