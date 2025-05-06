@@ -6871,9 +6871,11 @@ QuicConnGetV2Statistics(
     if (STATISTICS_HAS_FIELD(*StatsLength, SendEcnCongestionCount)) {
         Stats->SendEcnCongestionCount = Connection->Stats.Send.EcnCongestionCount;
     }
-
     if (STATISTICS_HAS_FIELD(*StatsLength, HandshakeHopLimitTTL)) {
         Stats->HandshakeHopLimitTTL = Connection->Stats.Handshake.HandshakeHopLimitTTL;
+    }
+    if (STATISTICS_HAS_FIELD(*StatsLength, RttVariance)) {
+        Stats->RttVariance = (uint32_t)Path->RttVariance;
     }
 
     *StatsLength = CXPLAT_MIN(*StatsLength, sizeof(QUIC_STATISTICS_V2));

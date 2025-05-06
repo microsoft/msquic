@@ -1136,6 +1136,7 @@ pub struct QUIC_STATISTICS_V2 {
     pub DestCidUpdateCount: u32,
     pub SendEcnCongestionCount: u32,
     pub HandshakeHopLimitTTL: u8,
+    pub RttVariance: u32,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -1205,6 +1206,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, SendEcnCongestionCount) - 196usize];
     ["Offset of field: QUIC_STATISTICS_V2::HandshakeHopLimitTTL"]
         [::std::mem::offset_of!(QUIC_STATISTICS_V2, HandshakeHopLimitTTL) - 200usize];
+    ["Offset of field: QUIC_STATISTICS_V2::RttVariance"]
+        [::std::mem::offset_of!(QUIC_STATISTICS_V2, RttVariance) - 204usize];
 };
 impl QUIC_STATISTICS_V2 {
     #[inline]
