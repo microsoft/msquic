@@ -11,6 +11,7 @@ Abstract:
 
 #define QUIC_API_ENABLE_PREVIEW_FEATURES 1
 
+#include "quic_platform.h"
 #include "msquic.hpp"
 #include <stdio.h>
 

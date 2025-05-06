@@ -450,6 +450,7 @@ public:
 extern const MsQuicApi* MsQuic;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#ifdef CX_PLATFORM_TYPE
 
 struct MsQuicExecution {
     QUIC_EXECUTION** Executions {nullptr};
@@ -496,6 +497,7 @@ struct MsQuicExecution {
     }
 };
 
+#endif // CX_PLATFORM_TYPE
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct MsQuicRegistration {
