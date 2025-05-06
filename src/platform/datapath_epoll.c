@@ -2133,7 +2133,7 @@ CxPlatSocketReceiveTcpData(
         }
 
         IoBlock->Route.State = RouteResolved;
-        IoBlock->Route.Queue = SocketContext;
+        IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketContext;
         IoBlock->RefCount = 0;
 
         uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
