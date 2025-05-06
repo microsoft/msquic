@@ -252,7 +252,7 @@ typedef struct QUIC_OPERATION {
 
 } QUIC_OPERATION;
 
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperLog(
@@ -346,7 +346,7 @@ QuicOperationFree(
 // Returns TRUE if the operation queue has priority operations queued.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicOperationHasPriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ

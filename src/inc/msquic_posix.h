@@ -38,6 +38,8 @@ Environment:
 #include <errno.h>
 #include "quic_sal_stub.h"
 
+#define QUIC_INLINE static inline
+
 #ifdef __cplusplus
 extern "C++" {
 template <size_t S> struct _ENUM_FLAG_INTEGER_FOR_SIZE;
@@ -63,13 +65,13 @@ template <class T> struct _ENUM_FLAG_SIZED_INTEGER
 
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) \
 extern "C++" { \
-inline ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) | ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
-inline ENUMTYPE &operator |= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) |= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
-inline ENUMTYPE operator & (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) & ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
-inline ENUMTYPE &operator &= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) &= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
-inline ENUMTYPE operator ~ (ENUMTYPE a) throw() { return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a)); } \
-inline ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^ ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
-inline ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE operator | (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) | ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE &operator |= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) |= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE operator & (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) & ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE &operator &= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) &= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE operator ~ (ENUMTYPE a) throw() { return ENUMTYPE(~((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a)); } \
+QUIC_INLINE ENUMTYPE operator ^ (ENUMTYPE a, ENUMTYPE b) throw() { return ENUMTYPE(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)a) ^ ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
+QUIC_INLINE ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (ENUMTYPE &)(((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type &)a) ^= ((_ENUM_FLAG_SIZED_INTEGER<ENUMTYPE>::type)b)); } \
 }
 #else
 #define DEFINE_ENUM_FLAG_OPERATORS(ENUMTYPE) // NOP, C allows these operators.
@@ -219,7 +221,7 @@ extern "C" {
 // IP Address Abstraction Helpers
 //
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrFamilyIsValid(
     _In_ QUIC_ADDRESS_FAMILY Family
@@ -231,7 +233,7 @@ QuicAddrFamilyIsValid(
         Family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
@@ -240,7 +242,7 @@ QuicAddrIsValid(
     return QuicAddrFamilyIsValid(Addr->Ip.sa_family);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
@@ -254,7 +256,7 @@ QuicAddrCompareIp(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
@@ -273,7 +275,7 @@ QuicAddrCompare(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
@@ -282,7 +284,7 @@ QuicAddrGetFamily(
     return Addr->Ip.sa_family;
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetFamily(
     _In_ QUIC_ADDR* Addr,
@@ -292,7 +294,7 @@ QuicAddrSetFamily(
     Addr->Ip.sa_family = Family;
 }
 
-inline
+QUIC_INLINE
 uint16_t
 QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
@@ -305,7 +307,7 @@ QuicAddrGetPort(
     }
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetPort(
     _Out_ QUIC_ADDR* Addr,
@@ -322,7 +324,7 @@ QuicAddrSetPort(
 //
 // Test only API to increment the IP address value.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
@@ -335,7 +337,7 @@ QuicAddrIncrement(
     }
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
@@ -348,7 +350,7 @@ QuicAddrSetToLoopback(
     }
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
 QuicAddrHash(
@@ -373,7 +375,7 @@ QuicAddrHash(
     return Hash;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
@@ -390,7 +392,7 @@ QuicAddrIsWildCard(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddr4FromString(
     _In_z_ const char* AddrStr,
@@ -428,7 +430,7 @@ QuicAddr4FromString(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddr6FromString(
     _In_z_ const char* AddrStr,
@@ -462,7 +464,7 @@ QuicAddr6FromString(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
@@ -483,7 +485,7 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,

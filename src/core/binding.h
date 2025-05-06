@@ -480,7 +480,7 @@ QuicBindingHandleDosModeStateChange(
 //
 // Decrypts the retry token.
 //
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicRetryTokenDecrypt(

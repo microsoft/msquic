@@ -321,7 +321,7 @@ public:
     void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 };
 
-inline
+QUIC_INLINE
 void
 TcpPrintConnectionStatistics(
     _In_ TcpConnection* Conn

@@ -109,7 +109,7 @@ typedef struct QUIC_WORKER_POOL {
 // work, if at all possible.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicWorkerIsOverloaded(
     _In_ QUIC_WORKER* Worker

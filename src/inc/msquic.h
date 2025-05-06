@@ -2016,7 +2016,7 @@ _Check_return_
 #ifdef WIN32
 __forceinline
 #else
-__attribute__((always_inline)) inline
+__attribute__((always_inline)) QUIC_INLINE
 #endif
 QUIC_STATUS
 MsQuicOpen2(

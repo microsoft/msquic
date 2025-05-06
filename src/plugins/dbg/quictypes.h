@@ -580,7 +580,7 @@ struct RecvBuffer : Struct {
 
     PSTR ModeStr() {
         const auto Mode = ReadType<QUIC_RECV_BUF_MODE>("RecvMode");
-            
+
         switch (Mode) {
         case QUIC_RECV_BUF_MODE_SINGLE:
             return "Single";

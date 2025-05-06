@@ -23,7 +23,7 @@ extern bool UseDuoNic;
 //
 // Set a QUIC_ADDR to the duonic "server" address.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrSetToDuoNic(
     _Inout_ QUIC_ADDR* Addr
@@ -49,7 +49,7 @@ QuicAddrSetToDuoNic(
 //
 // Set a QUIC_ADDR to the duonic "client" address.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrSetToDuoNicClient(
     _Inout_ QUIC_ADDR* Addr
@@ -72,7 +72,7 @@ QuicAddrSetToDuoNicClient(
     }
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QuitTestGetDatapathFeatureFlags() {
     static uint32_t Length = sizeof(uint32_t);
@@ -85,7 +85,7 @@ QuitTestGetDatapathFeatureFlags() {
     return Features;
 }
 
-inline
+QUIC_INLINE
 bool
 QuitTestIsFeatureSupported(uint32_t Feature) {
     return static_cast<bool>(QuitTestGetDatapathFeatureFlags() & Feature);
@@ -177,7 +177,7 @@ struct ClearGlobalVersionListScope {
 // Simulating Connection's status to be QUIC_CONN_BAD_START_STATE
 // ConnectionStart -> ConnectionShutdown
 //
-inline
+QUIC_INLINE
 void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration& Configuration) {
     TEST_QUIC_SUCCEEDED(
         Connection.Start(
@@ -198,7 +198,7 @@ void SimulateConnBadStartState(MsQuicConnection& Connection, MsQuicConfiguration
 // 2. return QUIC_STATUS_BUFFER_TOO_SMALL by filling value in BufferLength
 // 3. call again to get actual value in Buffer
 //
-inline
+QUIC_INLINE
 void SimpleGetParamTest(HQUIC Handle, uint32_t Param, size_t ExpectedLength, void* ExpectedData, bool GreaterOrEqualLength = false) {
     uint32_t Length = 0;
     TEST_QUIC_STATUS(
@@ -302,7 +302,7 @@ struct GlobalSettingScope {
 // No 64-bit version for this existed globally. This defines an interlocked
 // helper for subtracting 64-bit numbers.
 //
-inline
+QUIC_INLINE
 int64_t
 InterlockedSubtract64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -1047,7 +1047,7 @@ private:
 };
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 WaitForMsQuicInUse() {
     int Count = 0;

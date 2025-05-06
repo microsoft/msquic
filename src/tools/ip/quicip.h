@@ -42,7 +42,7 @@ typedef struct QUIC_IP_LOOKUP {
     bool IsDone {false};
 } QUIC_IP_LOOKUP;
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 QUIC_API
 ClientStreamCallback(
@@ -91,7 +91,7 @@ ClientStreamCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 QUIC_API
 ClientConnectionCallback(
@@ -130,7 +130,7 @@ ClientConnectionCallback(
     return QUIC_STATUS_SUCCESS;
 }
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 MsQuicGetPublicIPEx(
     _In_ const QUIC_API_TABLE* MsQuic,
@@ -208,7 +208,7 @@ Error:
     return Context.Success ? QUIC_STATUS_SUCCESS : Context.Status;
 }
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 MsQuicGetPublicIP(
     _In_ const char* Target,

@@ -142,7 +142,7 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 QUIC_STATUS
 QuicPartitionUpdateStatelessResetKey(
     _Inout_ QUIC_PARTITION* Partition,
@@ -172,7 +172,7 @@ QuicPartitionUpdateStatelessResetKey(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPerfCounterAdd(
     _In_ QUIC_PARTITION* Partition,
