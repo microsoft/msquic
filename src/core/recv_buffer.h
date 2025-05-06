@@ -36,7 +36,7 @@ QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
     _Inout_updates_(AllocLength) uint8_t* Buffer,
-    _In_ BOOLEAN AppOwnedBuffer
+    _In_ BOOLEAN BufferAllocatedFromPool
     );
 
 typedef struct QUIC_RECV_BUFFER {
