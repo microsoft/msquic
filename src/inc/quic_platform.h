@@ -70,7 +70,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
 #else
-#define FORCEINLINE __inline
+#define FORCEINLINE QUIC_INLINE
 #endif
 #endif
 
@@ -354,7 +354,7 @@ CxPlatListEntryRemove(
     return (BOOLEAN)(Flink == Blink);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatListMoveItems(
     _Inout_ CXPLAT_LIST_ENTRY* Source,
@@ -452,8 +452,9 @@ CxPlatGetAllocFailDenominator(
 // loops.
 //
 
+typedef struct QUIC_EXECUTION QUIC_EXECUTION;
 typedef struct QUIC_GLOBAL_EXECUTION_CONFIG QUIC_GLOBAL_EXECUTION_CONFIG;
-
+typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
@@ -478,6 +479,14 @@ CxPlatWorkerPoolCreate(
     _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
+_Success_(return != NULL)
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreateExternal(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
+    );
+
 void
 CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
@@ -498,17 +507,28 @@ CxPlatWorkerPoolRelease(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+uint32_t
+CxPlatWorkerPoolGetIdealProcessor(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint32_t Index // Into the worker pool
+    );
+
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ uint16_t Index // Into the config processor array
+    _In_ uint16_t Index // Into the worker pool
     );
 
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t Index // Into the execution config processor array
+    _In_ uint16_t Index // Into the worker pool
+    );
+
+uint32_t
+CxPlatWorkerPoolWorkerPoll(
+    _In_ QUIC_EXECUTION* Execution
     );
 
 //

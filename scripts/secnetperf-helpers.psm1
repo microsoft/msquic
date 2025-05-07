@@ -135,44 +135,30 @@ function Wait-DriverStarted {
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
-    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    Write-Host "Downloading XDP installer"
     whoami
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet | Out-Null
-    $Size = Get-FileHash $msiPath
-    Write-Host "MSI file hash: $Size"
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfSendCommand "Install_XDP"
         NetperfWaitServerFinishExecution
         return
     }
 
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
-    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
-    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
-        msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
-        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
-        & $WaitDriverStarted xdp 10000
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
-    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
+    try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+        try { & "$Using:RemoteDir\scripts\prepare-machine.ps1" -UninstallXdp } catch {}
     }
 }
 

@@ -56,6 +56,11 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN LazyInitComplete : 1;
 
     //
+    // Indicates the app has configured their own execution contexts.
+    //
+    BOOLEAN CustomExecutions : 1;
+
+    //
     // Indicates the app has configured non-default (per-processor) partitioning.
     //
     BOOLEAN CustomPartitions : 1;
@@ -246,7 +251,7 @@ extern QUIC_LIBRARY MsQuicLib;
 #define QUIC_LIB_VERIFY(Expr)
 #endif
 
-inline
+QUIC_INLINE
 QUIC_PARTITION*
 QuicLibraryGetPartitionFromProcessorIndex(
     uint32_t ProcessorIndex
@@ -280,7 +285,7 @@ QuicLibraryGetPartitionFromProcessorIndex(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 QUIC_PARTITION*
 QuicLibraryGetCurrentPartition(
     void
@@ -291,7 +296,7 @@ QuicLibraryGetCurrentPartition(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint16_t
 QuicPartitionIdCreate(
     uint16_t BaseIndex
@@ -312,7 +317,7 @@ QuicPartitionIdCreate(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint16_t
 QuicPartitionIdGetIndex(
     uint16_t PartitionId
@@ -330,7 +335,7 @@ QuicPerfCounterSnapShot(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPerfCounterTrySnapShot(
     _In_ uint64_t TimeNow
@@ -357,7 +362,7 @@ QuicPerfCounterTrySnapShot(
 // Creates a random, new source connection ID, that will be used on the receive
 // path.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_HASH_ENTRY*
 QuicCidNewRandomSource(

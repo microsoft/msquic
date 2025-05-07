@@ -26,6 +26,8 @@ Environment:
 #include <basetsd.h>
 #include <netioddk.h>
 
+#define QUIC_INLINE inline
+
 typedef INT8 int8_t;
 typedef INT16 int16_t;
 typedef INT32 int32_t;
@@ -153,7 +155,7 @@ typedef SOCKADDR_INET QUIC_ADDR;
 #define QUIC_ADDRESS_FAMILY_INET AF_INET
 #define QUIC_ADDRESS_FAMILY_INET6 AF_INET6
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsValid(
     _In_ const QUIC_ADDR* const Addr
@@ -165,7 +167,7 @@ QuicAddrIsValid(
         Addr->si_family == QUIC_ADDRESS_FAMILY_INET6;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompareIp(
     _In_ const QUIC_ADDR* const Addr1,
@@ -179,7 +181,7 @@ QuicAddrCompareIp(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrCompare(
     _In_ const QUIC_ADDR* const Addr1,
@@ -193,7 +195,7 @@ QuicAddrCompare(
     return QuicAddrCompareIp(Addr1, Addr2);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrIsWildCard(
     _In_ const QUIC_ADDR* const Addr
@@ -210,7 +212,7 @@ QuicAddrIsWildCard(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ADDRESS_FAMILY
 QuicAddrGetFamily(
     _In_ const QUIC_ADDR* const Addr
@@ -219,7 +221,7 @@ QuicAddrGetFamily(
     return (QUIC_ADDRESS_FAMILY)Addr->si_family;
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetFamily(
     _Out_ QUIC_ADDR* Addr,
@@ -229,7 +231,7 @@ QuicAddrSetFamily(
     Addr->si_family = (ADDRESS_FAMILY)Family;
 }
 
-inline
+QUIC_INLINE
 uint16_t // Returns in host byte order.
 QuicAddrGetPort(
     _In_ const QUIC_ADDR* const Addr
@@ -238,7 +240,7 @@ QuicAddrGetPort(
     return QuicNetByteSwapShort(Addr->Ipv4.sin_port);
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetPort(
     _Inout_ QUIC_ADDR* Addr,
@@ -248,7 +250,7 @@ QuicAddrSetPort(
     Addr->Ipv4.sin_port = QuicNetByteSwapShort(Port);
 }
 
-inline
+QUIC_INLINE
 void
 QuicAddrSetToLoopback(
     _Inout_ QUIC_ADDR* Addr
@@ -267,7 +269,7 @@ QuicAddrSetToLoopback(
 //
 // Test only API to increment the IP address value.
 //
-inline
+QUIC_INLINE
 void
 QuicAddrIncrement(
     _Inout_ QUIC_ADDR* Addr
@@ -280,7 +282,7 @@ QuicAddrIncrement(
     }
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QuicAddrHash(
     _In_ const QUIC_ADDR* Addr
@@ -306,7 +308,7 @@ QuicAddrHash(
 
 #define QUIC_LOCALHOST_FOR_AF(Af) "localhost"
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrFromString(
     _In_z_ const char* AddrStr,
@@ -334,7 +336,7 @@ typedef struct QUIC_ADDR_STR {
     char Address[64];
 } QUIC_ADDR_STR;
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAddrToString(
     _In_ const QUIC_ADDR* Addr,

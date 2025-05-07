@@ -158,7 +158,7 @@ CxPlatHashtableInitialize(
     _In_ uint32_t InitialSize
     );
 
-inline
+QUIC_INLINE
 _Must_inspect_result_
 _Success_(return != FALSE)
 BOOLEAN
@@ -230,7 +230,7 @@ CxPlatHashtableEnumerateEnd(
 //
 // Simple helper hash function.
 //
-inline
+QUIC_INLINE
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
 uint32_t
 CxPlatHashSimple(

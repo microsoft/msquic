@@ -54,10 +54,6 @@ set(SOURCES
     sliding_window_extremum.c
 )
 
-if(NOT "${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
-    set(SOURCES ${SOURCES} inline.c)
-endif()
-
 add_library(core STATIC ${SOURCES})
 
 if(NOT QUIC_BUILD_SHARED)

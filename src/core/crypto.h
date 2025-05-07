@@ -117,7 +117,7 @@ typedef struct QUIC_CRYPTO {
 
 } QUIC_CRYPTO;
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCryptoHasPendingCryptoFrame(
     _In_ QUIC_CRYPTO* Crypto

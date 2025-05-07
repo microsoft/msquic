@@ -481,7 +481,7 @@ typedef struct QUIC_STREAM {
 //
 #define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT               0x4000000000000000
 
-inline
+QUIC_INLINE
 QUIC_STREAM_SEND_STATE
 QuicStreamSendGetState(
     _In_ const QUIC_STREAM* Stream
@@ -510,7 +510,7 @@ QuicStreamSendGetState(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_STREAM_RECV_STATE
 QuicStreamRecvGetState(
     _In_ const QUIC_STREAM* Stream
@@ -551,7 +551,7 @@ QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream
     );
 
-inline
+QUIC_INLINE
 uint64_t
 QuicStreamGetInitialMaxDataFromTP(
     _In_ uint64_t StreamID,
@@ -696,7 +696,7 @@ QuicStreamParamGet(
 // Adds a ref to a stream.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
@@ -721,7 +721,7 @@ QuicStreamAddRef(
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRelease(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream,
@@ -757,7 +757,7 @@ QuicStreamRelease(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataIncrement(
     _In_ QUIC_STREAM* Stream
@@ -774,7 +774,7 @@ QuicStreamSentMetadataIncrement(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataDecrement(
     _In_ QUIC_STREAM* Stream
@@ -790,7 +790,7 @@ QuicStreamSentMetadataDecrement(
 // Send Functions
 //
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamAddOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,
@@ -822,7 +822,7 @@ QuicStreamAddOutFlowBlockedReason(
     return FALSE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRemoveOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,

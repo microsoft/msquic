@@ -226,7 +226,7 @@ GetModuleHandleW(
 // Wrapper functions
 //
 
-inline
+QUIC_INLINE
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
@@ -235,7 +235,7 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndClearBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -244,7 +244,7 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndSetBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -257,7 +257,7 @@ InterlockedFetchAndSetBoolean(
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
     CloseHandle(Handle);
@@ -342,7 +342,7 @@ CxPlatGetAllocFailDenominator(
     );
 #endif
 
-inline
+QUIC_INLINE
 CXPLAT_POOL_HEADER*
 CxPlatPoolGenericAlloc(
     _In_ uint32_t Size,
@@ -354,7 +354,7 @@ CxPlatPoolGenericAlloc(
     return (CXPLAT_POOL_HEADER*)CxPlatAlloc(Size, Tag);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolGenericFree(
     _In_ CXPLAT_POOL_HEADER* Entry,
@@ -366,7 +366,7 @@ CxPlatPoolGenericFree(
     CxPlatFree(Entry, Tag);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
@@ -384,7 +384,7 @@ CxPlatPoolInitialize(
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolInitializeEx(
     _In_ BOOLEAN IsPaged,
@@ -409,7 +409,7 @@ CxPlatPoolInitializeEx(
     }
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
@@ -424,7 +424,7 @@ CxPlatPoolUninitialize(
     }
 }
 
-inline
+QUIC_INLINE
 void*
 CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
@@ -451,7 +451,7 @@ CxPlatPoolAlloc(
     return (void*)(Header + 1);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolFree(
     _In_ void* Memory
@@ -474,7 +474,7 @@ CxPlatPoolFree(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatPoolPrune(
     _Inout_ CXPLAT_POOL* Pool
@@ -585,7 +585,7 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 typedef LONG_PTR CXPLAT_REF_COUNT;
 
-inline
+QUIC_INLINE
 void
 CxPlatRefInitialize(
     _Out_ CXPLAT_REF_COUNT* RefCount
@@ -594,7 +594,7 @@ CxPlatRefInitialize(
     *RefCount = 1;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatRefInitializeEx(
     _Out_ CXPLAT_REF_COUNT* RefCount,
@@ -606,7 +606,7 @@ CxPlatRefInitializeEx(
 
 #define CxPlatRefUninitialize(RefCount)
 
-inline
+QUIC_INLINE
 void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -619,7 +619,7 @@ CxPlatRefIncrement(
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefIncrementNonZero(
     _Inout_ volatile CXPLAT_REF_COUNT *RefCount,
@@ -653,7 +653,7 @@ CxPlatRefIncrementNonZero(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefDecrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -698,7 +698,7 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventWaitWithTimeout(
     _In_ CXPLAT_EVENT Event,
@@ -730,7 +730,7 @@ typedef struct CXPLAT_SQE {
 #endif
 } CXPLAT_SQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -739,7 +739,7 @@ CxPlatEventQInitialize(
     return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -748,7 +748,7 @@ CxPlatEventQCleanup(
     CloseHandle(*queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
@@ -758,7 +758,7 @@ CxPlatEventQAssociateHandle(
     return *queue == CreateIoCompletionPort(fileHandle, *queue, 0, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -773,7 +773,7 @@ CxPlatEventQEnqueue(
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueueEx( // Windows specific extension
     _In_ CXPLAT_EVENTQ* queue,
@@ -789,7 +789,7 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -812,7 +812,7 @@ CxPlatEventQDequeue(
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -823,7 +823,7 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -837,7 +837,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeInitializeEx(
     _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
@@ -851,7 +851,7 @@ CxPlatSqeInitializeEx(
 #endif
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
@@ -862,7 +862,7 @@ CxPlatSqeCleanup(
     UNREFERENCED_PARAMETER(sqe);
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
@@ -890,7 +890,7 @@ GetSystemTimeAdjustment(
 //
 // Returns the worst-case system timer resolution (in us).
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatGetTimerResolution()
 {
@@ -908,7 +908,7 @@ extern uint64_t CxPlatPerfFreq;
 //
 // Returns the current time in platform specific time units.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlat(
     void
@@ -922,7 +922,7 @@ QuicTimePlat(
 //
 // Converts platform time to microseconds.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlatToUs64(
     uint64_t Count
@@ -945,7 +945,7 @@ QuicTimePlatToUs64(
 //
 // Converts microseconds to platform time.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
@@ -965,7 +965,7 @@ CxPlatTimeUs64ToPlat(
 
 #define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
 
-inline
+QUIC_INLINE
 int64_t
 CxPlatTimeEpochMs64(
     )
@@ -978,7 +978,7 @@ CxPlatTimeEpochMs64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeDiff64(
     _In_ uint64_t T1,     // First time measured
@@ -994,7 +994,7 @@ CxPlatTimeDiff64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint32_t
 CxPlatTimeDiff32(
     _In_ uint32_t T1,     // First time measured
@@ -1011,7 +1011,7 @@ CxPlatTimeDiff32(
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
@@ -1027,7 +1027,7 @@ CxPlatTimeAtOrBefore64(
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
@@ -1066,7 +1066,7 @@ extern uint32_t CxPlatProcessorCount;
 #define CxPlatProcCount() CxPlatProcessorCount
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint32_t
 CxPlatProcNumberToIndex(
     PROCESSOR_NUMBER* ProcNumber
@@ -1077,7 +1077,7 @@ CxPlatProcNumberToIndex(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint32_t
 CxPlatProcCurrentNumber(
     void

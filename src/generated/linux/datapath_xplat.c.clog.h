@@ -39,23 +39,6 @@ tracepoint(CLOG_DATAPATH_XPLAT_C, DatapathInitFail , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RawDatapathInitFail
-// [ raw] Failed to initialize raw datapath, status:%d
-// QuicTraceLogVerbose(
-                RawDatapathInitFail,
-                "[ raw] Failed to initialize raw datapath, status:%d", Status);
-// arg2 = arg2 = Status = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RawDatapathInitFail
-#define _clog_3_ARGS_TRACE_RawDatapathInitFail(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_XPLAT_C, RawDatapathInitFail , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SockCreateFail
 // [sock] Failed to create socket, status:%d
 // QuicTraceLogVerbose(

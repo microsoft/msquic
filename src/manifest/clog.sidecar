@@ -3035,6 +3035,18 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathQueryRioDispatchFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
+      "UniqueId": "DatapathQueryRioDispatchFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathQueryRssProcessorInfoFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
@@ -11341,6 +11353,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingRioEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] RioEnabled             = %hhu",
+      "UniqueId": "SettingRioEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -11453,6 +11477,18 @@
       "ModuleProperites": {},
       "TraceString": "[sett] StreamMultiReceiveEnabled  = %hhu",
       "UniqueId": "SettingStreamMultiReceiveEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingXdpEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] XdpEnabled             = %hhu",
+      "UniqueId": "SettingXdpEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -14819,6 +14855,11 @@
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x"
       },
       {
+        "UniquenessHash": "004490dd-4f9c-e6fd-1826-2a88b4faf32e",
+        "TraceID": "DatapathQueryRioDispatchFailed",
+        "EncodingString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x"
+      },
+      {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
         "TraceID": "DatapathQueryRssProcessorInfoFailed",
         "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x"
@@ -17384,6 +17425,11 @@
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
       },
       {
+        "UniquenessHash": "aa851418-62e3-4895-b4a2-bedcbcf06d0d",
+        "TraceID": "SettingRioEnabled",
+        "EncodingString": "[sett] RioEnabled             = %hhu"
+      },
+      {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
         "TraceID": "SettingsInvalidAcceptableVersion",
         "EncodingString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d"
@@ -17422,6 +17468,11 @@
         "UniquenessHash": "45ba4873-08cc-5dee-18d4-fe33c464ee1f",
         "TraceID": "SettingStreamMultiReceiveEnabled",
         "EncodingString": "[sett] StreamMultiReceiveEnabled  = %hhu"
+      },
+      {
+        "UniquenessHash": "3bdc4807-1d2f-01f2-3c8c-043542720899",
+        "TraceID": "SettingXdpEnabled",
+        "EncodingString": "[sett] XdpEnabled             = %hhu"
       },
       {
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",

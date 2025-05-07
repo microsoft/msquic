@@ -59,6 +59,25 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, PlatformWorkerProcessPools,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryError
+// [ lib] ERROR, %s.
+// QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "CxPlatEventQInitialize");
+// arg2 = arg2 = "CxPlatEventQInitialize" = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -76,24 +95,5 @@ TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, AllocFailure,
     TP_FIELDS(
         ctf_string(arg2, arg2)
         ctf_integer(uint64_t, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryError
-// [ lib] ERROR, %s.
-// QuicTraceEvent(
-                LibraryError,
-                "[ lib] ERROR, %s.",
-                "CxPlatEventQInitialize");
-// arg2 = arg2 = "CxPlatEventQInitialize" = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_PLATFORM_WORKER_C, LibraryError,
-    TP_ARGS(
-        const char *, arg2), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
     )
 )

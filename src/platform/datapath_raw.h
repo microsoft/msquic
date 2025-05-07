@@ -112,8 +112,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH_RAW* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ const QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
 //
@@ -135,13 +134,13 @@ CxPlatDataPathUninitializeComplete(
     );
 
 //
-// Updates the datapath configuration.
+// Updates the datapath polling idle timeout.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawUpdateConfig(
+CxPlatDpRawUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     );
 
 //
@@ -289,7 +288,7 @@ CxPlatSockPoolUninitialize(
 // conjunction with the hash table lookup, which already compares local UDP port
 // so it assumes that matches already.
 //
-static inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSocketCompare(
     _In_ CXPLAT_SOCKET_RAW* Socket,

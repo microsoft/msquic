@@ -103,7 +103,7 @@ extern "C" {
 //
 // Used for determining which errors to count for performance counters.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicErrorIsProtocolError(
     _In_ QUIC_VAR_INT ErrorCode
@@ -425,7 +425,7 @@ typedef struct QUIC_STREAM_EX {
 
 } QUIC_STREAM_EX;
 
-inline
+QUIC_INLINE
 uint8_t
 QuicStreamFrameHeaderSize(
     _In_ const QUIC_STREAM_EX * const Frame
@@ -910,7 +910,7 @@ QuicTimestampFrameDecode(
 //
 // Gets the Stream ID from a Stream related frame.
 //
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicStreamFramePeekID(
@@ -930,7 +930,7 @@ QuicStreamFramePeekID(
 //
 // Skips over the given Stream related frame.
 //
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicStreamFrameSkip(

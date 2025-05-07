@@ -95,7 +95,7 @@ CxPlatToeplitzHashCompute(
 //
 // Computes the Toeplitz hash of a QUIC address.
 //
-inline
+QUIC_INLINE
 void
 CxPlatToeplitzHashComputeAddr(
     _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
@@ -134,7 +134,7 @@ CxPlatToeplitzHashComputeAddr(
 //
 // Computes the Toeplitz hash of two QUIC addresses as RSS would.
 //
-inline
+QUIC_INLINE
 void
 CxPlatToeplitzHashComputeRss(
     _In_ const CXPLAT_TOEPLITZ_HASH* Toeplitz,
