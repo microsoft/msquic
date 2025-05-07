@@ -73,19 +73,15 @@
         <article data-uid="">
 <h1 align="center"><img src="docs/images/readme_logo.png" width="500" alt="MsQuic logo"></h1>
 
-<p><a href="https://microsoft.github.io/msquic/msquicdocs/docs/API.html"><img src="https://img.shields.io/static/v1?label=Documentation&amp;message=Dashboard&amp;color=blue" alt="Documentation"></a>
+<p><a href="https://discord.gg/YGAtCwTSsc"><img src="https://img.shields.io/discord/827744285595271168?label=Discord&amp;logo=discord&amp;logoColor=white&amp;color=7289DA" alt="Discord"></a>
+<a href="https://microsoft.github.io/msquic/msquicdocs/docs/API.html"><img src="https://img.shields.io/static/v1?label=Documentation&amp;message=API&amp;color=yellow" alt="Documentation"></a>
 <a href="https://microsoft.github.io/netperf/dist/"><img src="https://img.shields.io/static/v1?label=Performance&amp;message=Dashboard&amp;color=blue" alt="Perf Dashboard"></a>
-<a href="https://github.com/microsoft/msquic/actions/workflows/build.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/microsoft/msquic/build.yml?query=branch%3Amain&amp;label=Build" alt="Build Status"></a>
-<a href="https://github.com/microsoft/msquic/actions/workflows/test.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/microsoft/msquic/test.yml?query=branch%3Amain&amp;label=Test" alt="Test Status"></a>
-<a href="https://github.com/microsoft/msquic/actions/workflows/stress.yml?query=branch%3Amain"><img src="https://img.shields.io/github/actions/workflow/status/microsoft/msquic/stress.yml?query=branch%3Amain&amp;label=Stress" alt="Stress Status"></a>
 <a href="https://codecov.io/github/microsoft/msquic"><img src="https://codecov.io/github/microsoft/msquic/branch/main/graph/badge.svg?token=xAjIMDn7wy" alt="codecov"></a>
-<img src="https://github.com/microsoft/msquic/workflows/CodeQL/badge.svg?branch=main" alt="CodeQL">
-<a href="https://bestpractices.coreinfrastructure.org/projects/4846"><img src="https://bestpractices.coreinfrastructure.org/projects/4846/badge" alt="CII Best Practices"></a>
-<a href="https://discord.gg/YGAtCwTSsc"><img src="https://img.shields.io/discord/827744285595271168?label=Discord&amp;logo=discord&amp;logoColor=white&amp;color=7289DA" alt="Discord"></a>
 <a href="https://crates.io/crates/msquic"><img src="https://img.shields.io/crates/v/msquic" alt="crates.io"></a>
-<a href="https://www.nuget.org/profiles/msquic"><img src="https://img.shields.io/nuget/vpre/Microsoft.Native.Quic.MsQuic.Schannel?style=plastic" alt="nuget"></a></p>
+<a href="https://www.nuget.org/profiles/msquic"><img src="https://img.shields.io/nuget/vpre/Microsoft.Native.Quic.MsQuic.Schannel?style=plastic" alt="nuget"></a>
+<a href="https://bestpractices.coreinfrastructure.org/projects/4846"><img src="https://bestpractices.coreinfrastructure.org/projects/4846/badge" alt="CII Best Practices"></a></p>
 <p>MsQuic is a Microsoft implementation of the <a href="https://datatracker.ietf.org/wg/quic/about/">IETF QUIC</a>
-protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both Rust and C#.</p>
+protocol. It is cross-platform, written in C and designed to be a general purpose QUIC library. MsQuic also has C++ API wrapper classes and exposes interop layers for both <a href="https://docs.rs/msquic/latest/msquic/">Rust</a> and C#.</p>
 <div class="TIP">
 <h5>Tip</h5>
 <p>You are using MsQuic? Let us know! Knowing our users lets us prioritize work and keep improving MsQuic in the best possible direction.
@@ -124,6 +120,7 @@ Post in the <a href="https://github.com/microsoft/msquic/discussions/4963">Discu
 <li>Asynchronous IO.</li>
 <li>Receive side scaling (<a href="https://docs.microsoft.com/en-us/windows-hardware/drivers/network/introduction-to-receive-side-scaling">RSS</a>) support.</li>
 <li>UDP send and receive coalescing support.</li>
+<li>Kernel stack bypass via <a href="https://github.com/microsoft/xdp-for-windows?tab=readme-ov-file#xdp-for-windows">XDP</a>.</li>
 </ul>
 <h1 id="documentation">Documentation</h1>
 <ul>
