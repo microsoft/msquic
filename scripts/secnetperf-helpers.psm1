@@ -141,7 +141,7 @@ function Install-XDP {
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfSendCommand "Install_XDP"
         NetperfWaitServerFinishExecution
         return
     }
