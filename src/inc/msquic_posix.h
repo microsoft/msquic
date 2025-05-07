@@ -518,6 +518,58 @@ QuicAddrToString(
     return TRUE;
 }
 
+//
+// Event Queue Abstraction
+//
+
+#if __linux__ // epoll
+
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
+
+typedef int QUIC_EVENTQ;
+
+typedef struct epoll_event QUIC_CQE;
+
+typedef
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    int fd;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
+
+#elif __APPLE__ || __FreeBSD__ // kqueue
+
+#include <sys/event.h>
+#include <fcntl.h>
+
+typedef int QUIC_EVENTQ;
+
+typedef struct kevent QUIC_CQE;
+
+typedef
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    uintptr_t Handle;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
+
+#else
+
+#error Unsupported Platform
+
+#endif
+
 #if defined(__cplusplus)
 }
 #endif

@@ -157,7 +157,7 @@ MsQuicConnectionClose(
 
     CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
 
-    if (IsWorkerThread) {
+    if (MsQuicLib.CustomExecutions || IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -749,7 +749,7 @@ MsQuicStreamClose(
 
     CXPLAT_TEL_ASSERT(!Stream->Flags.HandleClosed);
 
-    if (IsWorkerThread) {
+    if (MsQuicLib.CustomExecutions || IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -959,7 +959,8 @@ MsQuicStreamShutdown(
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
     if (Flags & QUIC_STREAM_SHUTDOWN_FLAG_INLINE &&
-        Connection->WorkerThreadID == CxPlatCurThreadID()) {
+        (MsQuicLib.CustomExecutions ||
+         Connection->WorkerThreadID == CxPlatCurThreadID())) {
 
         CXPLAT_PASSIVE_CODE();
 
@@ -1613,7 +1614,8 @@ MsQuicSetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (MsQuicLib.CustomExecutions ||
+        Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -1738,7 +1740,8 @@ MsQuicGetParam(
 
     QUIC_CONN_VERIFY(Connection, !Connection->State.Freed);
 
-    if (Connection->WorkerThreadID == CxPlatCurThreadID()) {
+    if (MsQuicLib.CustomExecutions ||
+        Connection->WorkerThreadID == CxPlatCurThreadID()) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //

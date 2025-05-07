@@ -378,4 +378,28 @@ QuicAddrToString(
 
 #endif // WINAPI_FAMILY != WINAPI_FAMILY_GAMES
 
+//
+// Event Queue Abstraction
+//
+
+typedef HANDLE QUIC_EVENTQ;
+
+typedef OVERLAPPED_ENTRY QUIC_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    OVERLAPPED Overlapped;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+#if DEBUG
+    BOOLEAN IsQueued; // Debug flag to catch double queueing.
+#endif
+} QUIC_SQE;
+
 #endif // _MSQUIC_WINUSER_

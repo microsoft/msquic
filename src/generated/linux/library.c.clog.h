@@ -573,6 +573,60 @@ tracepoint(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated , arg2);\
 
 
 
+/*----------------------------------------------------------
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
+// QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+// arg2 = arg2 = QUIC_TRACE_API_EXECUTION_CREATE = arg2
+// arg3 = arg3 = NULL = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
+#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, ApiEnter , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExitStatus
+// [ api] Exit %u
+// QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
+#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, ApiExitStatus , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiExit
+#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, ApiExit );\
+
+#endif
+
+
+
+
 #ifdef __cplusplus
 }
 #endif
