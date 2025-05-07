@@ -78,13 +78,7 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
-    Write-Host "(SERVER) Downloading XDP installer"
-    $installerUri = $Command.Split(";")[1]
-    $msiPath = Repo-Path "xdp.msi"
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
-    Write-Host "(SERVER) Installing XDP. Msi path: $msiPath"
-    msiexec.exe /i $msiPath /quiet | Out-Host
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
 } elseif ($Command -eq "Install_Kernel") {
     Write-Host "Executing command: Install_Kernel"
     $KernelDir = Repo-Path "./artifacts/bin/winkernel/x64_Release_schannel"
