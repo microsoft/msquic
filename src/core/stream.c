@@ -139,7 +139,7 @@ QuicStreamInitialize(
             PreallocatedRecvChunk,
             InitialRecvBufferLength,
             (uint8_t *)(PreallocatedRecvChunk + 1),
-            FALSE);
+            TRUE);
     }
 
     const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
@@ -222,10 +222,6 @@ QuicStreamFree(
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
-
-    if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
-    }
 
     Stream->Flags.Freed = TRUE;
     CxPlatPoolFree(Stream);
@@ -977,13 +973,9 @@ QuicStreamSwitchToAppOwnedBuffers(
     )
 {
     //
-    // Reset the current receive buffer and preallocated chunk.
+    // Reset the current receive buffer
     //
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
-    if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(Stream->RecvBuffer.PreallocatedChunk);
-        Stream->RecvBuffer.PreallocatedChunk = NULL;
-    }
 
     //
     // Can't fail when initializing in app-owned mode.
