@@ -2083,7 +2083,7 @@ CxPlatSocketSend(
     UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
     CxPlatSocketSendInternal(
-        Route->Queue,
+        (CXPLAT_SOCKET_CONTEXT*)Route->Queue,
         &Route->LocalAddress,
         &Route->RemoteAddress,
         SendData,
