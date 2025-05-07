@@ -147,7 +147,7 @@ function Install-XDP {
     }
 
     Invoke-Command -Session $Session -ScriptBlock {
-        .\scripts\prepare-machine.ps1 -InstallXdpDriver
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
 }
 
@@ -158,7 +158,7 @@ function Uninstall-XDP {
     try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
+        try { & "$Using:RemoteDir\scripts\prepare-machine.ps1" -UninstallXdp } catch {}
     }
 }
 
