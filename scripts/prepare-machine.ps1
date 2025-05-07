@@ -571,6 +571,7 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        sudo apt-get install -y liburing2
         if ($UseXdp) {
             if (!$IsUbuntu2404) {
                 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y
