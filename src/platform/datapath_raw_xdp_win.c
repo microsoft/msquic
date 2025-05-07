@@ -670,6 +670,11 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
+        //
+        // TODO: check whether the interface currently supports the offload
+        // before enabling it (XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM).
+        //
+
         uint32_t TxChecksumOffload = TRUE;
         Status =
             XskSetSockopt(
