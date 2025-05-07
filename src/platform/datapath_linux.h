@@ -53,3 +53,10 @@ CxPlatSocketConfigureRss(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
     _In_ uint32_t SocketCount
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+DataPathUpdatePollingIdleTimeout(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t PollingIdleTimeoutUs
+    );

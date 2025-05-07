@@ -72,6 +72,17 @@ DataPathIsPaddingPreferred(
     return !!(Datapath->Features & CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+DataPathUpdatePollingIdleTimeout(
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ uint32_t PollingIdleTimeoutUs
+    )
+{
+    UNREFERENCED_PARAMETER(Datapath);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
+}
+
 void
 CxPlatDataPathCalculateFeatureSupport(
     _Inout_ CXPLAT_DATAPATH* Datapath
