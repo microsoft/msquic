@@ -30,6 +30,12 @@ QuicWorkerLoop(
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicWorkerLoopCleanup(
+    _In_ QUIC_WORKER* Worker
+    );
+
 //
 // Thread callback for processing the work queued for the worker.
 //
@@ -169,8 +175,12 @@ QuicWorkerUninitialize(
     //
     Worker->Enabled = FALSE;
     if (Worker->ExecutionContext.Context) {
-        QuicWorkerThreadWake(Worker);
-        CxPlatEventWaitForever(Worker->Done);
+        if (MsQuicLib.CustomExecutions) {
+            QuicWorkerLoopCleanup(Worker);
+        } else {
+            QuicWorkerThreadWake(Worker);
+            CxPlatEventWaitForever(Worker->Done);
+        }
     }
     CxPlatEventUninitialize(Worker->Done);
 

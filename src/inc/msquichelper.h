@@ -38,7 +38,7 @@ typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
 //
 // Converts the QUIC Status Code to a string for console output.
 //
-inline
+QUIC_INLINE
 _Null_terminated_
 const char*
 QuicStatusToString(
@@ -76,7 +76,7 @@ QuicStatusToString(
 //
 // Helper function to get the RTT (in microseconds) from a MsQuic Connection or Stream handle.
 //
-inline
+QUIC_INLINE
 uint32_t
 GetConnRtt(
     _In_ const QUIC_API_TABLE* MsQuicTable,
@@ -96,7 +96,7 @@ GetConnRtt(
 //
 // Helper function to get the Stream ID from a MsQuic Stream handle.
 //
-inline
+QUIC_INLINE
 uint64_t
 GetStreamID(
     _In_ const QUIC_API_TABLE* MsQuicTable,
@@ -117,7 +117,7 @@ GetStreamID(
 // Helper function to get the remote IP address (as a string) from a MsQuic
 // Connection or Stream handle.
 //
-inline
+QUIC_INLINE
 QUIC_ADDR_STR
 GetRemoteAddr(
     _In_ const QUIC_API_TABLE* MsQuicTable,
@@ -139,7 +139,7 @@ GetRemoteAddr(
     return addrStr;
 }
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 QuicForceRetry(
     _In_ const QUIC_API_TABLE* MsQuicTable,
@@ -155,7 +155,7 @@ QuicForceRetry(
             &value);
 }
 
-inline
+QUIC_INLINE
 void
 DumpMsQuicPerfCounters(
     _In_ const QUIC_API_TABLE* MsQuicTable
@@ -206,7 +206,7 @@ DumpMsQuicPerfCounters(
 // Converts an input command line arg string and port to a socket address.
 // Supports IPv4, IPv6 or '*' input strings.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 ConvertArgToAddress(
     _In_z_ const char* Arg,
@@ -226,7 +226,7 @@ ConvertArgToAddress(
     return QuicAddrFromString(Arg, Port, Address);
 }
 
-inline uint8_t DecodeHexChar(char c)
+QUIC_INLINE uint8_t DecodeHexChar(char c)
 {
     if (c >= '0' && c <= '9') return c - '0';
     if (c >= 'A' && c <= 'F') return 10 + c - 'A';
@@ -234,7 +234,7 @@ inline uint8_t DecodeHexChar(char c)
     return 0;
 }
 
-inline
+QUIC_INLINE
 uint32_t
 DecodeHexBuffer(
     _In_z_ const char* HexBuffer,
@@ -262,7 +262,7 @@ DecodeHexBuffer(
 #pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
 
-inline
+QUIC_INLINE
 void
 EncodeHexBuffer(
     _In_reads_(BufferLen) uint8_t* Buffer,
@@ -287,7 +287,7 @@ EncodeHexBuffer(
 // Arg Value Parsers
 //
 
-inline
+QUIC_INLINE
 bool
 IsArg(
     _In_z_ const char* Arg,
@@ -297,7 +297,7 @@ IsArg(
     return Arg[0] && (_strnicmp(Arg + 1, toTestAgainst, strlen(toTestAgainst)) == 0);
 }
 
-inline
+QUIC_INLINE
 bool
 IsValue(
     _In_z_ const char* name,
@@ -307,7 +307,7 @@ IsValue(
     return _strnicmp(name, toTestAgainst, strlen(toTestAgainst)) == 0;
 }
 
-inline
+QUIC_INLINE
 bool
 GetFlag(
     _In_ int argc,
@@ -329,7 +329,7 @@ GetFlag(
 // Helper function that searches the list of args for a given
 // parameter name, insensitive to case.
 //
-inline
+QUIC_INLINE
 _Ret_maybenull_ _Null_terminated_ const char*
 GetValue(
     _In_ int argc,
@@ -348,7 +348,7 @@ GetValue(
     return nullptr;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -364,7 +364,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -380,7 +380,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -396,7 +396,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -417,7 +417,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -433,7 +433,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 bool
 TryGetValue(
@@ -454,7 +454,7 @@ TryGetValue(
     return true;
 }
 
-inline
+QUIC_INLINE
 _Success_(return != false)
 HQUIC
 GetServerConfigurationFromArgs(
@@ -552,7 +552,7 @@ GetServerConfigurationFromArgs(
     return Configuration;
 }
 
-inline
+QUIC_INLINE
 void
 FreeServerConfiguration(
     _In_ const QUIC_API_TABLE* MsQuicTable,
@@ -569,7 +569,7 @@ FreeServerConfiguration(
 }
 
 #ifdef _KERNEL_MODE
-inline
+QUIC_INLINE
 void
 WriteSslKeyLogFileKernelMode(
     _In_z_ const char* FileName,
@@ -911,7 +911,7 @@ Error:
 }
 #endif
 
-inline
+QUIC_INLINE
 void
 WriteSslKeyLogFileUserMode(
     _In_z_ const char* FileName,
@@ -1006,7 +1006,7 @@ WriteSslKeyLogFileUserMode(
 }
 
 
-inline
+QUIC_INLINE
 void
 WriteSslKeyLogFile(
     _In_z_ const char* FileName,

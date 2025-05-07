@@ -449,6 +449,57 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
+#ifndef _KERNEL_MODE
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct MsQuicExecution {
+    QUIC_EXECUTION** Executions {nullptr};
+    uint32_t Count {0};
+    MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
+        QUIC_EXECUTION_CONFIG Config = { 0, EventQ };
+        Initialize(Flags, PollingIdleTimeoutUs, &Config);
+    }
+    MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
+        auto Configs = new(std::nothrow) QUIC_EXECUTION_CONFIG[Count];
+        if (Configs != nullptr) {
+            for (uint32_t i = 0; i < Count; ++i) {
+                Configs[i].IdealProcessor = i;
+                Configs[i].EventQ = EventQ[i];
+            }
+            Initialize(Flags, PollingIdleTimeoutUs, Configs);
+            delete [] Configs;
+        }
+    }
+    void Initialize(
+        _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+        _In_ uint32_t PollingIdleTimeoutUs,
+        _In_reads_(this->Count) QUIC_EXECUTION_CONFIG* Configs
+        )
+    {
+        Executions = new(std::nothrow) QUIC_EXECUTION*[Count];
+        if (Executions != nullptr) {
+            auto Status =
+                MsQuic->ExecutionCreate(
+                    Flags,
+                    PollingIdleTimeoutUs,
+                    Count,
+                    Configs,
+                    Executions);
+            if (QUIC_FAILED(Status)) {
+                delete [] Executions;
+                Executions = nullptr;
+            }
+        }
+    }
+    bool IsValid() const noexcept { return Executions != nullptr; }
+    QUIC_EXECUTION* operator[](size_t i) const {
+        return Executions[i];
+    }
+};
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // _KERNEL_MODE
+
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
     HQUIC Handle {nullptr};

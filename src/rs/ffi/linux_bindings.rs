@@ -231,6 +231,24 @@ const _: () = {
     ["Offset of field: QUIC_ADDR_STR::Address"]
         [::std::mem::offset_of!(QUIC_ADDR_STR, Address) - 0usize];
 };
+pub type QUIC_EVENTQ = ::std::os::raw::c_int;
+pub type QUIC_CQE = epoll_event;
+pub type QUIC_EVENT_COMPLETION = ::std::option::Option<unsafe extern "C" fn(Cqe: *mut QUIC_CQE)>;
+pub type QUIC_EVENT_COMPLETION_HANDLER = QUIC_EVENT_COMPLETION;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_SQE {
+    pub fd: ::std::os::raw::c_int,
+    pub Completion: QUIC_EVENT_COMPLETION_HANDLER,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_SQE"][::std::mem::size_of::<QUIC_SQE>() - 16usize];
+    ["Alignment of QUIC_SQE"][::std::mem::align_of::<QUIC_SQE>() - 8usize];
+    ["Offset of field: QUIC_SQE::fd"][::std::mem::offset_of!(QUIC_SQE, fd) - 0usize];
+    ["Offset of field: QUIC_SQE::Completion"]
+        [::std::mem::offset_of!(QUIC_SQE, Completion) - 8usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_HANDLE {
@@ -444,6 +462,40 @@ const _: () = {
     ["Offset of field: QUIC_GLOBAL_EXECUTION_CONFIG::ProcessorList"]
         [::std::mem::offset_of!(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList) - 12usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_EXECUTION_CONFIG {
+    pub IdealProcessor: u32,
+    pub EventQ: *mut QUIC_EVENTQ,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_EXECUTION_CONFIG"][::std::mem::size_of::<QUIC_EXECUTION_CONFIG>() - 16usize];
+    ["Alignment of QUIC_EXECUTION_CONFIG"]
+        [::std::mem::align_of::<QUIC_EXECUTION_CONFIG>() - 8usize];
+    ["Offset of field: QUIC_EXECUTION_CONFIG::IdealProcessor"]
+        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, IdealProcessor) - 0usize];
+    ["Offset of field: QUIC_EXECUTION_CONFIG::EventQ"]
+        [::std::mem::offset_of!(QUIC_EXECUTION_CONFIG, EventQ) - 8usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_EXECUTION {
+    _unused: [u8; 0],
+}
+pub type QUIC_EXECUTION_CREATE_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Flags: QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS,
+        PollingIdleTimeoutUs: u32,
+        Count: u32,
+        Configs: *mut QUIC_EXECUTION_CONFIG,
+        Executions: *mut *mut QUIC_EXECUTION,
+    ) -> ::std::os::raw::c_uint,
+>;
+pub type QUIC_EXECUTION_DELETE_FN =
+    ::std::option::Option<unsafe extern "C" fn(Count: u32, Executions: *mut *mut QUIC_EXECUTION)>;
+pub type QUIC_EXECUTION_POLL_FN =
+    ::std::option::Option<unsafe extern "C" fn(Execution: *mut QUIC_EXECUTION) -> u32>;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_REGISTRATION_CONFIG {
@@ -6545,10 +6597,13 @@ pub struct QUIC_API_TABLE {
     pub ConnectionOpenInPartition: QUIC_CONNECTION_OPEN_IN_PARTITION_FN,
     pub StreamProvideReceiveBuffers: QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN,
     pub ConnectionPoolCreate: QUIC_CONN_POOL_CREATE_FN,
+    pub ExecutionCreate: QUIC_EXECUTION_CREATE_FN,
+    pub ExecutionDelete: QUIC_EXECUTION_DELETE_FN,
+    pub ExecutionPoll: QUIC_EXECUTION_POLL_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 272usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 296usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6622,6 +6677,12 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 256usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 264usize];
+    ["Offset of field: QUIC_API_TABLE::ExecutionCreate"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionCreate) - 272usize];
+    ["Offset of field: QUIC_API_TABLE::ExecutionDelete"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionDelete) - 280usize];
+    ["Offset of field: QUIC_API_TABLE::ExecutionPoll"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 4294967294;

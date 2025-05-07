@@ -109,7 +109,7 @@ typedef enum CXPLAT_DSCP_TYPE {
 // UDP payload can still fit in a buffer allocated for IPv4, but not the
 // reverse.
 //
-inline
+QUIC_INLINE
 uint16_t
 MaxUdpPayloadSizeFromMTU(
     _In_ uint16_t Mtu
@@ -122,7 +122,7 @@ MaxUdpPayloadSizeFromMTU(
 // Helper function for calculating the length of UDP payload, given the address
 // family and MTU.
 //
-inline
+QUIC_INLINE
 uint16_t
 MaxUdpPayloadSizeForFamily(
     _In_ QUIC_ADDRESS_FAMILY Family,
@@ -138,7 +138,7 @@ MaxUdpPayloadSizeForFamily(
 // Helper function for calculating the MTU, given the length of UDP payload and
 // the address family.
 //
-inline
+QUIC_INLINE
 uint16_t
 PacketSizeFromUdpPayloadSize(
     _In_ QUIC_ADDRESS_FAMILY Family,

@@ -342,9 +342,6 @@ TcpServer::~TcpServer()
     if (Listener) {
         CxPlatSocketDelete(Listener);
     }
-    if (SecConfig) {
-        CxPlatTlsSecConfigDelete(SecConfig); // TODO - Ref counted instead?
-    }
 }
 
 bool TcpServer::Start(const QUIC_ADDR* LocalAddress)

@@ -74,7 +74,7 @@ typedef enum CXPLAT_AEAD_TYPE_SIZE {
 
 } CXPLAT_AEAD_TYPE_SIZE;
 
-inline
+QUIC_INLINE
 uint16_t
 CxPlatKeyLength(
     CXPLAT_AEAD_TYPE Type
@@ -111,7 +111,7 @@ typedef enum CXPLAT_HASH_TYPE_SIZE {
 
 } CXPLAT_HASH_TYPE_SIZE;
 
-inline
+QUIC_INLINE
 uint16_t
 CxPlatHashLength(
     CXPLAT_HASH_TYPE Type
@@ -251,7 +251,7 @@ CXPLAT_STATIC_ASSERT(
     sizeof(uint64_t) < CXPLAT_IV_LENGTH,
     "Packet Number Length is less than IV Length");
 
-inline
+QUIC_INLINE
 void
 QuicCryptoCombineIvAndPacketNumber(
     _In_reads_bytes_(CXPLAT_IV_LENGTH)

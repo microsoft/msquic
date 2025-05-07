@@ -297,7 +297,61 @@ typedef struct QUIC_GLOBAL_EXECUTION_CONFIG {
 #define QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE \
     (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList)
 
-#endif
+#ifndef _KERNEL_MODE
+
+//
+// Execution Context abstraction, which allows the application layer to
+// completely control execution of all MsQuic work.
+//
+
+typedef struct QUIC_EXECUTION_CONFIG {
+    uint32_t IdealProcessor;
+    QUIC_EVENTQ* EventQ;
+} QUIC_EXECUTION_CONFIG;
+
+typedef struct QUIC_EXECUTION QUIC_EXECUTION;
+
+//
+// This is called to create the execution contexts.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_EXECUTION_CREATE_FN)(
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t PollingIdleTimeoutUs,
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
+    );
+
+//
+// This is called to delete the execution contexts.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_EXECUTION_DELETE_FN)(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION** Executions
+    );
+
+//
+// This is called to allow MsQuic to process any polling work. It returns the
+// number of milliseconds until the next scheduled timer expiration.
+//
+// TODO: Should it return an indication for if we should yield?
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+(QUIC_API * QUIC_EXECUTION_POLL_FN)(
+    _In_ QUIC_EXECUTION* Execution
+    );
+
+#endif // _KERNEL_MODE
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 typedef struct QUIC_REGISTRATION_CONFIG { // All fields may be NULL/zero.
     const char* AppName;
@@ -892,6 +946,7 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
+
 //
 // Parameters for Registration.
 //
@@ -1758,7 +1813,13 @@ typedef struct QUIC_API_TABLE {
                                         StreamProvideReceiveBuffers; // Available from v2.5
 
     QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
-#endif
+
+#ifndef _KERNEL_MODE
+    QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
+    QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
+    QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
+#endif // _KERNEL_MODE
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
 
@@ -2016,7 +2077,7 @@ _Check_return_
 #ifdef WIN32
 __forceinline
 #else
-__attribute__((always_inline)) inline
+__attribute__((always_inline)) QUIC_INLINE
 #endif
 QUIC_STATUS
 MsQuicOpen2(

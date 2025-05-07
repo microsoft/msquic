@@ -170,7 +170,7 @@ typedef struct QUIC_SENT_PACKET_METADATA {
     (sizeof(QUIC_SENT_PACKET_METADATA) + FrameCount * sizeof(QUIC_SENT_FRAME_METADATA))
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint8_t
 QuicPacketTraceType(
     _In_ const QUIC_SENT_PACKET_METADATA* Metadata
