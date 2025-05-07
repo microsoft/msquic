@@ -1213,7 +1213,7 @@ CxPlatEventQReturn(
 #endif
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
@@ -1222,7 +1222,7 @@ CxPlatCqeGetSqe(
     return (CXPLAT_SQE*)(uintptr_t)(*cqe)->user_data;
 }
 
-inline
+QUIC_INLINE
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatSqeClassicCompletion(
@@ -1254,7 +1254,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize2(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1278,15 +1278,6 @@ CxPlatSqeCleanup(
 {
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
-}
-
-QUIC_INLINE
-CXPLAT_SQE*
-CxPlatCqeGetSqe(
-    _In_ const CXPLAT_CQE* cqe
-    )
-{
-    return (CXPLAT_SQE*)(uintptr_t)cqe->user_data;
 }
 
 #else // epoll
