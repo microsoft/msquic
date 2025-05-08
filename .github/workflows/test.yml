@@ -187,12 +187,12 @@ jobs:
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Verbose' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Verbose' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Fix log permissions for Linux XDP
       if: failure() && matrix.vec.plat == 'linux' # (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp') doesn't work for some reason
       run: |
