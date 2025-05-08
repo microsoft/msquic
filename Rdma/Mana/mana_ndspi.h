@@ -3,11 +3,6 @@
 #ifndef _MANA_NDSPI_H_
 #define _MANA_NDSPI_H_
 
-#include <winsock2.h>
-#include <unknwn.h>
-#include "ndstatus.h"
-#include "nddef.h"
-
 typedef enum _ND2_MANA_REQUEST_TYPE {
     Nd2ManaRequestTypeSend,
     Nd2ManaRequestTypeBind,
@@ -26,7 +21,10 @@ typedef struct _ND2_MANA_RESULT {
     VOID*                   QueuePairContext;
     VOID*                   RequestContext;
     ND2_MANA_REQUEST_TYPE   RequestType;
-    UINT32                  ImmediateDataOrRKey;
+    union {
+        UINT32 ImmediateData;
+        UINT32 RKey;
+    };
 } ND2_MANA_RESULT;
 
 //
@@ -68,24 +66,24 @@ DECLARE_INTERFACE_(IND2ManaCompletionQueue, IND2CompletionQueue)
         ) PURE;
 
     // *** IND2CompletionQueue methods ***
-    STDMETHOD(GetNotifyAffinity)(
+    IFACEMETHOD(GetNotifyAffinity)(
         THIS_
         __out USHORT* pGroup,
         __out KAFFINITY* pAffinity
         ) PURE;
 
-    STDMETHOD(Resize)(
+    IFACEMETHOD(Resize)(
         THIS_
         ULONG queueDepth
         ) PURE;
 
-    STDMETHOD(Notify)(
+    IFACEMETHOD(Notify)(
         THIS_
         ULONG type,
         __inout OVERLAPPED* pOverlapped
         ) PURE;
 
-    STDMETHOD_(ULONG, GetResults)(
+    IFACEMETHOD_(ULONG, GetResults)(
         THIS_
         __out_ecount_part(nResults, return) ND2_RESULT results[],
         ULONG nResults
@@ -127,11 +125,11 @@ DECLARE_INTERFACE_(IND2ManaQueuePair, IND2QueuePair)
         ) PURE;
 
     // *** IND2QueuePair methods ***
-    STDMETHOD(Flush)(
+    IFACEMETHOD(Flush)(
         THIS
         ) PURE;
 
-    STDMETHOD(Send)(
+    IFACEMETHOD(Send)(
         THIS_
         __in_opt VOID* requestContext,
         __in_ecount_opt(nSge) const ND2_SGE sge[],
@@ -139,7 +137,7 @@ DECLARE_INTERFACE_(IND2ManaQueuePair, IND2QueuePair)
         ULONG flags
         ) PURE;
 
-    STDMETHOD(Receive)(
+    IFACEMETHOD(Receive)(
         THIS_
         __in_opt VOID* requestContext,
         __in_ecount_opt(nSge) const ND2_SGE sge[],
@@ -147,7 +145,7 @@ DECLARE_INTERFACE_(IND2ManaQueuePair, IND2QueuePair)
         ) PURE;
 
     // RemoteToken available thorugh IND2Mw::GetRemoteToken.
-    STDMETHOD(Bind)(
+    IFACEMETHOD(Bind)(
         THIS_
         __in_opt VOID* requestContext,
         __in IUnknown* pMemoryRegion,
@@ -157,14 +155,14 @@ DECLARE_INTERFACE_(IND2ManaQueuePair, IND2QueuePair)
         ULONG flags
         ) PURE;
 
-    STDMETHOD(Invalidate)(
+    IFACEMETHOD(Invalidate)(
         THIS_
         __in_opt VOID* requestContext,
         __in IUnknown* pMemoryWindow,
         ULONG flags
         ) PURE;
 
-    STDMETHOD(Read)(
+    IFACEMETHOD(Read)(
         THIS_
         __in_opt VOID* requestContext,
         __in_ecount_opt(nSge) const ND2_SGE sge[],
@@ -174,7 +172,7 @@ DECLARE_INTERFACE_(IND2ManaQueuePair, IND2QueuePair)
         ULONG flags
         ) PURE;
 
-    STDMETHOD(Write)(
+    IFACEMETHOD(Write)(
         THIS_
         __in_opt VOID* requestContext,
         __in_ecount_opt(nSge) const ND2_SGE sge[],

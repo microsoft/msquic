@@ -11,8 +11,10 @@ Abstract:
 
 #include "platform_internal.h"
 #include  "datapath_rdma_ring_buffer.h"
-#include "ndstatus.h"
-#include "ndsupport.h"
+#include <ndstatus.h>
+#include <ndsupport.h>
+#include <initguid.h>
+#include <mana_ndspi.h>
 
 #ifdef QUIC_CLOG
 #include "datapath_winuser.c.clog.h"
@@ -2953,7 +2955,7 @@ RdmaSendDataFreeBuffer(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-SendDataIsFull(
+RdmaSendDataIsFull(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
@@ -4289,7 +4291,7 @@ CxPlatRdmaDataPathSocketProcessReceive(
     }
 
     CXPLAT_DBG_ASSERT(ManaResult.RequestType == Nd2ManaRequestTypeRecvRdmaWithImmediate); 
-    CXPLAT_DBG_ASSERT(ManaResult.ImmediateDataOrRKey != 0);    
+    CXPLAT_DBG_ASSERT(ManaResult.ImmediateData != 0);    
 
     CXPLAT_RECV_DATA* Data = (CXPLAT_RECV_DATA*)(RxIoBlock + 1);
 
@@ -4316,7 +4318,7 @@ CxPlatRdmaDataPathSocketProcessReceive(
         // Get the last 16 bits of the immediate data as
         // the number of bytes transferred
         //
-        NumberOfBytesTransferred = (ManaResult.ImmediateDataOrRKey & 0xFFFF);
+        NumberOfBytesTransferred = (ManaResult.ImmediateData & 0xFFFF);
 
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= RdmaConnection->RecvRingBuffer->Capacity - RecvOffset);
     }   
@@ -4327,14 +4329,14 @@ CxPlatRdmaDataPathSocketProcessReceive(
         //
         // Get the first 16 bits of the immediate data as receive offset
         //
-        RecvOffset = ((ManaResult.ImmediateDataOrRKey >> 16) & 0xFFFF);
+        RecvOffset = ((ManaResult.ImmediateData >> 16) & 0xFFFF);
         CXPLAT_DBG_ASSERT(RecvOffset < RdmaConnection->RecvRingBuffer->Capacity);
 
         //
         // Get the last 16 bits of the immediate data as
         // the number of bytes transferred
         //
-        NumberOfBytesTransferred = (ManaResult.ImmediateDataOrRKey & 0xFFFF);
+        NumberOfBytesTransferred = (ManaResult.ImmediateData & 0xFFFF);
         CXPLAT_DBG_ASSERT(NumberOfBytesTransferred <= RdmaConnection->RecvRingBuffer->Capacity - RecvOffset);
     }
 
@@ -4438,7 +4440,7 @@ CxPlatDataPathRdmaSendRingBufferOffsetsCompletion(
         return;
     }
 
-    CXPLAT_DBG_ASSERT(ManaResult.RequestType == Nd2ManaRequestTypeSend && Count > 0 && ManaResult.ImmediateDataOrRKey != 0);  
+    CXPLAT_DBG_ASSERT(ManaResult.RequestType == Nd2ManaRequestTypeSend && Count > 0 && ManaResult.ImmediateData != 0);  
 }
 
 void
@@ -4495,7 +4497,7 @@ CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion(
     //
     if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED)
     {
-        CXPLAT_DBG_ASSERT(ManaResult.ImmediateDataOrRKey == 0);
+        CXPLAT_DBG_ASSERT(ManaResult.ImmediateData == 0);
 
         //
         // Schedule a 1-sided RDMA read to get the Head offset from the peer
@@ -4508,7 +4510,7 @@ CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion(
         // Get the first 16 bits of the immediate data as receive offset
         //
         uint32_t OldHead = RdmaConnection->RemoteRingBuffer->Head;
-        RdmaConnection->RemoteRingBuffer->Head = (ManaResult.ImmediateDataOrRKey & 0xFFFF);
+        RdmaConnection->RemoteRingBuffer->Head = (ManaResult.ImmediateData & 0xFFFF);
         CXPLAT_DBG_ASSERT(RdmaConnection->RemoteRingBuffer->Head < RdmaConnection->RecvRingBuffer->Capacity); 
 
         //
@@ -4567,7 +4569,7 @@ CxPlatDataPathRdmaReadRingBufferOffsetsCompletion(
 
     CXPLAT_DBG_ASSERT(ManaResult.RequestType == Nd2ManaRequestTypeRead &&
                       Count > 0 &&
-                      ManaResult.ImmediateDataOrRKey != 0);
+                      ManaResult.ImmediateData != 0);
     uint32_t OldHead = RdmaConnection->RemoteRingBuffer->Head;
     RdmaConnection->RemoteRingBuffer->Head = ByteBufferToUInt32(RdmaConnection->RemoteRingBuffer->OffsetBuffer);
 
@@ -4770,15 +4772,15 @@ CxPlatRdmaRecvRemoteTokens(
 
     CXPLAT_DBG_ASSERT(Count > 0);
     CXPLAT_DBG_ASSERT(ManaResult.RequestType == Nd2ManaRequestTypeRecvWithImmediate);
-    CXPLAT_DBG_ASSERT(ManaResult.BytesTransferred == ManaResult.ImmediateDataOrRKey);
-    CXPLAT_DBG_ASSERT(ManaResult.ImmediateDataOrRKey == 16 || ManaResult.ImmediateDataOrRKey == 28);
+    CXPLAT_DBG_ASSERT(ManaResult.BytesTransferred == ManaResult.ImmediateData);
+    CXPLAT_DBG_ASSERT(ManaResult.ImmediateData == 16 || ManaResult.ImmediateData == 28);
 
     RdmaConnection->RemoteRingBuffer->Head = RdmaConnection->RemoteRingBuffer->Tail = 0;
     RdmaConnection->RemoteRingBuffer->RemoteAddress = ByteBufferToUInt64(&RdmaConnection->RecvRingBuffer->Buffer[0]);
     RdmaConnection->RemoteRingBuffer->Capacity = ByteBufferToUInt32(&RdmaConnection->RecvRingBuffer->Buffer[8]);
     RdmaConnection->RemoteRingBuffer->RemoteToken = ByteBufferToUInt32(&RdmaConnection->RecvRingBuffer->Buffer[12]);
 
-    if (ManaResult.ImmediateDataOrRKey == 16)
+    if (ManaResult.ImmediateData == 16)
     {
         RdmaConnection->RemoteRingBuffer->RemoteOffsetBufferAddress = 0;
         RdmaConnection->RemoteRingBuffer->RemoteOffsetBufferToken = 0;

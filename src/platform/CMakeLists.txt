@@ -63,12 +63,22 @@ add_library(msquic_platform STATIC ${SOURCES})
 add_library(msquic::platform ALIAS msquic_platform)
 set_target_properties(msquic_platform PROPERTIES EXPORT_NAME platform)
 
+# RDMA references
+if ("${CX_PLATFORM}" STREQUAL "windows")
+
+    target_include_directories(msquic_platform PRIVATE ${PROJECT_SOURCE_DIR}/Rdma/NetworkDirect/include)
+    target_include_directories(msquic_platform PRIVATE ${PROJECT_SOURCE_DIR}/Rdma/Mana)
+    target_link_libraries(msquic_platform PUBLIC ${PROJECT_SOURCE_DIR}/Rdma/NetworkDirect/lib/x64/ndutil.lib)
+endif()
+
+
 if("${CX_PLATFORM}" STREQUAL "windows")
     target_link_libraries(
         msquic_platform
         PUBLIC
         wbemuuid)
     target_link_libraries(msquic_platform PUBLIC winmm)
+
 elseif(QUIC_LINUX_XDP_ENABLED)
     find_library(NL_LIB nl-3)
     find_library(NL_ROUTE_LIB nl-route-3)

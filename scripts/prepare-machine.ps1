@@ -487,7 +487,7 @@ function Install-Clog2Text {
 
 function Install-NetworkDirect {
     Write-Host "Install NetworkDirect"
-    Install-Package NetworkDirect  -ProviderName NuGet -Destination $RootDir -ExcludeVersion  -Force
+    Install-Package NetworkDirect  -ProviderName NuGet -Destination $RootDir\Rdma -ExcludeVersion -Force
 }
 
 

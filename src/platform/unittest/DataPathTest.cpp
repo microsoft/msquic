@@ -139,6 +139,47 @@ struct TcpListenerContext {
     }
 };
 
+struct RdmaClientContext {
+    bool Connected : 1;
+    bool Disconnected : 1;
+    bool Received : 1;
+    CXPLAT_EVENT ConnectEvent;
+    CXPLAT_EVENT DisconnectEvent;
+    CXPLAT_EVENT ReceiveEvent;
+    RdmaClientContext() : Connected(false), Disconnected(false), Received(false) {
+        CxPlatEventInitialize(&ConnectEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&DisconnectEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ReceiveEvent, FALSE, FALSE);
+    }
+    ~RdmaClientContext() {
+        CxPlatEventUninitialize(ConnectEvent);
+        CxPlatEventUninitialize(DisconnectEvent);
+        CxPlatEventUninitialize(ReceiveEvent);
+    }
+};
+
+struct RdmaListenerContext {
+    CXPLAT_SOCKET* Server;
+    RdmaClientContext ServerContext;
+    bool Accepted : 1;
+    bool Reject : 1;
+    bool Rejected : 1;
+    CXPLAT_EVENT AcceptEvent;
+    RdmaListenerContext() : Server(nullptr), Accepted(false), Reject{false}, Rejected{false} {
+        CxPlatEventInitialize(&AcceptEvent, FALSE, FALSE);
+    }
+    ~RdmaListenerContext() {
+        DeleteSocket();
+        CxPlatEventUninitialize(AcceptEvent);
+    }
+    void DeleteSocket() {
+        if (Server) {
+            CxPlatSocketDelete(Server);
+            Server = nullptr;
+        }
+    }
+};
+
 struct DataPathTest : public ::testing::TestWithParam<int32_t>
 {
 protected:
@@ -418,6 +459,82 @@ protected:
     {
     }
 
+    //
+    // RDMA callbacks
+    //
+    static QUIC_STATUS
+    RdmaAcceptCallback(
+        _In_ CXPLAT_SOCKET* /* ListenerSocket */,
+        _In_ void* Context,
+        _In_ CXPLAT_SOCKET* ClientSocket,
+        _Out_ void** ClientContext
+        )
+    {
+        RdmaListenerContext* ListenerContext = (RdmaListenerContext*)Context;
+        if (ListenerContext->Reject) {
+            ListenerContext->Rejected = true;
+            CxPlatEventSet(ListenerContext->AcceptEvent);
+            return QUIC_STATUS_CONNECTION_REFUSED;
+        }
+        ListenerContext->Server = ClientSocket;
+        *ClientContext = &ListenerContext->ServerContext;
+        ListenerContext->Accepted = true;
+        CxPlatEventSet(ListenerContext->AcceptEvent);
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    static void
+    RdmaConnectCallback(
+        _In_ CXPLAT_SOCKET* /* Socket */,
+        _In_ void* Context,
+        _In_ BOOLEAN Connected
+        )
+    {
+        RdmaClientContext* ClientContext = (RdmaClientContext*)Context;
+        if (Connected) {
+            ClientContext->Connected = true;
+            CxPlatEventSet(ClientContext->ConnectEvent);
+        } else {
+            ClientContext->Disconnected = true;
+            CxPlatEventSet(ClientContext->DisconnectEvent);
+        }
+    }
+
+    static void
+    RdmaRecvCallback(
+        _In_ CXPLAT_SOCKET* /* Socket */,
+        _In_ void* Context,
+        _In_ CXPLAT_RECV_DATA* RecvDataChain
+        )
+    {
+        if (Context) {
+            RdmaClientContext* ClientContext = (RdmaClientContext*)Context;
+            ClientContext->Received = true;
+            CxPlatEventSet(ClientContext->ReceiveEvent);
+        }
+        CxPlatRecvDataReturn(RecvDataChain);
+    }
+
+    static void
+    RdmaEmptySendCompleteCallback(
+        _In_ CXPLAT_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ QUIC_STATUS /* Status */,
+        _In_ uint32_t /* ByteCount */
+        )
+    {
+    }
+
+    static void
+    RdmaSendCompleteCallback(
+        _In_ CXPLAT_SOCKET* /* Socket */,
+        _In_ void* /* Context */,
+        _In_ QUIC_STATUS /* Status */,
+        _In_ uint32_t /* ByteCount */
+        )
+    {
+    }
+
     const CXPLAT_UDP_DATAPATH_CALLBACKS EmptyUdpCallbacks = {
         EmptyReceiveCallback,
         EmptyUnreachableCallback,
@@ -440,6 +557,20 @@ protected:
         TcpConnectCallback,
         TcpDataRecvCallback,
         TcpEmptySendCompleteCallback
+    };
+
+    const CXPLAT_TCP_DATAPATH_CALLBACKS EmptyRdmaCallbacks = {
+        EmptyAcceptCallback,
+        EmptyConnectCallback,
+        EmptyReceiveCallback,
+        RdmaEmptySendCompleteCallback
+    };
+
+    const CXPLAT_RDMA_DATAPATH_CALLBACKS RdmaCallbacks = {
+        RdmaAcceptCallback,
+        RdmaConnectCallback,
+        RdmaRecvCallback,
+        RdmaSendCompleteCallback
     };
 };
 
