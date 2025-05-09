@@ -1027,7 +1027,7 @@ struct StrBuffer
     StrBuffer(const char* HexBytes)
     {
         Length = (uint16_t)(strlen(HexBytes) / 2);
-        Data = new uint8_t[Length];
+        Data = new(std::nothrow) uint8_t[Length];
 
         for (uint16_t i = 0; i < Length; ++i) {
             Data[i] =
