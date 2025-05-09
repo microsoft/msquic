@@ -1019,6 +1019,12 @@ WriteSslKeyLogFile(
 #endif
 }
 
+#ifdef _KERNEL_MODE
+#include <new.h>
+#else
+#include <new>
+#endif
+
 struct StrBuffer
 {
     uint8_t* Data;
