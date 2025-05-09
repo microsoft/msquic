@@ -717,12 +717,6 @@ CxPlatDpRawInterfaceInitialize(
             }
         }
 
-        //
-        // TODO: remove this assert. This is to verify netperf is taking the
-        // offload code path.
-        //
-        CXPLAT_FRE_ASSERT(Queue->OffloadStatus.Transmit.ChecksumOffload);
-
         Status =
             XskSetSockopt(
                 Queue->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
