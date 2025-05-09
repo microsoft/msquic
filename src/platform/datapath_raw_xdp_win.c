@@ -75,6 +75,7 @@ typedef struct CXPLAT_QUEUE {
     struct {
         struct {
             BOOLEAN ChecksumOffload : 1;
+            BOOLEAN ChecksumOffloadExtensions : 1;
         } Transmit;
     } OffloadStatus;
     uint16_t TxLayoutExtension;
@@ -381,6 +382,43 @@ CxPlatDpRawInterfaceUninitialize(
     #pragma warning(pop)
 }
 
+QUIC_STATUS
+GetTxOffloadConfig(
+    _In_ CXPLAT_QUEUE* Queue,
+    _Out_ uint32_t* TxChecksumOffload
+    )
+{
+    QUIC_STATUS Status;
+    XDP_CHECKSUM_CONFIGURATION ChecksumConfig;
+    uint32_t OptionLength = sizeof(ChecksumConfig);
+
+    Status =
+        XskGetSockopt(
+            Queue->TxXsk, XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM, &ChecksumConfig,
+            &OptionLength);
+    if (QUIC_FAILED(Status) ||
+        OptionLength < XDP_SIZEOF_CHECKSUM_CONFIGURATION_REVISION_1 ||
+        ChecksumConfig.Header.Revision != XDP_CHECKSUM_CONFIGURATION_REVISION_1 ||
+        ChecksumConfig.Header.Size < XDP_SIZEOF_CHECKSUM_CONFIGURATION_REVISION_1) {
+        *TxChecksumOffload = FALSE;
+        if (QUIC_SUCCEEDED(Status)) {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+        }
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM)");
+        goto Exit;
+    }
+
+    *TxChecksumOffload = ChecksumConfig.Enabled;
+
+Exit:
+
+    return Status;
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatDpRawInterfaceInitialize(
@@ -646,24 +684,37 @@ CxPlatDpRawInterfaceInitialize(
         }
 
         //
-        // TODO: check whether the interface currently supports the offload
-        // before enabling it (XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM).
+        // Before enabling the TX offload descriptors, check whether the offload
+        // is currently enabled on the interface. If it isn't, assume the
+        // interface (or XDP driver) does not and will not support the offload.
         //
-
-        uint32_t TxChecksumOffload = TRUE;
-        Status =
-            XskSetSockopt(
-                Queue->TxXsk, XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM, &TxChecksumOffload,
-                sizeof(TxChecksumOffload));
-        if (QUIC_SUCCEEDED(Status)) {
-            Queue->OffloadStatus.Transmit.ChecksumOffload = TRUE;
-        } else {
-            // Review: this log should be informational level.
+        uint32_t TxChecksumOffload = FALSE;
+        Status = GetTxOffloadConfig(Queue, &TxChecksumOffload);
+        if (QUIC_FAILED(Status)) {
+            CXPLAT_DBG_ASSERT(!TxChecksumOffload);
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
-                "XskSetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM)");
+                "GetTxOffloadConfig(Queue, &TxChecksumOffload)");
+        }
+
+        if (TxChecksumOffload) {
+            Status =
+                XskSetSockopt(
+                    Queue->TxXsk, XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM, &TxChecksumOffload,
+                    sizeof(TxChecksumOffload));
+            if (QUIC_SUCCEEDED(Status)) {
+                Queue->OffloadStatus.Transmit.ChecksumOffload = TRUE;
+                Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions = TRUE;
+            } else {
+                // Review: this log should be informational level.
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "XskSetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM)");
+            }
         }
 
         //
@@ -1757,7 +1808,7 @@ CxPlatDpRawTxSetL3ChecksumOffload(
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
 
-    CXPLAT_DBG_ASSERT(Packet->Queue->OffloadStatus.Transmit.ChecksumOffload);
+    CXPLAT_DBG_ASSERT(Packet->Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions);
 
     Packet->Layout.Layer3Type = XdpFrameLayer3TypeIPv4NoOptions;
     Packet->Layout.Layer3HeaderLength = sizeof(IPV4_HEADER);
@@ -1775,7 +1826,7 @@ CxPlatDpRawTxSetL4ChecksumOffload(
 {
     XDP_TX_PACKET* Packet = (XDP_TX_PACKET*)SendData;
 
-    CXPLAT_DBG_ASSERT(Packet->Queue->OffloadStatus.Transmit.ChecksumOffload);
+    CXPLAT_DBG_ASSERT(Packet->Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions);
 
     Packet->Layout.Layer3Type =
         IsIpv6 ? XdpFrameLayer3TypeIPv6NoExtensions : XdpFrameLayer3TypeIPv4NoOptions;
@@ -1834,7 +1885,7 @@ CxPlatXdpTx(
         Buffer->Address.Offset = FIELD_OFFSET(XDP_TX_PACKET, FrameBuffer);
         Buffer->Length = Packet->Buffer.Length;
 
-        if (Queue->OffloadStatus.Transmit.ChecksumOffload) {
+        if (Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions) {
             *(XDP_FRAME_LAYOUT*)((uint8_t*)Frame + Queue->TxLayoutExtension) = Packet->Layout;
             *(XDP_FRAME_CHECKSUM*)((uint8_t*)Frame + Queue->TxChecksumExtension) = Packet->Checksum;
         }
@@ -1864,6 +1915,22 @@ CxPlatXdpTx(
             SUCCEEDED(XskStatus) ? ErrorStatus : XskStatus,
             "XSK_SOCKOPT_TX_ERROR");
         Queue->Error = TRUE;
+    }
+
+    if (XskRingOffloadChanged(&Queue->TxRing) &&
+        Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions) {
+        uint32_t TxChecksumOffload;
+        QUIC_STATUS Status = GetTxOffloadConfig(Queue, &TxChecksumOffload);
+        if (QUIC_SUCCEEDED(Status)) {
+            Queue->OffloadStatus.Transmit.ChecksumOffload = !!TxChecksumOffload;
+        } else {
+            Queue->OffloadStatus.Transmit.ChecksumOffload = FALSE;
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "GetTxOffloadConfig");
+        }
     }
 
     return ProdCount > 0 || CompCount > 0;
