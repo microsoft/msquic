@@ -23,7 +23,23 @@ Abstract:
 #ifndef NOMINMAX
 #define NOMINMAX
 #endif
+
+extern "C" { // HACKS to statically link just the bits we need from core msquic
 #include "precomp.h" // from core directory
+const char PacketLogPrefix[2][2] = {{'C', 'S'}, {'T', 'R'}};
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnCloseLocally(
+    _In_ QUIC_CONNECTION*,
+    _In_ uint32_t,
+    _In_ uint64_t,
+    _In_opt_z_ const char*
+    )
+{
+    // no-op
+}
+}
+
 #include "msquichelper.h"
 #include "msquic.hpp"
 
@@ -977,7 +993,8 @@ void FuzzReceivePath(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE* Route) {
 }
 
 void SetupAndFuzz() {
-    MsQuic = new MsQuicApi();
+    CxPlatSystemLoad();
+    CxPlatInitialize();
 
     CXPLAT_DATAPATH* Datapath;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
@@ -992,9 +1009,10 @@ void SetupAndFuzz() {
             NULL,
             WorkerPool,
             &Datapath));
+    QUIC_ADDRESS_FAMILY Family =
+        GetRandom<uint8_t>(2) == 0 ?
+            QUIC_ADDRESS_FAMILY_INET6 : QUIC_ADDRESS_FAMILY_INET;
     QUIC_ADDR sockAddr = {0};
-    auto value = GetRandom<uint8_t>(2);
-    QUIC_ADDRESS_FAMILY Family = (value == 0) ? QUIC_ADDRESS_FAMILY_INET6 : QUIC_ADDRESS_FAMILY_INET; // fuzz
     QuicAddrSetFamily(&sockAddr, Family);
     MUST_SUCCEED(
         CxPlatDataPathResolveAddress(
@@ -1023,6 +1041,8 @@ void SetupAndFuzz() {
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
 
+    MsQuic = new MsQuicApi();
+
     {
         //
         // Set up a QUIC server and fuzz it.
@@ -1049,6 +1069,9 @@ void SetupAndFuzz() {
         FuzzReceivePath(Binding, &Route);
     }
 
+    delete MsQuic;
+    MsQuic = nullptr;
+
     CxPlatSocketDelete(Binding);
     CxPlatDataPathUninitialize(Datapath);
     CxPlatWorkerPoolDelete(WorkerPool);
@@ -1059,8 +1082,8 @@ void SetupAndFuzz() {
         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
     }
 
-    delete MsQuic;
-    MsQuic = nullptr;
+    CxPlatUninitialize();
+    CxPlatSystemUnload();
 }
 
 #ifdef FUZZING

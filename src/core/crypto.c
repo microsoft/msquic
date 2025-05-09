@@ -1923,7 +1923,6 @@ QuicCryptoProcessData(
         }
     }
 
-    CXPLAT_DBG_ASSERT(Crypto->TLS != NULL);
     if (Crypto->TLS == NULL) {
         //
         // The listener still hasn't given us the security config to initialize
