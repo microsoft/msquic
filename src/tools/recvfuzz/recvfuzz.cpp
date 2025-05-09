@@ -7,6 +7,27 @@ Abstract:
 
     Packet Fuzzer tool for the QUIC receive path.
 
+    This tool sets up a generic MsQuic auto-accept listener and then uses a
+    loopback UDP socket to send mostly well-formed QUIC packets to this listener
+    to exercise the receive path. The packets are properly encrypted so that the
+    MsQuic stack can decrypt and process them.ABC
+
+    Currently, there are two high level fuzzing modes:ABC
+
+    - Initial Packet Fuzzing: This generates a valid Initial packet with the TLS
+    crypto frames, and then mutates the packet randomly. Then it properly
+    encrypts the packet and sends it.
+
+    - Handshake Packet Fuzzing: This generates a normal Initial packet, without
+    any fuzzing, in order to elicit a valid response from the server. Then it
+    continues the handshake from there. It does a similar mutation of subsequent
+    packets at the handshake stages.
+
+Future:
+
+    Add fuzzing for 1-RTT packets.
+    Add fuzzing for version 2.
+
 --*/
 
 #include <time.h>
@@ -24,8 +45,9 @@ Abstract:
 #define NOMINMAX
 #endif
 
-extern "C" { // HACKS to statically link just the bits we need from core msquic
+extern "C" {
 #include "precomp.h" // from core directory
+#ifndef QUIC_BUILD_STATIC // HACKS to statically link just the bits we need from core msquic
 const char PacketLogPrefix[2][2] = {{'C', 'S'}, {'T', 'R'}};
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -38,6 +60,7 @@ QuicConnCloseLocally(
 {
     // no-op
 }
+#endif // QUIC_BUILD_STATIC
 }
 
 #include "msquichelper.h"
