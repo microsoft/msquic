@@ -196,9 +196,11 @@ if (!($Session -eq "NOT_SUPPORTED")) {
     Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
     Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
     Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+}
 
-    # Create the logs directories on both machines.
-    New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+# Create the logs directories on both machines.
+New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+if ($Session -ne "NOT_SUPPORTED") {
     Invoke-Command -Session $Session -ScriptBlock {
         New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
     }
