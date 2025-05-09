@@ -977,6 +977,8 @@ void FuzzReceivePath(CXPLAT_SOCKET* Binding, CXPLAT_ROUTE* Route) {
 }
 
 void SetupAndFuzz() {
+    MsQuic = new MsQuicApi();
+
     CXPLAT_DATAPATH* Datapath;
     const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
         UdpRecvCallback,
@@ -1021,7 +1023,6 @@ void SetupAndFuzz() {
     CxPlatSocketGetLocalAddress(Binding, &Route.LocalAddress);
     Route.RemoteAddress = sockAddr;
 
-    MsQuic = new MsQuicApi();
     {
         //
         // Set up a QUIC server and fuzz it.
@@ -1047,8 +1048,6 @@ void SetupAndFuzz() {
 
         FuzzReceivePath(Binding, &Route);
     }
-    delete MsQuic;
-    MsQuic = nullptr;
 
     CxPlatSocketDelete(Binding);
     CxPlatDataPathUninitialize(Datapath);
@@ -1059,6 +1058,9 @@ void SetupAndFuzz() {
         PacketQueue = (QUIC_RX_PACKET*)packet->_.Next;
         CXPLAT_FREE(packet, QUIC_POOL_TOOL);
     }
+
+    delete MsQuic;
+    MsQuic = nullptr;
 }
 
 #ifdef FUZZING
