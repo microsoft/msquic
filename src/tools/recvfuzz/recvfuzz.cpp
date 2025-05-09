@@ -10,9 +10,9 @@ Abstract:
     This tool sets up a generic MsQuic auto-accept listener and then uses a
     loopback UDP socket to send mostly well-formed QUIC packets to this listener
     to exercise the receive path. The packets are properly encrypted so that the
-    MsQuic stack can decrypt and process them.ABC
+    MsQuic stack can decrypt and process them.
 
-    Currently, there are two high level fuzzing modes:ABC
+    Currently, there are two high level fuzzing modes:
 
     - Initial Packet Fuzzing: This generates a valid Initial packet with the TLS
     crypto frames, and then mutates the packet randomly. Then it properly
