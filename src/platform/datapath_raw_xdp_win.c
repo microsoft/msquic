@@ -634,31 +634,6 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Status =
-            XskSetSockopt(
-                Queue->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "XskSetSockopt(XSK_SOCKOPT_TX_RING_SIZE)");
-            goto Error;
-        }
-
-        Status =
-            XskSetSockopt(
-                Queue->TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &Xdp->TxRingSize,
-                sizeof(Xdp->TxRingSize));
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "XskSetSockopt(XSK_SOCKOPT_TX_COMPLETION_RING_SIZE)");
-            goto Error;
-        }
-
         Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
         Status = XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
@@ -696,6 +671,31 @@ CxPlatDpRawInterfaceInitialize(
         // offload code path.
         //
         CXPLAT_FRE_ASSERT(Queue->OffloadStatus.Transmit.ChecksumOffload);
+
+        Status =
+            XskSetSockopt(
+                Queue->TxXsk, XSK_SOCKOPT_TX_RING_SIZE, &Xdp->TxRingSize, sizeof(Xdp->TxRingSize));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskSetSockopt(XSK_SOCKOPT_TX_RING_SIZE)");
+            goto Error;
+        }
+
+        Status =
+            XskSetSockopt(
+                Queue->TxXsk, XSK_SOCKOPT_TX_COMPLETION_RING_SIZE, &Xdp->TxRingSize,
+                sizeof(Xdp->TxRingSize));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "XskSetSockopt(XSK_SOCKOPT_TX_COMPLETION_RING_SIZE)");
+            goto Error;
+        }
 
         Status = XskActivate(Queue->TxXsk, 0);
         if (QUIC_FAILED(Status)) {
