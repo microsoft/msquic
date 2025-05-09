@@ -691,6 +691,12 @@ CxPlatDpRawInterfaceInitialize(
                 "XskSetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM)");
         }
 
+        //
+        // TODO: remove this assert. This is to verify netperf is taking the
+        // offload code path.
+        //
+        CXPLAT_FRE_ASSERT(Queue->OffloadStatus.Transmit.ChecksumOffload);
+
         Status = XskActivate(Queue->TxXsk, 0);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
