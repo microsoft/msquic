@@ -1034,7 +1034,10 @@ struct StrBuffer
     {
         Length = (uint16_t)(strlen(HexBytes) / 2);
         Data = new(std::nothrow) uint8_t[Length];
-
+        if (Data == nullptr) {
+            Length = 0;
+            return;
+        }
         for (uint16_t i = 0; i < Length; ++i) {
             Data[i] =
                 (DecodeHexChar(HexBytes[i * 2]) << 4) |
