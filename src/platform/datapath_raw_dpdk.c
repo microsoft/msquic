@@ -535,10 +535,29 @@ CxPlatDpRawAssignQueue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 const CXPLAT_INTERFACE*
 CxPlatDpRawGetInterfaceFromQueue(
-    _In_ const void* Queue
+    _In_ const CXPLAT_QUEUE* Queue
     )
 {
     return (const CXPLAT_INTERFACE*)Queue;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL3TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
+    )
+{
+    return CxPlatDpRawGetInterfaceFromQueue(Queue)->OffloadStatus.Transmit.NetworkLayerXsum;
+}
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL4TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
+    )
+{
+    return CxPlatDpRawGetInterfaceFromQueue(Queue)->OffloadStatus.Transmit.TransportLayerXsum;
 }
 
 static
@@ -682,6 +701,30 @@ CxPlatDpRawTxEnqueue(
     }
 
     CxPlatPoolFree(Packet);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL3ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    UNREFERENCED_PARAMETER(SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL4ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN IsIpv6,
+    _In_ BOOLEAN IsTcp,
+    _In_ uint8_t L4HeaderLength
+    )
+{
+    UNREFERENCED_PARAMETER(SendData);
+    UNREFERENCED_PARAMETER(IsIpv6);
+    UNREFERENCED_PARAMETER(IsTcp);
+    UNREFERENCED_PARAMETER(L4HeaderLength);
 }
 
 static
