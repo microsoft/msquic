@@ -561,13 +561,12 @@ CxPlatDpRawSocketAckFin(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     CxPlatFramingWriteHeaders(
         Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
         TH_FIN | TH_ACK);
@@ -592,7 +591,6 @@ CxPlatDpRawSocketAckSyn(
     uint8_t TcpFlags = Packet->Reserved == L4_TYPE_TCP_SYN ? (TH_SYN | TH_ACK) : TH_ACK;
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     QuicTraceEvent(
@@ -606,8 +604,8 @@ CxPlatDpRawSocketAckSyn(
 
     CxPlatFramingWriteHeaders(
         Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
         TcpFlags);
@@ -626,8 +624,8 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
             Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum,
+            CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+            CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_ACK);
@@ -649,8 +647,8 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
             Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum,
+            CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+            CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
             ReceivedTcpHeader->AckNumber,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_RST | TH_ACK);
@@ -682,11 +680,10 @@ CxPlatDpRawSocketSyn(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
         Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         Route->TcpState.SequenceNumber, 0, TH_SYN);
     CxPlatDpRawTxEnqueue(SendData);
 }
