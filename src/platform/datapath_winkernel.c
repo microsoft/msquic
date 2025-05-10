@@ -2009,8 +2009,6 @@ CxPlatDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
-    PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     CXPLAT_RECV_DATA* RecvDataChain = NULL;
     CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
@@ -2019,11 +2017,8 @@ CxPlatDataPathSocketReceive(
     //
     // Process all the data indicated by the callback.
     //
-    while (DataIndicationHead != NULL) {
-
-        PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
-        DataIndicationHead = DataIndicationHead->Next;
-        DataIndication->Next = NULL;
+    PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
+    while (DataIndication != NULL) {
 
         DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
         DATAPATH_RX_PACKET* Datagram = NULL;
@@ -2304,8 +2299,7 @@ CxPlatDataPathSocketReceive(
 
     Drop:
 
-        *ReleaseChainTail = DataIndication;
-        ReleaseChainTail = &DataIndication->Next;
+        DataIndication = DataIndication->Next;
     }
 
     if (RecvDataChain != NULL) {
@@ -2325,12 +2319,10 @@ CxPlatDataPathSocketReceive(
         }
     }
 
-    if (ReleaseChain != NULL) {
-        //
-        // Release any dropped or copied datagrams.
-        //
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
-    }
+    //
+    // Release any dropped or copied datagrams.
+    //
+    Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndicationHead);
 
     CxPlatRundownRelease(&Binding->Rundown[CurProcNumber]);
 
