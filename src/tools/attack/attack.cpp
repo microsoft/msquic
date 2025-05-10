@@ -72,26 +72,6 @@ struct CallbackContext {
     CXPLAT_EVENT Event;
 };
 
-struct StrBuffer
-{
-    uint8_t* Data;
-    uint16_t Length;
-
-    StrBuffer(const char* HexBytes)
-    {
-        Length = (uint16_t)(strlen(HexBytes) / 2);
-        Data = new uint8_t[Length];
-
-        for (uint16_t i = 0; i < Length; ++i) {
-            Data[i] =
-                (DecodeHexChar(HexBytes[i * 2]) << 4) |
-                DecodeHexChar(HexBytes[i * 2 + 1]);
-        }
-    }
-
-    ~StrBuffer() { delete [] Data; }
-};
-
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
 void
