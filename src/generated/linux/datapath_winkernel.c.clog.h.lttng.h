@@ -351,9 +351,9 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocIoBlockFailure,
 // Decoder Ring for DatapathDropAllocRecvBufferFailure
 // [%p] Couldn't allocate receive buffers.
 // QuicTraceLogWarning(
-                            DatapathDropAllocRecvBufferFailure,
-                            "[%p] Couldn't allocate receive buffers.",
-                            Binding);
+                        DatapathDropAllocRecvBufferFailure,
+                        "[%p] Couldn't allocate receive buffers.",
+                        Binding);
 // arg2 = arg2 = Binding = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_WINKERNEL_C, DatapathDropAllocRecvBufferFailure,
