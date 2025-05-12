@@ -193,6 +193,7 @@ typedef struct RECORD_ENTRY {
 typedef struct SECRET_SET {
     uint8_t *Secret;
     size_t SecretLen;
+    uint8_t installed;
 } SECRET_SET;
 
 //
@@ -533,6 +534,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
 
     UNREFERENCED_PARAMETER(Arg);
 
+    fprintf(stderr, "Got YieldSecret Callback (%s)\n", TlsContext->IsServer ? "Server" : "Client");
     QuicTraceLogConnVerbose(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
@@ -549,6 +551,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     }
     memcpy(AData->SecretSet[ProtLevel][Dir].Secret, NewSecret, SecretLen);
     AData->SecretSet[ProtLevel][Dir].SecretLen = SecretLen;
+
     //
     //  Delay installation of keys until we have both, with the exceptions of
     // 0-RTT as the client won't get a read key
@@ -556,9 +559,17 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     // we process the handshake finished message, which may be in a subsequent
     // pass through ProcessData
     //
-    if ((ProtLevel != QUIC_PACKET_KEY_1_RTT && TlsContext->IsServer)
-         && ProtLevel != QUIC_PACKET_KEY_0_RTT && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+    if (Dir != 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+    //if ((ProtLevel != QUIC_PACKET_KEY_1_RTT && TlsContext->IsServer)
+    //     && ProtLevel != QUIC_PACKET_KEY_0_RTT && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+	    fprintf(stderr, "Caching %s key for level %d (%s)\n", Dir == 1 ? "Write" : "Read", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
         return 1;
+    }
+
+    if (Dir == 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+        fprintf(stderr, "Installing Write secret for level %d (%s)\n", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
+    } else {
+        fprintf(stderr, "Installing Read/Write keys for level %d (%s)\n", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
     }
 
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
@@ -566,7 +577,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     //
     // Tx/Write Secret
     //
-    if (AData->SecretSet[ProtLevel][1].Secret != NULL && TlsState->WriteKeys[KeyType] == NULL) {
+    if (AData->SecretSet[ProtLevel][1].Secret != NULL && TlsState->WriteKeys[KeyType] == NULL && AData->SecretSet[ProtLevel][1].installed == 0) {
         CxPlatCopyMemory(Secret.Secret, AData->SecretSet[ProtLevel][1].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
         CXPLAT_DBG_ASSERT(TlsState->WriteKeys[KeyType] == NULL);
         Status =
@@ -588,8 +599,9 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         }
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_WRITE_KEY_UPDATED;
         TlsState->WriteKey = KeyType;
+        AData->SecretSet[ProtLevel][1].installed = 1;
     }
-    if (AData->SecretSet[ProtLevel][0].Secret != NULL && TlsState->ReadKeys[KeyType] == NULL) {
+    if (AData->SecretSet[ProtLevel][0].Secret != NULL && TlsState->ReadKeys[KeyType] == NULL && AData->SecretSet[ProtLevel][0].installed == 0) {
         CxPlatCopyMemory(Secret.Secret, AData->SecretSet[ProtLevel][0].Secret, AData->SecretSet[ProtLevel][0].SecretLen);
         Status =
             QuicPacketKeyDerive(
@@ -605,8 +617,11 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         }
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         TlsState->ReadKey = KeyType;
+        AData->SecretSet[ProtLevel][0].installed = 1;
     }
-    AData->Level = ProtLevel;
+    if (AData->SecretSet[ProtLevel][0].installed == 1 && AData->SecretSet[ProtLevel][1].installed == 1) {
+        AData->Level = ProtLevel;
+    }
 
     //
     // If we are installing initial Secrets TlsSecrets aren't allocated yet
@@ -2763,6 +2778,30 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 // @warning Assumes the record buffer contains valid TLS handshake formatting.
 // @warning The function asserts that the message type is <= 20.
 //
+static char *message_types[] = {
+	"HelloRequest (0)",
+	"ClientHello (1)",
+	"ServerHello (2)",
+	"Unknown (3)",
+	"NewSessionTicket (4)",
+	"Unknown (5)",
+	"Unknown (6)",
+	"Unknown (7)",
+	"Encrypted Extensions (8)",
+	"Unknown (9)",
+	"Unknown (10)",
+	"Certificate (11)",
+	"ServerKeyExch (12)",
+	"CertRequest (13)",
+	"ServerHelloDone (14)",
+	"CertificateVerify (15)",
+	"ClientKeyExch (16)",
+	"Unknown (17)",
+	"Unknown (18)",
+	"Unknown (19)",
+	"Finished (20)"
+};
+
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
     RECORD_ENTRY *leftover = NULL;
@@ -2800,6 +2839,8 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
             CXPLAT_FREE(Entry, QUIC_POOL_TLS_RECORD_ENTRY);
             return -1;
         }
+
+	fprintf(stderr, "Processing TLS message %s\n", message_types[message_type]);
 
         //
         // Stop processing if this is a handshake finished record
@@ -3026,6 +3067,8 @@ CxPlatTlsProcessData(
 
     TlsContext->State = State;
     TlsContext->ResultFlags = 0;
+
+    fprintf(stderr, "In CxPlatTlsProcessData (%s)\n", TlsContext->IsServer ? "Server" : "Client");
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
@@ -3264,6 +3307,7 @@ Exit:
         }
     }
 
+    fprintf(stderr, "Returning from CxPlatTlsProcessData (%s)\n", TlsContext->IsServer ? "Server" : "Client");
     return TlsContext->ResultFlags;
 }
 
