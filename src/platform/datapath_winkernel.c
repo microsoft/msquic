@@ -2001,7 +2001,6 @@ CxPlatDataPathSocketReceive(
     }
 
     CXPLAT_DBG_ASSERT(Context != NULL);
-
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
     const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
@@ -2020,9 +2019,6 @@ CxPlatDataPathSocketReceive(
     PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
     while (DataIndication != NULL) {
 
-        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
-        DATAPATH_RX_PACKET* Datagram = NULL;
-
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
             QuicTraceLogWarning(
@@ -2032,6 +2028,8 @@ CxPlatDataPathSocketReceive(
             goto Drop;
         }
 
+        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
+        DATAPATH_RX_PACKET* Datagram = NULL;
         BOOLEAN FoundLocalAddr = FALSE;
         BOOLEAN IsUnreachableError = FALSE;
         BOOLEAN IsCoalesced = FALSE;
@@ -2319,14 +2317,9 @@ CxPlatDataPathSocketReceive(
         }
     }
 
-    //
-    // Release any dropped or copied datagrams.
-    //
-    Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndicationHead);
-
     CxPlatRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_PENDING;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
