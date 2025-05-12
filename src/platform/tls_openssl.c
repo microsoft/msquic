@@ -617,7 +617,17 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         }
         TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
         TlsState->ReadKey = KeyType;
-        AData->SecretSet[ProtLevel][0].installed = 1;
+
+        if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
+            // The 1-RTT read keys aren't actually allowed to be used until the 
+            // handshake completes.
+            // 
+        } else { 
+            fprintf(stderr, "Updating to %d in SetEncryptionSecrets for %s\n", KeyType, TlsContext->IsServer ? "Server" : "Client");                      
+            TlsState->ReadKey = KeyType;
+            TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
+            AData->SecretSet[ProtLevel][0].installed = 1;
+        }       
     }
     if (AData->SecretSet[ProtLevel][0].installed == 1 && AData->SecretSet[ProtLevel][1].installed == 1) {
         AData->Level = ProtLevel;
@@ -3187,7 +3197,7 @@ more_handshake:
             }
         }
 
-        if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT) {
+        if (TlsContext->State->WriteKey == QUIC_PACKET_KEY_1_RTT && AData->SecretSet[3][0].Secret != NULL) {
             QuicTraceLogConnInfo(
                 OpenSslHandshakeComplete,
                 TlsContext->Connection,
