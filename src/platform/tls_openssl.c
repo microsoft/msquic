@@ -534,7 +534,6 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
 
     UNREFERENCED_PARAMETER(Arg);
 
-    fprintf(stderr, "Got YieldSecret Callback (%s)\n", TlsContext->IsServer ? "Server" : "Client");
     QuicTraceLogConnVerbose(
         OpenSslNewEncryptionSecrets,
         TlsContext->Connection,
@@ -560,16 +559,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     // pass through ProcessData
     //
     if (Dir != 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
-    //if ((ProtLevel != QUIC_PACKET_KEY_1_RTT && TlsContext->IsServer)
-    //     && ProtLevel != QUIC_PACKET_KEY_0_RTT && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
-	    fprintf(stderr, "Caching %s key for level %d (%s)\n", Dir == 1 ? "Write" : "Read", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
         return 1;
-    }
-
-    if (Dir == 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
-        fprintf(stderr, "Installing Write secret for level %d (%s)\n", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
-    } else {
-        fprintf(stderr, "Installing Read/Write keys for level %d (%s)\n", ProtLevel, TlsContext->IsServer ? "Server" : "Client");
     }
 
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
@@ -623,7 +613,6 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             // handshake completes.
             // 
         } else { 
-            fprintf(stderr, "Updating to %d in SetEncryptionSecrets for %s\n", KeyType, TlsContext->IsServer ? "Server" : "Client");                      
             TlsState->ReadKey = KeyType;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             AData->SecretSet[ProtLevel][0].installed = 1;
@@ -2788,30 +2777,6 @@ static RECORD_ENTRY *MakeNewRecord(const uint8_t *Record, size_t RecLen, SSL *Ss
 // @warning Assumes the record buffer contains valid TLS handshake formatting.
 // @warning The function asserts that the message type is <= 20.
 //
-static char *message_types[] = {
-	"HelloRequest (0)",
-	"ClientHello (1)",
-	"ServerHello (2)",
-	"Unknown (3)",
-	"NewSessionTicket (4)",
-	"Unknown (5)",
-	"Unknown (6)",
-	"Unknown (7)",
-	"Encrypted Extensions (8)",
-	"Unknown (9)",
-	"Unknown (10)",
-	"Certificate (11)",
-	"ServerKeyExch (12)",
-	"CertRequest (13)",
-	"ServerHelloDone (14)",
-	"CertificateVerify (15)",
-	"ClientKeyExch (16)",
-	"Unknown (17)",
-	"Unknown (18)",
-	"Unknown (19)",
-	"Finished (20)"
-};
-
 static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 {
     RECORD_ENTRY *leftover = NULL;
@@ -2850,7 +2815,6 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
             return -1;
         }
 
-	fprintf(stderr, "Processing TLS message %s\n", message_types[message_type]);
 
         //
         // Stop processing if this is a handshake finished record
@@ -3077,8 +3041,6 @@ CxPlatTlsProcessData(
 
     TlsContext->State = State;
     TlsContext->ResultFlags = 0;
-
-    fprintf(stderr, "In CxPlatTlsProcessData (%s)\n", TlsContext->IsServer ? "Server" : "Client");
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         QuicTraceLogConnVerbose(
@@ -3317,7 +3279,6 @@ Exit:
         }
     }
 
-    fprintf(stderr, "Returning from CxPlatTlsProcessData (%s)\n", TlsContext->IsServer ? "Server" : "Client");
     return TlsContext->ResultFlags;
 }
 
