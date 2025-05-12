@@ -140,15 +140,17 @@ function Install-XDP {
     .\scripts\prepare-machine.ps1 -InstallXdpDriver
     Write-Host "Installing XDP driver on peer"
 
-    if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP"
-        NetperfWaitServerFinishExecution
-        return
-    }
+    # TODO: revert. Use XDP only on the client machine.
 
-    Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
-    }
+    # if ($Session -eq "NOT_SUPPORTED") {
+    #     NetperfSendCommand "Install_XDP"
+    #     NetperfWaitServerFinishExecution
+    #     return
+    # }
+
+    # Invoke-Command -Session $Session -ScriptBlock {
+    #     & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
+    # }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
