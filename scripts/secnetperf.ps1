@@ -205,7 +205,8 @@ if (!($Session -eq "NOT_SUPPORTED")) {
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
+# TODO: revert to conditionally collect this information.
+if ($isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -236,6 +237,12 @@ if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
         Write-Host "Generated get-netview.peer.zip"
     } catch { Write-Host $_ }
     Write-Host "::endgroup::"
+
+    # TODO: remove
+    Write-Host "Get-NetAdapterChecksumOffload -ifDesc *Hyper*"
+    (Get-NetAdapterChecksumOffload -ifDesc "*Hyper*").ChecksumOffloadHardwareCapabilities | Out-String | Write-Host
+    Write-Host "Get-NetAdapterChecksumOffload -ifDesc *"
+    (Get-NetAdapterChecksumOffload -ifDesc "*").ChecksumOffloadHardwareCapabilities | Out-String | Write-Host
 }
 
 $json = @{}
