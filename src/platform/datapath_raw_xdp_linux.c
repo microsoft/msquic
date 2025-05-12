@@ -1311,6 +1311,7 @@ CxPlatXdpRx(
         // a route lookup.
         //
         Packet->RecvData.Route->State = RouteResolved;
+        CXPLAT_DBG_ASSERT(Packet->RecvData.Route->Queue != NULL);
 
         if (Packet->RecvData.Buffer) {
             Packet->Addr = Addr - (XDP_PACKET_HEADROOM + XskInfo->UmemInfo->RxHeadRoom);

@@ -739,6 +739,8 @@ RunInteropTest(
     Settings.IsSet.SendBufferingEnabled = TRUE;
     Settings.IdleTimeoutMs = WaitTimeoutMs;
     Settings.IsSet.IdleTimeoutMs = TRUE;
+    Settings.XdpEnabled = TRUE;
+    Settings.IsSet.XdpEnabled = TRUE;
     if (Feature == KeyUpdate) {
         Settings.MaxBytesPerKey = 10; // Force a key update after every 10 bytes sent
         Settings.IsSet.MaxBytesPerKey = TRUE;

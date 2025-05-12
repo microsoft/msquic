@@ -6265,6 +6265,7 @@ QuicConnParamSet(
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
+            Connection->Paths[0].Route.State = RouteUnresolved;
             Connection->Paths[0].Route.Queue = NULL;
 
             //

@@ -196,17 +196,19 @@ if (!($Session -eq "NOT_SUPPORTED")) {
     Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
     Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
     Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+}
 
-    # Create the logs directories on both machines.
-    New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+# Create the logs directories on both machines.
+New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+if ($Session -ne "NOT_SUPPORTED") {
     Invoke-Command -Session $Session -ScriptBlock {
         New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
     }
 }
 
 # Collect some info about machine state.
-# TODO: revert to conditionally collect this information.
-if ($isWindows -and !($Session -eq "NOT_SUPPORTED")) {
+# TODO: add !NoLogs back
+if ($isWindows) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -225,18 +227,20 @@ if ($isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     } catch { Write-Host $_ }
     Write-Host "::endgroup::"
 
-    Write-Host "::group::Collecting information on peer machine state"
-    try {
-        Invoke-Command -Session $Session -ScriptBlock {
-            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
-            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
-            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
-            Rename-Item $filePath "get-netview.peer.zip"
-        }
-        Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
-        Write-Host "Generated get-netview.peer.zip"
-    } catch { Write-Host $_ }
-    Write-Host "::endgroup::"
+    if ($Session -ne "NOT_SUPPORTED") {
+        Write-Host "::group::Collecting information on peer machine state"
+        try {
+            Invoke-Command -Session $Session -ScriptBlock {
+                Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
+                Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+                $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+                Rename-Item $filePath "get-netview.peer.zip"
+            }
+            Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
+            Write-Host "Generated get-netview.peer.zip"
+        } catch { Write-Host $_ }
+        Write-Host "::endgroup::"
+    }
 
     # TODO: remove
     Write-Host "Get-NetAdapterChecksumOffload -ifDesc *Hyper*"
