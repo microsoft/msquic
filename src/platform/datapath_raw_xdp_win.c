@@ -715,6 +715,12 @@ CxPlatDpRawInterfaceInitialize(
                     Status,
                     "XskSetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM)");
             }
+        } else {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                QUIC_STATUS_NOT_SUPPORTED,
+                "TX checksum offload is not configured on the XDP interface");
         }
 
         Status =
