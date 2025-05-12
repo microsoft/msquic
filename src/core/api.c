@@ -1106,6 +1106,7 @@ MsQuicStreamSend(
     SendRequest->Flags = Flags & ~QUIC_SEND_FLAGS_INTERNAL;
     SendRequest->TotalLength = TotalLength;
     SendRequest->ClientContext = ClientSendContext;
+    SendRequest->BytesToBeCopiedBeforeNextCopiedToFrameEvent = 0;
 
 #pragma warning(push)
 #pragma warning(disable:6240) // CXPLAT_AT_DISPATCH only really does anything for kernel mode
@@ -1859,6 +1860,7 @@ MsQuicDatagramSend(
     SendRequest->Flags = Flags;
     SendRequest->TotalLength = TotalLength;
     SendRequest->ClientContext = ClientSendContext;
+    SendRequest->BytesToBeCopiedBeforeNextCopiedToFrameEvent = 0;
 
     Status = QuicDatagramQueueSend(&Connection->Datagram, SendRequest);
 

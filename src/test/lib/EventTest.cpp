@@ -1703,8 +1703,9 @@ QuicTestValidateStreamEvents9(
     { // Stream scope
 
     StreamValidator ClientStream(
-        new(std::nothrow) StreamEventValidator* [5] {
+        new(std::nothrow) StreamEventValidator* [6] {
             new(std::nothrow) StreamStartCompleteEventValidator(),
+            new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_COPIED_TO_FRAME, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_COMPLETE, 0, true),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE),
             new(std::nothrow) StreamEventValidator(QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE, QUIC_EVENT_ACTION_SHUTDOWN_CONNECTION),

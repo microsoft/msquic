@@ -99,6 +99,12 @@ typedef struct QUIC_SEND_REQUEST {
     //
     void* ClientContext;
 
+    //
+    // The number of bytes to be copied into a frame before signalling the next
+    // QUIC_STREAM_EVENT_COPIED_TO_FRAME event.
+    //
+    uint64_t BytesToBeCopiedBeforeNextCopiedToFrameEvent;
+
 } QUIC_SEND_REQUEST;
 
 //

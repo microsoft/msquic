@@ -17,6 +17,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
     QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
+    QUIC_STREAM_EVENT_COPIED_TO_FRAME           = 11,
 } QUIC_STREAM_EVENT_TYPE;
 ```
 
@@ -69,6 +70,13 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             /* out */ QUIC_UINT62 ErrorCode;
         } CANCEL_ON_LOSS;
+        struct {
+            uint64_t BytesCopied;
+            /* in */ uint64_t *BytesCopiedBeforeNextEvent; // Minimum number of send data bytes
+                                                           // need to be copied before the
+                                                           // next event is signalled
+            void* ClientSendContext; // Identical to ClientContext in SEND_COMPLETE
+        } COPIED_TO_FRAME;
     };
 } QUIC_STREAM_EVENT;
 ```
@@ -260,6 +268,21 @@ The application can supply an error code in this struct to be sent to the peer.
 `ErrorCode`
 
 The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event on its stream object.
+
+## QUIC_STREAM_EVENT_COPIED_TO_FRAME
+
+This event is raised when a stream writes bytes from a send request to a data frame. The event is always triggered on first write to frame, the application decides when (or if)
+it should trigger the next time by setting `BytesCopiedBeforeNextEvent` in the callback.
+
+`BytesCopied`
+
+The number of bytes written
+
+`BytesCopiedBeforeNextEvent`
+
+Number of bytes copied from the send request before the next `QUIC_STREAM_EVENT_COPIED_TO_FRAME` is raised, defaults to a very high value and consequently the next event is never 
+triggered.
+
 
 # See Also
 
