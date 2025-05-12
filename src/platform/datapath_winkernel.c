@@ -90,11 +90,6 @@ typedef enum {
 //
 #define URO_MAX_DATAGRAMS_PER_INDICATION    64
 
-//
-// The maximum allowed pending WSK buffers per proc before copying.
-//
-#define PENDING_BUFFER_LIMIT                0
-
 CXPLAT_STATIC_ASSERT(
     sizeof(QUIC_BUFFER) == sizeof(WSABUF),
     "WSABUF is assumed to be interchangeable for QUIC_BUFFER");
@@ -111,22 +106,19 @@ typedef struct CXPLAT_DATAPATH_PROC_CONTEXT CXPLAT_DATAPATH_PROC_CONTEXT;
 // Internal receive allocation context.
 //
 typedef struct DATAPATH_RX_IO_BLOCK {
-
     //
     // The per proc context for this receive context.
     //
     CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext;
 
-    union {
-        //
-        // The start of the data buffer, or the cached data indication from wsk.
-        //
-        uint8_t* DataBufferStart;
-        PWSK_DATAGRAM_INDICATION DataIndication;
-    };
+    //
+    // The start of the data buffer, or the cached data indication from wsk.
+    //
+    uint8_t* DataBufferStart;
 
-    CXPLAT_SOCKET* Binding;
-
+    //
+    // The number of references in the batch of IOs.
+    //
     ULONG ReferenceCount;
 
     //
@@ -134,10 +126,11 @@ typedef struct DATAPATH_RX_IO_BLOCK {
     //
     CXPLAT_ROUTE Route;
 
-    int32_t DataIndicationSize;
-
+    //
+    // The type of pool this block is allocated from.
+    //
     uint8_t BufferPoolIndex     : 1;
-    uint8_t IsCopiedBuffer      : 1;
+
 } DATAPATH_RX_IO_BLOCK;
 
 typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) DATAPATH_RX_PACKET {
@@ -1979,26 +1972,14 @@ CxPlatSocketAllocRxIoBlock(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-_Must_inspect_result_
-PWSK_DATAGRAM_INDICATION
+void
 CxPlatDataPathFreeRxIoBlock(
     _In_ __drv_freesMem(Context) DATAPATH_RX_IO_BLOCK* IoBlock
     )
 {
-    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
-    if (IoBlock->DataBufferStart != NULL) {
-        if (IoBlock->IsCopiedBuffer) {
-            CxPlatPoolFree(IoBlock->DataBufferStart);
-        } else {
-            DataIndication = IoBlock->DataIndication;
-            InterlockedAdd64(
-                &IoBlock->ProcContext->OutstandingPendingBytes,
-                -IoBlock->DataIndicationSize);
-        }
-    }
-
+    CXPLAT_DBG_ASSERT(IoBlock->DataBufferStart != NULL);
+    CxPlatPoolFree(IoBlock->DataBufferStart);
     CxPlatPoolFree(IoBlock);
-    return DataIndication;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2020,7 +2001,6 @@ CxPlatDataPathSocketReceive(
     }
 
     CXPLAT_DBG_ASSERT(Context != NULL);
-
     CXPLAT_SOCKET* Binding = (CXPLAT_SOCKET*)Context;
 
     const uint32_t CurProcNumber = CxPlatProcCurrentNumber();
@@ -2028,8 +2008,6 @@ CxPlatDataPathSocketReceive(
         return STATUS_DEVICE_NOT_READY;
     }
 
-    PWSK_DATAGRAM_INDICATION ReleaseChain = NULL;
-    PWSK_DATAGRAM_INDICATION* ReleaseChainTail = &ReleaseChain;
     CXPLAT_RECV_DATA* RecvDataChain = NULL;
     CXPLAT_RECV_DATA** DatagramChainTail = &RecvDataChain;
 
@@ -2038,14 +2016,8 @@ CxPlatDataPathSocketReceive(
     //
     // Process all the data indicated by the callback.
     //
-    while (DataIndicationHead != NULL) {
-
-        PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
-        DataIndicationHead = DataIndicationHead->Next;
-        DataIndication->Next = NULL;
-
-        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
-        DATAPATH_RX_PACKET* Datagram = NULL;
+    PWSK_DATAGRAM_INDICATION DataIndication = DataIndicationHead;
+    while (DataIndication != NULL) {
 
         if (DataIndication->Buffer.Mdl == NULL ||
             DataIndication->Buffer.Length == 0) {
@@ -2056,6 +2028,8 @@ CxPlatDataPathSocketReceive(
             goto Drop;
         }
 
+        DATAPATH_RX_IO_BLOCK* IoBlock = NULL;
+        DATAPATH_RX_PACKET* Datagram = NULL;
         BOOLEAN FoundLocalAddr = FALSE;
         BOOLEAN IsUnreachableError = FALSE;
         BOOLEAN IsCoalesced = FALSE;
@@ -2224,7 +2198,7 @@ CxPlatDataPathSocketReceive(
             //
             // We require contiguous buffers.
             //
-            if ((SIZE_T)MessageLength > Mdl->ByteCount - MdlOffset) {
+            if ((SIZE_T)MessageLength > Mdl->ByteCount - MdlOffset) { // TODO: Remove this restriction since we always copy
                 QuicTraceLogWarning(
                     DatapathFragmented,
                     "[%p] Dropping datagram with fragmented MDL.",
@@ -2247,34 +2221,25 @@ CxPlatDataPathSocketReceive(
                     goto Drop;
                 }
 
-                if (IoBlock->ProcContext->OutstandingPendingBytes >= PENDING_BUFFER_LIMIT) {
-                    //
-                    // Perform a copy
-                    //
-                    IoBlock->IsCopiedBuffer = TRUE;
-                    IoBlock->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
-                    IoBlock->DataBufferStart =
-                        (uint8_t*)CxPlatPoolAlloc(
-                            &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex]);
-                    if (IoBlock->DataBufferStart == NULL) {
-                        QuicTraceLogWarning(
-                            DatapathDropAllocRecvBufferFailure,
-                            "[%p] Couldn't allocate receive buffers.",
-                            Binding);
-                        goto Drop;
-                    }
-                    CurrentCopiedBuffer = IoBlock->DataBufferStart;
-                } else {
-                    IoBlock->IsCopiedBuffer = FALSE;
-                    IoBlock->DataIndication = DataIndication;
-                    CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-                    IoBlock->DataIndicationSize = (int32_t)DataLength;
-                    InterlockedAdd64(
-                        &IoBlock->ProcContext->OutstandingPendingBytes,
-                        IoBlock->DataIndicationSize);
+                //
+                // Copy the data to a local buffer so we can return the MDL back
+                // to the NIC.
+                //
+                IoBlock->BufferPoolIndex = DataLength > 4096 ? 1 : 0;
+                IoBlock->DataBufferStart =
+                    (uint8_t*)CxPlatPoolAlloc(
+                        &IoBlock->ProcContext->RecvBufferPools[IoBlock->BufferPoolIndex]);
+                if (IoBlock->DataBufferStart == NULL) {
+                    QuicTraceLogWarning(
+                        DatapathDropAllocRecvBufferFailure,
+                        "[%p] Couldn't allocate receive buffers.",
+                        Binding);
+                    CxPlatPoolFree(IoBlock);
+                    IoBlock = NULL;
+                    goto Drop;
                 }
+                CurrentCopiedBuffer = IoBlock->DataBufferStart;
 
-                IoBlock->Binding = Binding;
                 IoBlock->ReferenceCount = 0;
                 IoBlock->Route.Queue =
                     &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
@@ -2292,13 +2257,9 @@ CxPlatDataPathSocketReceive(
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
 
-            if (IoBlock->IsCopiedBuffer) {
-                Datagram->Data.Buffer = CurrentCopiedBuffer;
-                CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
-                CurrentCopiedBuffer += MessageLength;
-            } else {
-                Datagram->Data.Buffer = (uint8_t*)Mdl->MappedSystemVa + MdlOffset;
-            }
+            Datagram->Data.Buffer = CurrentCopiedBuffer;
+            CxPlatCopyMemory(Datagram->Data.Buffer, (uint8_t*)Mdl->MappedSystemVa + MdlOffset, MessageLength);
+            CurrentCopiedBuffer += MessageLength;
 
             Datagram->Data.BufferLength = MessageLength;
             Datagram->Data.Route = &IoBlock->Route;
@@ -2336,24 +2297,7 @@ CxPlatDataPathSocketReceive(
 
     Drop:
 
-        if (IoBlock != NULL && IoBlock->ReferenceCount == 0) {
-            //
-            // No receive buffers were generated, so clean up now and return the
-            // indication back to WSK. If the reference count is nonzero, then
-            // the indication will be returned only after the binding client has
-            // returned the buffers.
-            //
-            PWSK_DATAGRAM_INDICATION FreeIndic =
-                CxPlatDataPathFreeRxIoBlock(IoBlock);
-            CXPLAT_DBG_ASSERT(FreeIndic == DataIndication);
-            UNREFERENCED_PARAMETER(FreeIndic);
-            IoBlock = NULL;
-        }
-
-        if (IoBlock == NULL || IoBlock->IsCopiedBuffer) {
-            *ReleaseChainTail = DataIndication;
-            ReleaseChainTail = &DataIndication->Next;
-        }
+        DataIndication = DataIndication->Next;
     }
 
     if (RecvDataChain != NULL) {
@@ -2373,16 +2317,9 @@ CxPlatDataPathSocketReceive(
         }
     }
 
-    if (ReleaseChain != NULL) {
-        //
-        // Release any dropped or copied datagrams.
-        //
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, ReleaseChain);
-    }
-
     CxPlatRundownRelease(&Binding->Rundown[CurProcNumber]);
 
-    return STATUS_PENDING;
+    return STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2391,15 +2328,9 @@ RecvDataReturn(
     _In_ CXPLAT_RECV_DATA* RecvDataChain
     )
 {
-    CXPLAT_SOCKET* Binding = NULL;
-    PWSK_DATAGRAM_INDICATION DataIndication = NULL;
-    PWSK_DATAGRAM_INDICATION DataIndications = NULL;
-    PWSK_DATAGRAM_INDICATION* DataIndicationTail = &DataIndications;
-
+    CXPLAT_RECV_DATA* Datagram;
     LONG BatchedBufferCount = 0;
     DATAPATH_RX_IO_BLOCK* BatchedIoBlock = NULL;
-
-    CXPLAT_RECV_DATA* Datagram;
     while ((Datagram = RecvDataChain) != NULL) {
 
         CXPLAT_DBG_ASSERT(Datagram->Allocated);
@@ -2408,9 +2339,6 @@ RecvDataReturn(
 
         DATAPATH_RX_IO_BLOCK* IoBlock =
             CXPLAT_CONTAINING_RECORD(Datagram, DATAPATH_RX_PACKET, Data)->IoBlock;
-
-        CXPLAT_DBG_ASSERT(Binding == NULL || Binding == IoBlock->Binding);
-        Binding = IoBlock->Binding;
         Datagram->Allocated = FALSE;
 
         if (BatchedIoBlock == IoBlock) {
@@ -2420,15 +2348,7 @@ RecvDataReturn(
                 InterlockedAdd(
                     (PLONG)&BatchedIoBlock->ReferenceCount,
                     -BatchedBufferCount) == 0) {
-                //
-                // Clean up the data indication.
-                //
-                DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
-                if (DataIndication != NULL) {
-                    CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-                    *DataIndicationTail = DataIndication;
-                    DataIndicationTail = &DataIndication->Next;
-                }
+                CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
             }
 
             BatchedIoBlock = IoBlock;
@@ -2440,23 +2360,7 @@ RecvDataReturn(
         InterlockedAdd(
             (PLONG)&BatchedIoBlock->ReferenceCount,
             -BatchedBufferCount) == 0) {
-        //
-        // Clean up the data indication.
-        //
-        DataIndication = CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
-        if (DataIndication != NULL) {
-            CXPLAT_DBG_ASSERT(DataIndication->Next == NULL);
-            *DataIndicationTail = DataIndication;
-            DataIndicationTail = &DataIndication->Next;
-        }
-    }
-
-    if (DataIndications != NULL) {
-        //
-        // Return the datagram indications back to Wsk.
-        //
-        CXPLAT_DBG_ASSERT(Binding != NULL);
-        Binding->DgrmSocket->Dispatch->WskRelease(Binding->Socket, DataIndications);
+        CxPlatDataPathFreeRxIoBlock(BatchedIoBlock);
     }
 }
 
