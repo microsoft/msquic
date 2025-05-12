@@ -1488,6 +1488,7 @@ QuicCryptoProcessTlsCompletion(
         //
         CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.ReadKey >= 0);
+        CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKey >= Crypto->TlsState.ReadKey);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.ReadKeys[Crypto->TlsState.ReadKey] != NULL);
 
         if (QuicConnIsServer(Connection)) {
