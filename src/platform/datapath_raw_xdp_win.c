@@ -719,7 +719,7 @@ CxPlatDpRawInterfaceInitialize(
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
-                QUIC_STATUS_NOT_SUPPORTED,
+                Status,
                 "TX checksum offload is not configured on the XDP interface");
         }
 
