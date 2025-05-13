@@ -2345,6 +2345,8 @@ static long FreeBioAuxData(BIO *B, int Oper,
 {
     struct AUX_DATA *AData;
     int i;
+    RECORD_ENTRY *entry;
+    CXPLAT_LIST_ENTRY* lentry;
 
     UNREFERENCED_PARAMETER(*ArgP);
     UNREFERENCED_PARAMETER(Len);
@@ -2360,6 +2362,17 @@ static long FreeBioAuxData(BIO *B, int Oper,
             CXPLAT_FREE(AData->SecretSet[i][0].Secret, QUIC_POOL_TLS_AUX_DATA);
             CXPLAT_FREE(AData->SecretSet[i][1].Secret, QUIC_POOL_TLS_AUX_DATA);
         }
+        lentry = AData->RecordList.Flink;
+        //
+        // Free any leftover records
+        //
+        while (lentry != &AData->RecordList) {
+            entry = CXPLAT_CONTAINING_RECORD(lentry, RECORD_ENTRY, Link);
+            lentry = lentry->Flink;
+            CxPlatListEntryRemove(&entry->Link);
+            CXPLAT_FREE(entry, QUIC_POOL_TLS_RECORD_ENTRY);
+        }
+
         CXPLAT_FREE(AData, QUIC_POOL_TLS_AUX_DATA);
         BIO_set_app_data(B, NULL);
     }
