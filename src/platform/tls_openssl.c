@@ -1196,6 +1196,7 @@ CxPlatTlsOnClientSessionTicketReceived(
 {
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
+
     BIO* Bio = BIO_new(BIO_s_mem());
     if (Bio) {
         if (PEM_write_bio_SSL_SESSION(Bio, Session) == 1) {
@@ -3089,7 +3090,6 @@ CxPlatTlsProcessData(
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             goto Exit;
         }
-
         Ret = SSL_do_handshake(TlsContext->Ssl);
         if (Ret != 1) {
             QuicTraceEvent(
@@ -3260,6 +3260,8 @@ more_handshake:
                 }
             }
         }
+    } else {
+        SSL_read(TlsContext->Ssl, NULL, 0);
     }
 
 Exit:
