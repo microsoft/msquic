@@ -699,7 +699,7 @@ CxPlatDpRawInterfaceInitialize(
                 "GetTxOffloadConfig(Queue, &TxChecksumOffload)");
         }
 
-        if (TxChecksumOffload) {
+        if (TxChecksumOffload || QUIC_SUCCEEDED(Status) /* TODO: Just do the offload, even if the NIC says it can't. */) {
             Status =
                 XskSetSockopt(
                     Queue->TxXsk, XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM, &TxChecksumOffload,
