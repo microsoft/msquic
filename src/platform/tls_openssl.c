@@ -552,15 +552,11 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     AData->SecretSet[ProtLevel][Dir].SecretLen = SecretLen;
 
     //
-    //  Delay installation of keys until we have both, with the exceptions of
-    // 0-RTT as the client won't get a read key
-    // 1-RTT on the server as the write key won't be installed until after
-    // we process the handshake finished message, which may be in a subsequent
-    // pass through ProcessData
-    //
-    if (Dir != 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
-        return 1;
-    }
+    // Back to installing keys on demand, as caching is causing problems
+    // in src/platform/unittest/TlsTest.cpp:418
+    //if (Dir != 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
+    //    return 1;
+    //}
 
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
 
@@ -3251,9 +3247,6 @@ more_handshake:
                 }
             }
         }
-    } else {
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE;
-        SSL_read(TlsContext->Ssl, NULL, 0);
     }
 
 Exit:
