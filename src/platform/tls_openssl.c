@@ -601,8 +601,6 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
             return -1;
         }
-        TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
-        TlsState->ReadKey = KeyType;
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
             // The 1-RTT read keys aren't actually allowed to be used until the 
