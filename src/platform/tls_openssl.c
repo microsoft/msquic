@@ -552,11 +552,12 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     AData->SecretSet[ProtLevel][Dir].SecretLen = SecretLen;
 
     //
-    // Back to installing keys on demand, as caching is causing problems
-    // in src/platform/unittest/TlsTest.cpp:418
-    //if (Dir != 1 && AData->SecretSet[ProtLevel][!Dir].Secret == NULL) {
-    //    return 1;
-    //}
+    // Install key immediately unless its a read key and we don't yet
+    // have the corresponding write key
+    //
+    if (Dir == 0 && AData->SecretSet[ProtLevel][1].Secret == NULL) {
+        return 1;
+    }
 
     CxPlatTlsNegotiatedCiphers(TlsContext, &Secret.Aead, &Secret.Hash);
 
