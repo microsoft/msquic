@@ -555,7 +555,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     // Install key immediately unless its a read key and we don't yet
     // have the corresponding write key
     //
-    if (Dir == 0 && AData->SecretSet[ProtLevel][1].Secret == NULL) {
+    if (Dir == 0 && AData->SecretSet[ProtLevel][1].Secret == NULL && ProtLevel > QUIC_PACKET_KEY_HANDSHAKE) {
         return 1;
     }
 
