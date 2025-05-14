@@ -1,30 +1,6 @@
-#ifndef CLOG_DO_NOT_INCLUDE_HEADER
-#include <clog.h>
-#endif
-#undef TRACEPOINT_PROVIDER
-#define TRACEPOINT_PROVIDER CLOG_DATAPATH_EPOLL_C
-#undef TRACEPOINT_PROBE_DYNAMIC_LINKAGE
-#define  TRACEPOINT_PROBE_DYNAMIC_LINKAGE
-#undef TRACEPOINT_INCLUDE
-#define TRACEPOINT_INCLUDE "datapath_epoll.c.clog.h.lttng.h"
-#if !defined(DEF_CLOG_DATAPATH_EPOLL_C) || defined(TRACEPOINT_HEADER_MULTI_READ)
-#define DEF_CLOG_DATAPATH_EPOLL_C
-#include <lttng/tracepoint.h>
-#define __int64 __int64_t
-#include "datapath_epoll.c.clog.h.lttng.h"
-#endif
-#include <lttng/tracepoint-event.h>
-#ifndef _clog_MACRO_QuicTraceLogWarning
-#define _clog_MACRO_QuicTraceLogWarning  1
-#define QuicTraceLogWarning(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
-#ifndef _clog_MACRO_QuicTraceEvent
-#define _clog_MACRO_QuicTraceEvent  1
-#define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
-#endif
-#ifdef __cplusplus
-extern "C" {
-#endif
+
+
+
 /*----------------------------------------------------------
 // Decoder Ring for DatapathRecvEmpty
 // [data][%p] Dropping datagram with empty payload.
@@ -34,12 +10,13 @@ extern "C" {
             SocketContext->Binding);
 // arg2 = arg2 = SocketContext->Binding = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathRecvEmpty
-#define _clog_3_ARGS_TRACE_DatapathRecvEmpty(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathRecvEmpty,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
 
 
 
@@ -49,17 +26,20 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecvEmpty , arg2);\
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "CXPLAT_DATAPATH",
-            DatapathLength);
-// arg2 = arg2 = "CXPLAT_DATAPATH" = arg2
-// arg3 = arg3 = DatapathLength = arg3
+            "CXPLAT_REGISTERED_BUFFER_POOL",
+            Pool->TotalSize);
+// arg2 = arg2 = "CXPLAT_REGISTERED_BUFFER_POOL" = arg2
+// arg3 = arg3 = Pool->TotalSize = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_AllocFailure
-#define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
 
 
 
@@ -69,19 +49,24 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, AllocFailure , arg2, arg3);\
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            Binding,
+            DatapathPartition,
             Status,
-            "CxPlatSqeInitialize failed");
-// arg2 = arg2 = Binding = arg2
+            "io_uring_register_buf_ring failed");
+// arg2 = arg2 = DatapathPartition = arg2
 // arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "CxPlatSqeInitialize failed" = arg4
+// arg4 = arg4 = "io_uring_register_buf_ring failed" = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_DatapathErrorStatus
-#define _clog_5_ARGS_TRACE_DatapathErrorStatus(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathErrorStatus,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        const char *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_string(arg4, arg4)
+    )
+)
 
 
 
@@ -98,12 +83,21 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus , arg2, arg3, arg4);\
 // arg3 = arg3 = CASTED_CLOG_BYTEARRAY(Config->LocalAddress ? sizeof(*Config->LocalAddress) : 0, Config->LocalAddress) = arg3
 // arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Config->RemoteAddress ? sizeof(*Config->RemoteAddress) : 0, Config->RemoteAddress) = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_7_ARGS_TRACE_DatapathCreated
-#define _clog_7_ARGS_TRACE_DatapathCreated(uniqueId, encoded_arg_string, arg2, arg3, arg3_len, arg4, arg4_len)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathCreated , arg2, arg3_len, arg3, arg4_len, arg4);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathCreated,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3_len,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3_len, arg3_len)
+        ctf_sequence(char, arg3, arg3, unsigned int, arg3_len)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+    )
+)
 
 
 
@@ -116,12 +110,13 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathCreated , arg2, arg3_len, arg3, arg4_l
         Socket);
 // arg2 = arg2 = Socket = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_DatapathDestroyed
-#define _clog_3_ARGS_TRACE_DatapathDestroyed(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathDestroyed,
+    TP_ARGS(
+        const void *, arg2), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+    )
+)
 
 
 
@@ -132,22 +127,35 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathDestroyed , arg2);\
             DatapathRecv,
             "[data][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
             SocketContext->Binding,
-            RecvMsgHdr[CurrentMessage].msg_len,
+            MsgLen,
             SegmentLength,
             CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr),
             CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr));
 // arg2 = arg2 = SocketContext->Binding = arg2
-// arg3 = arg3 = RecvMsgHdr[CurrentMessage].msg_len = arg3
+// arg3 = arg3 = MsgLen = arg3
 // arg4 = arg4 = SegmentLength = arg4
 // arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(*LocalAddr), LocalAddr) = arg5
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(*RemoteAddr), RemoteAddr) = arg6
 ----------------------------------------------------------*/
-#ifndef _clog_9_ARGS_TRACE_DatapathRecv
-#define _clog_9_ARGS_TRACE_DatapathRecv(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg5_len, arg6, arg6_len)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg5, arg6_len, arg6);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathRecv,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned short, arg4,
+        unsigned int, arg5_len,
+        const void *, arg5,
+        unsigned int, arg6_len,
+        const void *, arg6), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned short, arg4, arg4)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+        ctf_integer(unsigned int, arg6_len, arg6_len)
+        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
+    )
+)
 
 
 
@@ -170,12 +178,27 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathRecv , arg2, arg3, arg4, arg5_len, arg
 // arg6 = arg6 = CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress) = arg6
 // arg7 = arg7 = CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress) = arg7
 ----------------------------------------------------------*/
-#ifndef _clog_10_ARGS_TRACE_DatapathSend
-#define _clog_10_ARGS_TRACE_DatapathSend(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg6_len, arg7, arg7_len)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_len, arg6, arg7_len, arg7);\
-
-#endif
-
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, DatapathSend,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3,
+        unsigned char, arg4,
+        unsigned short, arg5,
+        unsigned int, arg6_len,
+        const void *, arg6,
+        unsigned int, arg7_len,
+        const void *, arg7), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned char, arg4, arg4)
+        ctf_integer(unsigned short, arg5, arg5)
+        ctf_integer(unsigned int, arg6_len, arg6_len)
+        ctf_sequence(char, arg6, arg6, unsigned int, arg6_len)
+        ctf_integer(unsigned int, arg7_len, arg7_len)
+        ctf_sequence(char, arg7, arg7, unsigned int, arg7_len)
+    )
+)
 
 
 
@@ -188,18 +211,10 @@ tracepoint(CLOG_DATAPATH_EPOLL_C, DatapathSend , arg2, arg3, arg4, arg5, arg6_le
                     "Disabling segmentation support globally");
 // arg2 = arg2 = "Disabling segmentation support globally" = arg2
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_LibraryError
-#define _clog_3_ARGS_TRACE_LibraryError(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_DATAPATH_EPOLL_C, LibraryError , arg2);\
-
-#endif
-
-
-
-
-#ifdef __cplusplus
-}
-#endif
-#ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_datapath_epoll.c.clog.h.c"
-#endif
+TRACEPOINT_EVENT(CLOG_DATAPATH_IOURING_C, LibraryError,
+    TP_ARGS(
+        const char *, arg2), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+    )
+)
