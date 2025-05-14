@@ -25,6 +25,9 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER io
     The network IO interface to be used (not all are supported on all platforms).
 
+.PARAMETER serverio
+    The network IO interface to be used on the server (not all are supported on all platforms).
+
 .PARAMETER filter
     Run only the tests whose arguments match one of the positive patterns but
     none of the negative patterns (prefixed by '-'). '?' matches any single
@@ -65,6 +68,10 @@ param (
     [string]$io = "",
 
     [Parameter(Mandatory = $false)]
+    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [string]$serverio = "",
+
+    [Parameter(Mandatory = $false)]
     [string]$filter = "",
 
     [Parameter(Mandatory = $false)]
@@ -77,6 +84,11 @@ param (
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+function Is-XdpRequiredByIo {
+    param ($Io)
+
+    return ($Io -eq "xdp" -or $Io -eq "qtip")
+}
 
 $RemotePowershellSupported = $env:netperf_remote_powershell_supported
 $RunId = $env:netperf_run_id
@@ -109,13 +121,16 @@ if ($io -eq "") {
         $io = "epoll"
     }
 }
+if ($serverio -eq "") {
+    $serverio = $io
+}
 $NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
 if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
 
-$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
+$useXDP = (Is-XdpRequiredByIo $io) -or (Is-XdpRequiredByIo $serverio)
 if ($RemotePowershellSupported -eq $true) {
 
     # Set up the connection to the peer over remote powershell.
@@ -335,7 +350,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
 foreach ($scenario in $allScenarios) {
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $filter $environment $RunId $SyncerSecret
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $ServerIo $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

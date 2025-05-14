@@ -502,15 +502,21 @@ function Get-LatencyOutput {
     }
 }
 
+function Is-TcpSupportedByIo {
+    param ($Io)
+
+    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk"
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $ServerIo, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+    if ((Is-TcpSupportedByIo $io) -and (Is-TcpSupportedByIo $ServerIo)) {
         $tcpSupported = 1
     } else {
         $tcpSupported = 0
@@ -533,7 +539,7 @@ function Invoke-Secnetperf {
 
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "-scenario:$Scenario -io:$io"
+    $serverArgs = "-scenario:$Scenario -io:$ServerIo"
 
     if ($env:collect_cpu_traces) {
         $updated_runtime_for_cpu_traces = @{
