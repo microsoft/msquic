@@ -229,12 +229,8 @@ PerfClient::Init(
                 TcpDefaultExecutionProfile)); // Client defaults to using LowLatency profile
     } else {
         MsQuicSettings Settings;
-        if (UseSendBuffering) {
-            Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
-        }
-        if (!UsePacing) {
-            Settings.SetPacingEnabled(UsePacing != 0);
-        }
+        Settings.SetSendBufferingEnabled(UseSendBuffering != 0);
+        Settings.SetPacingEnabled(UsePacing != 0);
         const char* IoMode = GetValue(argc, argv, "io");
         if (IoMode && IsValue(IoMode, "xdp")) {
             Settings.SetXdpEnabled(true);
