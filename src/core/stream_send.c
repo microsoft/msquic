@@ -744,6 +744,21 @@ QuicStreamCopyFromSendRequests(
         uint16_t CopyLength = Len < BufferLeft ? Len : (uint16_t)BufferLeft;
         CXPLAT_DBG_ASSERT(CopyLength > 0);
         CxPlatCopyMemory(Buf, Req->Buffers[CurIndex].Buffer + CurOffset, CopyLength);
+
+        if (Req->BytesToBeCopiedBeforeNextCopiedToFrameEvent <= CopyLength) {
+            QUIC_STREAM_EVENT Event;
+            uint64_t BytesCopiedBeforeNextEvent = UINT64_MAX; // Default to max, so if application does not modify it in
+                                                              // callback the event is never signalled again
+            Event.Type = QUIC_STREAM_EVENT_COPIED_TO_FRAME;
+            Event.COPIED_TO_FRAME.BytesCopied = CopyLength;
+            Event.COPIED_TO_FRAME.BytesCopiedBeforeNextEvent = &BytesCopiedBeforeNextEvent;
+            Event.COPIED_TO_FRAME.ClientSendContext = Req->ClientContext;
+            QuicStreamIndicateEvent(Stream, &Event);
+            Req->BytesToBeCopiedBeforeNextCopiedToFrameEvent = BytesCopiedBeforeNextEvent;
+        } else {
+            Req->BytesToBeCopiedBeforeNextCopiedToFrameEvent -= CopyLength;
+        }
+
         Len -= CopyLength;
         Buf += CopyLength;
 
