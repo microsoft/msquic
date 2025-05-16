@@ -14,4 +14,5 @@
 	branch = release/1.1
 [submodule "submodules/openssl"]
 	path = submodules/openssl
-	url = https://github.com/openssl/openssl.git
+	url = https://github.com/nhorman/openssl.git
+	branch = quic-secret-yielding-fix
