@@ -13,7 +13,7 @@ FPM=`which fpm` 2>/dev/null
 CONFIG=Release
 NAME=libmsquic
 TLS=quictls
-TLSVERSION=1.1
+TLSVERSION=3
 TIME64DISTRO="False"
 XDP="False"
 CONFLICTS=
@@ -100,6 +100,8 @@ while :; do
             TLS=$1
             case $TLS in
                 'quictls')
+                    ;;
+                'openssl')
                     TLSVERSION=3
                     ;;
                 *)

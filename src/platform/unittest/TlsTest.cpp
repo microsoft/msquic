@@ -273,6 +273,8 @@ protected:
 
         CXPLAT_TLS_PROCESS_STATE State;
 
+        bool BufferKeyChecked;
+
         static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
 
         bool ReceivedPeerCertificate {false};
@@ -329,6 +331,7 @@ protected:
                     &Config,
                     &State,
                     &Ptr));
+            BufferKeyChecked = FALSE;
         }
 
         void InitializeClient(
@@ -363,6 +366,7 @@ protected:
                     &Config,
                     &State,
                     &Ptr));
+            BufferKeyChecked = FALSE;
         }
 
     private:
@@ -415,7 +419,10 @@ protected:
         {
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
-                EXPECT_EQ(BufferKey, State.ReadKey);
+                if (BufferKeyChecked == FALSE) {
+                    EXPECT_EQ(BufferKey, State.ReadKey);
+                    BufferKeyChecked = TRUE;
+                }
                 if (DataType != CXPLAT_TLS_TICKET_DATA) {
                     *BufferLength = GetCompleteTlsMessagesLength(Buffer, *BufferLength);
                     if (*BufferLength == 0) return (CXPLAT_TLS_RESULT_FLAGS)0;

@@ -22,10 +22,14 @@ permissions: read-all
 jobs:
   build-darwin-frameworks:
     name: Build All Darwin Frameworks
+    strategy:
+      matrix:
+        tls: ["quictls", "openssl"]
     uses: ./.github/workflows/build-reuse-darwin-framework.yml
     with:
       config: 'Debug'
       repo: ${{ github.repository }}
+      tls: ${{ matrix.tls }}
 
   build-linux:
     name: Ubuntu
@@ -36,6 +40,8 @@ jobs:
         vec: [
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
+          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl" },
+          { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", xdp: "-UseXdp" },
         ]
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -55,6 +61,7 @@ jobs:
       matrix:
         vec: [
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls" },
+          { plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -75,7 +82,10 @@ jobs:
           { plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls" },
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
+          { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl" },
+          { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", xdp: "-UseXdp" },
           { plat: "macos", os: "macos-13", arch: "universal", tls: "quictls" },
+          { plat: "macos", os: "macos-13", arch: "universal", tls: "openssl" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
