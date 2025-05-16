@@ -2875,8 +2875,10 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
                  //reduce the size of this Entry to drop whats contained
                  //in the leftover
                  //
-                 Entry->RecLen -= leftover->RecLen;
-                 leftover->Incomplete = Incomplete;
+                 if (leftover != NULL) {
+                     Entry->RecLen -= leftover->RecLen;
+                     leftover->Incomplete = Incomplete;
+                 }
             }
             break;
         }
