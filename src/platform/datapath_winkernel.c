@@ -2241,7 +2241,7 @@ CxPlatDataPathSocketReceive(
                 CurrentCopiedBuffer = IoBlock->DataBufferStart;
 
                 IoBlock->ReferenceCount = 0;
-                IoBlock->Route.Queue =
+                IoBlock->Route.Queue = (CXPLAT_QUEUE*)
                     &Binding->Datapath->ProcContexts[CurProcNumber % Binding->Datapath->ProcCount];
                 IoBlock->Route.LocalAddress = LocalAddr;
                 IoBlock->Route.RemoteAddress = RemoteAddr;
@@ -2375,10 +2375,11 @@ SendDataAlloc(
     CXPLAT_DBG_ASSERT(Binding != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
+        Config->Route->Queue = (CXPLAT_QUEUE*)
+            &Binding->Datapath->ProcContexts[CxPlatProcCurrentNumber() % Binding->Datapath->ProcCount];
     }
 
-    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = Config->Route->Queue;
+    CXPLAT_DATAPATH_PROC_CONTEXT* ProcContext = (CXPLAT_DATAPATH_PROC_CONTEXT*)Config->Route->Queue;
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&ProcContext->SendDataPool);
     if (SendData != NULL) {
         SendData->Owner = ProcContext;
