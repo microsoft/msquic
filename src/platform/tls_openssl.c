@@ -541,7 +541,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         ProtLevel);
 
     if (AData->SecretSet[ProtLevel][Dir].Secret != NULL) {
-        return -1;
+        return 1;
     }
     
     AData->SecretSet[ProtLevel][Dir].Secret = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
@@ -557,7 +557,8 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     // A notable exception is 0RTT keys on the server, as we only ever get
     // a read key for that.
     //
-    if (Dir == 0 && AData->SecretSet[ProtLevel][1].Secret == NULL) {
+    if (Dir == 0 && ProtLevel != QUIC_PACKET_KEY_0_RTT &&
+        AData->SecretSet[ProtLevel][1].Secret == NULL) {
         return 1;
     }
 
