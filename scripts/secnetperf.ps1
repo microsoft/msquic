@@ -222,8 +222,7 @@ if ($Session -ne "NOT_SUPPORTED") {
 }
 
 # Collect some info about machine state.
-# TODO: add !NoLogs back
-if ($isWindows) {
+if (!$NoLogs -and $isWindows) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -256,12 +255,6 @@ if ($isWindows) {
         } catch { Write-Host $_ }
         Write-Host "::endgroup::"
     }
-
-    # TODO: remove
-    Write-Host "Get-NetAdapterChecksumOffload -ifDesc *Hyper*"
-    (Get-NetAdapterChecksumOffload -ifDesc "*Hyper*").ChecksumOffloadHardwareCapabilities | Out-String | Write-Host
-    Write-Host "Get-NetAdapterChecksumOffload -ifDesc *"
-    (Get-NetAdapterChecksumOffload -ifDesc "*").ChecksumOffloadHardwareCapabilities | Out-String | Write-Host
 }
 
 $json = @{}

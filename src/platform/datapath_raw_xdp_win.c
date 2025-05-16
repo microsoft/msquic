@@ -404,11 +404,6 @@ GetTxOffloadConfig(
         if (QUIC_SUCCEEDED(Status)) {
             Status = QUIC_STATUS_NOT_SUPPORTED;
         }
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "XskGetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM)");
         goto Exit;
     }
 
@@ -672,7 +667,7 @@ CxPlatDpRawInterfaceInitialize(
             goto Error;
         }
 
-        Flags = XSK_BIND_FLAG_TX; // TODO: support native/generic forced flags.
+        Flags = XSK_BIND_FLAG_TX;
         Status = XskBind(Queue->TxXsk, Interface->ActualIfIndex, i, Flags);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
@@ -687,6 +682,8 @@ CxPlatDpRawInterfaceInitialize(
         // Before enabling the TX offload descriptors, check whether the offload
         // is currently enabled on the interface. If it isn't, assume the
         // interface (or XDP driver) does not and will not support the offload.
+        // If the offload is disabled (and perhaps re-enabled) later, it will
+        // get picked up by the XskRingOffloadChanged check in the TX data path.
         //
         uint32_t TxChecksumOffload = FALSE;
         Status = GetTxOffloadConfig(Queue, &TxChecksumOffload);
@@ -699,7 +696,7 @@ CxPlatDpRawInterfaceInitialize(
                 "GetTxOffloadConfig(Queue, &TxChecksumOffload)");
         }
 
-        if (TxChecksumOffload || QUIC_SUCCEEDED(Status) /* TODO: Just do the offload, even if the NIC says it can't. */) {
+        if (TxChecksumOffload) {
             Status =
                 XskSetSockopt(
                     Queue->TxXsk, XSK_SOCKOPT_TX_OFFLOAD_CHECKSUM, &TxChecksumOffload,
@@ -708,7 +705,6 @@ CxPlatDpRawInterfaceInitialize(
                 Queue->OffloadStatus.Transmit.ChecksumOffload = TRUE;
                 Queue->OffloadStatus.Transmit.ChecksumOffloadExtensions = TRUE;
             } else {
-                // Review: this log should be informational level.
                 QuicTraceEvent(
                     LibraryErrorStatus,
                     "[ lib] ERROR, %u, %s.",
