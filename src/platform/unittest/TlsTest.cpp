@@ -273,6 +273,10 @@ protected:
 
         CXPLAT_TLS_PROCESS_STATE State;
 
+        //
+        // Note, This variable creates a singleton check of the code that
+        // it guards.  See comments where used below
+        //
         bool BufferKeyChecked;
 
         static const CXPLAT_TLS_CALLBACKS TlsCallbacks;
@@ -419,6 +423,13 @@ protected:
         {
             EXPECT_TRUE(Buffer != nullptr || *BufferLength == 0);
             if (Buffer != nullptr) {
+                //
+                // BufferKey is only set at the start of the test, But some TLS implementations
+                // may update their keys while processing the data passed into this function
+                // specifically observed on openssl, Sending a buffer with a ServerHello to a client
+                // will yield handshake keys immediately, and following data will cause this to fail
+                // so only check once at the start of the test to ensure we are in the right state
+                //
                 if (BufferKeyChecked == FALSE) {
                     EXPECT_EQ(BufferKey, State.ReadKey);
                     BufferKeyChecked = TRUE;
