@@ -1481,11 +1481,6 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             Crypto->TlsState.ReadKey);
 
-        //
-        // Note: Nominally, if we have the write key, we should have the read key
-        // but there might be a delay with openssl as it yields read and write
-        // secrets independently.
-        //
         CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.ReadKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKey >= Crypto->TlsState.ReadKey);
