@@ -2515,6 +2515,17 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
+    //
+    // The fuzzers can't handle tls messages that span datagrams it appears, and ML-KEM pushes us
+    // over the limit, so if we have an ALPN of "fuzz", mimic what schannel offers in terms
+    // of supported key share groups
+    // NOTE: The AlpnBufferLength needs to be at least 5 here, as the first byte indicates the
+    // length of the following alpn identifier
+    if (TlsContext->AlpnBufferLength >= 5 &&
+        !strncmp((const char *)&TlsContext->AlpnBuffer[1], "fuzz", 4)) {
+        SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
+    }
+
     if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
         QuicTraceEvent(
             TlsError,
