@@ -400,14 +400,23 @@ GetTxOffloadConfig(
         OptionLength < XDP_SIZEOF_CHECKSUM_CONFIGURATION_REVISION_1 ||
         ChecksumConfig.Header.Revision != XDP_CHECKSUM_CONFIGURATION_REVISION_1 ||
         ChecksumConfig.Header.Size < XDP_SIZEOF_CHECKSUM_CONFIGURATION_REVISION_1) {
-        *TxChecksumOffload = FALSE;
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "XskGetSockopt(XSK_SOCKOPT_TX_OFFLOAD_CURRENT_CONFIG_CHECKSUM)");
         if (QUIC_SUCCEEDED(Status)) {
             Status = QUIC_STATUS_NOT_SUPPORTED;
         }
+        *TxChecksumOffload = FALSE;
         goto Exit;
     }
 
     *TxChecksumOffload = ChecksumConfig.Enabled;
+    QuicTraceLogInfo(
+        GetTxOffloadConfig,
+        "[ lib] %u, %u",
+        Queue->Interface->ActualIfIndex, *TxChecksumOffload);
 
 Exit:
 
@@ -689,11 +698,6 @@ CxPlatDpRawInterfaceInitialize(
         Status = GetTxOffloadConfig(Queue, &TxChecksumOffload);
         if (QUIC_FAILED(Status)) {
             CXPLAT_DBG_ASSERT(!TxChecksumOffload);
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "GetTxOffloadConfig(Queue, &TxChecksumOffload)");
         }
 
         if (TxChecksumOffload) {
@@ -1922,11 +1926,6 @@ CxPlatXdpTx(
             Queue->OffloadStatus.Transmit.ChecksumOffload = !!TxChecksumOffload;
         } else {
             Queue->OffloadStatus.Transmit.ChecksumOffload = FALSE;
-            QuicTraceEvent(
-                LibraryErrorStatus,
-                "[ lib] ERROR, %u, %s.",
-                Status,
-                "GetTxOffloadConfig");
         }
     }
 
