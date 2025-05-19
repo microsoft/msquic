@@ -44,7 +44,6 @@ typedef struct XDP_DATAPATH {
     uint32_t TxRingSize;
     uint32_t PollingIdleTimeoutUs;
     BOOLEAN TxAlwaysPoke;
-    BOOLEAN SkipXsum;
     BOOLEAN Running;        // Signal to stop partitions.
 
     XDP_PARTITION Partitions[0];
@@ -314,10 +313,6 @@ CxPlatXdpReadConfig(
              Xdp->TxRingSize = strtoul(Value, NULL, 10);
         } else if (strcmp(Line, "TxAlwaysPoke") == 0) {
              Xdp->TxAlwaysPoke = !!strtoul(Value, NULL, 10);
-        } else if (strcmp(Line, "SkipXsum") == 0) {
-            BOOLEAN State = !!strtoul(Value, NULL, 10);
-            Xdp->SkipXsum = State;
-            printf("SkipXsum: %u\n", State);
         }
     }
 
@@ -436,10 +431,6 @@ CxPlatDpRawInterfaceInitialize(
     QUIC_STATUS Status;
 
     CxPlatLockInitialize(&Interface->RuleLock);
-    Interface->OffloadStatus.Receive.NetworkLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Receive.TransportLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
-    Interface->OffloadStatus.Transmit.NetworkLayerXsum = Xdp->SkipXsum;
     Interface->Xdp = Xdp;
 
     Interface->QueueCount = (uint16_t)CxPlatProcCount();
