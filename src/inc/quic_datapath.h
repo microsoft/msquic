@@ -192,14 +192,17 @@ typedef struct CXPLAT_RAW_TCP_STATE {
 } CXPLAT_RAW_TCP_STATE;
 
 //
+// An opaque queue type. Each queue is associated with a single RSS queue on a
+// single interface.
+//
+typedef struct CXPLAT_QUEUE CXPLAT_QUEUE;
+
+//
 // Structure to represent a network route.
 //
 typedef struct CXPLAT_ROUTE {
 
-    //
-    // The (RSS) queue that this route is primarily associated with.
-    //
-    void* Queue;
+    CXPLAT_QUEUE* Queue;
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;

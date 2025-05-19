@@ -1827,7 +1827,7 @@ CxPlatSocketContextRecvComplete(
         QUIC_ADDR* LocalAddr = &IoBlock->Route.LocalAddress;
         QUIC_ADDR* RemoteAddr = &IoBlock->Route.RemoteAddress;
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
-        IoBlock->Route.Queue = SocketContext;
+        IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketContext;
 
         //
         // Process the ancillary control messages to get the local address,
@@ -2133,7 +2133,7 @@ CxPlatSocketReceiveTcpData(
         }
 
         IoBlock->Route.State = RouteResolved;
-        IoBlock->Route.Queue = SocketContext;
+        IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketContext;
         IoBlock->RefCount = 0;
 
         uint8_t* Buffer = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
@@ -2235,10 +2235,10 @@ SendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
     CXPLAT_DBG_ASSERT(Socket->Type != CXPLAT_SOCKET_UDP || Config->MaxPacketSize <= MAX_UDP_PAYLOAD_LENGTH);
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Socket->SocketContexts[0];
+        Config->Route->Queue = (CXPLAT_QUEUE*)&Socket->SocketContexts[0];
     }
 
-    CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = (CXPLAT_SOCKET_CONTEXT*)Config->Route->Queue;
     CXPLAT_DBG_ASSERT(SocketContext->Binding == Socket);
     CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath == SocketContext->DatapathPartition->Datapath);
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathPartition->SendBlockPool);

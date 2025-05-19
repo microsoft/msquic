@@ -1108,7 +1108,7 @@ CxPlatSocketContextRecvComplete(
         CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
     }
 
-    RecvPacket->Route->Queue = SocketContext;
+    RecvPacket->Route->Queue = (CXPLAT_QUEUE*)SocketContext;
     RecvPacket->TypeOfService = 0;
     RecvPacket->HopLimitTTL = 0; // TODO: We are not supporting this on MacOS (yet) unless there's a business need.
 
@@ -1609,10 +1609,10 @@ CxPlatSendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Socket->SocketContexts[0];
+        Config->Route->Queue = (CXPLAT_QUEUE*)&Socket->SocketContexts[0];
     }
 
-    CXPLAT_SOCKET_CONTEXT* SocketContext = Config->Route->Queue;
+    CXPLAT_SOCKET_CONTEXT* SocketContext = (CXPLAT_SOCKET_CONTEXT*)Config->Route->Queue;
     CXPLAT_SEND_DATA* SendData = CxPlatPoolAlloc(&SocketContext->DatapathPartition->SendDataPool);
     if (SendData != NULL) {
         CxPlatZeroMemory(SendData, sizeof(*SendData));
@@ -2083,7 +2083,7 @@ CxPlatSocketSend(
     UNREFERENCED_PARAMETER(Socket);
     CXPLAT_DBG_ASSERT(Route->Queue);
     CxPlatSocketSendInternal(
-        Route->Queue,
+        (CXPLAT_SOCKET_CONTEXT*)Route->Queue,
         &Route->LocalAddress,
         &Route->RemoteAddress,
         SendData,
