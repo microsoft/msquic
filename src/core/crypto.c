@@ -1264,24 +1264,25 @@ QuicCryptoProcessDataFrame(
             goto Error;
         }
 
-	//
-	// Handle a corner case here.  In the event that we get a ServerHello
-	// message that spans two crypto frames, with the ServerHello in the
-	// first frame, and the EncryptedExtensions, Finished, etc messages
-	// in the second crypto frame, Openssl Will yield the Handshake Keys
-	// as part of the first crypto frame.  This causes The RecvEncryptLevelStartOffset
-	// to get incremented by the frame size, but we're still processing an INIT level
-	// packet with the second crypto frame.  As such the offset when calling
-	// QuicRecvBufferWrite will be doubled, causing subsequent reads during QuicProcessData
-	// to not push the buffers from the second frame to the TLS stack, resulting
-	// in a stall of the handshake.  Avoid that by detecting the update here with
-	// a comparsion of the Frames Keytype to the TLS States ReadKey.  If the read key
-	// has advanced beyond the packet key type, don't use the EncLevelOffset to ensure that
-	// we write to the head of the buffer properly.
-	if (KeyType < Crypto->TlsState.ReadKey)
-		EncLevelOffset = 0;
-	else
-		EncLevelOffset = Crypto->RecvEncryptLevelStartOffset;
+        //
+        // Handle a corner case here.  In the event that we get a ServerHello
+        // message that spans two crypto frames, with the ServerHello in the
+        // first frame, and the EncryptedExtensions, Finished, etc messages
+        // in the second crypto frame, Openssl Will yield the Handshake Keys
+        // as part of the first crypto frame.  This causes The RecvEncryptLevelStartOffset
+        // to get incremented by the frame size, but we're still processing an INIT level
+        // packet with the second crypto frame.  As such the offset when calling
+        // QuicRecvBufferWrite will be doubled, causing subsequent reads during QuicProcessData
+        // to not push the buffers from the second frame to the TLS stack, resulting
+        // in a stall of the handshake.  Avoid that by detecting the update here with
+        // a comparsion of the Frames Keytype to the TLS States ReadKey.  If the read key
+        // has advanced beyond the packet key type, don't use the EncLevelOffset to ensure that
+        // we write to the head of the buffer properly.
+        if (KeyType < Crypto->TlsState.ReadKey) {
+            EncLevelOffset = 0;
+        } else {
+            EncLevelOffset = Crypto->RecvEncryptLevelStartOffset;
+        }
 
         //
         // Write the received data (could be duplicate) to the stream buffer. The
