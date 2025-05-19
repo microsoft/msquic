@@ -1259,6 +1259,10 @@ QuicCryptoProcessDataFrame(
         }
 
         CXPLAT_DBG_ASSERT(KeyType <= Crypto->TlsState.ReadKey);
+        if (KeyType < QUIC_PACKET_KEY_INITIAL || KeyType > QUIC_PACKET_KEY_1_RTT_NEW) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
         if (Crypto->TlsState.ReadKeys[KeyType] == NULL) {
             Status = QUIC_STATUS_SUCCESS; // Old, likely retransmitted data.
             goto Error;
