@@ -2521,6 +2521,9 @@ CxPlatTlsInitialize(
     // of supported key share groups
     // NOTE: The AlpnBufferLength needs to be at least 5 here, as the first byte indicates the
     // length of the following alpn identifier
+    // TODO: This should be removed when the recvfuzzer is updated to accomodate oversized data
+    // buffers (see corresponding TODO in recvfuzz.cpp
+    //
     if (TlsContext->AlpnBufferLength >= 5 &&
         !strncmp((const char *)&TlsContext->AlpnBuffer[1], "fuzz", 4)) {
         SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
