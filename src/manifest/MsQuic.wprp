@@ -121,7 +121,7 @@
         <Keyword Value="0x7ff" />
       </Keywords>
     </EventProvider>
-    <EventProvider Id="EP_Capi2Wpp" Name="5bbca4a8-b209-48dc-a8c7-b23d3e5216fb" level="5">
+    <EventProvider Id="EP_Capi2Wpp" Name="5bbca4a8-b209-48dc-a8c7-b23d3e5216fb" Level="5">
       <Keywords>
         <Keyword Value="0xFFFFFFFF"/>
       </Keywords>
