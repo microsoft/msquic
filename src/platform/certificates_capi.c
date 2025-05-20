@@ -29,8 +29,8 @@ Environment:
 
 #define CXPLAT_CERT_CREATION_EVENT_NAME                 L"MsQuicCertEvent"
 #define CXPLAT_CERT_CREATION_EVENT_WAIT                 10000
-#define CXPLAT_CERTIFICATE_TEST_FRIENDLY_NAME           L"MsQuicTestCert2"
-#define CXPLAT_CERTIFICATE_TEST_CLIENT_FRIENDLY_NAME    L"MsQuicTestClientCert"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_SERVER_FRIENDLY_NAME    L"MsQuicTestSelfSignServer"
+#define CXPLAT_TEST_CERT_SELF_SIGNED_CLIENT_FRIENDLY_NAME    L"MsQuicTestSelfSignClient"
 #define CXPLAT_KEY_CONTAINER_NAME                       L"MsQuicSelfSignKey2"
 #define CXPLAT_KEY_SIZE                                 2048
 
