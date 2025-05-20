@@ -2809,7 +2809,7 @@ void QuicTestGlobalParam()
         // Second call: retrieve the sizes
         //
         uint32_t Sizes[8] = {0};
-        Length = min(Length, sizeof(Sizes)); // Don't exceed the buffer size
+        Length = CXPLAT_MIN(Length, sizeof(Sizes)); // Don't exceed the buffer size
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 nullptr,
@@ -2818,6 +2818,7 @@ void QuicTestGlobalParam()
                 Sizes));
         uint32_t NumSizes = Length / sizeof(uint32_t);
         TEST_TRUE(NumSizes >= 4);
+
         //
         // Validate the returned sizes match the hardcoded values
         //
