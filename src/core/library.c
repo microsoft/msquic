@@ -1498,6 +1498,33 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES: {
+        static const uint32_t StatSizes[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
+        const uint32_t NumSizes = sizeof(StatSizes) / sizeof(StatSizes[0]);
+        uint32_t MaxSizes = *BufferLength / sizeof(uint32_t);
+        if (MaxSizes == 0) {
+            *BufferLength = NumSizes * sizeof(uint32_t); // Indicate the max size.
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        uint32_t ToCopy = MaxSizes < NumSizes ? MaxSizes : NumSizes;
+        for (uint32_t i = 0; i < ToCopy; ++i) { // Copy up to the size of the input buffer.
+            ((uint32_t*)Buffer)[i] = StatSizes[i];
+        }
+        *BufferLength = ToCopy * sizeof(uint32_t);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;

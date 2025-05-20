@@ -2787,6 +2787,51 @@ void QuicTestGlobalParam()
                 nullptr));
     }
 
+    //
+    // QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES");
+        uint32_t Length = 0;
+        //
+        // First call: expect buffer too small
+        //
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+        TEST_TRUE(Length >= sizeof(uint32_t));
+
+        //
+        // Second call: retrieve the sizes
+        //
+        uint32_t Sizes[8] = {0};
+        Length = min(Length, sizeof(Sizes)); // Don't exceed the buffer size
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        uint32_t NumSizes = Length / sizeof(uint32_t);
+        TEST_TRUE(NumSizes >= 4);
+        //
+        // Validate the returned sizes match the hardcoded values
+        //
+        const uint32_t Expected[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
+        for (uint32_t i = 0; i < ARRAYSIZE(Expected); ++i) {
+            TEST_EQUAL(Sizes[i], Expected[i]);
+        }
+    }
+
     QuicTestStatefulGlobalSetParam();
 }
 
