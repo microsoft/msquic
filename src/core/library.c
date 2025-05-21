@@ -1205,6 +1205,20 @@ QuicLibrarySetGlobalParam(
         }
         break;
 
+    case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
+        if (Buffer == NULL || BufferLength != sizeof(QUIC_STATELESS_RETRY_CONFIG)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        if (Config->Algorithm > CXPLAT_AEAD_CHACHA20_POLY1305 || Config->Secret == NULL || Config->RotationMs == 0) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        Status = MsQuicLibrarySetRetryKeyConfig(Config);
+        break;
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
