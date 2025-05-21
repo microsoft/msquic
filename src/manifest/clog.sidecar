@@ -3847,6 +3847,18 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "DecodeTPStreamStatistics": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Stream Statistics",
+      "UniqueId": "DecodeTPStreamStatistics",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPUnknown": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: Unknown ID %llu, length %hu",
@@ -4367,6 +4379,18 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
+    "EncodeTPStreamStatistics": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] TP: Stream Statistics",
+      "UniqueId": "EncodeTPStreamStatistics",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -15121,6 +15145,11 @@
         "EncodingString": "[conn][%p] TP: Stateless Reset Token (%s)"
       },
       {
+        "UniquenessHash": "b9d2fe5c-3f29-4357-ff42-84a47f99087f",
+        "TraceID": "DecodeTPStreamStatistics",
+        "EncodingString": "[conn][%p] TP: Stream Statistics"
+      },
+      {
         "UniquenessHash": "f1d31c20-28ed-b67e-9b71-05c7763658de",
         "TraceID": "DecodeTPUnknown",
         "EncodingString": "[conn][%p] TP: Unknown ID %llu, length %hu"
@@ -15289,6 +15318,11 @@
         "UniquenessHash": "c5a96b84-829e-1140-85af-18ab6924eb23",
         "TraceID": "EncodeTPStatelessResetToken",
         "EncodingString": "[conn][%p] TP: Stateless Reset Token (%s)"
+      },
+      {
+        "UniquenessHash": "634b7d4e-4e11-a883-81cd-a6da0a20eb9e",
+        "TraceID": "EncodeTPStreamStatistics",
+        "EncodingString": "[conn][%p] TP: Stream Statistics"
       },
       {
         "UniquenessHash": "4650353e-149e-c99a-1ab8-9b7e6a1e698e",

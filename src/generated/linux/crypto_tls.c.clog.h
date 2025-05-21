@@ -620,6 +620,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPTimestamp , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPStreamStatistics
+// [conn][%p] TP: Stream Statistics
+// QuicTraceLogConnVerbose(
+            EncodeTPStreamStatistics,
+            Connection,
+            "TP: Stream Statistics");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeTPStreamStatistics
+#define _clog_3_ARGS_TRACE_EncodeTPStreamStatistics(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, EncodeTPStreamStatistics , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1165,6 +1183,24 @@ tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit , arg1);\
 #ifndef _clog_3_ARGS_TRACE_DecodeTPReliableReset
 #define _clog_3_ARGS_TRACE_DecodeTPReliableReset(uniqueId, arg1, encoded_arg_string)\
 tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPReliableReset , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPStreamStatistics
+// [conn][%p] TP: Stream Statistics
+// QuicTraceLogConnVerbose(
+                DecodeTPStreamStatistics,
+                Connection,
+                "TP: Stream Statistics");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_DecodeTPStreamStatistics
+#define _clog_3_ARGS_TRACE_DecodeTPStreamStatistics(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_TLS_C, DecodeTPStreamStatistics , arg1);\
 
 #endif
 

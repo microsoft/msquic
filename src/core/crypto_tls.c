@@ -1253,6 +1253,18 @@ QuicCryptoTlsEncodeTransportParameters(
             "TP: Timestamp (%u)",
             value);
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_STREAM_STATISTICS,
+                0,
+                NULL,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPStreamStatistics,
+            Connection,
+            "TP: Stream Statistics");
+    }
     if (TestParam != NULL) {
         TPBuf =
             TlsWriteTransportParam(
@@ -1973,7 +1985,7 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             QuicTraceLogConnVerbose(
                 DecodeTPStreamStatistics,
                 Connection,
-                "TP: Stream Statistics (extension enabled)");
+                "TP: Stream Statistics");
             break;
 
         default:
