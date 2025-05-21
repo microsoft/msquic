@@ -2773,6 +2773,78 @@ void QuicTestGlobalParam()
     }
 #endif
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
+        QUIC_STATELESS_RETRY_CONFIG Config;
+        uint8_t Secret[32] = {0};
+        Config.Secret = Secret;
+        Config.Algorithm = CXPLAT_AEAD_AES_128_GCM;
+        Config.RotationMs = 60000;
+
+        // Null buffer
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                nullptr));
+
+        // Wrong size
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG) - 1,
+                &Config));
+
+        // Invalid algorithm
+        Config.Algorithm = (CXPLAT_AEAD_TYPE)1000;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                &Config));
+        Config.Algorithm = CXPLAT_AEAD_AES_128_GCM;
+
+        // Null secret
+        Config.Secret = nullptr;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                &Config));
+        Config.Secret = Secret;
+
+        // Zero rotation
+        Config.RotationMs = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                &Config));
+        Config.RotationMs = 60000;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                &Config));
+    }
+#endif
+
     //
     // Invalid parameter
     //
