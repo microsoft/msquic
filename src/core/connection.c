@@ -2976,7 +2976,7 @@ QuicConnProcessPeerTransportParameters(
         }
 
         if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
-            Connection->State.StreamStatisticsNegotiated = TRUE;
+            Connection->Stats.StreamStatisticsNegotiated = TRUE;
         }
 
         if (Connection->Settings.ReliableResetEnabled) {
