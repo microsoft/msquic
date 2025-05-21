@@ -204,9 +204,24 @@ typedef struct QUIC_LIBRARY {
     QUIC_PARTITION* Partitions;
 
     //
+    // Lock protecting the stateless retry configuration.
+    //
+    CXPLAT_DISPATCH_RW_LOCK StatelessRetryLock;
+
+    //
     // The base secret used to generate keys for the stateless retry token.
     //
     uint8_t BaseRetrySecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
+
+    //
+    // The AEAD algorithm to use for the retry key.
+    //
+    CXPLAT_AEAD_TYPE RetryAeadAlgorithm;
+
+    //
+    // The number of milliseconds between key rotations.
+    //
+    uint32_t RetryKeyRotationMs;
 
     //
     // The Toeplitz hash used for hashing received long header packets.
@@ -540,6 +555,23 @@ QuicLibraryGenerateStatelessResetToken(
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
+    );
+
+typedef struct QUIC_RETRY_KEY_CONFIG {
+    // The AEAD algorithm to use for the retry key (e.g., CXPLAT_AEAD_AES_256_GCM).
+    CXPLAT_AEAD_TYPE AeadAlgorithm;
+    // The number of milliseconds between key rotations.
+    uint32_t KeyRotationMs;
+    // The base secret used to generate keys for the stateless retry token.
+    const uint8_t* BaseRetrySecret;
+} QUIC_RETRY_KEY_CONFIG;
+
+// Allows external services to set the retry key configuration for stateless retry tokens at runtime.
+// The BaseRetrySecret length must match the AEAD algorithm requirements.
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetRetryKeyConfig(
+    _In_ const QUIC_RETRY_KEY_CONFIG* Config
     );
 
 #if defined(__cplusplus)

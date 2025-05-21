@@ -2556,3 +2556,27 @@ MsQuicExecutionPoll(
 }
 
 #endif
+
+// Allows external services to set the retry key configuration for stateless retry tokens at runtime.
+// The BaseRetrySecret length must match the AEAD algorithm requirements.
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetRetryKeyConfig(
+    _In_ const QUIC_RETRY_KEY_CONFIG* Config
+    )
+{
+    if (Config == NULL || Config->BaseRetrySecret == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    // Validate AEAD algorithm and secret length.
+    size_t SecretLen = CxPlatKeyLength(Config->AeadAlgorithm);
+    if (SecretLen == 0) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    CxPlatDispatchRwLockAcquireExclusive(&MsQuicLib.StatelessRetryLock);
+    CxPlatCopyMemory(MsQuicLib.BaseRetrySecret, Config->BaseRetrySecret, SecretLen);
+    MsQuicLib.RetryAeadAlgorithm = Config->AeadAlgorithm;
+    MsQuicLib.RetryKeyRotationMs = Config->KeyRotationMs;
+    CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetryLock);
+    return QUIC_STATUS_SUCCESS;
+}
