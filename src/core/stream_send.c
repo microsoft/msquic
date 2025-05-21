@@ -879,32 +879,6 @@ QuicStreamWriteOneFrame(
     }
     QuicStreamSentMetadataIncrement(Stream);
     PacketMetadata->FrameCount++;
-
-    if (PacketMetadata->FrameCount < QUIC_MAX_FRAMES_PER_PACKET &&
-        Stream->Connection->Stats.StreamStatisticsNegotiated &&
-        Frame.Fin) {
-        //
-        // If we're sending a FIN frame, we also want to send the stream
-        // statistics frame.
-        //
-        QUIC_STREAM_STATISTICS Stats = {0};
-        QuicStreamWriteStatistics(Stream, Stats);
-
-        QUIC_STREAM_STATISTICS_EX StatsFrame = {0};
-        StatsFrame.StreamID = Stream->ID;
-        StatsFrame.ConnBlockedBySchedulingUs = Stats.ConnBlockedBySchedulingUs;
-        StatsFrame.ConnBlockedByPacingUs = Stats.ConnBlockedByPacingUs;
-        StatsFrame.ConnBlockedByAmplificationProtUs = Stats.ConnBlockedByAmplificationProtUs;
-        StatsFrame.ConnBlockedByCongestionControlUs = Stats.ConnBlockedByCongestionControlUs;
-        StatsFrame.ConnBlockedByFlowControlUs = Stats.ConnBlockedByFlowControlUs;
-        StatsFrame.StreamBlockedByIdFlowControlUs = Stats.StreamBlockedByIdFlowControlUs;
-        StatsFrame.StreamBlockedByFlowControlUs = Stats.StreamBlockedByFlowControlUs;
-        StatsFrame.StreamBlockedByAppUs = Stats.App.StreamBlockedByAppUs;
-
-        if (QuicStreamStatisticsFrameEncode(&StatsFrame, &Offset, sizeof(FrameBuffer), FrameBuffer)) {
-            PacketMetadata->FrameCount++;
-        }
-    }
 }
 
 //
@@ -1234,6 +1208,36 @@ QuicStreamSendWrite(
 
             if (Builder->Metadata->FrameCount == QUIC_MAX_FRAMES_PER_PACKET) {
                 return TRUE;
+            } else {
+                const BOOLEAN SentFin =
+                    (Builder->Metadata->Frames[Builder->Metadata->FrameCount - 1].Flags & QUIC_SENT_FRAME_FLAG_STREAM_FIN) != 0;
+                if (Stream->Connection->Stats.StreamStatisticsNegotiated && SentFin) {
+                    //
+                    // If we're sending a FIN frame, we also want to send the
+                    // stream statistics frame.
+                    //
+                    QUIC_STREAM_STATISTICS Stats = {0};
+                    QuicStreamWriteStatistics(Stream, &Stats);
+
+                    QUIC_STREAM_STATISTICS_EX StatsFrame = {0};
+                    StatsFrame.StreamID = Stream->ID;
+                    StatsFrame.ConnBlockedBySchedulingUs = Stats.ConnBlockedBySchedulingUs;
+                    StatsFrame.ConnBlockedByPacingUs = Stats.ConnBlockedByPacingUs;
+                    StatsFrame.ConnBlockedByAmplificationProtUs = Stats.ConnBlockedByAmplificationProtUs;
+                    StatsFrame.ConnBlockedByCongestionControlUs = Stats.ConnBlockedByCongestionControlUs;
+                    StatsFrame.ConnBlockedByFlowControlUs = Stats.ConnBlockedByFlowControlUs;
+                    StatsFrame.StreamBlockedByIdFlowControlUs = Stats.StreamBlockedByIdFlowControlUs;
+                    StatsFrame.StreamBlockedByFlowControlUs = Stats.StreamBlockedByFlowControlUs;
+                    StatsFrame.StreamBlockedByAppUs = Stats.StreamBlockedByAppUs;
+
+                    if (QuicStreamStatisticsFrameEncode(
+                            &StatsFrame,
+                            &Builder->DatagramLength,
+                            AvailableBufferLength,
+                            Builder->Datagram->Buffer)) {
+                        Builder->Metadata->FrameCount++;
+                    }
+                }
             }
         } else {
             RanOutOfRoom = TRUE;

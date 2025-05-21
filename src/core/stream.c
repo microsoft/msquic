@@ -917,7 +917,7 @@ QuicStreamParamGet(
         break;
 
     case QUIC_PARAM_STREAM_PEER_STATISTICS: // TODO: Handle if the peer hasn't sent them?
-        if (!Stream->Connection->State.StreamStatisticsNegotiated) {
+        if (!Stream->Connection->Stats.StreamStatisticsNegotiated) {
             Status = QUIC_STATUS_NOT_SUPPORTED;
             break;
         }
@@ -930,7 +930,7 @@ QuicStreamParamGet(
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
-        CxPlatCopyMemory(Buffer, Stream->PeerStreamStatistics, sizeof(QUIC_STREAM_STATISTICS));
+        CxPlatCopyMemory(Buffer, &Stream->PeerStreamStats, sizeof(QUIC_STREAM_STATISTICS));
         *BufferLength = sizeof(QUIC_STREAM_STATISTICS);
         Status = QUIC_STATUS_SUCCESS;
         break;
@@ -943,6 +943,7 @@ QuicStreamParamGet(
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicStreamWriteStatistics(
     _In_ QUIC_STREAM* Stream,
