@@ -257,11 +257,15 @@ CreateSubjAltNameExtension(
     _Out_ PCERT_EXTENSION CertExtension
     )
 {
-    CERT_ALT_NAME_ENTRY AltName = { CERT_ALT_NAME_DNS_NAME };
-    AltName.pwszDNSName = L"localhost";
+    LPWSTR AltNameStrings[] = { L"localhost", L"127.0.0.1", L"::1", L"192.168.1.11", L"192.168.1.12", L"fc00::1:11", L"fc00::1:12" };
+    CERT_ALT_NAME_ENTRY AltNames[ARRAYSIZE(AltNameStrings)];
+    for (uint32_t i = 0; i < ARRAYSIZE(AltNameStrings); i++) {
+        AltNames[i].dwAltNameChoice = CERT_ALT_NAME_DNS_NAME;
+        AltNames[i].pwszDNSName = AltNameStrings[i];
+    }
     CERT_ALT_NAME_INFO NameInfo;
-    NameInfo.cAltEntry = 1;
-    NameInfo.rgAltEntry = &AltName;
+    NameInfo.cAltEntry = ARRAYSIZE(AltNames);
+    NameInfo.rgAltEntry = AltNames;
 
     ZeroMemory(CertExtension, sizeof(*CertExtension));
     CertExtension->fCritical = FALSE;
