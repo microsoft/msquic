@@ -149,15 +149,17 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_CONNECTION_CLOSE     = 0x1cULL, // to 0x1d
     QUIC_FRAME_CONNECTION_CLOSE_1   = 0x1dULL,
     QUIC_FRAME_HANDSHAKE_DONE       = 0x1eULL,
-    /* 0x1f to 0x20 are unused currently */
+    QUIC_FRAME_IMMEDIATE_ACK        = 0x1fULL,
+    /* 0x20 is unused currently */
     QUIC_FRAME_RELIABLE_RESET_STREAM = 0x21ULL, // intentionally ignore type 0x20 of QUIC_RESET_STREAM cause it's likely to be removed from RFC.
     /* 0x22 to 0x2f are unused currently */
     QUIC_FRAME_DATAGRAM             = 0x30ULL, // to 0x31
     QUIC_FRAME_DATAGRAM_1           = 0x31ULL,
     /* 0x32 to 0xad are unused currently */
     QUIC_FRAME_ACK_FREQUENCY        = 0xafULL,
-    QUIC_FRAME_IMMEDIATE_ACK        = 0x1fULL,
-    /* 0xaf to 0x2f4 are unused currently */
+    /* 0xb0 to 0xfa are unused currently */
+    QUIC_FRAME_STREAM_STATISTICS    = 0xfbULL,
+    /* 0xfc to 0x2f4 are unused currently */
     QUIC_FRAME_TIMESTAMP            = 0x2f5ULL,
 
     QUIC_FRAME_MAX_SUPPORTED
@@ -173,11 +175,13 @@ CXPLAT_STATIC_ASSERT(
     "Logging assumes frames types fit in 32-bits");
 
 #define QUIC_FRAME_IS_KNOWN(X) \
-    (X <= QUIC_FRAME_HANDSHAKE_DONE || \
-     (X >= QUIC_FRAME_DATAGRAM && X <= QUIC_FRAME_DATAGRAM_1) || \
-      X == QUIC_FRAME_ACK_FREQUENCY || X == QUIC_FRAME_IMMEDIATE_ACK || \
-      X == QUIC_FRAME_RELIABLE_RESET_STREAM || \
-      X == QUIC_FRAME_TIMESTAMP \
+    (X <= QUIC_FRAME_IMMEDIATE_ACK || \
+     X == QUIC_FRAME_RELIABLE_RESET_STREAM || \
+     X == QUIC_FRAME_DATAGRAM || \
+     X == QUIC_FRAME_DATAGRAM_1 || \
+     X == QUIC_FRAME_ACK_FREQUENCY || \
+     X == QUIC_FRAME_STREAM_STATISTICS || \
+     X == QUIC_FRAME_TIMESTAMP \
     )
 
 //
@@ -904,6 +908,44 @@ QuicTimestampFrameDecode(
     );
 
 //
+// QUIC_STREAM_STATISTICS Encoding/Decoding
+//
+
+typedef struct QUIC_STREAM_STATISTICS_EX {
+
+    QUIC_VAR_INT StreamID;
+    QUIC_VAR_INT ConnBlockedBySchedulingUs;
+    QUIC_VAR_INT ConnBlockedByPacingUs;
+    QUIC_VAR_INT ConnBlockedByAmplificationProtUs;
+    QUIC_VAR_INT ConnBlockedByCongestionControlUs;
+    QUIC_VAR_INT ConnBlockedByFlowControlUs;
+    QUIC_VAR_INT StreamBlockedByIdFlowControlUs;
+    QUIC_VAR_INT StreamBlockedByFlowControlUs;
+    QUIC_VAR_INT StreamBlockedByAppUs;
+
+} QUIC_STREAM_STATISTICS_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicStreamStatisticsFrameEncode(
+    _In_ const QUIC_STREAM_STATISTICS_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicStreamStatisticsFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_STREAM_STATISTICS_EX* Frame
+    );
+
+//
 // Helper functions
 //
 
@@ -957,6 +999,10 @@ QuicStreamFrameSkip(
     case QUIC_FRAME_STOP_SENDING: {
         QUIC_STOP_SENDING_EX Frame;
         return QuicStopSendingFrameDecode(BufferLength, Buffer, Offset, &Frame);
+    }
+    case QUIC_FRAME_STREAM_STATISTICS: {
+        QUIC_STREAM_STATISTICS_EX Frame;
+        return QuicStreamStatisticsFrameDecode(BufferLength, Buffer, Offset, &Frame);
     }
     default: { // QUIC_FRAME_STREAM*
         QUIC_STREAM_EX Frame;

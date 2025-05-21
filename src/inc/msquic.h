@@ -586,14 +586,15 @@ typedef struct QUIC_STATISTICS {
 typedef struct QUIC_STATISTICS_V2 {
 
     uint64_t CorrelationId;
-    uint32_t VersionNegotiation     : 1;
-    uint32_t StatelessRetry         : 1;
-    uint32_t ResumptionAttempted    : 1;
-    uint32_t ResumptionSucceeded    : 1;
-    uint32_t GreaseBitNegotiated    : 1;    // Set if we negotiated the GREASE bit.
-    uint32_t EcnCapable             : 1;
-    uint32_t EncryptionOffloaded    : 1;    // At least one path successfully offloaded encryption
-    uint32_t RESERVED               : 25;
+    uint32_t VersionNegotiation         : 1;
+    uint32_t StatelessRetry             : 1;
+    uint32_t ResumptionAttempted        : 1;
+    uint32_t ResumptionSucceeded        : 1;
+    uint32_t GreaseBitNegotiated        : 1;    // Set if we negotiated the GREASE bit.
+    uint32_t EcnCapable                 : 1;
+    uint32_t EncryptionOffloaded        : 1;    // At least one path successfully offloaded encryption
+    uint32_t StreamStatisticsNegotiated : 1;    // Stream statistics extension negotiated
+    uint32_t RESERVED                   : 24;
     uint32_t Rtt;                           // In microseconds
     uint32_t MinRtt;                        // In microseconds
     uint32_t MaxRtt;                        // In microseconds
@@ -1042,6 +1043,7 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 #define QUIC_PARAM_STREAM_STATISTICS                    0X08000004  // QUIC_STREAM_STATISTICS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_STREAM_RELIABLE_OFFSET               0x08000005  // uint64_t
+#define QUIC_PARAM_STREAM_PEER_STATISTICS               0X08000006  // QUIC_STREAM_STATISTICS
 #endif
 
 typedef

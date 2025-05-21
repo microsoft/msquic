@@ -470,6 +470,8 @@ typedef struct QUIC_STREAM {
         uint64_t CachedConnCongestionControlUs;
         uint64_t CachedConnFlowControlUs;
     } BlockedTimings;
+
+    QUIC_STREAM_STATISTICS PeerStreamStats;
 } QUIC_STREAM;
 
 //

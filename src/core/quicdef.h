@@ -610,6 +610,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_TP_FLAG_TIMESTAMP_RECV_ENABLED                 0x01000000
 #define QUIC_TP_FLAG_TIMESTAMP_SEND_ENABLED                 0x02000000
 #define QUIC_TP_FLAG_TIMESTAMP_SHIFT                        24
+#define QUIC_TP_FLAG_STREAM_STATISTICS                      0x04000000
 
 #define QUIC_TP_MAX_PACKET_SIZE_DEFAULT                     65527
 #define QUIC_TP_MAX_UDP_PAYLOAD_SIZE_MIN                    1200
