@@ -1058,3 +1058,13 @@ QuicStreamProvideRecvBuffers(
     _In_ QUIC_STREAM* Stream,
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
     );
+
+//
+// Calculates and writes the stream statistics.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamWriteStatistics(
+    _In_ QUIC_STREAM* Stream,
+    _Out_ QUIC_STREAM_STATISTICS* Stats
+    );

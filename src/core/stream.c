@@ -871,54 +871,8 @@ QuicStreamParamGet(
             break;
         }
 
-        uint64_t Now = CxPlatTimeUs64();
         QUIC_STREAM_STATISTICS* Stats = (QUIC_STREAM_STATISTICS*)Buffer;
-        QUIC_CONNECTION* Connection = Stream->Connection;
-        Stats->StreamBlockedByIdFlowControlUs = Stream->BlockedTimings.StreamIdFlowControl.CumulativeTimeUs;
-        if (Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs != 0) {
-            Stats->StreamBlockedByIdFlowControlUs +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs, Now);
-        }
-        Stats->StreamBlockedByFlowControlUs = Stream->BlockedTimings.FlowControl.CumulativeTimeUs;
-        if (Stream->BlockedTimings.FlowControl.LastStartTimeUs != 0) {
-            Stats->StreamBlockedByFlowControlUs +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.FlowControl.LastStartTimeUs, Now);
-        }
-        Stats->StreamBlockedByAppUs = Stream->BlockedTimings.App.CumulativeTimeUs;
-        if (Stream->BlockedTimings.App.LastStartTimeUs != 0) {
-            Stats->StreamBlockedByAppUs +=
-                CxPlatTimeDiff64(Stream->BlockedTimings.App.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedBySchedulingUs = Connection->BlockedTimings.Scheduling.CumulativeTimeUs;
-        if (Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0) {
-            Stats->ConnBlockedBySchedulingUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedBySchedulingUs -= Stream->BlockedTimings.CachedConnSchedulingUs;
-        Stats->ConnBlockedByPacingUs = Connection->BlockedTimings.Pacing.CumulativeTimeUs;
-        if (Connection->BlockedTimings.Pacing.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByPacingUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedByPacingUs -= Stream->BlockedTimings.CachedConnPacingUs;
-        Stats->ConnBlockedByAmplificationProtUs = Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs;
-        if (Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByAmplificationProtUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedByAmplificationProtUs -= Stream->BlockedTimings.CachedConnAmplificationProtUs;
-        Stats->ConnBlockedByCongestionControlUs = Connection->BlockedTimings.CongestionControl.CumulativeTimeUs;
-        if (Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByCongestionControlUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedByCongestionControlUs -= Stream->BlockedTimings.CachedConnCongestionControlUs;
-        Stats->ConnBlockedByFlowControlUs = Connection->BlockedTimings.FlowControl.CumulativeTimeUs;
-        if (Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByFlowControlUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now);
-        }
-        Stats->ConnBlockedByFlowControlUs -= Stream->BlockedTimings.CachedConnFlowControlUs;
+        QuicStreamWriteStatistics(Stream, Stats);
 
         *BufferLength = sizeof(QUIC_STREAM_STATISTICS);
         Status = QUIC_STATUS_SUCCESS;
@@ -962,12 +916,86 @@ QuicStreamParamGet(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
+    case QUIC_PARAM_STREAM_PEER_STATISTICS: // TODO: Handle if the peer hasn't sent them?
+        if (!Stream->Connection->State.StreamStatisticsNegotiated) {
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            break;
+        }
+        if (*BufferLength < sizeof(QUIC_STREAM_STATISTICS)) {
+            *BufferLength = sizeof(QUIC_STREAM_STATISTICS);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        CxPlatCopyMemory(Buffer, Stream->PeerStreamStatistics, sizeof(QUIC_STREAM_STATISTICS));
+        *BufferLength = sizeof(QUIC_STREAM_STATISTICS);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
     }
 
     return Status;
+}
+
+void
+QuicStreamWriteStatistics(
+    _In_ QUIC_STREAM* Stream,
+    _Out_ QUIC_STREAM_STATISTICS* Stats
+    )
+{
+    uint64_t Now = CxPlatTimeUs64();
+    QUIC_CONNECTION* Connection = Stream->Connection;
+    Stats->StreamBlockedByIdFlowControlUs = Stream->BlockedTimings.StreamIdFlowControl.CumulativeTimeUs;
+    if (Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs != 0) {
+        Stats->StreamBlockedByIdFlowControlUs +=
+            CxPlatTimeDiff64(Stream->BlockedTimings.StreamIdFlowControl.LastStartTimeUs, Now);
+    }
+    Stats->StreamBlockedByFlowControlUs = Stream->BlockedTimings.FlowControl.CumulativeTimeUs;
+    if (Stream->BlockedTimings.FlowControl.LastStartTimeUs != 0) {
+        Stats->StreamBlockedByFlowControlUs +=
+            CxPlatTimeDiff64(Stream->BlockedTimings.FlowControl.LastStartTimeUs, Now);
+    }
+    Stats->StreamBlockedByAppUs = Stream->BlockedTimings.App.CumulativeTimeUs;
+    if (Stream->BlockedTimings.App.LastStartTimeUs != 0) {
+        Stats->StreamBlockedByAppUs +=
+            CxPlatTimeDiff64(Stream->BlockedTimings.App.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedBySchedulingUs = Connection->BlockedTimings.Scheduling.CumulativeTimeUs;
+    if (Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0) {
+        Stats->ConnBlockedBySchedulingUs +=
+            CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedBySchedulingUs -= Stream->BlockedTimings.CachedConnSchedulingUs;
+    Stats->ConnBlockedByPacingUs = Connection->BlockedTimings.Pacing.CumulativeTimeUs;
+    if (Connection->BlockedTimings.Pacing.LastStartTimeUs != 0) {
+        Stats->ConnBlockedByPacingUs +=
+            CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedByPacingUs -= Stream->BlockedTimings.CachedConnPacingUs;
+    Stats->ConnBlockedByAmplificationProtUs = Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs;
+    if (Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0) {
+        Stats->ConnBlockedByAmplificationProtUs +=
+            CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedByAmplificationProtUs -= Stream->BlockedTimings.CachedConnAmplificationProtUs;
+    Stats->ConnBlockedByCongestionControlUs = Connection->BlockedTimings.CongestionControl.CumulativeTimeUs;
+    if (Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0) {
+        Stats->ConnBlockedByCongestionControlUs +=
+            CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedByCongestionControlUs -= Stream->BlockedTimings.CachedConnCongestionControlUs;
+    Stats->ConnBlockedByFlowControlUs = Connection->BlockedTimings.FlowControl.CumulativeTimeUs;
+    if (Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0) {
+        Stats->ConnBlockedByFlowControlUs +=
+            CxPlatTimeDiff64(Connection->BlockedTimings.FlowControl.LastStartTimeUs, Now);
+    }
+    Stats->ConnBlockedByFlowControlUs -= Stream->BlockedTimings.CachedConnFlowControlUs;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
