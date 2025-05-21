@@ -2773,7 +2773,6 @@ void QuicTestGlobalParam()
     }
 #endif
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     //
     // QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG
     //
@@ -2843,7 +2842,6 @@ void QuicTestGlobalParam()
                 sizeof(QUIC_STATELESS_RETRY_CONFIG),
                 &Config));
     }
-#endif
 
     //
     // Invalid parameter

@@ -196,6 +196,7 @@ QuicLibraryInitializePartitions(
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
     CxPlatRandom(sizeof(MsQuicLib.BaseRetrySecret), MsQuicLib.BaseRetrySecret);
+    MsQuicLib.RetryKeyRotationMs = QUIC_STATLESS_RETRY_KEY_LIFETIME_MS;
 
     uint16_t i;
     QUIC_STATUS Status;
@@ -396,6 +397,7 @@ MsQuicLibraryInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
+    BOOLEAN RetryLockInitialized = FALSE;
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -412,6 +414,9 @@ MsQuicLibraryInitialize(
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
     MsQuicLib.ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
+    CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetryLock);
+    RetryLockInitialized = TRUE;
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
@@ -496,6 +501,9 @@ Error:
         if (MsQuicLib.DefaultCompatibilityList != NULL) {
             CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
             MsQuicLib.DefaultCompatibilityList = NULL;
+        }
+        if (RetryLockInitialized) {
+            CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
         }
         if (PlatformInitialized) {
             CxPlatUninitialize();
@@ -598,6 +606,8 @@ MsQuicLibraryUninitialize(
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
     MsQuicLib.DefaultCompatibilityList = NULL;
+
+    CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
 
     if (MsQuicLib.ExecutionConfig != NULL) {
         CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
@@ -1206,15 +1216,11 @@ QuicLibrarySetGlobalParam(
         break;
 
     case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
-        if (Buffer == NULL || BufferLength != sizeof(QUIC_STATELESS_RETRY_CONFIG)) {
+        if (Buffer == NULL || BufferLength < sizeof(QUIC_STATELESS_RETRY_CONFIG)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
             break;
         }
         const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
-        if (Config->Algorithm > CXPLAT_AEAD_CHACHA20_POLY1305 || Config->Secret == NULL || Config->RotationMs == 0) {
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            break;
-        }
         Status = MsQuicLibrarySetRetryKeyConfig(Config);
         break;
     }
@@ -2571,26 +2577,24 @@ MsQuicExecutionPoll(
 
 #endif
 
-// Allows external services to set the retry key configuration for stateless retry tokens at runtime.
-// The BaseRetrySecret length must match the AEAD algorithm requirements.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetRetryKeyConfig(
-    _In_ const QUIC_RETRY_KEY_CONFIG* Config
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     )
 {
-    if (Config == NULL || Config->BaseRetrySecret == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
+    if (Config->Algorithm > CXPLAT_AEAD_CHACHA20_POLY1305 ||
+        Config->Secret == NULL || Config->RotationMs == 0) {
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        break;
     }
-    // Validate AEAD algorithm and secret length.
-    size_t SecretLen = CxPlatKeyLength(Config->AeadAlgorithm);
-    if (SecretLen == 0) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
+    size_t SecretLen = CxPlatKeyLength(Config->Algorithm);
+    CXPLAT_FRE_ASSERT(SecretLen <= sizeof(MsQuicLib.BaseRetrySecret));
+
     CxPlatDispatchRwLockAcquireExclusive(&MsQuicLib.StatelessRetryLock);
-    CxPlatCopyMemory(MsQuicLib.BaseRetrySecret, Config->BaseRetrySecret, SecretLen);
-    MsQuicLib.RetryAeadAlgorithm = Config->AeadAlgorithm;
-    MsQuicLib.RetryKeyRotationMs = Config->KeyRotationMs;
+    CxPlatCopyMemory(MsQuicLib.BaseRetrySecret, Config->Secret, SecretLen);
+    MsQuicLib.RetryAeadAlgorithm = Config->Algorithm;
+    MsQuicLib.RetryKeyRotationMs = Config->RotationMs;
     CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetryLock);
     return QUIC_STATUS_SUCCESS;
 }

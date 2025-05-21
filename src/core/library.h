@@ -557,21 +557,10 @@ QuicLibraryGenerateStatelessResetToken(
         uint8_t* ResetToken
     );
 
-typedef struct QUIC_RETRY_KEY_CONFIG {
-    // The AEAD algorithm to use for the retry key (e.g., CXPLAT_AEAD_AES_256_GCM).
-    CXPLAT_AEAD_TYPE AeadAlgorithm;
-    // The number of milliseconds between key rotations.
-    uint32_t KeyRotationMs;
-    // The base secret used to generate keys for the stateless retry token.
-    const uint8_t* BaseRetrySecret;
-} QUIC_RETRY_KEY_CONFIG;
-
-// Allows external services to set the retry key configuration for stateless retry tokens at runtime.
-// The BaseRetrySecret length must match the AEAD algorithm requirements.
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetRetryKeyConfig(
-    _In_ const QUIC_RETRY_KEY_CONFIG* Config
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     );
 
 #if defined(__cplusplus)
