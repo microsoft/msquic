@@ -2327,13 +2327,12 @@ SocketCreateRdmaListener(
     RDMA_NDSPI_ADAPTER* NdAdapter = NULL;
 
     if (!Datapath ||
-        !LocalAddress ||
         !Datapath->RdmaAdapter ||
         !Config)
     {
         QuicTraceLogError(
             CreateRdmaSocketFailed,
-            "CreateRdmaSocket failed, invalid address family");
+            "CreateRdmaSocket failed, invalid parameters");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 

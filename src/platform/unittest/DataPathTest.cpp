@@ -559,7 +559,7 @@ protected:
         TcpEmptySendCompleteCallback
     };
 
-    const CXPLAT_TCP_DATAPATH_CALLBACKS EmptyRdmaCallbacks = {
+    const CXPLAT_RDMA_DATAPATH_CALLBACKS EmptyRdmaCallbacks = {
         EmptyAcceptCallback,
         EmptyConnectCallback,
         EmptyReceiveCallback,
@@ -587,6 +587,7 @@ struct CxPlatDataPath {
     CxPlatDataPath(
         _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
         _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks = nullptr,
+        _In_opt_ const CXPLAT_RDMA_DATAPATH_CALLBACKS* RdmaCallbacks = nullptr,
         _In_ uint32_t ClientRecvContextLength = 0,
         _In_opt_ QUIC_EXECUTION_CONFIG* Config = nullptr
         ) noexcept
@@ -599,7 +600,7 @@ struct CxPlatDataPath {
                 ClientRecvContextLength,
                 UdpCallbacks,
                 TcpCallbacks,
-                NULL,
+                RdmaCallbacks,
                 &WorkerPool,
                 Config ? Config : &DefaultExecutionConfig,
                 &Datapath);
@@ -762,6 +763,34 @@ struct CxPlatSocket {
     QUIC_ADDR GetRemoteAddress() const noexcept {
         return Route.RemoteAddress;
     }
+
+    void CreateRdmaListener(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress,
+        _In_opt_ void* CallbackContext,
+        _In_ CXPLAT_RDMA_CONFIG* Config
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatSocketCreateRdmaListener(
+                Datapath,
+                LocalAddress,
+                CallbackContext,
+                Config,
+                &Socket);
+#ifdef _WIN32
+        if (InitStatus == HRESULT_FROM_WIN32(WSAEACCES)) {
+            InitStatus = QUIC_STATUS_ADDRESS_IN_USE;
+            std::cout << "Replacing EACCESS with ADDRINUSE for port: " <<
+                htons(LocalAddress->Ipv4.sin_port) << std::endl;
+        }
+#endif //_WIN32
+        if (QUIC_SUCCEEDED(InitStatus)) {
+            CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
+            CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
+        }
+    }
+
     void
     Send(
         _In_ const CXPLAT_ROUTE& _Route,
@@ -808,25 +837,25 @@ TEST_F(DataPathTest, Initialize)
     }
     {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0 };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 1, {0} };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
     }
     if (UseDuoNic) {
         QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_XDP, 0, 1, {0} };
-        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, 0, &Config);
+        CxPlatDataPath Datapath(&EmptyUdpCallbacks, nullptr, nullptr, 0, &Config);
         VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
         ASSERT_NE(nullptr, Datapath.Datapath);
         ASSERT_TRUE(Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RAW));
@@ -962,7 +991,7 @@ TEST_P(DataPathTest, UdpDataPolling)
 {
     QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NONE, UINT32_MAX, 0 };
     UdpRecvContext RecvContext;
-    CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
+    CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
@@ -1189,7 +1218,7 @@ TEST_P(DataPathTest, MultiBindListener) {
 TEST_P(DataPathTest, MultiBindListenerSingleProcessor) {
     UdpRecvContext RecvContext;
     QUIC_EXECUTION_CONFIG Config = { QUIC_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC, UINT32_MAX, 1, 0 };
-    CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
+    CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
     RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
 
@@ -1422,6 +1451,34 @@ TEST_P(DataPathTest, TcpDataServer)
 
     CxPlatSocketSend(ListenerContext.Server, &Route, SendData);
     ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ReceiveEvent, 500));
+}
+
+//
+// RDMA Tests
+//
+TEST_F(DataPathTest, RdmaListener)
+{
+    QUIC_ADDR AdapterAddress = {};
+    CXPLAT_RDMA_CONFIG RdmaConfig = {};
+    QuicAddrFromString("10.1.0.5", 50000, &AdapterAddress);
+
+    RdmaConfig.SendRingBufferSize = 0x8000;
+    RdmaConfig.RecvRingBufferSize = 0x8000;
+
+    QUIC_EXECUTION_CONFIG RdmaExecConfig = { QUIC_EXECUTION_CONFIG_FLAG_RDMA, 0, 0, {0}, &AdapterAddress };
+
+    CxPlatDataPath Datapath(nullptr, nullptr, &EmptyRdmaCallbacks, 0, &RdmaExecConfig);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RDMA)) {
+        GTEST_SKIP_("RDMA is not supported");
+    }
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    RdmaListenerContext ListenerContext;
+    CxPlatSocket Listener; Listener.CreateRdmaListener(Datapath, nullptr, &ListenerContext, &RdmaConfig);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
 }
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());

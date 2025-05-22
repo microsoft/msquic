@@ -524,7 +524,7 @@ CxPlatDataPathUpdateConfig(
 #define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
 #define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
 #define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
-
+#define CXPLAT_DATAPATH_FEATURE_RDMA                  0x0200
 //
 // Queries the currently supported features of the datapath.
 //

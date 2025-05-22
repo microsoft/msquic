@@ -65,7 +65,7 @@ set_target_properties(msquic_platform PROPERTIES EXPORT_NAME platform)
 
 # RDMA references
 if ("${CX_PLATFORM}" STREQUAL "windows")
-
+    target_link_options(msquic_platform PRIVATE "$<$<CONFIG:Release>:/LTCG>")
     target_include_directories(msquic_platform PRIVATE ${PROJECT_SOURCE_DIR}/Rdma/NetworkDirect/include)
     target_include_directories(msquic_platform PRIVATE ${PROJECT_SOURCE_DIR}/Rdma/Mana)
     target_link_libraries(msquic_platform PUBLIC ${PROJECT_SOURCE_DIR}/Rdma/NetworkDirect/lib/x64/ndutil.lib)
