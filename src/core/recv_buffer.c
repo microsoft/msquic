@@ -273,6 +273,7 @@ QuicRecvBufferInitialize(
 {
     CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+    CXPLAT_DBG_ASSERT(PreallocatedChunk == NULL || RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
     CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
