@@ -24,10 +24,10 @@ typedef struct QUIC_RECV_CHUNK {
     CXPLAT_LIST_ENTRY Link;          // Link in the list of chunks.
     uint32_t AllocLength;            // Allocation size of Buffer
     uint8_t ExternalReference  : 1;  // Indicates the buffer is being used externally.
-    uint8_t AppOwnedBuffer     : 1;  // Indicates the buffer is managed by the app.
+    uint8_t AllocatedFromPool  : 1;  // Indicates the buffer is was allocated from a pool.
     uint8_t* Buffer;                 // Pointer to the buffer itself. Doesn't need to be freed independently:
                                      //  - for internally allocated buffers, points in the same allocation.
-                                     //  - for exteral buffers, the buffer isn't owned
+                                     //  - for app-owned buffers, the buffer isn't owned
 } QUIC_RECV_CHUNK;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -36,7 +36,7 @@ QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
     _Inout_updates_(AllocLength) uint8_t* Buffer,
-    _In_ BOOLEAN AppOwnedBuffer
+    _In_ BOOLEAN BufferAllocatedFromPool
     );
 
 typedef struct QUIC_RECV_BUFFER {
@@ -50,11 +50,6 @@ typedef struct QUIC_RECV_BUFFER {
     // Optional, retired chunk waiting to no longer be referenced.
     //
     QUIC_RECV_CHUNK* RetiredChunk;
-
-    //
-    // Optional, preallocated initial chunk.
-    //
-    QUIC_RECV_CHUNK* PreallocatedChunk;
 
     //
     // Ranges of stream offsets that have been written to the buffer,
@@ -110,7 +105,8 @@ typedef struct QUIC_RECV_BUFFER {
 //
 // Initialize a QUIC_RECV_BUFFER.
 // Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED.
-// PreallocatedChunk is owned by the caller and must be freed afte the buffer is uninitialized.
+// PreallocatedChunk ownership is given to the receive buffer.
+// PreallocatedChunk must be null if RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
