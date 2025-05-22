@@ -2647,12 +2647,12 @@ QuicLibrarySetRetryKeyConfig(
             "[ lib] Invalid retry key secret: NULL.");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    if (Config->SecretLength < CxPlatKeyLength(Config->Algorithm)) {
+    if (Config->SecretLength < CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm)) {
         QuicTraceLogError(
             LibrarySetRetryKeySecretLengthInvalid,
             "[ lib] Invalid retry key secret length: %u. Expected %u.",
             Config->SecretLength,
-            CxPlatKeyLength(Config->Algorithm));
+            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     size_t SecretLen = CXPLAT_MIN(sizeof(MsQuicLib.BaseRetrySecret), Config->SecretLength);
