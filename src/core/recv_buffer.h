@@ -105,7 +105,8 @@ typedef struct QUIC_RECV_BUFFER {
 //
 // Initialize a QUIC_RECV_BUFFER.
 // Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED.
-// PreallocatedChunk is owned by the caller and must be freed afte the buffer is uninitialized.
+// PreallocatedChunk ownership is given to the receive buffer.
+// PreallocatedChunk must be null if RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS

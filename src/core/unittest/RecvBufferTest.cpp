@@ -312,6 +312,11 @@ TEST_P(WithMode, Alloc)
 TEST_P(WithMode, AllocWithChunk)
 {
     RecvBuffer RecvBuf;
+    const auto Mode = GetParam();
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+        // App-owned mode doesn't support preallocated chunks
+        return;
+    }
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam(), true));
 }
 
