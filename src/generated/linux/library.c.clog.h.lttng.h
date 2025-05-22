@@ -292,6 +292,83 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
+// [ lib] Invalid retry key algorithm: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+// arg2 = arg2 = Config->Algorithm = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyRotationInvalid
+// [ lib] Invalid retry key rotation ms: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %d.",
+            Config->RotationMs);
+// arg2 = arg2 = Config->RotationMs = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
+// [ lib] Invalid retry key secret length: %d. Expected %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %d. Expected %d.",
+            Config->SecretLength,
+            CxPlatKeyLength(Config->Algorithm));
+// arg2 = arg2 = Config->SecretLength = arg2
+// arg3 = arg3 = CxPlatKeyLength(Config->Algorithm) = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid,
+    TP_ARGS(
+        int, arg2,
+        int, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

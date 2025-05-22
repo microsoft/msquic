@@ -131,10 +131,10 @@ QuicPartitionGetCurrentStatelessRetryKey(
     )
 {
     const int64_t Now = CxPlatTimeEpochMs64();
-    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock);
+    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
     const int64_t KeyIndex = Now / MsQuicLib.RetryKeyRotationMs;
     CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
-    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock);
+    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
     return Key;
 }
 
@@ -147,7 +147,7 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
     )
 {
     const int64_t Now = CxPlatTimeEpochMs64();
-    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock);
+    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
     const int64_t CurrentKeyIndex = Now / MsQuicLib.RetryKeyRotationMs;
     const int64_t KeyIndex = Timestamp / MsQuicLib.RetryKeyRotationMs;
 
@@ -155,11 +155,11 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
         //
         // This key index is too old or too new.
         //
-        CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock);
+        CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
         return NULL;
     }
 
     CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
-    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock);
+    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
     return Key;
 }
