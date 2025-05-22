@@ -65,7 +65,9 @@ typedef struct QUIC_SETTINGS_INTERNAL {
             uint64_t XdpEnabled                             : 1;
             uint64_t QTIPEnabled                            : 1;
             uint64_t RioEnabled                             : 1;
-            uint64_t RESERVED                               : 13;
+            uint64_t ResumptionTicketMinVersion             : 1;
+            uint64_t ResumptionTicketMaxVersion             : 1;
+            uint64_t RESERVED                               : 11;
         } IsSet;
     };
 
@@ -120,6 +122,8 @@ typedef struct QUIC_SETTINGS_INTERNAL {
     uint8_t QTIPEnabled                     : 1;
     uint8_t RioEnabled                      : 1;
     uint8_t MtuDiscoveryMissingProbeCount;
+    uint8_t ResumptionTicketMinVersion;
+    uint8_t ResumptionTicketMaxVersion;
 } QUIC_SETTINGS_INTERNAL;
 
 //

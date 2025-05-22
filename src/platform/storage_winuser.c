@@ -257,6 +257,11 @@ CxPlatStorageReadValue(
     )
 {
     DWORD Type;
+
+    if (Storage == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     return
         HRESULT_FROM_WIN32(
             RegQueryValueExA(

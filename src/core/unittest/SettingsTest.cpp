@@ -128,6 +128,8 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
     SETTINGS_FEATURE_SET_TEST(OneWayDelayEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(NetStatsEventEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(StreamMultiReceiveEnabled, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(ResumptionTicketMinVersion, QuicSettingsSettingsToInternal);
+    SETTINGS_FEATURE_SET_TEST(ResumptionTicketMaxVersion, QuicSettingsSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -217,6 +219,8 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     SETTINGS_FEATURE_GET_TEST(OneWayDelayEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(NetStatsEventEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(StreamMultiReceiveEnabled, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(ResumptionTicketMinVersion, QuicSettingsGetSettings);
+    SETTINGS_FEATURE_GET_TEST(ResumptionTicketMaxVersion, QuicSettingsGetSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -335,6 +339,210 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
 
+TEST(SettingsTest, QuicSettingsSetDefault_SetsAllDefaultsWhenUnset)
+{
+    QUIC_SETTINGS_INTERNAL s;
+    CxPlatZeroMemory(&s, sizeof(s));
+
+    // Set all IsSet fields to 0 to simulate unset state
+    s.IsSetFlags = 0;
+
+    QuicSettingsSetDefault(&s);
+
+    // Spot-check a few representative fields (add more as needed)
+    ASSERT_EQ(s.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(s.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+    ASSERT_EQ(s.DatagramReceiveEnabled, QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED);
+    ASSERT_EQ(s.MaxOperationsPerDrain, QUIC_MAX_OPERATIONS_PER_DRAIN);
+    ASSERT_EQ(s.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
+    ASSERT_EQ(s.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
+    ASSERT_EQ(s.FixedServerID, 0u);
+    ASSERT_EQ(s.MaxWorkerQueueDelayUs, MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY));
+    ASSERT_EQ(s.MaxStatelessOperations, QUIC_MAX_STATELESS_OPERATIONS);
+    ASSERT_EQ(s.InitialWindowPackets, QUIC_INITIAL_WINDOW_PACKETS);
+    ASSERT_EQ(s.SendIdleTimeoutMs, QUIC_DEFAULT_SEND_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(s.InitialRttMs, QUIC_INITIAL_RTT);
+    ASSERT_EQ(s.MaxAckDelayMs, QUIC_TP_MAX_ACK_DELAY_DEFAULT);
+    ASSERT_EQ(s.DisconnectTimeoutMs, QUIC_DEFAULT_DISCONNECT_TIMEOUT);
+    ASSERT_EQ(s.KeepAliveIntervalMs, QUIC_DEFAULT_KEEP_ALIVE_INTERVAL);
+    ASSERT_EQ(s.IdleTimeoutMs, QUIC_DEFAULT_IDLE_TIMEOUT);
+    ASSERT_EQ(s.HandshakeIdleTimeoutMs, QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT);
+    ASSERT_EQ(s.PeerBidiStreamCount, 0u);
+    ASSERT_EQ(s.PeerUnidiStreamCount, 0u);
+    ASSERT_EQ(s.TlsClientMaxSendBuffer, QUIC_MAX_TLS_SERVER_SEND_BUFFER); // Note: last assignment in function
+    ASSERT_EQ(s.StreamRecvWindowDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(s.StreamRecvWindowBidiLocalDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(s.StreamRecvWindowBidiRemoteDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(s.StreamRecvWindowUnidiDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(s.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
+    ASSERT_EQ(s.ConnFlowControlWindow, QUIC_DEFAULT_CONN_FLOW_CONTROL_WINDOW);
+    ASSERT_EQ(s.MaxBytesPerKey, QUIC_DEFAULT_MAX_BYTES_PER_KEY);
+    ASSERT_EQ(s.ServerResumptionLevel, (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL);
+    ASSERT_EQ(s.VersionNegotiationExtEnabled, QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED);
+    ASSERT_EQ(s.MinimumMtu, QUIC_DPLPMTUD_DEFAULT_MIN_MTU);
+    ASSERT_EQ(s.MaximumMtu, QUIC_DPLPMTUD_DEFAULT_MAX_MTU);
+    ASSERT_EQ(s.MtuDiscoveryMissingProbeCount, QUIC_DPLPMTUD_MAX_PROBES);
+    ASSERT_EQ(s.MtuDiscoverySearchCompleteTimeoutUs, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
+    ASSERT_EQ(s.MaxBindingStatelessOperations, QUIC_MAX_BINDING_STATELESS_OPERATIONS);
+    ASSERT_EQ(s.StatelessOperationExpirationMs, QUIC_STATELESS_OPERATION_EXPIRATION_MS);
+    ASSERT_EQ(s.CongestionControlAlgorithm, QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT);
+    ASSERT_EQ(s.DestCidUpdateIdleTimeoutMs, QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(s.GreaseQuicBitEnabled, QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED);
+    ASSERT_EQ(s.EcnEnabled, QUIC_DEFAULT_ECN_ENABLED);
+    ASSERT_EQ(s.HyStartEnabled, QUIC_DEFAULT_HYSTART_ENABLED);
+    ASSERT_EQ(s.EncryptionOffloadAllowed, QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED);
+    ASSERT_EQ(s.ReliableResetEnabled, QUIC_DEFAULT_RELIABLE_RESET_ENABLED);
+    ASSERT_EQ(s.XdpEnabled, QUIC_DEFAULT_XDP_ENABLED);
+    ASSERT_EQ(s.QTIPEnabled, QUIC_DEFAULT_QTIP_ENABLED);
+    ASSERT_EQ(s.RioEnabled, QUIC_DEFAULT_RIO_ENABLED);
+    ASSERT_EQ(s.OneWayDelayEnabled, QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED);
+    ASSERT_EQ(s.NetStatsEventEnabled, QUIC_DEFAULT_NET_STATS_EVENT_ENABLED);
+    ASSERT_EQ(s.StreamMultiReceiveEnabled, QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+}
+
+TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
+{
+    QUIC_SETTINGS_INTERNAL s;
+    CxPlatZeroMemory(&s, sizeof(s));
+
+    // Set a few fields and mark them as set
+    s.IsSet.SendBufferingEnabled = 1;
+    s.SendBufferingEnabled = 1;
+    s.IsSet.PacingEnabled = 1;
+    s.PacingEnabled = 1;
+    s.IsSet.ResumptionTicketMinVersion = 1;
+    s.ResumptionTicketMinVersion = 40;
+    QuicSettingsSetDefault(&s);
+
+    // These should not be overwritten
+    ASSERT_EQ(s.SendBufferingEnabled, 1);
+    ASSERT_EQ(s.PacingEnabled, 1);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, 40);
+
+    // But an unset field should be set to default
+    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+}
+
+
+#include <winreg.h>
+
+static void ResetMsQuicRegistry()
+{
+    RegDeleteTreeA(
+        HKEY_LOCAL_MACHINE,
+        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\TEST");
+}
+
+static void PersistValue(const char* Name, uint32_t Value)
+{
+    HKEY hKey;
+    LONG err = RegCreateKeyExA(
+        HKEY_LOCAL_MACHINE,
+        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\TEST",
+        0, NULL, 0, KEY_SET_VALUE, NULL, &hKey, NULL);
+    ASSERT_EQ(err, ERROR_SUCCESS);
+    err = RegSetValueExA(
+        hKey, Name, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&Value), sizeof(Value));
+    ASSERT_EQ(err, ERROR_SUCCESS);
+    RegCloseKey(hKey);
+}
+
+// --- Test: QuicSettingsLoad sets fields from storage ---
+TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
+{
+    ResetMsQuicRegistry();
+
+    // Set up storage values for a few settings
+    PersistValue(QUIC_SETTING_SEND_BUFFERING_DEFAULT, 1);
+    PersistValue(QUIC_SETTING_SEND_PACING_DEFAULT, 0);
+    PersistValue(QUIC_SETTING_MIGRATION_ENABLED, 1);
+    PersistValue(QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN, 7);
+
+    QUIC_SETTINGS_INTERNAL s;
+    CxPlatZeroMemory(&s, sizeof(s));
+    CXPLAT_STORAGE* storage = nullptr;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            &storage));
+
+    QuicSettingsLoad(&s, storage);
+
+    // Check that the values were loaded
+    ASSERT_EQ(s.SendBufferingEnabled, 1u);
+    // PacingEnabled is not set because the key is different in the code (QUIC_SETTING_SEND_PACING_DEFAULT)
+    // So let's check MigrationEnabled and MaxOperationsPerDrain
+    ASSERT_EQ(s.MigrationEnabled, 1u);
+    ASSERT_EQ(s.MaxOperationsPerDrain, 7u);
+
+    CxPlatStorageClose(storage);
+    ResetMsQuicRegistry();
+}
+
+// --- Test: QuicSettingsLoad does not overwrite set fields ---
+TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
+{
+    ResetMsQuicRegistry();
+    PersistValue(QUIC_SETTING_SEND_BUFFERING_DEFAULT, 0);
+
+    CXPLAT_STORAGE* storage = nullptr;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            &storage));
+
+    QUIC_SETTINGS_INTERNAL s;
+    CxPlatZeroMemory(&s, sizeof(s));
+
+    // Mark SendBufferingEnabled as set
+    s.IsSet.SendBufferingEnabled = 1;
+    s.SendBufferingEnabled = 1;
+
+    QuicSettingsLoad(&s, storage);
+
+    // Should not be overwritten
+    ASSERT_EQ(s.SendBufferingEnabled, 1u);
+
+    CxPlatStorageClose(storage);
+    ResetMsQuicRegistry();
+}
+
+// --- Test: QuicSettingsLoad uses default if storage missing ---
+TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
+{
+    ResetMsQuicRegistry();
+
+    CXPLAT_STORAGE* storage = nullptr;
+    ASSERT_NE(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            &storage));
+
+    QUIC_SETTINGS_INTERNAL s;
+    CxPlatZeroMemory(&s, sizeof(s));
+    QuicSettingsLoad(&s, storage);
+
+    // Should use default
+    ASSERT_EQ(s.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(s.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+
+    CxPlatStorageClose(storage);
+    ResetMsQuicRegistry();
+ }
+
 TEST(SettingsTest, SettingsSizesGet)
 {
     uint8_t Buffer[sizeof(QUIC_SETTINGS) * 2];
@@ -342,7 +550,7 @@ TEST(SettingsTest, SettingsSizesGet)
     QUIC_SETTINGS_INTERNAL InternalSettings;
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, ResumptionTicketMaxVersion);
 
     uint32_t BufferSize = 0;
     ASSERT_EQ(
@@ -394,7 +602,7 @@ TEST(SettingsTest, SettingsSizesSet)
     QUIC_SETTINGS_INTERNAL InternalSettings;
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, ResumptionTicketMaxVersion);
 
     uint32_t BufferSize = 0;
     ASSERT_EQ(

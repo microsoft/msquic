@@ -432,6 +432,10 @@ CxPlatStorageReadValue(
     QUIC_STATUS Status;
     PUNICODE_STRING NameUnicode;
 
+    if (Storage == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
     if (Name != NULL) {
         Status = CxPlatConvertUtf8ToUnicode(Name, &NameUnicode);
         if (QUIC_FAILED(Status)) {
