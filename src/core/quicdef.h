@@ -700,3 +700,7 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
+
+#define QUIC_SETTING_RETRY_KEY_ALGORITHM            "RetryKeyAlgorithm"
+#define QUIC_SETTING_RETRY_KEY_SECRET               "RetrySecret"
+#define QUIC_SETTING_RETRY_KEY_ROTATION_MS          "RetryKeyRotationMs"

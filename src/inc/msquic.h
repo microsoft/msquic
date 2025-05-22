@@ -875,11 +875,18 @@ typedef struct QUIC_STREAM_STATISTICS {
     uint64_t StreamBlockedByAppUs;
 } QUIC_STREAM_STATISTICS;
 
+typedef enum QUIC_AEAD_ALGORITHM_TYPE {
+    QUIC_AEAD_ALGORITHM_AES_128_GCM = 0,
+    QUIC_AEAD_ALGORITHM_AES_256_GCM = 1,
+    QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 = 2, // Not supported on Schannel
+} QUIC_AEAD_ALGORITHM_TYPE;
+
 typedef struct QUIC_STATELESS_RETRY_CONFIG {
-    CXPLAT_AEAD_TYPE Algorithm;      // AEAD algorithm for the key.
-    uint32_t RotationMs;             // Key rotation interval in milliseconds.
-    _Field_size_bytes_(CxPlatKeyLength(Algorithm))
-        const uint8_t* Secret;       // Pointer to the secret to generate the key.
+    QUIC_AEAD_ALGORITHM_TYPE Algorithm; // AEAD algorithm for the key.
+    uint32_t RotationMs;                // Key rotation interval in milliseconds.
+    uint32_t SecretLength;              // Length of the secret.
+    _Field_size_bytes_(SecretLength)
+        uint8_t Secret[0];              // Secret to generate the key.
 } QUIC_STATELESS_RETRY_CONFIG;
 
 //

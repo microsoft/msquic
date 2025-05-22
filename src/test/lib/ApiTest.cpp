@@ -2778,10 +2778,14 @@ void QuicTestGlobalParam()
     //
     {
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
+        //
+        // This memory layout is intention. DO NOT REARRANGE Config and Secret!
+        // Secret *must* follow Config so it can be accessed from Config's pointer.
+        //
         QUIC_STATELESS_RETRY_CONFIG Config;
         uint8_t Secret[32] = {0};
-        Config.Secret = Secret;
-        Config.Algorithm = CXPLAT_AEAD_AES_128_GCM;
+        Config.SecretLength = sizeof(Secret);
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
         Config.RotationMs = 60000;
 
         // Null buffer
@@ -2803,7 +2807,7 @@ void QuicTestGlobalParam()
                 &Config));
 
         // Invalid algorithm
-        Config.Algorithm = (CXPLAT_AEAD_TYPE)1000;
+        Config.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
@@ -2811,10 +2815,10 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 sizeof(QUIC_STATELESS_RETRY_CONFIG),
                 &Config));
-        Config.Algorithm = CXPLAT_AEAD_AES_128_GCM;
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
 
-        // Null secret
-        Config.Secret = nullptr;
+        // zero length secret
+        Config.SecretLength = 0;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
@@ -2822,7 +2826,18 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 sizeof(QUIC_STATELESS_RETRY_CONFIG),
                 &Config));
-        Config.Secret = Secret;
+        Config.SecretLength = sizeof(Secret);
+
+        // Incorrect length secret
+        Config.SecretLength = 10;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                &Config));
+        Config.SecretLength = sizeof(Secret);
 
         // Zero rotation
         Config.RotationMs = 0;

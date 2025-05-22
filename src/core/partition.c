@@ -77,7 +77,7 @@ QuicPartitionUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 CXPLAT_KEY*
-QuicPartitioGetStatelessRetryKey(
+QuicPartitionGetStatelessRetryKey(
     _In_ QUIC_PARTITION* Partition,
     _In_ int64_t KeyIndex
     )
@@ -96,7 +96,7 @@ QuicPartitioGetStatelessRetryKey(
     CxPlatCopyMemory(
         RawKey,
         MsQuicLib.BaseRetrySecret,
-        CxPlatKeylength(MsQuicLib.RetryAeadAlgorithm));
+        CxPlatKeyLength(MsQuicLib.RetryAeadAlgorithm));
     for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
         RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
     }
@@ -133,7 +133,7 @@ QuicPartitionGetCurrentStatelessRetryKey(
     const int64_t Now = CxPlatTimeEpochMs64();
     CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock);
     const int64_t KeyIndex = Now / MsQuicLib.RetryKeyRotationMs;
-    CXPLAT_KEY* Key = QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
+    CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
     CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock);
     return Key;
 }
@@ -159,7 +159,7 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
         return NULL;
     }
 
-    CXPLAT_KEY* Key = QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
+    CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
     CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock);
     return Key;
 }

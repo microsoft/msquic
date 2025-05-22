@@ -196,7 +196,7 @@ QuicLibraryInitializePartitions(
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
     CxPlatRandom(sizeof(MsQuicLib.BaseRetrySecret), MsQuicLib.BaseRetrySecret);
-    MsQuicLib.RetryKeyRotationMs = QUIC_STATLESS_RETRY_KEY_LIFETIME_MS;
+    MsQuicLib.RetryKeyRotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
     uint16_t i;
     QUIC_STATUS Status;
@@ -337,6 +337,47 @@ QuicPerfCounterSnapShot(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicLibraryLoadRetryConfig(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    //
+    // This memory layout is intentional. DO NOT REARRANGE.
+    // The Secret is immediately following the RetryConfig in memory so it
+    // can be read from the RetryConfig pointer.
+    //
+    QUIC_STATELESS_RETRY_CONFIG RetryConfig = { 0 };
+    uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE] = { 0 };
+    uint32_t RotationLength = sizeof(RetryConfig.RotationMs);
+    uint32_t AlgLength = sizeof(RetryConfig.Algorithm);
+    RetryConfig.SecretLength = sizeof(Secret);
+
+    if (QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                (uint8_t*)&RetryConfig.RotationMs,
+                &RotationLength)) &&
+        QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                (uint8_t*)&RetryConfig.Algorithm,
+                &AlgLength)) &&
+        QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                Secret,
+                &RetryConfig.SecretLength))) {
+        QuicLibrarySetRetryKeyConfig(&RetryConfig);
+        CxPlatZeroMemory(&Secret, sizeof(Secret));
+    }
+
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 MsQuicLibraryOnSettingsChanged(
     _In_ BOOLEAN UpdateRegistrations
     )
@@ -379,6 +420,8 @@ MsQuicLibraryReadSettings(
     if (MsQuicLib.Storage != NULL) {
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
     }
+
+    QuicLibraryLoadRetryConfig(MsQuicLib.Storage);
 
     QuicTraceLogInfo(
         LibrarySettingsUpdated,
@@ -1221,7 +1264,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
         const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
-        Status = MsQuicLibrarySetRetryKeyConfig(Config);
+        Status = QuicLibrarySetRetryKeyConfig(Config);
         break;
     }
 
@@ -2583,17 +2626,40 @@ QuicLibrarySetRetryKeyConfig(
     _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     )
 {
-    if (Config->Algorithm > CXPLAT_AEAD_CHACHA20_POLY1305 ||
-        Config->Secret == NULL || Config->RotationMs == 0) {
-        Status = QUIC_STATUS_INVALID_PARAMETER;
-        break;
+    if (Config->Algorithm > QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+        return QUIC_STATUS_INVALID_PARAMETER;
     }
-    size_t SecretLen = CxPlatKeyLength(Config->Algorithm);
-    CXPLAT_FRE_ASSERT(SecretLen <= sizeof(MsQuicLib.BaseRetrySecret));
+    if (Config->RotationMs == 0) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %d.",
+            Config->RotationMs);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (Config->Secret == NULL) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    if (Config->SecretLength < CxPlatKeyLength(Config->Algorithm)) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %d. Expected %d.",
+            Config->SecretLength,
+            CxPlatKeyLength(Config->Algorithm));
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    size_t SecretLen = CXPLAT_MIN(sizeof(MsQuicLib.BaseRetrySecret), Config->SecretLength);
 
     CxPlatDispatchRwLockAcquireExclusive(&MsQuicLib.StatelessRetryLock);
     CxPlatCopyMemory(MsQuicLib.BaseRetrySecret, Config->Secret, SecretLen);
-    MsQuicLib.RetryAeadAlgorithm = Config->Algorithm;
+    MsQuicLib.RetryAeadAlgorithm = (CXPLAT_AEAD_TYPE)Config->Algorithm;
     MsQuicLib.RetryKeyRotationMs = Config->RotationMs;
     CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetryLock);
     return QUIC_STATUS_SUCCESS;
