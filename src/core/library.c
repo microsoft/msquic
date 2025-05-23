@@ -353,23 +353,23 @@ QuicLibraryLoadRetryConfig(
     RetryConfig.SecretLength = sizeof(Secret);
 
     if (QUIC_SUCCEEDED(
-            CxPlatStorageReadValue(
-                Storage,
-                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
-                (uint8_t*)&RetryConfig.RotationMs,
-                &RotationLength)) &&
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+            (uint8_t*)&RetryConfig.RotationMs,
+            &RotationLength)) &&
         QUIC_SUCCEEDED(
-            CxPlatStorageReadValue(
-                Storage,
-                QUIC_SETTING_RETRY_KEY_ALGORITHM,
-                (uint8_t*)&RetryConfig.Algorithm,
-                &AlgLength)) &&
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_ALGORITHM,
+            (uint8_t*)&RetryConfig.Algorithm,
+            &AlgLength)) &&
         QUIC_SUCCEEDED(
-            CxPlatStorageReadValue(
-                Storage,
-                QUIC_SETTING_RETRY_KEY_SECRET,
-                Secret,
-                &RetryConfig.SecretLength))) {
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_SECRET,
+            Secret,
+            &RetryConfig.SecretLength))) {
         QuicLibrarySetRetryKeyConfig(&RetryConfig);
         CxPlatZeroMemory(&Secret, sizeof(Secret));
     }
