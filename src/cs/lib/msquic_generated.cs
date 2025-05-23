@@ -3612,6 +3612,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY 0x0100000B")]
         internal const uint QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY = 0x0100000B;
 
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES 0x0100000C")]
+        internal const uint QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES = 0x0100000C;
+
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;
 
