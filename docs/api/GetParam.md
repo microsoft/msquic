@@ -71,6 +71,38 @@ Sample of double-call:
     }
 ```
 
+# Special Parameters
+
+## QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES
+
+Returns an array of well-known sizes (in bytes) for each version of the `QUIC_STATISTICS_V2` struct. This allows applications to determine the correct buffer size for statistics queries, even as new versions are added in future MsQuic releases.
+
+> **Note** - Most applications should **not** leverage this and instead directly call to query the `QUIC_STATISTICS_V2`. This API is only necessary for layers on top of MsQuic that need to pass through this information to additional layers on top of them.
+
+- **Type:** `uint32_t[]` (array of struct sizes)
+- **Get-only**
+- **Variable-length:** The number of sizes returned may change in future versions. The caller should pass a buffer of `uint32_t` and use the double-call pattern to determine the required buffer size.
+
+**Sample usage:**
+```c
+uint32_t Sizes[8]; // Large enough for future growth
+uint32_t BufferLength = sizeof(Sizes);
+QUIC_STATUS Status =
+    MsQuic->GetParam(
+        NULL,
+        QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+        &BufferLength,
+        Sizes);
+if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
+    // BufferLength is set to required size (in bytes)
+    // Allocate a larger buffer and call again
+}
+uint32_t NumSizes = BufferLength / sizeof(uint32_t);
+// Sizes[0..NumSizes-1] now contains the struct sizes for each version
+```
+
+See also: [Settings.md](../Settings.md#global-parameters)
+
 # See Also
 
 [Settings](../Settings.md#api-object-parameters)<br>
