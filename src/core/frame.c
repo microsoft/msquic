@@ -2073,6 +2073,28 @@ QuicFrameLog(
         break;
     }
 
+    case QUIC_FRAME_STREAM_STATISTICS: {
+        QUIC_STREAM_STATISTICS_EX Frame;
+        if (!QuicStreamStatisticsFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogStreamStatisticsInvalid,
+                "[%c][%cX][%llu]   STREAM_STATISTICS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogStreamStatistics,
+            "[%c][%cX][%llu]   STREAM_STATISTICS ID:%llu ...",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.StreamID);
+        break;
+    }
+
     default:
         CXPLAT_FRE_ASSERT(FALSE);
         break;
