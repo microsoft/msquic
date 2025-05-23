@@ -2792,6 +2792,12 @@ void QuicTestGlobalParam()
     //
     {
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES");
+        const uint32_t Expected[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
 
         //
         // Expect buffer too small
@@ -2804,7 +2810,7 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
                 &Length,
                 nullptr));
-        TEST_TRUE(Length >= sizeof(uint32_t));
+        TEST_TRUE(Length >= sizeof(Expected));
 
         //
         // NULL pointer output error case
@@ -2829,18 +2835,8 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
                 &Length,
                 Sizes));
-        uint32_t NumSizes = Length / sizeof(uint32_t);
-        TEST_TRUE(NumSizes >= 4);
-
-        //
-        // Validate the returned sizes match the hardcoded values
-        //
-        const uint32_t Expected[] = {
-            QUIC_STATISTICS_V2_SIZE_1,
-            QUIC_STATISTICS_V2_SIZE_2,
-            QUIC_STATISTICS_V2_SIZE_3,
-            QUIC_STATISTICS_V2_SIZE_4
-        };
+        TEST_TRUE(Length % sizeof(uint32_t) == 0);
+        TEST_TRUE(Length >= sizeof(Expected));
         for (uint32_t i = 0; i < ARRAYSIZE(Expected); ++i) {
             TEST_EQUAL(Sizes[i], Expected[i]);
         }
@@ -2848,14 +2844,16 @@ void QuicTestGlobalParam()
         //
         // Partial retrieve
         //
-        Length = sizeof(uint32_t);
+        uint32_t SingleSize = 0;
+        Length = sizeof(SingleSize);
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
                 &Length,
-                Sizes));
+                &SingleSize));
         TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(SingleSize, QUIC_STATISTICS_V2_SIZE_1);
 
         //
         // Non-multiple of sizeof(uin32_t)
@@ -2868,6 +2866,21 @@ void QuicTestGlobalParam()
                 &Length,
                 Sizes));
         TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(Sizes[0], QUIC_STATISTICS_V2_SIZE_1);
+
+        //
+        // Too Small Receive
+        //
+        uint8_t SmallSingleSize = 0;
+        Length = sizeof(SmallSingleSize);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                &SmallSingleSize));
+        TEST_TRUE(Length >= sizeof(Expected));
     }
 
     QuicTestStatefulGlobalSetParam();
