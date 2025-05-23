@@ -301,21 +301,34 @@ QuicConnLogBbr(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+BbrCongestionControlGetNetworkStatistics(
+    _In_ const QUIC_CONNECTION* const Connection,
+    _In_ const QUIC_CONGESTION_CONTROL* const Cc,
+    _Out_ NETWORK_STATISTICS* NetworkStatistics
+    )
+{
+    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+
+    NetworkStatistics->BytesInFlight = Bbr->BytesInFlight;
+    NetworkStatistics->PostedBytes = Connection->SendBuffer.PostedBytes;
+    NetworkStatistics->IdealBytes = Connection->SendBuffer.IdealBytes;
+    NetworkStatistics->SmoothedRTT = Path->SmoothedRtt;
+    NetworkStatistics->CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
+    NetworkStatistics->Bandwidth = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 BbrCongestionControlIndicateConnectionEvent(
     _In_ QUIC_CONNECTION* const Connection,
     _In_ const QUIC_CONGESTION_CONTROL* Cc
     )
 {
-    const QUIC_CONGESTION_CONTROL_BBR* Bbr = &Cc->Bbr;
-    const QUIC_PATH* Path = &Connection->Paths[0];
     QUIC_CONNECTION_EVENT Event;
     Event.Type = QUIC_CONNECTION_EVENT_NETWORK_STATISTICS;
-    Event.NETWORK_STATISTICS.BytesInFlight = Bbr->BytesInFlight;
-    Event.NETWORK_STATISTICS.PostedBytes = Connection->SendBuffer.PostedBytes;
-    Event.NETWORK_STATISTICS.IdealBytes = Connection->SendBuffer.IdealBytes;
-    Event.NETWORK_STATISTICS.SmoothedRTT = Path->SmoothedRtt;
-    Event.NETWORK_STATISTICS.CongestionWindow = BbrCongestionControlGetCongestionWindow(Cc);
-    Event.NETWORK_STATISTICS.Bandwidth = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT;
+
+    BbrCongestionControlGetNetworkStatistics(Connection, Cc, &Event.NETWORK_STATISTICS);
 
     QuicTraceLogConnVerbose(
         IndicateDataAcked,
@@ -1068,6 +1081,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlBbr = {
     .QuicCongestionControlGetBytesInFlightMax = BbrCongestionControlGetBytesInFlightMax,
     .QuicCongestionControlIsAppLimited = BbrCongestionControlIsAppLimited,
     .QuicCongestionControlSetAppLimited = BbrCongestionControlSetAppLimited,
+    .QuicCongestionControlGetNetworkStatistics = BbrCongestionControlGetNetworkStatistics
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
