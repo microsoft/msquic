@@ -119,6 +119,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
 | `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
+| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 12    | QUIC_STATELESS_RETRY_CONFIG | Set-Only | Configure the stateless retry token key, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
 
 ## Registration Parameters
 

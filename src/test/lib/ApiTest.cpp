@@ -2774,6 +2774,93 @@ void QuicTestGlobalParam()
 #endif
 
     //
+    // QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
+        const uint32_t SecretLength = 32;
+        //
+        // This memory layout is intention. DO NOT REARRANGE Config and Secret!
+        // Secret *must* follow Config so it can be accessed from Config's pointer.
+        //
+        UniquePtr<QUIC_STATELESS_RETRY_CONFIG> Config (
+            (QUIC_STATELESS_RETRY_CONFIG*)CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_STATELESS_RETRY_CONFIG) + SecretLength, QUIC_POOL_TEST));
+
+        Config->SecretLength = SecretLength;
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+        Config->RotationMs = 60000;
+
+        // Null buffer
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                nullptr));
+
+        // Wrong size
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG) - 1,
+                Config.get()));
+
+        // Invalid algorithm
+        Config->Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                Config.get()));
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+
+        // zero length secret
+        Config->SecretLength = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                Config.get()));
+        Config->SecretLength = SecretLength;
+
+        // Incorrect length secret
+        Config->SecretLength = 10;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                Config.get()));
+        Config->SecretLength = SecretLength;
+
+        // Zero rotation
+        Config->RotationMs = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                Config.get()));
+        Config->RotationMs = 60000;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG),
+                Config.get()));
+    }
+
+    //
     // Invalid parameter
     //
     {

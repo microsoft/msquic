@@ -196,6 +196,7 @@ QuicLibraryInitializePartitions(
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
     CxPlatRandom(sizeof(MsQuicLib.BaseRetrySecret), MsQuicLib.BaseRetrySecret);
+    MsQuicLib.RetryKeyRotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
     uint16_t i;
     QUIC_STATUS Status;
@@ -336,6 +337,47 @@ QuicPerfCounterSnapShot(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicLibraryLoadRetryConfig(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    //
+    // This memory layout is intentional. DO NOT REARRANGE.
+    // The Secret is immediately following the RetryConfig in memory so it
+    // can be read from the RetryConfig pointer.
+    //
+    QUIC_STATELESS_RETRY_CONFIG RetryConfig = { 0 };
+    uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE] = { 0 };
+    uint32_t RotationLength = sizeof(RetryConfig.RotationMs);
+    uint32_t AlgLength = sizeof(RetryConfig.Algorithm);
+    RetryConfig.SecretLength = sizeof(Secret);
+
+    if (QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                (uint8_t*)&RetryConfig.RotationMs,
+                &RotationLength)) &&
+        QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                (uint8_t*)&RetryConfig.Algorithm,
+                &AlgLength)) &&
+        QUIC_SUCCEEDED(
+            CxPlatStorageReadValue(
+                Storage,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                Secret,
+                &RetryConfig.SecretLength))) {
+        QuicLibrarySetRetryKeyConfig(&RetryConfig);
+        CxPlatZeroMemory(&Secret, sizeof(Secret));
+    }
+
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 MsQuicLibraryOnSettingsChanged(
     _In_ BOOLEAN UpdateRegistrations
     )
@@ -377,6 +419,8 @@ MsQuicLibraryReadSettings(
     QuicSettingsSetDefault(&MsQuicLib.Settings);
     if (MsQuicLib.Storage != NULL) {
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
+
+        QuicLibraryLoadRetryConfig(MsQuicLib.Storage);
     }
 
     QuicTraceLogInfo(
@@ -396,6 +440,7 @@ MsQuicLibraryInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
+    BOOLEAN RetryLockInitialized = FALSE;
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
@@ -412,6 +457,9 @@ MsQuicLibraryInitialize(
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
     MsQuicLib.ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
+    CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetryLock);
+    RetryLockInitialized = TRUE;
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
@@ -496,6 +544,9 @@ Error:
         if (MsQuicLib.DefaultCompatibilityList != NULL) {
             CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
             MsQuicLib.DefaultCompatibilityList = NULL;
+        }
+        if (RetryLockInitialized) {
+            CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
         }
         if (PlatformInitialized) {
             CxPlatUninitialize();
@@ -598,6 +649,8 @@ MsQuicLibraryUninitialize(
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
     MsQuicLib.DefaultCompatibilityList = NULL;
+
+    CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
 
     if (MsQuicLib.ExecutionConfig != NULL) {
         CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
@@ -1204,6 +1257,16 @@ QuicLibrarySetGlobalParam(
             }
         }
         break;
+
+    case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
+        if (Buffer == NULL || BufferLength < sizeof(QUIC_STATELESS_RETRY_CONFIG)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        Status = QuicLibrarySetRetryKeyConfig(Config);
+        break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -2556,3 +2619,48 @@ MsQuicExecutionPoll(
 }
 
 #endif
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetRetryKeyConfig(
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
+    )
+{
+    if (Config->Algorithm > QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    if (Config->RotationMs == 0) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    if (Config->Secret == NULL) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    if (Config->SecretLength < CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm)) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    size_t SecretLen = CXPLAT_MIN(sizeof(MsQuicLib.BaseRetrySecret), Config->SecretLength);
+
+    CxPlatDispatchRwLockAcquireExclusive(&MsQuicLib.StatelessRetryLock, PrevIrql);
+    CxPlatCopyMemory(MsQuicLib.BaseRetrySecret, Config->Secret, SecretLen);
+    MsQuicLib.RetryAeadAlgorithm = (CXPLAT_AEAD_TYPE)Config->Algorithm;
+    MsQuicLib.RetryKeyRotationMs = Config->RotationMs;
+    CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetryLock, PrevIrql);
+    return QUIC_STATUS_SUCCESS;
+}
