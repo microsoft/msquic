@@ -2792,10 +2792,11 @@ void QuicTestGlobalParam()
     //
     {
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES");
+
+        //
+        // Expect buffer too small
+        //
         uint32_t Length = 0;
-        //
-        // First call: expect buffer too small
-        //
         TEST_QUIC_STATUS(
             QUIC_STATUS_BUFFER_TOO_SMALL,
             MsQuic->GetParam(
@@ -2806,10 +2807,22 @@ void QuicTestGlobalParam()
         TEST_TRUE(Length >= sizeof(uint32_t));
 
         //
-        // Second call: retrieve the sizes
+        // NULL pointer output error case
+        //
+        Length = sizeof(uint32_t);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+
+        //
+        // Retrieve the sizes
         //
         uint32_t Sizes[8] = {0};
-        Length = CXPLAT_MIN(Length, sizeof(Sizes)); // Don't exceed the buffer size
+        Length = sizeof(Sizes);
         TEST_QUIC_SUCCEEDED(
             MsQuic->GetParam(
                 nullptr,
@@ -2831,6 +2844,30 @@ void QuicTestGlobalParam()
         for (uint32_t i = 0; i < ARRAYSIZE(Expected); ++i) {
             TEST_EQUAL(Sizes[i], Expected[i]);
         }
+
+        //
+        // Partial retrieve
+        //
+        Length = sizeof(uint32_t);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+
+        //
+        // Non-multiple of sizeof(uin32_t)
+        //
+        Length = sizeof(uint32_t) + 1;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_EQUAL(Length, sizeof(uint32_t));
     }
 
     QuicTestStatefulGlobalSetParam();
