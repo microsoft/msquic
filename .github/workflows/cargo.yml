@@ -21,14 +21,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features quictls", "--features quictls,static", "--features overwrite"]
+        vec: [
+          { tls: "quictls", features: "" },
+          { tls: "quictls", features: "--features static" },
+          { tls: "quictls", features: "--features quictls" },
+          { tls: "quictls", features: "--features quictls,static" },
+          { tls: "openssl", features: "--features openssl" },
+          { tls: "openssl", features: "--features openssl,static" },
+          { tls: "quictls", features: "--features overwrite" }
+        ]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls quictls -ForBuild -InstallTestCertificates
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
@@ -46,9 +54,9 @@ jobs:
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
-      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+      run: cargo clippy --all-targets ${{ matrix.vec.features }} -- -D warnings
     - name: Cargo build
-      run: cargo build --all ${{ matrix.features }}
+      run: cargo build --all ${{ matrix.vec.features }}
     - name: Check all generated files with git
       id: bindings_diff
       shell: bash
@@ -90,7 +98,7 @@ jobs:
       if: steps.bindings_diff.outputs.diff-found == 'true'
       run: exit 1
     - name: Cargo test
-      run: cargo test --all ${{ matrix.features }}
+      run: cargo test --all ${{ matrix.vec.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty --no-verify
   # Test rust crate with preinstalled msquic lib.

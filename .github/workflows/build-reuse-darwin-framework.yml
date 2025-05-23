@@ -24,6 +24,7 @@ on:
         type: string
         # options:
         #   - quictls
+        #   - openssl 
       static:
         required: false
         default: ''
@@ -73,7 +74,7 @@ jobs:
         path: artifacts
     - name: Build Package
       shell: pwsh
-      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
+      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
@@ -105,7 +106,7 @@ jobs:
         path: artifacts
     - name: Build Framework
       shell: pwsh
-      run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
+      run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
@@ -125,23 +126,23 @@ jobs:
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-quictls
+        name: Framework-${{ inputs.config }}-ios-macos-13-x64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-quictls
+        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-quictls
+        name: Framework-${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}
         path: artifacts
     - name: Build XCFramework
       shell: pwsh
-      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
+      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: XCFramework-${{ inputs.config }}
+        name: XCFramework-${{ inputs.config }}-${{ inputs.tls }}
         path: artifacts/frameworks
