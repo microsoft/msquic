@@ -2516,18 +2516,16 @@ CxPlatTlsInitialize(
     }
 
     //
-    // The fuzzers can't handle tls messages that span datagrams it appears, and ML-KEM pushes us
-    // over the limit, so if we have an ALPN of "fuzz", mimic what schannel offers in terms
-    // of supported key share groups
-    // NOTE: The AlpnBufferLength needs to be at least 5 here, as the first byte indicates the
-    // length of the following alpn identifier
-    // TODO: This should be removed when the recvfuzzer is updated to accomodate oversized data
-    // buffers (see corresponding TODO in recvfuzz.cpp
+    // Both the fuzzer and the HandshakeSpecificLossPattern tests have some
+    // issues with larger key shares as introduced by ML-KEM support in openssl
+    // The former doesn't expect Client/Server hellos to span multiple udp datagrams
+    // and hits a buffer space assertion failure, while the latter times out on loss
+    // recovery.  So for now mimic the key shares that schannel offers to work around
+    // that
     //
-    if (TlsContext->AlpnBufferLength >= 5 &&
-        !strncmp((const char *)&TlsContext->AlpnBuffer[1], "fuzz", 4)) {
-        SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
-    }
+    // TODO: Remove this when the above tests are tolerant of addition of ML-KEM keyshares
+    //
+    SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
 
     if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
         QuicTraceEvent(
