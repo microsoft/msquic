@@ -155,6 +155,12 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ struct QUIC_CONGESTION_CONTROL* Cc
         );
 
+    void (*QuicCongestionControlGetNetworkStatistics)(
+        _In_ const QUIC_CONNECTION* const Connection,
+        _In_ const struct QUIC_CONGESTION_CONTROL* const Cc,
+        _Out_ struct NETWORK_STATISTICS* NetworkStatistics
+        );
+
     //
     // Algorithm specific state.
     //

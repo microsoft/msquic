@@ -415,6 +415,25 @@ CubicCongestionControlOnDataInvalidated(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CubicCongestionControlGetNetworkStatistics(
+    _In_ const QUIC_CONNECTION* const Connection,
+    _In_ const QUIC_CONGESTION_CONTROL* const Cc,
+    _Out_ NETWORK_STATISTICS* NetworkStatistics
+    )
+{
+    const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
+    const QUIC_PATH* Path = &Connection->Paths[0];
+
+    NetworkStatistics->BytesInFlight = Cubic->BytesInFlight;
+    NetworkStatistics->PostedBytes = Connection->SendBuffer.PostedBytes;
+    NetworkStatistics->IdealBytes = Connection->SendBuffer.IdealBytes;
+    NetworkStatistics->SmoothedRTT = Path->SmoothedRtt;
+    NetworkStatistics->CongestionWindow = Cubic->CongestionWindow;
+    NetworkStatistics->Bandwidth = Cubic->CongestionWindow / Path->SmoothedRtt;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CubicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -888,6 +907,7 @@ static const QUIC_CONGESTION_CONTROL QuicCongestionControlCubic = {
     .QuicCongestionControlIsAppLimited = CubicCongestionControlIsAppLimited,
     .QuicCongestionControlSetAppLimited = CubicCongestionControlSetAppLimited,
     .QuicCongestionControlGetCongestionWindow = CubicCongestionControlGetCongestionWindow,
+    .QuicCongestionControlGetNetworkStatistics = CubicCongestionControlGetNetworkStatistics
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
