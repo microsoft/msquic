@@ -418,7 +418,6 @@ MsQuicLibraryReadSettings(
     QuicSettingsSetDefault(&MsQuicLib.Settings);
     if (MsQuicLib.Storage != NULL) {
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
-
         QuicLibraryLoadRetryConfig(MsQuicLib.Storage);
     }
 
