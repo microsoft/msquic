@@ -77,7 +77,7 @@ Sample of double-call:
 
 Returns an array of well-known sizes (in bytes) for each version of the `QUIC_STATISTICS_V2` struct. This allows applications to determine the correct buffer size for statistics queries, even as new versions are added in future MsQuic releases.
 
-> **Note** - Most application should **not** leverage this and instead directly call to query the `QUIC_STATISTICS_V2`. This API is only necessary for layers on top of MsQuic that need to pass through this information to additional layers on top of them.
+> **Note** - Most applications should **not** leverage this and instead directly call to query the `QUIC_STATISTICS_V2`. This API is only necessary for layers on top of MsQuic that need to pass through this information to additional layers on top of them.
 
 - **Type:** `uint32_t[]` (array of struct sizes)
 - **Get-only**
