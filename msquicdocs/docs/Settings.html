@@ -574,6 +574,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>Globally change the stateless reset key for all subsequent connections.</td>
 </tr>
 <tr>
+<td><code>QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES</code><br> 12</td>
+<td>uint32_t[]</td>
+<td>Get-only</td>
+<td>Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details.</td>
+</tr>
+<tr>
 <td><code>QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED</code><br> (preview)</td>
 <td>uint8_t (BOOLEAN)</td>
 <td>Both</td>
