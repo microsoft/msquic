@@ -373,7 +373,6 @@ QuicLibraryLoadRetryConfig(
         QuicLibrarySetRetryKeyConfig(&RetryConfig);
         CxPlatZeroMemory(&Secret, sizeof(Secret));
     }
-
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
