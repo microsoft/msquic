@@ -837,7 +837,6 @@ typedef struct QUIC_SETTINGS {
     uint32_t StreamRecvWindowBidiLocalDefault;
     uint32_t StreamRecvWindowBidiRemoteDefault;
     uint32_t StreamRecvWindowUnidiDefault;
-
 } QUIC_SETTINGS;
 
 //

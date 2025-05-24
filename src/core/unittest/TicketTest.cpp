@@ -471,6 +471,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
+    QuicSettingsLoad(&Connection.Settings, NULL);
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
@@ -532,6 +533,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
+    QuicSettingsLoad(&Connection.Settings, NULL);
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
@@ -600,6 +602,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
+    QuicSettingsLoad(&Connection.Settings, NULL);
 
     uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + sizeof(AppData)] = {
         CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
@@ -1069,6 +1072,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     QUIC_CONNECTION Connection;
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
+    QuicSettingsLoad(&Connection.Settings, NULL);
 
     CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
     CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));

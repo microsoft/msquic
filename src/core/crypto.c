@@ -2144,6 +2144,34 @@ QuicCryptoUpdateKeyPhase(
     PacketSpace->CurrentKeyPhaseBytesSent = 0;
 }
 
+uint8_t
+QuicGetOutgoingResumptionTicketVersion(
+    _In_opt_ QUIC_CONNECTION* Connection
+    )
+{
+
+    CXPLAT_DBG_ASSERT(QuicVarIntSize(CXPLAT_TLS_RESUMPTION_TICKET_VERSION) == sizeof(Connection->Settings.ResumptionTicketMaxVersion));
+    CXPLAT_STATIC_ASSERT(sizeof(uint8_t) == sizeof(Connection->Settings.ResumptionTicketMaxVersion), "Resumption ticket version setting field must be uint8_t");
+
+    if (Connection == NULL) {
+        return (uint8_t)CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
+    }
+
+    return Connection->Settings.ResumptionTicketMaxVersion;
+}
+
+BOOLEAN
+IsQuicIncomingResumptionTicketSupported(_In_ QUIC_CONNECTION* Connection, QUIC_VAR_INT TicketVersion)
+{
+    if (TicketVersion >= Connection->Settings.ResumptionTicketMinVersion &&
+        TicketVersion <= Connection->Settings.ResumptionTicketMaxVersion) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+// Server calls this function to generate the resumption ticket for a specific client
 QUIC_STATUS
 QuicCryptoEncodeServerTicket(
     _In_opt_ QUIC_CONNECTION* Connection,
@@ -2233,7 +2261,7 @@ QuicCryptoEncodeServerTicket(
     //
 
     _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
-    uint8_t* TicketCursor = QuicVarIntEncode(CXPLAT_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
+    uint8_t* TicketCursor = QuicVarIntEncode(QuicGetOutgoingResumptionTicketVersion(Connection), TicketBuffer);
     CxPlatCopyMemory(TicketCursor, &QuicVersion, sizeof(QuicVersion));
     TicketCursor += sizeof(QuicVersion);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
@@ -2263,6 +2291,7 @@ Error:
     return Status;
 }
 
+// Server uses this function to decode the resumption ticket presented by the client
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
     _In_ QUIC_CONNECTION* Connection,
@@ -2292,13 +2321,18 @@ QuicCryptoDecodeServerTicket(
             "Resumption Ticket version failed to decode");
         goto Error;
     }
-    if (TicketVersion != CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
+
+    if (!IsQuicIncomingResumptionTicketSupported(Connection, TicketVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
             Connection,
             "Resumption Ticket version unsupported");
         goto Error;
+    }
+
+    if (TicketVersion == CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2) {
+        // Handle V2 ticket specific extensions
     }
 
     if (TicketLength < Offset + sizeof(uint32_t)) {

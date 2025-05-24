@@ -444,11 +444,22 @@ CXPLAT_STATIC_ASSERT(
 //
 #define QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL    QUIC_SERVER_NO_RESUME
 
+
 //
-// Version of the wire-format for resumption tickets.
-// This needs to be incremented for each change in order or count of fields.
+// Valid Resumption Ticket Versions - these must be contiguous
 //
-#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION      1
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V1   1
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2   2
+
+//
+// Min version of the wire-format for resumption tickets.
+//
+#define CXPLAT_TLS_RESUMPTION_TICKET_VERSION      CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V1
+
+//
+// Max version of the wire-format for resumption tickets.
+//
+#define CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION      CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2
 
 //
 // Version of the blob for client resumption tickets.
@@ -700,3 +711,5 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_MTU_MISSING_PROBE_COUNT        "MtuDiscoveryMissingProbeCount"
 
 #define QUIC_SETTING_CONGESTION_CONTROL_ALGORITHM   "CongestionControlAlgorithm"
+#define QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION "ResumptionTicketMinVersion"
+#define QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION "ResumptionTicketMaxVersion"
