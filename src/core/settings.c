@@ -763,11 +763,23 @@ QuicSettingApply(
 
     if (Source->IsSet.ResumptionTicketMinVersion && (!Destination->IsSet.ResumptionTicketMinVersion || OverWrite)) {
         Destination->ResumptionTicketMinVersion = Source->ResumptionTicketMinVersion;
+        if (Destination->ResumptionTicketMinVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
+            Destination->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
+        }
+        else if (Destination->ResumptionTicketMinVersion < CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
+            Destination->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
+        }
         Destination->IsSet.ResumptionTicketMinVersion = TRUE;
     }
 
     if (Source->IsSet.ResumptionTicketMaxVersion && (!Destination->IsSet.ResumptionTicketMaxVersion || OverWrite)) {
         Destination->ResumptionTicketMaxVersion = Source->ResumptionTicketMaxVersion;
+        if (Destination->ResumptionTicketMaxVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
+            Destination->ResumptionTicketMaxVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
+        }
+        else if (Destination->ResumptionTicketMaxVersion < Destination->ResumptionTicketMinVersion) {
+            Destination->ResumptionTicketMaxVersion = Destination->ResumptionTicketMinVersion;
+        }
         Destination->IsSet.ResumptionTicketMaxVersion = TRUE;
     }
 
@@ -1470,13 +1482,14 @@ VersionSettingsFail:
         Settings->StreamMultiReceiveEnabled = !!Value;
     }
     if (!Settings->IsSet.ResumptionTicketMinVersion) {
-        Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
         ValueLen = sizeof(Value);
-        CxPlatStorageReadValue(
+        if (QUIC_FAILED(CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
             (uint8_t*)&Value,
-            &ValueLen);
+            &ValueLen))) {
+            Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION; // Default value on failure
+        }
         Settings->ResumptionTicketMinVersion = (uint8_t)Value;
 
         if (Settings->ResumptionTicketMinVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
@@ -1486,13 +1499,14 @@ VersionSettingsFail:
         }
     }
     if (!Settings->IsSet.ResumptionTicketMaxVersion) {
-        Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
         ValueLen = sizeof(Value);
-        CxPlatStorageReadValue(
+        if (QUIC_FAILED(CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
             (uint8_t*)&Value,
-            &ValueLen);
+            &ValueLen))) {
+            Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION; // Default value on failure
+        }
         Settings->ResumptionTicketMaxVersion = (uint8_t)Value;
         if (Settings->ResumptionTicketMaxVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
             Settings->ResumptionTicketMaxVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
@@ -1883,7 +1897,7 @@ QuicSettingsSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, ResumptionTicketMaxVersion)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, StreamRecvWindowUnidiDefault)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -2036,20 +2050,6 @@ QuicSettingsSettingsToInternal(
         SettingsSize,
         InternalSettings);
 
-    SETTING_COPY_TO_INTERNAL_SIZED(
-        ResumptionTicketMinVersion,
-        QUIC_SETTINGS,
-        Settings,
-        SettingsSize,
-        InternalSettings);
-
-    SETTING_COPY_TO_INTERNAL_SIZED(
-        ResumptionTicketMaxVersion,
-        QUIC_SETTINGS,
-        Settings,
-        SettingsSize,
-        InternalSettings);
-
     return QUIC_STATUS_SUCCESS;
 }
 
@@ -2078,7 +2078,7 @@ QuicSettingsGetSettings(
         QUIC_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, ResumptionTicketMaxVersion);
+    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, StreamRecvWindowUnidiDefault);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_SETTINGS);
@@ -2238,20 +2238,6 @@ QuicSettingsGetSettings(
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
         StreamMultiReceiveEnabled,
-        QUIC_SETTINGS,
-        Settings,
-        *SettingsLength,
-        InternalSettings);
-
-    SETTING_COPY_FROM_INTERNAL_SIZED(
-        ResumptionTicketMinVersion,
-        QUIC_SETTINGS,
-        Settings,
-        *SettingsLength,
-        InternalSettings);
-
-    SETTING_COPY_FROM_INTERNAL_SIZED(
-        ResumptionTicketMaxVersion,
         QUIC_SETTINGS,
         Settings,
         *SettingsLength,

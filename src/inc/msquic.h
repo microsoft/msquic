@@ -774,9 +774,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t XdpEnabled                             : 1;
             uint64_t QTIPEnabled                            : 1;
             uint64_t RioEnabled                             : 1;
-            uint64_t ResumptionTicketMinVersion             : 1;
-            uint64_t ResumptionTicketMaxVersion             : 1;
-            uint64_t RESERVED                               : 16;
+            uint64_t RESERVED                               : 18;
 #else
             uint64_t RESERVED                               : 26;
 #endif
@@ -839,11 +837,6 @@ typedef struct QUIC_SETTINGS {
     uint32_t StreamRecvWindowBidiLocalDefault;
     uint32_t StreamRecvWindowBidiRemoteDefault;
     uint32_t StreamRecvWindowUnidiDefault;
-
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    uint8_t ResumptionTicketMinVersion;
-    uint8_t ResumptionTicketMaxVersion;
-#endif
 } QUIC_SETTINGS;
 
 //

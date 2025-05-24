@@ -2145,11 +2145,13 @@ QuicCryptoUpdateKeyPhase(
 }
 
 uint8_t
-QuicGetOutgoingResumptionTicketVersion(_In_opt_ QUIC_CONNECTION* Connection)
+QuicGetOutgoingResumptionTicketVersion(
+    _In_opt_ QUIC_CONNECTION* Connection
+    )
 {
 
-    CXPLAT_FRE_ASSERT(QuicVarIntSize(CXPLAT_TLS_RESUMPTION_TICKET_VERSION) == sizeof(Connection->Settings.ResumptionTicketMaxVersion));
-    CXPLAT_FRE_ASSERT(sizeof(uint8_t) == sizeof(Connection->Settings.ResumptionTicketMaxVersion));
+    CXPLAT_DBG_ASSERT(QuicVarIntSize(CXPLAT_TLS_RESUMPTION_TICKET_VERSION) == sizeof(Connection->Settings.ResumptionTicketMaxVersion));
+    CXPLAT_STATIC_ASSERT(sizeof(uint8_t) == sizeof(Connection->Settings.ResumptionTicketMaxVersion), "Resumption ticket version setting field must be uint8_t");
 
     if (Connection == NULL) {
         return (uint8_t)CXPLAT_TLS_RESUMPTION_TICKET_VERSION;

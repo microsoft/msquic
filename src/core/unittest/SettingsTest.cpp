@@ -128,8 +128,6 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
     SETTINGS_FEATURE_SET_TEST(OneWayDelayEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(NetStatsEventEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(StreamMultiReceiveEnabled, QuicSettingsSettingsToInternal);
-    SETTINGS_FEATURE_SET_TEST(ResumptionTicketMinVersion, QuicSettingsSettingsToInternal);
-    SETTINGS_FEATURE_SET_TEST(ResumptionTicketMaxVersion, QuicSettingsSettingsToInternal);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -219,8 +217,6 @@ TEST(SettingsTest, TestAllSettingsFieldsGet)
     SETTINGS_FEATURE_GET_TEST(OneWayDelayEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(NetStatsEventEnabled, QuicSettingsGetSettings);
     SETTINGS_FEATURE_GET_TEST(StreamMultiReceiveEnabled, QuicSettingsGetSettings);
-    SETTINGS_FEATURE_GET_TEST(ResumptionTicketMinVersion, QuicSettingsGetSettings);
-    SETTINGS_FEATURE_GET_TEST(ResumptionTicketMaxVersion, QuicSettingsGetSettings);
 
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
@@ -293,7 +289,7 @@ TEST(SettingsTest, StreamRecvWindowDefaultDoesNotOverrideIndividualLimitsWhenSet
     ASSERT_EQ(Destination.StreamRecvWindowUnidiDefault, Original);
 }
 
-TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
+TEST(SettingsTest, CertainDefaultsGetOverridenByIndividualLimits)
 {
     QUIC_SETTINGS_INTERNAL Source;
     QUIC_SETTINGS_INTERNAL Destination;
@@ -312,13 +308,66 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
     Source.IsSet.StreamRecvWindowUnidiDefault = 1;
     Source.StreamRecvWindowUnidiDefault = 8 * 1024;
 
+    Source.IsSet.ResumptionTicketMinVersion = 1;
+    Source.ResumptionTicketMinVersion = 1;
+
+    Source.IsSet.ResumptionTicketMaxVersion = 1;
+    Source.ResumptionTicketMaxVersion = 2;
+
     ASSERT_TRUE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
 
     ASSERT_EQ(Destination.StreamRecvWindowDefault, Source.StreamRecvWindowDefault);
     ASSERT_EQ(Destination.StreamRecvWindowBidiLocalDefault, Source.StreamRecvWindowBidiLocalDefault);
     ASSERT_EQ(Destination.StreamRecvWindowBidiRemoteDefault, Source.StreamRecvWindowBidiRemoteDefault);
     ASSERT_EQ(Destination.StreamRecvWindowUnidiDefault, Source.StreamRecvWindowUnidiDefault);
+    ASSERT_EQ(Destination.ResumptionTicketMinVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_EQ(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMaxVersion);
 }
+
+TEST(SettingsTest, CertainDefaultsDoNotGetOverridenDueToLimits)
+{
+    QUIC_SETTINGS_INTERNAL Source;
+    QUIC_SETTINGS_INTERNAL Destination;
+    CxPlatZeroMemory(&Source, sizeof(Source));
+    CxPlatZeroMemory(&Destination, sizeof(Destination));
+
+    Source.IsSet.ResumptionTicketMinVersion = 1;
+    Source.ResumptionTicketMinVersion = 0;
+
+    Source.IsSet.ResumptionTicketMaxVersion = 1;
+    Source.ResumptionTicketMaxVersion = 5;
+
+    ASSERT_TRUE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
+
+    ASSERT_NE(Destination.ResumptionTicketMinVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_NE(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMaxVersion);
+
+    Source.IsSet.ResumptionTicketMinVersion = 1;
+    Source.ResumptionTicketMinVersion = 1;
+
+    Source.IsSet.ResumptionTicketMaxVersion = 1;
+    Source.ResumptionTicketMaxVersion = 0;
+
+    ASSERT_TRUE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
+
+    ASSERT_EQ(Destination.ResumptionTicketMinVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_EQ(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_NE(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMaxVersion);
+
+    Source.IsSet.ResumptionTicketMinVersion = 1;
+    Source.ResumptionTicketMinVersion = 2;
+
+    Source.IsSet.ResumptionTicketMaxVersion = 1;
+    Source.ResumptionTicketMaxVersion = 1;
+
+    ASSERT_TRUE(QuicSettingApply(&Destination, TRUE, TRUE, &Source));
+
+    ASSERT_EQ(Destination.ResumptionTicketMinVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_EQ(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMinVersion);
+    ASSERT_NE(Destination.ResumptionTicketMaxVersion, Source.ResumptionTicketMaxVersion);
+
+}
+
 
 // TEST(SettingsTest, TestAllVersionSettingsFieldsGet)
 // {
@@ -481,6 +530,38 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
     ASSERT_EQ(s.MigrationEnabled, 1u);
     ASSERT_EQ(s.MaxOperationsPerDrain, 7u);
 
+    // Read resumption ticket version settings
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, 1);
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, 1);
+    CxPlatZeroMemory(&s, sizeof(s));
+    QuicSettingsLoad(&s, storage);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, 1u);
+    ASSERT_EQ(s.ResumptionTicketMaxVersion, 1u);
+
+    // These resumption settings version numbers should be overridden by defaults
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION -1);
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3);
+    CxPlatZeroMemory(&s, sizeof(s));
+    QuicSettingsLoad(&s, storage);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1);
+    CxPlatZeroMemory(&s, sizeof(s));
+    QuicSettingsLoad(&s, storage);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3);
+    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1);
+    CxPlatZeroMemory(&s, sizeof(s));
+    QuicSettingsLoad(&s, storage);
+    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+
+    QuicSettingsDumpNew(&s);
+
     CxPlatStorageClose(storage);
     ResetMsQuicRegistry();
 }
@@ -550,7 +631,7 @@ TEST(SettingsTest, SettingsSizesGet)
     QUIC_SETTINGS_INTERNAL InternalSettings;
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, ResumptionTicketMaxVersion);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, StreamRecvWindowUnidiDefault);
 
     uint32_t BufferSize = 0;
     ASSERT_EQ(
@@ -602,7 +683,7 @@ TEST(SettingsTest, SettingsSizesSet)
     QUIC_SETTINGS_INTERNAL InternalSettings;
     CxPlatZeroMemory(&InternalSettings, sizeof(InternalSettings));
 
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, ResumptionTicketMaxVersion);
+    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, StreamRecvWindowUnidiDefault);
 
     uint32_t BufferSize = 0;
     ASSERT_EQ(
