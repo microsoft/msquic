@@ -2171,6 +2171,7 @@ IsQuicIncomingResumptionTicketSupported(_In_ QUIC_CONNECTION* Connection, QUIC_V
     return FALSE;
 }
 
+// Server calls this function to generate the resumption ticket for a specific client
 QUIC_STATUS
 QuicCryptoEncodeServerTicket(
     _In_opt_ QUIC_CONNECTION* Connection,
@@ -2290,6 +2291,7 @@ Error:
     return Status;
 }
 
+// Server uses this function to decode the resumption ticket presented by the client
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
     _In_ QUIC_CONNECTION* Connection,
