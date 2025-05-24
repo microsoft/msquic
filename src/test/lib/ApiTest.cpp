@@ -4817,6 +4817,30 @@ void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
     }
 }
 
+void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registration)
+{
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_NETWORK_STATISTICS");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_NETWORK_STATISTICS,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(NETWORK_STATISTICS), nullptr, true);
+    }
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -4851,6 +4875,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
+    QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(Registration);
 }
 
 //
