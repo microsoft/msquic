@@ -8,7 +8,7 @@ Abstract:
     Unit test for the settings logic.
 
 --*/
-
+#define QUIC_UNIT_TESTS
 #include "main.h"
 #ifdef QUIC_CLOG
 #include "SettingsTest.cpp.clog.h"
@@ -390,238 +390,336 @@ TEST(SettingsTest, CertainDefaultsDoNotGetOverridenDueToLimits)
 
 TEST(SettingsTest, QuicSettingsSetDefault_SetsAllDefaultsWhenUnset)
 {
-    QUIC_SETTINGS_INTERNAL s;
-    CxPlatZeroMemory(&s, sizeof(s));
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
 
     // Set all IsSet fields to 0 to simulate unset state
-    s.IsSetFlags = 0;
+    Settings.IsSetFlags = 0;
 
-    QuicSettingsSetDefault(&s);
+    QuicSettingsSetDefault(&Settings);
 
     // Spot-check a few representative fields (add more as needed)
-    ASSERT_EQ(s.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
-    ASSERT_EQ(s.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
-    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
-    ASSERT_EQ(s.DatagramReceiveEnabled, QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED);
-    ASSERT_EQ(s.MaxOperationsPerDrain, QUIC_MAX_OPERATIONS_PER_DRAIN);
-    ASSERT_EQ(s.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
-    ASSERT_EQ(s.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
-    ASSERT_EQ(s.FixedServerID, 0u);
-    ASSERT_EQ(s.MaxWorkerQueueDelayUs, MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY));
-    ASSERT_EQ(s.MaxStatelessOperations, QUIC_MAX_STATELESS_OPERATIONS);
-    ASSERT_EQ(s.InitialWindowPackets, QUIC_INITIAL_WINDOW_PACKETS);
-    ASSERT_EQ(s.SendIdleTimeoutMs, QUIC_DEFAULT_SEND_IDLE_TIMEOUT_MS);
-    ASSERT_EQ(s.InitialRttMs, QUIC_INITIAL_RTT);
-    ASSERT_EQ(s.MaxAckDelayMs, QUIC_TP_MAX_ACK_DELAY_DEFAULT);
-    ASSERT_EQ(s.DisconnectTimeoutMs, QUIC_DEFAULT_DISCONNECT_TIMEOUT);
-    ASSERT_EQ(s.KeepAliveIntervalMs, QUIC_DEFAULT_KEEP_ALIVE_INTERVAL);
-    ASSERT_EQ(s.IdleTimeoutMs, QUIC_DEFAULT_IDLE_TIMEOUT);
-    ASSERT_EQ(s.HandshakeIdleTimeoutMs, QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT);
-    ASSERT_EQ(s.PeerBidiStreamCount, 0u);
-    ASSERT_EQ(s.PeerUnidiStreamCount, 0u);
-    ASSERT_EQ(s.TlsClientMaxSendBuffer, QUIC_MAX_TLS_SERVER_SEND_BUFFER); // Note: last assignment in function
-    ASSERT_EQ(s.StreamRecvWindowDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(s.StreamRecvWindowBidiLocalDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(s.StreamRecvWindowBidiRemoteDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(s.StreamRecvWindowUnidiDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(s.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
-    ASSERT_EQ(s.ConnFlowControlWindow, QUIC_DEFAULT_CONN_FLOW_CONTROL_WINDOW);
-    ASSERT_EQ(s.MaxBytesPerKey, QUIC_DEFAULT_MAX_BYTES_PER_KEY);
-    ASSERT_EQ(s.ServerResumptionLevel, (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL);
-    ASSERT_EQ(s.VersionNegotiationExtEnabled, QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED);
-    ASSERT_EQ(s.MinimumMtu, QUIC_DPLPMTUD_DEFAULT_MIN_MTU);
-    ASSERT_EQ(s.MaximumMtu, QUIC_DPLPMTUD_DEFAULT_MAX_MTU);
-    ASSERT_EQ(s.MtuDiscoveryMissingProbeCount, QUIC_DPLPMTUD_MAX_PROBES);
-    ASSERT_EQ(s.MtuDiscoverySearchCompleteTimeoutUs, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
-    ASSERT_EQ(s.MaxBindingStatelessOperations, QUIC_MAX_BINDING_STATELESS_OPERATIONS);
-    ASSERT_EQ(s.StatelessOperationExpirationMs, QUIC_STATELESS_OPERATION_EXPIRATION_MS);
-    ASSERT_EQ(s.CongestionControlAlgorithm, QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT);
-    ASSERT_EQ(s.DestCidUpdateIdleTimeoutMs, QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS);
-    ASSERT_EQ(s.GreaseQuicBitEnabled, QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED);
-    ASSERT_EQ(s.EcnEnabled, QUIC_DEFAULT_ECN_ENABLED);
-    ASSERT_EQ(s.HyStartEnabled, QUIC_DEFAULT_HYSTART_ENABLED);
-    ASSERT_EQ(s.EncryptionOffloadAllowed, QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED);
-    ASSERT_EQ(s.ReliableResetEnabled, QUIC_DEFAULT_RELIABLE_RESET_ENABLED);
-    ASSERT_EQ(s.XdpEnabled, QUIC_DEFAULT_XDP_ENABLED);
-    ASSERT_EQ(s.QTIPEnabled, QUIC_DEFAULT_QTIP_ENABLED);
-    ASSERT_EQ(s.RioEnabled, QUIC_DEFAULT_RIO_ENABLED);
-    ASSERT_EQ(s.OneWayDelayEnabled, QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED);
-    ASSERT_EQ(s.NetStatsEventEnabled, QUIC_DEFAULT_NET_STATS_EVENT_ENABLED);
-    ASSERT_EQ(s.StreamMultiReceiveEnabled, QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
-    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+    ASSERT_EQ(Settings.DatagramReceiveEnabled, QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED);
+    ASSERT_EQ(Settings.MaxOperationsPerDrain, QUIC_MAX_OPERATIONS_PER_DRAIN);
+    ASSERT_EQ(Settings.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
+    ASSERT_EQ(Settings.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
+    ASSERT_EQ(Settings.FixedServerID, 0u);
+    ASSERT_EQ(Settings.MaxWorkerQueueDelayUs, MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY));
+    ASSERT_EQ(Settings.MaxStatelessOperations, QUIC_MAX_STATELESS_OPERATIONS);
+    ASSERT_EQ(Settings.InitialWindowPackets, QUIC_INITIAL_WINDOW_PACKETS);
+    ASSERT_EQ(Settings.SendIdleTimeoutMs, QUIC_DEFAULT_SEND_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(Settings.InitialRttMs, QUIC_INITIAL_RTT);
+    ASSERT_EQ(Settings.MaxAckDelayMs, QUIC_TP_MAX_ACK_DELAY_DEFAULT);
+    ASSERT_EQ(Settings.DisconnectTimeoutMs, QUIC_DEFAULT_DISCONNECT_TIMEOUT);
+    ASSERT_EQ(Settings.KeepAliveIntervalMs, QUIC_DEFAULT_KEEP_ALIVE_INTERVAL);
+    ASSERT_EQ(Settings.IdleTimeoutMs, QUIC_DEFAULT_IDLE_TIMEOUT);
+    ASSERT_EQ(Settings.HandshakeIdleTimeoutMs, QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT);
+    ASSERT_EQ(Settings.PeerBidiStreamCount, 0u);
+    ASSERT_EQ(Settings.PeerUnidiStreamCount, 0u);
+    ASSERT_EQ(Settings.TlsClientMaxSendBuffer, QUIC_MAX_TLS_SERVER_SEND_BUFFER); // Note: last assignment in function
+    ASSERT_EQ(Settings.StreamRecvWindowDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowBidiLocalDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowBidiRemoteDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowUnidiDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
+    ASSERT_EQ(Settings.ConnFlowControlWindow, QUIC_DEFAULT_CONN_FLOW_CONTROL_WINDOW);
+    ASSERT_EQ(Settings.MaxBytesPerKey, QUIC_DEFAULT_MAX_BYTES_PER_KEY);
+    ASSERT_EQ(Settings.ServerResumptionLevel, (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL);
+    ASSERT_EQ(Settings.VersionNegotiationExtEnabled, QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED);
+    ASSERT_EQ(Settings.MinimumMtu, QUIC_DPLPMTUD_DEFAULT_MIN_MTU);
+    ASSERT_EQ(Settings.MaximumMtu, QUIC_DPLPMTUD_DEFAULT_MAX_MTU);
+    ASSERT_EQ(Settings.MtuDiscoveryMissingProbeCount, QUIC_DPLPMTUD_MAX_PROBES);
+    ASSERT_EQ(Settings.MtuDiscoverySearchCompleteTimeoutUs, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
+    ASSERT_EQ(Settings.MaxBindingStatelessOperations, QUIC_MAX_BINDING_STATELESS_OPERATIONS);
+    ASSERT_EQ(Settings.StatelessOperationExpirationMs, QUIC_STATELESS_OPERATION_EXPIRATION_MS);
+    ASSERT_EQ(Settings.CongestionControlAlgorithm, QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT);
+    ASSERT_EQ(Settings.DestCidUpdateIdleTimeoutMs, QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(Settings.GreaseQuicBitEnabled, QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED);
+    ASSERT_EQ(Settings.EcnEnabled, QUIC_DEFAULT_ECN_ENABLED);
+    ASSERT_EQ(Settings.HyStartEnabled, QUIC_DEFAULT_HYSTART_ENABLED);
+    ASSERT_EQ(Settings.EncryptionOffloadAllowed, QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED);
+    ASSERT_EQ(Settings.ReliableResetEnabled, QUIC_DEFAULT_RELIABLE_RESET_ENABLED);
+    ASSERT_EQ(Settings.XdpEnabled, QUIC_DEFAULT_XDP_ENABLED);
+    ASSERT_EQ(Settings.QTIPEnabled, QUIC_DEFAULT_QTIP_ENABLED);
+    ASSERT_EQ(Settings.RioEnabled, QUIC_DEFAULT_RIO_ENABLED);
+    ASSERT_EQ(Settings.OneWayDelayEnabled, QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED);
+    ASSERT_EQ(Settings.NetStatsEventEnabled, QUIC_DEFAULT_NET_STATS_EVENT_ENABLED);
+    ASSERT_EQ(Settings.StreamMultiReceiveEnabled, QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+    ASSERT_EQ(Settings.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
 }
 
 TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
 {
-    QUIC_SETTINGS_INTERNAL s;
-    CxPlatZeroMemory(&s, sizeof(s));
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
 
     // Set a few fields and mark them as set
-    s.IsSet.SendBufferingEnabled = 1;
-    s.SendBufferingEnabled = 1;
-    s.IsSet.PacingEnabled = 1;
-    s.PacingEnabled = 1;
-    s.IsSet.ResumptionTicketMinVersion = 1;
-    s.ResumptionTicketMinVersion = 40;
-    QuicSettingsSetDefault(&s);
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 1;
+    Settings.IsSet.PacingEnabled = 1;
+    Settings.PacingEnabled = 1;
+    Settings.IsSet.ResumptionTicketMinVersion = 1;
+    Settings.ResumptionTicketMinVersion = 40;
+    QuicSettingsSetDefault(&Settings);
 
     // These should not be overwritten
-    ASSERT_EQ(s.SendBufferingEnabled, 1);
-    ASSERT_EQ(s.PacingEnabled, 1);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, 40);
+    ASSERT_EQ(Settings.SendBufferingEnabled, 1);
+    ASSERT_EQ(Settings.PacingEnabled, 1);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, 40);
 
     // But an unset field should be set to default
-    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
 }
 
-
-#include <winreg.h>
-
-static void ResetMsQuicRegistry()
+static void ResetMsQuicTestSettings(CXPLAT_STORAGE* Storage)
 {
-    RegDeleteTreeA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\TEST");
-}
+    CXPLAT_STORAGE* TempStore = nullptr;
 
-static void PersistValue(const char* Name, uint32_t Value)
-{
-    HKEY hKey;
-    LONG err = RegCreateKeyExA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\TEST",
-        0, NULL, 0, KEY_SET_VALUE, NULL, &hKey, NULL);
-    ASSERT_EQ(err, ERROR_SUCCESS);
-    err = RegSetValueExA(
-        hKey, Name, 0, REG_DWORD, reinterpret_cast<const BYTE*>(&Value), sizeof(Value));
-    ASSERT_EQ(err, ERROR_SUCCESS);
-    RegCloseKey(hKey);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageCreateTempStore(
+            Storage,
+            "TEST",
+            &TempStore));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageReset(
+            TempStore));
 }
 
 // --- Test: QuicSettingsLoad sets fields from storage ---
 TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
 {
-    ResetMsQuicRegistry();
+    CXPLAT_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* TempStore = NULL;
 
-    // Set up storage values for a few settings
-    PersistValue(QUIC_SETTING_SEND_BUFFERING_DEFAULT, 1);
-    PersistValue(QUIC_SETTING_SEND_PACING_DEFAULT, 0);
-    PersistValue(QUIC_SETTING_MIGRATION_ENABLED, 1);
-    PersistValue(QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN, 7);
-
-    QUIC_SETTINGS_INTERNAL s;
-    CxPlatZeroMemory(&s, sizeof(s));
-    CXPLAT_STORAGE* storage = nullptr;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         CxPlatStorageOpen(
-            "TEST",
             nullptr,
             nullptr,
-            &storage));
+            nullptr,
+            &Storage));
 
-    QuicSettingsLoad(&s, storage);
+    ResetMsQuicTestSettings(Storage);
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageCreateTempStore(
+            Storage,
+            "TEST",
+            &TempStore));
+
+    // Set up storage values for a few settings
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            1));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_SEND_PACING_DEFAULT,
+            0));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            1));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
+            7));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
 
     // Check that the values were loaded
-    ASSERT_EQ(s.SendBufferingEnabled, 1u);
+    ASSERT_EQ(Settings.SendBufferingEnabled, 1u);
     // PacingEnabled is not set because the key is different in the code (QUIC_SETTING_SEND_PACING_DEFAULT)
     // So let's check MigrationEnabled and MaxOperationsPerDrain
-    ASSERT_EQ(s.MigrationEnabled, 1u);
-    ASSERT_EQ(s.MaxOperationsPerDrain, 7u);
+    ASSERT_EQ(Settings.MigrationEnabled, 1u);
+    ASSERT_EQ(Settings.MaxOperationsPerDrain, 7u);
 
-    // Read resumption ticket version settings
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, 1);
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, 1);
-    CxPlatZeroMemory(&s, sizeof(s));
-    QuicSettingsLoad(&s, storage);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, 1u);
-    ASSERT_EQ(s.ResumptionTicketMaxVersion, 1u);
+    // Configure and load resumption ticket version settings
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
+            1));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
+            1));
+
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, 1u);
+    ASSERT_EQ(Settings.ResumptionTicketMaxVersion, 1u);
 
     // These resumption settings version numbers should be overridden by defaults
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION -1);
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3);
-    CxPlatZeroMemory(&s, sizeof(s));
-    QuicSettingsLoad(&s, storage);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
-    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_VERSION -1));
 
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1);
-    CxPlatZeroMemory(&s, sizeof(s));
-    QuicSettingsLoad(&s, storage);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
-    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3));
 
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3);
-    PersistValue(QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1);
-    CxPlatZeroMemory(&s, sizeof(s));
-    QuicSettingsLoad(&s, storage);
-    ASSERT_EQ(s.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
-    ASSERT_EQ(s.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_VERSION);
+    ASSERT_EQ(Settings.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
 
-    QuicSettingsDumpNew(&s);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION));
 
-    CxPlatStorageClose(storage);
-    ResetMsQuicRegistry();
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1));
+
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(Settings.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 3));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
+            CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1));
+
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
+    ASSERT_EQ(Settings.ResumptionTicketMinVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+    ASSERT_EQ(Settings.ResumptionTicketMaxVersion, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION);
+
+    QuicSettingsDumpNew(&Settings);
+
+    CxPlatStorageClose(TempStore);
+    ResetMsQuicTestSettings(Storage);
+    CxPlatStorageClose(Storage);
 }
 
 // --- Test: QuicSettingsLoad does not overwrite set fields ---
 TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
 {
-    ResetMsQuicRegistry();
-    PersistValue(QUIC_SETTING_SEND_BUFFERING_DEFAULT, 0);
+    CXPLAT_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* TempStore = NULL;
 
-    CXPLAT_STORAGE* storage = nullptr;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         CxPlatStorageOpen(
-            "TEST",
             nullptr,
             nullptr,
-            &storage));
+            nullptr,
+            &Storage));
 
-    QUIC_SETTINGS_INTERNAL s;
-    CxPlatZeroMemory(&s, sizeof(s));
+    ResetMsQuicTestSettings(Storage);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageCreateTempStore(
+            Storage,
+            "TEST",
+            &TempStore));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageSaveUIntValue(
+            TempStore,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            0));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
 
     // Mark SendBufferingEnabled as set
-    s.IsSet.SendBufferingEnabled = 1;
-    s.SendBufferingEnabled = 1;
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 1;
 
-    QuicSettingsLoad(&s, storage);
+    QuicSettingsLoad(&Settings, TempStore);
 
     // Should not be overwritten
-    ASSERT_EQ(s.SendBufferingEnabled, 1u);
+    ASSERT_EQ(Settings.SendBufferingEnabled, 1u);
 
-    CxPlatStorageClose(storage);
-    ResetMsQuicRegistry();
+    CxPlatStorageClose(TempStore);
+    ResetMsQuicTestSettings(Storage);
+    CxPlatStorageClose(Storage);
 }
 
 // --- Test: QuicSettingsLoad uses default if storage missing ---
 TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
 {
-    ResetMsQuicRegistry();
+    CXPLAT_STORAGE* Storage = NULL;
+    CXPLAT_STORAGE* TempStore = NULL;
 
-    CXPLAT_STORAGE* storage = nullptr;
-    ASSERT_NE(
+    ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         CxPlatStorageOpen(
-            "TEST",
             nullptr,
             nullptr,
-            &storage));
+            nullptr,
+            &Storage));
 
-    QUIC_SETTINGS_INTERNAL s;
-    CxPlatZeroMemory(&s, sizeof(s));
-    QuicSettingsLoad(&s, storage);
+    ResetMsQuicTestSettings(Storage);
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageCreateTempStore(
+            Storage,
+            "TEST",
+            &TempStore));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, TempStore);
 
     // Should use default
-    ASSERT_EQ(s.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
-    ASSERT_EQ(s.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
-    ASSERT_EQ(s.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
 
-    CxPlatStorageClose(storage);
-    ResetMsQuicRegistry();
+    CxPlatStorageClose(TempStore);
+    ResetMsQuicTestSettings(Storage);
+    CxPlatStorageClose(Storage);
  }
 
 TEST(SettingsTest, SettingsSizesGet)
