@@ -117,6 +117,9 @@ constexpr _Ty&& CxPlatForward(
     return static_cast<_Ty&&>(_Arg);
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wmultichar" // Multi-character constant used intentionally for the tag
+#endif
 template<typename T, uint32_t Tag = 'lPxC', bool Paged = false>
 class CxPlatPoolT {
     CXPLAT_POOL Pool;
