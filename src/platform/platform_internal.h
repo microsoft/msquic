@@ -128,7 +128,6 @@ typedef enum CXPLAT_SOCKET_TYPE {
 } CXPLAT_SOCKET_TYPE;
 
 #define DatapathType(SendData) ((CXPLAT_SEND_DATA_COMMON*)(SendData))->DatapathType
-#define WRITE_ONCE(var, val) (*(volatile typeof(var) *)&(var) = (val))
 
 #ifdef _KERNEL_MODE
 
