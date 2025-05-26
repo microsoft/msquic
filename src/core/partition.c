@@ -96,7 +96,7 @@ QuicPartitionGetStatelessRetryKey(
     CxPlatCopyMemory(
         RawKey,
         MsQuicLib.BaseRetrySecret,
-        CxPlatKeyLength(MsQuicLib.RetryAeadAlgorithm));
+        MsQuicLib.RetrySecretLength);
     for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
         RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
     }

@@ -214,6 +214,11 @@ typedef struct QUIC_LIBRARY {
     uint8_t BaseRetrySecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
 
     //
+    // Length of the secret stored in BaseRetrySecret. Depents on the algorithm type.
+    //
+    uint32_t RetrySecretLength;
+
+    //
     // The AEAD algorithm to use for the retry key.
     //
     CXPLAT_AEAD_TYPE RetryAeadAlgorithm;
@@ -560,7 +565,8 @@ QuicLibraryGenerateStatelessResetToken(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetRetryKeyConfig(
-    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config,
+    _In_ uint32_t ConfigLength
     );
 
 #if defined(__cplusplus)
