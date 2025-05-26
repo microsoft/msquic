@@ -1601,15 +1601,16 @@ QuicLibraryGetGlobalParam(
             CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql); 
             break;
         }
-        const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
-        Config->Algorithm = MsQuicLib.RetryAlgorithm;
-        Config->RotationMs = MsQuicLib.RetryRotationMs;
+        QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        Config->Algorithm = MsQuicLib.RetryAeadAlgorithm;
+        Config->RotationMs = MsQuicLib.RetryKeyRotationMs;
         Config->SecretLength = MsQuicLib.RetrySecretLength;
         CxPlatCopyMemory(
             Config->Secret,
-            MsQuicLib.RetrySecret,
+            MsQuicLib.BaseRetrySecret,
             MsQuicLib.RetrySecretLength);
         CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
+        Status = QUIC_STATUS_SUCCESS;
         break;
 #else
         Status = QUIC_STATUS_NOT_SUPPORTED;
@@ -2697,7 +2698,7 @@ QuicLibrarySetRetryKeyConfig(
             Config->RotationMs);
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    if (ConfigLength < Config->SecretLength + sizeof(Config)) {
+    if (ConfigLength < Config->SecretLength + sizeof(*Config)) {
         QuicTraceLogError(
             LibrarySetRetryConfigLengthInvalid,
             "[ lib] Config buffer insufficient: %u. Expected %llu",
