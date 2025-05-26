@@ -292,7 +292,7 @@ CxPlatLogAssert(
     _In_z_ const char* Expr
     );
 
-#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X, Y);
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X, #Y);
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck(__FILE__, __LINE__, #exp)));
