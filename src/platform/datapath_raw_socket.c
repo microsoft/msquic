@@ -769,12 +769,14 @@ CxPlatFramingWriteHeaders(
             IPv4->HeaderChecksum = 0;
             CxPlatDpRawTxSetL3ChecksumOffload(SendData);
         } else {
+            WRITE_ONCE(IPv4->HeaderChecksum, 0);
             IPv4->HeaderChecksum = ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
         }
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
         if (Route->UseQTIP) {
+            WRITE_ONCE(TCP->Checksum, 0);
             TCP->Checksum =
                 CxPlatFramingTransportChecksum(
                     IPv4->Source, IPv4->Destination,
@@ -783,6 +785,7 @@ CxPlatFramingWriteHeaders(
                     (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length,
                     SkipTransportLayerXsum);
         } else {
+            WRITE_ONCE(UDP->Checksum, 0);
             UDP->Checksum =
                 CxPlatFramingTransportChecksum(
                     IPv4->Source, IPv4->Destination,
@@ -827,6 +830,7 @@ CxPlatFramingWriteHeaders(
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
         if (Route->UseQTIP) {
+            WRITE_ONCE(TCP->Checksum, 0);
             TCP->Checksum =
                 CxPlatFramingTransportChecksum(
                     IPv6->Source, IPv6->Destination,
@@ -835,6 +839,7 @@ CxPlatFramingWriteHeaders(
                     (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length,
                     SkipTransportLayerXsum);
         } else {
+            WRITE_ONCE(UDP->Checksum, 0);
             UDP->Checksum =
                 CxPlatFramingTransportChecksum(
                     IPv6->Source, IPv6->Destination,
