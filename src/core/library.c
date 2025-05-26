@@ -1587,6 +1587,36 @@ QuicLibraryGetGlobalParam(
         break;
     }
 
+    case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
+#ifdef DEBUG
+        CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
+        if (*BufferLength < sizeof(QUIC_STATELESS_RETRY_CONFIG) + MsQuicLib.RetrySecretLength) {
+            *BufferLength = sizeof(QUIC_STATELESS_RETRY_CONFIG) + MsQuicLib.RetrySecretLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql); 
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql); 
+            break;
+        }
+        const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        Config->Algorithm = MsQuicLib.RetryAlgorithm;
+        Config->RotationMs = MsQuicLib.RetryRotationMs;
+        Config->SecretLength = MsQuicLib.RetrySecretLength;
+        CxPlatCopyMemory(
+            Config->Secret,
+            MsQuicLib.RetrySecret,
+            MsQuicLib.RetrySecretLength);
+        CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
+        break;
+#else
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        break;
+#endif // DEBUG
+    }
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
