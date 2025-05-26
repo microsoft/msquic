@@ -209,6 +209,33 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+        Config->Algorithm,
+        Config->RotationMs,
+        SecretLen);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+// arg4 = arg4 = SecretLen = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryKeyUpdated,
+    TP_ARGS(
+        int, arg2,
+        unsigned int, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -312,34 +339,41 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeyRotationInvalid
-// [ lib] Invalid retry key rotation ms: %d.
+// [ lib] Invalid retry key rotation ms: %u.
 // QuicTraceLogError(
             LibrarySetRetryKeyRotationInvalid,
-            "[ lib] Invalid retry key rotation ms: %d.",
+            "[ lib] Invalid retry key rotation ms: %u.",
             Config->RotationMs);
 // arg2 = arg2 = Config->RotationMs = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
     TP_ARGS(
-        int, arg2), 
+        unsigned int, arg2), 
     TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned int, arg2, arg2)
     )
 )
 
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibrarySetRetryKeySecretNull
-// [ lib] Invalid retry key secret: NULL.
+// Decoder Ring for LibrarySetRetryConfigLengthInvalid
+// [ lib] Config buffer insufficient: %u. Expected %llu
 // QuicTraceLogError(
-            LibrarySetRetryKeySecretNull,
-            "[ lib] Invalid retry key secret: NULL.");
+            LibrarySetRetryConfigLengthInvalid,
+            "[ lib] Config buffer insufficient: %u. Expected %llu",
+            ConfigLength,
+            Config->SecretLength + sizeof(Config));
+// arg2 = arg2 = ConfigLength = arg2
+// arg3 = arg3 = Config->SecretLength + sizeof(Config) = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryConfigLengthInvalid,
     TP_ARGS(
-), 
+        unsigned int, arg2,
+        unsigned long long, arg3), 
     TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 
@@ -347,22 +381,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
-// [ lib] Invalid retry key secret length: %d. Expected %d.
+// [ lib] Invalid retry key secret length: %u. Expected %u.
 // QuicTraceLogError(
             LibrarySetRetryKeySecretLengthInvalid,
-            "[ lib] Invalid retry key secret length: %d. Expected %d.",
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
             Config->SecretLength,
-            CxPlatKeyLength(Config->Algorithm));
+            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
 // arg2 = arg2 = Config->SecretLength = arg2
-// arg3 = arg3 = CxPlatKeyLength(Config->Algorithm) = arg3
+// arg3 = arg3 = CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid,
     TP_ARGS(
-        int, arg2,
-        int, arg3), 
+        unsigned int, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
-        ctf_integer(int, arg2, arg2)
-        ctf_integer(int, arg3, arg3)
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

@@ -240,6 +240,28 @@ tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+        Config->Algorithm,
+        Config->RotationMs,
+        SecretLen);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+// arg4 = arg4 = SecretLen = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_LibraryRetryKeyUpdated
+#define _clog_5_ARGS_TRACE_LibraryRetryKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_LIBRARY_C, LibraryRetryKeyUpdated , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -341,10 +363,10 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeyRotationInvalid
-// [ lib] Invalid retry key rotation ms: %d.
+// [ lib] Invalid retry key rotation ms: %u.
 // QuicTraceLogError(
             LibrarySetRetryKeyRotationInvalid,
-            "[ lib] Invalid retry key rotation ms: %d.",
+            "[ lib] Invalid retry key rotation ms: %u.",
             Config->RotationMs);
 // arg2 = arg2 = Config->RotationMs = arg2
 ----------------------------------------------------------*/
@@ -358,15 +380,19 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibrarySetRetryKeySecretNull
-// [ lib] Invalid retry key secret: NULL.
+// Decoder Ring for LibrarySetRetryConfigLengthInvalid
+// [ lib] Config buffer insufficient: %u. Expected %llu
 // QuicTraceLogError(
-            LibrarySetRetryKeySecretNull,
-            "[ lib] Invalid retry key secret: NULL.");
+            LibrarySetRetryConfigLengthInvalid,
+            "[ lib] Config buffer insufficient: %u. Expected %llu",
+            ConfigLength,
+            Config->SecretLength + sizeof(Config));
+// arg2 = arg2 = ConfigLength = arg2
+// arg3 = arg3 = Config->SecretLength + sizeof(Config) = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull
-#define _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull );\
+#ifndef _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid
+#define _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryConfigLengthInvalid , arg2, arg3);\
 
 #endif
 
@@ -375,14 +401,14 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull );\
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
-// [ lib] Invalid retry key secret length: %d. Expected %d.
+// [ lib] Invalid retry key secret length: %u. Expected %u.
 // QuicTraceLogError(
             LibrarySetRetryKeySecretLengthInvalid,
-            "[ lib] Invalid retry key secret length: %d. Expected %d.",
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
             Config->SecretLength,
-            CxPlatKeyLength(Config->Algorithm));
+            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
 // arg2 = arg2 = Config->SecretLength = arg2
-// arg3 = arg3 = CxPlatKeyLength(Config->Algorithm) = arg3
+// arg3 = arg3 = CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid
 #define _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\

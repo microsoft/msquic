@@ -6838,6 +6838,26 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryRetryKeyUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+      "UniqueId": "LibraryRetryKeyUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryRetryMemoryLimitSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Updated retry memory limit = %hu",
@@ -6881,6 +6901,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "LibrarySetRetryConfigLengthInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Config buffer insufficient: %u. Expected %llu",
+      "UniqueId": "LibrarySetRetryConfigLengthInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
     "LibrarySetRetryKeyAlgorithmInvalid": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Invalid retry key algorithm: %d.",
@@ -6895,11 +6931,11 @@
     },
     "LibrarySetRetryKeyRotationInvalid": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Invalid retry key rotation ms: %d.",
+      "TraceString": "[ lib] Invalid retry key rotation ms: %u.",
       "UniqueId": "LibrarySetRetryKeyRotationInvalid",
       "splitArgs": [
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
         }
       ],
@@ -6907,15 +6943,15 @@
     },
     "LibrarySetRetryKeySecretLengthInvalid": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Invalid retry key secret length: %d. Expected %d.",
+      "TraceString": "[ lib] Invalid retry key secret length: %u. Expected %u.",
       "UniqueId": "LibrarySetRetryKeySecretLengthInvalid",
       "splitArgs": [
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -16008,6 +16044,11 @@
         "EncodingString": "[ lib] Release"
       },
       {
+        "UniquenessHash": "29338144-a817-309d-590e-60026a6c6a58",
+        "TraceID": "LibraryRetryKeyUpdated",
+        "EncodingString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u"
+      },
+      {
         "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
         "TraceID": "LibraryRetryMemoryLimitSet",
         "EncodingString": "[ lib] Updated retry memory limit = %hu"
@@ -16028,19 +16069,24 @@
         "EncodingString": "[ lib] Shared server state initializing"
       },
       {
+        "UniquenessHash": "08cd17af-3741-03ae-f4c7-7be018c43af7",
+        "TraceID": "LibrarySetRetryConfigLengthInvalid",
+        "EncodingString": "[ lib] Config buffer insufficient: %u. Expected %llu"
+      },
+      {
         "UniquenessHash": "486e116e-95bb-bdeb-5f27-de64f47dd51a",
         "TraceID": "LibrarySetRetryKeyAlgorithmInvalid",
         "EncodingString": "[ lib] Invalid retry key algorithm: %d."
       },
       {
-        "UniquenessHash": "3b3e920b-e11f-4317-cb07-7a0d3cdd5102",
+        "UniquenessHash": "44f860ad-7ed6-6b7d-281a-ebdbf5af5d78",
         "TraceID": "LibrarySetRetryKeyRotationInvalid",
-        "EncodingString": "[ lib] Invalid retry key rotation ms: %d."
+        "EncodingString": "[ lib] Invalid retry key rotation ms: %u."
       },
       {
-        "UniquenessHash": "e2744d0e-2f4e-d79a-4149-42af384e697a",
+        "UniquenessHash": "e3e48450-245f-f818-02d3-8e25aae09b6e",
         "TraceID": "LibrarySetRetryKeySecretLengthInvalid",
-        "EncodingString": "[ lib] Invalid retry key secret length: %d. Expected %d."
+        "EncodingString": "[ lib] Invalid retry key secret length: %u. Expected %u."
       },
       {
         "UniquenessHash": "58822e02-9fc2-7ca6-ca3e-ae4e399f16f8",
