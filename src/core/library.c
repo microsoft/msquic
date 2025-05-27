@@ -2701,9 +2701,9 @@ QuicLibrarySetRetryKeyConfig(
     if (ConfigLength < Config->SecretLength + sizeof(*Config)) {
         QuicTraceLogError(
             LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %llu",
+            "[ lib] Config buffer insufficient: %u. Expected %u",
             ConfigLength,
-            Config->SecretLength + sizeof(Config));
+            Config->SecretLength + (uint32_t)sizeof(Config));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (Config->SecretLength != CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm)) {
