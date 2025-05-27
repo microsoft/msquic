@@ -358,22 +358,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryConfigLengthInvalid
-// [ lib] Config buffer insufficient: %u. Expected %llu
+// [ lib] Config buffer insufficient: %u. Expected %u
 // QuicTraceLogError(
             LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %llu",
+            "[ lib] Config buffer insufficient: %u. Expected %u",
             ConfigLength,
-            Config->SecretLength + sizeof(Config));
+            Config->SecretLength + (uint32_t)sizeof(Config));
 // arg2 = arg2 = ConfigLength = arg2
-// arg3 = arg3 = Config->SecretLength + sizeof(Config) = arg3
+// arg3 = arg3 = Config->SecretLength + (uint32_t)sizeof(Config) = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryConfigLengthInvalid,
     TP_ARGS(
         unsigned int, arg2,
-        unsigned long long, arg3), 
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

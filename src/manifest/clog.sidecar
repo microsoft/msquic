@@ -6903,7 +6903,7 @@
     },
     "LibrarySetRetryConfigLengthInvalid": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Config buffer insufficient: %u. Expected %llu",
+      "TraceString": "[ lib] Config buffer insufficient: %u. Expected %u",
       "UniqueId": "LibrarySetRetryConfigLengthInvalid",
       "splitArgs": [
         {
@@ -6911,7 +6911,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "llu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -16069,9 +16069,9 @@
         "EncodingString": "[ lib] Shared server state initializing"
       },
       {
-        "UniquenessHash": "08cd17af-3741-03ae-f4c7-7be018c43af7",
+        "UniquenessHash": "46c73e98-adfd-96b8-38c1-8ba4f06b8dc1",
         "TraceID": "LibrarySetRetryConfigLengthInvalid",
-        "EncodingString": "[ lib] Config buffer insufficient: %u. Expected %llu"
+        "EncodingString": "[ lib] Config buffer insufficient: %u. Expected %u"
       },
       {
         "UniquenessHash": "486e116e-95bb-bdeb-5f27-de64f47dd51a",

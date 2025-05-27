@@ -381,14 +381,14 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryConfigLengthInvalid
-// [ lib] Config buffer insufficient: %u. Expected %llu
+// [ lib] Config buffer insufficient: %u. Expected %u
 // QuicTraceLogError(
             LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %llu",
+            "[ lib] Config buffer insufficient: %u. Expected %u",
             ConfigLength,
-            Config->SecretLength + sizeof(Config));
+            Config->SecretLength + (uint32_t)sizeof(Config));
 // arg2 = arg2 = ConfigLength = arg2
-// arg3 = arg3 = Config->SecretLength + sizeof(Config) = arg3
+// arg3 = arg3 = Config->SecretLength + (uint32_t)sizeof(Config) = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid
 #define _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\

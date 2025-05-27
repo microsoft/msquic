@@ -6801,3 +6801,112 @@ QuicTestValidateConnectionPoolCreate()
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct QuicTestResetGlobalRegConfig {
+    public:
+    QuicTestResetGlobalRegConfig(char* RegName) : RegName(RegName), BufferLength(0), RegNotPresent(false) {
+#ifdef _KERNEL_MODE
+        // TODO
+#elif _WIN32
+#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
+    HKEY RegKey;
+    TEST_QUIC_SUCCEEDED(
+        HRESULT_FROM_WIN32(
+        RegOpenKeyExA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            0,
+            KEY_READ,
+            &RegKey)));
+    if (QUIC_SUCCEEDED(
+        HRESULT_FROM_WIN32(
+            RegQueryValueExA(
+                RegKey,
+                RegName,
+                NULL,
+                (PDWORD)&RegType,
+                nullptr,
+                (PDWORD)&BufferLength)))) {
+
+        Buffer.reset(new (std::nothrow) uint8_t[BufferLength]);
+
+        TEST_QUIC_SUCCEEDED(
+            HRESULT_FROM_WIN32(
+                RegQueryValueExA(
+                    RegKey,
+                    RegName,
+                    NULL,
+                    (PDWORD)&RegType,
+                    Buffer.get(),
+                    (PDWORD)&BufferLength)));
+
+        TEST_EQUAL(NO_ERROR, RegCloseKey(RegKey));
+
+        TEST_EQUAL(NO_ERROR,
+            RegDeleteKeyValueA(
+                HKEY_LOCAL_MACHINE,
+                MSQUIC_GLOBAL_PARAMETERS_PATH,
+                RegName));
+
+    } else {
+        RegCloseKey(RegKey);
+        RegNotPresent = true;
+    }
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+    }
+
+    QuicTestResetGlobalRegConfig(const QuicTestResetGlobalRegConfig& other) = delete;
+    QuicTestResetGlobalRegConfig(QuicTestResetGlobalRegConfig&& other) = delete;
+    QuicTestResetGlobalRegConfig& operator=(const QuicTestResetGlobalRegConfig& other) = delete;
+    QuicTestResetGlobalRegConfig& operator=(QuicTestResetGlobalRegConfig&& other) = delete;
+
+    ~QuicTestResetGlobalRegConfig() {
+#ifdef _KERNEL_MODE
+        // TODO
+#elif _WIN32
+        if (RegNotPresent) {
+            RegDeleteKeyValueA(
+                HKEY_LOCAL_MACHINE,
+                MSQUIC_GLOBAL_PARAMETERS_PATH,
+                RegName);
+
+        } else {
+            HKEY RegKey;
+            TEST_QUIC_SUCCEEDED(
+                HRESULT_FROM_WIN32(
+                RegOpenKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    MSQUIC_GLOBAL_PARAMETERS_PATH,
+                    0,
+                    KEY_WRITE,
+                    &RegKey)));
+            TEST_EQUAL(
+                NO_ERROR,
+                RegSetKeyValueA(
+                    HKEY_LOCAL_MACHINE,
+                    MSQUIC_GLOBAL_PARAMETERS_PATH,
+                    RegName,
+                    RegType,
+                    Buffer.get(),
+                    BufferLength));
+            RegCloseKey(RegKey);
+        }
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+    }
+private:
+    char* RegName;
+    UniquePtr<uint8_t[]> Buffer;
+    uint32_t BufferLength;
+    uint32_t RegType;
+    bool RegNotPresent;
+};
+
+
+what to do next:
+1. implement kernel mode support
+2. implement test which uses this to write to the registry and cleanup
+3. switch version test to use this
