@@ -2846,7 +2846,7 @@ namespace Microsoft.Quic
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             [FieldOffset(0)]
-            [NativeTypeName("struct (anonymous struct)")]
+            [NativeTypeName("NETWORK_STATISTICS")]
             internal _NETWORK_STATISTICS_e__Struct NETWORK_STATISTICS;
 
             internal unsafe partial struct _CONNECTED_e__Struct
@@ -3717,8 +3717,8 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_CONN_SEND_DSCP 0x05000019")]
         internal const uint QUIC_PARAM_CONN_SEND_DSCP = 0x05000019;
 
-        [NativeTypeName("#define QUIC_PARAM_CONN_NETWORK_STATISTICS 0x05000019")]
-        internal const uint QUIC_PARAM_CONN_NETWORK_STATISTICS = 0x05000019;
+        [NativeTypeName("#define QUIC_PARAM_CONN_NETWORK_STATISTICS 0x05000020")]
+        internal const uint QUIC_PARAM_CONN_NETWORK_STATISTICS = 0x05000020;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;
