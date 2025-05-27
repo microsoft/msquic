@@ -1925,8 +1925,6 @@ pub struct QUIC_SETTINGS {
     pub StreamRecvWindowBidiLocalDefault: u32,
     pub StreamRecvWindowBidiRemoteDefault: u32,
     pub StreamRecvWindowUnidiDefault: u32,
-    pub ResumptionTicketMinVersion: u8,
-    pub ResumptionTicketMaxVersion: u8,
 }
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -1938,7 +1936,7 @@ pub union QUIC_SETTINGS__bindgen_ty_1 {
 #[repr(align(8))]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
-    pub _bitfield_align_1: [u16; 0],
+    pub _bitfield_align_1: [u32; 0],
     pub _bitfield_1: __BindgenBitfieldUnit<[u8; 8usize]>,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
@@ -3468,80 +3466,14 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub fn ResumptionTicketMinVersion(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(46usize, 1u8) as u64) }
-    }
-    #[inline]
-    pub fn set_ResumptionTicketMinVersion(&mut self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(46usize, 1u8, val as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn ResumptionTicketMinVersion_raw(this: *const Self) -> u64 {
-        unsafe {
-            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
-                ::std::ptr::addr_of!((*this)._bitfield_1),
-                46usize,
-                1u8,
-            ) as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn set_ResumptionTicketMinVersion_raw(this: *mut Self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
-                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                46usize,
-                1u8,
-                val as u64,
-            )
-        }
-    }
-    #[inline]
-    pub fn ResumptionTicketMaxVersion(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(47usize, 1u8) as u64) }
-    }
-    #[inline]
-    pub fn set_ResumptionTicketMaxVersion(&mut self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(47usize, 1u8, val as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn ResumptionTicketMaxVersion_raw(this: *const Self) -> u64 {
-        unsafe {
-            ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
-                ::std::ptr::addr_of!((*this)._bitfield_1),
-                47usize,
-                1u8,
-            ) as u64)
-        }
-    }
-    #[inline]
-    pub unsafe fn set_ResumptionTicketMaxVersion_raw(this: *mut Self, val: u64) {
-        unsafe {
-            let val: u64 = ::std::mem::transmute(val);
-            <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
-                ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                47usize,
-                1u8,
-                val as u64,
-            )
-        }
-    }
-    #[inline]
     pub fn RESERVED(&self) -> u64 {
-        unsafe { ::std::mem::transmute(self._bitfield_1.get(48usize, 16u8) as u64) }
+        unsafe { ::std::mem::transmute(self._bitfield_1.get(46usize, 18u8) as u64) }
     }
     #[inline]
     pub fn set_RESERVED(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
-            self._bitfield_1.set(48usize, 16u8, val as u64)
+            self._bitfield_1.set(46usize, 18u8, val as u64)
         }
     }
     #[inline]
@@ -3549,8 +3481,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
-                48usize,
-                16u8,
+                46usize,
+                18u8,
             ) as u64)
         }
     }
@@ -3560,8 +3492,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
                 ::std::ptr::addr_of_mut!((*this)._bitfield_1),
-                48usize,
-                16u8,
+                46usize,
+                18u8,
                 val as u64,
             )
         }
@@ -3614,8 +3546,6 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         XdpEnabled: u64,
         QTIPEnabled: u64,
         RioEnabled: u64,
-        ResumptionTicketMinVersion: u64,
-        ResumptionTicketMaxVersion: u64,
         RESERVED: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -3825,17 +3755,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             let RioEnabled: u64 = unsafe { ::std::mem::transmute(RioEnabled) };
             RioEnabled as u64
         });
-        __bindgen_bitfield_unit.set(46usize, 1u8, {
-            let ResumptionTicketMinVersion: u64 =
-                unsafe { ::std::mem::transmute(ResumptionTicketMinVersion) };
-            ResumptionTicketMinVersion as u64
-        });
-        __bindgen_bitfield_unit.set(47usize, 1u8, {
-            let ResumptionTicketMaxVersion: u64 =
-                unsafe { ::std::mem::transmute(ResumptionTicketMaxVersion) };
-            ResumptionTicketMaxVersion as u64
-        });
-        __bindgen_bitfield_unit.set(48usize, 16u8, {
+        __bindgen_bitfield_unit.set(46usize, 18u8, {
             let RESERVED: u64 = unsafe { ::std::mem::transmute(RESERVED) };
             RESERVED as u64
         });
@@ -4335,10 +4255,6 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowBidiRemoteDefault) - 132usize];
     ["Offset of field: QUIC_SETTINGS::StreamRecvWindowUnidiDefault"]
         [::std::mem::offset_of!(QUIC_SETTINGS, StreamRecvWindowUnidiDefault) - 136usize];
-    ["Offset of field: QUIC_SETTINGS::ResumptionTicketMinVersion"]
-        [::std::mem::offset_of!(QUIC_SETTINGS, ResumptionTicketMinVersion) - 140usize];
-    ["Offset of field: QUIC_SETTINGS::ResumptionTicketMaxVersion"]
-        [::std::mem::offset_of!(QUIC_SETTINGS, ResumptionTicketMaxVersion) - 141usize];
 };
 impl QUIC_SETTINGS {
     #[inline]
