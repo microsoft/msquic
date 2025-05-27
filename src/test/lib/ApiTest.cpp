@@ -6904,9 +6904,3 @@ private:
     uint32_t RegType;
     bool RegNotPresent;
 };
-
-
-what to do next:
-1. implement kernel mode support
-2. implement test which uses this to write to the registry and cleanup
-3. switch version test to use this
