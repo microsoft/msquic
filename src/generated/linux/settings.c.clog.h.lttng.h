@@ -875,6 +875,38 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingsDumpResumptionTicketMinVersion
+// [sett] ResumptionTicketMinVersion= %hhu
+// QuicTraceLogVerbose(SettingsDumpResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMinVersion = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsDumpResumptionTicketMinVersion,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsDumpResumptionTicketMaxVersion
+// [sett] ResumptionTicketMaxVersion= %hhu
+// QuicTraceLogVerbose(SettingsDumpResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMaxVersion = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingsDumpResumptionTicketMaxVersion,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
@@ -913,6 +945,38 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingDumpStreamRecvBufferDefault,
 // arg2 = arg2 = Settings->StreamMultiReceiveEnabled = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingResumptionTicketMinVersion
+// [sett] ResumptionTicketMinVersion= %hhu
+// QuicTraceLogVerbose(SettingResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMinVersion = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingResumptionTicketMinVersion,
+    TP_ARGS(
+        unsigned char, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned char, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingResumptionTicketMaxVersion
+// [sett] ResumptionTicketMaxVersion= %hhu
+// QuicTraceLogVerbose(SettingResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMaxVersion = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingResumptionTicketMaxVersion,
     TP_ARGS(
         unsigned char, arg2), 
     TP_FIELDS(

@@ -843,6 +843,36 @@ tracepoint(CLOG_SETTINGS_C, SettingsStreamMultiReceiveEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingsDumpResumptionTicketMinVersion
+// [sett] ResumptionTicketMinVersion= %hhu
+// QuicTraceLogVerbose(SettingsDumpResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMinVersion = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingsDumpResumptionTicketMinVersion
+#define _clog_3_ARGS_TRACE_SettingsDumpResumptionTicketMinVersion(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingsDumpResumptionTicketMinVersion , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingsDumpResumptionTicketMaxVersion
+// [sett] ResumptionTicketMaxVersion= %hhu
+// QuicTraceLogVerbose(SettingsDumpResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMaxVersion = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingsDumpResumptionTicketMaxVersion
+#define _clog_3_ARGS_TRACE_SettingsDumpResumptionTicketMaxVersion(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingsDumpResumptionTicketMaxVersion , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingDumpLFixedServerID
 // [sett] FixedServerID          = %u
 // QuicTraceLogVerbose(SettingDumpLFixedServerID,              "[sett] FixedServerID          = %u", Settings->FixedServerID);
@@ -881,6 +911,36 @@ tracepoint(CLOG_SETTINGS_C, SettingDumpStreamRecvBufferDefault , arg2);\
 #ifndef _clog_3_ARGS_TRACE_SettingStreamMultiReceiveEnabled
 #define _clog_3_ARGS_TRACE_SettingStreamMultiReceiveEnabled(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_SETTINGS_C, SettingStreamMultiReceiveEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingResumptionTicketMinVersion
+// [sett] ResumptionTicketMinVersion= %hhu
+// QuicTraceLogVerbose(SettingResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMinVersion = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingResumptionTicketMinVersion
+#define _clog_3_ARGS_TRACE_SettingResumptionTicketMinVersion(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingResumptionTicketMinVersion , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingResumptionTicketMaxVersion
+// [sett] ResumptionTicketMaxVersion= %hhu
+// QuicTraceLogVerbose(SettingResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
+// arg2 = arg2 = Settings->ResumptionTicketMaxVersion = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingResumptionTicketMaxVersion
+#define _clog_3_ARGS_TRACE_SettingResumptionTicketMaxVersion(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingResumptionTicketMaxVersion , arg2);\
 
 #endif
 

@@ -11353,10 +11353,58 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingResumptionTicketMaxVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ResumptionTicketMaxVersion= %hhu",
+      "UniqueId": "SettingResumptionTicketMaxVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingResumptionTicketMinVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ResumptionTicketMinVersion= %hhu",
+      "UniqueId": "SettingResumptionTicketMinVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingRioEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] RioEnabled             = %hhu",
       "UniqueId": "SettingRioEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingsDumpResumptionTicketMaxVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ResumptionTicketMaxVersion= %hhu",
+      "UniqueId": "SettingsDumpResumptionTicketMaxVersion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "SettingsDumpResumptionTicketMinVersion": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] ResumptionTicketMinVersion= %hhu",
+      "UniqueId": "SettingsDumpResumptionTicketMinVersion",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -17425,9 +17473,29 @@
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
       },
       {
+        "UniquenessHash": "30a62c5f-fa32-fb3e-1b75-c6f4771f9b4e",
+        "TraceID": "SettingResumptionTicketMaxVersion",
+        "EncodingString": "[sett] ResumptionTicketMaxVersion= %hhu"
+      },
+      {
+        "UniquenessHash": "7538eb29-720e-f7d4-4d3c-5f42c0816fff",
+        "TraceID": "SettingResumptionTicketMinVersion",
+        "EncodingString": "[sett] ResumptionTicketMinVersion= %hhu"
+      },
+      {
         "UniquenessHash": "aa851418-62e3-4895-b4a2-bedcbcf06d0d",
         "TraceID": "SettingRioEnabled",
         "EncodingString": "[sett] RioEnabled             = %hhu"
+      },
+      {
+        "UniquenessHash": "be82ba99-613b-6ebb-b656-2adbadba2912",
+        "TraceID": "SettingsDumpResumptionTicketMaxVersion",
+        "EncodingString": "[sett] ResumptionTicketMaxVersion= %hhu"
+      },
+      {
+        "UniquenessHash": "41b7b56d-db24-ecf0-d909-64aba6ed2f98",
+        "TraceID": "SettingsDumpResumptionTicketMinVersion",
+        "EncodingString": "[sett] ResumptionTicketMinVersion= %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
