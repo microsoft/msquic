@@ -18,6 +18,12 @@ QUIC_LIBRARY MsQuicLib = { 0 };
 
 QUIC_TRACE_RUNDOWN_CALLBACK QuicTraceRundown;
 
+typedef struct QUIC_API_TABLE_EX {
+    QUIC_API_TABLE Table;
+    QUIC_CLOSE_COMPLETE_HANDLER CloseHandler;
+    void* CloseContext;
+} QUIC_API_TABLE_EX;
+
 // Forward declaration
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1960,12 +1966,6 @@ MsQuicClose(
     }
 }
 
-typedef struct QUIC_API_TABLE_EX {
-    QUIC_API_TABLE Table;
-    QUIC_CLOSE_COMPLETE_HANDLER CloseHandler;
-    void* CloseContext;
-} QUIC_API_TABLE_EX;
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLibraryCleanupComplete(
@@ -2033,7 +2033,6 @@ MsQuicCloseAsync(
             }
             
             return QUIC_STATUS_SUCCESS;
-        }
         }
     }
     

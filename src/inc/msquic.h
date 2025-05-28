@@ -1111,6 +1111,16 @@ void
 
 typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_CLOSE_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
+
 //
 // Asynchronously closes the registration. Instead of synchronizing cleanup,
 // this function registers a callback to be invoked when cleanup is complete.
@@ -1920,18 +1930,6 @@ void
 QUIC_API
 MsQuicClose(
     _In_ _Pre_defensive_ const void* QuicApi
-    );
-
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
-
-typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
-    _In_opt_ void* Context
     );
 
 #endif

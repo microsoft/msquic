@@ -24,6 +24,12 @@ Abstract:
 #include "registration.c.clog.h"
 #endif
 
+typedef struct QUIC_REGISTRATION_EX {
+    QUIC_REGISTRATION Registration;
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
+    void* CloseContext;
+} QUIC_REGISTRATION_EX;
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -147,19 +153,13 @@ Error:
     return Status;
 }
 
-typedef struct QUIC_REGISTRATION_EX {
-    QUIC_REGISTRATION Registration;
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
-    void* CloseContext;
-} QUIC_REGISTRATION_EX;
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicRegistrationRundownComplete(
     _In_ void* Context
     )
 {
-    QUIC_REGISTRATION_EX* RegistrationEx = CONTAINING_RECORD(Context, QUIC_REGISTRATION_EX, Registration);
+    QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_CONTAINING_RECORD(Context, QUIC_REGISTRATION_EX, Registration);
     QUIC_REGISTRATION* Registration = &RegistrationEx->Registration;
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
@@ -259,7 +259,7 @@ MsQuicRegistrationCloseAsync(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-        QUIC_REGISTRATION_EX* RegistrationEx = CONTAINING_RECORD(Registration, QUIC_REGISTRATION_EX, Registration);
+        QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_CONTAINING_RECORD(Registration, QUIC_REGISTRATION_EX, Registration);
 
         RegistrationEx->CloseHandler = Handler;
         RegistrationEx->CloseContext = Context;
@@ -278,13 +278,10 @@ MsQuicRegistrationCloseAsync(
         Status = QUIC_STATUS_SUCCESS;
         
         // Release the rundown - this starts the cleanup process
-        if (CxPlatRundownRelease(&Registration->Rundown)) {
-            // Rundown already complete, clean up immediately
-            QuicRegistrationRundownComplete(Registration);
-        } else {
-            // The release is pending completion of the rundown object
-            Status = QUIC_STATUS_PENDING;
-        }
+        CxPlatRundownRelease(&Registration->Rundown);
+        
+        // Return pending as we don't know when it will complete
+        Status = QUIC_STATUS_PENDING;
 
         QuicTraceEvent(
             ApiExit,
