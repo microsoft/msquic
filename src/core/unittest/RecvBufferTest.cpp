@@ -704,6 +704,66 @@ TEST_P(WithMode, MultiWriteLarge)
     ASSERT_FALSE(RecvBuf.HasUnreadData());
 }
 
+TEST_P(WithMode, MultiWriteLargeWhileReadPending)
+{
+    auto Mode = GetParam();
+    RecvBuffer RecvBuf{};
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+
+    //
+    // Write some data and read it so a read operation is pending
+    //
+    {
+        uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+        BOOLEAN DataReady = FALSE;
+        ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 64, &InOutWriteLength, &DataReady));
+
+        uint64_t ReadOffset{};
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_FALSE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(1u, BufferCount);
+        ASSERT_EQ(64u, ReadBuffers[0].Length);
+    }
+
+    //
+    // Write more data while the read is pending, forcing buffer re-allocations
+    //
+    for (uint32_t i = 1; i < 4; ++i) {
+        uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+        BOOLEAN DataReady = FALSE;
+        ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(i * 64, 64, &InOutWriteLength, &DataReady));
+        ASSERT_TRUE(DataReady);
+        ASSERT_TRUE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(64ull, InOutWriteLength);
+        ASSERT_EQ((i + 1) * 64ull, RecvBuf.GetTotalLength());
+    }
+
+    //
+    // Drain the data from the first read
+    //
+    ASSERT_FALSE(RecvBuf.Drain(64));
+
+    //
+    // Read all the remaining data
+    //
+    uint64_t ReadOffset{};
+    QUIC_BUFFER ReadBuffers[3]{};
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(64ull, ReadOffset);
+    ASSERT_EQ(1u, BufferCount);
+    ASSERT_EQ(192u, ReadBuffers[0].Length);
+
+    //
+    // Drain all the data.
+    //
+    ASSERT_TRUE(RecvBuf.Drain(192));
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+}
+
 TEST_P(WithMode, ReadPartial)
 {
     RecvBuffer RecvBuf;

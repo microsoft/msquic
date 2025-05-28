@@ -454,7 +454,6 @@ QuicRecvBufferResize(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
-    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL);
 
     QUIC_RECV_CHUNK* LastChunk =
         CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
@@ -527,10 +526,12 @@ QuicRecvBufferResize(
     if (LastChunk->ExternalReference) {
         //
         // The chunk is referenced, so we need to retire it until we can free it.
+        // (only one read can be pending at a time, so there is no retired chunk)
         //
         CXPLAT_DBG_ASSERT(
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR);
+        CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL);
 
         RecvBuffer->RetiredChunk = LastChunk;
     } else {
