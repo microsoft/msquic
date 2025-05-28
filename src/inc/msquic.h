@@ -370,25 +370,7 @@ void
 
 typedef QUIC_CREDENTIAL_LOAD_COMPLETE *QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER;
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_REGISTRATION_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
 
-typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
-
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
-
-typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
 
 typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
@@ -1121,6 +1103,16 @@ void
         HQUIC Registration
     );
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_REGISTRATION_CLOSE_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
+
 //
 // Asynchronously closes the registration. Instead of synchronizing cleanup,
 // this function registers a callback to be invoked when cleanup is complete.
@@ -1844,8 +1836,6 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_OPEN_IN_PARTITION_FN
                                         ConnectionOpenInPartition;   // Available from v2.5
 
-    QUIC_REGISTRATION_CLOSE_ASYNC_FN   RegistrationCloseAsync;       // Available from v2.5
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
                                         StreamProvideReceiveBuffers; // Available from v2.5
@@ -1857,6 +1847,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
+
+    QUIC_REGISTRATION_CLOSE_ASYNC_FN   RegistrationCloseAsync;       // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
@@ -1902,6 +1894,16 @@ QUIC_API
 MsQuicClose(
     _In_ _Pre_defensive_ const void* QuicApi
     );
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_CLOSE_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
 
 //
 // Asynchronously cleans up the function table returned from MsQuicOpenVersion
