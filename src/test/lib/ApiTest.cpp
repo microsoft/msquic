@@ -4819,6 +4819,7 @@ void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
 
 void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registration)
 {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_NETWORK_STATISTICS");
     {
         TestScopeLogger LogScope1("SetParam");
@@ -4839,6 +4840,8 @@ void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registratio
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(NETWORK_STATISTICS), nullptr, true);
     }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+    UNREFERENCED_PARAMETER(Registration);
 }
 
 void QuicTestConnectionParam()
