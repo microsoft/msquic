@@ -1856,6 +1856,7 @@ MsQuicOpenVersion(
     Api->RegistrationOpen = MsQuicRegistrationOpen;
     Api->RegistrationClose = MsQuicRegistrationClose;
     Api->RegistrationShutdown = MsQuicRegistrationShutdown;
+    Api->RegistrationCloseAsync = MsQuicRegistrationCloseAsync;
 
     Api->ConfigurationOpen = MsQuicConfigurationOpen;
     Api->ConfigurationClose = MsQuicConfigurationClose;
@@ -1930,6 +1931,34 @@ MsQuicClose(
         MsQuicRelease();
         MsQuicLibraryUnload();
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicCloseAsync(
+    _In_ _Pre_defensive_ const void* QuicApi,
+    _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    if (QuicApi != NULL) {
+        QuicTraceLogVerbose(
+            LibraryMsQuicClose,
+            "[ api] MsQuicCloseAsync");
+        
+        // There's actually nothing to wait for here, so we can just free the API table
+        // and call the completion handler immediately.
+        CXPLAT_FREE(QuicApi, QUIC_POOL_API);
+        MsQuicRelease();
+        MsQuicLibraryUnload();
+        
+        if (Handler != NULL) {
+            Handler(Context);
+        }
+    }
+    
+    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

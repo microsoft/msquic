@@ -446,6 +446,22 @@ public:
             memset(thisTable, 0, sizeof(*thisTable));
         }
     }
+    
+    QUIC_STATUS CloseAsync(
+        _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+        _In_opt_ void* Context) noexcept {
+        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+        if (QUIC_SUCCEEDED(InitStatus)) {
+            Status = MsQuicCloseAsync(ApiTable, Handler, Context);
+            if (QUIC_SUCCEEDED(Status)) {
+                ApiTable = nullptr;
+                QUIC_API_TABLE* thisTable = this;
+                memset(thisTable, 0, sizeof(*thisTable));
+            }
+        }
+        return Status;
+    }
+    
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
 };
@@ -542,6 +558,27 @@ struct MsQuicRegistration {
         _In_ QUIC_UINT62 ErrorCode
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
+    }
+    
+    QUIC_STATUS CloseAsync(
+        _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+        _In_opt_ void* Context = nullptr
+        ) noexcept {
+        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+        if (Handle != nullptr) {
+            if (CloseAllConnectionsOnDelete) {
+                MsQuic->RegistrationShutdown(
+                    Handle,
+                    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+                    1);
+            }
+            Status = MsQuic->RegistrationCloseAsync(Handle, Handler, Context);
+            if (QUIC_SUCCEEDED(Status)) {
+                // Prevent auto-cleanup in destructor, async cleanup will handle it
+                Handle = nullptr;
+            }
+        }
+        return Status;
     }
 };
 

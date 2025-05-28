@@ -370,6 +370,26 @@ void
 
 typedef QUIC_CREDENTIAL_LOAD_COMPLETE *QUIC_CREDENTIAL_LOAD_COMPLETE_HANDLER;
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_REGISTRATION_CLOSE_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_CLOSE_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
+
 typedef struct QUIC_CERTIFICATE_HASH {
     uint8_t ShaHash[20];
 } QUIC_CERTIFICATE_HASH;
@@ -1102,6 +1122,21 @@ void
     );
 
 //
+// Asynchronously closes the registration. Instead of synchronizing cleanup,
+// this function registers a callback to be invoked when cleanup is complete.
+// This avoids deadlocks in single-threaded execution environments.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Registration,
+    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+//
 // Calls shutdown for all connections in this registration. Don't call on a
 // MsQuic callback thread or it might deadlock.
 //
@@ -1809,6 +1844,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_OPEN_IN_PARTITION_FN
                                         ConnectionOpenInPartition;   // Available from v2.5
 
+    QUIC_REGISTRATION_CLOSE_ASYNC_FN   RegistrationCloseAsync;       // Available from v2.5
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STREAM_PROVIDE_RECEIVE_BUFFERS_FN
                                         StreamProvideReceiveBuffers; // Available from v2.5
@@ -1864,6 +1901,19 @@ void
 QUIC_API
 MsQuicClose(
     _In_ _Pre_defensive_ const void* QuicApi
+    );
+
+//
+// Asynchronously cleans up the function table returned from MsQuicOpenVersion
+// and releases the reference on the API. Calls the provided callback when done.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicCloseAsync(
+    _In_ _Pre_defensive_ const void* QuicApi,
+    _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
     );
 
 #endif

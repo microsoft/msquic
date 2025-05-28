@@ -143,6 +143,35 @@ Error:
     return Status;
 }
 
+typedef struct QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT {
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler;
+    void* Context;
+    QUIC_REGISTRATION* Registration;
+} QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicRegistrationRundownComplete(
+    _In_ void* Context
+    )
+{
+    QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT* CloseContext =
+        (QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT*)Context;
+    QUIC_REGISTRATION* Registration = CloseContext->Registration;
+
+    QuicWorkerPoolUninitialize(Registration->WorkerPool);
+    CxPlatRundownUninitialize(&Registration->Rundown);
+    CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+    CxPlatLockUninitialize(&Registration->ConfigLock);
+
+    if (CloseContext->Handler != NULL) {
+        CloseContext->Handler(CloseContext->Context);
+    }
+
+    CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+    CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API
@@ -185,6 +214,75 @@ MsQuicRegistrationClose(
             ApiExit,
             "[ api] Exit");
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicRegistrationCloseAsync(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Handle,
+    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
+
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+        QuicTraceEvent(
+            ApiEnter,
+            "[ api] Enter %u (%p).",
+            QUIC_TRACE_API_REGISTRATION_CLOSE_ASYNC,
+            Handle);
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT* CloseContext = NULL;
+
+        // Allocate the context for the completion callback
+        CloseContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT), QUIC_POOL_GENERIC);
+        if (CloseContext == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+
+        CloseContext->Handler = Handler;
+        CloseContext->Context = Context;
+        CloseContext->Registration = Registration;
+
+        QuicTraceEvent(
+            RegistrationCleanup,
+            "[ reg][%p] Cleaning up (async)",
+            Registration);
+
+        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            CxPlatListEntryRemove(&Registration->Link);
+            CxPlatLockRelease(&MsQuicLib.Lock);
+        }
+
+        Status = QUIC_STATUS_SUCCESS;
+        if (!CxPlatRundownRelease(&Registration->Rundown)) {
+            // No more references, complete synchronously
+            QuicRegistrationRundownComplete(CloseContext);
+        } else {
+            // TODO: Need to implement and use the platform completion callback mechanism
+            // This is a temporary solution that will cause a memory leak if we get here
+            QuicTraceLogWarning(
+                RegistrationCleanupAsyncNotSupported,
+                "[ reg][%p] Async cleanup not fully implemented! Memory will be leaked.",
+                Registration);
+            Status = QUIC_STATUS_NOT_SUPPORTED;
+            goto Error;
+        }
+
+        QuicTraceEvent(
+            ApiExit,
+            "[ api] Exit");
+    }
+
+Error:
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
