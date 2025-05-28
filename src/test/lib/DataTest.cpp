@@ -2274,6 +2274,8 @@ private:
         case QUIC_STREAM_EVENT_SEND_COMPLETE:
             TestContext->SendCompleteEvent.Set();
             break;
+        default:
+            break;
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -2308,6 +2310,8 @@ private:
         case QUIC_CONNECTION_EVENT_CONNECTED:
             CxPlatEventSet(TestContext->ConnectedEvent.Handle);
             break;
+        default:
+            break;
         }
         return QUIC_STATUS_SUCCESS;
     }
@@ -2326,8 +2330,13 @@ private:
         auto* TestContext = static_cast<AckSendDelayTestContext*>(Context);
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
-            MsQuic->SetCallbackHandler(Event->PEER_STREAM_STARTED.Stream, ServerStreamHandler, Context);
+            MsQuic->SetCallbackHandler(
+                Event->PEER_STREAM_STARTED.Stream,
+                static_cast<void*>(ServerStreamHandler),
+                Context);
             TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
+            break;
+        default:
             break;
         }
         return QUIC_STATUS_SUCCESS;
