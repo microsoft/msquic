@@ -2339,6 +2339,14 @@ QuicTestAckSendDelay(
     _In_ int Family
     )
 {
+    //
+    // Validates that a server eventually sends acks in response to a non-ack eliciting packet.
+    //
+    // Note that this test does a best effort to avoid any traffic after sending the data so that
+    // the Ack delay timer triggers. However, in some cases, other frames might be exchanged and the
+    // ack will piggy-back on them.
+    //
+
     const uint32_t TestTimeout = 3000;
     const uint32_t AckDelayMs = 25; // This is the default value, set it explicitly to ensure it stays compatible sync with the timeout.
     const uint32_t AckTimeout = 100;
@@ -2439,11 +2447,11 @@ QuicTestAckSendDelay(
             nullptr));
 
     //
-    // Since we are in non-buffered mode, the send completes when the ack is received - we use it as
-    // a proxy signal.
+    // Since we are not in send-buffered mode, the send completes only when the data is acked:
+    // we use this as a proxy signal.
     //
     if (!CxPlatEventWaitWithTimeout(TestContext.SendCompleteEvent.Handle, AckTimeout)) {
-        TEST_FAILURE("Client failed to receive data before timeout!");
+        TEST_FAILURE("Data was not acked before timeout!");
         return;
     }
 
