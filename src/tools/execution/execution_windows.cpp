@@ -62,6 +62,7 @@ void QueueCleanupJob() {
     ZeroMemory(&Sqe->Overlapped, sizeof(Sqe->Overlapped));
     Sqe->Completion = [](QUIC_CQE* Cqe) {
         printf("Cleaning up asynchronously...\n");
+        printf("Note: Using the new MsQuicRegistrationCloseAsync API to avoid deadlocks in the external app-driven execution model.\n");
         Registration->CloseAsync(
             [](void* Context) {
                 printf("Registration closed asynchronously\n");
