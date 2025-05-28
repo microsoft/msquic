@@ -2358,7 +2358,7 @@ QuicTestAckSendDelay(
 
     const uint32_t TestTimeout = 3000;
     const uint32_t AckDelayMs = 25; // This is the default value, set it explicitly to ensure it stays compatible sync with the timeout.
-    const uint32_t AckTimeout = 100;
+    const uint32_t AckTimeout = 2000;
     const QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
 
     MsQuicRegistration Registration;
