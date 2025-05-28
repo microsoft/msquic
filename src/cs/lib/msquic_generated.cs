@@ -926,6 +926,27 @@ namespace Microsoft.Quic
         internal uint RttVariance;
     }
 
+    internal partial struct NETWORK_STATISTICS
+    {
+        [NativeTypeName("uint32_t")]
+        internal uint BytesInFlight;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong PostedBytes;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong IdealBytes;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong SmoothedRTT;
+
+        [NativeTypeName("uint32_t")]
+        internal uint CongestionWindow;
+
+        [NativeTypeName("uint64_t")]
+        internal ulong Bandwidth;
+    }
+
     internal partial struct QUIC_LISTENER_STATISTICS
     {
         [NativeTypeName("uint64_t")]
@@ -2762,7 +2783,7 @@ namespace Microsoft.Quic
             }
         }
 
-        internal ref _Anonymous_e__Union._NETWORK_STATISTICS_e__Struct NETWORK_STATISTICS
+        internal ref NETWORK_STATISTICS NETWORK_STATISTICS
         {
             get
             {
@@ -2846,8 +2867,7 @@ namespace Microsoft.Quic
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             [FieldOffset(0)]
-            [NativeTypeName("NETWORK_STATISTICS")]
-            internal _NETWORK_STATISTICS_e__Struct NETWORK_STATISTICS;
+            internal NETWORK_STATISTICS NETWORK_STATISTICS;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {
@@ -3037,27 +3057,6 @@ namespace Microsoft.Quic
 
                 [NativeTypeName("BOOLEAN")]
                 internal byte ReceiveNegotiated;
-            }
-
-            internal partial struct _NETWORK_STATISTICS_e__Struct
-            {
-                [NativeTypeName("uint32_t")]
-                internal uint BytesInFlight;
-
-                [NativeTypeName("uint64_t")]
-                internal ulong PostedBytes;
-
-                [NativeTypeName("uint64_t")]
-                internal ulong IdealBytes;
-
-                [NativeTypeName("uint64_t")]
-                internal ulong SmoothedRTT;
-
-                [NativeTypeName("uint32_t")]
-                internal uint CongestionWindow;
-
-                [NativeTypeName("uint64_t")]
-                internal ulong Bandwidth;
             }
         }
     }
