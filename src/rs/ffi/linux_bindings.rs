@@ -4870,6 +4870,52 @@ pub type QUIC_SET_CALLBACK_HANDLER_FN = ::std::option::Option<
 >;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
+pub struct NETWORK_STATISTICS {
+    pub BytesInFlight: u32,
+    pub PostedBytes: u64,
+    pub IdealBytes: u64,
+    pub SmoothedRTT: u64,
+    pub CongestionWindow: u32,
+    pub Bandwidth: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of NETWORK_STATISTICS"]
+        [::std::mem::size_of::<NETWORK_STATISTICS>() - 48usize];
+    ["Alignment of NETWORK_STATISTICS"]
+        [::std::mem::align_of::<NETWORK_STATISTICS>() - 8usize];
+    ["Offset of field: NETWORK_STATISTICS::BytesInFlight"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        BytesInFlight
+    )
+        - 0usize];
+    ["Offset of field: NETWORK_STATISTICS::PostedBytes"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        PostedBytes
+    )
+        - 8usize];
+    ["Offset of field: NETWORK_STATISTICS::IdealBytes"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        IdealBytes
+    )
+        - 16usize];
+    ["Offset of field: NETWORK_STATISTICS::SmoothedRTT"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        SmoothedRTT
+    )
+        - 24usize];
+    ["Offset of field: NETWORK_STATISTICS::CongestionWindow"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        CongestionWindow
+    )
+        - 32usize];
+    ["Offset of field: NETWORK_STATISTICS::Bandwidth"][::std::mem::offset_of!(
+        NETWORK_STATISTICS,
+        Bandwidth
+    ) - 40usize];
+};
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
 pub struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
     pub Attribute: ::std::os::raw::c_ulong,
     pub BufferLength: ::std::os::raw::c_ulong,
@@ -5280,7 +5326,7 @@ pub union QUIC_CONNECTION_EVENT__bindgen_ty_1 {
     pub PEER_CERTIFICATE_RECEIVED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
     pub RELIABLE_RESET_NEGOTIATED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17,
     pub ONE_WAY_DELAY_NEGOTIATED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18,
-    pub NETWORK_STATISTICS: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
+    pub NETWORK_STATISTICS: NETWORK_STATISTICS,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5776,52 +5822,7 @@ const _: () = {
     )
         - 1usize];
 };
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19 {
-    pub BytesInFlight: u32,
-    pub PostedBytes: u64,
-    pub IdealBytes: u64,
-    pub SmoothedRTT: u64,
-    pub CongestionWindow: u32,
-    pub Bandwidth: u64,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19"]
-        [::std::mem::size_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19>() - 48usize];
-    ["Alignment of QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19"]
-        [::std::mem::align_of::<QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19>() - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::BytesInFlight"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        BytesInFlight
-    )
-        - 0usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::PostedBytes"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        PostedBytes
-    )
-        - 8usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::IdealBytes"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        IdealBytes
-    )
-        - 16usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::SmoothedRTT"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        SmoothedRTT
-    )
-        - 24usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::CongestionWindow"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        CongestionWindow
-    )
-        - 32usize];
-    ["Offset of field: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19::Bandwidth"][::std::mem::offset_of!(
-        QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_19,
-        Bandwidth
-    ) - 40usize];
-};
+
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1"]
