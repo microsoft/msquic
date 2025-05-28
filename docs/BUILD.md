@@ -156,7 +156,7 @@ For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
 By default the build output will go in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
 
 ## Updating Clog Sidecar
-Some code changes such as adding/updating new Quic traces require updating the Clog sidecar for successful Linux builds. This is done by running the following command:
+Some code changes such as adding/updating new MsQuic traces require updating the CLOG sidecar for successful Linux builds. This is done by running the following command:
 ```PowerShell
 ./scripts/update-sidecar.ps1
 ```
