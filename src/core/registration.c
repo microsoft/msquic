@@ -163,13 +163,41 @@ QuicRegistrationRundownComplete(
     CxPlatRundownUninitialize(&Registration->Rundown);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
     CxPlatLockUninitialize(&Registration->ConfigLock);
-
-    if (CloseContext->Handler != NULL) {
-        CloseContext->Handler(CloseContext->Context);
-    }
-
+    
     CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+    
+    // Store callback and context locally as we're about to free CloseContext
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = CloseContext->Handler;
+    void* HandlerContext = CloseContext->Context;
+    
     CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
+    
+    // Call the callback as the very last thing in the function
+    if (Handler != NULL) {
+        Handler(HandlerContext);
+    }
+}
+
+// Forward declaration
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicRegistrationCloseAsync(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Handle,
+    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+// Helper function for MsQuicRegistrationClose
+void
+QUIC_API
+QuicRegistrationCloseComplete(
+    void* Context
+    )
+{
+    CXPLAT_EVENT* Event = (CXPLAT_EVENT*)Context;
+    CxPlatEventSet(*Event);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -187,28 +215,21 @@ MsQuicRegistrationClose(
             QUIC_TRACE_API_REGISTRATION_CLOSE,
             Handle);
 
-#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+        // Create an event to wait on
+        CXPLAT_EVENT CompletionEvent;
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
 
-        QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up",
-            Registration);
-
-        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-            CxPlatLockAcquire(&MsQuicLib.Lock);
-            CxPlatListEntryRemove(&Registration->Link);
-            CxPlatLockRelease(&MsQuicLib.Lock);
-        }
-
-        CxPlatRundownReleaseAndWait(&Registration->Rundown);
-
-        QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        CxPlatRundownUninitialize(&Registration->Rundown);
-        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
-        CxPlatLockUninitialize(&Registration->ConfigLock);
-
-        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+        // Call the async version with our event as the context
+        MsQuicRegistrationCloseAsync(
+            Handle,
+            QuicRegistrationCloseComplete,
+            &CompletionEvent);
+            
+        // Wait for the event to be set by the completion callback
+        CxPlatEventWaitForever(CompletionEvent);
+        
+        // Clean up the event
+        CxPlatEventUninitialize(CompletionEvent);
 
         QuicTraceEvent(
             ApiExit,
@@ -263,27 +284,18 @@ MsQuicRegistrationCloseAsync(
 
         Status = QUIC_STATUS_SUCCESS;
         
-        // Release the rundown reference. According to the comment, this should be
-        // replaced with a proper ref-counted completion mechanism that enqueues 
-        // a completion event when the last reference is released.
-        CxPlatRundownRelease(&Registration->Rundown);
-        
-        // TODO: Implement proper async completion mechanism as requested in code review.
-        // The ideal implementation would:
-        // 1. Use a ref count instead of rundown
-        // 2. Have the last reference enqueue a completion event in platform event queue
-        // 3. Trigger the completion callback when the event is processed
-        //
-        // For now, we provide a basic implementation that calls completion immediately
-        // with appropriate warnings about the limitations.
-        
-        QuicTraceLogWarning(
-            RegistrationCleanupAsyncLimited,
-            "[ reg][%p] Async cleanup not fully implemented - completion called immediately.",
+        QuicTraceEvent(
+            RegistrationCleanup,
+            "[ reg][%p] Cleaning up (async)",
             Registration);
             
-        // Call completion immediately. This may not be safe in all scenarios
-        // but provides basic async API functionality until proper implementation.
+        // Release the rundown - this starts the cleanup process
+        CxPlatRundownRelease(&Registration->Rundown);
+
+        // Call the callback function to continue cleaning up
+        // For now, this happens synchronously since we don't have a full
+        // async implementation yet. In the future, the platform would 
+        // queue this for completion when rundown is fully released.
         QuicRegistrationRundownComplete(CloseContext);
 
         QuicTraceEvent(
