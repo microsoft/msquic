@@ -30,6 +30,15 @@ MsQuicRegistrationCloseAsync(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicCloseAsync(
+    _In_ _Pre_defensive_ const void* QuicApi,
+    _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicLibApplyLoadBalancingSetting(
     void
@@ -1851,11 +1860,15 @@ MsQuicOpenVersion(
     }
     ReleaseRefOnFailure = TRUE;
 
-    QUIC_API_TABLE* Api = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE), QUIC_POOL_API);
-    if (Api == NULL) {
+    QUIC_API_TABLE_EX* ApiEx = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_API_TABLE_EX), QUIC_POOL_API);
+    if (ApiEx == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
     }
+    
+    QUIC_API_TABLE* Api = &ApiEx->Table;
+    ApiEx->CloseHandler = NULL;
+    ApiEx->CloseContext = NULL;
 
     Api->SetContext = MsQuicSetContext;
     Api->GetContext = MsQuicGetContext;
@@ -1906,6 +1919,9 @@ MsQuicOpenVersion(
 #endif
 
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
+    
+    Api->RegistrationCloseAsync = MsQuicRegistrationCloseAsync;
+    Api->CloseAsync = MsQuicCloseAsync;
 
     *QuicApi = Api;
 
@@ -1944,11 +1960,11 @@ MsQuicClose(
     }
 }
 
-typedef struct QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT {
-    QUIC_CLOSE_COMPLETE_HANDLER Handler;
-    void* Context;
-    const void* QuicApi;  // The API object to be freed
-} QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT;
+typedef struct QUIC_API_TABLE_EX {
+    QUIC_API_TABLE Table;
+    QUIC_CLOSE_COMPLETE_HANDLER CloseHandler;
+    void* CloseContext;
+} QUIC_API_TABLE_EX;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -1956,19 +1972,16 @@ QuicLibraryCleanupComplete(
     _In_ void* Context
     )
 {
-    QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT* CloseContext = 
-        (QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT*)Context;
+    QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)Context;
     
-    // Free the API table
-    CXPLAT_FREE(CloseContext->QuicApi, QUIC_POOL_API);
+    QUIC_CLOSE_COMPLETE_HANDLER Handler = ApiEx->CloseHandler;
+    void* HandlerContext = ApiEx->CloseContext;
     
-    // Call the user-provided completion handler
-    if (CloseContext->Handler != NULL) {
-        CloseContext->Handler(CloseContext->Context);
+    CXPLAT_FREE(ApiEx, QUIC_POOL_API);
+    
+    if (Handler != NULL) {
+        Handler(HandlerContext);
     }
-    
-    // Free our context
-    CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1985,52 +1998,42 @@ MsQuicCloseAsync(
             LibraryMsQuicClose,
             "[ api] MsQuicCloseAsync");
             
-        // Allocate context for the cleanup operation
-        QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT* CloseContext = 
-            CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_LIBRARY_CLOSE_COMPLETE_CONTEXT), QUIC_POOL_GENERIC);
-        if (CloseContext == NULL) {
-            return QUIC_STATUS_OUT_OF_MEMORY;
-        }
-        
-        CloseContext->Handler = Handler;
-        CloseContext->Context = Context;
-        CloseContext->QuicApi = QuicApi;
-        
-        // Check if this is the last reference which may require blocking operations
-        BOOLEAN NeedsBlocking = FALSE;
+        QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)QuicApi;
+        ApiEx->CloseHandler = Handler;
+        ApiEx->CloseContext = Context;
         
         CxPlatLockAcquire(&MsQuicLib.Lock);
-        NeedsBlocking = (MsQuicLib.OpenRefCount == 1);
+        BOOLEAN LastRef = (MsQuicLib.OpenRefCount == 1);
         CxPlatLockRelease(&MsQuicLib.Lock);
         
-        if (!NeedsBlocking) {
-            // No blocking needed, complete synchronously
-            CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
-            CXPLAT_FREE(QuicApi, QUIC_POOL_API);
+        if (!LastRef) {
+            // Not the last reference, can clean up immediately
+            CXPLAT_FREE(ApiEx, QUIC_POOL_API);
             MsQuicRelease();
             MsQuicLibraryUnload();
             
             if (Handler != NULL) {
                 Handler(Context);
             }
+            
+            return QUIC_STATUS_SUCCESS;
         } else {
-            // TODO: Need to implement and use the platform completion callback mechanism
-            // This is a temporary solution that will cause a memory leak if we get here
+            // This is the last reference so cleanup operations might block
             QuicTraceLogWarning(
                 LibraryCleanupAsyncNotSupported,
                 "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
                 
-            // For now, we have to do the same thing as the existing implementation
-            // and accept the potential deadlock because the async completion mechanism
-            // isn't fully implemented yet.
-            CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
-            CXPLAT_FREE(QuicApi, QUIC_POOL_API);
+            // TODO: Properly implement async cleanup with platform event queue
+            CXPLAT_FREE(ApiEx, QUIC_POOL_API);
             MsQuicRelease();
             MsQuicLibraryUnload();
             
             if (Handler != NULL) {
                 Handler(Context);
             }
+            
+            return QUIC_STATUS_SUCCESS;
+        }
         }
     }
     

@@ -61,16 +61,20 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);
-    if (Registration == NULL) {
+    QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_ALLOC_NONPAGED(RegistrationSize + sizeof(QUIC_REGISTRATION_EX) - sizeof(QUIC_REGISTRATION), QUIC_POOL_REGISTRATION);
+    if (RegistrationEx == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+            sizeof(QUIC_REGISTRATION_EX) + AppNameLength + 1);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
+    
+    Registration = &RegistrationEx->Registration;
+    RegistrationEx->CloseHandler = NULL;
+    RegistrationEx->CloseContext = NULL;
 
     CxPlatZeroMemory(Registration, RegistrationSize);
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -143,11 +147,11 @@ Error:
     return Status;
 }
 
-typedef struct QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT {
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler;
-    void* Context;
-    QUIC_REGISTRATION* Registration;
-} QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT;
+typedef struct QUIC_REGISTRATION_EX {
+    QUIC_REGISTRATION Registration;
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
+    void* CloseContext;
+} QUIC_REGISTRATION_EX;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
@@ -155,22 +159,19 @@ QuicRegistrationRundownComplete(
     _In_ void* Context
     )
 {
-    QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT* CloseContext =
-        (QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT*)Context;
-    QUIC_REGISTRATION* Registration = CloseContext->Registration;
+    QUIC_REGISTRATION_EX* RegistrationEx = CONTAINING_RECORD(Context, QUIC_REGISTRATION_EX, Registration);
+    QUIC_REGISTRATION* Registration = &RegistrationEx->Registration;
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
     CxPlatRundownUninitialize(&Registration->Rundown);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
     CxPlatLockUninitialize(&Registration->ConfigLock);
     
-    CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+    // Store callback info locally before freeing
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = RegistrationEx->CloseHandler;
+    void* HandlerContext = RegistrationEx->CloseContext;
     
-    // Store callback and context locally as we're about to free CloseContext
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = CloseContext->Handler;
-    void* HandlerContext = CloseContext->Context;
-    
-    CXPLAT_FREE(CloseContext, QUIC_POOL_GENERIC);
+    CXPLAT_FREE(RegistrationEx, QUIC_POOL_REGISTRATION);
     
     // Call the callback as the very last thing in the function
     if (Handler != NULL) {
@@ -258,18 +259,10 @@ MsQuicRegistrationCloseAsync(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-        QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT* CloseContext = NULL;
+        QUIC_REGISTRATION_EX* RegistrationEx = CONTAINING_RECORD(Registration, QUIC_REGISTRATION_EX, Registration);
 
-        // Allocate the context for the completion callback
-        CloseContext = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_REGISTRATION_CLOSE_COMPLETE_CONTEXT), QUIC_POOL_GENERIC);
-        if (CloseContext == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Exit;
-        }
-
-        CloseContext->Handler = Handler;
-        CloseContext->Context = Context;
-        CloseContext->Registration = Registration;
+        RegistrationEx->CloseHandler = Handler;
+        RegistrationEx->CloseContext = Context;
 
         QuicTraceEvent(
             RegistrationCleanup,
@@ -284,26 +277,20 @@ MsQuicRegistrationCloseAsync(
 
         Status = QUIC_STATUS_SUCCESS;
         
-        QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up (async)",
-            Registration);
-            
         // Release the rundown - this starts the cleanup process
-        CxPlatRundownRelease(&Registration->Rundown);
-
-        // Call the callback function to continue cleaning up
-        // For now, this happens synchronously since we don't have a full
-        // async implementation yet. In the future, the platform would 
-        // queue this for completion when rundown is fully released.
-        QuicRegistrationRundownComplete(CloseContext);
+        if (CxPlatRundownRelease(&Registration->Rundown)) {
+            // Rundown already complete, clean up immediately
+            QuicRegistrationRundownComplete(Registration);
+        } else {
+            // The release is pending completion of the rundown object
+            Status = QUIC_STATUS_PENDING;
+        }
 
         QuicTraceEvent(
             ApiExit,
             "[ api] Exit");
     }
 
-Exit:
     return Status;
 }
 
