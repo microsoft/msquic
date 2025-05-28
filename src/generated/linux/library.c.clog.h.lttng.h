@@ -619,3 +619,18 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExit,
     TP_FIELDS(
     )
 )
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryCleanupAsyncNotSupported
+// [ lib] Async cleanup not fully implemented! Potential deadlock can occur.
+// QuicTraceLogWarning(
+            LibraryCleanupAsyncNotSupported,
+            "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCleanupAsyncNotSupported,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
