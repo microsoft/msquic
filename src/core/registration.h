@@ -106,6 +106,12 @@ typedef struct QUIC_REGISTRATION {
     uint64_t ShutdownErrorCode;
 
     //
+    // Async close completion handler and context.
+    //
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
+    void* CloseContext;
+
+    //
     // Name of the application layer.
     //
     uint8_t AppNameLength;

@@ -24,11 +24,6 @@ Abstract:
 #include "registration.c.clog.h"
 #endif
 
-typedef struct QUIC_REGISTRATION_EX {
-    QUIC_REGISTRATION Registration;
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
-    void* CloseContext;
-} QUIC_REGISTRATION_EX;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -67,20 +62,19 @@ MsQuicRegistrationOpen(
         goto Error;
     }
 
-    QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_ALLOC_NONPAGED(RegistrationSize + sizeof(QUIC_REGISTRATION_EX) - sizeof(QUIC_REGISTRATION), QUIC_POOL_REGISTRATION);
-    if (RegistrationEx == NULL) {
+    Registration = CXPLAT_ALLOC_NONPAGED(RegistrationSize, QUIC_POOL_REGISTRATION);
+    if (Registration == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            sizeof(QUIC_REGISTRATION_EX) + AppNameLength + 1);
+            RegistrationSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
     
-    Registration = &RegistrationEx->Registration;
-    RegistrationEx->CloseHandler = NULL;
-    RegistrationEx->CloseContext = NULL;
+    Registration->CloseHandler = NULL;
+    Registration->CloseContext = NULL;
 
     CxPlatZeroMemory(Registration, RegistrationSize);
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -159,8 +153,7 @@ QuicRegistrationRundownComplete(
     _In_ void* Context
     )
 {
-    QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_CONTAINING_RECORD(Context, QUIC_REGISTRATION_EX, Registration);
-    QUIC_REGISTRATION* Registration = &RegistrationEx->Registration;
+    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Context;
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
     CxPlatRundownUninitialize(&Registration->Rundown);
@@ -168,10 +161,10 @@ QuicRegistrationRundownComplete(
     CxPlatLockUninitialize(&Registration->ConfigLock);
     
     // Store callback info locally before freeing
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = RegistrationEx->CloseHandler;
-    void* HandlerContext = RegistrationEx->CloseContext;
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = Registration->CloseHandler;
+    void* HandlerContext = Registration->CloseContext;
     
-    CXPLAT_FREE(RegistrationEx, QUIC_POOL_REGISTRATION);
+    CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
     
     // Call the callback as the very last thing in the function
     if (Handler != NULL) {
@@ -259,10 +252,9 @@ MsQuicRegistrationCloseAsync(
 
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
-        QUIC_REGISTRATION_EX* RegistrationEx = CXPLAT_CONTAINING_RECORD(Registration, QUIC_REGISTRATION_EX, Registration);
 
-        RegistrationEx->CloseHandler = Handler;
-        RegistrationEx->CloseContext = Context;
+        Registration->CloseHandler = Handler;
+        Registration->CloseContext = Context;
 
         QuicTraceEvent(
             RegistrationCleanup,
