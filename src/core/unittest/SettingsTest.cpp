@@ -417,16 +417,22 @@ TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
     ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
 }
 
+static bool SkipStorageTests = false;
+
 static void ResetMsQuicTestSettings(CXPLAT_STORAGE* Storage)
 {
-    CXPLAT_STORAGE* TempStore = nullptr;
+    CXPLAT_STORAGE* TempStore = NULL;
 
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
-        CxPlatStorageCreateTempStore(
-            Storage,
-            "TEST",
-            &TempStore));
+    QUIC_STATUS Status = CxPlatStorageCreateTempStore(
+        Storage,
+        "TEST",
+        &TempStore);
+
+    if (TempStore == NULL) {
+        std::cerr << "[      ][INFO]Storage is not available" << std::endl;
+        SkipStorageTests = true;
+        return;
+    }
 
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -449,6 +455,10 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
             &Storage));
 
     ResetMsQuicTestSettings(Storage);
+
+    if (SkipStorageTests) {
+        GTEST_SKIP() << "Skipping test because storage is not available.";
+    }
 
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -510,15 +520,19 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
     CXPLAT_STORAGE* Storage = NULL;
     CXPLAT_STORAGE* TempStore = NULL;
 
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
+    QUIC_STATUS status =
         CxPlatStorageOpen(
             nullptr,
             nullptr,
             nullptr,
-            &Storage));
+            &Storage);
+
+    if (Storage == NULL) {
+        GTEST_SKIP() << "Skipping test because storage is not available.";
+    }
 
     ResetMsQuicTestSettings(Storage);
+
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         CxPlatStorageCreateTempStore(
@@ -556,15 +570,19 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
     CXPLAT_STORAGE* Storage = NULL;
     CXPLAT_STORAGE* TempStore = NULL;
 
-    ASSERT_EQ(
-        QUIC_STATUS_SUCCESS,
+    QUIC_STATUS status =
         CxPlatStorageOpen(
             nullptr,
             nullptr,
             nullptr,
-            &Storage));
+            &Storage);
+
+    if (Storage == NULL) {
+        GTEST_SKIP() << "Skipping test because storage is not available.";
+    }
 
     ResetMsQuicTestSettings(Storage);
+
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
         CxPlatStorageCreateTempStore(

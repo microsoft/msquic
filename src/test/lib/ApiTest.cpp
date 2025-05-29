@@ -2969,7 +2969,7 @@ void QuicTestConfigurationParam()
                     QUIC_PARAM_CONFIGURATION_SETTINGS,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount));
+            TEST_EQUAL(Length, SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, StreamRecvWindowUnidiDefault));
 
             QUIC_SETTINGS Settings{0};
             TEST_QUIC_SUCCEEDED(
