@@ -3517,6 +3517,12 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION*, uint> ExecutionPoll;
+
+        [NativeTypeName("QUIC_REGISTRATION_CLOSE_ASYNC_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, int> RegistrationCloseAsync;
+
+        [NativeTypeName("QUIC_CLOSE_ASYNC_FN")]
+        internal delegate* unmanaged[Cdecl]<void*, delegate* unmanaged[Cdecl]<void*, void>, void*, int> CloseAsync;
     }
 
     internal static unsafe partial class MsQuic

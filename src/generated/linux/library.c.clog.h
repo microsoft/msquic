@@ -72,6 +72,22 @@ tracepoint(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryCleanupAsyncNotSupported
+// [ lib] Async cleanup not fully implemented! Potential deadlock can occur.
+// QuicTraceLogWarning(
+                LibraryCleanupAsyncNotSupported,
+                "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryCleanupAsyncNotSupported
+#define _clog_2_ARGS_TRACE_LibraryCleanupAsyncNotSupported(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryCleanupAsyncNotSupported );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibrarySettingsUpdated
 // [ lib] Settings %p Updated
 // QuicTraceLogInfo(
@@ -299,6 +315,22 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit , arg2);\
 #ifndef _clog_2_ARGS_TRACE_LibraryMsQuicClose
 #define _clog_2_ARGS_TRACE_LibraryMsQuicClose(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryMsQuicClose );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryMsQuicCloseAsync
+// [ api] MsQuicCloseAsync
+// QuicTraceLogVerbose(
+            LibraryMsQuicCloseAsync,
+            "[ api] MsQuicCloseAsync");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibraryMsQuicCloseAsync
+#define _clog_2_ARGS_TRACE_LibraryMsQuicCloseAsync(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibraryMsQuicCloseAsync );\
 
 #endif
 
@@ -626,23 +658,9 @@ tracepoint(CLOG_LIBRARY_C, ApiExit );\
 
 
 
-/*----------------------------------------------------------
-// Decoder Ring for LibraryCleanupAsyncNotSupported
-// [ lib] Async cleanup not fully implemented! Potential deadlock can occur.
-// QuicTraceLogWarning(
-            LibraryCleanupAsyncNotSupported,
-            "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
-----------------------------------------------------------*/
-#ifndef _clog_2_ARGS_TRACE_LibraryCleanupAsyncNotSupported
-#define _clog_2_ARGS_TRACE_LibraryCleanupAsyncNotSupported(uniqueId, encoded_arg_string)\
-tracepoint(CLOG_LIBRARY_C, LibraryCleanupAsyncNotSupported );\
-
-#endif
-
 
 #ifdef __cplusplus
 }
-#endif
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
 #include "quic.clog_library.c.clog.h.c"

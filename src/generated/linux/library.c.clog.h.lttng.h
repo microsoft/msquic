@@ -37,6 +37,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryTestDatapathHooksSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryCleanupAsyncNotSupported
+// [ lib] Async cleanup not fully implemented! Potential deadlock can occur.
+// QuicTraceLogWarning(
+                LibraryCleanupAsyncNotSupported,
+                "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCleanupAsyncNotSupported,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibrarySettingsUpdated
 // [ lib] Settings %p Updated
 // QuicTraceLogInfo(
@@ -267,6 +283,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicOpenVersionExit,
             "[ api] MsQuicClose");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicClose,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryMsQuicCloseAsync
+// [ api] MsQuicCloseAsync
+// QuicTraceLogVerbose(
+            LibraryMsQuicCloseAsync,
+            "[ api] MsQuicCloseAsync");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryMsQuicCloseAsync,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -614,21 +646,6 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExitStatus,
         "[ api] Exit");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, ApiExit,
-    TP_ARGS(
-), 
-    TP_FIELDS(
-    )
-)
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibraryCleanupAsyncNotSupported
-// [ lib] Async cleanup not fully implemented! Potential deadlock can occur.
-// QuicTraceLogWarning(
-            LibraryCleanupAsyncNotSupported,
-            "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryCleanupAsyncNotSupported,
     TP_ARGS(
 ), 
     TP_FIELDS(
