@@ -604,8 +604,8 @@ TEST(ResumptionTicketTest, ServerDecFail)
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
     QuicSettingsLoad(&Connection.Settings, NULL);
 
-    uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + sizeof(AppData)] = {
-        CXPLAT_TLS_RESUMPTION_TICKET_VERSION,
+    uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) + RESUMPTION_TICKET_V2_EXTENSION_LENGTH + sizeof(AppData)] = {
+        CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION,
         0,0,0,1,                    // QUIC version
         4,                          // ALPN length
         0,                          // TP length, update after encoding
@@ -647,15 +647,42 @@ TEST(ResumptionTicketTest, ServerDecFail)
         EncodedTPLength - CxPlatTlsTPHeaderSize);
     InputTicketBuffer[6] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize);
 
-    ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength + sizeof(AppData));
+    ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength + RESUMPTION_TICKET_V2_EXTENSION_LENGTH + sizeof(AppData));
     CxPlatCopyMemory(
-        &InputTicketBuffer[8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize)],
+        &InputTicketBuffer[8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize) + RESUMPTION_TICKET_V2_EXTENSION_LENGTH],
         AppData,
         sizeof(AppData));
 
     //
     // Validate that the hand-crafted ticket is correct
     //
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + RESUMPTION_TICKET_V2_EXTENSION_LENGTH + (uint16_t)sizeof(AppData),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
+    CompareTransportParameters(&HandshakeTP, &DecodedTP);
+
+    //
+    // Validate decoding of hand-crafted v1 ticket
+    //
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION;
+
+    //
+    // Without modifying the buffer size, simply move the AppData up the buffer and
+    // pass in a smaller input buffer length here to match V1 tickets
+    //
+    CxPlatCopyMemory(
+        &InputTicketBuffer[8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize)],
+        AppData,
+        sizeof(AppData));
+
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             &Connection,
@@ -797,7 +824,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             &DecodedAppData,
             &DecodedAppDataLength));
 
-    // Not enough room for App Data
+    // Not enough room for V2 extension
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
@@ -813,7 +840,31 @@ TEST(ResumptionTicketTest, ServerDecFail)
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)(sizeof(AppData) - 1),
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize + RESUMPTION_TICKET_V2_EXTENSION_LENGTH -1),
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    // Not enough room for App Data
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + RESUMPTION_TICKET_V2_EXTENSION_LENGTH,
+            InputTicketBuffer,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + RESUMPTION_TICKET_V2_EXTENSION_LENGTH + (uint16_t)(sizeof(AppData) - 1),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
@@ -830,7 +881,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
         8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData);
 
     // Incorrect ticket version
-    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_VERSION + 1;
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 1;
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(

@@ -177,13 +177,6 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.StreamMultiReceiveEnabled) {
         Settings->StreamMultiReceiveEnabled = QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED;
     }
-    if (!Settings->IsSet.ResumptionTicketMinVersion) {
-        Settings->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
-    }
-    if (!Settings->IsSet.ResumptionTicketMaxVersion) {
-        // Default to the min version if not explicitly set
-        Settings->ResumptionTicketMaxVersion = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -360,12 +353,6 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.StreamMultiReceiveEnabled) {
         Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
-    }
-    if (!Destination->IsSet.ResumptionTicketMinVersion) {
-        Destination->ResumptionTicketMinVersion = Source->ResumptionTicketMinVersion;
-    }
-    if (!Destination->IsSet.ResumptionTicketMaxVersion) {
-        Destination->ResumptionTicketMaxVersion = Source->ResumptionTicketMaxVersion;
     }
 }
 
@@ -759,28 +746,6 @@ QuicSettingApply(
     if (Source->IsSet.StreamMultiReceiveEnabled && (!Destination->IsSet.StreamMultiReceiveEnabled || OverWrite)) {
         Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
         Destination->IsSet.StreamMultiReceiveEnabled = TRUE;
-    }
-
-    if (Source->IsSet.ResumptionTicketMinVersion && (!Destination->IsSet.ResumptionTicketMinVersion || OverWrite)) {
-        Destination->ResumptionTicketMinVersion = Source->ResumptionTicketMinVersion;
-        if (Destination->ResumptionTicketMinVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
-            Destination->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
-        }
-        else if (Destination->ResumptionTicketMinVersion < CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
-            Destination->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
-        }
-        Destination->IsSet.ResumptionTicketMinVersion = TRUE;
-    }
-
-    if (Source->IsSet.ResumptionTicketMaxVersion && (!Destination->IsSet.ResumptionTicketMaxVersion || OverWrite)) {
-        Destination->ResumptionTicketMaxVersion = Source->ResumptionTicketMaxVersion;
-        if (Destination->ResumptionTicketMaxVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
-            Destination->ResumptionTicketMaxVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
-        }
-        else if (Destination->ResumptionTicketMaxVersion < Destination->ResumptionTicketMinVersion) {
-            Destination->ResumptionTicketMaxVersion = Destination->ResumptionTicketMinVersion;
-        }
-        Destination->IsSet.ResumptionTicketMaxVersion = TRUE;
     }
 
     return TRUE;
@@ -1481,40 +1446,6 @@ VersionSettingsFail:
             &ValueLen);
         Settings->StreamMultiReceiveEnabled = !!Value;
     }
-    if (!Settings->IsSet.ResumptionTicketMinVersion) {
-        ValueLen = sizeof(Value);
-        if (QUIC_FAILED(CxPlatStorageReadValue(
-            Storage,
-            QUIC_SETTING_RESUMPTION_TICKET_MIN_VERSION,
-            (uint8_t*)&Value,
-            &ValueLen))) {
-            Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION; // Default value on failure
-        }
-        Settings->ResumptionTicketMinVersion = (uint8_t)Value;
-
-        if (Settings->ResumptionTicketMinVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
-            Settings->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
-        } else if (Settings->ResumptionTicketMinVersion < CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
-            Settings->ResumptionTicketMinVersion = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
-        }
-    }
-    if (!Settings->IsSet.ResumptionTicketMaxVersion) {
-        ValueLen = sizeof(Value);
-        if (QUIC_FAILED(CxPlatStorageReadValue(
-            Storage,
-            QUIC_SETTING_RESUMPTION_TICKET_MAX_VERSION,
-            (uint8_t*)&Value,
-            &ValueLen))) {
-            Value = CXPLAT_TLS_RESUMPTION_TICKET_VERSION; // Default value on failure
-        }
-        Settings->ResumptionTicketMaxVersion = (uint8_t)Value;
-        if (Settings->ResumptionTicketMaxVersion > CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
-            Settings->ResumptionTicketMaxVersion = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION;
-        }
-        else if (Settings->ResumptionTicketMaxVersion < Settings->ResumptionTicketMinVersion) {
-            Settings->ResumptionTicketMaxVersion = Settings->ResumptionTicketMinVersion;
-        }
-    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1587,8 +1518,6 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
     QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
     QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
-    QuicTraceLogVerbose(SettingsDumpResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
-    QuicTraceLogVerbose(SettingsDumpResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1761,12 +1690,6 @@ QuicSettingsDumpNew(
     }
     if (Settings->IsSet.StreamMultiReceiveEnabled) {
         QuicTraceLogVerbose(SettingStreamMultiReceiveEnabled,       "[sett] StreamMultiReceiveEnabled  = %hhu", Settings->StreamMultiReceiveEnabled);
-    }
-    if (Settings->IsSet.ResumptionTicketMinVersion) {
-        QuicTraceLogVerbose(SettingResumptionTicketMinVersion, "[sett] ResumptionTicketMinVersion= %hhu", Settings->ResumptionTicketMinVersion);
-    }
-    if (Settings->IsSet.ResumptionTicketMaxVersion) {
-        QuicTraceLogVerbose(SettingResumptionTicketMaxVersion, "[sett] ResumptionTicketMaxVersion= %hhu", Settings->ResumptionTicketMaxVersion);
     }
 }
 
