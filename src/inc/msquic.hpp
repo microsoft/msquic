@@ -446,13 +446,14 @@ public:
             memset(thisTable, 0, sizeof(*thisTable));
         }
     }
-    
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS CloseAsync(
-        _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+        _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
         _In_opt_ void* Context) noexcept {
         QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
         if (QUIC_SUCCEEDED(InitStatus)) {
-            Status = MsQuicCloseAsync(ApiTable, Handler, Context);
+            Status = QUIC_API_TABLE::CloseAsync(ApiTable, Handler, Context);
             if (QUIC_SUCCEEDED(Status)) {
                 ApiTable = nullptr;
                 QUIC_API_TABLE* thisTable = this;
@@ -461,7 +462,8 @@ public:
         }
         return Status;
     }
-    
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
 };
@@ -559,7 +561,7 @@ struct MsQuicRegistration {
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
-    
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS CloseAsync(
         _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
         _In_opt_ void* Context = nullptr
@@ -580,6 +582,7 @@ struct MsQuicRegistration {
         }
         return Status;
     }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 };
 
 class MsQuicAlpn {

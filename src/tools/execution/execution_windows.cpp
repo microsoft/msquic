@@ -64,7 +64,7 @@ void QueueCleanupJob() {
         printf("Cleaning up asynchronously...\n");
         // Using the new MsQuicRegistrationCloseAsync API to avoid deadlocks in the external app-driven execution model
         Registration->CloseAsync(
-            [](void* Context) {
+            [](void* /* Context */) {
                 printf("Registration closed asynchronously\n");
                 AllDone = true;
             },

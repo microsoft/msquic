@@ -1111,16 +1111,6 @@ void
 
 typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
-
-typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
-
 //
 // Asynchronously closes the registration. Instead of synchronizing cleanup,
 // this function registers a callback to be invoked when cleanup is complete.
@@ -1132,7 +1122,7 @@ QUIC_STATUS
 (QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration,
-    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 
@@ -1793,21 +1783,16 @@ QUIC_STATUS
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-//
-// Asynchronously closes the registration. This function initiates the process
-// and returns immediately. A callback is fired on the maintenance thread when
-// the cleanup is completed.
-//
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-(QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
-    _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Handle,
-    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+_Function_class_(QUIC_CLOSE_COMPLETE)
+void
+(QUIC_API QUIC_CLOSE_COMPLETE)(
     _In_opt_ void* Context
     );
-    
+
+typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
+
 //
 // Asynchronously cleans up the function table returned from MsQuicOpenVersion
 // and releases the reference on the API. Calls the provided callback when done.
@@ -1817,7 +1802,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API *QUIC_CLOSE_ASYNC_FN)(
     _In_ _Pre_defensive_ const void* QuicApi,
-    _In_opt_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 
@@ -1884,8 +1869,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
 
-    QUIC_REGISTRATION_CLOSE_ASYNC_FN   RegistrationCloseAsync;       // Available from v2.6
-    QUIC_CLOSE_ASYNC_FN                CloseAsync;                   // Available from v2.6
+    QUIC_REGISTRATION_CLOSE_ASYNC_FN    RegistrationCloseAsync;      // Available from v2.6
+    QUIC_CLOSE_ASYNC_FN                 CloseAsync;                  // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;

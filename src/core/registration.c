@@ -24,7 +24,6 @@ Abstract:
 #include "registration.c.clog.h"
 #endif
 
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -72,9 +71,6 @@ MsQuicRegistrationOpen(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-    
-    Registration->CloseHandler = NULL;
-    Registration->CloseContext = NULL;
 
     CxPlatZeroMemory(Registration, RegistrationSize);
     Registration->Type = QUIC_HANDLE_TYPE_REGISTRATION;
@@ -87,7 +83,7 @@ MsQuicRegistrationOpen(
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
     CxPlatListInitializeHead(&Registration->Listeners);
-    CxPlatRundownInitialize(&Registration->Rundown);
+    CxPlatRefInitialize(&Registration->RefCount);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -133,7 +129,6 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
@@ -147,51 +142,34 @@ Error:
     return Status;
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicRegistrationRundownComplete(
-    _In_ void* Context
+QuicRegistrationCloseComplete(
+    _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Context;
+    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler = Registration->CloseHandler;
+    void* CloseContext = Registration->CloseContext;
+    CXPLAT_DBG_ASSERT(CloseHandler != NULL);
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
-    CxPlatRundownUninitialize(&Registration->Rundown);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
     CxPlatLockUninitialize(&Registration->ConfigLock);
-    
-    // Store callback info locally before freeing
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler = Registration->CloseHandler;
-    void* HandlerContext = Registration->CloseContext;
-    
     CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
-    
-    // Call the callback as the very last thing in the function
-    if (Handler != NULL) {
-        Handler(HandlerContext);
-    }
+
+    CloseHandler(CloseContext);
 }
 
-// Forward declaration
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicRegistrationCloseAsync(
-    _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Handle,
-    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
-    _In_opt_ void* Context
-    );
-
-// Helper function for MsQuicRegistrationClose
+_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
 void
 QUIC_API
-QuicRegistrationCloseComplete(
-    void* Context
+QuicRegistrationCloseCompleteCallback(
+    _In_opt_ void* Context
     )
 {
-    CXPLAT_EVENT* Event = (CXPLAT_EVENT*)Context;
-    CxPlatEventSet(*Event);
+    CXPLAT_EVENT CloseCompleteEvent = (CXPLAT_EVENT)Context;
+    CXPLAT_DBG_ASSERT(CloseCompleteEvent != NULL);
+    CxPlatEventSet(CloseCompleteEvent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -209,20 +187,25 @@ MsQuicRegistrationClose(
             QUIC_TRACE_API_REGISTRATION_CLOSE,
             Handle);
 
-        // Create an event to wait on
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+
         CXPLAT_EVENT CompletionEvent;
         CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+        Registration->CloseHandler = QuicRegistrationCloseCompleteCallback;
+        Registration->CloseContext = &CompletionEvent;
 
-        // Call the async version with our event as the context
-        MsQuicRegistrationCloseAsync(
-            Handle,
-            QuicRegistrationCloseComplete,
-            &CompletionEvent);
-            
-        // Wait for the event to be set by the completion callback
+        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            CxPlatListEntryRemove(&Registration->Link);
+            CxPlatLockRelease(&MsQuicLib.Lock);
+        }
+
+        if (!QuicRegistrationRelease(Registration)) {
+            CxPlatEventWaitForever(CompletionEvent); // Didn't complete inline, so wait
+        }
+
         CxPlatEventWaitForever(CompletionEvent);
-        
-        // Clean up the event
         CxPlatEventUninitialize(CompletionEvent);
 
         QuicTraceEvent(
@@ -237,13 +220,14 @@ QUIC_API
 MsQuicRegistrationCloseAsync(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Handle,
-    _In_opt_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
 
-    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
+        Handler != NULL) {
         QuicTraceEvent(
             ApiEnter,
             "[ api] Enter %u (%p).",
@@ -256,28 +240,20 @@ MsQuicRegistrationCloseAsync(
         Registration->CloseHandler = Handler;
         Registration->CloseContext = Context;
 
-        QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up (async)",
-            Registration);
-
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
             CxPlatLockAcquire(&MsQuicLib.Lock);
             CxPlatListEntryRemove(&Registration->Link);
             CxPlatLockRelease(&MsQuicLib.Lock);
         }
 
-        Status = QUIC_STATUS_SUCCESS;
-        
-        // Release the rundown - this starts the cleanup process
-        CxPlatRundownRelease(&Registration->Rundown);
-        
-        // Return pending as we don't know when it will complete
-        Status = QUIC_STATUS_PENDING;
+        Status =
+            QuicRegistrationRelease(Registration) ?
+                QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
 
         QuicTraceEvent(
-            ApiExit,
-            "[ api] Exit");
+            ApiExitStatus,
+            "[ api] Exit %u",
+            Status);
     }
 
     return Status;

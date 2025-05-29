@@ -96,9 +96,9 @@ typedef struct QUIC_REGISTRATION {
     CXPLAT_LIST_ENTRY Listeners;
 
     //
-    // Rundown for all child objects.
+    // Reference count for all child objects.
     //
-    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // Shutdown error code if set.
@@ -128,6 +128,36 @@ typedef struct QUIC_REGISTRATION {
 #else
 #define QUIC_REG_VERIFY(Registration, Expr)
 #endif
+
+//
+// Called when the last reference has been released on the registration.
+//
+void
+QuicRegistrationCloseComplete(
+    _In_ QUIC_REGISTRATION* Registration
+    );
+
+QUIC_INLINE
+BOOLEAN
+QuicRegistrationAddRef(
+    _In_ QUIC_REGISTRATION* Registration
+    )
+{
+    return CxPlatRefIncrementNonZero(&Registration->RefCount, 1);
+}
+
+QUIC_INLINE
+BOOLEAN
+QuicRegistrationRelease(
+    _In_ QUIC_REGISTRATION* Registration
+    )
+{
+    if (CxPlatRefDecrement(&Registration->RefCount)) {
+        QuicRegistrationCloseComplete(Registration);
+        return TRUE;
+    }
+    return FALSE;
+}
 
 //
 // Tracing rundown for the registration.

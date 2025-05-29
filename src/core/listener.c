@@ -78,7 +78,7 @@ MsQuicListenerOpen(
 
     BOOLEAN RegistrationShuttingDown;
 
-    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
+    BOOLEAN Result = QuicRegistrationAddRef(Registration);
     CXPLAT_DBG_ASSERT(Result); UNREFERENCED_PARAMETER(Result);
 
     CxPlatDispatchLockAcquire(&Registration->ConnectionLock);
@@ -89,7 +89,7 @@ MsQuicListenerOpen(
     CxPlatDispatchLockRelease(&Registration->ConnectionLock);
 
     if (RegistrationShuttingDown) {
-        CxPlatRundownRelease(&Registration->Rundown);
+        QuicRegistrationRelease(Registration);
         CxPlatEventUninitialize(Listener->StopEvent);
         CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
         Listener = NULL;
@@ -145,7 +145,7 @@ QuicListenerFree(
     CxPlatEventUninitialize(Listener->StopEvent);
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
     CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
-    CxPlatRundownRelease(&Registration->Rundown);
+    QuicRegistrationRelease(Registration);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
