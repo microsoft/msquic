@@ -1796,6 +1796,7 @@ typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
 //
 // Asynchronously cleans up the function table returned from MsQuicOpenVersion
 // and releases the reference on the API. Calls the provided callback when done.
+// This avoids deadlocks in single-threaded execution environments.
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)

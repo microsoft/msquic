@@ -40,3 +40,12 @@ TODO
 [StreamProvideReceiveBuffers](StreamProvideReceiveBuffers.md)
 
 TODO
+
+### Asynchronous Close APIs
+
+MsQuic now provides asynchronous alternatives to the synchronous close functions to avoid deadlocks in single-threaded execution environments:
+
+- [RegistrationCloseAsync](api/RegistrationCloseAsync.md) - Asynchronously closes a registration handle
+- [CloseAsync](api/CloseAsync.md) - Asynchronously cleans up the function table and releases the library reference
+
+These APIs are particularly useful in scenarios where synchronous close operations might cause deadlocks, such as when closing objects from within MsQuic callbacks or in single-threaded execution environments.

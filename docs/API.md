@@ -77,12 +77,13 @@ MsQuic supports a variety of configuration options available to both application
 
 ## Library Function Table
 
-There are only two top level functions:
+There are a few top level functions:
 
 - [MsQuicOpenVersion](api/MsQuicOpenVersion.md) - Initializes the MsQuic library and returns a the API function table.
 - [MsQuicClose](api/MsQuicClose.md) - Cleans up the function table and releases the library reference from the previous [MsQuicOpenVersion](api/MsQuicOpenVersion.md) call.
+- [CloseAsync](api/CloseAsync.md) - Asynchronously cleans up the function table and releases the library reference (Available from v2.6).
 
-When the app is done with the MsQuic library, it **must** call [MsQuicClose](api/MsQuicClose.md) and pass in the function table it received from [MsQuicOpenVersion](api/MsQuicOpenVersion.md). This allows for the library state to be cleaned up.
+When the app is done with the MsQuic library, it **must** call either [MsQuicClose](api/MsQuicClose.md) or [CloseAsync](api/CloseAsync.md) and pass in the function table it received from [MsQuicOpenVersion](api/MsQuicOpenVersion.md). This allows for the library state to be cleaned up.
 
 Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to [MsQuicOpenVersion](api/MsQuicOpenVersion.md) succeeds and uninitialized when the last call to [MsQuicClose](api/MsQuicClose.md) completes. An app should therefore beware of repeatedly calling [MsQuicOpenVersion](api/MsQuicOpenVersion.md) and [MsQuicClose](api/MsQuicClose.md), as library setup/cleanup can be expensive.
 
@@ -90,7 +91,7 @@ Please note, there is no explicit start/stop API for this library. Each API func
 
 Generally, each app only needs a single registration. The registration represents the execution context where all logic for the app's connections run. The library will create a number of worker threads for each registration, shared for all the connections. This execution context is not shared between different registrations.
 
-A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md).
+A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling either [RegistrationClose](api/RegistrationClose.md) or [RegistrationCloseAsync](api/RegistrationCloseAsync.md) (Available from v2.6).
 
 ## Configuration
 
