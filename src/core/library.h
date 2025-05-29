@@ -565,8 +565,7 @@ QuicLibraryGenerateStatelessResetToken(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetRetryKeyConfig(
-    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config,
-    _In_ uint32_t ConfigLength
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     );
 
 #if defined(__cplusplus)

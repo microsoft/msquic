@@ -2784,8 +2784,9 @@ void QuicTestGlobalParam()
         QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer.get();
 
         Config->SecretLength = SecretLength;
-        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
         Config->RotationMs = 60000;
+        Config->Secret = (uint8_t*)(Config + 1);
 
         // Null buffer
         TEST_QUIC_STATUS(
@@ -2803,15 +2804,6 @@ void QuicTestGlobalParam()
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 sizeof(QUIC_STATELESS_RETRY_CONFIG) - 1,
-                Config));
-
-        // Wrong size - buffer smaller than CONFIG + secret length
-        TEST_QUIC_STATUS(
-            QUIC_STATUS_INVALID_PARAMETER,
-            MsQuic->SetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                sizeof(QUIC_STATELESS_RETRY_CONFIG),
                 Config));
 
         // Invalid algorithm
@@ -2835,6 +2827,17 @@ void QuicTestGlobalParam()
                 BufferLength,
                 Config));
         Config->SecretLength = SecretLength;
+
+        // Null secret
+        Config->Secret = nullptr;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->Secret = (uint8_t*)(Config + 1);
 
         // Incorrect length secret
         Config->SecretLength = 10;

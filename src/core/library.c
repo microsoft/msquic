@@ -341,16 +341,12 @@ QuicLibraryLoadRetryConfig(
     _In_ CXPLAT_STORAGE* Storage
     )
 {
-    //
-    // This memory layout is intentional. DO NOT REARRANGE.
-    // The Secret is immediately following the RetryConfig in memory so it
-    // can be read from the RetryConfig pointer.
-    //
     QUIC_STATELESS_RETRY_CONFIG RetryConfig = { 0 };
     uint8_t Secret[CXPLAT_AEAD_AES_256_GCM_SIZE] = { 0 };
     uint32_t RotationLength = sizeof(RetryConfig.RotationMs);
     uint32_t AlgLength = sizeof(RetryConfig.Algorithm);
     RetryConfig.SecretLength = sizeof(Secret);
+    RetryConfig.Secret = Secret;
 
     if (QUIC_SUCCEEDED(
         CxPlatStorageReadValue(
@@ -370,9 +366,7 @@ QuicLibraryLoadRetryConfig(
             QUIC_SETTING_RETRY_KEY_SECRET,
             Secret,
             &RetryConfig.SecretLength))) {
-        QuicLibrarySetRetryKeyConfig(
-            &RetryConfig,
-            sizeof(RetryConfig) + sizeof(Secret));
+        QuicLibrarySetRetryKeyConfig(&RetryConfig);
         CxPlatZeroMemory(&Secret, sizeof(Secret));
     }
 }
@@ -1264,7 +1258,7 @@ QuicLibrarySetGlobalParam(
             break;
         }
         const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
-        Status = QuicLibrarySetRetryKeyConfig(Config, BufferLength);
+        Status = QuicLibrarySetRetryKeyConfig(Config);
         break;
     }
 
@@ -1605,8 +1599,9 @@ QuicLibraryGetGlobalParam(
         Config->Algorithm = MsQuicLib.RetryAeadAlgorithm;
         Config->RotationMs = MsQuicLib.RetryKeyRotationMs;
         Config->SecretLength = MsQuicLib.RetrySecretLength;
+        Config->Secret = (uint8_t*)(Config + 1);
         CxPlatCopyMemory(
-            Config->Secret,
+            (uint8_t*)Config->Secret,
             MsQuicLib.BaseRetrySecret,
             MsQuicLib.RetrySecretLength);
         CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
@@ -2680,8 +2675,7 @@ MsQuicExecutionPoll(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetRetryKeyConfig(
-    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config,
-    _In_ uint32_t ConfigLength
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     )
 {
     if (Config->Algorithm > QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305) {
@@ -2696,14 +2690,6 @@ QuicLibrarySetRetryKeyConfig(
             LibrarySetRetryKeyRotationInvalid,
             "[ lib] Invalid retry key rotation ms: %u.",
             Config->RotationMs);
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-    if (ConfigLength < Config->SecretLength + sizeof(*Config)) {
-        QuicTraceLogError(
-            LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %u",
-            ConfigLength,
-            Config->SecretLength + (uint32_t)sizeof(Config));
         return QUIC_STATUS_INVALID_PARAMETER;
     }
     if (Config->SecretLength != CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm)) {

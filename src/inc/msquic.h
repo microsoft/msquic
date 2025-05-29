@@ -888,7 +888,7 @@ typedef struct QUIC_STATELESS_RETRY_CONFIG {
     uint32_t RotationMs;                // Key rotation interval in milliseconds.
     uint32_t SecretLength;              // Length of the secret.
     _Field_size_bytes_(SecretLength)
-        uint8_t Secret[0];              // Secret to generate the key.
+        const uint8_t* Secret;          // Secret to generate the key.
 } QUIC_STATELESS_RETRY_CONFIG;
 #pragma warning(pop)
 
