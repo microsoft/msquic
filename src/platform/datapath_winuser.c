@@ -704,7 +704,7 @@ CxPlatDataPathQuerySockoptSupport(
         goto Error;
     }
 
-    DWORD TypeOfService = 1; // Lower Effort
+    DWORD TypeOfService = CXPLAT_DSCP_LE << 2;
     OptionLength = sizeof(TypeOfService);
     Result =
         setsockopt(

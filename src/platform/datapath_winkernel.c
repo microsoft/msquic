@@ -593,7 +593,7 @@ CxPlatDataPathQuerySockoptSupport(
     } while (FALSE);
 
     do {
-        DWORD TypeOfService = 1; // Lower Effort
+        DWORD TypeOfService = CXPLAT_DSCP_LE << 2;
 
         IoReuseIrp(Irp, STATUS_SUCCESS);
         IoSetCompletionRoutine(
