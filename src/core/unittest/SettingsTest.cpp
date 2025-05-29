@@ -289,7 +289,7 @@ TEST(SettingsTest, StreamRecvWindowDefaultDoesNotOverrideIndividualLimitsWhenSet
     ASSERT_EQ(Destination.StreamRecvWindowUnidiDefault, Original);
 }
 
-TEST(SettingsTest, CertainDefaultsGetOverridenByIndividualLimits)
+TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 {
     QUIC_SETTINGS_INTERNAL Source;
     QUIC_SETTINGS_INTERNAL Destination;
@@ -404,14 +404,14 @@ TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
 
     // Set a few fields and mark them as set
     Settings.IsSet.SendBufferingEnabled = 1;
-    Settings.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 0;
     Settings.IsSet.PacingEnabled = 1;
-    Settings.PacingEnabled = 1;
+    Settings.PacingEnabled = 0;
     QuicSettingsSetDefault(&Settings);
 
     // These should not be overwritten
-    ASSERT_EQ(Settings.SendBufferingEnabled, 1);
-    ASSERT_EQ(Settings.PacingEnabled, 1);
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0);
+    ASSERT_EQ(Settings.PacingEnabled, 0);
 
     // But an unset field should be set to default
     ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
@@ -429,7 +429,7 @@ static void ResetMsQuicTestSettings(CXPLAT_STORAGE* Storage)
         &TempStore);
 
     if (TempStore == NULL) {
-        std::cerr << "[      ][INFO]Storage is not available" << std::endl;
+        std::cerr << "[      ][INFO]Storage is not available. Status:" << Status << std::endl;
         SkipStorageTests = true;
         return;
     }
@@ -473,7 +473,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageSaveUIntValue(
             TempStore,
             QUIC_SETTING_SEND_BUFFERING_DEFAULT,
-            1));
+            0));
 
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -487,7 +487,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageSaveUIntValue(
             TempStore,
             QUIC_SETTING_MIGRATION_ENABLED,
-            1));
+            0));
 
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -501,10 +501,9 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
     QuicSettingsLoad(&Settings, TempStore);
 
     // Check that the values were loaded
-    ASSERT_EQ(Settings.SendBufferingEnabled, 1u);
-    // PacingEnabled is not set because the key is different in the code (QUIC_SETTING_SEND_PACING_DEFAULT)
-    // So let's check MigrationEnabled and MaxOperationsPerDrain
-    ASSERT_EQ(Settings.MigrationEnabled, 1u);
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0u);
+    ASSERT_EQ(Settings.PacingEnabled, 0u);
+    ASSERT_EQ(Settings.MigrationEnabled, 0u);
     ASSERT_EQ(Settings.MaxOperationsPerDrain, 7u);
 
     QuicSettingsDumpNew(&Settings);
@@ -520,7 +519,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
     CXPLAT_STORAGE* Storage = NULL;
     CXPLAT_STORAGE* TempStore = NULL;
 
-    QUIC_STATUS status =
+    QUIC_STATUS Status =
         CxPlatStorageOpen(
             nullptr,
             nullptr,
@@ -528,7 +527,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
             &Storage);
 
     if (Storage == NULL) {
-        GTEST_SKIP() << "Skipping test because storage is not available.";
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
     }
 
     ResetMsQuicTestSettings(Storage);
@@ -570,7 +569,7 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
     CXPLAT_STORAGE* Storage = NULL;
     CXPLAT_STORAGE* TempStore = NULL;
 
-    QUIC_STATUS status =
+    QUIC_STATUS Status =
         CxPlatStorageOpen(
             nullptr,
             nullptr,
@@ -578,7 +577,7 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
             &Storage);
 
     if (Storage == NULL) {
-        GTEST_SKIP() << "Skipping test because storage is not available.";
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
     }
 
     ResetMsQuicTestSettings(Storage);

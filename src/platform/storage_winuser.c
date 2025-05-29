@@ -263,10 +263,6 @@ CxPlatStorageReadValue(
 {
     DWORD Type;
 
-    if (Storage == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     return
         HRESULT_FROM_WIN32(
             RegQueryValueExA(
@@ -288,10 +284,6 @@ CxPlatStorageReset(
     _In_ _Post_invalid_ CXPLAT_STORAGE* Storage
 )
 {
-    if (Storage == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     HRESULT hr =
         HRESULT_FROM_WIN32(
             RegDeleteTreeA(
@@ -315,10 +307,6 @@ CxPlatStorageCreateTempStore(
     _In_ CXPLAT_STORAGE** TempStorage
 )
 {
-    if (Storage == NULL || TempStorage == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     *TempStorage = CXPLAT_ALLOC_PAGED(sizeof(CXPLAT_STORAGE), QUIC_POOL_STORAGE);
     if (*TempStorage == NULL) {
         return QUIC_STATUS_OUT_OF_MEMORY;
@@ -365,10 +353,6 @@ CxPlatStorageSaveUIntValue(
     _In_ uint32_t Value
 )
 {
-    if (Storage == NULL) {
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     return
         HRESULT_FROM_WIN32(
             RegSetValueExA(
