@@ -2332,7 +2332,7 @@ private:
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream,
-                static_cast<void*>(ServerStreamHandler),
+                reinterpret_cast<void*>(ServerStreamHandler),
                 Context);
             TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
             break;
