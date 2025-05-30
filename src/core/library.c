@@ -195,11 +195,22 @@ QuicLibraryInitializePartitions(
 
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
-    CxPlatRandom(sizeof(MsQuicLib.BaseRetrySecret), MsQuicLib.BaseRetrySecret);
-    MsQuicLib.RetryKeyRotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+
+    uint8_t RetrySecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
+    CxPlatRandom(sizeof(RetrySecret), RetrySecret);
+
+    QUIC_STATELESS_RETRY_CONFIG RetryConfig;
+    RetryConfig.SecretLength = sizeof(RetrySecret);
+    RetryConfig.Secret = RetrySecret;
+    RetryConfig.RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    RetryConfig.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+
+    QUIC_STATUS Status = QuicLibrarySetRetryKeyConfig(&RetryConfig);
+    if (QUIC_FAILED(Status)) {
+        goto ErrorPrePartitions;
+    }
 
     uint16_t i;
-    QUIC_STATUS Status;
     for (i = 0; i < MsQuicLib.PartitionCount; ++i) {
         Status =
             QuicPartitionInitialize(
@@ -232,6 +243,8 @@ Error:
     for (uint16_t j = 0; j < i; ++j) {
         QuicPartitionUninitialize(&MsQuicLib.Partitions[j]);
     }
+
+ErrorPrePartitions:
 
     CXPLAT_FREE(MsQuicLib.Partitions, QUIC_POOL_PERPROC);
     MsQuicLib.Partitions = NULL;
@@ -348,27 +361,35 @@ QuicLibraryLoadRetryConfig(
     RetryConfig.SecretLength = sizeof(Secret);
     RetryConfig.Secret = Secret;
 
-    if (QUIC_SUCCEEDED(
+    if (QUIC_FAILED(
         CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RETRY_KEY_ROTATION_MS,
             (uint8_t*)&RetryConfig.RotationMs,
-            &RotationLength)) &&
-        QUIC_SUCCEEDED(
+            &RotationLength))) {
+        return;
+    }
+
+    if (QUIC_FAILED(
         CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RETRY_KEY_ALGORITHM,
             (uint8_t*)&RetryConfig.Algorithm,
-            &AlgLength)) &&
-        QUIC_SUCCEEDED(
+            &AlgLength))) {
+        return;
+    }
+
+    if (QUIC_FAILED(
         CxPlatStorageReadValue(
             Storage,
             QUIC_SETTING_RETRY_KEY_SECRET,
             Secret,
             &RetryConfig.SecretLength))) {
-        QuicLibrarySetRetryKeyConfig(&RetryConfig);
-        CxPlatZeroMemory(&Secret, sizeof(Secret));
+        return;
     }
+
+    QuicLibrarySetRetryKeyConfig(&RetryConfig);
+    CxPlatZeroMemory(&Secret, sizeof(Secret));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -434,13 +455,11 @@ MsQuicLibraryInitialize(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN PlatformInitialized = FALSE;
-    BOOLEAN RetryLockInitialized = FALSE;
 
     Status = CxPlatInitialize();
     if (QUIC_FAILED(Status)) {
         goto Error; // Cannot log anything if platform failed to initialize.
     }
-    PlatformInitialized = TRUE;
 
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(CxPlatGetTimerResolution()) + 1;
@@ -453,7 +472,7 @@ MsQuicLibraryInitialize(
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
 
     CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetryLock);
-    RetryLockInitialized = TRUE;
+    PlatformInitialized = TRUE;
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
@@ -539,10 +558,8 @@ Error:
             CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
             MsQuicLib.DefaultCompatibilityList = NULL;
         }
-        if (RetryLockInitialized) {
-            CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
-        }
         if (PlatformInitialized) {
+            CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetryLock);
             CxPlatUninitialize();
         }
     }
@@ -2711,9 +2728,8 @@ QuicLibrarySetRetryKeyConfig(
     CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetryLock, PrevIrql);
     QuicTraceLogInfo(
         LibraryRetryKeyUpdated,
-        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
         Config->Algorithm,
-        Config->RotationMs,
-        SecretLen);
+        Config->RotationMs);
     return QUIC_STATUS_SUCCESS;
 }

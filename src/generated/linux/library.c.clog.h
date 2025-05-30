@@ -241,20 +241,18 @@ tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
 
 /*----------------------------------------------------------
 // Decoder Ring for LibraryRetryKeyUpdated
-// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
 // QuicTraceLogInfo(
         LibraryRetryKeyUpdated,
-        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
         Config->Algorithm,
-        Config->RotationMs,
-        SecretLen);
+        Config->RotationMs);
 // arg2 = arg2 = Config->Algorithm = arg2
 // arg3 = arg3 = Config->RotationMs = arg3
-// arg4 = arg4 = SecretLen = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_LibraryRetryKeyUpdated
-#define _clog_5_ARGS_TRACE_LibraryRetryKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
-tracepoint(CLOG_LIBRARY_C, LibraryRetryKeyUpdated , arg2, arg3, arg4);\
+#ifndef _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated
+#define _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibraryRetryKeyUpdated , arg2, arg3);\
 
 #endif
 
@@ -373,26 +371,6 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid , arg2);\
 #ifndef _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid
 #define _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibrarySetRetryConfigLengthInvalid
-// [ lib] Config buffer insufficient: %u. Expected %u
-// QuicTraceLogError(
-            LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %u",
-            ConfigLength,
-            Config->SecretLength + (uint32_t)sizeof(Config));
-// arg2 = arg2 = ConfigLength = arg2
-// arg3 = arg3 = Config->SecretLength + (uint32_t)sizeof(Config) = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid
-#define _clog_4_ARGS_TRACE_LibrarySetRetryConfigLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibrarySetRetryConfigLengthInvalid , arg2, arg3);\
 
 #endif
 

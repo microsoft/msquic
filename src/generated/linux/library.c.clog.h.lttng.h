@@ -210,26 +210,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 /*----------------------------------------------------------
 // Decoder Ring for LibraryRetryKeyUpdated
-// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
 // QuicTraceLogInfo(
         LibraryRetryKeyUpdated,
-        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
         Config->Algorithm,
-        Config->RotationMs,
-        SecretLen);
+        Config->RotationMs);
 // arg2 = arg2 = Config->Algorithm = arg2
 // arg3 = arg3 = Config->RotationMs = arg3
-// arg4 = arg4 = SecretLen = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryKeyUpdated,
     TP_ARGS(
         int, arg2,
-        unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(int, arg2, arg2)
         ctf_integer(unsigned int, arg3, arg3)
-        ctf_integer(unsigned int, arg4, arg4)
     )
 )
 
@@ -351,29 +347,6 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
         unsigned int, arg2), 
     TP_FIELDS(
         ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for LibrarySetRetryConfigLengthInvalid
-// [ lib] Config buffer insufficient: %u. Expected %u
-// QuicTraceLogError(
-            LibrarySetRetryConfigLengthInvalid,
-            "[ lib] Config buffer insufficient: %u. Expected %u",
-            ConfigLength,
-            Config->SecretLength + (uint32_t)sizeof(Config));
-// arg2 = arg2 = ConfigLength = arg2
-// arg3 = arg3 = Config->SecretLength + (uint32_t)sizeof(Config) = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryConfigLengthInvalid,
-    TP_ARGS(
-        unsigned int, arg2,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

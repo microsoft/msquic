@@ -6840,7 +6840,7 @@
     },
     "LibraryRetryKeyUpdated": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u",
+      "TraceString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
       "UniqueId": "LibraryRetryKeyUpdated",
       "splitArgs": [
         {
@@ -6850,10 +6850,6 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogInfo"
@@ -16044,9 +16040,9 @@
         "EncodingString": "[ lib] Release"
       },
       {
-        "UniquenessHash": "29338144-a817-309d-590e-60026a6c6a58",
+        "UniquenessHash": "7e60f269-ff18-fed5-550c-388521d4164d",
         "TraceID": "LibraryRetryKeyUpdated",
-        "EncodingString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u, SecretLen: %u"
+        "EncodingString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u"
       },
       {
         "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
