@@ -682,6 +682,9 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
+    // Timestamp (us) of last CONNECTION_CLOSE sent in closing state (for rate limiting)
+    uint64_t LastCloseResponseTimeUs;
+
 } QUIC_CONNECTION;
 
 typedef struct QUIC_SERIALIZED_RESUMPTION_STATE {
