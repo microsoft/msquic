@@ -8,6 +8,7 @@ Abstract:
     Unit test for the settings logic.
 
 --*/
+
 #define QUIC_UNIT_TESTS
 #include "main.h"
 #ifdef QUIC_CLOG
