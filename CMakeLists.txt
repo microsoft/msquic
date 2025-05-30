@@ -372,7 +372,7 @@ if(QUIC_TLS_LIB STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
-if(QUIC_TLS_LIB STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     message(STATUS "Enabling quictls/openssl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     if (NOT WIN32)
@@ -691,7 +691,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS_LIB STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)
