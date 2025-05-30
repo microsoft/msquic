@@ -147,29 +147,42 @@ QuicRegistrationCloseComplete(
     _In_ QUIC_REGISTRATION* Registration
     )
 {
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler = Registration->CloseHandler;
-    void* CloseContext = Registration->CloseContext;
-    CXPLAT_DBG_ASSERT(CloseHandler != NULL);
+    QuicTraceLogInfo(
+        QuicRegistrationCloseComplete,
+        "[ reg][%p] Close complete",
+        Registration);
+
+    QUIC_COMPLETE_HANDLER CompleteHandler = Registration->CompleteHandler;
+    void* CompleteContext = Registration->CompleteContext;
+    CXPLAT_DBG_ASSERT(CompleteHandler != NULL);
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
     CxPlatLockUninitialize(&Registration->ConfigLock);
     CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
 
-    CloseHandler(CloseContext);
+    QuicTraceLogInfo(
+        QuicRegistrationCloseCompleteHandler,
+        "[ reg][%p] Close complete - calling handler",
+        Registration);
+
+    CompleteHandler(CompleteContext);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
+_Function_class_(QUIC_COMPLETE)
 void
 QUIC_API
 QuicRegistrationCloseCompleteCallback(
     _In_opt_ void* Context
     )
 {
-    CXPLAT_EVENT CloseCompleteEvent = (CXPLAT_EVENT)Context;
+    CXPLAT_EVENT* CloseCompleteEvent = (CXPLAT_EVENT*)Context;
     CXPLAT_DBG_ASSERT(CloseCompleteEvent != NULL);
-    CxPlatEventSet(CloseCompleteEvent);
+    QuicTraceLogInfo(
+        RegistrationCloseCompleteCallback,
+        "[ reg] Sync close complete!");
+    CxPlatEventSet(*CloseCompleteEvent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -192,8 +205,8 @@ MsQuicRegistrationClose(
 
         CXPLAT_EVENT CompletionEvent;
         CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
-        Registration->CloseHandler = QuicRegistrationCloseCompleteCallback;
-        Registration->CloseContext = &CompletionEvent;
+        Registration->CompleteHandler = QuicRegistrationCloseCompleteCallback;
+        Registration->CompleteContext = &CompletionEvent;
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
             CxPlatLockAcquire(&MsQuicLib.Lock);
@@ -205,7 +218,6 @@ MsQuicRegistrationClose(
             CxPlatEventWaitForever(CompletionEvent); // Didn't complete inline, so wait
         }
 
-        CxPlatEventWaitForever(CompletionEvent);
         CxPlatEventUninitialize(CompletionEvent);
 
         QuicTraceEvent(
@@ -220,7 +232,7 @@ QUIC_API
 MsQuicRegistrationCloseAsync(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Handle,
-    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     )
 {
@@ -237,8 +249,8 @@ MsQuicRegistrationCloseAsync(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-        Registration->CloseHandler = Handler;
-        Registration->CloseContext = Context;
+        Registration->CompleteHandler = Handler;
+        Registration->CompleteContext = Context;
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
             CxPlatLockAcquire(&MsQuicLib.Lock);

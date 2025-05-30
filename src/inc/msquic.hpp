@@ -475,7 +475,7 @@ public:
         }
     }
     ~MsQuicApi() noexcept {
-        if (QUIC_SUCCEEDED(InitStatus)) {
+        if (ApiTable != nullptr) {
             CloseFn(ApiTable);
             ApiTable = nullptr;
             QUIC_API_TABLE* thisTable = this;
@@ -487,19 +487,15 @@ public:
     MsQuicApi(MsQuicApi&&) = delete;
     MsQuicApi& operator=(MsQuicApi&&) = delete;
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STATUS CloseAsync(
-        _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    void CloseAsync(
+        _In_ QUIC_COMPLETE_HANDLER Handler,
         _In_opt_ void* Context) noexcept {
-        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
-        if (QUIC_SUCCEEDED(InitStatus)) {
-            Status = QUIC_API_TABLE::CloseAsync(ApiTable, Handler, Context);
-            if (QUIC_SUCCEEDED(Status)) {
-                ApiTable = nullptr;
-                QUIC_API_TABLE* thisTable = this;
-                memset(thisTable, 0, sizeof(*thisTable));
-            }
+        if (ApiTable != nullptr) {
+            QUIC_API_TABLE::CloseAsync(ApiTable, Handler, Context);
+            ApiTable = nullptr;
+            QUIC_API_TABLE* thisTable = this;
+            memset(thisTable, 0, sizeof(*thisTable));
         }
-        return Status;
     }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -607,7 +603,7 @@ struct MsQuicRegistration {
     }
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS CloseAsync(
-        _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+        _In_ QUIC_COMPLETE_HANDLER Handler,
         _In_opt_ void* Context = nullptr
         ) noexcept {
         QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;

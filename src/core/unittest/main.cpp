@@ -22,8 +22,8 @@ MsQuicAddRef(
     );
 
 void
-MsQuicRelease(
-    void
+MsQuicReleaseAsync(
+    _In_opt_ QUIC_API_TABLE_EX* ApiTable
     );
 
 void
@@ -39,7 +39,7 @@ public:
         TEST_QUIC_SUCCEEDED(MsQuicAddRef());
     }
     void TearDown() override {
-        MsQuicRelease();
+        MsQuicReleaseAsync(NULL);
         MsQuicLibraryUnload();
         CxPlatZeroMemory(&MsQuicLib, sizeof(MsQuicLib));
     }

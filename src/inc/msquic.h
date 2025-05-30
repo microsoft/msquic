@@ -1047,6 +1047,16 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_COMPLETE)
+void
+(QUIC_API QUIC_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_COMPLETE *QUIC_COMPLETE_HANDLER;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SET_PARAM_FN)(
     _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
@@ -1101,16 +1111,6 @@ void
         HQUIC Registration
     );
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_REGISTRATION_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_REGISTRATION_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
-
-typedef QUIC_REGISTRATION_CLOSE_COMPLETE *QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER;
-
 //
 // Asynchronously closes the registration. Instead of synchronizing cleanup,
 // this function registers a callback to be invoked when cleanup is complete.
@@ -1122,7 +1122,7 @@ QUIC_STATUS
 (QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration,
-    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 
@@ -1783,16 +1783,6 @@ QUIC_STATUS
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CLOSE_COMPLETE)
-void
-(QUIC_API QUIC_CLOSE_COMPLETE)(
-    _In_opt_ void* Context
-    );
-
-typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
-
 //
 // Asynchronously cleans up the function table returned from MsQuicOpenVersion
 // and releases the reference on the API. Calls the provided callback when done.
@@ -1800,10 +1790,10 @@ typedef QUIC_CLOSE_COMPLETE *QUIC_CLOSE_COMPLETE_HANDLER;
 //
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 (QUIC_API *QUIC_CLOSE_ASYNC_FN)(
     _In_ _Pre_defensive_ const void* QuicApi,
-    _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 

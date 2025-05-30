@@ -12,7 +12,7 @@ QUIC_STATUS
 (QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration,
-    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 ```

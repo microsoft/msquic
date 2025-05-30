@@ -108,8 +108,8 @@ typedef struct QUIC_REGISTRATION {
     //
     // Async close completion handler and context.
     //
-    QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER CloseHandler;
-    void* CloseContext;
+    QUIC_COMPLETE_HANDLER CompleteHandler;
+    void* CompleteContext;
 
     //
     // Name of the application layer.

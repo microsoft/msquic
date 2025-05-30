@@ -506,37 +506,45 @@ Error:
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_COMPLETE)
 void
-MsQuicLibraryUninitialize(
-    void
+QUIC_API
+QuicLibraryUninitializePart2Complete(
+    _In_opt_ void* Context
+    )
+{
+    QUIC_API_TABLE_EX* ApiTable = (QUIC_API_TABLE_EX*)Context;
+    QUIC_COMPLETE_HANDLER CompleteHandler;
+    void* CompleteContext;
+
+    if (ApiTable != NULL) {
+        CompleteHandler = ApiTable->CompleteHandler;
+        CXPLAT_DBG_ASSERT(CompleteHandler != NULL);
+        CompleteContext = ApiTable->CompleteContext;
+        CXPLAT_FREE(ApiTable, QUIC_POOL_API);
+    }
+
+    CxPlatUninitialize(); // TODO - Should this be async?
+
+    QuicTraceEvent(
+        LibraryUninitialized,
+        "[ lib] Uninitialized");
+
+    CxPlatLockRelease(&MsQuicLib.Lock);
+
+    if (CompleteHandler != NULL) {
+        CompleteHandler(CompleteContext);
+    }
+}
+
+void
+QuicLibraryUninitializePart2Async(
+    _In_opt_ QUIC_API_TABLE_EX* ApiTable
     )
 {
 #if DEBUG
     CXPLAT_DATAPATH* CleanUpDatapath = NULL;
 #endif
-    //
-    // The library's stateless registration may still have half-opened
-    // connections that need to be cleaned up before all the bindings and
-    // sockets can be cleaned up. Kick off a clean up of those connections.
-    //
-    if (MsQuicLib.StatelessRegistration != NULL) {
-        //
-        // Best effort to clean up existing connections.
-        //
-        MsQuicRegistrationShutdown(
-            (HQUIC)MsQuicLib.StatelessRegistration,
-            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
-            0);
-    }
-
-    //
-    // Clean up the stateless registration that might have any leftovers.
-    //
-    if (MsQuicLib.StatelessRegistration != NULL) {
-        MsQuicRegistrationClose(
-            (HQUIC)MsQuicLib.StatelessRegistration); // TODO - Use Async Close
-        MsQuicLib.StatelessRegistration = NULL;
-    }
 
     //
     // If you hit this assert, MsQuic API is trying to be unloaded without
@@ -606,15 +614,73 @@ MsQuicLibraryUninitialize(
 
     MsQuicLib.LazyInitComplete = FALSE;
 
-    QuicTraceEvent(
-        LibraryUninitialized,
-        "[ lib] Uninitialized");
-
 #ifndef _KERNEL_MODE
-    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    CxPlatWorkerPoolDeleteAsync(
+        MsQuicLib.WorkerPool,
+        QuicLibraryUninitializePart2Complete,
+        ApiTable);
     MsQuicLib.WorkerPool = NULL;
+#else
+    //
+    // Execute completion handler inline.
+    //
+    QuicLibraryUninitializePart2Complete(ApiTable);
 #endif
-    CxPlatUninitialize();
+
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_COMPLETE)
+void
+QUIC_API
+QuicLibraryUninitializePart1Complete(
+    _In_opt_ void* Context
+    )
+{
+    //
+    // Start the second part of the uninitialization process.
+    //
+    QuicLibraryUninitializePart2Async((QUIC_API_TABLE_EX*)Context);
+}
+
+//
+// Returns TRUE if the operation completed inline
+//
+void
+QuicLibraryUninitializePart1Async(
+    _In_opt_ QUIC_API_TABLE_EX* ApiTable
+    )
+{
+    //
+    // The library's stateless registration may still have half-opened
+    // connections that need to be cleaned up before all the bindings and
+    // sockets can be cleaned up. Kick off a clean up of those connections.
+    //
+    if (MsQuicLib.StatelessRegistration != NULL) {
+        //
+        // Best effort to clean up existing connections.
+        //
+        MsQuicRegistrationShutdown(
+            (HQUIC)MsQuicLib.StatelessRegistration,
+            QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+            0);
+
+        QUIC_STATUS Status =
+            MsQuicRegistrationCloseAsync(
+                (HQUIC)MsQuicLib.StatelessRegistration,
+                QuicLibraryUninitializePart1Complete,
+                ApiTable);
+        MsQuicLib.StatelessRegistration = NULL;
+        CXPLAT_DBG_ASSERT(QUIC_SUCCEEDED(Status));
+        if (Status == QUIC_STATUS_PENDING) {
+            return; // Operation is pending
+        }
+    }
+
+    //
+    // Execute completion handler inline.
+    //
+    QuicLibraryUninitializePart1Complete(ApiTable);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -661,8 +727,8 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-MsQuicRelease(
-    void
+MsQuicReleaseAsync(
+    _In_opt_ QUIC_API_TABLE_EX* ApiTable
     )
 {
     CxPlatLockAcquire(&MsQuicLib.Lock);
@@ -678,10 +744,15 @@ MsQuicRelease(
         "[ lib] Release");
 
     if (--MsQuicLib.OpenRefCount == 0) {
-        MsQuicLibraryUninitialize();
-    }
+        //
+        // Kicks off asynchronous uninitialization of the library. This will
+        // eventually release the lock.
+        //
+        QuicLibraryUninitializePart1Async(ApiTable);
 
-    CxPlatLockRelease(&MsQuicLib.Lock);
+    } else {
+        CxPlatLockRelease(&MsQuicLib.Lock);
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1847,8 +1918,8 @@ MsQuicOpenVersion(
     }
 
     QUIC_API_TABLE* Api = &ApiEx->Table;
-    ApiEx->CloseHandler = NULL;
-    ApiEx->CloseContext = NULL;
+    ApiEx->CompleteHandler = NULL;
+    ApiEx->CompleteContext = NULL;
 
     Api->SetContext = MsQuicSetContext;
     Api->GetContext = MsQuicGetContext;
@@ -1914,13 +1985,65 @@ Exit:
 
     if (QUIC_FAILED(Status)) {
         if (ReleaseRefOnFailure) {
-            MsQuicRelease();
+            MsQuicReleaseAsync(NULL);
         }
 
         MsQuicLibraryUnload();
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicLibraryUninitializeComplete(
+    _In_ void* Context
+    )
+{
+    QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)Context;
+    CXPLAT_DBG_ASSERT(ApiEx != NULL);
+    QUIC_COMPLETE_HANDLER Handler = ApiEx->CompleteHandler;
+    CXPLAT_DBG_ASSERT(Handler != NULL);
+    void* HandlerContext = ApiEx->CompleteContext;
+
+    CXPLAT_FREE(ApiEx, QUIC_POOL_API);
+
+    Handler(HandlerContext);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicCloseAsync(
+    _In_ _Pre_defensive_ const void* QuicApi,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    if (QuicApi != NULL) {
+        QuicTraceLogVerbose(
+            LibraryMsQuicCloseAsync,
+            "[ api] MsQuicCloseAsync");
+
+        QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)QuicApi;
+        ApiEx->CompleteHandler = Handler;
+        ApiEx->CompleteContext = Context;
+
+        MsQuicReleaseAsync(ApiEx);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_COMPLETE)
+void
+QUIC_API
+MsQuicCloseAsyncComplete(
+    _In_opt_ void* Context
+    )
+{
+    CXPLAT_EVENT* CloseCompleteEvent = (CXPLAT_EVENT*)Context;
+    CXPLAT_DBG_ASSERT(CloseCompleteEvent != NULL);
+    CxPlatEventSet(*CloseCompleteEvent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1934,83 +2057,18 @@ MsQuicClose(
         QuicTraceLogVerbose(
             LibraryMsQuicClose,
             "[ api] MsQuicClose");
-        CXPLAT_FREE(QuicApi, QUIC_POOL_API);
-        MsQuicRelease();
-        MsQuicLibraryUnload();
+
+        CXPLAT_EVENT CompletionEvent;
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+
+        MsQuicCloseAsync(
+            QuicApi,
+            MsQuicCloseAsyncComplete,
+            &CompletionEvent);
+
+        CxPlatEventWaitForever(&CompletionEvent);
+        CxPlatEventUninitialize(&CompletionEvent);
     }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicLibraryCleanupComplete(
-    _In_ void* Context
-    )
-{
-    QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)Context;
-
-    QUIC_CLOSE_COMPLETE_HANDLER Handler = ApiEx->CloseHandler;
-    void* HandlerContext = ApiEx->CloseContext;
-
-    CXPLAT_FREE(ApiEx, QUIC_POOL_API);
-
-    if (Handler != NULL) {
-        Handler(HandlerContext);
-    }
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicCloseAsync(
-    _In_ _Pre_defensive_ const void* QuicApi,
-    _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
-    _In_opt_ void* Context
-    )
-{
-    if (QuicApi != NULL) {
-        QuicTraceLogVerbose(
-            LibraryMsQuicCloseAsync,
-            "[ api] MsQuicCloseAsync");
-
-        QUIC_API_TABLE_EX* ApiEx = (QUIC_API_TABLE_EX*)QuicApi;
-        ApiEx->CloseHandler = Handler;
-        ApiEx->CloseContext = Context;
-
-        CxPlatLockAcquire(&MsQuicLib.Lock);
-        BOOLEAN LastRef = (MsQuicLib.OpenRefCount == 1);
-        CxPlatLockRelease(&MsQuicLib.Lock);
-
-        if (!LastRef) {
-            // Not the last reference, can clean up immediately
-            CXPLAT_FREE(ApiEx, QUIC_POOL_API);
-            MsQuicRelease();
-            MsQuicLibraryUnload();
-
-            if (Handler != NULL) {
-                Handler(Context);
-            }
-
-            return QUIC_STATUS_SUCCESS;
-        } else {
-            // This is the last reference so cleanup operations might block
-            QuicTraceLogWarning(
-                LibraryCleanupAsyncNotSupported,
-                "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.");
-
-            // TODO: Properly implement async cleanup with platform event queue
-            CXPLAT_FREE(ApiEx, QUIC_POOL_API);
-            MsQuicRelease();
-            MsQuicLibraryUnload();
-
-            if (Handler != NULL) {
-                Handler(Context);
-            }
-
-            return QUIC_STATUS_SUCCESS;
-        }
-    }
-
-    return QUIC_STATUS_SUCCESS;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

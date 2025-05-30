@@ -7,16 +7,16 @@
 
 typedef struct QUIC_API_TABLE_EX {
     QUIC_API_TABLE Table; // Must be first!
-    QUIC_CLOSE_COMPLETE_HANDLER CloseHandler;
-    void* CloseContext;
+    QUIC_COMPLETE_HANDLER CompleteHandler;
+    void* CompleteContext;
 } QUIC_API_TABLE_EX;
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 QUIC_API
 MsQuicCloseAsync(
     _In_ _Pre_defensive_ const void* QuicApi,
-    _In_ QUIC_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 
@@ -69,7 +69,7 @@ QUIC_API
 MsQuicRegistrationCloseAsync(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Handle,
-    _In_ QUIC_REGISTRATION_CLOSE_COMPLETE_HANDLER Handler,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
     _In_opt_ void* Context
     );
 

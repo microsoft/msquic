@@ -106,7 +106,9 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 typedef struct CXPLAT_WORKER_POOL {
 
-    CXPLAT_RUNDOWN_REF Rundown;
+    CXPLAT_COMPLETE_HANDLER CompleteHandler;
+    void* CompleteContext;
+    CXPLAT_REF_COUNT RefCount;
     uint32_t WorkerCount;
     CXPLAT_WORKER Workers[0];
 
@@ -332,7 +334,7 @@ CxPlatWorkerPoolCreate(
         }
     }
 
-    CxPlatRundownInitialize(&WorkerPool->Rundown);
+    CxPlatRefInitialize(&WorkerPool->RefCount);
 
     return WorkerPool;
 
@@ -396,7 +398,7 @@ CxPlatWorkerPoolCreateExternal(
         Executions[i] = (QUIC_EXECUTION*)Worker;
     }
 
-    CxPlatRundownInitialize(&WorkerPool->Rundown);
+    CxPlatRefInitialize(&WorkerPool->RefCount);
 
     return WorkerPool;
 
@@ -415,21 +417,75 @@ Error:
     return NULL;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_COMPLETE)
+void
+QUIC_API
+CxPlatWorkerPoolDeleteComplete(
+    _In_opt_ void* Context
+    )
+{
+    CXPLAT_WORKER_POOL* WorkerPool = (CXPLAT_WORKER_POOL*)Context;
+    CXPLAT_DBG_ASSERT(WorkerPool != NULL);
+    CXPLAT_COMPLETE_HANDLER Handler = WorkerPool->CompleteHandler;
+    CXPLAT_DBG_ASSERT(Handler != NULL);
+    void* HandlerContext = WorkerPool->CompleteContext;
+
+    for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
+        CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
+        CxPlatWorkerPoolDestroyWorker(Worker);
+    }
+
+    CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+
+    Handler(HandlerContext);
+}
+
+void
+CxPlatWorkerPoolDeleteAsync(
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    if (WorkerPool != NULL) {
+        WorkerPool->CompleteHandler = Handler;
+        WorkerPool->CompleteContext = Context;
+        CxPlatWorkerPoolRelease(WorkerPool);
+    } else {
+        Handler(Context);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_COMPLETE)
+void
+QUIC_API
+CxPlatWorkerPoolDeleteCompleteCallback(
+    _In_opt_ void* Context
+    )
+{
+    CXPLAT_EVENT* CompletionEvent = (CXPLAT_EVENT*)Context;
+    CXPLAT_DBG_ASSERT(CompletionEvent != NULL);
+    CxPlatEventSet(*CompletionEvent);
+}
+
 void
 CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
     if (WorkerPool != NULL) {
-        CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
+        CXPLAT_EVENT CompletionEvent;
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
 
-        for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
-            CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
-            CxPlatWorkerPoolDestroyWorker(Worker);
-        }
+        CxPlatWorkerPoolDeleteAsync(
+            WorkerPool,
+            CxPlatWorkerPoolDeleteCompleteCallback,
+            &CompletionEvent);
 
-        CxPlatRundownUninitialize(&WorkerPool->Rundown);
-        CXPLAT_FREE(WorkerPool, QUIC_POOL_PLATFORM_WORKER);
+        CxPlatEventWaitForever(CompletionEvent);
+        CxPlatEventUninitialize(CompletionEvent);
     }
 }
 
@@ -446,7 +502,7 @@ CxPlatWorkerPoolAddRef(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    return CxPlatRundownAcquire(&WorkerPool->Rundown);
+    return CxPlatRefIncrementNonZero(&WorkerPool->RefCount, 1);
 }
 
 void
@@ -454,7 +510,9 @@ CxPlatWorkerPoolRelease(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    CxPlatRundownRelease(&WorkerPool->Rundown);
+    if (CxPlatRefDecrement(&WorkerPool->RefCount)) {
+        CxPlatWorkerPoolDeleteComplete(WorkerPool);
+    }
 }
 
 uint32_t

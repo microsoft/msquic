@@ -490,6 +490,23 @@ CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(CXPLAT_COMPLETE)
+void
+(QUIC_API CXPLAT_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef CXPLAT_COMPLETE *CXPLAT_COMPLETE_HANDLER;
+
+void
+CxPlatWorkerPoolDeleteAsync(
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
 uint32_t
 CxPlatWorkerPoolGetCount(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
