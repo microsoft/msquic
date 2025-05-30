@@ -245,7 +245,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
@@ -294,16 +294,19 @@ CxPlatStorageOpen(
 
     CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     CxPlatLockInitialize(&Storage->Lock);
-    Storage->Callback = Callback;
-    Storage->CallbackContext = CallbackContext;
+
+    if (Callback != NULL) {
+        Storage->Callback = Callback;
+        Storage->CallbackContext = CallbackContext;
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
-    ExInitializeWorkItem(
-        &Storage->WorkItem,
-        CxPlatStorageRegKeyChangeCallback,
-        Storage);
+        ExInitializeWorkItem(
+            &Storage->WorkItem,
+            CxPlatStorageRegKeyChangeCallback,
+            Storage);
 #pragma warning(pop)
+    }
 
     Status =
         ZwOpenKey(
@@ -319,25 +322,27 @@ CxPlatStorageOpen(
         goto Exit;
     }
 
-    Status =
-        ZwNotifyChangeKey(
-            Storage->RegKey,
-            NULL,
-            (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
-            (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
-            &Storage->IoStatusBlock,
-            REG_NOTIFY_CHANGE_LAST_SET,
-            FALSE,
-            NULL,
-            0,
-            TRUE);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwNotifyChangeKey failed");
-        goto Exit;
+    if (Callback != NULL) {
+        Status =
+            ZwNotifyChangeKey(
+                Storage->RegKey,
+                NULL,
+                (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
+                (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
+                &Storage->IoStatusBlock,
+                REG_NOTIFY_CHANGE_LAST_SET,
+                FALSE,
+                NULL,
+                0,
+                TRUE);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwNotifyChangeKey failed");
+            goto Exit;
+        }
     }
 
     *NewStorage = Storage;
@@ -362,7 +367,7 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
@@ -375,6 +380,10 @@ CxPlatStorageClose(
         Storage->CleanupEvent = &CleanupEvent;
         CxPlatLockRelease(&Storage->Lock);
 
+        if (Storage->Callback == NULL) {
+            // We have to simulate a cleanup if there is no callback
+            CxPlatEventSet(CleanupEvent);
+        }
         CxPlatEventWaitForever(CleanupEvent);
         CxPlatEventUninitialize(CleanupEvent);
         CxPlatLockUninitialize(&Storage->Lock);
@@ -505,4 +514,44 @@ Exit:
     }
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageReset(
+    _In_ _Post_invalid_ CXPLAT_STORAGE* Storage
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageCreateTempStore(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ CXPLAT_STORAGE** TempStorage
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(TempStorage);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageSaveUIntValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ uint32_t Value
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(Value);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
