@@ -49,6 +49,7 @@ on:
         type: string
         # options:
         #   - quictls
+        #   - openssl 
         #   - schannel
       static:
         required: false

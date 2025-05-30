@@ -21,8 +21,12 @@ permissions: read-all
 
 jobs:
   build-all-frameworks:
+    strategy:
+      matrix:
+        tls: ["quictls", "openssl"]
     name: Build All Darwin Frameworks (Release)
     uses: ./.github/workflows/build-reuse-darwin-framework.yml
     with:
       config: 'Release'
       repo: ${{ github.repository }}
+      tls: ${{ matrix.tls }}
