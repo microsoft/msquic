@@ -1047,6 +1047,16 @@ typedef struct QUIC_SCHANNEL_CONTEXT_ATTRIBUTE_EX_W {
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_COMPLETE)
+void
+(QUIC_API QUIC_COMPLETE)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_COMPLETE *QUIC_COMPLETE_HANDLER;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 (QUIC_API * QUIC_SET_PARAM_FN)(
     _When_(QUIC_PARAM_IS_GLOBAL(Param), _Reserved_)
@@ -1099,6 +1109,21 @@ void
 (QUIC_API * QUIC_REGISTRATION_CLOSE_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration
+    );
+
+//
+// Asynchronously closes the registration. Instead of synchronizing cleanup,
+// this function registers a callback to be invoked when cleanup is complete.
+// This avoids deadlocks in single-threaded execution environments.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_REGISTRATION_CLOSE_ASYNC_FN)(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Registration,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
     );
 
 //
@@ -1759,6 +1784,20 @@ QUIC_STATUS
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
+// Asynchronously cleans up the function table returned from MsQuicOpenVersion
+// and releases the reference on the API. Calls the provided callback when done.
+// This avoids deadlocks in single-threaded execution environments.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API *QUIC_CLOSE_ASYNC_FN)(
+    _In_ _Pre_defensive_ const void* QuicApi,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+//
 // Version 2 API Function Table. Returned from MsQuicOpenVersion when Version
 // is 2. Also returned from MsQuicOpen2.
 //
@@ -1820,6 +1859,9 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
+
+    QUIC_REGISTRATION_CLOSE_ASYNC_FN    RegistrationCloseAsync;      // Available from v2.6
+    QUIC_CLOSE_ASYNC_FN                 CloseAsync;                  // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;

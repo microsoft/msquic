@@ -6723,6 +6723,13 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryCleanupAsyncNotSupported": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Async cleanup not fully implemented! Potential deadlock can occur.",
+      "UniqueId": "LibraryCleanupAsyncNotSupported",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogWarning"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -6795,6 +6802,13 @@
       "ModuleProperites": {},
       "TraceString": "[ api] MsQuicClose",
       "UniqueId": "LibraryMsQuicClose",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "LibraryMsQuicCloseAsync": {
+      "ModuleProperites": {},
+      "TraceString": "[ api] MsQuicCloseAsync",
+      "UniqueId": "LibraryMsQuicCloseAsync",
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
@@ -15896,6 +15910,11 @@
         "EncodingString": "[ lib] CID Length = %hhu"
       },
       {
+        "UniquenessHash": "73854fe7-74d7-b423-fcd0-a031b22f83ea",
+        "TraceID": "LibraryCleanupAsyncNotSupported",
+        "EncodingString": "[ lib] Async cleanup not fully implemented! Potential deadlock can occur."
+      },
+      {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
         "TraceID": "LibraryError",
         "EncodingString": "[ lib] ERROR, %s."
@@ -15934,6 +15953,11 @@
         "UniquenessHash": "ae77005c-231d-7848-7e06-879ecbd5363d",
         "TraceID": "LibraryMsQuicClose",
         "EncodingString": "[ api] MsQuicClose"
+      },
+      {
+        "UniquenessHash": "5002278b-50da-b411-17c5-3cd4d8aca4fb",
+        "TraceID": "LibraryMsQuicCloseAsync",
+        "EncodingString": "[ api] MsQuicCloseAsync"
       },
       {
         "UniquenessHash": "108ce8c8-296c-0dfd-9efc-9ed86bcb1c7d",

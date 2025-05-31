@@ -465,18 +465,27 @@ class MsQuicApi : public QUIC_API_TABLE {
     const void* ApiTable {nullptr};
     QUIC_STATUS InitStatus {QUIC_STATUS_INVALID_STATE};
     const MsQuicCloseFn CloseFn {nullptr};
+    const bool DeleteAsync {false};
 public:
     MsQuicApi(
         MsQuicOpenVersionFn _OpenFn = MsQuicOpenVersion,
-        MsQuicCloseFn _CloseFn = MsQuicClose) noexcept : CloseFn(_CloseFn) {
+        MsQuicCloseFn _CloseFn = MsQuicClose,
+        bool _DeleteAsync = false
+        ) noexcept : CloseFn(_CloseFn), DeleteAsync(_DeleteAsync) {
         if (QUIC_SUCCEEDED(InitStatus = _OpenFn(QUIC_API_VERSION_2, &ApiTable))) {
             QUIC_API_TABLE* thisTable = this;
             memcpy(thisTable, ApiTable, sizeof(QUIC_API_TABLE));
         }
     }
     ~MsQuicApi() noexcept {
-        if (QUIC_SUCCEEDED(InitStatus)) {
-            CloseFn(ApiTable);
+        if (ApiTable != nullptr) {
+            if (DeleteAsync) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+                QUIC_API_TABLE::CloseAsync(ApiTable, CloseComplete, nullptr);
+#endif
+            } else {
+                CloseFn(ApiTable);
+            }
             ApiTable = nullptr;
             QUIC_API_TABLE* thisTable = this;
             memset(thisTable, 0, sizeof(*thisTable));
@@ -486,6 +495,31 @@ public:
     MsQuicApi& operator=(const MsQuicApi&) = delete;
     MsQuicApi(MsQuicApi&&) = delete;
     MsQuicApi& operator=(MsQuicApi&&) = delete;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    void CloseAsync(
+        _In_ QUIC_COMPLETE_HANDLER Handler,
+        _In_opt_ void* Context) noexcept {
+        if (ApiTable != nullptr) {
+            QUIC_API_TABLE::CloseAsync(ApiTable, Handler, Context);
+            ApiTable = nullptr;
+            QUIC_API_TABLE* thisTable = this;
+            memset(thisTable, 0, sizeof(*thisTable));
+        }
+    }
+private:
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_COMPLETE)
+    static
+    void
+    QUIC_API
+    CloseComplete(
+        _In_opt_ void*
+        )
+    {
+        // No-op
+    }
+public:
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
 };
@@ -549,20 +583,23 @@ struct MsQuicExecution {
 
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
+    bool DeleteAsync {false};
     HQUIC Handle {nullptr};
     QUIC_STATUS InitStatus;
 
     operator HQUIC () const noexcept { return Handle; }
     MsQuicRegistration(
-        _In_ bool AutoCleanUp = false
-        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
+        _In_ bool AutoCleanUp = false,
+        _In_ bool DeleteAsync = false
+        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp), DeleteAsync(DeleteAsync) {
         InitStatus = MsQuic->RegistrationOpen(nullptr, &Handle);
     }
     MsQuicRegistration(
         _In_z_ const char* AppName,
         QUIC_EXECUTION_PROFILE Profile = QUIC_EXECUTION_PROFILE_LOW_LATENCY,
-        _In_ bool AutoCleanUp = false
-        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp) {
+        _In_ bool AutoCleanUp = false,
+        _In_ bool DeleteAsync = false
+        ) noexcept : CloseAllConnectionsOnDelete(AutoCleanUp), DeleteAsync(DeleteAsync) {
         const QUIC_REGISTRATION_CONFIG RegConfig = { AppName, Profile };
         InitStatus = MsQuic->RegistrationOpen(&RegConfig, &Handle);
     }
@@ -574,7 +611,13 @@ struct MsQuicRegistration {
                     QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
                     1);
             }
-            MsQuic->RegistrationClose(Handle);
+            if (DeleteAsync) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+                MsQuic->RegistrationCloseAsync(Handle, CloseComplete, nullptr);
+#endif
+            } else {
+                MsQuic->RegistrationClose(Handle);
+            }
         }
     }
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
@@ -589,6 +632,40 @@ struct MsQuicRegistration {
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STATUS CloseAsync(
+        _In_ QUIC_COMPLETE_HANDLER Handler,
+        _In_opt_ void* Context = nullptr
+        ) noexcept {
+        QUIC_STATUS Status = QUIC_STATUS_INVALID_STATE;
+        if (Handle != nullptr) {
+            if (CloseAllConnectionsOnDelete) {
+                MsQuic->RegistrationShutdown(
+                    Handle,
+                    QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT,
+                    1);
+            }
+            Status = MsQuic->RegistrationCloseAsync(Handle, Handler, Context);
+            if (QUIC_SUCCEEDED(Status)) {
+                // Prevent auto-cleanup in destructor, async cleanup will handle it
+                Handle = nullptr;
+            }
+        }
+        return Status;
+    }
+private:
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_COMPLETE)
+    static
+    void
+    QUIC_API
+    CloseComplete(
+        _In_opt_ void*
+        )
+    {
+        // No-op
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 };
 
 class MsQuicAlpn {

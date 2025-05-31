@@ -61,8 +61,14 @@ void QueueCleanupJob() {
     auto Sqe = new(std::nothrow) QUIC_SQE;
     ZeroMemory(&Sqe->Overlapped, sizeof(Sqe->Overlapped));
     Sqe->Completion = [](QUIC_CQE* Cqe) {
-        printf("Cleaning up...\n");
-        AllDone = true;
+        printf("Cleaning up asynchronously...\n");
+        // Using the new MsQuicRegistrationCloseAsync API to avoid deadlocks in the external app-driven execution model
+        Registration->CloseAsync(
+            [](void* /* Context */) {
+                printf("Registration closed asynchronously\n");
+                AllDone = true;
+            },
+            nullptr);
         delete CONTAINING_RECORD(Cqe->lpOverlapped, QUIC_SQE, Overlapped);
     };
     IOCP->Enqueue(&Sqe->Overlapped);

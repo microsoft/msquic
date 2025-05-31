@@ -67,7 +67,7 @@ MsQuicRegistrationOpen(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+            RegistrationSize);
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
@@ -83,7 +83,7 @@ MsQuicRegistrationOpen(
     CxPlatDispatchLockInitialize(&Registration->ConnectionLock);
     CxPlatListInitializeHead(&Registration->Connections);
     CxPlatListInitializeHead(&Registration->Listeners);
-    CxPlatRundownInitialize(&Registration->Rundown);
+    CxPlatRefInitialize(&Registration->RefCount);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -129,7 +129,6 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
-        CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
@@ -141,6 +140,49 @@ Error:
         Status);
 
     return Status;
+}
+
+void
+QuicRegistrationCloseComplete(
+    _In_ QUIC_REGISTRATION* Registration
+    )
+{
+    QuicTraceLogInfo(
+        QuicRegistrationCloseComplete,
+        "[ reg][%p] Close complete",
+        Registration);
+
+    QUIC_COMPLETE_HANDLER CompleteHandler = Registration->CompleteHandler;
+    void* CompleteContext = Registration->CompleteContext;
+    CXPLAT_DBG_ASSERT(CompleteHandler != NULL);
+
+    QuicWorkerPoolUninitialize(Registration->WorkerPool);
+    CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+    CxPlatLockUninitialize(&Registration->ConfigLock);
+    CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+
+    QuicTraceLogInfo(
+        QuicRegistrationCloseCompleteHandler,
+        "[ reg][%p] Close complete - calling handler",
+        Registration);
+
+    CompleteHandler(CompleteContext);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Function_class_(QUIC_COMPLETE)
+void
+QUIC_API
+QuicRegistrationCloseCompleteCallback(
+    _In_opt_ void* Context
+    )
+{
+    CXPLAT_EVENT* CloseCompleteEvent = (CXPLAT_EVENT*)Context;
+    CXPLAT_DBG_ASSERT(CloseCompleteEvent != NULL);
+    QuicTraceLogInfo(
+        RegistrationCloseCompleteCallback,
+        "[ reg] Sync close complete!");
+    CxPlatEventSet(*CloseCompleteEvent);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -161,10 +203,10 @@ MsQuicRegistrationClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-        QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up",
-            Registration);
+        CXPLAT_EVENT CompletionEvent;
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+        Registration->CompleteHandler = QuicRegistrationCloseCompleteCallback;
+        Registration->CompleteContext = &CompletionEvent;
 
         if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
             CxPlatLockAcquire(&MsQuicLib.Lock);
@@ -172,19 +214,61 @@ MsQuicRegistrationClose(
             CxPlatLockRelease(&MsQuicLib.Lock);
         }
 
-        CxPlatRundownReleaseAndWait(&Registration->Rundown);
+        if (!QuicRegistrationRelease(Registration)) {
+            CxPlatEventWaitForever(CompletionEvent); // Didn't complete inline, so wait
+        }
 
-        QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        CxPlatRundownUninitialize(&Registration->Rundown);
-        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
-        CxPlatLockUninitialize(&Registration->ConfigLock);
-
-        CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+        CxPlatEventUninitialize(CompletionEvent);
 
         QuicTraceEvent(
             ApiExit,
             "[ api] Exit");
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicRegistrationCloseAsync(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Handle,
+    _In_ QUIC_COMPLETE_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
+
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION &&
+        Handler != NULL) {
+        QuicTraceEvent(
+            ApiEnter,
+            "[ api] Enter %u (%p).",
+            QUIC_TRACE_API_REGISTRATION_CLOSE_ASYNC,
+            Handle);
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+
+        Registration->CompleteHandler = Handler;
+        Registration->CompleteContext = Context;
+
+        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+            CxPlatLockAcquire(&MsQuicLib.Lock);
+            CxPlatListEntryRemove(&Registration->Link);
+            CxPlatLockRelease(&MsQuicLib.Lock);
+        }
+
+        Status =
+            QuicRegistrationRelease(Registration) ?
+                QUIC_STATUS_SUCCESS : QUIC_STATUS_PENDING;
+
+        QuicTraceEvent(
+            ApiExitStatus,
+            "[ api] Exit %u",
+            Status);
+    }
+
+    return Status;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

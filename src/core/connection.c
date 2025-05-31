@@ -392,7 +392,7 @@ QuicConnFree(
         QuicPerfCounterDecrement(Partition, QUIC_PERF_COUNTER_CONN_CONNECTED);
     }
     if (Connection->Registration != NULL) {
-        CxPlatRundownRelease(&Connection->Registration->Rundown);
+        QuicRegistrationRelease(Connection->Registration);
     }
     if (Connection->CloseReasonPhrase != NULL) {
         CXPLAT_FREE(Connection->CloseReasonPhrase, QUIC_POOL_CLOSE_REASON);
@@ -473,7 +473,7 @@ QuicConnUnregister(
         CxPlatDispatchLockAcquire(&Connection->Registration->ConnectionLock);
         CxPlatListEntryRemove(&Connection->RegistrationLink);
         CxPlatDispatchLockRelease(&Connection->Registration->ConnectionLock);
-        CxPlatRundownRelease(&Connection->Registration->Rundown);
+        QuicRegistrationRelease(Connection->Registration);
 
         QuicTraceEvent(
             ConnUnregistered,
@@ -495,7 +495,7 @@ QuicConnRegister(
 {
     QuicConnUnregister(Connection);
 
-    if (!CxPlatRundownAcquire(&Registration->Rundown)) {
+    if (!QuicRegistrationAddRef(Registration)) {
         return FALSE;
     }
     Connection->State.Registered = TRUE;
@@ -518,7 +518,7 @@ QuicConnRegister(
     if (RegistrationShuttingDown) {
         Connection->State.Registered = FALSE;
         Connection->Registration = NULL;
-        CxPlatRundownRelease(&Registration->Rundown);
+        QuicRegistrationRelease(Registration);
     } else {
         QuicTraceEvent(
             ConnRegistered,

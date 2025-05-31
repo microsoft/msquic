@@ -70,9 +70,9 @@ tracepoint(CLOG_REGISTRATION_C, ApiEnter , arg2, arg3);\
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "registration",
-            sizeof(QUIC_REGISTRATION) + AppNameLength + 1);
+            RegistrationSize);
 // arg2 = arg2 = "registration" = arg2
-// arg3 = arg3 = sizeof(QUIC_REGISTRATION) + AppNameLength + 1 = arg3
+// arg3 = arg3 = RegistrationSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -117,24 +117,6 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationCreatedV2 , arg2, arg3, arg4);\
 #ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 #define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_REGISTRATION_C, ApiExitStatus , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RegistrationCleanup
-// [ reg][%p] Cleaning up
-// QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up",
-            Registration);
-// arg2 = arg2 = Registration = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RegistrationCleanup
-#define _clog_3_ARGS_TRACE_RegistrationCleanup(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_REGISTRATION_C, RegistrationCleanup , arg2);\
 
 #endif
 
