@@ -2774,6 +2774,102 @@ void QuicTestGlobalParam()
 #endif
 
     //
+    // QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
+        const uint32_t SecretLength = 32;
+        const auto BufferLength = sizeof(QUIC_STATELESS_RETRY_CONFIG) + SecretLength;
+        UniquePtr<uint8_t[]> Buffer (new (std::nothrow) uint8_t[BufferLength]);
+        QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer.get();
+
+        Config->SecretLength = SecretLength;
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        Config->RotationMs = 60000;
+        Config->Secret = (uint8_t*)(Config + 1);
+
+        // Null buffer
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                nullptr));
+
+        // Wrong size - smaller than QUIC_STATELESS_RETRY_CONFIG
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(QUIC_STATELESS_RETRY_CONFIG) - 1,
+                Config));
+
+        // Invalid algorithm
+        Config->Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+
+        // zero length secret
+        Config->SecretLength = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->SecretLength = SecretLength;
+
+        // Null secret
+        Config->Secret = nullptr;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->Secret = (uint8_t*)(Config + 1);
+
+        // Incorrect length secret
+        Config->SecretLength = 10;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->SecretLength = SecretLength;
+
+        // Zero rotation
+        Config->RotationMs = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+        Config->RotationMs = 60000;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                BufferLength,
+                Config));
+    }
+
+    //
     // Invalid parameter
     //
     {
@@ -6708,3 +6804,106 @@ QuicTestValidateConnectionPoolCreate()
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct QuicTestResetGlobalRegConfig {
+    public:
+    QuicTestResetGlobalRegConfig(char* RegName) : RegName(RegName), BufferLength(0), RegNotPresent(false) {
+#ifdef _KERNEL_MODE
+        // TODO
+#elif _WIN32
+#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
+    HKEY RegKey;
+    TEST_QUIC_SUCCEEDED(
+        HRESULT_FROM_WIN32(
+        RegOpenKeyExA(
+            HKEY_LOCAL_MACHINE,
+            MSQUIC_GLOBAL_PARAMETERS_PATH,
+            0,
+            KEY_READ,
+            &RegKey)));
+    if (QUIC_SUCCEEDED(
+        HRESULT_FROM_WIN32(
+            RegQueryValueExA(
+                RegKey,
+                RegName,
+                NULL,
+                (PDWORD)&RegType,
+                nullptr,
+                (PDWORD)&BufferLength)))) {
+
+        Buffer.reset(new (std::nothrow) uint8_t[BufferLength]);
+
+        TEST_QUIC_SUCCEEDED(
+            HRESULT_FROM_WIN32(
+                RegQueryValueExA(
+                    RegKey,
+                    RegName,
+                    NULL,
+                    (PDWORD)&RegType,
+                    Buffer.get(),
+                    (PDWORD)&BufferLength)));
+
+        TEST_EQUAL(NO_ERROR, RegCloseKey(RegKey));
+
+        TEST_EQUAL(NO_ERROR,
+            RegDeleteKeyValueA(
+                HKEY_LOCAL_MACHINE,
+                MSQUIC_GLOBAL_PARAMETERS_PATH,
+                RegName));
+
+    } else {
+        RegCloseKey(RegKey);
+        RegNotPresent = true;
+    }
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+    }
+
+    QuicTestResetGlobalRegConfig(const QuicTestResetGlobalRegConfig& other) = delete;
+    QuicTestResetGlobalRegConfig(QuicTestResetGlobalRegConfig&& other) = delete;
+    QuicTestResetGlobalRegConfig& operator=(const QuicTestResetGlobalRegConfig& other) = delete;
+    QuicTestResetGlobalRegConfig& operator=(QuicTestResetGlobalRegConfig&& other) = delete;
+
+    ~QuicTestResetGlobalRegConfig() {
+#ifdef _KERNEL_MODE
+        // TODO
+#elif _WIN32
+        if (RegNotPresent) {
+            RegDeleteKeyValueA(
+                HKEY_LOCAL_MACHINE,
+                MSQUIC_GLOBAL_PARAMETERS_PATH,
+                RegName);
+
+        } else {
+            HKEY RegKey;
+            TEST_QUIC_SUCCEEDED(
+                HRESULT_FROM_WIN32(
+                RegOpenKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    MSQUIC_GLOBAL_PARAMETERS_PATH,
+                    0,
+                    KEY_WRITE,
+                    &RegKey)));
+            TEST_EQUAL(
+                NO_ERROR,
+                RegSetKeyValueA(
+                    HKEY_LOCAL_MACHINE,
+                    MSQUIC_GLOBAL_PARAMETERS_PATH,
+                    RegName,
+                    RegType,
+                    Buffer.get(),
+                    BufferLength));
+            RegCloseKey(RegKey);
+        }
+#else
+    TEST_FAILURE("Storage tests not supported on this platform");
+#endif
+    }
+private:
+    char* RegName;
+    UniquePtr<uint8_t[]> Buffer;
+    uint32_t BufferLength;
+    uint32_t RegType;
+    bool RegNotPresent;
+};
