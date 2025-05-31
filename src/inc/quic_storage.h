@@ -34,6 +34,13 @@ void
 
 typedef CXPLAT_STORAGE_CHANGE_CALLBACK *CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER;
 
+typedef enum CXPLAT_STORAGE_OPEN_FLAGS {
+    CXPLAT_STORAGE_OPEN_FLAG_NONE =     0x0,
+    CXPLAT_STORAGE_OPEN_FLAG_WRITABLE = 0x1
+} CXPLAT_STORAGE_OPEN_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_STORAGE_OPEN_FLAGS);
+
 //
 // Opens a storage context, registers for change callbacks and returns a
 // handle to it.
@@ -44,6 +51,7 @@ CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     );
 
@@ -67,6 +75,26 @@ CxPlatStorageReadValue(
     _Out_writes_bytes_to_opt_(*BufferLength, *BufferLength)
         uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength
+    );
+
+typedef enum CXPLAT_STORAGE_TYPE {
+    CXPLAT_STORAGE_INTEGER32,
+    CXPLAT_STORAGE_INTEGER64,
+    CXPLAT_STORAGE_BINARY
+} CXPLAT_STORAGE_TYPE;
+
+//
+// Write a value to the storage context
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageWriteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name,
+    _In_ CXPLAT_STORAGE_TYPE Type,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * Buffer
     );
 
 #if defined(__cplusplus)

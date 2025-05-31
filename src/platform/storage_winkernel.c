@@ -95,13 +95,10 @@ typedef struct CXPLAT_STORAGE {
 
 } CXPLAT_STORAGE;
 
-//
-// Converts a UTF-8 string to a UNICODE_STRING object. The variable must be
-// freed with CXPLAT_FREE when done with it.
-//
 QUIC_STATUS
 CxPlatConvertUtf8ToUnicode(
     _In_z_ const char * Utf8String,
+    _In_ uint32_t Tag,
     _Out_ PUNICODE_STRING * NewUnicodeString
     )
 {
@@ -128,7 +125,7 @@ CxPlatConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, Tag);
 
     if (UnicodeString == NULL) {
         QuicTraceEvent(
@@ -151,7 +148,12 @@ CxPlatConvertUtf8ToUnicode(
             Utf8String,
             (ULONG)Utf8Length);
     if (QUIC_FAILED(Status)) {
-        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
+        CXPLAT_FREE(UnicodeString, Tag);
         return Status;
     }
 
@@ -247,6 +249,7 @@ CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
@@ -305,10 +308,16 @@ CxPlatStorageOpen(
         Storage);
 #pragma warning(pop)
 
+    ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
+        DesiredAccess |= KEY_WRITE;
+    }
+
     Status =
         ZwOpenKey(
             &Storage->RegKey,
-            KEY_READ | KEY_NOTIFY,
+            DesiredAccess,
             &Attributes);
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -433,7 +442,7 @@ CxPlatStorageReadValue(
     PUNICODE_STRING NameUnicode;
 
     if (Name != NULL) {
-        Status = CxPlatConvertUtf8ToUnicode(Name, &NameUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameUnicode);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
@@ -503,6 +512,54 @@ Exit:
     if (NameUnicode != NULL) {
         CXPLAT_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageWriteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name,
+    _In_ CXPLAT_STORAGE_TYPE Type,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * Buffer
+    )
+{
+    QUIC_STATUS Status;
+    PUNICODE_STRING NameString = NULL;
+    uint32_t RegType;
+
+    switch(Type) {
+    case CXPLAT_STORAGE_INTEGER32:
+        RegType = REG_DWORD;
+        break;
+    case CXPLAT_STORAGE_INTEGER64:
+        RegType = REG_QWORD;
+        break;
+    case CXPLAT_STORAGE_BINARY:
+        RegType = REG_BINARY;
+        break;
+    default:
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameString);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Status =
+        ZwSetValueKey(
+            Storage->RegKey,
+            NameString,
+            0,
+            RegType,
+            (PVOID)Buffer,
+            BufferLength);
+
+    CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     return Status;
 }
