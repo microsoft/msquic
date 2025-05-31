@@ -514,8 +514,8 @@ QuicLibraryUninitializePart2Complete(
     )
 {
     QUIC_API_TABLE_EX* ApiTable = (QUIC_API_TABLE_EX*)Context;
-    QUIC_COMPLETE_HANDLER CompleteHandler;
-    void* CompleteContext;
+    QUIC_COMPLETE_HANDLER CompleteHandler = NULL;
+    void* CompleteContext = NULL;
 
     if (ApiTable != NULL) {
         CompleteHandler = ApiTable->CompleteHandler;
