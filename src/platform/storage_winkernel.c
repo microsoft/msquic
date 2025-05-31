@@ -247,7 +247,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
@@ -297,21 +297,27 @@ CxPlatStorageOpen(
 
     CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     CxPlatLockInitialize(&Storage->Lock);
-    Storage->Callback = Callback;
-    Storage->CallbackContext = CallbackContext;
+    if (Callback != NULL) {
+        Storage->Callback = Callback;
+        Storage->CallbackContext = CallbackContext;
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
-    ExInitializeWorkItem(
-        &Storage->WorkItem,
-        CxPlatStorageRegKeyChangeCallback,
-        Storage);
+        ExInitializeWorkItem(
+            &Storage->WorkItem,
+            CxPlatStorageRegKeyChangeCallback,
+            Storage);
 #pragma warning(pop)
+    }
 
     ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
 
     if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
         DesiredAccess |= KEY_WRITE;
+    }
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE) {
+        DesiredAccess |= DELETE;
     }
 
     Status =
@@ -328,25 +334,27 @@ CxPlatStorageOpen(
         goto Exit;
     }
 
-    Status =
-        ZwNotifyChangeKey(
-            Storage->RegKey,
-            NULL,
-            (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
-            (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
-            &Storage->IoStatusBlock,
-            REG_NOTIFY_CHANGE_LAST_SET,
-            FALSE,
-            NULL,
-            0,
-            TRUE);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwNotifyChangeKey failed");
-        goto Exit;
+    if (Callback != NULL) {
+        Status =
+            ZwNotifyChangeKey(
+                Storage->RegKey,
+                NULL,
+                (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
+                (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
+                &Storage->IoStatusBlock,
+                REG_NOTIFY_CHANGE_LAST_SET,
+                FALSE,
+                NULL,
+                0,
+                TRUE);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwNotifyChangeKey failed");
+            goto Exit;
+        }
     }
 
     *NewStorage = Storage;
@@ -371,21 +379,26 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
         CXPLAT_EVENT CleanupEvent;
-        CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
+        if (Storage->Callback != NULL) {
+            CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
-        CxPlatLockAcquire(&Storage->Lock);
+            CxPlatLockAcquire(&Storage->Lock);
+        }
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
         Storage->RegKey = NULL;
-        Storage->CleanupEvent = &CleanupEvent;
-        CxPlatLockRelease(&Storage->Lock);
 
-        CxPlatEventWaitForever(CleanupEvent);
-        CxPlatEventUninitialize(CleanupEvent);
+        if (Storage->Callback != NULL) {
+            Storage->CleanupEvent = &CleanupEvent;
+            CxPlatLockRelease(&Storage->Lock);
+
+            CxPlatEventWaitForever(CleanupEvent);
+            CxPlatEventUninitialize(CleanupEvent);
+        }
         CxPlatLockUninitialize(&Storage->Lock);
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
@@ -532,13 +545,13 @@ CxPlatStorageWriteValue(
     uint32_t RegType;
 
     switch(Type) {
-    case CXPLAT_STORAGE_INTEGER32:
+    case CXPLAT_STORAGE_TYPE_INTEGER32:
         RegType = REG_DWORD;
         break;
-    case CXPLAT_STORAGE_INTEGER64:
+    case CXPLAT_STORAGE_TYPE_INTEGER64:
         RegType = REG_QWORD;
         break;
-    case CXPLAT_STORAGE_BINARY:
+    case CXPLAT_STORAGE_TYPE_BINARY:
         RegType = REG_BINARY;
         break;
     default:
@@ -558,6 +571,31 @@ CxPlatStorageWriteValue(
             RegType,
             (PVOID)Buffer,
             BufferLength);
+
+    CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageDeleteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name
+    )
+{
+    QUIC_STATUS Status;
+    PUNICODE_STRING NameString = NULL;
+
+    Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameString);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Status =
+        ZwDeleteValueKey(
+            Storage->RegKey,
+            NameString);
 
     CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
 

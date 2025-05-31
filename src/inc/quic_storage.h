@@ -35,8 +35,9 @@ void
 typedef CXPLAT_STORAGE_CHANGE_CALLBACK *CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER;
 
 typedef enum CXPLAT_STORAGE_OPEN_FLAGS {
-    CXPLAT_STORAGE_OPEN_FLAG_NONE =     0x0,
-    CXPLAT_STORAGE_OPEN_FLAG_WRITABLE = 0x1
+    CXPLAT_STORAGE_OPEN_FLAG_NONE =         0x0,
+    CXPLAT_STORAGE_OPEN_FLAG_WRITABLE =     0x1,
+    CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE =   0x2
 } CXPLAT_STORAGE_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_STORAGE_OPEN_FLAGS);
@@ -49,7 +50,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
@@ -61,7 +62,7 @@ CxPlatStorageOpen(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     );
 
 //
@@ -78,9 +79,9 @@ CxPlatStorageReadValue(
     );
 
 typedef enum CXPLAT_STORAGE_TYPE {
-    CXPLAT_STORAGE_INTEGER32,
-    CXPLAT_STORAGE_INTEGER64,
-    CXPLAT_STORAGE_BINARY
+    CXPLAT_STORAGE_TYPE_INTEGER32,
+    CXPLAT_STORAGE_TYPE_INTEGER64,
+    CXPLAT_STORAGE_TYPE_BINARY
 } CXPLAT_STORAGE_TYPE;
 
 //
@@ -95,6 +96,13 @@ CxPlatStorageWriteValue(
     _In_ uint32_t BufferLength,
     _In_reads_bytes_(BufferLength)
         const uint8_t * Buffer
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageDeleteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name
     );
 
 #if defined(__cplusplus)

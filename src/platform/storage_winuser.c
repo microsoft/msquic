@@ -91,7 +91,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
@@ -122,23 +122,25 @@ CxPlatStorageOpen(
     }
 
     CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
-    Storage->Callback = Callback;
-    Storage->CallbackContext = CallbackContext;
+    if (Callback != NULL) {
+        Storage->Callback = Callback;
+        Storage->CallbackContext = CallbackContext;
 
-    Storage->NotifyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (Storage->NotifyEvent == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+        Storage->NotifyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (Storage->NotifyEvent == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
 
-    Storage->ThreadPoolWait =
-        CreateThreadpoolWait(
-            CxPlatStorageRegKeyChangeCallback,
-            Storage,
-            NULL);
-    if (Storage->ThreadPoolWait == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+        Storage->ThreadPoolWait =
+            CreateThreadpoolWait(
+                CxPlatStorageRegKeyChangeCallback,
+                Storage,
+                NULL);
+        if (Storage->ThreadPoolWait == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -150,6 +152,10 @@ CxPlatStorageOpen(
 
     if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
         DesiredAccess |= KEY_WRITE;
+    }
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE) {
+        DesiredAccess |= DELETE;
     }
 
 #pragma prefast(suppress:6001, "SAL can't track FullKeyName")
@@ -170,42 +176,33 @@ CxPlatStorageOpen(
         goto Exit;
     }
 
-    Status =
-        HRESULT_FROM_WIN32(
-        RegNotifyChangeKeyValue(
-            Storage->RegKey,
-            FALSE,
-            REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
-            Storage->NotifyEvent,
-            TRUE));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegNotifyChangeKeyValue failed");
-        goto Exit;
-    }
+    if (Callback != NULL) {
+        Status =
+            HRESULT_FROM_WIN32(
+            RegNotifyChangeKeyValue(
+                Storage->RegKey,
+                FALSE,
+                REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
+                Storage->NotifyEvent,
+                TRUE));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegNotifyChangeKeyValue failed");
+            goto Exit;
+        }
 
-    SetThreadpoolWait(Storage->ThreadPoolWait, Storage->NotifyEvent, NULL);
+        SetThreadpoolWait(Storage->ThreadPoolWait, Storage->NotifyEvent, NULL);
+    }
 
     *NewStorage = Storage;
     Storage = NULL;
 
 Exit:
 
-    if (Storage != NULL) {
-        if (Storage->RegKey != NULL) {
-            RegCloseKey(Storage->RegKey);
-        }
-        if (Storage->ThreadPoolWait) {
-            CloseThreadpoolWait(Storage->ThreadPoolWait);
-        }
-        if (Storage->NotifyEvent != NULL) {
-            CxPlatCloseHandle(Storage->NotifyEvent);
-        }
-        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
-    }
+    CxPlatStorageClose(Storage);
 
     return Status;
 }
@@ -213,14 +210,22 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
-        WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
-        RegCloseKey(Storage->RegKey);
-        CloseThreadpoolWait(Storage->ThreadPoolWait);
-        CxPlatCloseHandle(Storage->NotifyEvent);
+        if (Storage->ThreadPoolWait != NULL) {
+            WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
+        }
+        if (Storage->RegKey != NULL) {
+            RegCloseKey(Storage->RegKey);
+        }
+        if (Storage->ThreadPoolWait != NULL) {
+            CloseThreadpoolWait(Storage->ThreadPoolWait);
+        }
+        if (Storage->NotifyEvent != NULL) {
+            CxPlatCloseHandle(Storage->NotifyEvent);
+        }
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
@@ -289,13 +294,13 @@ CxPlatStorageWriteValue(
     uint32_t RegType;
 
     switch(Type) {
-    case CXPLAT_STORAGE_INTEGER32:
+    case CXPLAT_STORAGE_TYPE_INTEGER32:
         RegType = REG_DWORD;
         break;
-    case CXPLAT_STORAGE_INTEGER64:
+    case CXPLAT_STORAGE_TYPE_INTEGER64:
         RegType = REG_QWORD;
         break;
-    case CXPLAT_STORAGE_BINARY:
+    case CXPLAT_STORAGE_TYPE_BINARY:
         RegType = REG_BINARY;
         break;
     default:
@@ -311,4 +316,18 @@ CxPlatStorageWriteValue(
                 RegType,
                 Buffer,
                 BufferLength));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageDeleteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name
+    )
+{
+    return
+        HRESULT_FROM_WIN32(
+            RegDeleteValueA(
+                Storage->RegKey,
+                Name));
 }

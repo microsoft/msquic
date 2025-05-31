@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_UNIT_TESTS
+
 #include "main.h"
 #ifdef QUIC_CLOG
 #include "SettingsTest.cpp.clog.h"
@@ -334,6 +336,277 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
+TEST(SettingsTest, QuicSettingsSetDefault_SetsAllDefaultsWhenUnset)
+{
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    // Set all IsSet fields to 0 to simulate unset state
+    Settings.IsSetFlags = 0;
+
+    QuicSettingsSetDefault(&Settings);
+
+    // Spot-check a few representative fields (add more as needed)
+    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+    ASSERT_EQ(Settings.DatagramReceiveEnabled, QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED);
+    ASSERT_EQ(Settings.MaxOperationsPerDrain, QUIC_MAX_OPERATIONS_PER_DRAIN);
+    ASSERT_EQ(Settings.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
+    ASSERT_EQ(Settings.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
+    ASSERT_EQ(Settings.FixedServerID, 0u);
+    ASSERT_EQ(Settings.MaxWorkerQueueDelayUs, MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY));
+    ASSERT_EQ(Settings.MaxStatelessOperations, QUIC_MAX_STATELESS_OPERATIONS);
+    ASSERT_EQ(Settings.InitialWindowPackets, QUIC_INITIAL_WINDOW_PACKETS);
+    ASSERT_EQ(Settings.SendIdleTimeoutMs, QUIC_DEFAULT_SEND_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(Settings.InitialRttMs, QUIC_INITIAL_RTT);
+    ASSERT_EQ(Settings.MaxAckDelayMs, QUIC_TP_MAX_ACK_DELAY_DEFAULT);
+    ASSERT_EQ(Settings.DisconnectTimeoutMs, QUIC_DEFAULT_DISCONNECT_TIMEOUT);
+    ASSERT_EQ(Settings.KeepAliveIntervalMs, QUIC_DEFAULT_KEEP_ALIVE_INTERVAL);
+    ASSERT_EQ(Settings.IdleTimeoutMs, QUIC_DEFAULT_IDLE_TIMEOUT);
+    ASSERT_EQ(Settings.HandshakeIdleTimeoutMs, QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT);
+    ASSERT_EQ(Settings.PeerBidiStreamCount, 0u);
+    ASSERT_EQ(Settings.PeerUnidiStreamCount, 0u);
+    ASSERT_EQ(Settings.TlsClientMaxSendBuffer, QUIC_MAX_TLS_SERVER_SEND_BUFFER); // Note: last assignment in function
+    ASSERT_EQ(Settings.StreamRecvWindowDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowBidiLocalDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowBidiRemoteDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvWindowUnidiDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
+    ASSERT_EQ(Settings.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
+    ASSERT_EQ(Settings.ConnFlowControlWindow, QUIC_DEFAULT_CONN_FLOW_CONTROL_WINDOW);
+    ASSERT_EQ(Settings.MaxBytesPerKey, QUIC_DEFAULT_MAX_BYTES_PER_KEY);
+    ASSERT_EQ(Settings.ServerResumptionLevel, (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL);
+    ASSERT_EQ(Settings.VersionNegotiationExtEnabled, QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED);
+    ASSERT_EQ(Settings.MinimumMtu, QUIC_DPLPMTUD_DEFAULT_MIN_MTU);
+    ASSERT_EQ(Settings.MaximumMtu, QUIC_DPLPMTUD_DEFAULT_MAX_MTU);
+    ASSERT_EQ(Settings.MtuDiscoveryMissingProbeCount, QUIC_DPLPMTUD_MAX_PROBES);
+    ASSERT_EQ(Settings.MtuDiscoverySearchCompleteTimeoutUs, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
+    ASSERT_EQ(Settings.MaxBindingStatelessOperations, QUIC_MAX_BINDING_STATELESS_OPERATIONS);
+    ASSERT_EQ(Settings.StatelessOperationExpirationMs, QUIC_STATELESS_OPERATION_EXPIRATION_MS);
+    ASSERT_EQ(Settings.CongestionControlAlgorithm, QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT);
+    ASSERT_EQ(Settings.DestCidUpdateIdleTimeoutMs, QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS);
+    ASSERT_EQ(Settings.GreaseQuicBitEnabled, QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED);
+    ASSERT_EQ(Settings.EcnEnabled, QUIC_DEFAULT_ECN_ENABLED);
+    ASSERT_EQ(Settings.HyStartEnabled, QUIC_DEFAULT_HYSTART_ENABLED);
+    ASSERT_EQ(Settings.EncryptionOffloadAllowed, QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED);
+    ASSERT_EQ(Settings.ReliableResetEnabled, QUIC_DEFAULT_RELIABLE_RESET_ENABLED);
+    ASSERT_EQ(Settings.XdpEnabled, QUIC_DEFAULT_XDP_ENABLED);
+    ASSERT_EQ(Settings.QTIPEnabled, QUIC_DEFAULT_QTIP_ENABLED);
+    ASSERT_EQ(Settings.RioEnabled, QUIC_DEFAULT_RIO_ENABLED);
+    ASSERT_EQ(Settings.OneWayDelayEnabled, QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED);
+    ASSERT_EQ(Settings.NetStatsEventEnabled, QUIC_DEFAULT_NET_STATS_EVENT_ENABLED);
+    ASSERT_EQ(Settings.StreamMultiReceiveEnabled, QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED);
+}
+
+TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
+{
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    // Set a few fields and mark them as set
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 0;
+    Settings.IsSet.PacingEnabled = 1;
+    Settings.PacingEnabled = 0;
+    QuicSettingsSetDefault(&Settings);
+
+    // These should not be overwritten
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0);
+    ASSERT_EQ(Settings.PacingEnabled, 0);
+
+    // But an unset field should be set to default
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+}
+
+struct QuicStorageSettingScopeGuard {
+public:
+    QuicStorageSettingScopeGuard(
+        _In_opt_ const char* StorageName,
+        _In_z_ const char* SettingName) :
+        m_StorageName(StorageName), m_SettingName(SettingName) {}
+
+    QuicStorageSettingScopeGuard(const QuicStorageSettingScopeGuard&) = delete;
+    QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
+
+    QuicStorageSettingScopeGuard(QuicStorageSettingScopeGuard&&) = delete;
+    QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&&) = delete;
+
+    ~QuicStorageSettingScopeGuard() {
+        CXPLAT_STORAGE* Storage;
+        EXPECT_EQ(
+            QUIC_STATUS_SUCCESS,
+            CxPlatStorageOpen(
+                m_StorageName,
+                nullptr,
+                nullptr,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE|CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+                &Storage));
+
+        EXPECT_EQ(
+            QUIC_STATUS_SUCCESS,
+            CxPlatStorageDeleteValue(
+                Storage,
+                m_SettingName));
+
+        CxPlatStorageClose(Storage);
+    }
+
+private:
+    const char* m_StorageName;
+    const char* m_SettingName;
+};
+
+// --- Test: QuicSettingsLoad sets fields from storage ---
+TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
+{
+    CXPLAT_STORAGE* Storage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+            &Storage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    uint32_t Value = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            Storage,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_INTEGER32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+    QuicStorageSettingScopeGuard SendBufferGuard("TEST", QUIC_SETTING_SEND_BUFFERING_DEFAULT);
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            Storage,
+            QUIC_SETTING_SEND_PACING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_INTEGER32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+    QuicStorageSettingScopeGuard PacingGuard("TEST", QUIC_SETTING_SEND_PACING_DEFAULT);
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            Storage,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            CXPLAT_STORAGE_TYPE_INTEGER32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+    QuicStorageSettingScopeGuard MigrationGuard("TEST", QUIC_SETTING_MIGRATION_ENABLED);
+
+    Value = 7;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            Storage,
+            QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
+            CXPLAT_STORAGE_TYPE_INTEGER32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+    QuicStorageSettingScopeGuard DrainGuard("TEST", QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN);
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, Storage);
+
+    // Check that the values were loaded
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0u);
+    ASSERT_EQ(Settings.PacingEnabled, 0u);
+    ASSERT_EQ(Settings.MigrationEnabled, 0u);
+    ASSERT_EQ(Settings.MaxOperationsPerDrain, 7u);
+
+    QuicSettingsDumpNew(&Settings);
+
+    CxPlatStorageClose(Storage);
+}
+
+// --- Test: QuicSettingsLoad does not overwrite set fields ---
+TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
+{
+    CXPLAT_STORAGE* Storage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+            &Storage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    uint32_t Value = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            Storage,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_INTEGER32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+    QuicStorageSettingScopeGuard SendBufferGuard("TEST", QUIC_SETTING_SEND_BUFFERING_DEFAULT);
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    // Mark SendBufferingEnabled as set
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 1;
+
+    QuicSettingsLoad(&Settings, Storage);
+
+    // Should not be overwritten
+    ASSERT_EQ(Settings.SendBufferingEnabled, 1u);
+
+    CxPlatStorageClose(Storage);
+}
+
+// --- Test: QuicSettingsLoad uses default if storage missing ---
+TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
+{
+    CXPLAT_STORAGE* Storage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "TEST",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_NONE,
+            &Storage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, Storage);
+
+    // Should use default
+    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+
+    CxPlatStorageClose(Storage);
+}
 
 TEST(SettingsTest, SettingsSizesGet)
 {
