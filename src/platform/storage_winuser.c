@@ -93,6 +93,7 @@ CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
@@ -145,6 +146,12 @@ CxPlatStorageOpen(
         "[ reg] Opening %s",
         FullKeyName);
 
+    REGSAM DesiredAccess = KEY_READ | KEY_NOTIFY;
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
+        DesiredAccess |= KEY_WRITE;
+    }
+
 #pragma prefast(suppress:6001, "SAL can't track FullKeyName")
     Status =
         HRESULT_FROM_WIN32(
@@ -152,7 +159,7 @@ CxPlatStorageOpen(
             HKEY_LOCAL_MACHINE,
             FullKeyName,
             0,
-            KEY_READ | KEY_NOTIFY,
+            DesiredAccess,
             &Storage->RegKey));
     if (QUIC_FAILED(Status)) {
         QuicTraceEvent(
@@ -266,4 +273,42 @@ CxPlatStorageReadValue(
                 &Type,
                 Buffer,
                 (PDWORD)BufferLength));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageWriteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name,
+    _In_ CXPLAT_STORAGE_TYPE Type,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * Buffer
+    )
+{
+    uint32_t RegType;
+
+    switch(Type) {
+    case CXPLAT_STORAGE_INTEGER32:
+        RegType = REG_DWORD;
+        break;
+    case CXPLAT_STORAGE_INTEGER64:
+        RegType = REG_QWORD;
+        break;
+    case CXPLAT_STORAGE_BINARY:
+        RegType = REG_BINARY;
+        break;
+    default:
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    return
+        HRESULT_FROM_WIN32(
+            RegSetValueExA(
+                Storage->RegKey,
+                Name,
+                0,
+                RegType,
+                Buffer,
+                BufferLength));
 }

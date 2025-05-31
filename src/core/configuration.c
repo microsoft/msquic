@@ -128,6 +128,7 @@ MsQuicConfigurationOpen(
                 NULL,
                 (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
+                CXPLAT_STORAGE_OPEN_FLAG_NONE,
                 &Configuration->Storage);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(
@@ -156,6 +157,7 @@ MsQuicConfigurationOpen(
                 SpecificAppKey,
                 (CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER)QuicConfigurationSettingsChanged,
                 Configuration,
+                CXPLAT_STORAGE_OPEN_FLAG_NONE,
                 &Configuration->AppSpecificStorage);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogWarning(

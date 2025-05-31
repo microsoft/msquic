@@ -23,12 +23,14 @@ CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
     _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
     UNREFERENCED_PARAMETER(Path);
     UNREFERENCED_PARAMETER(Callback);
     UNREFERENCED_PARAMETER(CallbackContext);
+    UNREFERENCED_PARAMETER(Flags);
     UNREFERENCED_PARAMETER(NewStorage);
     // TODO
     return QUIC_STATUS_NOT_SUPPORTED;
