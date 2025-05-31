@@ -6269,13 +6269,11 @@ QuicTestVersionStorage()
     const uint32_t VersionListLength = ARRAYSIZE(VersionList);
 
 #ifdef _KERNEL_MODE
-#define __WIDEN(quote) L##quote
-#define WIDEN(quote) __WIDEN(quote)
     DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
     DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, WIDEN(QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, WIDEN(QUIC_SETTING_OFFERED_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, WIDEN(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, CXPLAT_WIDE_STRING(QUIC_SETTING_ACCEPTABLE_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, CXPLAT_WIDE_STRING(QUIC_SETTING_OFFERED_VERSIONS));
+    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, CXPLAT_WIDE_STRING(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
     HANDLE GlobalKey, AppKey;
     OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
     InitializeObjectAttributes(
@@ -6807,11 +6805,80 @@ QuicTestValidateConnectionPoolCreate()
 
 struct QuicTestResetGlobalRegConfig {
     public:
-    QuicTestResetGlobalRegConfig(char* RegName) : RegName(RegName), BufferLength(0), RegNotPresent(false) {
+    QuicTestResetGlobalRegConfig(_In_z_ const char* Name) : BufferLength(0), RegNotPresent(false) {
 #ifdef _KERNEL_MODE
-        // TODO
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    HANDLE GlobalKey;
+    OBJECT_ATTRIBUTES GlobalAttributes;
+    InitializeObjectAttributes(
+        &GlobalAttributes,
+        (PUNICODE_STRING)&GlobalStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    PUNICODE_STRING TempRegName;
+    TEST_QUIC_SUCCEEDED(
+        CxPlatConvertUtf8ToUnicode(
+            Name,
+            QUIC_POOL_TEST,
+            &TempRegName));
+    RegName.reset(TempRegName);
+    TempRegName = nullptr;
+
+    TEST_QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &GlobalKey,
+            KEY_READ | KEY_NOTIFY,
+            &GlobalAttributes));
+
+    ULONG InfoLength = 0;
+
+    QUIC_STATUS Status =
+        ZwQueryValueKey(
+            GlobalKey,
+            RegName.get(),
+            KeyValuePartialInformation,
+            NULL,
+            0,
+            &InfoLength);
+    if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL) {
+
+        BufferLength = InfoLength - BASE_KEY_INFO_LENGTH;
+        Buffer.reset(new (std::nothrow) uint8_t[BufferLength]);
+        TEST_NOT_EQUAL(Buffer.get(), nullptr);
+
+        UniquePtr<uint8_t[]> InfoBuffer(new (std::nothrow) uint8_t[InfoLength]);
+        TEST_NOT_EQUAL(InfoBuffer.get(), nullptr);
+        PKEY_VALUE_PARTIAL_INFORMATION Info = (PKEY_VALUE_PARTIAL_INFORMATION)InfoBuffer.get();
+
+        TEST_QUIC_SUCCEEDED(
+            ZwQueryValueKey(
+                GlobalRegKey,
+                RegName.get(),
+                KeyValuePartialInformation,
+                Info,
+                InfoLength,
+                &InfoLength));
+
+        TEST_EQUAL(BufferLength, Info->DataLength);
+        RegType = Info->Type;
+        CxPlatCopyMemory(Buffer.get(), Info->Data, Info->DataLength);
+
+        ZwDeleteValueKey(
+            GlobalKey,
+            RegName.get());
+    } else {
+        TEST_EQUAL(STATUS_OBJECT_NAME_NOT_FOUND, Status);
+        RegNotPresent = true;
+    }
+    ZwClose(GlobalKey);
 #elif _WIN32
 #define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
+    const auto NameLen = strnlen(Name, UINT16_MAX);
+    RegName.reset(new (std::nothrow) char[NameLen]);
+    strncpy_s(RegName.get(), NameLen, Name, UINT16_MAX);
+
     HKEY RegKey;
     TEST_QUIC_SUCCEEDED(
         HRESULT_FROM_WIN32(
@@ -6821,11 +6888,12 @@ struct QuicTestResetGlobalRegConfig {
             0,
             KEY_READ,
             &RegKey)));
+
     if (QUIC_SUCCEEDED(
         HRESULT_FROM_WIN32(
             RegQueryValueExA(
                 RegKey,
-                RegName,
+                RegName.get(),
                 NULL,
                 (PDWORD)&RegType,
                 nullptr,
@@ -6837,7 +6905,7 @@ struct QuicTestResetGlobalRegConfig {
             HRESULT_FROM_WIN32(
                 RegQueryValueExA(
                     RegKey,
-                    RegName,
+                    RegName.get(),
                     NULL,
                     (PDWORD)&RegType,
                     Buffer.get(),
@@ -6849,7 +6917,7 @@ struct QuicTestResetGlobalRegConfig {
             RegDeleteKeyValueA(
                 HKEY_LOCAL_MACHINE,
                 MSQUIC_GLOBAL_PARAMETERS_PATH,
-                RegName));
+                RegName.get()));
 
     } else {
         RegCloseKey(RegKey);
@@ -6867,13 +6935,44 @@ struct QuicTestResetGlobalRegConfig {
 
     ~QuicTestResetGlobalRegConfig() {
 #ifdef _KERNEL_MODE
-        // TODO
+    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
+    HANDLE GlobalKey;
+    OBJECT_ATTRIBUTES GlobalAttributes;
+    InitializeObjectAttributes(
+        &GlobalAttributes,
+        (PUNICODE_STRING)&GlobalStoragePath,
+        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    TEST_QUIC_SUCCEEDED(
+        ZwOpenKey(
+            &GlobalKey,
+            KEY_READ | KEY_NOTIFY,
+            &GlobalAttributes));
+
+    if (RegNotPresent) {
+        ZwDeleteValueKey(
+            GlobalKey,
+            RegName.get());
+
+    } else {
+        TEST_QUIC_SUCCEEDED(
+            ZwSetValueKey(
+                GlobalKey,
+                RegName.get(),
+                0,
+                RegType,
+                Buffer.get(),
+                BufferLength));
+    }
+    ZwClose(GlobalKey);
 #elif _WIN32
         if (RegNotPresent) {
             RegDeleteKeyValueA(
                 HKEY_LOCAL_MACHINE,
                 MSQUIC_GLOBAL_PARAMETERS_PATH,
-                RegName);
+                RegName.get());
 
         } else {
             HKEY RegKey;
@@ -6890,7 +6989,7 @@ struct QuicTestResetGlobalRegConfig {
                 RegSetKeyValueA(
                     HKEY_LOCAL_MACHINE,
                     MSQUIC_GLOBAL_PARAMETERS_PATH,
-                    RegName,
+                    RegName.get(),
                     RegType,
                     Buffer.get(),
                     BufferLength));
@@ -6901,9 +7000,31 @@ struct QuicTestResetGlobalRegConfig {
 #endif
     }
 private:
-    char* RegName;
+#ifdef _KERNEL_MODE
+    UniquePtr<UNICODE_STRING> RegName;
+#else
+    UniquePtr<char[]> RegName;
+#endif
     UniquePtr<uint8_t[]> Buffer;
     uint32_t BufferLength;
     uint32_t RegType;
     bool RegNotPresent;
 };
+
+void
+QuicTestRetryConfigStorage() {
+    QuicTestResetGlobalRegConfig KeyScopeGuard("RetryKeyAlgorithm");
+    QuicTestResetGlobalRegConfig RotationScopeGuard("RetryKeyRotationMs");
+    QuicTestResetGlobalRegConfig SecretScopeGuard("RetrySecret");
+
+    //
+    // Test to make sure that settings are changed only when all three settings are present
+    //
+#if _KERNEL_MODE
+
+#elif _WIN32
+#endif
+
+    // test that updating each reg will be picked up automatically
+    // test that invalid settings aren't picked up
+}

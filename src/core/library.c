@@ -206,6 +206,7 @@ QuicLibraryInitializePartitions(
     RetryConfig.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
 
     QUIC_STATUS Status = QuicLibrarySetRetryKeyConfig(&RetryConfig);
+    CxPlatSecureZeroMemory(RetrySecret, sizeof(RetrySecret));
     if (QUIC_FAILED(Status)) {
         goto ErrorPrePartitions;
     }
@@ -389,7 +390,7 @@ QuicLibraryLoadRetryConfig(
     }
 
     QuicLibrarySetRetryKeyConfig(&RetryConfig);
-    CxPlatZeroMemory(&Secret, sizeof(Secret));
+    CxPlatSecureZeroMemory(&Secret, sizeof(Secret));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
