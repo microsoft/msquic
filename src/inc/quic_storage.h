@@ -42,7 +42,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _Out_ CXPLAT_STORAGE** NewStorage
     );
@@ -53,7 +53,7 @@ CxPlatStorageOpen(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     );
 
 //
@@ -68,6 +68,44 @@ CxPlatStorageReadValue(
         uint8_t * Buffer,
     _Inout_ uint32_t * BufferLength
     );
+
+#ifdef QUIC_UNIT_TESTS // For unit tests only
+
+//
+// Wipes all the stored settings under a regkey and closes the storage context.
+// !!Modifies settings - Use caution when invoking!!
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageReset(
+    _In_ _Post_invalid_ CXPLAT_STORAGE* Storage
+    );
+
+//
+// Creates a temporary non-waitable storage location under the given storage location
+// !!Modifies settings - Use caution when invoking!!
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageCreateTempStore(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ CXPLAT_STORAGE** TempStorage
+    );
+
+//
+// Creates/updates the given settings name, value pair in the storage location
+// !!Modifies settings - Use caution when invoking!!
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageSaveUIntValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ uint32_t Value
+    );
+
+#endif // QUIC_UNIT_TESTS
 
 #if defined(__cplusplus)
 }
