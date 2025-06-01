@@ -4861,14 +4861,14 @@ pub struct QUIC_STATELESS_RETRY_CONFIG {
     pub Algorithm: QUIC_AEAD_ALGORITHM_TYPE,
     pub RotationMs: u32,
     pub SecretLength: u32,
-    pub Secret: [u8; 1usize],
+    pub Secret: *const u8,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_STATELESS_RETRY_CONFIG"]
-        [::std::mem::size_of::<QUIC_STATELESS_RETRY_CONFIG>() - 16usize];
+        [::std::mem::size_of::<QUIC_STATELESS_RETRY_CONFIG>() - 24usize];
     ["Alignment of QUIC_STATELESS_RETRY_CONFIG"]
-        [::std::mem::align_of::<QUIC_STATELESS_RETRY_CONFIG>() - 4usize];
+        [::std::mem::align_of::<QUIC_STATELESS_RETRY_CONFIG>() - 8usize];
     ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Algorithm"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Algorithm) - 0usize];
     ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::RotationMs"]
@@ -4876,7 +4876,7 @@ const _: () = {
     ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::SecretLength"]
         [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, SecretLength) - 8usize];
     ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Secret"]
-        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Secret) - 12usize];
+        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Secret) - 16usize];
 };
 pub type QUIC_SET_CONTEXT_FN = ::std::option::Option<
     unsafe extern "C" fn(Handle: HQUIC, Context: *mut ::std::os::raw::c_void),
