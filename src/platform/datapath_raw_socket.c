@@ -516,19 +516,24 @@ CxPlatFramingTransportChecksum(
     _In_ uint32_t AddrLength,
     _In_ uint16_t NextHeader,
     _In_reads_(IPPayloadLength) uint8_t* IPPayload,
-    _In_ uint32_t IPPayloadLength
+    _In_ uint32_t IPPayloadLength,
+    _In_ BOOLEAN PseudoHeaderOnly
     )
 {
     uint64_t Checksum =
-        CxPlatFramingChecksum(SrcAddr, AddrLength, 0) +
-        CxPlatFramingChecksum(DstAddr, AddrLength, 0);
-    Checksum += CxPlatByteSwapUint16(NextHeader);
-    Checksum += CxPlatByteSwapUint16((uint16_t)IPPayloadLength);
+        CxPlatByteSwapUint16(NextHeader) + CxPlatByteSwapUint16((uint16_t)IPPayloadLength);
+    Checksum = CxPlatFramingChecksum(SrcAddr, AddrLength, Checksum);
+    Checksum = CxPlatFramingChecksum(DstAddr, AddrLength, Checksum);
 
-    //
-    // Pseudoheader is always in 32-bit words. So, cross 16-bit boundary adjustment isn't needed.
-    //
-    return ~CxPlatFramingChecksum(IPPayload, IPPayloadLength, Checksum);
+    if (!PseudoHeaderOnly) {
+        //
+        // Pseudoheader is always in 32-bit words. So, cross 16-bit boundary adjustment isn't
+        // needed.
+        //
+        Checksum = ~CxPlatFramingChecksum(IPPayload, IPPayloadLength, Checksum);
+    }
+
+    return (uint16_t)Checksum;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -556,13 +561,12 @@ CxPlatDpRawSocketAckFin(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
         TH_FIN | TH_ACK);
@@ -587,7 +591,6 @@ CxPlatDpRawSocketAckSyn(
     uint8_t TcpFlags = Packet->Reserved == L4_TYPE_TCP_SYN ? (TH_SYN | TH_ACK) : TH_ACK;
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     TCP_HEADER* ReceivedTcpHeader = (TCP_HEADER*)(Packet->Buffer - Packet->ReservedEx);
 
     QuicTraceEvent(
@@ -600,9 +603,9 @@ CxPlatDpRawSocketAckSyn(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         ReceivedTcpHeader->AckNumber,
         CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
         TcpFlags);
@@ -620,9 +623,9 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
-            Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum,
+            Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+            CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+            CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->AckNumber) + 1),
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_ACK);
@@ -643,9 +646,9 @@ CxPlatDpRawSocketAckSyn(
             CASTED_CLOG_BYTEARRAY(sizeof(Route->RemoteAddress), &Route->RemoteAddress),
             CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
         CxPlatFramingWriteHeaders(
-            Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-            Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-            Interface->OffloadStatus.Transmit.TransportLayerXsum,
+            Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+            CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+            CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
             ReceivedTcpHeader->AckNumber,
             CxPlatByteSwapUint32(CxPlatByteSwapUint32(ReceivedTcpHeader->SequenceNumber) + 1),
             TH_RST | TH_ACK);
@@ -677,11 +680,10 @@ CxPlatDpRawSocketSyn(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         Route->TcpState.SequenceNumber, 0, TH_SYN);
     CxPlatDpRawTxEnqueue(SendData);
 }
@@ -691,6 +693,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_SEND_DATA* SendData,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint8_t DSCP,
@@ -760,29 +763,41 @@ CxPlatFramingWriteHeaders(
         IPv4->FlagsAndFragmentOffset = 0;
         IPv4->TimeToLive = IP_DEFAULT_HOP_LIMIT;
         IPv4->Protocol = TransportProtocol;
-        IPv4->HeaderChecksum = 0;
         CxPlatCopyMemory(IPv4->Source, &Route->LocalAddress.Ipv4.sin_addr, sizeof(Route->LocalAddress.Ipv4.sin_addr));
         CxPlatCopyMemory(IPv4->Destination, &Route->RemoteAddress.Ipv4.sin_addr, sizeof(Route->RemoteAddress.Ipv4.sin_addr));
-        IPv4->HeaderChecksum = SkipNetworkLayerXsum ? 0 : ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
+        if (SkipNetworkLayerXsum) {
+            IPv4->HeaderChecksum = 0;
+            CxPlatDpRawTxSetL3ChecksumOffload(SendData);
+        } else {
+            *((volatile uint16_t*)(&IPv4->HeaderChecksum)) = 0;
+            IPv4->HeaderChecksum = ~CxPlatFramingChecksum((uint8_t*)IPv4, sizeof(IPV4_HEADER), 0);
+        }
         EthType = ETHERNET_TYPE_IPV4;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv4) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV4_HEADER);
-        if (!SkipTransportLayerXsum) {
-            if (Route->UseQTIP) {
-                TCP->Checksum =
-                    CxPlatFramingTransportChecksum(
-                        IPv4->Source, IPv4->Destination,
-                        sizeof(Route->LocalAddress.Ipv4.sin_addr),
-                        IPPROTO_TCP,
-                        (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
-            } else {
-                UDP->Checksum =
-                    CxPlatFramingTransportChecksum(
-                        IPv4->Source, IPv4->Destination,
-                        sizeof(Route->LocalAddress.Ipv4.sin_addr),
-                        IPPROTO_UDP,
-                        (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
-            }
+        if (Route->UseQTIP) {
+            *((volatile uint16_t*)(&TCP->Checksum)) = 0;
+            TCP->Checksum =
+                CxPlatFramingTransportChecksum(
+                    IPv4->Source, IPv4->Destination,
+                    sizeof(Route->LocalAddress.Ipv4.sin_addr),
+                    IPPROTO_TCP,
+                    (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length,
+                    SkipTransportLayerXsum);
+        } else {
+            *((volatile uint16_t*)(&UDP->Checksum)) = 0;
+            UDP->Checksum =
+                CxPlatFramingTransportChecksum(
+                    IPv4->Source, IPv4->Destination,
+                    sizeof(Route->LocalAddress.Ipv4.sin_addr),
+                    IPPROTO_UDP,
+                    (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length,
+                    SkipTransportLayerXsum);
+        }
+        if (SkipTransportLayerXsum) {
+            CxPlatDpRawTxSetL4ChecksumOffload(
+                SendData, FALSE, Route->UseQTIP,
+                Route->UseQTIP ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER));
         }
     } else {
         IPV6_HEADER* IPv6 = (IPV6_HEADER*)(Transport - sizeof(IPV6_HEADER));
@@ -814,23 +829,32 @@ CxPlatFramingWriteHeaders(
         EthType = ETHERNET_TYPE_IPV6;
         Ethernet = (ETHERNET_HEADER*)(((uint8_t*)IPv6) - sizeof(ETHERNET_HEADER));
         IpHeaderLen = sizeof(IPV6_HEADER);
-        if (!SkipTransportLayerXsum) {
-            if (Route->UseQTIP) {
-                TCP->Checksum =
-                    CxPlatFramingTransportChecksum(
-                        IPv6->Source, IPv6->Destination,
-                        sizeof(Route->LocalAddress.Ipv6.sin6_addr),
-                        IPPROTO_TCP,
-                        (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length);
-            } else {
-                UDP->Checksum =
-                    CxPlatFramingTransportChecksum(
-                        IPv6->Source, IPv6->Destination,
-                        sizeof(Route->LocalAddress.Ipv6.sin6_addr),
-                        IPPROTO_UDP,
-                        (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length);
+        if (Route->UseQTIP) {
+            *((volatile uint16_t*)(&TCP->Checksum)) = 0;
+            TCP->Checksum =
+                CxPlatFramingTransportChecksum(
+                    IPv6->Source, IPv6->Destination,
+                    sizeof(Route->LocalAddress.Ipv6.sin6_addr),
+                    IPPROTO_TCP,
+                    (uint8_t*)TCP, sizeof(TCP_HEADER) + Buffer->Length,
+                    SkipTransportLayerXsum);
+        } else {
+            *((volatile uint16_t*)(&UDP->Checksum)) = 0;
+            UDP->Checksum =
+                CxPlatFramingTransportChecksum(
+                    IPv6->Source, IPv6->Destination,
+                    sizeof(Route->LocalAddress.Ipv6.sin6_addr),
+                    IPPROTO_UDP,
+                    (uint8_t*)UDP, sizeof(UDP_HEADER) + Buffer->Length,
+                    SkipTransportLayerXsum);
+            if (!SkipTransportLayerXsum) {
                 UDP->Checksum = UDP->Checksum != 0 ? UDP->Checksum : ~0;
             }
+        }
+        if (SkipTransportLayerXsum) {
+            CxPlatDpRawTxSetL4ChecksumOffload(
+                SendData, TRUE, Route->UseQTIP,
+                Route->UseQTIP ? sizeof(TCP_HEADER) : sizeof(UDP_HEADER));
         }
     }
 

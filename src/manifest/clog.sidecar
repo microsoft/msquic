@@ -5888,6 +5888,22 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
+    "GetTxOffloadConfig": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] %u, %u",
+      "UniqueId": "GetTxOffloadConfig",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (ack)",
@@ -15623,6 +15639,11 @@
         "UniquenessHash": "03e79f57-89b7-b2d2-b13f-cb2f995b47cd",
         "TraceID": "GetPacketTypeFailure",
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
+      },
+      {
+        "UniquenessHash": "72895611-1b21-d389-c78b-ab44b14b458f",
+        "TraceID": "GetTxOffloadConfig",
+        "EncodingString": "[ lib] %u, %u"
       },
       {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",

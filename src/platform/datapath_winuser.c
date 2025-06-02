@@ -3381,7 +3381,7 @@ CxPlatDataPathUdpRecvComplete(
     PSOCKADDR_INET LocalAddr = &IoBlock->Route.LocalAddress;
     PSOCKADDR_INET RemoteAddr = &IoBlock->Route.RemoteAddress;
     CxPlatConvertFromMappedV6(RemoteAddr, RemoteAddr);
-    IoBlock->Route.Queue = SocketProc;
+    IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketProc;
 
     if (IsUnreachableErrorCode(IoResult)) {
 
@@ -3998,10 +3998,10 @@ SendDataAlloc(
     CXPLAT_DBG_ASSERT(Socket != NULL);
 
     if (Config->Route->Queue == NULL) {
-        Config->Route->Queue = &Socket->PerProcSockets[0];
+        Config->Route->Queue = (CXPLAT_QUEUE*)&Socket->PerProcSockets[0];
     }
 
-    CXPLAT_SOCKET_PROC* SocketProc = Config->Route->Queue;
+    CXPLAT_SOCKET_PROC* SocketProc = (CXPLAT_SOCKET_PROC*)Config->Route->Queue;
     CXPLAT_DATAPATH_PARTITION* DatapathProc = SocketProc->DatapathProc;
 
     CXPLAT_SEND_DATA* SendData =
@@ -4656,7 +4656,7 @@ SocketSend(
     CXPLAT_DBG_ASSERT(Socket != NULL && Route != NULL && SendData != NULL);
 
     CXPLAT_DBG_ASSERT(Route->Queue);
-    CXPLAT_SOCKET_PROC* SocketProc = Route->Queue;
+    CXPLAT_SOCKET_PROC* SocketProc = (CXPLAT_SOCKET_PROC*)Route->Queue;
 
     SendData->SocketProc = SocketProc;
     CxPlatSendDataFinalizeSendBuffer(SendData);

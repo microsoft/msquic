@@ -170,7 +170,27 @@ CxPlatDpRawAssignQueue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 const CXPLAT_INTERFACE*
 CxPlatDpRawGetInterfaceFromQueue(
-    _In_ const void* Queue
+    _In_ const CXPLAT_QUEUE* Queue
+    );
+
+//
+// Returns whether the L3 (i.e., network) layer transmit checksum offload is
+// enabled on the queue.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL3TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
+    );
+
+//
+// Returns whether the L3 (i.e., transport) layer transmit checksum offload is
+// enabled on the queue.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL4TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
     );
 
 typedef struct HEADER_BACKFILL {
@@ -248,6 +268,27 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatDpRawTxEnqueue(
     _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+//
+// Sets the TX send object to have the specified L3 checksum offload settings.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL3ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData
+    );
+
+//
+// Sets the TX send object to have the specified L4 checksum offload settings.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL4ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN IsIpv6,
+    _In_ BOOLEAN IsTcp,
+    _In_ uint8_t L4HeaderLength
     );
 
 //
@@ -372,6 +413,7 @@ void
 CxPlatFramingWriteHeaders(
     _In_ CXPLAT_SOCKET_RAW* Socket,
     _In_ const CXPLAT_ROUTE* Route,
+    _Inout_ CXPLAT_SEND_DATA* SendData,
     _Inout_ QUIC_BUFFER* Buffer,
     _In_ CXPLAT_ECN_TYPE ECN,
     _In_ uint8_t DSCP,
