@@ -537,6 +537,12 @@ typedef struct QUIC_CONNECTION {
     uint64_t EarliestExpirationTime;
 
     //
+    // Timestamp (us) of when we last queued up a connection close (or
+    // application close) response to be sent.
+    //
+    uint64_t LastCloseResponseTimeUs;
+
+    //
     // Receive packet queue.
     //
     uint32_t ReceiveQueueCount;
@@ -681,9 +687,6 @@ typedef struct QUIC_CONNECTION {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
-
-    // Timestamp (us) of last CONNECTION_CLOSE sent in closing state (for rate limiting)
-    uint64_t LastCloseResponseTimeUs;
 
 } QUIC_CONNECTION;
 

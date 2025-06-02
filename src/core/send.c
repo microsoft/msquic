@@ -307,6 +307,7 @@ QuicSendSetSendFlag(
     }
 
     if (IsCloseFrame) {
+        Connection->LastCloseResponseTimeUs = CxPlatTimeUs64();
         QuicSendClear(Send);
     }
 

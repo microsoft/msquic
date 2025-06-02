@@ -4412,14 +4412,15 @@ QuicConnRecvFrames(
     uint64_t RecvTime = CxPlatTimeUs64();
 
     //
-    // RFC 9000 Section 10.2.1: 
-    // In closing state, respond to any packet with CONNECTION_CLOSE, rate-limited
-    // to once every 5ms.
+    // In closing state, respond to any packet with a new close frame (rate-limited).
     //
     if (Closed && !Connection->State.ShutdownComplete) {
         if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL_US) {
-            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE);
-            Connection->LastCloseResponseTimeUs = RecvTime;
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                Connection->State.AppClosed ?
+                    QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE :
+                    QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE);
         }
     }
 
