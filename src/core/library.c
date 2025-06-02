@@ -364,7 +364,7 @@ QuicLibraryLoadRetryConfig(
     // Initialize RetryConfig with current settings
     //
     CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetryLock, PrevIrql);
-    RetryConfig.Algorithm = MsQuicLib.RetryAeadAlgorithm;
+    RetryConfig.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)MsQuicLib.RetryAeadAlgorithm;
     RetryConfig.RotationMs = MsQuicLib.RetryKeyRotationMs;
     RetryConfig.SecretLength = MsQuicLib.RetrySecretLength;
     RetryConfig.Secret = MsQuicLib.BaseRetrySecret;
