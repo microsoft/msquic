@@ -5,6 +5,13 @@
 
 --*/
 
+//
+// Private flag of the QUIC_CONNECTION_SHUTDOWN_FLAGS enum used for indicating
+// the type of error code being passed in. Not exposed to apps because they
+// should not be using different types of errors directly.
+//
+#define QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS ((QUIC_CONNECTION_SHUTDOWN_FLAGS)0x8000)
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API

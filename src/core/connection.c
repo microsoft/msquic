@@ -432,6 +432,9 @@ QuicConnShutdown(
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
     }
+    if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS) {
+        CloseFlags |= QUIC_CLOSE_QUIC_STATUS;
+    }
 
     QuicConnCloseLocally(Connection, CloseFlags, ErrorCode, NULL);
 }
@@ -702,6 +705,13 @@ QuicConnQueueOper(
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+    if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
+        if (Oper->API_CALL.Context->Type == QUIC_API_TYPE_CONN_SHUTDOWN) {
+            CXPLAT_DBG_ASSERT(
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode <= QUIC_VAR_INT_MAX) ||
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS));
+        }
     }
 #endif
     if (QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, Oper)) {
@@ -1591,6 +1601,7 @@ QuicConnTryClose(
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
+            CXPLAT_DBG_ASSERT(ErrorCode <= QUIC_VAR_INT_MAX);
             Connection->CloseErrorCode = ErrorCode;
             if (QuicErrorIsProtocolError(ErrorCode)) {
                 QuicPerfCounterIncrement(
@@ -4410,6 +4421,19 @@ QuicConnRecvFrames(
     const uint8_t* Payload = Packet->AvailBuffer + Packet->HeaderLength;
     uint16_t PayloadLength = Packet->PayloadLength;
     uint64_t RecvTime = CxPlatTimeUs64();
+
+    //
+    // In closing state, respond to any packet with a new close frame (rate-limited).
+    //
+    if (Closed && !Connection->State.ShutdownComplete) {
+        if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL) {
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                Connection->State.AppClosed ?
+                    QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE :
+                    QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE);
+        }
+    }
 
     if (QuicConnIsClient(Connection) &&
         !Connection->State.GotFirstServerResponse) {
