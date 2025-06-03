@@ -1591,6 +1591,7 @@ QuicConnTryClose(
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
+            CXPLAT_DBG_ASSERT(ErrorCode <= QUIC_VAR_INT_MAX);
             Connection->CloseErrorCode = ErrorCode;
             if (QuicErrorIsProtocolError(ErrorCode)) {
                 QuicPerfCounterIncrement(
@@ -4415,7 +4416,7 @@ QuicConnRecvFrames(
     // In closing state, respond to any packet with a new close frame (rate-limited).
     //
     if (Closed && !Connection->State.ShutdownComplete) {
-        if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL_US) {
+        if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL) {
             QuicSendSetSendFlag(
                 &Connection->Send,
                 Connection->State.AppClosed ?

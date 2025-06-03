@@ -322,7 +322,7 @@ CXPLAT_STATIC_ASSERT(
 // Minimum interval (in microseconds) between CONNECTION_CLOSE responses in
 // closing state.
 //
-#define QUIC_CLOSING_RESPONSE_MIN_INTERVAL_US   5000
+#define QUIC_CLOSING_RESPONSE_MIN_INTERVAL      5000
 
 //
 // The default value for keep alives being enabled or not.
