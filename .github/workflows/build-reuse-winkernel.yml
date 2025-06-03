@@ -29,9 +29,8 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2019'
+        default: 'windows-2022'
         # options:
-        #   - windows-2019
         #   - windows-2022
       arch:
         required: false
