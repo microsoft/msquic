@@ -30,6 +30,7 @@ const char* PfxPass = "PLACEHOLDER";        // approved for cred scan
 extern const char* PfxPath;
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
+bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 
 struct TlsTest : public ::testing::TestWithParam<bool>
@@ -1566,7 +1567,7 @@ TEST_F(TlsTest, PortableCertificateValidation)
 #ifndef QUIC_TEST_OPENSSL_FLAGS // Not supported on OpenSSL
 TEST_F(TlsTest, InProcPortableCertificateValidation)
 {
-    if (IsWindows2022()) GTEST_SKIP(); // Not supported
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
 
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
@@ -1593,7 +1594,7 @@ TEST_F(TlsTest, InProcPortableCertificateValidation)
 
 TEST_F(TlsTest, InProcCertificateValidation)
 {
-    if (IsWindows2022()) GTEST_SKIP(); // Not supported
+    if (IsWindows2019() || IsWindows2022()) GTEST_SKIP(); // Not supported
 
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
