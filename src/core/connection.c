@@ -432,6 +432,9 @@ QuicConnShutdown(
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
     }
+    if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS) {
+        CloseFlags |= QUIC_CLOSE_QUIC_STATUS;
+    }
 
     QuicConnCloseLocally(Connection, CloseFlags, ErrorCode, NULL);
 }
@@ -702,6 +705,13 @@ QuicConnQueueOper(
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+    if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
+        if (Oper->API_CALL.Context->Type == QUIC_API_TYPE_CONN_SHUTDOWN) {
+            CXPLAT_DBG_ASSERT(
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode <= QUIC_VAR_INT_MAX) ||
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS));
+        }
     }
 #endif
     if (QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, Oper)) {
