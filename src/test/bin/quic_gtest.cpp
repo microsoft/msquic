@@ -36,7 +36,6 @@ QuicDriverClient DriverClient;
 //
 // These are explicitly passed in as the name of the GitHub/Azure runners.
 //
-bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
 bool IsWindows2025() { return OsRunner && strcmp(OsRunner, "windows-2025") == 0; }
 
@@ -302,7 +301,7 @@ TEST(ParameterValidation, ValidateTlsParam) {
 TEST_P(WithBool, ValidateTlsHandshakeInfo) {
     TestLoggerT<ParamType> Logger("QuicTestValidateTlsHandshakeInfo", GetParam());
     if (TestingKernelMode) {
-        if (IsWindows2022() || IsWindows2019()) GTEST_SKIP(); // Not supported on WS2019 or WS2022
+        if (IsWindows2022()) GTEST_SKIP(); // Not supported on WS2022
         uint8_t EnableResumption = (uint8_t)GetParam();
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_TLS_HANDSHAKE_INFO, EnableResumption));
     } else {
@@ -1531,7 +1530,6 @@ TEST_P(WithHandshakeArgs4, RandomLossResumeRejection) {
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, Unreachable) {
-    if (GetParam().Family == 4 && IsWindows2019()) GTEST_SKIP(); // IPv4 unreachable doesn't work on 2019
     TestLoggerT<ParamType> Logger("QuicTestConnectUnreachable", GetParam());
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_UNREACHABLE, GetParam().Family));
