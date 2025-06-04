@@ -643,12 +643,12 @@ typedef struct QUIC_STATISTICS_V2 {
 
 typedef struct NETWORK_STATISTICS
 {
-    uint32_t BytesInFlight;                      // Bytes that were sent on the wire, but not yet acked
-    uint64_t PostedBytes;                        // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
-    uint64_t IdealBytes;                         // Ideal number of bytes required to be available to  avoid limiting throughput
-    uint64_t SmoothedRTT;                        // Smoothed RTT value
-    uint32_t CongestionWindow;                   // Congestion Window
-    uint64_t Bandwidth;                          // Estimated bandwidth
+    uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+    uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
+    uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+    uint64_t SmoothedRTT;                // Smoothed RTT value
+    uint32_t CongestionWindow;           // Congestion Window
+    uint64_t Bandwidth;                  // Estimated bandwidth
 
 } NETWORK_STATISTICS;
 
@@ -1022,7 +1022,6 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct NETWORK_STATISTICS
 #endif
