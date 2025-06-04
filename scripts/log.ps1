@@ -134,6 +134,17 @@ $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 $TempDir = $null
 $TempLTTngDir = $null
 $TempPerfDir = $null
+
+# Helper function to get the appropriate babeltrace command
+function Get-BabeltraceCommand {
+    if (Get-Command babeltrace2 -ErrorAction SilentlyContinue) {
+        return "babeltrace2"
+    } elseif (Get-Command babeltrace -ErrorAction SilentlyContinue) {
+        return "babeltrace"
+    } else {
+        throw "Neither babeltrace2 nor babeltrace is available"
+    }
+}
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs"
@@ -246,10 +257,19 @@ function Log-Start {
 
             if ($Stream) {
                 lttng list | Write-Debug
-                babeltrace -i lttng-live net://localhost | Write-Debug
+                $BabeltraceCmd = Get-BabeltraceCommand
+                if ($BabeltraceCmd -eq "babeltrace2") {
+                    & $BabeltraceCmd convert -i lttng-live net://localhost | Write-Debug
+                } else {
+                    & $BabeltraceCmd -i lttng-live net://localhost | Write-Debug
+                }
                 $myHostName = hostname
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
-                $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                if ($BabeltraceCmd -eq "babeltrace2") {
+                    $args = "$BabeltraceCmd convert --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                } else {
+                    $args = "$BabeltraceCmd --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                }
                 Write-Host $args
                 Invoke-Expression $args
             }
@@ -315,7 +335,12 @@ function Log-Stop {
         if (!$RawLogOnly) {
             try {
                 Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-                babeltrace --names all $TempLTTngDir/* > $BableTraceFile
+                $BabeltraceCmd = Get-BabeltraceCommand
+                if ($BabeltraceCmd -eq "babeltrace2") {
+                    & $BabeltraceCmd convert --names all $TempLTTngDir/* > $BableTraceFile
+                } else {
+                    & $BabeltraceCmd --names all $TempLTTngDir/* > $BableTraceFile
+                }
                 Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
                 $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
                 Write-Host $Command
@@ -358,7 +383,12 @@ function Log-Decode {
 
         try {
             Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-            babeltrace --names all $DecompressedLogs/* > $BableTraceFile
+            $BabeltraceCmd = Get-BabeltraceCommand
+            if ($BabeltraceCmd -eq "babeltrace2") {
+                & $BabeltraceCmd convert --names all $DecompressedLogs/* > $BableTraceFile
+            } else {
+                & $BabeltraceCmd --names all $DecompressedLogs/* > $BableTraceFile
+            }
             Write-Host "Decoding Babeltrace into human text using CLOG"
             $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
             Write-Host $Command

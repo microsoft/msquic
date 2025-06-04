@@ -537,7 +537,10 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
-        sudo apt-get install -y babeltrace
+        # Try to install babeltrace2 first, then fallback to babeltrace
+        if (!sudo apt-get install -y babeltrace2 2>/dev/null) {
+            sudo apt-get install -y babeltrace
+        }
         sudo apt-get install -y libssl-dev
         sudo apt-get install -y libnuma-dev
         if ($InstallArm64Toolchain) {
