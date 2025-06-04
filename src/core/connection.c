@@ -32,6 +32,7 @@ Abstract:
 --*/
 
 #include "precomp.h"
+#include "quic_platform.h"
 #ifdef QUIC_CLOG
 #include "connection.c.clog.h"
 #endif
@@ -6912,15 +6913,8 @@ QuicConnGetNetworkStatistics(
         NETWORK_STATISTICS* Stats
     )
 {
-    const uint32_t MinimumStatsSize = sizeof(NETWORK_STATISTICS);
-
-    if (*StatsLength == 0) {
+    if (*StatsLength < sizeof(NETWORK_STATISTICS)) {
         *StatsLength = sizeof(NETWORK_STATISTICS);
-        return QUIC_STATUS_BUFFER_TOO_SMALL;
-    }
-
-    if (*StatsLength < MinimumStatsSize) {
-        *StatsLength = MinimumStatsSize;
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
@@ -6928,10 +6922,10 @@ QuicConnGetNetworkStatistics(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    memset(Stats, 0, MinimumStatsSize);
+    CxPlatZeroMemory(Stats, sizeof(NETWORK_STATISTICS));
 
     Connection->CongestionControl.QuicCongestionControlGetNetworkStatistics(
-                        Connection, &Connection->CongestionControl, Stats);
+        Connection, &Connection->CongestionControl, Stats);
 
     return QUIC_STATUS_SUCCESS;
 }
