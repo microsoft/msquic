@@ -468,7 +468,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     //
     // Overlapped File Handle for RDMA Connection/Listener
     //
-    HANDLE RdmaHandle;
+    HANDLE RdmaSocket;
 
     //
     // Rundown for synchronizing upcalls to the app and downcalls on the Socket.

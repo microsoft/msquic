@@ -39,6 +39,7 @@ RdmaSendRingBufferInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    SendRingBuffer->SendCompletionTable = NULL;
     SendRingBuffer->Buffer = Buffer;
     SendRingBuffer->Capacity = Capacity;
     SendRingBuffer->CurSize = 0;
@@ -89,6 +90,7 @@ RdmaRecvRingBufferInitialize(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
+    RecvRingBuffer->RecvCompletionTable = NULL;
     RecvRingBuffer->Buffer = Buffer;
     RecvRingBuffer->Capacity = Capacity;
     RecvRingBuffer->CurSize = 0;
@@ -134,9 +136,9 @@ RdmaRemoteRingBufferInitialize(
     )
 {
 
-    if (OffsetBuffer == NULL ||
-        OffsetBufferSize == 0 ||
-        RemoteRingBuffer == NULL)
+    if (RemoteRingBuffer == NULL ||
+        (OffsetBuffer && !OffsetBufferSize) ||
+        (!OffsetBuffer && OffsetBufferSize))
     {
         return QUIC_STATUS_INVALID_PARAMETER;
     }

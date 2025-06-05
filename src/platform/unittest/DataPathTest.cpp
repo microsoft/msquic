@@ -1458,14 +1458,15 @@ TEST_P(DataPathTest, TcpDataServer)
 //
 TEST_F(DataPathTest, RdmaListener)
 {
-    QUIC_ADDR AdapterAddress = {};
+    QUIC_ADDR ListenerAddress = {};
     CXPLAT_RDMA_CONFIG RdmaConfig = {};
-    QuicAddrFromString("10.1.0.5", 50000, &AdapterAddress);
+    QuicAddrFromString("10.1.0.5", 0x50c3, &ListenerAddress);
 
     RdmaConfig.SendRingBufferSize = 0x8000;
     RdmaConfig.RecvRingBufferSize = 0x8000;
+    RdmaConfig.Flags |= CXPLAT_RDMA_FLAG_NO_MEMORY_WINDOW;
 
-    QUIC_EXECUTION_CONFIG RdmaExecConfig = { QUIC_EXECUTION_CONFIG_FLAG_RDMA, 0, 0, {0}, &AdapterAddress };
+    QUIC_EXECUTION_CONFIG RdmaExecConfig = { QUIC_EXECUTION_CONFIG_FLAG_RDMA, 0, 0, {0}, &ListenerAddress };
 
     CxPlatDataPath Datapath(nullptr, nullptr, &EmptyRdmaCallbacks, 0, &RdmaExecConfig);
     if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RDMA)) {
@@ -1475,7 +1476,7 @@ TEST_F(DataPathTest, RdmaListener)
     ASSERT_NE(nullptr, Datapath.Datapath);
 
     RdmaListenerContext ListenerContext;
-    CxPlatSocket Listener; Listener.CreateRdmaListener(Datapath, nullptr, &ListenerContext, &RdmaConfig);
+    CxPlatSocket Listener; Listener.CreateRdmaListener(Datapath, &ListenerAddress, &ListenerContext, &RdmaConfig);
     VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
     ASSERT_NE(nullptr, Listener.Socket);
     ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);

@@ -897,6 +897,8 @@ DataPathInitialize(
 
             goto Error;
         }
+
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RDMA;
     }
 
     //
