@@ -2308,7 +2308,7 @@ SocketCreateRdmaInternal(
             }
         }
     }
-    else
+    else if (Type != CXPLAT_SOCKET_RDMA_SERVER)
     {
         //
         // If Memory window is not configured, then share the remote
