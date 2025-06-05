@@ -150,7 +150,7 @@ CxPlatStorageOpen(
 
     REGSAM DesiredAccess = KEY_READ | KEY_NOTIFY;
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE) {
         DesiredAccess |= KEY_WRITE;
     }
 
@@ -158,22 +158,45 @@ CxPlatStorageOpen(
         DesiredAccess |= DELETE;
     }
 
-#pragma prefast(suppress:6001, "SAL can't track FullKeyName")
-    Status =
-        HRESULT_FROM_WIN32(
-        RegOpenKeyExA(
-            HKEY_LOCAL_MACHINE,
-            FullKeyName,
-            0,
-            DesiredAccess,
-            &Storage->RegKey));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegOpenKeyExA failed");
-        goto Exit;
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_CREATE) {
+        Status =
+            HRESULT_FROM_WIN32(
+            RegCreateKeyExA(
+                HKEY_LOCAL_MACHINE,
+                FullKeyName,
+                0,
+                NULL,
+                REG_OPTION_NON_VOLATILE,
+                DesiredAccess,
+                NULL,
+                &Storage->RegKey,
+                NULL));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegCreateKeyExA failed");
+            goto Exit;
+        }
+    } else {
+        #pragma prefast(suppress:6001, "SAL can't track FullKeyName")
+        Status =
+            HRESULT_FROM_WIN32(
+            RegOpenKeyExA(
+                HKEY_LOCAL_MACHINE,
+                FullKeyName,
+                0,
+                DesiredAccess,
+                &Storage->RegKey));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegOpenKeyExA failed");
+            goto Exit;
+        }
     }
 
     if (Callback != NULL) {
@@ -291,29 +314,13 @@ CxPlatStorageWriteValue(
         const uint8_t * Buffer
     )
 {
-    uint32_t RegType;
-
-    switch(Type) {
-    case CXPLAT_STORAGE_TYPE_INTEGER32:
-        RegType = REG_DWORD;
-        break;
-    case CXPLAT_STORAGE_TYPE_INTEGER64:
-        RegType = REG_QWORD;
-        break;
-    case CXPLAT_STORAGE_TYPE_BINARY:
-        RegType = REG_BINARY;
-        break;
-    default:
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
-
     return
         HRESULT_FROM_WIN32(
             RegSetValueExA(
                 Storage->RegKey,
                 Name,
                 0,
-                RegType,
+                (DWORD)Type,
                 Buffer,
                 BufferLength));
 }
@@ -330,4 +337,17 @@ CxPlatStorageDeleteValue(
             RegDeleteValueA(
                 Storage->RegKey,
                 Name));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    return
+        HRESULT_FROM_WIN32(
+            RegDeleteTreeA(
+                Storage->RegKey,
+                NULL));
 }

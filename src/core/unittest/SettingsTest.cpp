@@ -336,6 +336,7 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
+
 TEST(SettingsTest, QuicSettingsSetDefault_SetsAllDefaultsWhenUnset)
 {
     QUIC_SETTINGS_INTERNAL Settings;
@@ -418,7 +419,7 @@ TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
     ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
 }
 
-struct QuicStorageSettingScopeGuard {
+class QuicStorageSettingScopeGuard {
 public:
     QuicStorageSettingScopeGuard(
         _In_opt_ const char* StorageName,
@@ -439,7 +440,7 @@ public:
                 m_StorageName,
                 nullptr,
                 nullptr,
-                CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE|CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE|CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE,
                 &Storage));
 
         EXPECT_EQ(
@@ -463,10 +464,10 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
 
     QUIC_STATUS Status =
         CxPlatStorageOpen(
-            "TEST",
+            "MsQuicUnitTestStorage",
             nullptr,
             nullptr,
-            CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+            CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE,
             &Storage);
 
     if (Status == QUIC_STATUS_NOT_SUPPORTED) {
@@ -481,7 +482,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageWriteValue(
             Storage,
             QUIC_SETTING_SEND_BUFFERING_DEFAULT,
-            CXPLAT_STORAGE_TYPE_INTEGER32,
+            CXPLAT_STORAGE_TYPE_UINT32,
             sizeof(Value),
             (uint8_t*)&Value));
     QuicStorageSettingScopeGuard SendBufferGuard("TEST", QUIC_SETTING_SEND_BUFFERING_DEFAULT);
@@ -491,7 +492,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageWriteValue(
             Storage,
             QUIC_SETTING_SEND_PACING_DEFAULT,
-            CXPLAT_STORAGE_TYPE_INTEGER32,
+            CXPLAT_STORAGE_TYPE_UINT32,
             sizeof(Value),
             (uint8_t*)&Value));
     QuicStorageSettingScopeGuard PacingGuard("TEST", QUIC_SETTING_SEND_PACING_DEFAULT);
@@ -501,7 +502,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageWriteValue(
             Storage,
             QUIC_SETTING_MIGRATION_ENABLED,
-            CXPLAT_STORAGE_TYPE_INTEGER32,
+            CXPLAT_STORAGE_TYPE_UINT32,
             sizeof(Value),
             (uint8_t*)&Value));
     QuicStorageSettingScopeGuard MigrationGuard("TEST", QUIC_SETTING_MIGRATION_ENABLED);
@@ -512,7 +513,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
         CxPlatStorageWriteValue(
             Storage,
             QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
-            CXPLAT_STORAGE_TYPE_INTEGER32,
+            CXPLAT_STORAGE_TYPE_UINT32,
             sizeof(Value),
             (uint8_t*)&Value));
     QuicStorageSettingScopeGuard DrainGuard("TEST", QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN);
@@ -542,7 +543,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
             "TEST",
             nullptr,
             nullptr,
-            CXPLAT_STORAGE_OPEN_FLAG_WRITABLE,
+            CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE,
             &Storage);
 
     if (Status == QUIC_STATUS_NOT_SUPPORTED) {
@@ -557,7 +558,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
         CxPlatStorageWriteValue(
             Storage,
             QUIC_SETTING_SEND_BUFFERING_DEFAULT,
-            CXPLAT_STORAGE_TYPE_INTEGER32,
+            CXPLAT_STORAGE_TYPE_UINT32,
             sizeof(Value),
             (uint8_t*)&Value));
     QuicStorageSettingScopeGuard SendBufferGuard("TEST", QUIC_SETTING_SEND_BUFFERING_DEFAULT);
@@ -587,7 +588,7 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
             "TEST",
             nullptr,
             nullptr,
-            CXPLAT_STORAGE_OPEN_FLAG_NONE,
+            CXPLAT_STORAGE_OPEN_FLAG_READABLE,
             &Storage);
 
     if (Status == QUIC_STATUS_NOT_SUPPORTED) {

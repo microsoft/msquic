@@ -419,7 +419,7 @@ MsQuicLibraryInitialize(
             NULL,
             MsQuicLibraryReadSettings,
             (void*)TRUE, // Non-null indicates registrations should be updated
-            CXPLAT_STORAGE_OPEN_FLAG_NONE,
+            CXPLAT_STORAGE_OPEN_FLAG_READABLE,
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(

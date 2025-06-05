@@ -35,9 +35,10 @@ void
 typedef CXPLAT_STORAGE_CHANGE_CALLBACK *CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER;
 
 typedef enum CXPLAT_STORAGE_OPEN_FLAGS {
-    CXPLAT_STORAGE_OPEN_FLAG_NONE =         0x0,
-    CXPLAT_STORAGE_OPEN_FLAG_WRITABLE =     0x1,
-    CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE =   0x2
+    CXPLAT_STORAGE_OPEN_FLAG_READABLE =     0x0,
+    CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE =    0x1,
+    CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE =   0x2,
+    CXPLAT_STORAGE_OPEN_FLAG_CREATE =       0x4
 } CXPLAT_STORAGE_OPEN_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_STORAGE_OPEN_FLAGS);
@@ -79,13 +80,16 @@ CxPlatStorageReadValue(
     );
 
 typedef enum CXPLAT_STORAGE_TYPE {
-    CXPLAT_STORAGE_TYPE_INTEGER32,
-    CXPLAT_STORAGE_TYPE_INTEGER64,
-    CXPLAT_STORAGE_TYPE_BINARY
+    CXPLAT_STORAGE_TYPE_BINARY = 3,
+    CXPLAT_STORAGE_TYPE_UINT32 = 4,
+    CXPLAT_STORAGE_TYPE_UINT64 = 11
+    //
+    // Non-Windows Registry types begin at 16 or above.
+    //
 } CXPLAT_STORAGE_TYPE;
 
 //
-// Write a value to the storage context
+// Writes a value to the storage context
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -98,12 +102,24 @@ CxPlatStorageWriteValue(
         const uint8_t * Buffer
     );
 
+//
+// Deletes a value from the storage context.
+//
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageDeleteValue(
     _In_ CXPLAT_STORAGE* Storage,
     _In_z_ const char * Name
     );
+
+//
+// CLears all settings from a storage context.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+);
 
 #if defined(__cplusplus)
 }

@@ -93,3 +93,13 @@ CxPlatStorageDeleteValue(
     UNREFERENCED_PARAMETER(Name);
     return QUIC_STATUS_NOT_SUPPORTED;
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    UNREFERENCED_PARAMETER(Storage);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}

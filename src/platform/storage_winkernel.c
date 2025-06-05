@@ -312,7 +312,7 @@ CxPlatStorageOpen(
 
     ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE) {
         DesiredAccess |= KEY_WRITE;
     }
 
@@ -320,18 +320,38 @@ CxPlatStorageOpen(
         DesiredAccess |= DELETE;
     }
 
-    Status =
-        ZwOpenKey(
-            &Storage->RegKey,
-            DesiredAccess,
-            &Attributes);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwOpenKey failed");
-        goto Exit;
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_CREATE) {
+        Status =
+            ZwCreateKey(
+                &Storage->RegKey,
+                DesiredAccess,
+                &Attributes,
+                0,
+                NULL,
+                REG_OPTION_NON_VOLATILE,
+                NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwCreateKey failed");
+            goto Exit;
+        }
+    } else {
+        Status =
+            ZwOpenKey(
+                &Storage->RegKey,
+                DesiredAccess,
+                &Attributes);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwOpenKey failed");
+            goto Exit;
+        }
     }
 
     if (Callback != NULL) {
@@ -542,21 +562,6 @@ CxPlatStorageWriteValue(
 {
     QUIC_STATUS Status;
     PUNICODE_STRING NameString = NULL;
-    uint32_t RegType;
-
-    switch(Type) {
-    case CXPLAT_STORAGE_TYPE_INTEGER32:
-        RegType = REG_DWORD;
-        break;
-    case CXPLAT_STORAGE_TYPE_INTEGER64:
-        RegType = REG_QWORD;
-        break;
-    case CXPLAT_STORAGE_TYPE_BINARY:
-        RegType = REG_BINARY;
-        break;
-    default:
-        return QUIC_STATUS_INVALID_PARAMETER;
-    }
 
     Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameString);
     if (QUIC_FAILED(Status)) {
@@ -568,7 +573,7 @@ CxPlatStorageWriteValue(
             Storage->RegKey,
             NameString,
             0,
-            RegType,
+            (ULONG)Type,
             (PVOID)Buffer,
             BufferLength);
 
@@ -600,4 +605,15 @@ CxPlatStorageDeleteValue(
     CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
     return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    ZwEnumerateValueKey
+    UNREFERENCED_PARAMETER(Storage);
+    return QUIC_STATUS_NOT_SUPPORTED;
 }
