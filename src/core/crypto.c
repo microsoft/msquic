@@ -1235,6 +1235,7 @@ QuicCryptoProcessDataFrame(
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint64_t FlowControlLimit = UINT16_MAX;
+    uint32_t EncLevelOffset = 0;
 
     *DataReady = FALSE;
 
@@ -1258,9 +1259,33 @@ QuicCryptoProcessDataFrame(
         }
 
         CXPLAT_DBG_ASSERT(KeyType <= Crypto->TlsState.ReadKey);
-        if (KeyType < Crypto->TlsState.ReadKey) {
+        if (KeyType < QUIC_PACKET_KEY_INITIAL || KeyType > QUIC_PACKET_KEY_1_RTT_NEW) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+        if (Crypto->TlsState.ReadKeys[KeyType] == NULL) {
             Status = QUIC_STATUS_SUCCESS; // Old, likely retransmitted data.
             goto Error;
+        }
+
+        //
+        // Handle a corner case here.  In the event that we get a ServerHello
+        // message that spans two crypto frames, with the ServerHello in the
+        // first frame, and the EncryptedExtensions, Finished, etc messages
+        // in the second crypto frame, Openssl Will yield the Handshake Keys
+        // as part of the first crypto frame.  This causes The RecvEncryptLevelStartOffset
+        // to get incremented by the frame size, but we're still processing an INIT level
+        // packet with the second crypto frame.  As such the offset when calling
+        // QuicRecvBufferWrite will be doubled, causing subsequent reads during QuicProcessData
+        // to not push the buffers from the second frame to the TLS stack, resulting
+        // in a stall of the handshake.  Avoid that by detecting the update here with
+        // a comparsion of the Frames Keytype to the TLS States ReadKey.  If the read key
+        // has advanced beyond the packet key type, don't use the EncLevelOffset to ensure that
+        // we write to the head of the buffer properly.
+        if (KeyType < Crypto->TlsState.ReadKey) {
+            EncLevelOffset = 0;
+        } else {
+            EncLevelOffset = Crypto->RecvEncryptLevelStartOffset;
         }
 
         //
@@ -1270,7 +1295,7 @@ QuicCryptoProcessDataFrame(
         Status =
             QuicRecvBufferWrite(
                 &Crypto->RecvBuffer,
-                Crypto->RecvEncryptLevelStartOffset + Frame->Offset,
+                EncLevelOffset + Frame->Offset,
                 (uint16_t)Frame->Length,
                 Frame->Data,
                 &FlowControlLimit,
@@ -1481,9 +1506,6 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             Crypto->TlsState.ReadKey);
 
-        //
-        // If we have the read key, we must also have the write key.
-        //
         CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.ReadKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKey >= Crypto->TlsState.ReadKey);
