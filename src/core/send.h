@@ -263,15 +263,20 @@ typedef struct QUIC_SEND {
     BOOLEAN Uninitialized : 1;
 
     //
+    // The next packet number to use.
+    //
+    uint64_t NextPacketNumber;
+
+    //
     // The current skipped packet number for attack detection. If this is
     // acknowledged, it indicates an attack.
     //
     uint64_t SkippedPacketNumber;
 
     //
-    // The next packet number to use.
+    // The next packet number we will skip for attack detection.
     //
-    uint64_t NextPacketNumber;
+    uint64_t NextSkippedPacketNumber;
 
     //
     // Last time send flush occurred. Used for pacing calculations.
@@ -517,14 +522,4 @@ QuicSendClearStreamSendFlag(
     _In_ QUIC_SEND* Send,
     _In_ QUIC_STREAM* Stream,
     _In_ uint32_t SendFlag
-    );
-
-//
-// Helper function to determine if we should skip a packet number.
-// Returns TRUE if we should skip the current packet number.
-//
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicSendShouldSkipPacketNumber(
-    _In_ QUIC_SEND* Send
     );

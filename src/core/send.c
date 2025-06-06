@@ -43,6 +43,10 @@ QuicSendInitialize(
     uint8_t RandomValue = 0;
     CxPlatRandom(sizeof(RandomValue), &RandomValue);
     Send->NextPacketNumber = RandomValue;
+
+    uint16_t RandomSkip = 0;
+    CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
+    Send->NextSkippedPacketNumber = Send->NextPacketNumber + RandomSkip;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1576,16 +1580,4 @@ QuicSendProcessDelayedAckTimer(
     }
 
     QuicSendValidate(Send);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-QuicSendShouldSkipPacketNumber(
-    _In_ QUIC_SEND* Send
-    )
-{
-    uint16_t RandomValue;
-    return
-        QUIC_SUCCEEDED(CxPlatRandom(sizeof(RandomValue), &RandomValue)) &&
-        RandomValue == 0; // 1 in 64K packets will be skipped.
 }

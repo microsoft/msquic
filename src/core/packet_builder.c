@@ -383,7 +383,7 @@ QuicPacketBuilderPrepare(
         // Implement packet number skipping for improved security.
         // Randomly skip a packet number and track it as dummy packet.
         //
-        if (QuicSendShouldSkipPacketNumber(&Connection->Send)) {
+        if (Connection->Send.NextSkippedPacketNumber == Connection->Send.NextPacketNumber) {
             Connection->Send.SkippedPacketNumber =
                 Connection->Send.NextPacketNumber++;
             QuicTraceLogConnWarning(
@@ -391,6 +391,11 @@ QuicPacketBuilderPrepare(
                 Connection,
                 "Skipped packet number %llu",
                 Connection->Send.SkippedPacketNumber);
+
+            uint16_t RandomSkip = 0;
+            CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
+            Connection->Send.NextSkippedPacketNumber =
+                Connection->Send.NextPacketNumber + RandomSkip;
         }
 
         Builder->Metadata->FrameCount = 0;
