@@ -248,6 +248,37 @@ TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, PacketTxProbeRetransmit,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for AttackDetected
+// [conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]
+// QuicTraceLogConnError(
+                AttackDetected,
+                Connection,
+                "Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+                Connection->Send.SkippedPacketNumber,
+                AckBlock->Low,
+                QuicRangeGetHigh(AckBlock));
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Send.SkippedPacketNumber = arg3
+// arg4 = arg4 = AckBlock->Low = arg4
+// arg5 = arg5 = QuicRangeGetHigh(AckBlock) = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LOSS_DETECTION_C, AttackDetected,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3,
+        unsigned long long, arg4,
+        unsigned long long, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+        ctf_integer(uint64_t, arg4, arg4)
+        ctf_integer(uint64_t, arg5, arg5)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for HandshakeConfirmedAck
 // [conn][%p] Handshake confirmed (ack)
 // QuicTraceLogConnInfo(

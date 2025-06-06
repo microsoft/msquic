@@ -380,8 +380,7 @@ QuicPacketBuilderPrepare(
             Builder->BatchId);
 
         //
-        // Implement packet number skipping for improved security.
-        // Randomly skip a packet number and track it as dummy packet.
+        // Occassionally skip a packet number for improved security.
         //
         if (Connection->Send.NextSkippedPacketNumber == Connection->Send.NextPacketNumber) {
             Connection->Send.SkippedPacketNumber =
@@ -392,6 +391,9 @@ QuicPacketBuilderPrepare(
                 "Skipped packet number %llu",
                 Connection->Send.SkippedPacketNumber);
 
+            //
+            // Randomly skip a packet number (from 0 to 65535).
+            //
             uint16_t RandomSkip = 0;
             CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
             Connection->Send.NextSkippedPacketNumber =

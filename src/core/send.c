@@ -44,6 +44,9 @@ QuicSendInitialize(
     CxPlatRandom(sizeof(RandomValue), &RandomValue);
     Send->NextPacketNumber = RandomValue;
 
+    //
+    // Randomly skip a packet number (from 0 to 65535).
+    //
     uint16_t RandomSkip = 0;
     CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
     Send->NextSkippedPacketNumber = Send->NextPacketNumber + RandomSkip;
