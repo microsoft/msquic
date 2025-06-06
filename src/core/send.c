@@ -45,11 +45,10 @@ QuicSendInitialize(
     Send->NextPacketNumber = RandomValue;
 
     //
-    // Randomly skip a packet number (from 0 to 65535).
+    // Randomly skip a packet number (from 0 to 256).
     //
-    uint16_t RandomSkip = 0;
-    CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
-    Send->NextSkippedPacketNumber = Send->NextPacketNumber + RandomSkip;
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
+    Send->NextSkippedPacketNumber = Send->NextPacketNumber + RandomValue;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
