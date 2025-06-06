@@ -1479,7 +1479,7 @@ SocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
-            IPV6_ECN,
+            IPV6_RECVTCLASS,
             IPPROTO_IPV6,
             sizeof(Option),
             &Option);
@@ -1489,7 +1489,7 @@ SocketCreateUdp(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "Set IPV6_ECN");
+            "Set IPV6_RECVTCLASS");
         goto Error;
     }
 
@@ -1498,7 +1498,7 @@ SocketCreateUdp(
         CxPlatDataPathSetControlSocket(
             Binding,
             WskSetOption,
-            IP_ECN,
+            IP_RECVTOS,
             IPPROTO_IP,
             sizeof(Option),
             &Option);
@@ -1508,7 +1508,7 @@ SocketCreateUdp(
             "[data][%p] ERROR, %u, %s.",
             Binding,
             Status,
-            "Set IP_ECN");
+            "Set IP_RECVTOS");
         goto Error;
     }
 
@@ -2036,7 +2036,7 @@ CxPlatDataPathSocketReceive(
         SOCKADDR_INET LocalAddr = { 0 };
         SOCKADDR_INET RemoteAddr;
         UINT16 MessageLength = 0;
-        INT ECN = 0;
+        INT TypeOfService = 0;
         INT HopLimitTTL = 0;
 
         //
@@ -2066,9 +2066,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
-                } else if (CMsg->cmsg_type == IPV6_ECN) {
-                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IPV6_TCLASS) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
@@ -2089,9 +2089,9 @@ CxPlatDataPathSocketReceive(
                         IsUnreachableError = TRUE;
                         break;
                     }
-                } else if (CMsg->cmsg_type == IP_ECN) {
-                    ECN = *(PINT)WSA_CMSG_DATA(CMsg);
-                    CXPLAT_DBG_ASSERT(ECN < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IP_TOS) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
                 } else if (CMsg->cmsg_type == IP_TTL) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
@@ -2252,7 +2252,7 @@ CxPlatDataPathSocketReceive(
             Datagram->IoBlock = IoBlock;
             Datagram->Data.Next = NULL;
             Datagram->Data.PartitionIndex = (uint16_t)(CurProcNumber % Binding->Datapath->ProcCount);
-            Datagram->Data.TypeOfService = (uint8_t)ECN;
+            Datagram->Data.TypeOfService = (uint8_t)TypeOfService;
             Datagram->Data.HopLimitTTL = (uint8_t)HopLimitTTL;
             Datagram->Data.Allocated = TRUE;
             Datagram->Data.QueuedOnConnection = FALSE;
