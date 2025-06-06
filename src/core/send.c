@@ -34,6 +34,15 @@ QuicSendInitialize(
 {
     CxPlatListInitializeHead(&Send->SendStreams);
     Send->MaxData = Settings->ConnFlowControlWindow;
+    Send->SkippedPacketNumber = UINT64_MAX;
+
+    //
+    // Randomize initial packet number between 0 and 256 for improved security.
+    // This makes it harder for attackers to predict packet numbers.
+    //
+    uint8_t RandomValue = 0;
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
+    Send->NextPacketNumber = RandomValue;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1567,4 +1576,16 @@ QuicSendProcessDelayedAckTimer(
     }
 
     QuicSendValidate(Send);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicSendShouldSkipPacketNumber(
+    _In_ QUIC_SEND* Send
+    )
+{
+    uint16_t RandomValue;
+    return
+        QUIC_SUCCEEDED(CxPlatRandom(sizeof(RandomValue), &RandomValue)) &&
+        RandomValue == 0; // 1 in 64K packets will be skipped.
 }

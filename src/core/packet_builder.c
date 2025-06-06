@@ -379,6 +379,20 @@ QuicPacketBuilderPrepare(
             Builder->Metadata->PacketId,
             Builder->BatchId);
 
+        //
+        // Implement packet number skipping for improved security.
+        // Randomly skip a packet number and track it as dummy packet.
+        //
+        if (QuicSendShouldSkipPacketNumber(&Connection->Send)) {
+            Connection->Send.SkippedPacketNumber =
+                Connection->Send.NextPacketNumber++;
+            QuicTraceLogConnWarning(
+                SkipPacketNumber,
+                Connection,
+                "Skipped packet number %llu",
+                Connection->Send.SkippedPacketNumber);
+        }
+
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;
