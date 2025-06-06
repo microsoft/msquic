@@ -747,6 +747,7 @@ QuicSettingApply(
         Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
         Destination->IsSet.StreamMultiReceiveEnabled = TRUE;
     }
+
     return TRUE;
 }
 
@@ -1819,7 +1820,7 @@ QuicSettingsSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, StreamRecvWindowUnidiDefault)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -2000,7 +2001,7 @@ QuicSettingsGetSettings(
         QUIC_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, StreamRecvWindowUnidiDefault);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_SETTINGS);
