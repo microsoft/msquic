@@ -73,6 +73,34 @@ ZwNotifyChangeKey(
     _In_ BOOLEAN Asynchronous
     );
 
+//
+// Copied from wdm.h
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwEnumerateValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_writes_bytes_to_opt_(Length, *ResultLength) PVOID KeyValueInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
+    );
+
+//
+// Copied from wdm.h
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwDeleteValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
@@ -613,7 +641,110 @@ CxPlatStorageClear(
     _In_ CXPLAT_STORAGE* Storage
     )
 {
-    ZwEnumerateValueKey
-    UNREFERENCED_PARAMETER(Storage);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    ULONG Index = 0;
+    ULONG InfoLength = 0;
+    PKEY_VALUE_BASIC_INFORMATION Info = NULL;
+
+    //
+    // Iterate through all values and delete them
+    // We always use index 0 because deletion shifts the remaining values
+    //
+    while (TRUE) {
+        //
+        // First, query the required buffer size for the value name
+        //
+        Status = ZwEnumerateValueKey(
+            Storage->RegKey,
+            0, // Always use index 0 since we delete as we go
+            KeyValueBasicInformation,
+            NULL,
+            0,
+            &InfoLength);
+
+        if (Status == STATUS_NO_MORE_ENTRIES) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        } else if (Status != STATUS_BUFFER_OVERFLOW && Status != STATUS_BUFFER_TOO_SMALL) {
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "ZwEnumerateValueKey (size query) failed");
+                goto Exit;
+            }
+        }
+
+        //
+        // Allocate buffer for the value information
+        //
+        Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        if (Info == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "KEY_VALUE_BASIC_INFORMATION",
+                InfoLength);
+            goto Exit;
+        }
+
+        //
+        // Get the value information
+        //
+        Status = ZwEnumerateValueKey(
+            Storage->RegKey,
+            0, // Always use index 0 since we delete as we go
+            KeyValueBasicInformation,
+            Info,
+            InfoLength,
+            &InfoLength);
+
+        if (Status == STATUS_NO_MORE_ENTRIES) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        } else if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwEnumerateValueKey failed");
+            goto Exit;
+        }
+
+        //
+        // Create a UNICODE_STRING for the value name
+        //
+        UNICODE_STRING ValueName;
+        ValueName.Buffer = Info->Name;
+        ValueName.Length = (USHORT)Info->NameLength;
+        ValueName.MaximumLength = (USHORT)Info->NameLength;
+
+        //
+        // Delete this value
+        //
+        Status = ZwDeleteValueKey(Storage->RegKey, &ValueName);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwDeleteValueKey failed");
+            goto Exit;
+        }
+
+        //
+        // Free the buffer and continue with the next value
+        //
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        Info = NULL;
+    }
+
+Exit:
+    if (Info != NULL) {
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
 }
