@@ -1887,11 +1887,9 @@ MsQuicOpenVersion(
 
     Api->DatagramSend = MsQuicDatagramSend;
 
-#ifndef _KERNEL_MODE
     Api->ExecutionCreate = MsQuicExecutionCreate;
     Api->ExecutionDelete = MsQuicExecutionDelete;
     Api->ExecutionPoll = MsQuicExecutionPoll;
-#endif
 
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
@@ -2482,8 +2480,6 @@ QuicLibraryGenerateStatelessResetToken(
     return Status;
 }
 
-#ifndef _KERNEL_MODE
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -2580,5 +2576,3 @@ MsQuicExecutionPoll(
 
     return Result;
 }
-
-#endif
