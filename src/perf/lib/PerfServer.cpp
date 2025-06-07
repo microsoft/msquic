@@ -183,6 +183,13 @@ PerfServer::ListenerCallback(
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         BOOLEAN value = TRUE;
         MsQuic->SetParam(Event->NEW_CONNECTION.Connection, QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, sizeof(value), &value);
+        if (PerfDefaultDscpValue != 0) {
+            MsQuic->SetParam(
+                Event->NEW_CONNECTION.Connection,
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(PerfDefaultDscpValue),
+                &PerfDefaultDscpValue);
+        }
         QUIC_CONNECTION_CALLBACK_HANDLER Handler =
             [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->ConnectionCallback(Conn, Event);
