@@ -364,4 +364,94 @@ QuicAddrToString(
     return Status == STATUS_SUCCESS;
 }
 
+//
+// Event Queue Abstraction
+//
+
+#ifndef IO_COMPLETION_ALL_ACCESS // TODO: Remove onces APIs are published
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) // winnt
+
+typedef struct _FILE_IO_COMPLETION_INFORMATION {
+    PVOID               KeyContext;
+    PVOID               ApcContext;
+    IO_STATUS_BLOCK     IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwCreateIoCompletion(
+    OUT         PHANDLE IoCompletionHandle,
+    IN          ACCESS_MASK DesiredAccess,
+    IN OPTIONAL POBJECT_ATTRIBUTES ObjectAttributes,
+    IN OPTIONAL ULONG Count
+    );
+
+typedef struct _IO_MINI_COMPLETION_PACKET_USER IO_MINI_COMPLETION_PACKET_USER, *PIO_MINI_COMPLETION_PACKET_USER;
+
+typedef
+VOID
+IO_MINI_PACKET_CALLBACK_ROUTINE(
+    _In_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
+    _In_opt_ PVOID Context
+    );
+
+typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
+
+NTSYSAPI
+NTSTATUS
+IoSetIoCompletionEx(
+    _In_ PVOID IoCompletion,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _In_ BOOLEAN Quota,
+    _In_opt_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+NTSYSAPI
+NTSTATUS
+IoRemoveIoCompletion(
+    _In_  PVOID IoCompletionPtr,
+    _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _Out_writes_(Count) PLIST_ENTRY *EntryArray,
+    _In_  ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_  KPROCESSOR_MODE PreviousMode,
+    _In_opt_ PLARGE_INTEGER CapturedTimeout,
+    _In_  BOOLEAN Alertable
+    );
+
+NTSYSAPI
+PIO_MINI_COMPLETION_PACKET_USER
+IoAllocateMiniCompletionPacket(
+    __in PIO_MINI_PACKET_CALLBACK_ROUTINE CallbackRoutine,
+    __in_opt PVOID Context
+    );
+
+NTSYSAPI
+VOID
+IoFreeMiniCompletionPacket(
+    __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+#endif // IO_COMPLETION_ALL_ACCESS
+
+typedef PKQUEUE QUIC_EVENTQ;
+
+typedef FILE_IO_COMPLETION_INFORMATION QUIC_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
+    );
+typedef QUIC_EVENT_COMPLETION* QUIC_EVENT_COMPLETION_HANDLER;
+
+typedef struct QUIC_SQE {
+    PIO_MINI_COMPLETION_PACKET_USER MiniPacket;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
+
 #endif // _MSQUIC_WINKERNEL_
