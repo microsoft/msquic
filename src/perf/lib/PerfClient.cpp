@@ -917,6 +917,9 @@ void
 PerfClientStream::OnReceiveShutdown(uint64_t Now) {
     if (RecvEndTime) return; // Already shutdown
     RecvEndTime = Now ? Now : CxPlatTimeUs64();
+    if (Connection.Client.PrintStreams && !Connection.Client.UseTCP) {
+        QuicPrintPeerStreamStatistics(MsQuic, Handle);
+    }
     if (SendEndTime) {
         OnShutdown();
     }
