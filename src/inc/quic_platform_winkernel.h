@@ -38,6 +38,7 @@ Environment:
 #include <ntverp.h>
 #include <ntstrsafe.h>
 #include <wdf.h>
+#include <winnt.h>
 #include <netioapi.h>
 #include <wsk.h>
 #include <bcrypt.h>
