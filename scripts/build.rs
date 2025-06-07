@@ -207,7 +207,7 @@ fn overwrite_bindgen() {
         .header(root_dir.join("src/rs/ffi/wrapper.hpp").to_str().unwrap())
         .clang_arg(format!("-I{}", inc_dir.to_string_lossy()))
         .allowlist_recursively(false)
-        .allowlist_item("QUIC.*|BOOLEAN|BYTE|HQUIC|HRESULT")
+        .allowlist_item("QUIC.*|BOOLEAN|BYTE|HQUIC|HRESULT|NETWORK_STATISTICS")
         .blocklist_type("QUIC_ADDR")
         // Tell cargo to invalidate the built crate whenever any of the
         // included header files changed.
