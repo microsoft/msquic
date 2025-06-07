@@ -144,7 +144,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -158,6 +157,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
@@ -229,14 +229,23 @@ typedef struct QUIC_STREAM {
     //
     uint32_t OutstandingSentMetadata;
 
+    //
+    // Linkage in the stream set
+    //
     union {
         //
-        // The entry in the connection's hashtable of streams.
+        // Link in the hash-table when the stream is open.
         //
         CXPLAT_HASHTABLE_ENTRY TableEntry;
 
         //
-        // The entry in the connection's list of closed streams to clean up.
+        // Link in the waiting list when the stream if waiting for stream
+        // id flow control.
+        //
+        CXPLAT_LIST_ENTRY WaitingLink;
+
+        //
+        // Link in the closed list when closed and waiting for clean up.
         //
         CXPLAT_LIST_ENTRY ClosedLink;
     };
@@ -423,7 +432,11 @@ typedef struct QUIC_STREAM {
 
     //
     // The number of received bytes the app has completed but not yet processed
-    // by MsQuic.
+    // by MsQuic. The top bit of RecvCompletionLength is used to indicate that
+    // there is an active receive to the app. The second highest bit is used to
+    // detect overflow. This structure allows us to synchronize both the receive
+    // indication flag and the number of bytes completed in a single atomic operation,
+    // for a lock-free implementation
     //
     volatile uint64_t RecvCompletionLength;
 
@@ -459,7 +472,16 @@ typedef struct QUIC_STREAM {
     } BlockedTimings;
 } QUIC_STREAM;
 
-inline
+//
+// There is an active receive to the app
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_RECEIVE_CALL_ACTIVE_FLAG 0x8000000000000000
+//
+// The second highest bit is used to detect overflow
+//
+#define QUIC_STREAM_RECV_COMPLETION_LENGTH_CANARY_BIT               0x4000000000000000
+
+QUIC_INLINE
 QUIC_STREAM_SEND_STATE
 QuicStreamSendGetState(
     _In_ const QUIC_STREAM* Stream
@@ -488,7 +510,7 @@ QuicStreamSendGetState(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_STREAM_RECV_STATE
 QuicStreamRecvGetState(
     _In_ const QUIC_STREAM* Stream
@@ -529,7 +551,7 @@ QuicStreamAllowedByPeer(
     _In_ const QUIC_STREAM* Stream
     );
 
-inline
+QUIC_INLINE
 uint64_t
 QuicStreamGetInitialMaxDataFromTP(
     _In_ uint64_t StreamID,
@@ -674,7 +696,7 @@ QuicStreamParamGet(
 // Adds a ref to a stream.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamAddRef(
     _In_ QUIC_STREAM* Stream,
@@ -699,7 +721,7 @@ QuicStreamAddRef(
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRelease(
     _In_ __drv_freesMem(Mem) QUIC_STREAM* Stream,
@@ -735,7 +757,7 @@ QuicStreamRelease(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataIncrement(
     _In_ QUIC_STREAM* Stream
@@ -752,7 +774,7 @@ QuicStreamSentMetadataIncrement(
 // No synchronization necessary as it's always called on the worker thread.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicStreamSentMetadataDecrement(
     _In_ QUIC_STREAM* Stream
@@ -768,7 +790,7 @@ QuicStreamSentMetadataDecrement(
 // Send Functions
 //
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamAddOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,
@@ -800,7 +822,7 @@ QuicStreamAddOutFlowBlockedReason(
     return FALSE;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicStreamRemoveOutFlowBlockedReason(
     _In_ QUIC_STREAM* Stream,

@@ -42,6 +42,42 @@
 extern "C" {
 #endif
 /*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegotiation
+// [C][RX][-] VN
+// QuicTraceLogVerbose(
+        PacketRxVersionNegotiation,
+        "[C][RX][-] VN");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_PacketRxVersionNegotiation
+#define _clog_2_ARGS_TRACE_PacketRxVersionNegotiation(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, PacketRxVersionNegotiation );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for PacketRxVersionNegVer
+// [C][RX][-]   Ver[%d]: 0x%x
+// QuicTraceLogVerbose(
+            PacketRxVersionNegVer,
+            "[C][RX][-]   Ver[%d]: 0x%x",
+            (int32_t)i,
+            CxPlatByteSwapUint32(ServerVersion));
+// arg2 = arg2 = (int32_t)i = arg2
+// arg3 = arg3 = CxPlatByteSwapUint32(ServerVersion) = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_PacketRxVersionNegVer
+#define _clog_4_ARGS_TRACE_PacketRxVersionNegVer(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, PacketRxVersionNegVer , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
@@ -1200,46 +1236,6 @@ tracepoint(CLOG_CONNECTION_C, QueueDatagrams , arg1, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for RecvVerNeg
-// [conn][%p] Received Version Negotation:
-// QuicTraceLogConnVerbose(
-        RecvVerNeg,
-        Connection,
-        "Received Version Negotation:");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RecvVerNeg
-#define _clog_3_ARGS_TRACE_RecvVerNeg(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, RecvVerNeg , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for VerNegItem
-// [conn][%p]   Ver[%d]: 0x%x
-// QuicTraceLogConnVerbose(
-            VerNegItem,
-            Connection,
-            "  Ver[%d]: 0x%x",
-            (int32_t)i,
-            CxPlatByteSwapUint32(ServerVersion));
-// arg1 = arg1 = Connection = arg1
-// arg3 = arg3 = (int32_t)i = arg3
-// arg4 = arg4 = CxPlatByteSwapUint32(ServerVersion) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_VerNegItem
-#define _clog_5_ARGS_TRACE_VerNegItem(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_CONNECTION_C, VerNegItem , arg1, arg3, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DeferDatagram
 // [conn][%p] Deferring datagram (type=%hu)
 // QuicTraceLogConnVerbose(
@@ -1820,10 +1816,10 @@ tracepoint(CLOG_CONNECTION_C, ConnEcnCapable , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ConnVersionSet
-// [conn][%p] QUIC Version: %u
+// [conn][%p] QUIC Version: 0x%x
 // QuicTraceEvent(
             ConnVersionSet,
-            "[conn][%p] QUIC Version: %u",
+            "[conn][%p] QUIC Version: 0x%x",
             Connection,
             Connection->Stats.QuicVersion);
 // arg2 = arg2 = Connection = arg2

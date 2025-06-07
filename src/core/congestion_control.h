@@ -179,7 +179,7 @@ QuicCongestionControlInitialize(
 // Returns TRUE if more bytes can be sent on the network.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCongestionControlCanSend(
     _In_ QUIC_CONGESTION_CONTROL* Cc
@@ -189,7 +189,7 @@ QuicCongestionControlCanSend(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlSetExemption(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -200,7 +200,7 @@ QuicCongestionControlSetExemption(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlReset(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -214,7 +214,7 @@ QuicCongestionControlReset(
 // Returns the number of bytes that can be sent immediately.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint32_t
 QuicCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -229,7 +229,7 @@ QuicCongestionControlGetSendAllowance(
 // Called when any retransmittable data is sent.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlOnDataSent(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -244,7 +244,7 @@ QuicCongestionControlOnDataSent(
 // considered lost or acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCongestionControlOnDataInvalidated(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -258,7 +258,7 @@ QuicCongestionControlOnDataInvalidated(
 // Called when any data is acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCongestionControlOnDataAcknowledged(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -272,7 +272,7 @@ QuicCongestionControlOnDataAcknowledged(
 // Called when data is determined lost.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlOnDataLost(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -286,7 +286,7 @@ QuicCongestionControlOnDataLost(
 // Called when congestion is signaled by ECN.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlOnEcn(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
@@ -302,7 +302,7 @@ QuicCongestionControlOnEcn(
 // Called when all recently considered lost data was actually acknowledged.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCongestionControlOnSpuriousCongestionEvent(
     _In_ QUIC_CONGESTION_CONTROL* Cc
@@ -312,7 +312,7 @@ QuicCongestionControlOnSpuriousCongestionEvent(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint8_t
 QuicCongestionControlGetExemptions(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -322,7 +322,7 @@ QuicCongestionControlGetExemptions(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlLogOutFlowStatus(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -332,7 +332,7 @@ QuicCongestionControlLogOutFlowStatus(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint32_t
 QuicCongestionControlGetBytesInFlightMax(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -342,7 +342,7 @@ QuicCongestionControlGetBytesInFlightMax(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint32_t
 QuicCongestionControlGetCongestionWindow(
     _In_ const QUIC_CONGESTION_CONTROL* Cc
@@ -352,7 +352,7 @@ QuicCongestionControlGetCongestionWindow(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCongestionControlIsAppLimited(
     _In_ struct QUIC_CONGESTION_CONTROL* Cc
@@ -362,7 +362,7 @@ QuicCongestionControlIsAppLimited(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicCongestionControlSetAppLimited(
     _In_ struct QUIC_CONGESTION_CONTROL* Cc

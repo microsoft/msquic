@@ -31,9 +31,9 @@ jobs:
     - name: Checkout
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Dotnet Setup
-      uses: actions/setup-dotnet@3951f0dfe7a07e2313ec93c75700083e2005cbab
+      uses: actions/setup-dotnet@67a3573c9a986a3f9c594539f4ab511d57bb3ce9
       with:
-        dotnet-version: 7.x
+        dotnet-version: 8.x
 
     - run: dotnet tool update -g docfx
     - run: chmod +x ./scripts/prepare-docfx.ps1

@@ -35,6 +35,7 @@ on:
         # options:
         #   - windows-2019
         #   - windows-2022
+        #   - windows-2025
       arch:
         required: false
         default: 'x64'
@@ -48,10 +49,13 @@ on:
         default: 'schannel'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
         #   - schannel
       static:
+        required: false
+        default: ''
+        type: string
+      official:
         required: false
         default: ''
         type: string
@@ -78,11 +82,11 @@ jobs:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
+      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
       with:
         perl-version: '5.34'
     - name: Install NASM
-      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild -Tls ${{ inputs.tls }}
@@ -104,7 +108,7 @@ jobs:
     - name: Build
       if: inputs.build == ''
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }} ${{ inputs.official }}
     - name: Filter Build Artifacts
       shell: pwsh
       run: |
@@ -112,7 +116,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.official }}${{ inputs.build }}
         path: artifacts

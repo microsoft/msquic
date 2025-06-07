@@ -44,8 +44,6 @@ PcpCallback(
     }
 }
 
-static CXPLAT_WORKER_POOL WorkerPool;
-
 int
 QUIC_MAIN_EXPORT
 main(
@@ -63,9 +61,9 @@ main(
 
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CxPlatWorkerPoolInit(&WorkerPool);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
     CxPlatRandom(sizeof(PcpNonce), PcpNonce);
-    CxPlatDataPathInitialize(0, nullptr, nullptr, &WorkerPool, nullptr, &Datapath);
+    CxPlatDataPathInitialize(0, nullptr, nullptr, WorkerPool, &Datapath);
 
     QUIC_STATUS Status =
         CxPlatPcpInitialize(
@@ -100,7 +98,7 @@ Error:
         CxPlatPcpUninitialize(PcpContext);
     }
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolUninit(&WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

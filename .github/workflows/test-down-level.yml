@@ -24,21 +24,17 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          # v2.2
-          { release: "2.2.6",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.2.6",  os: "windows-2022", arch: "x64", tls: "openssl3" },
           # v2.3
-          { release: "2.3.8",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.3.8",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.3.11",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.3.11",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
           # v2.4
-          { release: "2.4.7",  os: "ubuntu-22.04", arch: "x64", tls: "openssl3" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "schannel" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl" },
-          { release: "2.4.7",  os: "windows-2022", arch: "x64", tls: "openssl3" },
+          { release: "2.4.10",  os: "ubuntu-22.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "ubuntu-24.04", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.4.10",  os: "windows-2022", arch: "x64", tls: "quictls", imgtls: "openssl3" },
+          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "schannel", imgtls: "schannel" },
+          { release: "2.4.10",  os: "windows-2025", arch: "x64", tls: "quictls", imgtls: "openssl3" },
         ]
     runs-on: ${{ matrix.vec.os }}
     name: Test
@@ -47,12 +43,12 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
+      uses: shogo82148/actions-setup-perl@22423f01bde48fb88785c007e3166fbbbd8e892a
       with:
         perl-version: '5.34'
     - name: Install NASM
       if: runner.os == 'Windows'
-      uses: ilammy/setup-nasm@13cbeb366c45c4379d3478cdcbadd8295feb5028
+      uses: ilammy/setup-nasm@72793074d3c8cdda771dba85f6deafe00623038b
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -DisableTest
       shell: pwsh
@@ -63,7 +59,7 @@ jobs:
       shell: pwsh
       run: |
         $osName = "${{runner.os}}".ToLower()
-        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}_test.zip" -OutFile "artifacts/test.zip"
+        Invoke-WebRequest -Uri "https://github.com/microsoft/msquic/releases/download/v${{matrix.vec.release}}/msquic_${{runner.os}}_${{matrix.vec.arch}}_Release_${{matrix.vec.imgtls}}_test.zip" -OutFile "artifacts/test.zip"
         Expand-Archive -Path artifacts/test.zip -DestinationPath artifacts/bin/$osName/${{matrix.vec.arch}}_Release_${{matrix.vec.tls}}
     - name: Run Tests (Linux)
       if: runner.os == 'Linux'

@@ -107,6 +107,7 @@ QuicTestPrimeResumption(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnection(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -2298,6 +2299,7 @@ QuicTestConnectBadSni(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerRejectConnection(
     _In_ TestListener* /*  Listener */,
     _In_ HQUIC ConnectionHandle
@@ -3444,6 +3446,72 @@ QuicTestInterfaceBinding(
     TEST_TRUE(!Connection2.HandshakeComplete);
 }
 
+struct ListenerContext {
+    bool DosModeChangeEventReceived {false};
+    CxPlatEvent DosModeChanged;
+    static QUIC_STATUS ListenerCallback(_In_ MsQuicListener *, _In_opt_ void* Context, _Inout_ QUIC_LISTENER_EVENT* Event) {
+        auto This = static_cast<ListenerContext *>(Context);
+        if (Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED) {
+            This->DosModeChanged.Set();
+            This->DosModeChangeEventReceived = true;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+void
+QuicTestRetryMemoryLimitConnect(
+    _In_ int Family
+    )
+{
+    ListenerContext Context;
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    uint32_t LoopbackInterfaceIndex = UINT32_MAX;
+    uint32_t OtherInterfaceIndex = UINT32_MAX;
+    const uint16_t RetryMemoryLimit = 0;
+    if (!GetTestInterfaceIndices(QuicAddrFamily, LoopbackInterfaceIndex, OtherInterfaceIndex)) {
+        return; // Not supported
+    }
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    TEST_TRUE(Registration.IsValid());
+
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    MsQuicListener Listener(Registration, CleanUpManual, ListenerContext::ListenerCallback, &Context);
+
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            NULL,
+            QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT,
+            sizeof(RetryMemoryLimit),
+            &RetryMemoryLimit));
+
+    uint8_t buffer[1] = {1};
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            Listener.Handle,
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            sizeof(buffer),
+            &buffer));
+
+    uint32_t Length = 65535;
+    buffer[0] = {0};
+    TEST_QUIC_SUCCEEDED(
+        Listener.GetParam(
+            QUIC_PARAM_DOS_MODE_EVENTS,
+            &Length,
+            &buffer));
+    TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
+    TEST_EQUAL(buffer[0], 1);
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    TEST_TRUE(Context.DosModeChanged.WaitTimeout(TestWaitTimeout));
+    TEST_TRUE(Context.DosModeChangeEventReceived);
+}
+
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestCibirExtension(
@@ -3761,6 +3829,7 @@ QuicTestChangeAlpn(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptConnectionTestTP(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -3997,7 +4066,7 @@ QuicTestHandshakeSpecificLossPatterns(
     _In_ QUIC_CONGESTION_CONTROL_ALGORITHM CcAlgo
     )
 {
-    MsQuicRegistration Registration;
+    MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
     MsQuicSettings Settings;
@@ -4030,3 +4099,149 @@ QuicTestHandshakeSpecificLossPatterns(
         Listener.LastConnection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
     }
 }
+
+struct ConnectionPoolConnectionContext {
+    CxPlatEvent ConnectedEvent;
+    uint16_t IdealProcessor;
+    uint16_t PartitionIndex;
+    bool Connected;
+
+    static QUIC_STATUS ConnCallback(_In_ HQUIC, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        auto* This = (ConnectionPoolConnectionContext*)Context;
+        switch (Event->Type) {
+            case QUIC_CONNECTION_EVENT_CONNECTED:
+                This->Connected = true;
+                This->ConnectedEvent.Set();
+                break;
+            case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
+                This->IdealProcessor = Event->IDEAL_PROCESSOR_CHANGED.IdealProcessor;
+                This->PartitionIndex = Event->IDEAL_PROCESSOR_CHANGED.PartitionIndex;
+                break;
+            default:
+                break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+};
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+void
+QuicTestConnectionPoolCreate(
+    _In_ int Family,
+    _In_ uint16_t NumberOfConnections,
+    _In_ bool XdpSupported,
+    _In_ bool TestCibirSupport
+    )
+{
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    const uint8_t CibirId[] = { 0 /* offset */, 4, 3, 2, 1 };
+    const uint8_t CibirIdLength = sizeof(CibirId);
+
+    MsQuicRegistration Registration(true);
+    TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(TestWaitTimeout);
+    Settings.SetPeerBidiStreamCount(1);
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_QUIC_SUCCEEDED(ServerConfiguration.GetInitStatus());
+
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, MsQuicCredentialConfig());
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    QuicAddr ServerAddr(QuicAddrFamily);
+    if (XdpSupported) {
+        QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
+    }
+
+    {
+        UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
+        TEST_NOT_EQUAL(nullptr, Connections);
+
+        UniquePtrArray<ConnectionPoolConnectionContext> Contexts(new(std::nothrow) ConnectionPoolConnectionContext[NumberOfConnections]);
+        TEST_NOT_EQUAL(nullptr, Contexts);
+
+        UniquePtrArray<ConnectionPoolConnectionContext*> ContextPtrs(new(std::nothrow) ConnectionPoolConnectionContext*[NumberOfConnections]);
+        TEST_NOT_EQUAL(nullptr, ContextPtrs);
+
+        for(uint32_t i = 0; i < NumberOfConnections; ++i) {
+            ContextPtrs[i] = &Contexts[i];
+            Contexts[i].Connected = false;
+            Contexts[i].IdealProcessor = 0;
+            Contexts[i].PartitionIndex = 0;
+        }
+
+        MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, MsQuicConnection::NoOpCallback);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+        if (TestCibirSupport) {
+            TEST_QUIC_SUCCEEDED(Listener.SetCibirId(CibirId, CibirIdLength));
+        }
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, ServerAddr));
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerAddr));
+
+        {
+            UniquePtrArray<uint8_t*> CibirIdPtrs(new(std::nothrow) uint8_t*[NumberOfConnections]);
+            TEST_NOT_EQUAL(nullptr, CibirIdPtrs);
+            UniquePtrArray<uint8_t> CibirIdBuffer(new(std::nothrow) uint8_t[NumberOfConnections * CibirIdLength]);
+            TEST_NOT_EQUAL(nullptr, CibirIdBuffer);
+            QUIC_CONNECTION_POOL_CONFIG PoolConfig{};
+            PoolConfig.Registration = Registration;
+            PoolConfig.Configuration = ClientConfiguration;
+            PoolConfig.Handler = ConnectionPoolConnectionContext::ConnCallback;
+            PoolConfig.ServerName = QUIC_LOCALHOST_FOR_AF(QuicAddrFamily);
+            if (XdpSupported) {
+                PoolConfig.ServerAddress = &ServerAddr.SockAddr;
+            }
+            PoolConfig.ServerPort = ServerAddr.GetPort();
+            PoolConfig.Context = (void**)ContextPtrs.get();
+            PoolConfig.Family = QuicAddrFamily;
+            PoolConfig.NumberOfConnections = NumberOfConnections;
+            PoolConfig.Flags = QUIC_CONNECTION_POOL_FLAG_NONE;
+
+            if (TestCibirSupport) {
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    CxPlatCopyMemory(&(CibirIdBuffer[i * CibirIdLength]), CibirId, CibirIdLength);
+                    CibirIdPtrs[i] = &CibirIdBuffer[i * CibirIdLength];
+                }
+                PoolConfig.CibirIds = CibirIdPtrs.get();
+                PoolConfig.CibirIdLength = CibirIdLength;
+            }
+
+            QUIC_STATUS Status = MsQuic->ConnectionPoolCreate(&PoolConfig, &(Connections.get()->Handle));
+            if (XdpSupported) {
+                TEST_QUIC_SUCCEEDED(Status);
+                for (uint32_t i = 0; i < NumberOfConnections; i++) {
+                    //
+                    // Verify the client connection is connected.
+                    //
+                    Contexts[i].ConnectedEvent.WaitTimeout(TestWaitTimeout);
+                    if (!Contexts[i].Connected) {
+                        TEST_FAILURE("Client connection %u failed to connect", i);
+                    }
+                }
+                TEST_EQUAL(NumberOfConnections, Listener.AcceptedConnectionCount);
+            } else {
+                //
+                // When testing no XDP support, the loopback address is used,
+                // and XDP doesn't support the loopback interface, so the
+                // expected error is "NOT_FOUND" since XDP isn't found for that
+                // interface.
+                // In the case the platform doesn't support XDP at all,
+                // NOT_SUPPORTED is expected.
+                //
+                if (Status != QUIC_STATUS_NOT_SUPPORTED &&
+                    Status != QUIC_STATUS_FILE_NOT_FOUND &&
+                    Status != QUIC_STATUS_NOT_FOUND) {
+                    TEST_FAILURE(
+                        "Expected QUIC_STATUS_NOT_SUPPORTED or QUIC_STATUS_NOT_FOUND, but got 0x%x",
+                        Status);
+                }
+            }
+        }
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES

@@ -7,7 +7,7 @@ if ($PSVersionTable.PSVersion.Major -lt 7) {
 }
 
 function SetLinuxLibPath {
-    $fullPath = "./artifacts/bin/linux/x64_Release_openssl"
+    $fullPath = "./artifacts/bin/linux/x64_Release_quictls"
     $SecNetPerfPath = "$fullPath/secnetperf"
     $env:LD_LIBRARY_PATH = "${env:LD_LIBRARY_PATH}:$fullPath"
     chmod +x "$SecNetPerfPath"
@@ -59,8 +59,8 @@ function Repo-Path {
     return Join-Path (Split-Path $PSScriptRoot -Parent) $Path
 }
 
-if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_openssl/secnetperf")) {
-    Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Release_quictls/secnetperf")) {
+    Write-Host "Executing command: $(pwd)/artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
     SetLinuxLibPath
 
     # Check and see if a 'perf_command.txt' file exists. If it does, then we need to prepend the command with the contents of the file.
@@ -70,21 +70,15 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
         Write-Host "Prepending the command with: $perf_command"
         $env:linux_perf_prefix = $perf_command
     }
-    Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
-    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_openssl/secnetperf -exec:$mode -io:$io -stats:$stats"
+    Write-Host "About to invoke the expression: $env:linux_perf_prefix./artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
+    Invoke-Expression "$env:linux_perf_prefix./artifacts/bin/linux/x64_Release_quictls/secnetperf -exec:$mode -io:$io -stats:$stats"
 
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
-    Write-Host "(SERVER) Downloading XDP installer"
-    $installerUri = $Command.Split(";")[1]
-    $msiPath = Repo-Path "xdp.msi"
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
-    Write-Host "(SERVER) Installing XDP. Msi path: $msiPath"
-    msiexec.exe /i $msiPath /quiet | Out-Host
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
 } elseif ($Command -eq "Install_Kernel") {
     Write-Host "Executing command: Install_Kernel"
     $KernelDir = Repo-Path "./artifacts/bin/winkernel/x64_Release_schannel"
@@ -109,28 +103,14 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "(SERVER) Installing Kernel driver. Path: $localSysPath"
     sc.exe create "msquicpriv" type= kernel binpath= $localSysPath start= demand | Out-Null
     net.exe start msquicpriv
-} elseif ($Command.Contains("Start_Server_CPU_Tracing")) {
-    if ($IsWindows) {
-        Write-Host "Starting CPU tracing with WPR on windows!"
-        wpr -start CPU
-    } else {
-        Write-Host "Preprending the command with 'perf record' to start CPU tracing on linux!"
-        $filename = $Command.Split(";")[1]
-        $write_this_string_to_disk = "perf record -o server-cpu-traces-$filename -- "
-        # now write the string to disk
-        Set-Content -Path "perf_command.txt" -Value $write_this_string_to_disk
-        ls
-    }
-} elseif ($Command.Contains("Stop_Server_CPU_Tracing")) {
-    if ($IsWindows) {
-        Write-Host "Stopping CPU tracing with WPR on windows!"
-        $filename = $Command.Split(";")[1]
-        wpr -stop "server-cpu-traces-$filename"
-    } else {
-        Write-Host "Nothing to do on Linux. 'perf' should have stopped recording."
-        Write-Host "Listing directory: "
-        ls
-    }
+} elseif ($Command.Contains("Start_Server_Msquic_Logging")) {
+    $LogProfile = $Command.Split(";")[1]
+    .\scripts\log.ps1 -Start -Profile $LogProfile
+} elseif ($Command.Contains("Stop_Server_Msquic_Logging")) {
+    $artifactName = $Command.Split(";")[1]
+    # if artifacts don't exist, make it
+    New-Item -ItemType Directory "artifacts/logs/$artifactName/server" -ErrorAction Ignore | Out-Null
+    .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
 } else {
     throw "Invalid command: $Command"
 }

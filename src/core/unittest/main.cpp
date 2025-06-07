@@ -10,20 +10,42 @@
 #include "main.cpp.clog.h"
 #endif
 
+extern "C" {
+void
+MsQuicLibraryLoad(
+    void
+    );
+
+QUIC_STATUS
+MsQuicAddRef(
+    void
+    );
+
+void
+MsQuicRelease(
+    void
+    );
+
+void
+MsQuicLibraryUnload(
+    void
+    );
+}
+
 class QuicCoreTestEnvironment : public ::testing::Environment {
 public:
     void SetUp() override {
-        CxPlatSystemLoad();
-        TEST_QUIC_SUCCEEDED(CxPlatInitialize());
+        MsQuicLibraryLoad();
+        TEST_QUIC_SUCCEEDED(MsQuicAddRef());
     }
     void TearDown() override {
-        CxPlatUninitialize();
-        CxPlatSystemUnload();
+        MsQuicRelease();
+        MsQuicLibraryUnload();
         CxPlatZeroMemory(&MsQuicLib, sizeof(MsQuicLib));
     }
 };
 
-int main(int argc, char** argv) {
+int QUIC_MAIN_EXPORT main(int argc, char** argv) {
     ::testing::AddGlobalTestEnvironment(new QuicCoreTestEnvironment);
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();

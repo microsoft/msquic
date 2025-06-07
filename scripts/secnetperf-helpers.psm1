@@ -15,7 +15,6 @@ if ($psVersion.Major -lt 7) {
 
 # Path to the WER registry key used for collecting dumps on Windows.
 $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
-$env:linux_perf_prefix = ""
 
 # Write a GitHub error message to the console.
 function Write-GHError($msg) {
@@ -136,44 +135,30 @@ function Wait-DriverStarted {
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
-    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    Write-Host "Downloading XDP installer"
     whoami
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet | Out-Null
-    $Size = Get-FileHash $msiPath
-    Write-Host "MSI file hash: $Size"
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfSendCommand "Install_XDP"
         NetperfWaitServerFinishExecution
         return
     }
 
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
-    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
-    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
-        msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
-        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
-        & $WaitDriverStarted xdp 10000
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
-    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
+    try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+        try { & "$Using:RemoteDir\scripts\prepare-machine.ps1" -UninstallXdp } catch {}
     }
 }
 
@@ -337,7 +322,7 @@ function Wait-StartRemoteServerPassive {
     for ($i = 0; $i -lt 30; $i++) {
         Start-Sleep -Seconds 5 | Out-Null
         Write-Host "Attempt $i to start the remote server, command: $FullPath -target:$RemoteName"
-        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo ""
+        $Process = Start-LocalTest $FullPath "-target:$RemoteName" $OutputDir $UseSudo
         $ConsoleOutput = Wait-LocalTest $Process $OutputDir $false 30000 $true
         Write-Host "Wait-StartRemoteServerPassive: $ConsoleOutput"
         $DidMatch = $ConsoleOutput -match "Completed" # Look for the special string to indicate success.
@@ -351,8 +336,7 @@ function Wait-StartRemoteServerPassive {
 
 # Creates a new local process to asynchronously run the test.
 function Start-LocalTest {
-    param ($FullPath, $FullArgs, $OutputDir, $UseSudo, $LinuxPerfPrefix)
-    Write-Host "Starting Localtest with LinuxPerfPrefix: $LinuxPerfPrefix"
+    param ($FullPath, $FullArgs, $OutputDir, $UseSudo)
     $pinfo = New-Object System.Diagnostics.ProcessStartInfo
     if ($isWindows) {
         $pinfo.FileName = $FullPath
@@ -360,7 +344,7 @@ function Start-LocalTest {
     } else {
         # We use bash to execute the test so we can collect core dumps.
         $NOFILE = Invoke-Expression "bash -c 'ulimit -n'"
-        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $LinuxPerfPrefix$FullPath $FullArgs && echo ''"
+        $CommonCommand = "ulimit -n $NOFILE && ulimit -c unlimited && LD_LIBRARY_PATH=$(Split-Path $FullPath -Parent) LSAN_OPTIONS=report_objects=1 ASAN_OPTIONS=disable_coredump=0:abort_on_error=1 UBSAN_OPTIONS=halt_on_error=1:print_stacktrace=1 $FullPath $FullArgs && echo ''"
         if ($UseSudo) {
             $pinfo.FileName = "/usr/bin/sudo"
             $pinfo.Arguments = "/usr/bin/bash -c `"$CommonCommand`""
@@ -476,7 +460,7 @@ function Get-TestOutput {
         $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match "@ (\d+) kbps" | Out-Null
+        $Output -match "(\d+) kbps" | Out-Null
         return $matches[1]
     }
 }
@@ -518,15 +502,21 @@ function Get-LatencyOutput {
     }
 }
 
+function Is-TcpSupportedByIo {
+    param ($Io)
+
+    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk"
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $ServerIo, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+    if ((Is-TcpSupportedByIo $io) -and (Is-TcpSupportedByIo $ServerIo)) {
         $tcpSupported = 1
     } else {
         $tcpSupported = 0
@@ -549,7 +539,7 @@ function Invoke-Secnetperf {
 
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "-scenario:$Scenario -io:$io"
+    $serverArgs = "-scenario:$Scenario -io:$ServerIo"
 
     if ($env:collect_cpu_traces) {
         $updated_runtime_for_cpu_traces = @{
@@ -619,6 +609,11 @@ function Invoke-Secnetperf {
         try { .\scripts\log.ps1 -Cancel } catch {} # Cancel any previous logging
         .\scripts\log.ps1 -Start -Profile $LogProfile
     }
+    if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and ($Session -eq "NOT_SUPPORTED")) {
+        NetperfSendCommand "Start_Server_Msquic_Logging;$LogProfile"
+        NetperfWaitServerFinishExecution
+        .\scripts\log.ps1 -Start -Profile $LogProfile
+    }
 
     Write-Host "::group::> secnetperf $clientArgs"
 
@@ -632,31 +627,10 @@ function Invoke-Secnetperf {
         $StateDir = "/etc/_state"
     }
     if ($Session -eq "NOT_SUPPORTED") {
-        if ($env:collect_cpu_traces) {
-            if ($IsWindows) {
-                wpr -start CPU
-            } else {
-                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
-            }
-            NetperfSendCommand "Start_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.data"
-            NetperfWaitServerFinishExecution
-        }
         NetperfSendCommand "$RemoteDir/$SecNetPerfPath $serverArgs"
         Wait-StartRemoteServerPassive "$clientPath" $RemoteName $artifactDir $useSudo
-
     } else {
-        if ($env:collect_cpu_traces) {
-            if ($IsWindows) {
-                wpr -start CPU
-                Invoke-Command -Session $Session -ScriptBlock { wpr -start CPU }
-                $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-            } else {
-                $env:linux_perf_prefix = "perf record -o cpu-traces-$scenario-$io-istcp-$tcp.data -- "
-                $job = Start-RemoteServer $Session "perf record -o server-cpu-traces-$scenario-$io-istcp-$tcp.data -- $RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-            }
-        } else {
-            $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
-        }
+        $job = Start-RemoteServer $Session "$RemoteDir/$SecNetPerfPath" $serverArgs $useSudo
     }
 
     # Run the test multiple times, failing (for now) only if all tries fail.
@@ -667,8 +641,7 @@ function Invoke-Secnetperf {
         Write-Host "==============================`nRUN $($try+1):"
         "> secnetperf $clientArgs" | Add-Content $clientOut
         try {
-            Write-Host "About to start localtest with linux_perf_prefix: $env:linux_perf_prefix"
-            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo $env:linux_perf_prefix
+            $process = Start-LocalTest "$clientPath" $clientArgs $artifactDir $useSudo
             $rawOutput = Wait-LocalTest $process $artifactDir ($io -eq "wsk") 30000
             Write-Host $rawOutput
             $values[$tcp] += Get-TestOutput $rawOutput $metric
@@ -707,24 +680,8 @@ function Invoke-Secnetperf {
                 $Socket.Send($BytesToSend, $BytesToSend.Length, $RemoteName, 9999) | Out-Null
                 Write-Host "Sent special UDP packet to tell the server to die."
             }
-            if ($env:collect_cpu_traces) {
-                if ($IsWindows) {
-                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
-                }
-                NetperfSendCommand "Stop_Server_CPU_Tracing;$scenario-$io-istcp-$tcp.etl"
-                NetperfWaitServerFinishExecution
-            }
         } else {
             try { Stop-RemoteServer $job $RemoteName | Add-Content $serverOut } catch { }
-            if ($env:collect_cpu_traces) {
-                if ($IsWindows) {
-                    wpr -stop "cpu-traces-$scenario-$io-istcp-$tcp.etl"
-                    Invoke-Command -Session $Session -ScriptBlock { wpr -stop "server-cpu-traces-$Using:scenario-$Using:io-istcp-$Using:tcp.etl" }
-                    Copy-Item -FromSession $Session "C:\Users\Administrator\Documents\server-cpu-traces-$scenario-$io-istcp-$tcp.etl" .
-                } else {
-                    Copy-Item -FromSession $Session "/home/secnetperf/server-cpu-traces-$scenario-$io-istcp-$tcp.data" .
-                }
-            }
         }
 
         # Stop any logging and copy the logs to the artifacts folder.
@@ -737,6 +694,14 @@ function Invoke-Secnetperf {
             }
             try { Copy-Item -FromSession $Session "$remoteArtifactDir/*" $artifactDir -Recurse }
             catch { Write-Host "Failed to copy server logs!" }
+        }
+
+        # For Azure scenarios, without remote powershell, stop logging on the client / server.
+        if ($LogProfile -ne "" -and $LogProfile -ne "NULL" -and $Session -eq "NOT_SUPPORTED") {
+            try { .\scripts\log.ps1 -Stop -OutputPath "$artifactDir/client" -RawLogOnly }
+            catch { Write-Host "Failed to stop logging on client!" }
+            NetperfSendCommand "Stop_Server_Msquic_Logging;$artifactName"
+            NetperfWaitServerFinishExecution
         }
 
         # Grab any crash dumps that were generated.

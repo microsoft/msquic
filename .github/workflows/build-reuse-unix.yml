@@ -48,11 +48,10 @@ on:
         #   - arm64
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
       static:
         required: false
         default: ''
@@ -87,7 +86,7 @@ permissions: read-all
 jobs:
   build-unix-reuse:
     name: Build
-    runs-on: ${{ inputs.os }}
+    runs-on: ${{ inputs.os == 'ubuntu-20.04' && fromJson('[''self-hosted'', ''1ES.Pool=ubuntu-20.04-forbuild'']') || inputs.os }}
     container:
       image: ${{ (inputs.plat == 'linux' && format('ghcr.io/microsoft/msquic/linux-build-xcomp:{0}-cross', inputs.os)) || '' }}
     steps:
@@ -117,7 +116,7 @@ jobs:
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} -OneBranch
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts

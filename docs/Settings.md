@@ -65,6 +65,9 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Congestion Control Algorithm       | uint16_t   | CongestionControlAlgorithm  |         0 (Cubic) | The congestion control algorithm used for the connection.                                                                     |
 | ECN                                | uint8_t    | EcnEnabled                  |         0 (FALSE) | Enable sender-side ECN support.                                                                                               |
 | Stream Multi Receive               | uint8_t    | StreamMultiReceiveEnabled   |         0 (FALSE) | Enable multi receive support                                                                                                  |
+| XDP                                | uint8_t    | XdpEnabled                  |         0 (FALSE) | Enable XDP. |
+| QTIP                               | uint8_t    | QTIPEnabled                 |         0 (FALSE) | Enable QTIP. XDP must be used. Clients will only send/recv QTIP xor UDP traffic, listeners accept both. [More info](./QTIP.md)|
+| RIO                                | uint8_t    | RioEnabled                  |         0 (FALSE) | Enable RIO. |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
@@ -112,9 +115,10 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_GLOBAL_SETTINGS`<br> 6         | QUIC_GLOBAL_SETTINGS    | Both      | Globally change global only settings.                                                                 |
 | `QUIC_PARAM_GLOBAL_VERSION_SETTINGS`<br> 7        | QUIC_VERSIONS_SETTINGS  | Both      | Globally change version settings for all subsequent connections.                                      |
 | `QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH`<br> 8        | char[64]                | Get-only  | Git hash used to build MsQuic (null terminated string)                                                |
-| `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9        | QUIC_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
+| `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9 (preview)        | QUIC_GLOBAL_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
+| `QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES`<br> 12    | uint32_t[]               | Get-only  | Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details. |
 | `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
 
 ## Registration Parameters
@@ -145,6 +149,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_LISTENER_LOCAL_ADDRESS`<br> 0 | QUIC_ADDR                 | Get-only  | Get the full address tuple the server is listening on.    |
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
 | `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
+| `QUIC_PARAM_DOS_MODE_EVENTS`<br> 2        | BOOLEAN                   | Both      | The Listener opted in for DoS Mode event.                 |
 
 ## Connection Parameters
 
@@ -215,7 +220,7 @@ These parameters are access by calling [GetParam](./api/GetParam.md) or [SetPara
 | `QUIC_PARAM_STREAM_ID`<br> 0                      | QUIC_UINT62       | Get-only  | Must be called on a stream after [StreamStart](./api/StreamStart.md) is called.      |
 | `QUIC_PARAM_STREAM_0RTT_LENGTH`<br> 1             | uint64_t          | Get-only  | Length of 0-RTT data received from peer.                                              |
 | `QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE`<br> 2  | uint64_t - bytes  | Get-only  | Ideal buffer size to queue to the stream. Assumes only one stream sends steadily.     |
-| `QUIC_PARAM_STREAM_PRIORITY` <br> 3               | uint16_t          | Get/Set   | Stream priority. |
+| `QUIC_PARAM_STREAM_PRIORITY` <br> 3               | uint16_t          | Get/Set   | A value from 0x0 to 0xFFFF that indicates the Stream priority. 0xFFFF is highest priority. Data on higher priority stream get sent first. All streams start with priority 0x7FFF by default.  |
 | `QUIC_PARAM_STREAM_STATISTICS` <br> 4             | QUIC_STREAM_STATISTICS | Get-only  | Stream-level statistics. |
 | `QUIC_PARAM_STREAM_RELIABLE_OFFSET` <br> 5        | uint64_t          | Get/Set   | Part of the new Reliable Reset preview feature. Sets/Gets the number of bytes a sender must send before closing SEND path.
 

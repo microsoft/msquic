@@ -1,0 +1,6 @@
+# Specify which version of rust should be used to compile the project
+# cargo + rustup will use this to consistently build the project
+# with the same version across all checkouts and environments
+[toolchain]
+channel = "1.86.0"
+profile = "default"

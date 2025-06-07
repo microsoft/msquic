@@ -753,6 +753,51 @@ tracepoint(CLOG_SETTINGS_C, SettingReliableResetEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SettingXdpEnabled
+// [sett] XdpEnabled             = %hhu
+// QuicTraceLogVerbose(SettingXdpEnabled,                  "[sett] XdpEnabled             = %hhu", Settings->XdpEnabled);
+// arg2 = arg2 = Settings->XdpEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingXdpEnabled
+#define _clog_3_ARGS_TRACE_SettingXdpEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingXdpEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingQTIPEnabled
+// [sett] QTIPEnabled            = %hhu
+// QuicTraceLogVerbose(SettingQTIPEnabled,                 "[sett] QTIPEnabled            = %hhu", Settings->QTIPEnabled);
+// arg2 = arg2 = Settings->QTIPEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingQTIPEnabled
+#define _clog_3_ARGS_TRACE_SettingQTIPEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingQTIPEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SettingRioEnabled
+// [sett] RioEnabled             = %hhu
+// QuicTraceLogVerbose(SettingRioEnabled,                  "[sett] RioEnabled             = %hhu", Settings->RioEnabled);
+// arg2 = arg2 = Settings->RioEnabled = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_SettingRioEnabled
+#define _clog_3_ARGS_TRACE_SettingRioEnabled(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_SETTINGS_C, SettingRioEnabled , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SettingOneWayDelayEnabled
 // [sett] OneWayDelayEnabled     = %hhu
 // QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);

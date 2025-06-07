@@ -24,7 +24,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.5.0"
+$Version = "2.6.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -177,10 +177,7 @@ foreach ($Build in $AllBuilds) {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
-        $Tls = "openssl"
-        if ($BuildBaseName -like "*openssl3*") {
-            $Tls = "openssl3"
-        }
+        $Tls = "quictls"
 
         if ($BuildBaseName -like "*arm64_*") {
             & $RootDir/scripts/make-packages.sh --output $DistDir --arch arm64 --tls $Tls --xdp $UseXdp --time64 $Time64Distro

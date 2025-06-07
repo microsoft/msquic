@@ -150,7 +150,7 @@ $LogScript = Join-Path $RootDir "scripts" "log.ps1"
 
 # Executable name.
 $ExeName = Split-Path $Path -Leaf
-$CoverageName = "$(Split-Path $Path -LeafBase).cov"
+$CoverageName = "$(Split-Path $Path -LeafBase).$([guid]::NewGuid()).cov"
 
 $ExeLogFolder = $ExeName
 if (![string]::IsNullOrWhiteSpace($ExtraArtifactDir)) {
@@ -382,6 +382,15 @@ function Wait-Executable($Exe) {
             LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
             $KeepOutput = $true
         }
+        # Wait up to 30 seconds for files to appear in $LogDir if $AZP is set.
+        if ($AZP) {
+            $Elapsed = 0
+            $Timeout = 30
+            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $LogDir | Measure-Object).Count -eq 0) {
+                Start-Sleep -Seconds 1
+                $Elapsed++
+            }
+        }
         $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             LogErr "Dump file(s) generated"
@@ -462,7 +471,8 @@ function Wait-Executable($Exe) {
                 Remove-Item $LogDir -Recurse -Force | Out-Null
             }
 
-            Log "Output available at $($LogDir)"
+            Log "Output available at $LogDir"
+            if ($AZP) { dir $LogDir }
 
         } else {
             if ($LogProfile -ne "None") {

@@ -97,7 +97,7 @@ extern "C" {
 // Interlocked implementations.
 //
 
-inline
+QUIC_INLINE
 long
 InterlockedIncrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend
@@ -106,7 +106,7 @@ InterlockedIncrement(
     return __sync_add_and_fetch(Addend, (long)1);
 }
 
-inline
+QUIC_INLINE
 long
 InterlockedDecrement(
     _Inout_ _Interlocked_operand_ long volatile *Addend
@@ -115,7 +115,7 @@ InterlockedDecrement(
     return __sync_sub_and_fetch(Addend, (long)1);
 }
 
-inline
+QUIC_INLINE
 long
 InterlockedAnd(
     _Inout_ _Interlocked_operand_ long volatile *Destination,
@@ -125,7 +125,7 @@ InterlockedAnd(
     return __sync_and_and_fetch(Destination, Value);
 }
 
-inline
+QUIC_INLINE
 long
 InterlockedOr(
     _Inout_ _Interlocked_operand_ long volatile *Destination,
@@ -135,7 +135,27 @@ InterlockedOr(
     return __sync_or_and_fetch(Destination, Value);
 }
 
-inline
+QUIC_INLINE
+int64_t
+InterlockedOr64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
+    _In_ int64_t Value
+    )
+{
+    return __sync_fetch_and_or(Destination, Value);
+}
+
+QUIC_INLINE
+int64_t
+InterlockedExchange64(
+    _Inout_ _Interlocked_operand_ int64_t volatile *Target,
+    _In_ int64_t Value
+    )
+{
+    return __sync_lock_test_and_set(Target, Value);
+}
+
+QUIC_INLINE
 int64_t
 InterlockedExchangeAdd64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend,
@@ -145,7 +165,7 @@ InterlockedExchangeAdd64(
     return __sync_fetch_and_add(Addend, Value);
 }
 
-inline
+QUIC_INLINE
 short
 InterlockedCompareExchange16(
     _Inout_ _Interlocked_operand_ short volatile *Destination,
@@ -156,7 +176,7 @@ InterlockedCompareExchange16(
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
-inline
+QUIC_INLINE
 short
 InterlockedCompareExchange(
     _Inout_ _Interlocked_operand_ long volatile *Destination,
@@ -167,7 +187,7 @@ InterlockedCompareExchange(
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
-inline
+QUIC_INLINE
 int64_t
 InterlockedCompareExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Destination,
@@ -178,7 +198,7 @@ InterlockedCompareExchange64(
     return __sync_val_compare_and_swap(Destination, Comperand, ExChange);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndClearBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -187,7 +207,7 @@ InterlockedFetchAndClearBoolean(
     return __sync_fetch_and_and(Target, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndSetBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -196,7 +216,7 @@ InterlockedFetchAndSetBoolean(
     return __sync_fetch_and_or(Target, 1);
 }
 
-inline
+QUIC_INLINE
 void*
 InterlockedExchangePointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target,
@@ -206,7 +226,7 @@ InterlockedExchangePointer(
     return __sync_lock_test_and_set(Target, Value);
 }
 
-inline
+QUIC_INLINE
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
@@ -215,7 +235,7 @@ InterlockedFetchAndClearPointer(
     return __sync_fetch_and_and(Target, 0);
 }
 
-inline
+QUIC_INLINE
 short
 InterlockedIncrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
@@ -224,7 +244,7 @@ InterlockedIncrement16(
     return __sync_add_and_fetch(Addend, (short)1);
 }
 
-inline
+QUIC_INLINE
 short
 InterlockedDecrement16(
     _Inout_ _Interlocked_operand_ short volatile *Addend
@@ -233,7 +253,7 @@ InterlockedDecrement16(
     return __sync_sub_and_fetch(Addend, (short)1);
 }
 
-inline
+QUIC_INLINE
 int64_t
 InterlockedIncrement64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend
@@ -242,7 +262,7 @@ InterlockedIncrement64(
     return __sync_add_and_fetch(Addend, (int64_t)1);
 }
 
-inline
+QUIC_INLINE
 int64_t
 InterlockedDecrement64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Addend
@@ -478,6 +498,19 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
+typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
+    union {
+    CXPLAT_POOL* Owner;
+    CXPLAT_SLIST_ENTRY Entry;
+    };
+#if DEBUG
+    uint64_t SpecialFlag;
+#endif
+} CXPLAT_POOL_HEADER;
+
+#define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAull
+#define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ull
+
 #ifndef DISABLE_CXPLAT_POOL
 #define CXPLAT_POOL_MAXIMUM_DEPTH   256 // Copied from EX_MAXIMUM_LOOKASIDE_DEPTH_BASE
 #else
@@ -485,18 +518,12 @@ typedef struct CXPLAT_POOL {
 #endif
 
 #if DEBUG
-typedef struct CXPLAT_POOL_ENTRY {
-    CXPLAT_SLIST_ENTRY ListHead;
-    uint64_t SpecialFlag;
-} CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAull
-
 int32_t
 CxPlatGetAllocFailDenominator(
     );
 #endif
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
@@ -505,10 +532,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
-    Pool->Size = Size;
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the pool header
     Pool->Tag = Tag;
     CxPlatLockInitialize(&Pool->Lock);
     Pool->ListDepth = 0;
@@ -516,80 +540,78 @@ CxPlatPoolInitialize(
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry;
-    CxPlatLockAcquire(&Pool->Lock);
-    while ((Entry = CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
-        Pool->ListDepth--;
-        CxPlatLockRelease(&Pool->Lock);
+    CXPLAT_POOL_HEADER* Entry;
+    while ((Entry = (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead)) != NULL) {
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
         CxPlatFree(Entry, Pool->Tag);
-        CxPlatLockAcquire(&Pool->Lock);
     }
-    CxPlatLockRelease(&Pool->Lock);
     CxPlatLockUninitialize(&Pool->Lock);
 }
 
-inline
+QUIC_INLINE
 void*
 CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    if (CxPlatGetAllocFailDenominator()) {
-        return CxPlatAlloc(Pool->Size, Pool->Tag);
-    }
-#endif
     CxPlatLockAcquire(&Pool->Lock);
-    void* Entry = CxPlatListPopEntry(&Pool->ListHead);
-    if (Entry != NULL) {
-        CXPLAT_FRE_ASSERT(Pool->ListDepth > 0);
+    CXPLAT_POOL_HEADER* Header =
+    #if DEBUG
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
+    #endif
+        (CXPLAT_POOL_HEADER*)CxPlatListPopEntry(&Pool->ListHead);
+    if (Header != NULL) {
+        CXPLAT_DBG_ASSERT(Pool->ListDepth > 0);
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
         Pool->ListDepth--;
     }
     CxPlatLockRelease(&Pool->Lock);
-    if (Entry == NULL) {
-        Entry = CxPlatAlloc(Pool->Size, Pool->Tag);
+    if (Header == NULL) {
+        Header = (CXPLAT_POOL_HEADER*)CxPlatAlloc(Pool->Size, Pool->Tag);
+        if (Header == NULL) {
+            return NULL;
+        }
     }
 #if DEBUG
-    if (Entry != NULL) {
-        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
-    }
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
-    return Entry;
+    Header->Owner = Pool;
+    return (void*)((uint8_t*)Header + sizeof(CXPLAT_POOL_HEADER));
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
+    _In_ void* Memory
     )
 {
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
+    CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
-        CxPlatFree(Entry, Pool->Tag);
+        CxPlatFree(Header, Pool->Tag);
         return;
     }
-    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    Header->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (Pool->ListDepth >= CXPLAT_POOL_MAXIMUM_DEPTH) {
-        CxPlatFree(Entry, Pool->Tag);
+        CxPlatFree(Header, Pool->Tag);
     } else {
         CxPlatLockAcquire(&Pool->Lock);
-        CxPlatListPushEntry(&Pool->ListHead, (CXPLAT_SLIST_ENTRY*)Entry);
+        CxPlatListPushEntry(&Pool->ListHead, &Header->Entry);
         Pool->ListDepth++;
         CxPlatLockRelease(&Pool->Lock);
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatPoolPrune(
     _Inout_ CXPLAT_POOL* Pool
@@ -676,7 +698,7 @@ CxPlatGetAbsoluteTime(
 #define CxPlatTimeMs32() (uint32_t)CxPlatTimeMs64()
 #define CxPlatTimeUs64ToPlat(x) (x)
 
-inline
+QUIC_INLINE
 int64_t
 CxPlatTimeEpochMs64(
     void
@@ -688,7 +710,7 @@ CxPlatTimeEpochMs64(
     return S_TO_MS(tv.tv_sec) + US_TO_MS(tv.tv_usec);
 }
 
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeDiff64(
     _In_ uint64_t T1,
@@ -702,7 +724,7 @@ CxPlatTimeDiff64(
     return T2 - T1;
 }
 
-inline
+QUIC_INLINE
 uint32_t
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
 CxPlatTimeDiff32(
@@ -717,7 +739,7 @@ CxPlatTimeDiff32(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
@@ -731,7 +753,7 @@ CxPlatTimeAtOrBefore64(
     return T1 <= T2;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 QUIC_NO_SANITIZE("unsigned-integer-overflow")
 CxPlatTimeAtOrBefore32(
@@ -780,7 +802,7 @@ typedef struct CXPLAT_EVENT {
 
 } CXPLAT_EVENT;
 
-inline
+QUIC_INLINE
 void
 CxPlatEventInitialize(
     _Out_ CXPLAT_EVENT* Event,
@@ -809,7 +831,7 @@ CxPlatEventInitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatInternalEventUninitialize(
     _Inout_ CXPLAT_EVENT* Event
@@ -823,7 +845,7 @@ CxPlatInternalEventUninitialize(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatInternalEventSet(
     _Inout_ CXPLAT_EVENT* Event
@@ -849,7 +871,7 @@ CxPlatInternalEventSet(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatInternalEventReset(
     _Inout_ CXPLAT_EVENT* Event
@@ -864,7 +886,7 @@ CxPlatInternalEventReset(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatInternalEventWaitForever(
     _Inout_ CXPLAT_EVENT* Event
@@ -893,7 +915,7 @@ CxPlatInternalEventWaitForever(
     CXPLAT_FRE_ASSERT(Result == 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatInternalEventWaitWithTimeout(
     _Inout_ CXPLAT_EVENT* Event,
@@ -970,7 +992,7 @@ typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -979,7 +1001,7 @@ CxPlatEventQInitialize(
     return 0 == io_uring_queue_init(256, queue, 0); // TODO - make size configurable
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -988,7 +1010,7 @@ CxPlatEventQCleanup(
     io_uring_queue_exit(queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1005,7 +1027,7 @@ CxPlatEventQEnqueue(
 
 #define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1027,7 +1049,7 @@ CxPlatEventQDequeue(
     return io_uring_peek_batch_cqe(queue, events, count);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1037,7 +1059,7 @@ CxPlatEventQReturn(
     io_uring_cq_advance(queue, count);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1050,7 +1072,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1061,7 +1083,7 @@ CxPlatSqeCleanup(
     UNREFERENCED_PARAMETER(sqe);
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
@@ -1088,7 +1110,7 @@ typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -1097,7 +1119,7 @@ CxPlatEventQInitialize(
     return (*queue = epoll_create1(EPOLL_CLOEXEC)) != -1;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -1106,7 +1128,7 @@ CxPlatEventQCleanup(
     close(*queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1119,7 +1141,7 @@ CxPlatEventQEnqueue(
 
 #define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1136,7 +1158,7 @@ CxPlatEventQDequeue(
     return (uint32_t)result;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1147,7 +1169,7 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1162,7 +1184,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1173,7 +1195,7 @@ CxPlatSqeCleanup(
     close(sqe->fd);
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
@@ -1202,7 +1224,7 @@ typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER Completion;
 } CXPLAT_SQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -1211,7 +1233,7 @@ CxPlatEventQInitialize(
     return (*queue = kqueue()) != -1;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -1220,7 +1242,7 @@ CxPlatEventQCleanup(
     close(*queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1232,7 +1254,7 @@ CxPlatEventQEnqueue(
     return kevent(*queue, &event, 1, NULL, 0, NULL) == 0;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueueEx(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1247,7 +1269,7 @@ CxPlatEventQEnqueueEx(
 
 #define CXPLAT_EVENTQ_DEQUEUE_MAX 16
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1268,7 +1290,7 @@ CxPlatEventQDequeue(
     return (uint32_t)result;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1281,7 +1303,7 @@ CxPlatEventQReturn(
 
 extern uintptr_t CxPlatCurrentSqe;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1295,7 +1317,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeInitializeEx(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1309,7 +1331,7 @@ CxPlatSqeInitializeEx(
     sqe->Completion = completion;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
@@ -1320,7 +1342,7 @@ CxPlatSqeCleanup(
     UNREFERENCED_PARAMETER(sqe);
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe

@@ -37,6 +37,11 @@ typedef struct QUIC_LISTENER {
     BOOLEAN NeedsCleanup;
 
     //
+    // Indicates the listener opted in for DoS Mode event.
+    //
+    BOOLEAN DosModeEventsEnabled;
+
+    //
     // The thread ID that the listener is actively indicating a stop compelete
     // callback on.
     //
@@ -109,7 +114,6 @@ typedef struct QUIC_LISTENER {
     // the ID in the CID and the rest payload of the identifier.
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
-
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO
@@ -205,4 +209,14 @@ QuicListenerParamGet(
     _Inout_ uint32_t* BufferLength,
     _Out_writes_bytes_opt_(*BufferLength)
         void* Buffer
+    );
+
+//
+// Indicate listener about DoS mode change.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerHandleDosModeStateChange(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN DosModeEnabled
     );

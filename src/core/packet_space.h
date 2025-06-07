@@ -15,7 +15,7 @@ typedef enum QUIC_ENCRYPT_LEVEL {
 
 } QUIC_ENCRYPT_LEVEL;
 
-inline
+QUIC_INLINE
 QUIC_PACKET_KEY_TYPE
 QuicEncryptLevelToKeyType(
     QUIC_ENCRYPT_LEVEL Level
@@ -29,7 +29,7 @@ QuicEncryptLevelToKeyType(
     }
 }
 
-inline
+QUIC_INLINE
 QUIC_ENCRYPT_LEVEL
 QuicKeyTypeToEncryptLevel(
     QUIC_PACKET_KEY_TYPE KeyType
@@ -114,7 +114,7 @@ typedef struct QUIC_PACKET_SPACE {
 //
 // Helper to get the QUIC_PACKET_SPACE for an ack tracker.
 //
-inline
+QUIC_INLINE
 QUIC_PACKET_SPACE*
 QuicAckTrackerGetPacketSpace(
     _In_ QUIC_ACK_TRACKER* Tracker

@@ -8,6 +8,32 @@
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
+MsQuicExecutionCreate(
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t PollingIdleTimeoutUs,
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicExecutionDelete(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION** Executions
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+QUIC_API
+MsQuicExecutionPoll(
+    _In_ QUIC_EXECUTION* Execution
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
 MsQuicRegistrationOpen(
     _In_opt_ const QUIC_REGISTRATION_CONFIG* Config,
     _Outptr_ _At_(*Registration, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -105,6 +131,18 @@ QUIC_STATUS
 QUIC_API
 MsQuicConnectionOpen(
     _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *Connection
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC Registration,
+    _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*Connection, __drv_allocatesMem(Mem)) _Pre_defensive_
@@ -286,4 +324,13 @@ MsQuicConnectionCertificateValidationComplete(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ BOOLEAN Result,
     _In_ QUIC_TLS_ALERT_CODES TlsAlert
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionPoolCreate(
+    _In_ QUIC_CONNECTION_POOL_CONFIG* Config,
+    _Out_writes_(Config->NumberOfConnections)
+        HQUIC* ConnectionPool
     );

@@ -65,7 +65,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -79,6 +78,7 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN Freed                   : 1;    // Freed after last ref count released. Used for Debugging.
 
         BOOLEAN InStreamTable           : 1;    // The stream is currently in the connection's table.
+        BOOLEAN InWaitingList           : 1;    // The stream is currently in the waiting list for stream id FC.
         BOOLEAN DelayIdFcUpdate         : 1;    // Delay stream ID FC updates to StreamClose.
     };
 } QUIC_STREAM_FLAGS;
@@ -565,9 +565,35 @@ struct SendRequest : Struct {
     }
 };
 
+typedef enum QUIC_RECV_BUF_MODE {
+    QUIC_RECV_BUF_MODE_SINGLE,      // Only one receive with a single contiguous buffer at a time.
+    QUIC_RECV_BUF_MODE_CIRCULAR,    // Only one receive that may indicate two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_MULTIPLE,    // Multiple independent receives that may indicate up to two contiguous buffers at a time.
+    QUIC_RECV_BUF_MODE_APP_OWNED    // Uses memory buffers provided by the app. Only one receive at a time,
+                                    //   that may indicate up to the number of provided buffers.
+} QUIC_RECV_BUF_MODE;
+
 struct RecvBuffer : Struct {
 
     RecvBuffer(ULONG64 Addr) : Struct("msquic!QUIC_RECV_BUFFER", Addr) { }
+
+
+    PSTR ModeStr() {
+        const auto Mode = ReadType<QUIC_RECV_BUF_MODE>("RecvMode");
+
+        switch (Mode) {
+        case QUIC_RECV_BUF_MODE_SINGLE:
+            return "Single";
+        case QUIC_RECV_BUF_MODE_CIRCULAR:
+            return "Circular";
+        case QUIC_RECV_BUF_MODE_MULTIPLE:
+            return "Multiple";
+        case QUIC_RECV_BUF_MODE_APP_OWNED:
+            return "App Owned";
+        default:
+            return "Unknown";
+        }
+    }
 
     ULONG64 Buffer() {
         return ReadPointer("Buffer");
@@ -996,6 +1022,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_SEND,
     QUIC_API_TYPE_STRM_RECV_COMPLETE,
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
+    QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS,
 
     QUIC_API_TYPE_SET_PARAM,
     QUIC_API_TYPE_GET_PARAM,
@@ -1038,6 +1065,8 @@ struct ApiCall : Struct {
             return "API_TYPE_STRM_RECV_COMPLETE";
         case QUIC_API_TYPE_STRM_RECV_SET_ENABLED:
             return "API_TYPE_STRM_RECV_SET_ENABLED";
+        case QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS:
+            return "API_TYPE_STRM_PROVIDE_RECV_BUFFERS";
         case QUIC_API_TYPE_SET_PARAM:
             return "API_SET_PARAM";
         case QUIC_API_TYPE_GET_PARAM:

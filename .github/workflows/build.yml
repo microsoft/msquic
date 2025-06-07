@@ -30,18 +30,15 @@ jobs:
         plat: [windows, uwp] # TODO: Support gamecore_console
         os: ['windows-2022']
         arch: [x86, x64, arm64]
-        tls: [schannel, openssl, openssl3]
+        tls: [schannel, quictls]
         static: ['', '-Static']
         exclude:
-        # OpenSSL doesn't support arm64
-        - tls: openssl
+        # OpenSSL/quictls doesn't support arm64
+        - tls: quictls
           arch: arm64
-        # OpenSSL3 doesn't support arm64
-        - tls: openssl3
-          arch: arm64
-        # TODO: FIX: OpenSSL3 build fails with UWP
+        # TODO: FIX: OpenSSL/quictls build fails with UWP
         - plat: uwp
-          tls: openssl3
+          tls: quictls
         # TODO: FIX: Static builds fail with UWP
         - plat: uwp
           static: '-Static'
@@ -53,6 +50,23 @@ jobs:
       arch: ${{ matrix.arch }}
       tls: ${{ matrix.tls }}
       static: ${{ matrix.static }}
+      repo: ${{ github.repository }}
+
+  build-windows-official:
+    name: WinUser-Official
+    needs: []
+    strategy:
+      fail-fast: false
+      matrix:
+        config: ['Debug', 'Release']
+    uses: ./.github/workflows/build-reuse-win.yml
+    with:
+      config: ${{ matrix.config }}
+      plat: 'windows'
+      os: 'windows-2022'
+      arch: 'x64'
+      tls: 'schannel'
+      official: '-ForceOfficialRelease'
       repo: ${{ github.repository }}
 
   build-windows-kernel:
@@ -85,7 +99,7 @@ jobs:
         plat: [linux]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [arm, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -107,61 +121,46 @@ jobs:
         plat: [linux, android]
         os: ['ubuntu-22.04', 'ubuntu-24.04']
         arch: [x86, x64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         systemcrypto: ['', '-UseSystemOpenSSLCrypto']
         static: ['', '-Static']
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
         xdp: ['', '-UseXdp']
         exclude:
-        # Android doesn't support x86
+        # Android doesn't support x86, XDP, Clang, CodeCheck or SystemCrypto
         - plat: android
           arch: x86
-        # Android doesn't use system crypto
         - plat: android
           systemcrypto: '-UseSystemOpenSSLCrypto'
-        # TODO: android to support ubuntu-24.04
-        - plat: android
-          os: 'ubuntu-24.04'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on ubuntu-22.04
-        - plat: linux
-          os: 'ubuntu-22.04'
-          tls: 'openssl'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # No openssl system crypto on ubuntu-24.04
-        - plat: linux
-          os: 'ubuntu-24.04'
-          tls: 'openssl'
-          systemcrypto: '-UseSystemOpenSSLCrypto'
-        # linux xdp is for ubuntu24.04 only for now
         - plat: android
           xdp: "-UseXdp"
-        - os: 'ubuntu-22.04'
-          xdp: "-UseXdp"
-        - arch: x86
-          xdp: "-UseXdp"
-        # Android doesn't use Clang
         - plat: android
           clang: '-Clang'
-        # Android doesn't use CodeCheck
         - plat: android
           codecheck: '-CodeCheck'
-        # No need to combine SystemCrypto and CodeCheck
-        - systemcrypto: '-UseSystemOpenSSLCrypto'
-          codecheck: '-CodeCheck'
-        # No need to combine Static and CodeCheck
-        - static: '-Static'
-          codecheck: '-CodeCheck'
-        # No need to combine Clang and CodeCheck
-        - clang: '-Clang'
-          codecheck: '-CodeCheck'
-        # Release builds fail with CodeCheck
-        - config: 'Release'
-          codecheck: '-CodeCheck'
-        # Static build can't dynamically link to libcrypto
-        - systemcrypto: '-UseSystemOpenSSLCrypto'
+        # CodeCheck doesn't work with SystemCrypto, Clang, Static or Release builds
+        - codecheck: '-CodeCheck'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - codecheck: '-CodeCheck'
+          clang: '-Clang'
+        - codecheck: '-CodeCheck'
           static: '-Static'
+        - codecheck: '-CodeCheck'
+          config: Release
+        # Static build can't dynamically link to libcrypto
+        - static: '-Static'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # No openssl system crypto on ubuntu 22.04 or 24.04
+        - os: 'ubuntu-22.04'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        - os: 'ubuntu-24.04'
+          systemcrypto: '-UseSystemOpenSSLCrypto'
+        # Linux xdp is for x64 ubuntu24.04 only for now
+        - xdp: "-UseXdp"
+          os: 'ubuntu-22.04'
+        - xdp: "-UseXdp"
+          arch: x86
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ matrix.config }}
@@ -186,7 +185,7 @@ jobs:
         plat: [macos, ios]
         os: ['macos-13']
         arch: [x64, arm64]
-        tls: [openssl, openssl3]
+        tls: [quictls]
         static: ['', '-Static']
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
@@ -205,8 +204,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { plat: "uwp",  tls: "openssl", arg: "-UWP" },
-          { plat: "windows",  tls: "openssl" },
+          #{ plat: "uwp",  tls: "quictls", arg: "-UWP" }, # TODO: Fix build first
+          { plat: "windows",  tls: "quictls" },
           { plat: "windows",  tls: "schannel" },
         ]
     runs-on: windows-2022
@@ -214,36 +213,34 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x86-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-x64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Download Build Artifacts
-      uses: dawidd6/action-download-artifact@20319c5641d495c8a52e688b7dc5fada6c3a9fbc
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      if: matrix.vec.tls != 'quictls' # TODO: Remove once quictls is supported
       with:
         name: Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
         path: artifacts
-        if_no_artifact_found: ignore
     - name: Build Package
       shell: pwsh
       run: scripts/package-nuget.ps1 -Tls ${{ matrix.vec.tls }} ${{ matrix.vec.arg }} -GHA
     - name: Upload build artifacts
-      uses: actions/upload-artifact@65c4c4a1ddee5b72f698fdd19549f0f0fb45cf08
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       with:
-        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-arm64-${{ matrix.vec.tls }}
+        name: Nuget-Release-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.tls }}
         path: artifacts/dist/*.nupkg
 
   Complete:
     name: Build Complete
     if: always()
-    needs: [build-windows, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
+    needs: [build-windows, build-windows-official, build-windows-kernel, build-ubuntu-cross-compile, build-ubuntu, build-darwin, build-nuget]
     runs-on: ubuntu-latest
     permissions: {} # No need for any permissions.
     steps:

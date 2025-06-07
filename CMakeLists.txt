@@ -19,7 +19,7 @@ message(STATUS "CMAKE Version: ${CMAKE_VERSION}")
 
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 set(CMAKE_VS_GLOBALS "UseInternalMSUniCrtPackage=true")
- 
+
 message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
@@ -57,7 +57,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.5.0)
+set(QUIC_FULL_VERSION 2.6.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -70,11 +70,15 @@ message(STATUS "QUIC Platform: ${CX_PLATFORM}")
 
 enable_testing()
 
+if (NOT "${QUIC_TLS}" STREQUAL "")
+    message(FATAL_ERROR "QUIC_TLS is deprecated, Use QUIC_TLS_LIB instead")
+endif()
+
 # Set the default TLS method for each platform.
 if (WIN32)
-    set(QUIC_TLS "schannel" CACHE STRING "TLS Library to use")
+    set(QUIC_TLS_LIB "schannel" CACHE STRING "TLS Library to use")
 else()
-    set(QUIC_TLS "openssl" CACHE STRING "TLS Library to use")
+    set(QUIC_TLS_LIB "quictls" CACHE STRING "TLS Library to use")
 endif()
 
 option(QUIC_BUILD_TOOLS "Builds the tools code" OFF)
@@ -99,7 +103,7 @@ option(QUIC_OPTIMIZE_LOCAL "Optimize code for local machine architecture" OFF)
 option(QUIC_CI "CI Specific build" OFF)
 option(QUIC_SKIP_CI_CHECKS "Disable CI specific build checks" OFF)
 option(QUIC_TELEMETRY_ASSERTS "Enable telemetry asserts in release builds" OFF)
-option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 option(QUIC_HIGH_RES_TIMERS "Configure the system to use high resolution timers" OFF)
 option(QUIC_OFFICIAL_RELEASE "Configured the build for an official release" OFF)
 set(QUIC_FOLDER_PREFIX "" CACHE STRING "Optional prefix for source group folders when using an IDE generator")
@@ -229,6 +233,16 @@ if (WIN32)
         endif()
     endif()
 
+    if (QUIC_ENABLE_SANITIZERS)
+        message(STATUS "Allowing non-system32 DLLs to be loaded for ASAN")
+    elseif (QUIC_GAMECORE_BUILD)
+        message(STATUS "Allowing non-system32 DLLs to be loaded for GameCore")
+    else()
+        # Configure linker to only load from the system directory.
+        message(STATUS "Configuring linker to only load from the system directory")
+        set (CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /DEPENDENTLOADFLAG:0x800")
+    endif()
+
     if("${CMAKE_CXX_COMPILER_ID}" STREQUAL "MSVC")
         list(APPEND QUIC_COMMON_FLAGS /MP)
     endif()
@@ -344,7 +358,7 @@ if(QUIC_OFFICIAL_RELEASE)
     message(STATUS "Configured for official release build")
 endif()
 
-if(QUIC_TLS STREQUAL "schannel")
+if(QUIC_TLS_LIB STREQUAL "schannel")
     message(STATUS "Enabling Schannel configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_SCHANNEL_FLAGS=1)
 
@@ -358,8 +372,8 @@ if(QUIC_TLS STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
-if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
-    message(STATUS "Enabling OpenSsl configuration tests")
+if(QUIC_TLS_LIB STREQUAL "quictls")
+    message(STATUS "Enabling quictls/openssl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     if (NOT WIN32)
        message(STATUS "Enabling CA file tests")
@@ -578,7 +592,7 @@ if(WIN32)
 
     # Find the right PGO file.
     if(NOT EXISTS "${QUIC_PGO_FILE}")
-        set(QUIC_PGO_NAME "msquic.${QUIC_TLS}.pgd")
+        set(QUIC_PGO_NAME "msquic.${QUIC_TLS_LIB}.pgd")
         set(QUIC_PGO_FILE "${CMAKE_CURRENT_SOURCE_DIR}/src/bin/winuser/pgo_${SYSTEM_PROCESSOR}/${QUIC_PGO_NAME}")
     endif()
     if(NOT EXISTS "${QUIC_PGO_FILE}")
@@ -677,7 +691,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS STREQUAL "openssl" OR  QUIC_TLS STREQUAL "openssl3")
+if(QUIC_TLS_LIB STREQUAL "quictls")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)

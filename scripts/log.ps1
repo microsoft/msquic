@@ -313,19 +313,17 @@ function Log-Stop {
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
-            Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-            babeltrace --names all $TempLTTngDir/* > $BableTraceFile
-            Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
-            Write-Host $Command
-
             try {
+                Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+                babeltrace --names all $TempLTTngDir/* > $BableTraceFile
+                Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+                $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+                Write-Host $Command
                 Invoke-Expression $Command | Write-Debug
             } catch {
                 $err = $_
                 Write-Host "Failed to decode logs."
-                Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
-                $Command
+                Write-Host "Run `"prepare-machine.ps1 -InstallClog2Text`" and try again"
                 Write-Host $err
             }
         }
@@ -358,19 +356,17 @@ function Log-Decode {
         Write-Host "Decompressing $Logfile into $DecompressedLogs"
         tar xvfz $Logfile -C $DecompressedLogs
 
-        Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-        babeltrace --names all $DecompressedLogs/* > $BableTraceFile
-        Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
-        Write-Host $Command
-
         try {
+            Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+            babeltrace --names all $DecompressedLogs/* > $BableTraceFile
+            Write-Host "Decoding Babeltrace into human text using CLOG"
+            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            Write-Host $Command
             Invoke-Expression $Command
         } catch {
             $err = $_
             Write-Host "Failed to decode logs."
-            Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
-            $Command
+            Write-Host "Run `"prepare-machine.ps1 -InstallClog2Text`" and try again"
             Write-Host $err
         }
     }

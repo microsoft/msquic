@@ -597,6 +597,7 @@ ResumptionFailConnectionCallback(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerFailSendResumeCallback(
     _In_ TestListener* Listener,
     _In_ HQUIC ConnectionHandle
@@ -686,6 +687,22 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionOpen(
                 nullptr,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+    }
+
+    //
+    // Invalid partition index.
+    //
+    {
+        TestScopeLogger logScope("Invalid partition index");
+        ConnectionScope Connection;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionOpenInPartition(
+                Registration,
+                UINT16_MAX,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -1092,6 +1109,7 @@ void QuicTestValidateConnection()
 _Function_class_(STREAM_SHUTDOWN_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestStreamShutdown(
     _In_ TestStream* Stream
     )
@@ -1102,6 +1120,7 @@ ServerApiTestStreamShutdown(
 _Function_class_(NEW_STREAM_CALLBACK)
 static
 void
+QUIC_API
 ServerApiTestNewStream(
     _In_ TestConnection* /* Connection */,
     _In_ HQUIC StreamHandle,
@@ -1118,6 +1137,7 @@ ServerApiTestNewStream(
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool
+QUIC_API
 ListenerAcceptCallback(
     _In_ TestListener*  Listener,
     _In_ HQUIC ConnectionHandle
@@ -2576,13 +2596,13 @@ void QuicTestGlobalParam()
                         nullptr));
             }
 
-            uint8_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
+            uint8_t Data[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
             uint32_t DataLength = sizeof(Data);
-            QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
+            QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Data;
             Config->ProcessorCount = 4;
             if (CxPlatProcCount() < Config->ProcessorCount) {
                 Config->ProcessorCount = CxPlatProcCount();
-                DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
+                DataLength = QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
             }
             for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {
                 Config->ProcessorList[i] = i;
@@ -2765,6 +2785,102 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_PREFIX_GLOBAL | 0x00234567,
                 0,
                 nullptr));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES");
+        const uint32_t Expected[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
+
+        //
+        // Expect buffer too small
+        //
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+        TEST_TRUE(Length >= sizeof(Expected));
+
+        //
+        // NULL pointer output error case
+        //
+        Length = sizeof(uint32_t);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+
+        //
+        // Retrieve the sizes
+        //
+        uint32_t Sizes[8] = {0};
+        Length = sizeof(Sizes);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_TRUE(Length % sizeof(uint32_t) == 0);
+        TEST_TRUE(Length >= sizeof(Expected));
+        for (uint32_t i = 0; i < ARRAYSIZE(Expected); ++i) {
+            TEST_EQUAL(Sizes[i], Expected[i]);
+        }
+
+        //
+        // Partial retrieve
+        //
+        uint32_t SingleSize = 0;
+        Length = sizeof(SingleSize);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                &SingleSize));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(SingleSize, QUIC_STATISTICS_V2_SIZE_1);
+
+        //
+        // Non-multiple of sizeof(uin32_t)
+        //
+        Length = sizeof(uint32_t) + 1;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(Sizes[0], QUIC_STATISTICS_V2_SIZE_1);
+
+        //
+        // Too Small Receive
+        //
+        uint8_t SmallSingleSize = 0;
+        Length = sizeof(SmallSingleSize);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                &SmallSingleSize));
+        TEST_TRUE(Length >= sizeof(Expected));
     }
 
     QuicTestStatefulGlobalSetParam();
@@ -3165,6 +3281,75 @@ void CibirIDTests(HQUIC Handle, uint32_t Param) {
     }
 }
 
+
+// Used by Listener
+void DosMitigationTests(HQUIC Handle, uint32_t Param) {
+    //
+    // buffer length test
+    //
+    {
+        TestScopeLogger LogScope0("DoS param Buffer length test");
+        //
+        // Buffer is bigger than 1 byte
+        //
+        {
+            TestScopeLogger LogScope1("DoS param Buffer is bigger than 1 byte");
+            uint8_t buffer[2] = {0};
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_INVALID_PARAMETER,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+
+        //
+        // BufferLength == 1
+        //
+        {
+            TestScopeLogger LogScope1("DoS param BufferLength == 1");
+            uint8_t buffer[1] = {0};
+
+            TEST_QUIC_STATUS(
+                QUIC_STATUS_SUCCESS,
+                MsQuic->SetParam(
+                    Handle,
+                    Param,
+                    sizeof(buffer),
+                    &buffer));
+        }
+    }
+
+    //
+    // Test with value of 1
+    //
+    {
+        TestScopeLogger LogScope0("DoS param Buffer starts from non-zero is not supported");
+        uint8_t buffer[1] = {1};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+
+    //
+    // Test with value of 0
+    //
+    {
+        uint8_t buffer[1] = {0};
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                Handle,
+                Param,
+                sizeof(buffer),
+                &buffer));
+    }
+}
+
 void QuicTestListenerParam()
 {
     MsQuicRegistration Registration;
@@ -3307,7 +3492,41 @@ void QuicTestListenerParam()
             // TODO: Stateful test once Listener->CibrId is filled
         }
     }
+
+    //
+    // QUIC_PARAM_DOS_MODE_EVENTS
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_DOS_MODE_EVENTS");
+        //
+        // SetParam
+        //
+        {
+            TestScopeLogger LogScope1("SetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*> , nullptr);
+            TEST_TRUE(Listener.IsValid());
+            DosMitigationTests(Listener.Handle, QUIC_PARAM_DOS_MODE_EVENTS);
+        }
+
+        //
+        // GetParam
+        //
+        {
+            TestScopeLogger LogScope1("GetParam");
+            MsQuicListener Listener(Registration, CleanUpManual, DummyListenerCallback<MsQuicListener*>, nullptr);
+            TEST_TRUE(Listener.IsValid());
+            uint32_t Length = 65535;
+            uint8_t buffer[1] = {0};
+            TEST_QUIC_SUCCEEDED(
+                Listener.GetParam(
+                    QUIC_PARAM_DOS_MODE_EVENTS,
+                    &Length,
+                    &buffer));
+            TEST_EQUAL(Length, sizeof(BOOLEAN)); //sizeof (((QUIC_LISTENER *)0)->DosModeEventsEnabled)
+        }
+    }
 #endif
+
 }
 
 void QuicTest_QUIC_PARAM_CONN_QUIC_VERSION(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
@@ -4697,7 +4916,7 @@ void QuicTestTlsParam()
                     QUIC_PARAM_TLS_HANDSHAKE_INFO,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(QUIC_HANDSHAKE_INFO));
+            TEST_TRUE(Length >= sizeof(QUIC_HANDSHAKE_INFO));
 
             //
             // Before handshake
@@ -6304,5 +6523,188 @@ QuicTestVersionStorage()
     TEST_EQUAL(Settings.AcceptableVersions, nullptr);
     TEST_EQUAL(Settings.OfferedVersions, nullptr);
     TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+}
+
+void
+QuicTestValidateConnectionPoolCreate()
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest", MsQuicCredentialConfig());
+    TEST_TRUE(Configuration.IsValid());
+
+    {
+        TestScopeLogger logScope("All parameters NULL");
+        TEST_QUIC_STATUS(QUIC_STATUS_INVALID_PARAMETER, MsQuic->ConnectionPoolCreate(NULL, NULL));
+    }
+
+    {
+        TestScopeLogger logScope("Config NULL");
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                nullptr,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("ConnectionPool NULL");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                nullptr));
+    }
+
+    {
+        TestScopeLogger logScope("No Registration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = nullptr;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("No Configuration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = nullptr;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Zero Connections");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Missing Connection Callback");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = nullptr;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Address Family");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = (QUIC_ADDRESS_FAMILY)3;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Server port");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 0;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Non-Null CIBIR, zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = (uint8_t**)0x1;
+        Config.CibirIdLength = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Null CIBIR, non-zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = nullptr;
+        Config.CibirIdLength = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

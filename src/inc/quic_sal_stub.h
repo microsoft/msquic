@@ -67,6 +67,14 @@
 #define _Out_range_(...)
 #endif
 
+#ifndef _Field_size_
+#define _Field_size_(...)
+#endif
+
+#ifndef _Field_size_opt_
+#define _Field_size_opt_(...)
+#endif
+
 #ifndef _Field_size_bytes_
 #define _Field_size_bytes_(...)
 #endif
@@ -161,6 +169,10 @@
 
 #ifndef _Out_opt_
 #define _Out_opt_
+#endif
+
+#ifndef _Outptr_result_maybenull_
+#define _Outptr_result_maybenull_
 #endif
 
 #ifndef _Outptr_
@@ -273,6 +285,10 @@
 
 #ifndef _At_
 #define _At_(...)
+#endif
+
+#ifndef _At_buffer_
+#define _At_buffer_(...)
 #endif
 
 #ifndef _Check_return_

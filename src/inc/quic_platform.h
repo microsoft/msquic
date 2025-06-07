@@ -49,6 +49,12 @@ extern "C" {
 #define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
+#define CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field) \
+    (offsetof(Type, Field) + sizeof(((Type*)0)->Field))
+
+#define CXPLAT_STRUCT_HAS_FIELD(Type, Size, Field) \
+    (Size >= CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field))
+
 typedef struct CXPLAT_LIST_ENTRY {
     struct CXPLAT_LIST_ENTRY* Flink;
     struct CXPLAT_LIST_ENTRY* Blink;
@@ -62,7 +68,7 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #if (_MSC_VER >= 1200)
 #define FORCEINLINE __forceinline
 #else
-#define FORCEINLINE __inline
+#define FORCEINLINE QUIC_INLINE
 #endif
 #endif
 
@@ -149,6 +155,8 @@ typedef struct CXPLAT_SLIST_ENTRY {
 #define QUIC_POOL_ROUTE_RESOLUTION_OPER     'B4cQ' // Qc4B - QUIC route resolution operation
 #define QUIC_POOL_EXECUTION_CONFIG          'C4cQ' // Qc4C - QUIC execution config
 #define QUIC_POOL_APP_BUFFER_CHUNK          'D4cQ' // Qc4D - QUIC receive chunk for app buffers
+#define QUIC_POOL_CONN_POOL_API_TABLE       'E4cQ' // Qc4E - QUIC Connection Pool API table
+#define QUIC_POOL_DATAPATH_RSS_CONFIG       'F4cQ' // Qc4F - QUIC Datapath RSS configuration
 
 typedef enum CXPLAT_THREAD_FLAGS {
     CXPLAT_THREAD_FLAG_NONE               = 0x0000,
@@ -302,6 +310,21 @@ CxPlatListInsertTail(
 }
 
 FORCEINLINE
+void
+CxPlatListInsertAfter(
+    _Inout_ CXPLAT_LIST_ENTRY* ListEntry,
+    _Inout_ __drv_aliasesMem CXPLAT_LIST_ENTRY* NewEntry
+    )
+{
+    QuicListEntryValidate(ListEntry);
+    CXPLAT_LIST_ENTRY* Flink = ListEntry->Flink;
+    ListEntry->Flink = NewEntry;
+    NewEntry->Flink = Flink;
+    NewEntry->Blink = ListEntry;
+    Flink->Blink = NewEntry;
+}
+
+FORCEINLINE
 CXPLAT_LIST_ENTRY*
 CxPlatListRemoveHead(
     _Inout_ CXPLAT_LIST_ENTRY* ListHead
@@ -329,7 +352,7 @@ CxPlatListEntryRemove(
     return (BOOLEAN)(Flink == Blink);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatListMoveItems(
     _Inout_ CXPLAT_LIST_ENTRY* Source,
@@ -454,8 +477,9 @@ CxPlatWorkerPoolUninit(
 // loops.
 //
 
+typedef struct QUIC_EXECUTION QUIC_EXECUTION;
+typedef struct QUIC_GLOBAL_EXECUTION_CONFIG QUIC_GLOBAL_EXECUTION_CONFIG;
 typedef struct QUIC_EXECUTION_CONFIG QUIC_EXECUTION_CONFIG;
-
 typedef struct CXPLAT_EXECUTION_CONTEXT CXPLAT_EXECUTION_CONTEXT;
 
 typedef struct CXPLAT_EXECUTION_STATE {
@@ -467,7 +491,80 @@ typedef struct CXPLAT_EXECUTION_STATE {
     CXPLAT_THREAD_ID ThreadID;
 } CXPLAT_EXECUTION_STATE;
 
-#ifndef _KERNEL_MODE // Not supported on kernel mode
+typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
+
+#ifndef _KERNEL_MODE
+
+//
+// Worker pool API used for driving execution contexts
+//
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreate(
+    _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
+    );
+
+_Success_(return != NULL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
+CXPLAT_WORKER_POOL*
+CxPlatWorkerPoolCreateExternal(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatWorkerPoolDelete(
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+CxPlatWorkerPoolGetCount(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatWorkerPoolAddRef(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatWorkerPoolRelease(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+CxPlatWorkerPoolGetIdealProcessor(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint32_t Index // Into the worker pool
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+CXPLAT_EVENTQ*
+CxPlatWorkerPoolGetEventQ(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the worker pool
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatWorkerPoolAddExecutionContext(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _In_ uint16_t Index // Into the worker pool
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+CxPlatWorkerPoolWorkerPoll(
+    _In_ QUIC_EXECUTION* Execution
+    );
 
 //
 // Supports more dynamic operations, but must be submitted to the platform worker
@@ -491,7 +588,7 @@ CxPlatRemoveDynamicPoolAllocator(
     _Inout_ CXPLAT_POOL_EX* Pool
     );
 
-#endif
+#endif // !_KERNEL_MODE
 
 //
 // Returns FALSE when it's time to cleanup.

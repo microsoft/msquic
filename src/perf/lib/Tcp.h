@@ -104,6 +104,10 @@ public:
         TcpSendCompleteHandler SendCompleteHandler,
         TCP_EXECUTION_PROFILE TcpExecutionProfile) noexcept;
     ~TcpEngine() noexcept;
+    TcpEngine(const TcpEngine&) = delete;
+    TcpEngine(TcpEngine&&) = delete;
+    TcpEngine& operator=(const TcpEngine&) = delete;
+    TcpEngine& operator=(TcpEngine&&) = delete;
     bool IsInitialized() const { return Initialized; }
     bool AddConnection(TcpConnection* Connection, uint16_t PartitionIndex);
     void RemoveConnection(TcpConnection* Connection);
@@ -124,6 +128,10 @@ class TcpWorker {
     TcpConnection** ConnectionsTail{&Connections};
     TcpWorker();
     ~TcpWorker();
+    TcpWorker(const TcpWorker&) = delete;
+    TcpWorker(TcpWorker&&) = delete;
+    TcpWorker& operator=(const TcpWorker&) = delete;
+    TcpWorker& operator=(TcpWorker&&) = delete;
     bool Initialize(TcpEngine* _Engine, uint16_t PartitionIndex);
     void Shutdown();
     void WakeWorkerThread();
@@ -135,23 +143,35 @@ class TcpWorker {
     );
 };
 
-class TcpServer {
-    friend class TcpEngine;
-    bool Initialized;
-    TcpEngine* Engine;
-    CXPLAT_SEC_CONFIG* SecConfig;
-    CXPLAT_SOCKET* Listener;
+class TcpConfiguration {
+    CXPLAT_EVENT CallbackEvent;
     static
     _IRQL_requires_max_(PASSIVE_LEVEL)
     _Function_class_(CXPLAT_SEC_CONFIG_CREATE_COMPLETE)
     void
     QUIC_API
     SecConfigCallback(
-        _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ const QUIC_CREDENTIAL_CONFIG* /* CredConfig */,
         _In_opt_ void* Context,
         _In_ QUIC_STATUS Status,
         _In_opt_ CXPLAT_SEC_CONFIG* SecurityConfig
         );
+public:
+    CXPLAT_SEC_CONFIG* SecConfig{nullptr};
+    TcpConfiguration(const QUIC_CREDENTIAL_CONFIG* CredConfig) noexcept;
+    ~TcpConfiguration() noexcept;
+    TcpConfiguration(const TcpConfiguration&) = delete;
+    TcpConfiguration(TcpConfiguration&&) = delete;
+    TcpConfiguration& operator=(const TcpConfiguration&) = delete;
+    TcpConfiguration& operator=(TcpConfiguration&&) = delete;
+};
+
+class TcpServer {
+    friend class TcpEngine;
+    bool Initialized;
+    TcpEngine* Engine;
+    CXPLAT_SEC_CONFIG* SecConfig;
+    CXPLAT_SOCKET* Listener;
     static
     _IRQL_requires_max_(DISPATCH_LEVEL)
     _Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
@@ -164,8 +184,12 @@ class TcpServer {
         );
 public:
     void* Context; // App context
-    TcpServer(TcpEngine* Engine, const QUIC_CREDENTIAL_CONFIG* CredConfig, void* Context = nullptr);
+    TcpServer(TcpEngine* Engine, TcpConfiguration* Config, void* Context = nullptr);
     ~TcpServer();
+    TcpServer(const TcpServer&) = delete;
+    TcpServer(TcpServer&&) = delete;
+    TcpServer& operator=(const TcpServer&) = delete;
+    TcpServer& operator=(TcpServer&&) = delete;
     bool IsInitialized() const { return Initialized; }
     bool Start(const QUIC_ADDR* LocalAddress);
 };
@@ -183,6 +207,7 @@ class TcpConnection {
     bool Closed{false};
     bool QueuedOnWorker{false};
     bool StartTls{false};
+    bool ConnStartQueued{false};
     bool IndicateAccept{false};
     bool IndicateConnect{false};
     bool IndicateSendComplete{false};
@@ -269,14 +294,16 @@ class TcpConnection {
     QUIC_BUFFER* NewSendBuffer();
     void FreeSendBuffer(QUIC_BUFFER* SendBuffer);
     void FinalizeSendBuffer(QUIC_BUFFER* SendBuffer);
-    bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
-    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 public:
     void* Context{nullptr}; // App context
     TcpConnection(
         _In_ TcpEngine* Engine,
-        _In_ const QUIC_CREDENTIAL_CONFIG* CredConfig,
+        _In_ const TcpConfiguration* Config,
         _In_ void* Context = nullptr);
+    TcpConnection(const TcpConnection&) = delete;
+    TcpConnection(TcpConnection&&) = delete;
+    TcpConnection& operator=(const TcpConnection&) = delete;
+    TcpConnection& operator=(TcpConnection&&) = delete;
     bool IsInitialized() const { return Initialized; }
     void Close();
     bool Start(
@@ -290,9 +317,11 @@ public:
     bool GetStats(CXPLAT_TCP_STATISTICS* Stats) {
         return QUIC_SUCCEEDED(CxPlatSocketGetTcpStatistics(Socket, Stats));
     }
+    bool TryAddRef() { return CxPlatRefIncrementNonZero(&Ref, 1) != FALSE; }
+    void Release() { if (CxPlatRefDecrement(&Ref)) delete this; }
 };
 
-inline
+QUIC_INLINE
 void
 TcpPrintConnectionStatistics(
     _In_ TcpConnection* Conn
