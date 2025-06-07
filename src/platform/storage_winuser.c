@@ -20,6 +20,10 @@ Environment:
 #include "storage_winuser.c.clog.h"
 #endif
 
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_BINARY == REG_BINARY, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT32 == REG_DWORD, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT64 == REG_QWORD, "Storage type mismatch");
+
 void
 NTAPI
 CxPlatStorageRegKeyChangeCallback(
@@ -332,11 +336,7 @@ CxPlatStorageDeleteValue(
     _In_z_ const char * Name
     )
 {
-    return
-        HRESULT_FROM_WIN32(
-            RegDeleteValueA(
-                Storage->RegKey,
-                Name));
+    return HRESULT_FROM_WIN32(RegDeleteValueA(Storage->RegKey, Name));
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -345,9 +345,5 @@ CxPlatStorageClear(
     _In_ CXPLAT_STORAGE* Storage
     )
 {
-    return
-        HRESULT_FROM_WIN32(
-            RegDeleteTreeA(
-                Storage->RegKey,
-                NULL));
+    return HRESULT_FROM_WIN32(RegDeleteTreeA(Storage->RegKey, NULL));
 }
