@@ -38,7 +38,6 @@ Environment:
 #include <ntverp.h>
 #include <ntstrsafe.h>
 #include <wdf.h>
-#include <winnt.h>
 #include <netioapi.h>
 #include <wsk.h>
 #include <bcrypt.h>
@@ -495,9 +494,8 @@ _CxPlatEventWaitWithTimeout(
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
 
-//
-// TODO: Publish and document the following APIs
-//
+#ifndef IO_COMPLETION_ALL_ACCESS // TODO: Remove onces APIs are published
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) // winnt
 
 typedef struct _FILE_IO_COMPLETION_INFORMATION {
     PVOID               KeyContext;
@@ -563,14 +561,13 @@ VOID
 IoFreeMiniCompletionPacket(
     __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
     );
+#endif // IO_COMPLETION_ALL_ACCESS
 
 //
 // Event Queue Interfaces
 //
 
-typedef struct CXPLAT_EVENTQ {
-    PKQUEUE IoCompletion;
-} CXPLAT_EVENTQ;
+typedef PKQUEUE CXPLAT_EVENTQ;
 
 typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
 
@@ -631,7 +628,7 @@ CxPlatEventQInitialize(
             IO_COMPLETION_ALL_ACCESS,
             NULL,
             KernelMode,
-            (PVOID*)&queue->IoCompletion,
+            (PVOID*)queue,
             NULL);
 
     NtClose(Handle);
@@ -645,7 +642,7 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    ObDereferenceObject(queue->IoCompletion);
+    ObDereferenceObject(*queue);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -659,7 +656,7 @@ CxPlatEventQEnqueue(
     return
         NT_SUCCESS(
         IoSetIoCompletionEx(
-            queue->IoCompletion,
+            *queue,
             0,
             sqe,
             STATUS_SUCCESS,
@@ -687,7 +684,7 @@ CxPlatEventQDequeue(
     if (wait_time == UINT32_MAX) {
         status =
             IoRemoveIoCompletion(
-                queue->IoCompletion,
+                *queue,
                 events,
                 EntryPtrArray,
                 count,
@@ -700,7 +697,7 @@ CxPlatEventQDequeue(
         timeout.QuadPart = -10000LL * wait_time;
         status =
             IoRemoveIoCompletion(
-                queue->IoCompletion,
+                *queue,
                 events,
                 EntryPtrArray,
                 count,

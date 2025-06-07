@@ -466,8 +466,6 @@ typedef struct CXPLAT_EXECUTION_STATE {
 
 typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
 
-#ifndef _KERNEL_MODE
-
 //
 // Worker pool API used for driving execution contexts
 //
@@ -538,6 +536,8 @@ uint32_t
 CxPlatWorkerPoolWorkerPoll(
     _In_ QUIC_EXECUTION* Execution
     );
+
+#ifndef _KERNEL_MODE
 
 //
 // Supports more dynamic operations, but must be submitted to the platform worker
