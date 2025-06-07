@@ -48,6 +48,26 @@ tracepoint(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SkipPacketNumber
+// [conn][%p] Skipped packet number %llu
+// QuicTraceLogConnWarning(
+                SkipPacketNumber,
+                Connection,
+                "Skipped packet number %llu",
+                Connection->Send.SkippedPacketNumber);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Send.SkippedPacketNumber = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_SkipPacketNumber
+#define _clog_4_ARGS_TRACE_SkipPacketNumber(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_PACKET_BUILDER_C, SkipPacketNumber , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for GetPacketTypeFailure
 // [conn][%p] Failed to get packet type for control frames, 0x%x
 // QuicTraceLogConnWarning(
