@@ -989,21 +989,6 @@ NdisSetThreadObjectCompartmentId(
 
 #define CXPLAT_CPUID(FunctionId, eax, ebx, ecx, dx)
 
-//
-// String utility
-//
-
-//
-// Converts a UTF-8 string to a UNICODE_STRING object. NewUnicodeString must be
-// freed with CXPLAT_FREE when done with it.
-//
-QUIC_STATUS
-CxPlatConvertUtf8ToUnicode(
-    _In_z_ const char * Utf8String,
-    _In_ uint32_t Tag,
-    _Out_ PUNICODE_STRING * NewUnicodeString
-    );
-
 #if defined(__cplusplus)
 }
 #endif

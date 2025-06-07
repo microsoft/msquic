@@ -642,7 +642,6 @@ CxPlatStorageClear(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    ULONG Index = 0;
     ULONG InfoLength = 0;
     PKEY_VALUE_BASIC_INFORMATION Info = NULL;
 
