@@ -626,8 +626,9 @@ CxPlatWorkerPoolWorkerPoll(
     return Worker->State.WaitTime;
 }
 
-#ifndef _KERNEL_MODE // Not supported on kernel mode
-
+#ifdef _KERNEL_MODE // Not supported on kernel mode
+#define CxPlatProcessDynamicPoolAllocators(X) // no-op
+#else
 #define DYNAMIC_POOL_PROCESSING_PERIOD  1000000 // 1 second
 #define DYNAMIC_POOL_PRUNE_COUNT        8
 
@@ -675,6 +676,11 @@ CxPlatProcessDynamicPoolAllocators(
     _In_ CXPLAT_WORKER* Worker
     )
 {
+    if (Worker->State.TimeNow - Worker->State.LastPoolProcessTime < DYNAMIC_POOL_PROCESSING_PERIOD) {
+        return ; // Don't process pools too frequently
+    }
+    Worker->State.LastPoolProcessTime = Worker->State.TimeNow;
+
     QuicTraceLogVerbose(
         PlatformWorkerProcessPools,
         "[ lib][%p] Processing pools",
@@ -763,12 +769,7 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
             Worker->State.NoWorkCount = 0;
         }
 
-#ifndef _KERNEL_MODE // Unnecessary on kernel mode
-        if (Worker->State.TimeNow - Worker->State.LastPoolProcessTime > DYNAMIC_POOL_PROCESSING_PERIOD) {
-            CxPlatProcessDynamicPoolAllocators(Worker);
-            Worker->State.LastPoolProcessTime = Worker->State.TimeNow;
-        }
-#endif // _KERNEL_MODE
+        CxPlatProcessDynamicPoolAllocators(Worker);
     }
 
     Worker->Running = FALSE;
