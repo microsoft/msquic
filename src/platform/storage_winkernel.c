@@ -647,6 +647,7 @@ CxPlatStorageClear(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ULONG InfoLength = 0;
+    ULONG AllocatedLength = 0;
     PKEY_VALUE_BASIC_INFORMATION Info = NULL;
 
     //
@@ -680,28 +681,35 @@ CxPlatStorageClear(
         }
 
         //
-        // Allocate buffer for the value information
+        // Allocate or reallocate buffer only if current buffer is too small
         //
-        Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
-        if (Info == NULL) {
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "KEY_VALUE_BASIC_INFORMATION",
-                InfoLength);
-            goto Exit;
+        if (Info == NULL || InfoLength > AllocatedLength) {
+            if (Info != NULL) {
+                CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+            }
+
+            Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+            if (Info == NULL) {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "KEY_VALUE_BASIC_INFORMATION",
+                    InfoLength);
+                goto Exit;
+            }
+            AllocatedLength = InfoLength;
         }
 
         //
-        // Get the value information
+        // Get the value name
         //
         Status = ZwEnumerateValueKey(
             Storage->RegKey,
             0, // Always use index 0 since we delete as we go
             KeyValueBasicInformation,
             Info,
-            InfoLength,
+            AllocatedLength,
             &InfoLength);
 
         if (Status == STATUS_NO_MORE_ENTRIES) {
@@ -715,6 +723,8 @@ CxPlatStorageClear(
                 "ZwEnumerateValueKey failed");
             goto Exit;
         }
+
+        CXPLAT_DBG_ASSERT(InfoLength == AllocatedLength);
 
         //
         // Create a UNICODE_STRING for the value name
@@ -736,12 +746,6 @@ CxPlatStorageClear(
                 "ZwDeleteValueKey failed");
             goto Exit;
         }
-
-        //
-        // Free the buffer and continue with the next value
-        //
-        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
-        Info = NULL;
     }
 
 Exit:
