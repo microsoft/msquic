@@ -75,7 +75,10 @@ TEST(SpinFrame, SpinFrame1000000)
         }
 
         do {
-            TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(FrameType), &FrameType));
+            uint16_t randValue;
+            TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(randValue), &randValue));
+            // map the randvalue to 2x Frame type range to include supported and unsupported frame type values
+            FrameType = (uint16_t)(randValue % ((2 * QUIC_FRAME_MAX_SUPPORTED) + 1));
         } while (!QUIC_FRAME_IS_KNOWN(FrameType));
 
         switch(FrameType) {
