@@ -4838,7 +4838,7 @@ void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registratio
         TestScopeLogger LogScope1("GetParam");
         MsQuicConnection Connection(Registration);
         TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(NETWORK_STATISTICS), nullptr, true);
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(QUIC_NETWORK_STATISTICS), nullptr, true);
     }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     UNREFERENCED_PARAMETER(Registration);

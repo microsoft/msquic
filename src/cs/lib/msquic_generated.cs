@@ -926,7 +926,7 @@ namespace Microsoft.Quic
         internal uint RttVariance;
     }
 
-    internal partial struct NETWORK_STATISTICS
+    internal partial struct QUIC_NETWORK_STATISTICS
     {
         [NativeTypeName("uint32_t")]
         internal uint BytesInFlight;
@@ -2783,7 +2783,7 @@ namespace Microsoft.Quic
             }
         }
 
-        internal ref NETWORK_STATISTICS NETWORK_STATISTICS
+        internal ref QUIC_NETWORK_STATISTICS NETWORK_STATISTICS
         {
             get
             {
@@ -2867,7 +2867,7 @@ namespace Microsoft.Quic
             internal _ONE_WAY_DELAY_NEGOTIATED_e__Struct ONE_WAY_DELAY_NEGOTIATED;
 
             [FieldOffset(0)]
-            internal NETWORK_STATISTICS NETWORK_STATISTICS;
+            internal QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
 
             internal unsafe partial struct _CONNECTED_e__Struct
             {

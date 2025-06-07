@@ -419,7 +419,7 @@ void
 CubicCongestionControlGetNetworkStatistics(
     _In_ const QUIC_CONNECTION* const Connection,
     _In_ const QUIC_CONGESTION_CONTROL* const Cc,
-    _Out_ NETWORK_STATISTICS* NetworkStatistics
+    _Out_ QUIC_NETWORK_STATISTICS* NetworkStatistics
     )
 {
     const QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;

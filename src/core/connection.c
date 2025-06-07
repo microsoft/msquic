@@ -6910,11 +6910,11 @@ QuicConnGetNetworkStatistics(
     _In_ const QUIC_CONNECTION* Connection,
     _Inout_ uint32_t* StatsLength,
     _Out_writes_bytes_opt_(*StatsLength)
-        NETWORK_STATISTICS* Stats
+        QUIC_NETWORK_STATISTICS* Stats
     )
 {
-    if (*StatsLength < sizeof(NETWORK_STATISTICS)) {
-        *StatsLength = sizeof(NETWORK_STATISTICS);
+    if (*StatsLength < sizeof(QUIC_NETWORK_STATISTICS)) {
+        *StatsLength = sizeof(QUIC_NETWORK_STATISTICS);
         return QUIC_STATUS_BUFFER_TOO_SMALL;
     }
 
@@ -6922,7 +6922,7 @@ QuicConnGetNetworkStatistics(
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
-    CxPlatZeroMemory(Stats, sizeof(NETWORK_STATISTICS));
+    CxPlatZeroMemory(Stats, sizeof(QUIC_NETWORK_STATISTICS));
 
     Connection->CongestionControl.QuicCongestionControlGetNetworkStatistics(
         Connection, &Connection->CongestionControl, Stats);
@@ -7350,7 +7350,7 @@ QuicConnParamGet(
 
     case QUIC_PARAM_CONN_NETWORK_STATISTICS:
         Status =
-            QuicConnGetNetworkStatistics(Connection, BufferLength, (NETWORK_STATISTICS *)Buffer);
+            QuicConnGetNetworkStatistics(Connection, BufferLength, (QUIC_NETWORK_STATISTICS *)Buffer);
         break;
 
     default:

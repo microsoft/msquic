@@ -202,7 +202,7 @@ pub const QUIC_PARAM_CONN_STATISTICS_V2: u32 = 83886102;
 pub const QUIC_PARAM_CONN_STATISTICS_V2_PLAT: u32 = 83886103;
 pub const QUIC_PARAM_CONN_ORIG_DEST_CID: u32 = 83886104;
 pub const QUIC_PARAM_CONN_SEND_DSCP: u32 = 83886105;
-pub const QUIC_PARAM_CONN_NETWORK_STATISTICS: u32 = 83886106;
+pub const QUIC_PARAM_CONN_NETWORK_STATISTICS: u32 = 83886112;
 pub const QUIC_PARAM_TLS_HANDSHAKE_INFO: u32 = 100663296;
 pub const QUIC_PARAM_TLS_NEGOTIATED_ALPN: u32 = 100663297;
 pub const QUIC_PARAM_TLS_SCHANNEL_CONTEXT_ATTRIBUTE_W: u32 = 117440512;
@@ -1571,6 +1571,34 @@ impl QUIC_STATISTICS_V2 {
         __bindgen_bitfield_unit
     }
 }
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_NETWORK_STATISTICS {
+    pub BytesInFlight: u32,
+    pub PostedBytes: u64,
+    pub IdealBytes: u64,
+    pub SmoothedRTT: u64,
+    pub CongestionWindow: u32,
+    pub Bandwidth: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_NETWORK_STATISTICS"][::std::mem::size_of::<QUIC_NETWORK_STATISTICS>() - 48usize];
+    ["Alignment of QUIC_NETWORK_STATISTICS"]
+        [::std::mem::align_of::<QUIC_NETWORK_STATISTICS>() - 8usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::BytesInFlight"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, BytesInFlight) - 0usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::PostedBytes"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, PostedBytes) - 8usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::IdealBytes"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, IdealBytes) - 16usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::SmoothedRTT"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, SmoothedRTT) - 24usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::CongestionWindow"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, CongestionWindow) - 32usize];
+    ["Offset of field: QUIC_NETWORK_STATISTICS::Bandwidth"]
+        [::std::mem::offset_of!(QUIC_NETWORK_STATISTICS, Bandwidth) - 40usize];
+};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_LISTENER_STATISTICS {
@@ -4862,50 +4890,6 @@ pub type QUIC_SET_CALLBACK_HANDLER_FN = ::std::option::Option<
         Context: *mut ::std::os::raw::c_void,
     ),
 >;
-pub struct NETWORK_STATISTICS {
-    pub BytesInFlight: u32,
-    pub PostedBytes: u64,
-    pub IdealBytes: u64,
-    pub SmoothedRTT: u64,
-    pub CongestionWindow: u32,
-    pub Bandwidth: u64,
-}
-#[allow(clippy::unnecessary_operation, clippy::identity_op)]
-const _: () = {
-    ["Size of NETWORK_STATISTICS"]
-        [::std::mem::size_of::<NETWORK_STATISTICS>() - 48usize];
-    ["Alignment of NETWORK_STATISTICS"]
-        [::std::mem::align_of::<NETWORK_STATISTICS>() - 8usize];
-    ["Offset of field: NETWORK_STATISTICS::BytesInFlight"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        BytesInFlight
-    )
-        - 0usize];
-    ["Offset of field: NETWORK_STATISTICS::PostedBytes"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        PostedBytes
-    )
-        - 8usize];
-    ["Offset of field: NETWORK_STATISTICS::IdealBytes"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        IdealBytes
-    )
-        - 16usize];
-    ["Offset of field: NETWORK_STATISTICS::SmoothedRTT"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        SmoothedRTT
-    )
-        - 24usize];
-    ["Offset of field: NETWORK_STATISTICS::CongestionWindow"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        CongestionWindow
-    )
-        - 32usize];
-    ["Offset of field: NETWORK_STATISTICS::Bandwidth"][::std::mem::offset_of!(
-        NETWORK_STATISTICS,
-        Bandwidth
-    ) - 40usize];
-};
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
@@ -5354,7 +5338,7 @@ pub union QUIC_CONNECTION_EVENT__bindgen_ty_1 {
     pub PEER_CERTIFICATE_RECEIVED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_16,
     pub RELIABLE_RESET_NEGOTIATED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_17,
     pub ONE_WAY_DELAY_NEGOTIATED: QUIC_CONNECTION_EVENT__bindgen_ty_1__bindgen_ty_18,
-    pub NETWORK_STATISTICS: NETWORK_STATISTICS,
+    pub NETWORK_STATISTICS: QUIC_NETWORK_STATISTICS,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -5850,8 +5834,6 @@ const _: () = {
     )
         - 1usize];
 };
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_CONNECTION_EVENT__bindgen_ty_1"]

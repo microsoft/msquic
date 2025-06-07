@@ -158,7 +158,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
     void (*QuicCongestionControlGetNetworkStatistics)(
         _In_ const QUIC_CONNECTION* const Connection,
         _In_ const struct QUIC_CONGESTION_CONTROL* const Cc,
-        _Out_ struct NETWORK_STATISTICS* NetworkStatistics
+        _Out_ struct QUIC_NETWORK_STATISTICS* NetworkStatistics
         );
 
     //
