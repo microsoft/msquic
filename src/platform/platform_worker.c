@@ -104,6 +104,14 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
 
 } CXPLAT_WORKER;
 
+typedef struct CXPLAT_WORKER_POOL {
+
+    CXPLAT_RUNDOWN_REF Rundown;
+    uint32_t WorkerCount;
+    CXPLAT_WORKER Workers[0];
+
+} CXPLAT_WORKER_POOL;
+
 CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context);
 
 static void

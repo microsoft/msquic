@@ -446,33 +446,6 @@ CxPlatGetAllocFailDenominator(
 #endif
 
 //
-// Worker pool API used for driving execution contexts
-//
-
-typedef struct CXPLAT_WORKER CXPLAT_WORKER;
-
-typedef struct CXPLAT_WORKER_POOL {
-
-    CXPLAT_WORKER* Workers;
-    CXPLAT_LOCK WorkerLock;
-    CXPLAT_RUNDOWN_REF Rundown;
-    uint32_t WorkerCount;
-
-} CXPLAT_WORKER_POOL;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatWorkerPoolInit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatWorkerPoolUninit(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
-    );
-
-//
 // General purpose execution context abstraction layer. Used for driving worker
 // loops.
 //
@@ -618,14 +591,6 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     volatile BOOLEAN Ready;
 
 } CXPLAT_EXECUTION_CONTEXT;
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatAddExecutionContext(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _In_ uint16_t Index // Into the execution config processor array
-    );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
