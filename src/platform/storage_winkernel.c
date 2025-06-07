@@ -20,6 +20,10 @@ Environment:
 #include "storage_winkernel.c.clog.h"
 #endif
 
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_BINARY == REG_BINARY, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT32 == REG_DWORD, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT64 == REG_QWORD, "Storage type mismatch");
+
 //
 // Copied from wdm.h
 //
@@ -73,6 +77,34 @@ ZwNotifyChangeKey(
     _In_ BOOLEAN Asynchronous
     );
 
+//
+// Copied from wdm.h
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwEnumerateValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_ ULONG Index,
+    _In_ KEY_VALUE_INFORMATION_CLASS KeyValueInformationClass,
+    _Out_writes_bytes_to_opt_(Length, *ResultLength) PVOID KeyValueInformation,
+    _In_ ULONG Length,
+    _Out_ PULONG ResultLength
+    );
+
+//
+// Copied from wdm.h
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwDeleteValueKey(
+    _In_ HANDLE KeyHandle,
+    _In_ PUNICODE_STRING ValueName
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 __drv_functionClass(WORKER_THREAD_ROUTINE)
 void
@@ -95,13 +127,10 @@ typedef struct CXPLAT_STORAGE {
 
 } CXPLAT_STORAGE;
 
-//
-// Converts a UTF-8 string to a UNICODE_STRING object. The variable must be
-// freed with CXPLAT_FREE when done with it.
-//
 QUIC_STATUS
 CxPlatConvertUtf8ToUnicode(
     _In_z_ const char * Utf8String,
+    _In_ uint32_t Tag,
     _Out_ PUNICODE_STRING * NewUnicodeString
     )
 {
@@ -128,7 +157,7 @@ CxPlatConvertUtf8ToUnicode(
     }
 
     PUNICODE_STRING UnicodeString =
-        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        CXPLAT_ALLOC_PAGED(sizeof(UNICODE_STRING) + UnicodeLength, Tag);
 
     if (UnicodeString == NULL) {
         QuicTraceEvent(
@@ -151,7 +180,12 @@ CxPlatConvertUtf8ToUnicode(
             Utf8String,
             (ULONG)Utf8Length);
     if (QUIC_FAILED(Status)) {
-        CXPLAT_FREE(UnicodeString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RtlUTF8ToUnicodeN failed");
+        CXPLAT_FREE(UnicodeString, Tag);
         return Status;
     }
 
@@ -245,8 +279,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
@@ -294,50 +329,84 @@ CxPlatStorageOpen(
 
     CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
     CxPlatLockInitialize(&Storage->Lock);
-    Storage->Callback = Callback;
-    Storage->CallbackContext = CallbackContext;
+    if (Callback != NULL) {
+        Storage->Callback = Callback;
+        Storage->CallbackContext = CallbackContext;
 
 #pragma warning(push)
 #pragma warning(disable: 4996)
-    ExInitializeWorkItem(
-        &Storage->WorkItem,
-        CxPlatStorageRegKeyChangeCallback,
-        Storage);
+        ExInitializeWorkItem(
+            &Storage->WorkItem,
+            CxPlatStorageRegKeyChangeCallback,
+            Storage);
 #pragma warning(pop)
-
-    Status =
-        ZwOpenKey(
-            &Storage->RegKey,
-            KEY_READ | KEY_NOTIFY,
-            &Attributes);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwOpenKey failed");
-        goto Exit;
     }
 
-    Status =
-        ZwNotifyChangeKey(
-            Storage->RegKey,
-            NULL,
-            (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
-            (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
-            &Storage->IoStatusBlock,
-            REG_NOTIFY_CHANGE_LAST_SET,
-            FALSE,
-            NULL,
-            0,
-            TRUE);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "ZwNotifyChangeKey failed");
-        goto Exit;
+    ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE) {
+        DesiredAccess |= KEY_WRITE;
+    }
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE) {
+        DesiredAccess |= DELETE;
+    }
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_CREATE) {
+        Status =
+            ZwCreateKey(
+                &Storage->RegKey,
+                DesiredAccess,
+                &Attributes,
+                0,
+                NULL,
+                REG_OPTION_NON_VOLATILE,
+                NULL);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwCreateKey failed");
+            goto Exit;
+        }
+    } else {
+        Status =
+            ZwOpenKey(
+                &Storage->RegKey,
+                DesiredAccess,
+                &Attributes);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwOpenKey failed");
+            goto Exit;
+        }
+    }
+
+    if (Callback != NULL) {
+        Status =
+            ZwNotifyChangeKey(
+                Storage->RegKey,
+                NULL,
+                (PIO_APC_ROUTINE)(ULONG_PTR)&Storage->WorkItem,
+                (PVOID)(UINT_PTR)(unsigned int)DelayedWorkQueue,
+                &Storage->IoStatusBlock,
+                REG_NOTIFY_CHANGE_LAST_SET,
+                FALSE,
+                NULL,
+                0,
+                TRUE);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwNotifyChangeKey failed");
+            goto Exit;
+        }
     }
 
     *NewStorage = Storage;
@@ -362,21 +431,26 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
         CXPLAT_EVENT CleanupEvent;
-        CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
+        if (Storage->Callback != NULL) {
+            CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
-        CxPlatLockAcquire(&Storage->Lock);
+            CxPlatLockAcquire(&Storage->Lock);
+        }
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
         Storage->RegKey = NULL;
-        Storage->CleanupEvent = &CleanupEvent;
-        CxPlatLockRelease(&Storage->Lock);
 
-        CxPlatEventWaitForever(CleanupEvent);
-        CxPlatEventUninitialize(CleanupEvent);
+        if (Storage->Callback != NULL) {
+            Storage->CleanupEvent = &CleanupEvent;
+            CxPlatLockRelease(&Storage->Lock);
+
+            CxPlatEventWaitForever(CleanupEvent);
+            CxPlatEventUninitialize(CleanupEvent);
+        }
         CxPlatLockUninitialize(&Storage->Lock);
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
@@ -433,7 +507,7 @@ CxPlatStorageReadValue(
     PUNICODE_STRING NameUnicode;
 
     if (Name != NULL) {
-        Status = CxPlatConvertUtf8ToUnicode(Name, &NameUnicode);
+        Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameUnicode);
         if (QUIC_FAILED(Status)) {
             return Status;
         }
@@ -502,6 +576,181 @@ Exit:
 
     if (NameUnicode != NULL) {
         CXPLAT_FREE(NameUnicode, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageWriteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name,
+    _In_ CXPLAT_STORAGE_TYPE Type,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * Buffer
+    )
+{
+    QUIC_STATUS Status;
+    PUNICODE_STRING NameString = NULL;
+
+    Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameString);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Status =
+        ZwSetValueKey(
+            Storage->RegKey,
+            NameString,
+            0,
+            (ULONG)Type,
+            (PVOID)Buffer,
+            BufferLength);
+
+    CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageDeleteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name
+    )
+{
+    QUIC_STATUS Status;
+    PUNICODE_STRING NameString = NULL;
+
+    Status = CxPlatConvertUtf8ToUnicode(Name, QUIC_POOL_PLATFORM_TMP_ALLOC, &NameString);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    Status =
+        ZwDeleteValueKey(
+            Storage->RegKey,
+            NameString);
+
+    CXPLAT_FREE(NameString, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    ULONG InfoLength = 0;
+    ULONG AllocatedLength = 0;
+    PKEY_VALUE_BASIC_INFORMATION Info = NULL;
+
+    //
+    // Iterate through all values and delete them
+    // We always use index 0 because deletion shifts the remaining values
+    //
+    while (TRUE) {
+        //
+        // First, query the required buffer size for the value name
+        //
+        Status = ZwEnumerateValueKey(
+            Storage->RegKey,
+            0, // Always use index 0 since we delete as we go
+            KeyValueBasicInformation,
+            NULL,
+            0,
+            &InfoLength);
+
+        if (Status == STATUS_NO_MORE_ENTRIES) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        } else if (Status != STATUS_BUFFER_OVERFLOW && Status != STATUS_BUFFER_TOO_SMALL) {
+            if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "ZwEnumerateValueKey (size query) failed");
+                goto Exit;
+            }
+        }
+
+        //
+        // Allocate or reallocate buffer only if current buffer is too small
+        //
+        if (Info == NULL || InfoLength > AllocatedLength) {
+            if (Info != NULL) {
+                CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+            }
+
+            Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+            if (Info == NULL) {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "KEY_VALUE_BASIC_INFORMATION",
+                    InfoLength);
+                goto Exit;
+            }
+            AllocatedLength = InfoLength;
+        }
+
+        //
+        // Get the value name
+        //
+        Status = ZwEnumerateValueKey(
+            Storage->RegKey,
+            0, // Always use index 0 since we delete as we go
+            KeyValueBasicInformation,
+            Info,
+            AllocatedLength,
+            &InfoLength);
+
+        if (Status == STATUS_NO_MORE_ENTRIES) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        } else if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwEnumerateValueKey failed");
+            goto Exit;
+        }
+
+        CXPLAT_DBG_ASSERT(InfoLength == AllocatedLength);
+
+        //
+        // Create a UNICODE_STRING for the value name
+        //
+        UNICODE_STRING ValueName;
+        ValueName.Buffer = Info->Name;
+        ValueName.Length = (USHORT)Info->NameLength;
+        ValueName.MaximumLength = (USHORT)Info->NameLength;
+
+        //
+        // Delete this value
+        //
+        Status = ZwDeleteValueKey(Storage->RegKey, &ValueName);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwDeleteValueKey failed");
+            goto Exit;
+        }
+    }
+
+Exit:
+    if (Info != NULL) {
+        CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
     }
 
     return Status;
