@@ -453,7 +453,7 @@ NdspiCreateOverlappedFile(
     }
 
     Status = NdAdapter->Adapter->lpVtbl->CreateOverlappedFile(NdAdapter->Adapter, OverlappedFile);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateOverlappedFileFailed,
@@ -491,7 +491,7 @@ NdspiCreateMemoryRegion(
         &IID_IND2MemoryRegion,
         OverlappedFile,
         MemoryRegion);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateMemoryRegionFailed,
@@ -534,7 +534,6 @@ NdspiRegisterMemory(
         BufferLength,
         Flags,
         Overlapped);
-
     if (Status == ND_PENDING)
     {
         Status = MemoryRegion->lpVtbl->GetOverlappedResult(
@@ -542,7 +541,7 @@ NdspiRegisterMemory(
             Overlapped,
             TRUE);
     }
-    else if (QUIC_FAILED(Status))
+    else if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             RegisterMemoryFailed,
@@ -581,7 +580,7 @@ NdspiDeRegisterMemory(
             Overlapped,
             TRUE);
     }
-    else if (QUIC_FAILED(Status))
+    else if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             DeRegisterMemoryFailed,
@@ -617,7 +616,7 @@ NdspiCreateMemoryWindow(
         NdAdapter->Adapter,
         &IID_IND2MemoryWindow,
         MemoryWindow);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateMemoryWindowFailed,
@@ -663,7 +662,7 @@ NdspiCreateCompletionQueue(
         group,
         affinity,
         (VOID**)CompletionQueue);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateCompletionQueueFailed,
@@ -701,7 +700,7 @@ NdspiCreateConnector(
         &IID_IND2Connector,
         OverlappedFile,
         (VOID**)Connector);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateConnectorFailed,
@@ -740,7 +739,7 @@ NdspiCreateListener(
         &IID_IND2Listener,
         OverlappedFile,
         (VOID**)Listener);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateListenerFailed,
@@ -775,7 +774,7 @@ NdspiStartListener(
     Status = NdListener->Listener->lpVtbl->Listen(
         NdListener->Listener,
         Backlog);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             StartListenerFailed,
@@ -828,7 +827,7 @@ NdspiCreateQueuePair(
         MaxInitiatorRequestSge,
         InlineDataSize,
         (VOID**)QueuePair);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateQueuePairFailed,
@@ -873,7 +872,7 @@ NdspiAccept(
         PrivateData,
         PrivateDataSize,
         Ov);
-    if (QUIC_FAILED(Status) && Status != ND_PENDING)
+    if (Status != ND_SUCCESS && Status != ND_PENDING)
     {
         QuicTraceLogError(
             AcceptFailed,
@@ -913,7 +912,7 @@ NdspiBindConnector(
         Connector,
         SrcAddress,
         SrcAddressSize);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             ConnectorBindFailed,
@@ -953,7 +952,7 @@ NdspiBindListener(
         Listener,
         SrcAddress,
         SrcAddressSize);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             ListenerBindFailed,
@@ -1003,7 +1002,7 @@ NdspiConnect(
         Connector,
         SrcAddress,
         SrcAddressSize);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             ConnectFailed,
@@ -1024,7 +1023,7 @@ NdspiConnect(
         PrivateData,
         PrivateDataSize,
         Ov);
-    if (QUIC_FAILED(Status) && Status != ND_PENDING)
+    if (Status != ND_SUCCESS && Status != ND_PENDING)
     {
         QuicTraceLogError(
             ListenerBindFailed,
@@ -1057,7 +1056,7 @@ NdspiCompleteConnect(
     Status = Connector->lpVtbl->CompleteConnect(
         Connector,
         Ov);
-    if (QUIC_FAILED(Status) && Status != ND_PENDING)
+    if (Status != ND_SUCCESS && Status != ND_PENDING)
     {
         QuicTraceLogError(
             CompleteConnectFailed,
@@ -1106,7 +1105,7 @@ NdspiBindMemoryWindow(
         Buffer,
         BufferSize,
         Flags);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             BindMemoryWindowFailed,
@@ -1145,7 +1144,7 @@ NdspiInvalidateMemoryWindow(
         Context,
         (IUnknown *)MemoryWindow,
         Flags);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             InvalidateMemoryWindowFailed,
@@ -1192,8 +1191,7 @@ NdspiWrite(
         RemoteAddress,
         RemoteToken,
         Flags);
-
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIWriteFailed,
@@ -1245,8 +1243,7 @@ NdspiWriteWithImmediate(
         RemoteToken,
         Flags,
         ImmediateData);
-
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIWriteWithImmediateFailed,
@@ -1294,8 +1291,7 @@ NdspiRead(
         RemoteAddress,
         RemoteToken,
         Flags);
-
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIReadFailed,
@@ -1337,7 +1333,7 @@ NdspiSend(
         Sge,
         SgeSize,
         Flags);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIReadFailed,
@@ -1382,7 +1378,7 @@ NdspiSendWithImmediate(
         SgeSize,
         Flags,
         ImmediateData);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIReadFailed,
@@ -1421,7 +1417,7 @@ NdspiPostReceive(
         Context,
         Sge,
         SgeSize);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             NDSPIReadFailed,
@@ -1492,7 +1488,8 @@ CxPlatRdmaAdapterInitialize(
     }
 
     Status = NdspiCreateOverlappedFile(RdmaAdapter, &RdmaAdapter->OverlappedFile);
-    if (QUIC_FAILED(Status)) {
+    if (Status != ND_SUCCESS)
+    {
         QuicTraceLogError(
             CreateOverlappedFile,
             "CreateAdapterOverlappedFile failed, status: %d", Status);
@@ -1544,7 +1541,7 @@ CxPlatRdmaAdapterInitialize(
         RdmaAdapter->Adapter,
         &RdmaAdapter->AdapterInfo,
         &AdapterInfoSize);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             QueryAdapterInfoFailed,
@@ -1816,10 +1813,7 @@ RdmaListenerFree(
 
     if (RdmaListener->Config)
     {
-        if (CxPlatRefDecrement(&RdmaListener->Config->RefCount))
-        {
-            CXPLAT_FREE(RdmaListener->Config, QUIC_POOL_DATAPATH);
-        }
+        CXPLAT_FREE(RdmaListener->Config, QUIC_POOL_DATAPATH);
     }
 
     CXPLAT_FREE(RdmaListener, QUIC_POOL_DATAPATH);
@@ -2094,7 +2088,7 @@ SocketCreateRdmaInternal(
     Status = NdspiCreateOverlappedFile(
         NdAdapter,
         &RdmaConnection->OverlappedConnFile);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateOverlappedConnFileFailed,
@@ -2106,7 +2100,7 @@ SocketCreateRdmaInternal(
         NdAdapter,
         RdmaConnection->OverlappedConnFile,
         &RdmaConnection->MemoryRegion);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateMemoryRegionFailed,
@@ -2123,7 +2117,7 @@ SocketCreateRdmaInternal(
         BufferSize,
         ND_MR_FLAG_ALLOW_LOCAL_WRITE | ND_MR_FLAG_ALLOW_REMOTE_WRITE,
         &RdmaConnection->Ov);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             RegisterSendBufferFailed,
@@ -2241,7 +2235,7 @@ SocketCreateRdmaInternal(
         Config->ProcessorGroup,
         Config->Affinity,
         &RdmaConnection->CompletionQueue);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateSharedCompletionQueueFailed,
@@ -2262,7 +2256,7 @@ SocketCreateRdmaInternal(
         NdAdapter->AdapterInfo.MaxInitiatorSge,
         NdAdapter->AdapterInfo.InlineRequestThreshold,
         &RdmaConnection->QueuePair);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateQueuePairFailed,
@@ -2274,7 +2268,7 @@ SocketCreateRdmaInternal(
         NdAdapter,
         RdmaConnection->OverlappedConnFile,
         &RdmaConnection->Connector);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateConnectorFailed,
@@ -2288,7 +2282,7 @@ SocketCreateRdmaInternal(
     if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_MEMORY_WINDOW_USED)
     {
         Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->RecvMemoryWindow);
-        if (QUIC_FAILED(Status))
+        if (Status != ND_SUCCESS)
         {
             QuicTraceLogError(
                 CreateRecvMemoryWindowFailed,
@@ -2299,7 +2293,7 @@ SocketCreateRdmaInternal(
         if (RdmaConnection->Flags & RDMA_CONNECTION_FLAG_OFFSET_BUFFER_USED)
         {
             Status = NdspiCreateMemoryWindow(NdAdapter, &RdmaConnection->OffsetMemoryWindow);
-            if (QUIC_FAILED(Status))
+            if (Status != ND_SUCCESS)
             {
                 QuicTraceLogError(
                     CreateSendMemoryWindowFailed,
@@ -2397,7 +2391,7 @@ SocketCreateRdmaInternal(
                 PrivateData,
                 PrivateDataSize,
                 &SocketProc->IoSqe.Overlapped);
-            if (QUIC_FAILED(Status))
+            if (Status != ND_SUCCESS)
             {
                 if (Status != ND_PENDING)
                 {
@@ -2436,7 +2430,7 @@ SocketCreateRdmaInternal(
             RdmaConnection->Connector,
             (PSOCKADDR)&Socket->LocalAddress,
             &AssignedLocalAddressLength);
-        if (QUIC_FAILED(Status))
+        if (Status != ND_SUCCESS)
         {
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -2609,7 +2603,7 @@ SocketCreateRdmaListener(
     Status = NdspiCreateOverlappedFile(
         NdAdapter,
         &RdmaListener->OverlappedListenerFile);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateOverlappedListenerFileFailed,
@@ -2624,7 +2618,7 @@ SocketCreateRdmaListener(
         NdAdapter,
         RdmaListener->OverlappedListenerFile,
         &RdmaListener->Listener);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             CreateListenerFailed,
@@ -2632,6 +2626,9 @@ SocketCreateRdmaListener(
         goto ErrorExit;
     }
 
+    //
+    // Associate the Lister OV object for IOCP use
+    //
     SocketProc->RdmaSocket = RdmaListener->OverlappedListenerFile;
     //
     // Disable automatic IO completions being queued if the call completes
@@ -2669,10 +2666,7 @@ SocketCreateRdmaListener(
             "ListenerRdmaConfigInit Failed, status:%d", Status);
         goto ErrorExit;       
     }
-
-    CxPlatRefInitialize(&RdmaListener->Config->RefCount);
     CopyRdmaConfig(Config, RdmaListener->Config);
-    CxPlatRefIncrement(&RdmaListener->Config->RefCount);
 
     SocketProc->DatapathProc = &Datapath->Partitions[0];
     CxPlatRefIncrement(&SocketProc->DatapathProc->RefCount);
@@ -2696,7 +2690,7 @@ SocketCreateRdmaListener(
         RdmaListener->Listener,
         (PSOCKADDR)&Socket->LocalAddress,
         sizeof(Socket->LocalAddress));
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2704,6 +2698,23 @@ SocketCreateRdmaListener(
             Socket,
             Status,
             "bind");
+        goto ErrorExit;
+    }
+
+    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0)
+    {
+        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
+    }
+
+    Status = NdspiStartListener(RdmaListener, 0);
+    if (Status != ND_SUCCESS)
+    {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Socket,
+            Status,
+            "listen");
         goto ErrorExit;
     }
 
@@ -2717,30 +2728,13 @@ SocketCreateRdmaListener(
         RdmaListener->Listener,
         (PSOCKADDR)&Socket->LocalAddress,
         &AssignedLocalAddressLength);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
             Socket,
             Status, "IND2Connector::QueryLocalAddress");
-        goto ErrorExit;
-    }
-
-    if (LocalAddress && LocalAddress->Ipv4.sin_port != 0)
-    {
-        CXPLAT_DBG_ASSERT(LocalAddress->Ipv4.sin_port == Socket->LocalAddress.Ipv4.sin_port);
-    }
-
-    Status = NdspiStartListener(RdmaListener, 100);
-    if (QUIC_FAILED(Status))
-    {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Socket,
-            Status,
-            "listen");
         goto ErrorExit;
     }
 
@@ -2867,7 +2861,7 @@ RdmaSocketSendInline(
         RdmaConnection->RemoteRingBuffer->RemoteToken,
         0,
         ImmediateData);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2886,7 +2880,7 @@ RdmaSocketSendInline(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SendData->Sqe.Overlapped);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         if (Status != ND_PENDING)
         {
@@ -3202,6 +3196,7 @@ CxPlatRdmaStartAccept(
         QuicTraceLogError(
             StartAcceptFailed,
             "StartAccept failed, invalid parameters");
+
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -3220,10 +3215,6 @@ CxPlatRdmaStartAccept(
             NULL,
             RdmaListener->Config,
             &ListenerSocketProc->AcceptSocket);
-        if (QUIC_FAILED(Status))
-        {
-            goto ErrorExit;
-        }
     }
 
     CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket->RdmaContext != NULL);
@@ -3240,7 +3231,7 @@ CxPlatRdmaStartAccept(
         RdmaListener->Listener,
         (IUnknown *)RdmaConnection->Connector,
         &ListenerSocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         if (Status != ND_PENDING)
         {
@@ -3305,7 +3296,7 @@ CxPlatRdmaExchangeTokensInit(
         RdmaConnection->RecvRingBuffer->Buffer,
         RdmaConnection->RecvRingBuffer->Capacity,
         ND_OP_FLAG_ALLOW_WRITE | ND_OP_FLAG_ALLOW_READ);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceLogError(
             BindRecvMemoryWindowFailed,
@@ -3327,7 +3318,7 @@ CxPlatRdmaExchangeTokensInit(
             RdmaConnection->RecvRingBuffer->OffsetBuffer,
             RdmaConnection->RecvRingBuffer->OffsetBufferSize,
             ND_OP_FLAG_ALLOW_READ);
-        if (QUIC_FAILED(Status))
+        if (Status != ND_SUCCESS)
         {
             QuicTraceLogError(
                 BindRecvMemoryWindowFailed,
@@ -3367,7 +3358,7 @@ CxPlatRdmaExchangeTokensInit(
         NULL,
         RecvSge,
         1);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3389,7 +3380,7 @@ CxPlatRdmaExchangeTokensInit(
             RdmaConnection->CompletionQueue,
             ND_CQ_NOTIFY_ANY,
             &SocketProc->IoSqe.Overlapped);
-        if (QUIC_FAILED(Status))   
+        if (Status != ND_SUCCESS)   
         {
             if (Status != ND_PENDING)
             {
@@ -3503,7 +3494,7 @@ CxPlatRdmaSendRingBufferOffsets(
         0,
         0,
         ImmediateData);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -3522,7 +3513,7 @@ CxPlatRdmaSendRingBufferOffsets(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         if (Status != ND_PENDING)
         {
@@ -3602,7 +3593,7 @@ CxPlatRdmaRecvRingBufferOffsets(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         if (Status != ND_PENDING)
         {
@@ -3704,7 +3695,7 @@ CxPlatRdmaReadRingBufferOffsets(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))   
+    if (Status != ND_SUCCESS)   
     {
         if (Status != ND_PENDING)
         {
@@ -3824,7 +3815,7 @@ CxPlatDataPathRdmaProcessConnect(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))   
+    if (Status != ND_SUCCESS)   
     {
         if (Status != ND_PENDING)
         {
@@ -4126,7 +4117,7 @@ CxPlatDataPathRdmaProcessAcceptCompletion(
             RdmaConnection->Connector,
             (PSOCKADDR)&ListenerSocketProc->AcceptSocket->LocalAddress,
             &AssignedLocalAddressLength);
-        if (QUIC_FAILED(Status))
+        if (Status != ND_SUCCESS)
         {
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -4142,7 +4133,7 @@ CxPlatDataPathRdmaProcessAcceptCompletion(
             RdmaConnection->Connector,
             (PSOCKADDR)&ListenerSocketProc->AcceptSocket->RemoteAddress,
             &AssignedRemoteAddressLength);
-        if (QUIC_FAILED(Status))
+        if (Status != ND_SUCCESS)
         {
             QuicTraceEvent(
                 DatapathErrorStatus,
@@ -4345,7 +4336,6 @@ CxPlatDataPathRdmaProcessExchangeInitCompletion(
             RdmaConnection->CompletionQueue,
             &Result,
             1);
-
         if (Result.Status != ND_SUCCESS)
         {
             QuicTraceEvent(
@@ -4368,7 +4358,7 @@ CxPlatDataPathRdmaProcessExchangeInitCompletion(
             RdmaConnection->CompletionQueue,
             ND_CQ_NOTIFY_ANY,
             &SocketProc->IoSqe.Overlapped);
-        if (QUIC_FAILED(Status))   
+        if (Status != ND_SUCCESS)   
         {
             if (Status != ND_PENDING)
             {
@@ -4698,7 +4688,6 @@ CxPlatDataPathRdmaSendRingBufferOffsetsCompletion(
         RdmaConnection->CompletionQueue,
         &ManaResult,
         1);
-
     if (ManaResult.Status != ND_SUCCESS)
     {
         QuicTraceEvent(
@@ -4747,7 +4736,6 @@ CxPlatDataPathRdmaRecvRingBufferOffsetsCompletion(
         RdmaConnection->CompletionQueue,
         &ManaResult,
         1);
-
     if (ManaResult.Status != ND_SUCCESS)
     {
         QuicTraceEvent(
@@ -4825,7 +4813,6 @@ CxPlatDataPathRdmaReadRingBufferOffsetsCompletion(
         RdmaConnection->CompletionQueue,
         &ManaResult,
         1);
-
     if (ManaResult.Status != ND_SUCCESS)
     {
         QuicTraceEvent(
@@ -5028,7 +5015,6 @@ CxPlatRdmaRecvRemoteTokens(
         RdmaConnection->CompletionQueue,
         &ManaResult,
         1);
-
     if (ManaResult.Status != ND_SUCCESS)
     {
         QuicTraceEvent(
@@ -5155,7 +5141,7 @@ CxPlatRdmaSendRemoteTokens(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &SocketProc->IoSqe.Overlapped);
-    if (QUIC_FAILED(Status))
+    if (Status != ND_SUCCESS)
     {
         if (Status != ND_PENDING)
         {
@@ -5315,7 +5301,7 @@ CxPlatRdmaSocketStartReceive(
         RdmaConnection->CompletionQueue,
         ND_CQ_NOTIFY_ANY,
         &IoBlock->Sqe.Overlapped);
-    if (QUIC_FAILED(Status))   
+    if (Status != ND_SUCCESS)   
     {
         if (Status != ND_PENDING)
         {

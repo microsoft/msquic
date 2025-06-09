@@ -642,7 +642,7 @@ typedef struct CXPLAT_SOCKET {
     //
     // Socket type.
     //
-    uint8_t Type : 2; // CXPLAT_SOCKET_TYPE
+    uint8_t Type : 3; // CXPLAT_SOCKET_TYPE
 
     //
     // Flag indicates the socket has more than one socket, affinitized to all

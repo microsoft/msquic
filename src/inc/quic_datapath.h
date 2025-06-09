@@ -924,11 +924,6 @@ typedef struct CXPLAT_RDMA_CONFIG {
     uint16_t PartitionIndex;            // Client-only
 
     //
-    // Used to synchronize clean up.
-    //
-    CXPLAT_REF_COUNT RefCount;
-    
-    //
     // Memory related configuration
     //
     uint32_t SendRingBufferSize;        // Send Memory Buffer Size
