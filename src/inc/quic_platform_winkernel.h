@@ -648,7 +648,7 @@ CxPlatEventQCleanup(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
 BOOLEAN
-CxPlatEventQEnQueue(
+CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* Queue,
     _In_ CXPLAT_SQE* Sqe
     )
@@ -670,7 +670,7 @@ CxPlatEventQEnQueue(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 uint32_t
-CxPlatEventQDeQueue(
+CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* Queue,
     _Out_writes_to_(Count, return) CXPLAT_CQE* Events,
     _In_range_(0, CXPLAT_EVENTQ_DEQUEUE_MAX)
