@@ -600,7 +600,7 @@ _Success_(return != FALSE)
 QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
-    _Out_ CXPLAT_EVENTQ* queue
+    _Out_ CXPLAT_EVENTQ* Queue
     )
 {
     HANDLE Handle;
@@ -628,7 +628,7 @@ CxPlatEventQInitialize(
             IO_COMPLETION_ALL_ACCESS,
             NULL,
             KernelMode,
-            (PVOID*)queue,
+            (PVOID*)Queue,
             NULL);
 
     NtClose(Handle);
@@ -639,30 +639,30 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 void
 CxPlatEventQCleanup(
-    _In_ CXPLAT_EVENTQ* queue
+    _In_ CXPLAT_EVENTQ* Queue
     )
 {
-    ObDereferenceObject(*queue);
+    ObDereferenceObject(*Queue);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
 BOOLEAN
-CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
+CxPlatEventQEnQueue(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
     )
 {
     return
         NT_SUCCESS(
         IoSetIoCompletionEx(
-            *queue,
+            *Queue,
             0,
-            sqe,
+            Sqe,
             STATUS_SUCCESS,
             0,
             FALSE,
-            sqe->MiniPacket));
+            Sqe->MiniPacket));
 }
 
 #define CXPLAT_EVENTQ_DEQUEUE_MAX 16
@@ -670,83 +670,84 @@ CxPlatEventQEnqueue(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 uint32_t
-CxPlatEventQDequeue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _Out_writes_to_(count, return) CXPLAT_CQE* events,
+CxPlatEventQDeQueue(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _Out_writes_to_(Count, return) CXPLAT_CQE* Events,
     _In_range_(0, CXPLAT_EVENTQ_DEQUEUE_MAX)
-        uint32_t count,
-    _In_ uint32_t wait_time // milliseconds
+        uint32_t Count,
+    _In_ uint32_t WaitTime // milliseconds
     )
 {
-    NTSTATUS status;
-    ULONG entriesRemoved;
+    NTSTATUS Status;
+    ULONG EntriesRemoved;
     PLIST_ENTRY EntryPtrArray[CXPLAT_EVENTQ_DEQUEUE_MAX];
-    if (wait_time == UINT32_MAX) {
-        status =
+    CXPLAT_DBG_ASSERT(Count <= CXPLAT_EVENTQ_DEQUEUE_MAX);
+    if (WaitTime == UINT32_MAX) {
+        Status =
             IoRemoveIoCompletion(
-                *queue,
-                events,
+                *Queue,
+                Events,
                 EntryPtrArray,
-                count,
-                &entriesRemoved,
+                Count,
+                &EntriesRemoved,
                 KernelMode,
                 NULL,
                 FALSE);
     } else {
-        LARGE_INTEGER timeout;
-        timeout.QuadPart = -10000LL * wait_time;
-        status =
+        LARGE_INTEGER Timeout;
+        Timeout.QuadPart = -10000LL * WaitTime;
+        Status =
             IoRemoveIoCompletion(
-                *queue,
-                events,
+                *Queue,
+                Events,
                 EntryPtrArray,
-                count,
-                &entriesRemoved,
+                Count,
+                &EntriesRemoved,
                 KernelMode,
-                &timeout,
+                &Timeout,
                 FALSE);
     }
-    return NT_SUCCESS(status) ? entriesRemoved : 0;
+    return NT_SUCCESS(Status) ? EntriesRemoved : 0;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 void
 CxPlatEventQReturn(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ uint32_t count
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ uint32_t Count
     )
 {
-    UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(count);
+    UNREFERENCED_PARAMETER(Queue);
+    UNREFERENCED_PARAMETER(Count);
 }
 
 QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
-    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENTQ* Queue,
     _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
-    _Out_ CXPLAT_SQE* sqe
+    _Out_ CXPLAT_SQE* Sqe
     )
 {
-    UNREFERENCED_PARAMETER(queue);
-    sqe->Completion = completion;
-    sqe->MiniPacket =
+    UNREFERENCED_PARAMETER(Queue);
+    Sqe->Completion = completion;
+    Sqe->MiniPacket =
         IoAllocateMiniCompletionPacket(
             IoMiniPacketCallbackRoutineNoOp,
             NULL);
-    return sqe->MiniPacket ? TRUE : FALSE;
+    return Sqe->MiniPacket ? TRUE : FALSE;
 }
 
 QUIC_INLINE
 void
 CxPlatSqeInitializeEx(
     _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
-    _Out_ CXPLAT_SQE* sqe
+    _Out_ CXPLAT_SQE* Sqe
     )
 {
-    sqe->Completion = completion;
-    sqe->MiniPacket =
+    Sqe->Completion = completion;
+    Sqe->MiniPacket =
         IoAllocateMiniCompletionPacket(
             IoMiniPacketCallbackRoutineNoOp,
             NULL);
@@ -755,21 +756,21 @@ CxPlatSqeInitializeEx(
 QUIC_INLINE
 void
 CxPlatSqeCleanup(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
     )
 {
-    UNREFERENCED_PARAMETER(queue);
-    IoFreeMiniCompletionPacket(sqe->MiniPacket);
+    UNREFERENCED_PARAMETER(Queue);
+    IoFreeMiniCompletionPacket(Sqe->MiniPacket);
 }
 
 QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
-    _In_ const CXPLAT_CQE* cqe
+    _In_ const CXPLAT_CQE* Cqe
     )
 {
-    return (CXPLAT_SQE*)cqe->ApcContext;
+    return (CXPLAT_SQE*)Cqe->ApcContext;
 }
 
 //

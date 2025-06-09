@@ -677,7 +677,7 @@ CxPlatProcessDynamicPoolAllocators(
     )
 {
     if (Worker->State.TimeNow - Worker->State.LastPoolProcessTime < DYNAMIC_POOL_PROCESSING_PERIOD) {
-        return ; // Don't process pools too frequently
+        return; // Don't process pools too frequently
     }
     Worker->State.LastPoolProcessTime = Worker->State.TimeNow;
 
