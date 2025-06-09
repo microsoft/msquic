@@ -322,3 +322,20 @@ cd vcpkg
 ./vcpkg install ms-quic
 ```
 The `MsQuic` port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull   request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
+# Build Automation
+
+MsQuic has several types and locations for build automation.
+
+## GitHub
+
+The most comprehensive build automation is on GitHub and run via GitHub Action workflows (see [here](https://github.com/microsoft/msquic/actions/workflows/build.yml)) on every PR and push to main. As of June 2025, over 200 different build configurations are run. These are meant to completely cover pretty much all build scenarios that are important to the project.
+
+These builds don't produce any official, signed artifacts. They are merely used for validation and then test (execution) purposes.
+
+## Internal
+
+Microsoft then has official build pipelines that run internally (private) in secure build containers to produce the official binaries. These are then signed and eventually officially released. The main pipeline may be found [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required). This pipeline automatically picks up all main branch, release branch and tags from the public repo and mirrors them internally.
+
+There is an older pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738), which has _mostly_ been superceded by the pipeline above. Issue [#4766](https://github.com/microsoft/msquic/issues/4766) tracks the work to completely move things over. For instance, Linux package publishing still only functions in this older pipeline.
+
