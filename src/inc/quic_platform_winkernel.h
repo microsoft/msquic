@@ -24,6 +24,9 @@ Environment:
 #error "Incorrectly including Windows Kernel Platform Header"
 #endif
 
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A00000A // NTDDI_WIN10_FE
+
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:26061)
