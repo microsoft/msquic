@@ -5997,7 +5997,10 @@ public:
         Other.m_Storage = nullptr;
     }
 
-    QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&& Other) = delete;
+    QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&& Other) {
+        m_Storage = Other.m_Storage;
+        Other.m_Storage = nullptr;
+    }
 
     ~QuicStorageSettingScopeGuard() {
         if (m_Storage != nullptr) {
