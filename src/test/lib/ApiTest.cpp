@@ -5985,7 +5985,7 @@ class QuicStorageSettingScopeGuard {
 public:
     static
     QuicStorageSettingScopeGuard Create(
-        _In_opt_ const char* StorageName) {
+        _In_opt_ const char* StorageName = nullptr) {
         return QuicStorageSettingScopeGuard(StorageName);
     }
 
