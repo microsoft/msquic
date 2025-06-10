@@ -6,6 +6,7 @@ pkgrel=0
 _clog=CLOG_COMMIT_HASH
 _gtest=GOOGLETEST_COMMIT_HASH
 _quictls=QUICTLS_COMMIT_HASH
+_openssl=OPENSSL_COMMIT_HASH
 pkgdesc="Cross-platform, C implementation of the IETF QUIC protocol, exposed to C, C++, C# and Rust."
 url="https://github.com/microsoft/msquic"
 arch="x86_64 armv7 aarch64"

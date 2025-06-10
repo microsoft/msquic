@@ -2250,179 +2250,117 @@ QuicTestReceiveResumeNoData(
     }
 }
 
-struct AckSendDelayTestContext {
-    AckSendDelayTestContext() :
-        SendBuffer(1, 200)
-    {};
-    HQUIC ServerConfiguration;
-    QuicSendBuffer SendBuffer;
-    CxPlatEvent ServerStreamStartedEvent;
-    CxPlatEvent ClientReceiveDataEvent;
-    CxPlatEvent ServerConnectedEvent;
-    ConnectionScope ServerConnection;
-    ConnectionScope ClientConnection;
+class AckSendDelayTestContext {
+private:
     StreamScope ServerStream;
-    StreamScope ClientStream;
-    uint64_t AckCountStart;
-    uint64_t AckCountStop;
-};
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_STREAM_CALLBACK)
-static
-QUIC_STATUS
-QUIC_API
-QuicAckDelayStreamHandler(
-    _In_ HQUIC QuicStream,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_STREAM_EVENT* Event
-    )
-{
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
-    if (TestContext->ServerStream.Handle == QuicStream) {
-        //
-        // Server side
-        //
+   public:
+    CxPlatEvent ConnectedEvent;
+    CxPlatEvent SendCompleteEvent;
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ClientStreamHandler(
+        _In_ HQUIC /* QuicStream */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_STREAM_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckSendDelayTestContext*>(Context);
         switch (Event->Type) {
-        case QUIC_STREAM_EVENT_RECEIVE:
-            Event->RECEIVE.TotalBufferLength = 0;
-            Status = MsQuic->StreamSend(
-                QuicStream,
-                TestContext->SendBuffer.Buffers,
-                TestContext->SendBuffer.BufferCount,
-                QUIC_SEND_FLAG_FIN,
-                nullptr);
-            if (QUIC_FAILED(Status)) {
-                TEST_FAILURE("Server failed to send to send data back 0x%x", Status);
-                return Status;
-            }
+        case QUIC_STREAM_EVENT_SEND_COMPLETE:
+            TestContext->SendCompleteEvent.Set();
             break;
         default:
             break;
         }
-    } else {
-        if (TestContext->ClientStream.Handle != QuicStream) {
-            TEST_FAILURE("Client stream is wrong?! %p vs %p",
-                TestContext->ClientStream.Handle,
-                QuicStream);
-            return QUIC_STATUS_INVALID_STATE;
-        }
-        //
-        // Client side
-        //
-        switch (Event->Type) {
-        case QUIC_STREAM_EVENT_RECEIVE: {
-            QUIC_STATISTICS_V2 Stats{};
-            uint32_t StatsSize = sizeof(Stats);
-            Status = MsQuic->GetParam(
-                TestContext->ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS_V2,
-                &StatsSize,
-                &Stats);
-            if (QUIC_FAILED(Status)) {
-                TEST_FAILURE("Client failed to query statistics on receive 0x%x", Status);
-                return Status;
-            }
-            TestContext->AckCountStop = Stats.RecvValidAckFrames;
-            Event->RECEIVE.TotalBufferLength = 0;
-            CxPlatEventSet(TestContext->ClientReceiveDataEvent.Handle);
-            break;
-        }
-        default:
-            break;
-        }
+        return QUIC_STATUS_SUCCESS;
     }
-    return Status;
-}
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_CONNECTION_CALLBACK)
-static
-QUIC_STATUS
-QUIC_API
-QuicAckDelayConnectionHandler(
-    _In_ HQUIC QuicConnection,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    )
-{
-    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
-    if (TestContext->ServerConnection == QuicConnection) {
-        //
-        // Server side
-        //
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_STREAM_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ServerStreamHandler(
+        _In_ HQUIC /* QuicStream */,
+        _In_opt_ void* /* Context */,
+        _Inout_ QUIC_STREAM_EVENT* /* Event */
+        )
+    {
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ClientConnectionHandler(
+        _In_ HQUIC /* QuicConnection */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckSendDelayTestContext*>(Context);
         switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_CONNECTED:
-            CxPlatEventSet(TestContext->ServerConnectedEvent.Handle);
+            CxPlatEventSet(TestContext->ConnectedEvent.Handle);
             break;
+        default:
+            break;
+        }
+        return QUIC_STATUS_SUCCESS;
+    }
+
+    _IRQL_requires_max_(PASSIVE_LEVEL)
+    _Function_class_(QUIC_CONNECTION_CALLBACK)
+    static
+    QUIC_STATUS
+    QUIC_API
+    ServerConnectionHandler(
+        _In_ MsQuicConnection* /* QuicConnection */,
+        _In_opt_ void* Context,
+        _Inout_ QUIC_CONNECTION_EVENT* Event
+        )
+    {
+        auto* TestContext = static_cast<AckSendDelayTestContext*>(Context);
+        switch (Event->Type) {
         case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
             MsQuic->SetCallbackHandler(
                 Event->PEER_STREAM_STARTED.Stream,
-                (void*)QuicAckDelayStreamHandler,
+                reinterpret_cast<void*>(ServerStreamHandler),
                 Context);
             TestContext->ServerStream.Handle = Event->PEER_STREAM_STARTED.Stream;
-            CxPlatEventSet(TestContext->ServerStreamStartedEvent.Handle);
             break;
         default:
             break;
         }
-    } else {
-        if(TestContext->ClientConnection.Handle != QuicConnection) {
-            TEST_FAILURE("Client connection is wrong?! %p vs %p",
-                TestContext->ClientConnection.Handle,
-                QuicConnection);
-            return QUIC_STATUS_INVALID_STATE;
-        }
-        //
-        // Client side
-        //
-        switch(Event->Type) {
-        case QUIC_CONNECTION_EVENT_CONNECTED:
-            // CxPlatEventSet(TestContext->ServerConnectedEvent.Handle);
-            break;
-        default:
-            break;
-        }
+        return QUIC_STATUS_SUCCESS;
     }
-    return QUIC_STATUS_SUCCESS;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-_Function_class_(QUIC_LISTENER_CALLBACK)
-static
-QUIC_STATUS
-QUIC_API
-QuicAckDelayListenerHandler(
-    _In_ MsQuicListener* /* QuicListener */,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_LISTENER_EVENT* Event
-    )
-{
-    AckSendDelayTestContext* TestContext = (AckSendDelayTestContext*)Context;
-    switch (Event->Type) {
-        case QUIC_LISTENER_EVENT_NEW_CONNECTION:
-            TestContext->ServerConnection.Handle = Event->NEW_CONNECTION.Connection;
-            MsQuic->SetCallbackHandler(TestContext->ServerConnection.Handle, (void*) QuicAckDelayConnectionHandler, Context);
-            return MsQuic->ConnectionSetConfiguration(Event->NEW_CONNECTION.Connection, TestContext->ServerConfiguration);
-        case QUIC_LISTENER_EVENT_STOP_COMPLETE:
-            return QUIC_STATUS_SUCCESS;
-        default:
-            TEST_FAILURE(
-                "Invalid listener event! Context: 0x%p, Event: %d",
-                Context,
-                Event->Type);
-            return QUIC_STATUS_INVALID_STATE;
-    }
-}
+};
 
 void
 QuicTestAckSendDelay(
     _In_ int Family
     )
 {
-    const uint32_t TimeoutMs = 3000;
-    const uint32_t AckDelayMs = 1000;
+    //
+    // Validates that a server eventually sends acks in response to a non-ack eliciting packet.
+    //
+    // Note that this test does a best effort to avoid any traffic after sending the data so that
+    // the Ack delay timer triggers. However, in some cases, other frames might be exchanged and the
+    // ack will piggy-back on them.
+    //
+
+    const uint32_t TestTimeout = 3000;
+    const uint32_t AckDelayMs = 25; // This is the default value, set it explicitly to ensure it stays compatible sync with the timeout.
+    const uint32_t AckTimeout = 2000;
+    const QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+
     MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
@@ -2430,110 +2368,103 @@ QuicTestAckSendDelay(
 
     MsQuicSettings Settings{};
     Settings.SetMinimumMtu(1280).SetMaximumMtu(1280);
-    Settings.SetIdleTimeoutMs(TimeoutMs);
+    Settings.SetIdleTimeoutMs(TestTimeout);
     Settings.SetMaxAckDelayMs(AckDelayMs);
     Settings.SetPeerBidiStreamCount(1);
+    //
+    // Disable send buffering: this way, the send complete event is only signaled when the
+    // data is acked, and can be used as a proxy for receiving the ack.
+    //
+    Settings.SetSendBufferingEnabled(false);
 
+    //
+    // Start the server.
+    // The server is a traffic sink, it accepts connections and receives data,
+    // but does nothing with it.
+    //
+    AckSendDelayTestContext TestContext{};
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
 
+    MsQuicAutoAcceptListener Listener{
+        Registration,
+        ServerConfiguration,
+        AckSendDelayTestContext::ServerConnectionHandler,
+        &TestContext};
+
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    //
+    // Start the client.
+    //
     MsQuicCredentialConfig ClientCredConfig;
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-    QuicAddr ServerLocalAddr;
+    ConnectionScope ClientConnection;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionOpen(
+            Registration,
+            AckSendDelayTestContext::ClientConnectionHandler,
+            &TestContext,
+            &ClientConnection.Handle));
 
-    {
-        AckSendDelayTestContext TestContext {};
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->ConnectionStart(
+            ClientConnection.Handle,
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
 
-        TestContext.ServerConfiguration = ServerConfiguration;
-        //
-        // Start the server.
-        //
-        MsQuicListener Listener(Registration, CleanUpManual, QuicAckDelayListenerHandler, &TestContext);
-        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
-
-        //
-        // Start the client.
-        //
-        QUIC_STATUS Status =
-            MsQuic->ConnectionOpen(
-                Registration,
-                QuicAckDelayConnectionHandler,
-                &TestContext,
-                &TestContext.ClientConnection.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ConnectionOpen failed, 0x%x.", Status);
-            return;
-        }
-
-        Status =
-            MsQuic->ConnectionStart(
-                TestContext.ClientConnection.Handle,
-                ClientConfiguration,
-                QuicAddrFamily,
-                QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
-                ServerLocalAddr.GetPort());
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("MsQuic->ConnectionStart failed, 0x%x.", Status);
-            return;
-        }
-
-        if (!CxPlatEventWaitWithTimeout(TestContext.ServerConnectedEvent.Handle, TimeoutMs)) {
-            TEST_FAILURE("Server failed to get connected before timeout!");
-            return;
-        }
-
-        //
-        // Wait for connection to go silent before continuing
-        //
-        CxPlatSleep(100);
-
-        QUIC_STATISTICS_V2 Stats{};
-        uint32_t StatsSize = sizeof(Stats);
-        Status =
-            MsQuic->GetParam(
-                TestContext.ClientConnection.Handle,
-                QUIC_PARAM_CONN_STATISTICS_V2,
-                &StatsSize,
-                &Stats);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("Client failed to query statistics at start 0x%x", Status);
-            return;
-        }
-        TestContext.AckCountStart = Stats.RecvValidAckFrames;
-        Status =
-            MsQuic->StreamOpen(
-                TestContext.ClientConnection.Handle,
-                QUIC_STREAM_OPEN_FLAG_NONE,
-                QuicAckDelayStreamHandler,
-                &TestContext,
-                &TestContext.ClientStream.Handle);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("Client failed to open stream 0x%x", Status);
-            return;
-        }
-        Status =
-            MsQuic->StreamSend(
-                TestContext.ClientStream.Handle,
-                TestContext.SendBuffer.Buffers,
-                TestContext.SendBuffer.BufferCount,
-                QUIC_SEND_FLAG_START,
-                nullptr);
-        if (QUIC_FAILED(Status)) {
-            TEST_FAILURE("Client failed to send data 0x%x", Status);
-        }
-
-        if (!CxPlatEventWaitWithTimeout(TestContext.ClientReceiveDataEvent.Handle, TimeoutMs)) {
-            TEST_FAILURE("Client failed to receive data before timeout!");
-            return;
-        }
-
-        TEST_EQUAL(TestContext.AckCountStop - TestContext.AckCountStart, 1);
+    if (!CxPlatEventWaitWithTimeout(TestContext.ConnectedEvent.Handle, TestTimeout)) {
+        TEST_FAILURE("The connection did not succeed before timeout!");
+        return;
     }
+
+    //
+    // Wait for connection to go silent before continuing:
+    // this is a best effort to trigger the ack delay timer on the server side (vs the ack
+    // opportunistically using a packet triggered by another frame).
+    //
+    CxPlatSleep(100);
+
+    //
+    // Open a stream and send some data, then go silent:
+    // the data should be eventually acked by the server after the ack delay.
+    //
+    StreamScope ClientStream;
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamOpen(
+            ClientConnection.Handle,
+            QUIC_STREAM_OPEN_FLAG_NONE,
+            AckSendDelayTestContext::ClientStreamHandler,
+            &TestContext,
+            &ClientStream.Handle));
+
+    QuicSendBuffer SendBuffer(1, 200);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->StreamSend(
+            ClientStream.Handle,
+            SendBuffer.Buffers,
+            SendBuffer.BufferCount,
+            QUIC_SEND_FLAG_START,
+            nullptr));
+
+    //
+    // Since we are not in send-buffered mode, the send completes only when the data is acked:
+    // we use this as a proxy signal.
+    //
+    if (!CxPlatEventWaitWithTimeout(TestContext.SendCompleteEvent.Handle, AckTimeout)) {
+        TEST_FAILURE("Data was not acked before timeout!");
+        return;
+    }
+
+    MsQuic->ConnectionShutdown(ClientConnection.Handle, QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, 0);
 }
 
 struct AbortRecvTestContext {

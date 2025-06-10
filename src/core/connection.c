@@ -432,6 +432,9 @@ QuicConnShutdown(
         (!Connection->State.Started && QuicConnIsClient(Connection))) {
         CloseFlags |= QUIC_CLOSE_SILENT;
     }
+    if (Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS) {
+        CloseFlags |= QUIC_CLOSE_QUIC_STATUS;
+    }
 
     QuicConnCloseLocally(Connection, CloseFlags, ErrorCode, NULL);
 }
@@ -702,6 +705,13 @@ QuicConnQueueOper(
     if (!Connection->State.Initialized) {
         CXPLAT_DBG_ASSERT(QuicConnIsServer(Connection));
         CXPLAT_DBG_ASSERT(Connection->SourceCids.Next != NULL || CxPlatIsRandomMemoryFailureEnabled());
+    }
+    if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
+        if (Oper->API_CALL.Context->Type == QUIC_API_TYPE_CONN_SHUTDOWN) {
+            CXPLAT_DBG_ASSERT(
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.ErrorCode <= QUIC_VAR_INT_MAX) ||
+                (Oper->API_CALL.Context->CONN_SHUTDOWN.Flags & QUIC_CONNECTION_SHUTDOWN_FLAG_STATUS));
+        }
     }
 #endif
     if (QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, Oper)) {
@@ -1591,6 +1601,7 @@ QuicConnTryClose(
             Connection->CloseErrorCode = QUIC_ERROR_INTERNAL_ERROR;
         } else {
             Connection->CloseStatus = QuicErrorCodeToStatus(ErrorCode);
+            CXPLAT_DBG_ASSERT(ErrorCode <= QUIC_VAR_INT_MAX);
             Connection->CloseErrorCode = ErrorCode;
             if (QuicErrorIsProtocolError(ErrorCode)) {
                 QuicPerfCounterIncrement(
@@ -4411,6 +4422,19 @@ QuicConnRecvFrames(
     uint16_t PayloadLength = Packet->PayloadLength;
     uint64_t RecvTime = CxPlatTimeUs64();
 
+    //
+    // In closing state, respond to any packet with a new close frame (rate-limited).
+    //
+    if (Closed && !Connection->State.ShutdownComplete) {
+        if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL) {
+            QuicSendSetSendFlag(
+                &Connection->Send,
+                Connection->State.AppClosed ?
+                    QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE :
+                    QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE);
+        }
+    }
+
     if (QuicConnIsClient(Connection) &&
         !Connection->State.GotFirstServerResponse) {
         Connection->State.GotFirstServerResponse = TRUE;
@@ -6903,6 +6927,33 @@ QuicConnGetV2Statistics(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnGetNetworkStatistics(
+    _In_ const QUIC_CONNECTION* Connection,
+    _Inout_ uint32_t* StatsLength,
+    _Out_writes_bytes_opt_(*StatsLength)
+        QUIC_NETWORK_STATISTICS* Stats
+    )
+{
+    if (*StatsLength < sizeof(QUIC_NETWORK_STATISTICS)) {
+        *StatsLength = sizeof(QUIC_NETWORK_STATISTICS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Stats == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CxPlatZeroMemory(Stats, sizeof(QUIC_NETWORK_STATISTICS));
+
+    Connection->CongestionControl.QuicCongestionControlGetNetworkStatistics(
+        Connection, &Connection->CongestionControl, Stats);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamGet(
     _In_ QUIC_CONNECTION* Connection,
@@ -7318,6 +7369,11 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_NETWORK_STATISTICS:
+        Status =
+            QuicConnGetNetworkStatistics(Connection, BufferLength, (QUIC_NETWORK_STATISTICS *)Buffer);
         break;
 
     default:

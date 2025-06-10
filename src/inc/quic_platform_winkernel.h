@@ -24,6 +24,9 @@ Environment:
 #error "Incorrectly including Windows Kernel Platform Header"
 #endif
 
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A00000A // NTDDI_WIN10_FE
+
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:26061)
@@ -253,6 +256,18 @@ extern uint64_t CxPlatTotalMemory;
 #define CXPLAT_ALLOC_PAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
+
+//
+// If the following assert fails, then something broke and we're no longer
+// calling the inline version of ExAllocateFromLookasideListEx, and instead
+// trying to dynamically link to the more recent version of this function,
+// which doesn't exist down level.
+//
+// This value should be set via the projects _NT_TARGET_VERSION xml property.
+//
+CXPLAT_STATIC_ASSERT(
+    NTDDI_VERSION == NTDDI_WIN10_FE, // 0x0A00000A
+    "Incorrect version breaks down-level builds");
 
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
 
