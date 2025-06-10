@@ -641,6 +641,17 @@ typedef struct QUIC_STATISTICS_V2 {
 
 } QUIC_STATISTICS_V2;
 
+typedef struct QUIC_NETWORK_STATISTICS
+{
+    uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+    uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
+    uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+    uint64_t SmoothedRTT;                // Smoothed RTT value
+    uint32_t CongestionWindow;           // Congestion Window
+    uint64_t Bandwidth;                  // Estimated bandwidth
+
+} QUIC_NETWORK_STATISTICS;
+
 #define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
     (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
 
@@ -1011,6 +1022,9 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct QUIC_NETWORK_STATISTICS
+#endif
 
 //
 // Parameters for TLS.
@@ -1360,14 +1374,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
-        struct {
-           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
-           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
-           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
-           uint64_t SmoothedRTT;                // Smoothed RTT value
-           uint32_t CongestionWindow;           // Congestion Window
-           uint64_t Bandwidth;                  // Estimated bandwidth
-        } NETWORK_STATISTICS;
+        QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

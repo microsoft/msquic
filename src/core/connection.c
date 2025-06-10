@@ -6927,6 +6927,33 @@ QuicConnGetV2Statistics(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+static
+QUIC_STATUS
+QuicConnGetNetworkStatistics(
+    _In_ const QUIC_CONNECTION* Connection,
+    _Inout_ uint32_t* StatsLength,
+    _Out_writes_bytes_opt_(*StatsLength)
+        QUIC_NETWORK_STATISTICS* Stats
+    )
+{
+    if (*StatsLength < sizeof(QUIC_NETWORK_STATISTICS)) {
+        *StatsLength = sizeof(QUIC_NETWORK_STATISTICS);
+        return QUIC_STATUS_BUFFER_TOO_SMALL;
+    }
+
+    if (Stats == NULL) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+
+    CxPlatZeroMemory(Stats, sizeof(QUIC_NETWORK_STATISTICS));
+
+    Connection->CongestionControl.QuicCongestionControlGetNetworkStatistics(
+        Connection, &Connection->CongestionControl, Stats);
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnParamGet(
     _In_ QUIC_CONNECTION* Connection,
@@ -7342,6 +7369,11 @@ QuicConnParamGet(
 
         *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_CONN_NETWORK_STATISTICS:
+        Status =
+            QuicConnGetNetworkStatistics(Connection, BufferLength, (QUIC_NETWORK_STATISTICS *)Buffer);
         break;
 
     default:
