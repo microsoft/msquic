@@ -24,6 +24,8 @@ CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_BINARY == REG_BINARY, "Storage type mis
 CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT32 == REG_DWORD, "Storage type mismatch");
 CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT64 == REG_QWORD, "Storage type mismatch");
 
+#define CXPLAT_STORAGE_VALUE_NAME_PREALLOC_LEN 31
+
 //
 // Copied from wdm.h
 //
@@ -648,7 +650,7 @@ CxPlatStorageClear(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ULONG InfoLength = 0;
     ULONG AllocatedLength = sizeof(KEY_VALUE_BASIC_INFORMATION) +
-        sizeof(QUIC_SETTING_STATELESS_OPERATION_EXPIRATION);
+        CXPLAT_STORAGE_VALUE_NAME_PREALLOC_LEN;
     PKEY_VALUE_BASIC_INFORMATION Info = NULL;
 
     Info = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
@@ -658,8 +660,7 @@ CxPlatStorageClear(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
             "KEY_VALUE_BASIC_INFORMATION",
-            sizeof(KEY_VALUE_BASIC_INFORMATION) +
-            sizeof(QUIC_SETTING_STATELESS_OPERATION_EXPIRATION));
+            AllocatedLength);
         goto Exit;
     }
 
