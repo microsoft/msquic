@@ -21,7 +21,7 @@ Environment:
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
@@ -36,7 +36,7 @@ CxPlatStorageOpen(
 
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     UNREFERENCED_PARAMETER(Storage);
@@ -57,6 +57,46 @@ CxPlatStorageReadValue(
     UNREFERENCED_PARAMETER(Name);
     UNREFERENCED_PARAMETER(Buffer);
     UNREFERENCED_PARAMETER(BufferLength);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageReset(
+    _In_ _Post_invalid_ CXPLAT_STORAGE* Storage
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageCreateTempStore(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ CXPLAT_STORAGE** TempStorage
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(TempStorage);
+    // TODO
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageSaveUIntValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char* Name,
+    _In_ uint32_t Value
+)
+{
+    UNREFERENCED_PARAMETER(Storage);
+    UNREFERENCED_PARAMETER(Name);
+    UNREFERENCED_PARAMETER(Value);
     // TODO
     return QUIC_STATUS_NOT_SUPPORTED;
 }

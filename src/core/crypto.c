@@ -2166,6 +2166,22 @@ QuicCryptoUpdateKeyPhase(
     PacketSpace->CurrentKeyPhaseBytesSent = 0;
 }
 
+BOOLEAN
+IsQuicIncomingResumptionTicketSupported(
+    _In_ QUIC_VAR_INT TicketVersion
+    )
+{
+    if (TicketVersion >= CXPLAT_TLS_RESUMPTION_TICKET_VERSION &&
+        TicketVersion <= CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+//
+// Server calls this function to generate the resumption ticket for a specific client
+//
 QUIC_STATUS
 QuicCryptoEncodeServerTicket(
     _In_opt_ QUIC_CONNECTION* Connection,
@@ -2229,6 +2245,7 @@ QuicCryptoEncodeServerTicket(
         QuicVarIntSize(AppDataLength) +
         AlpnLength +
         EncodedTPLength +
+        RESUMPTION_TICKET_V2_EXTENSION_LENGTH +
         AppDataLength);
 
     TicketBuffer = CXPLAT_ALLOC_NONPAGED(TotalTicketLength, QUIC_POOL_SERVER_CRYPTO_TICKET);
@@ -2255,7 +2272,7 @@ QuicCryptoEncodeServerTicket(
     //
 
     _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
-    uint8_t* TicketCursor = QuicVarIntEncode(CXPLAT_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
+    uint8_t* TicketCursor = QuicVarIntEncode(CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION, TicketBuffer);
     CxPlatCopyMemory(TicketCursor, &QuicVersion, sizeof(QuicVersion));
     TicketCursor += sizeof(QuicVersion);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
@@ -2265,6 +2282,12 @@ QuicCryptoEncodeServerTicket(
     TicketCursor += AlpnLength;
     CxPlatCopyMemory(TicketCursor, EncodedHSTP + CxPlatTlsTPHeaderSize, EncodedTPLength);
     TicketCursor += EncodedTPLength;
+
+    //
+    // TODO: add processing of V2 extension here
+    //
+    TicketCursor += RESUMPTION_TICKET_V2_EXTENSION_LENGTH; // Skip the fixed length V2 extension
+
     if (AppDataLength > 0) {
         CxPlatCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
         TicketCursor += AppDataLength;
@@ -2285,6 +2308,9 @@ Error:
     return Status;
 }
 
+//
+// Server uses this function to decode the resumption ticket presented by the client
+//
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
     _In_ QUIC_CONNECTION* Connection,
@@ -2314,7 +2340,8 @@ QuicCryptoDecodeServerTicket(
             "Resumption Ticket version failed to decode");
         goto Error;
     }
-    if (TicketVersion != CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
+
+    if (!IsQuicIncomingResumptionTicketSupported(TicketVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -2413,6 +2440,25 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
     Offset += (uint16_t)TPLength;
+
+    if (TicketVersion == CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2) {
+        //
+        // V2 resumption ticket has a fixed length extension.
+        //
+        if (TicketLength < Offset + RESUMPTION_TICKET_V2_EXTENSION_LENGTH) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket too small for V2 extensions");
+            goto Error;
+        }
+
+        //
+        // TODO: add processing of V2 extension here
+        //
+        Offset += RESUMPTION_TICKET_V2_EXTENSION_LENGTH;
+    }
 
     if (TicketLength == Offset + AppTicketLength) {
         Status = QUIC_STATUS_SUCCESS;
