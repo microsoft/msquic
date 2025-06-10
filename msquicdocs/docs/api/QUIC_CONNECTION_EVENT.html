@@ -192,14 +192,7 @@
             BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
-        struct {
-           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
-           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
-           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
-           uint64_t SmoothedRTT;                // Smoothed RTT value
-           uint32_t CongestionWindow;           // Congestion Window
-           uint64_t Bandwidth;                  // Estimated bandwidth
-        } NETWORK_STATISTICS;
+        QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
 #endif
 
     };
@@ -438,7 +431,7 @@
 <p><strong>Preview feature</strong>: This event is in <a href="../PreviewFeatures.html">preview</a>. It should be considered unstable and can be subject to breaking changes.</p>
 <p>This event is only indicated if QUIC_SETTINGS.EnableNetStatsEvent is TRUE. This event indicates the latest network statistics generated during the QUIC protocol handling in the MsQuic library.</p>
 <h3 id="network_statistics">NETWORK_STATISTICS</h3>
-<p>Detailed networking statistics are passed in the <code>NETWORK_STATISTICS</code> struct/union.</p>
+<p>Detailed networking statistics are passed in the <code>QUIC_NETWORK_STATISTICS</code> struct/union.</p>
 <p><code>BytesInFlight</code></p>
 <p>Bytes that were sent on the wire, but not yet acked</p>
 <p><code>PostedBytes</code></p>
