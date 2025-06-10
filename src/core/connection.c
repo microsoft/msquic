@@ -32,7 +32,6 @@ Abstract:
 --*/
 
 #include "precomp.h"
-#include "quic_platform.h"
 #ifdef QUIC_CLOG
 #include "connection.c.clog.h"
 #endif
