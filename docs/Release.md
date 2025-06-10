@@ -143,5 +143,5 @@ The following are the complete (manual) steps for publishing the Rust crate.
 
 1. Once the release branch/tag is created, the undock pipeline should run automatically.
    - If for some reason there's a problem, click "Run Pipeline" [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required), scroll down to the **resources tab** and pick the MsQuic release tag of interest, and run it manually.
-3. Once the pipeline passes tests, create a PR to point to the VPACK created by the pipline run.
+3. Once the pipeline passes tests, create a PR to point [this file](https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man) to the VPACK created by the pipline run.
 4. Review and merge the PR to complete the process.
