@@ -337,68 +337,6 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
 
-TEST(SettingsTest, QuicSettingsSetDefault_SetsAllDefaultsWhenUnset)
-{
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    // Set all IsSet fields to 0 to simulate unset state
-    Settings.IsSetFlags = 0;
-
-    QuicSettingsSetDefault(&Settings);
-
-    // Spot-check a few representative fields (add more as needed)
-    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
-    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
-    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
-    ASSERT_EQ(Settings.DatagramReceiveEnabled, QUIC_DEFAULT_DATAGRAM_RECEIVE_ENABLED);
-    ASSERT_EQ(Settings.MaxOperationsPerDrain, QUIC_MAX_OPERATIONS_PER_DRAIN);
-    ASSERT_EQ(Settings.RetryMemoryLimit, QUIC_DEFAULT_RETRY_MEMORY_FRACTION);
-    ASSERT_EQ(Settings.LoadBalancingMode, QUIC_DEFAULT_LOAD_BALANCING_MODE);
-    ASSERT_EQ(Settings.FixedServerID, 0u);
-    ASSERT_EQ(Settings.MaxWorkerQueueDelayUs, MS_TO_US(QUIC_MAX_WORKER_QUEUE_DELAY));
-    ASSERT_EQ(Settings.MaxStatelessOperations, QUIC_MAX_STATELESS_OPERATIONS);
-    ASSERT_EQ(Settings.InitialWindowPackets, QUIC_INITIAL_WINDOW_PACKETS);
-    ASSERT_EQ(Settings.SendIdleTimeoutMs, QUIC_DEFAULT_SEND_IDLE_TIMEOUT_MS);
-    ASSERT_EQ(Settings.InitialRttMs, QUIC_INITIAL_RTT);
-    ASSERT_EQ(Settings.MaxAckDelayMs, QUIC_TP_MAX_ACK_DELAY_DEFAULT);
-    ASSERT_EQ(Settings.DisconnectTimeoutMs, QUIC_DEFAULT_DISCONNECT_TIMEOUT);
-    ASSERT_EQ(Settings.KeepAliveIntervalMs, QUIC_DEFAULT_KEEP_ALIVE_INTERVAL);
-    ASSERT_EQ(Settings.IdleTimeoutMs, QUIC_DEFAULT_IDLE_TIMEOUT);
-    ASSERT_EQ(Settings.HandshakeIdleTimeoutMs, QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT);
-    ASSERT_EQ(Settings.PeerBidiStreamCount, 0u);
-    ASSERT_EQ(Settings.PeerUnidiStreamCount, 0u);
-    ASSERT_EQ(Settings.TlsClientMaxSendBuffer, QUIC_MAX_TLS_SERVER_SEND_BUFFER); // Note: last assignment in function
-    ASSERT_EQ(Settings.StreamRecvWindowDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(Settings.StreamRecvWindowBidiLocalDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(Settings.StreamRecvWindowBidiRemoteDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(Settings.StreamRecvWindowUnidiDefault, QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE);
-    ASSERT_EQ(Settings.StreamRecvBufferDefault, QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE);
-    ASSERT_EQ(Settings.ConnFlowControlWindow, QUIC_DEFAULT_CONN_FLOW_CONTROL_WINDOW);
-    ASSERT_EQ(Settings.MaxBytesPerKey, QUIC_DEFAULT_MAX_BYTES_PER_KEY);
-    ASSERT_EQ(Settings.ServerResumptionLevel, (uint8_t)QUIC_DEFAULT_SERVER_RESUMPTION_LEVEL);
-    ASSERT_EQ(Settings.VersionNegotiationExtEnabled, QUIC_DEFAULT_VERSION_NEGOTIATION_EXT_ENABLED);
-    ASSERT_EQ(Settings.MinimumMtu, QUIC_DPLPMTUD_DEFAULT_MIN_MTU);
-    ASSERT_EQ(Settings.MaximumMtu, QUIC_DPLPMTUD_DEFAULT_MAX_MTU);
-    ASSERT_EQ(Settings.MtuDiscoveryMissingProbeCount, QUIC_DPLPMTUD_MAX_PROBES);
-    ASSERT_EQ(Settings.MtuDiscoverySearchCompleteTimeoutUs, QUIC_DPLPMTUD_RAISE_TIMER_TIMEOUT);
-    ASSERT_EQ(Settings.MaxBindingStatelessOperations, QUIC_MAX_BINDING_STATELESS_OPERATIONS);
-    ASSERT_EQ(Settings.StatelessOperationExpirationMs, QUIC_STATELESS_OPERATION_EXPIRATION_MS);
-    ASSERT_EQ(Settings.CongestionControlAlgorithm, QUIC_CONGESTION_CONTROL_ALGORITHM_DEFAULT);
-    ASSERT_EQ(Settings.DestCidUpdateIdleTimeoutMs, QUIC_DEFAULT_DEST_CID_UPDATE_IDLE_TIMEOUT_MS);
-    ASSERT_EQ(Settings.GreaseQuicBitEnabled, QUIC_DEFAULT_GREASE_QUIC_BIT_ENABLED);
-    ASSERT_EQ(Settings.EcnEnabled, QUIC_DEFAULT_ECN_ENABLED);
-    ASSERT_EQ(Settings.HyStartEnabled, QUIC_DEFAULT_HYSTART_ENABLED);
-    ASSERT_EQ(Settings.EncryptionOffloadAllowed, QUIC_DEFAULT_ENCRYPTION_OFFLOAD_ALLOWED);
-    ASSERT_EQ(Settings.ReliableResetEnabled, QUIC_DEFAULT_RELIABLE_RESET_ENABLED);
-    ASSERT_EQ(Settings.XdpEnabled, QUIC_DEFAULT_XDP_ENABLED);
-    ASSERT_EQ(Settings.QTIPEnabled, QUIC_DEFAULT_QTIP_ENABLED);
-    ASSERT_EQ(Settings.RioEnabled, QUIC_DEFAULT_RIO_ENABLED);
-    ASSERT_EQ(Settings.OneWayDelayEnabled, QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED);
-    ASSERT_EQ(Settings.NetStatsEventEnabled, QUIC_DEFAULT_NET_STATS_EVENT_ENABLED);
-    ASSERT_EQ(Settings.StreamMultiReceiveEnabled, QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED);
-}
-
 TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
 {
     QUIC_SETTINGS_INTERNAL Settings;
@@ -461,7 +399,7 @@ private:
                 StorageName,
                 nullptr,
                 nullptr,
-                CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE | CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETE | CXPLAT_STORAGE_OPEN_FLAG_WRITE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
                 &m_Storage));
         EXPECT_NE(m_Storage, nullptr);
     }

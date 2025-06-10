@@ -344,11 +344,11 @@ CxPlatStorageOpen(
 
     ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITE) {
         DesiredAccess |= KEY_WRITE;
     }
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETE) {
         DesiredAccess |= DELETE;
     }
 
@@ -647,63 +647,27 @@ CxPlatStorageClear(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ULONG InfoLength = 0;
-    ULONG AllocatedLength = 0;
+    ULONG AllocatedLength = sizeof(KEY_VALUE_BASIC_INFORMATION) +
+        sizeof(QUIC_SETTING_STATELESS_OPERATION_EXPIRATION);
     PKEY_VALUE_BASIC_INFORMATION Info = NULL;
+
+    Info = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (Info == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "KEY_VALUE_BASIC_INFORMATION",
+            sizeof(KEY_VALUE_BASIC_INFORMATION) +
+            sizeof(QUIC_SETTING_STATELESS_OPERATION_EXPIRATION));
+        goto Exit;
+    }
 
     //
     // Iterate through all values and delete them
     // We always use index 0 because deletion shifts the remaining values
     //
     while (TRUE) {
-        //
-        // First, query the required buffer size for the value name
-        //
-        Status = ZwEnumerateValueKey(
-            Storage->RegKey,
-            0, // Always use index 0 since we delete as we go
-            KeyValueBasicInformation,
-            NULL,
-            0,
-            &InfoLength);
-
-        if (Status == STATUS_NO_MORE_ENTRIES) {
-            Status = QUIC_STATUS_SUCCESS;
-            break;
-        } else if (Status != STATUS_BUFFER_OVERFLOW && Status != STATUS_BUFFER_TOO_SMALL) {
-            if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "ZwEnumerateValueKey (size query) failed");
-                goto Exit;
-            }
-        }
-
-        //
-        // Allocate or reallocate buffer only if current buffer is too small
-        //
-        if (Info == NULL || InfoLength > AllocatedLength) {
-            if (Info != NULL) {
-                CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
-            }
-
-            Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
-            if (Info == NULL) {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "KEY_VALUE_BASIC_INFORMATION",
-                    InfoLength);
-                goto Exit;
-            }
-            AllocatedLength = InfoLength;
-        }
-
-        //
-        // Get the value name
-        //
         Status = ZwEnumerateValueKey(
             Storage->RegKey,
             0, // Always use index 0 since we delete as we go
@@ -715,6 +679,52 @@ CxPlatStorageClear(
         if (Status == STATUS_NO_MORE_ENTRIES) {
             Status = QUIC_STATUS_SUCCESS;
             break;
+        } else if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL) {
+            //
+            // Reallocate buffer only if current buffer is too small
+            //
+            CXPLAT_DBG_ASSERT(InfoLength > AllocatedLength);
+            CXPLAT_DBG_ASSERT(Info != NULL);
+
+            CXPLAT_FREE(Info, QUIC_POOL_PLATFORM_TMP_ALLOC);
+
+            Info = CXPLAT_ALLOC_PAGED(InfoLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+            if (Info == NULL) {
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "KEY_VALUE_BASIC_INFORMATION (realloc)",
+                    InfoLength);
+                goto Exit;
+            }
+            AllocatedLength = InfoLength;
+
+            //
+            // Get the value name
+            //
+            Status = ZwEnumerateValueKey(
+                Storage->RegKey,
+                0, // Always use index 0 since we delete as we go
+                KeyValueBasicInformation,
+                Info,
+                AllocatedLength,
+                &InfoLength);
+
+            if (Status == STATUS_NO_MORE_ENTRIES) {
+                Status = QUIC_STATUS_SUCCESS;
+                break;
+            } else if (QUIC_FAILED(Status)) {
+                QuicTraceEvent(
+                    LibraryErrorStatus,
+                    "[ lib] ERROR, %u, %s.",
+                    Status,
+                    "ZwEnumerateValueKey (realloc) failed");
+                goto Exit;
+            }
+
+            CXPLAT_DBG_ASSERT(InfoLength <= AllocatedLength);
+
         } else if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -723,8 +733,6 @@ CxPlatStorageClear(
                 "ZwEnumerateValueKey failed");
             goto Exit;
         }
-
-        CXPLAT_DBG_ASSERT(InfoLength == AllocatedLength);
 
         //
         // Create a UNICODE_STRING for the value name

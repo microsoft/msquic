@@ -154,27 +154,27 @@ CxPlatStorageOpen(
 
     REGSAM DesiredAccess = KEY_READ | KEY_NOTIFY;
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITEABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITE) {
         DesiredAccess |= KEY_WRITE;
     }
 
-    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETEABLE) {
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETE) {
         DesiredAccess |= DELETE;
     }
 
     if (Flags & CXPLAT_STORAGE_OPEN_FLAG_CREATE) {
         Status =
             HRESULT_FROM_WIN32(
-            RegCreateKeyExA(
-                HKEY_LOCAL_MACHINE,
-                FullKeyName,
-                0,
-                NULL,
-                REG_OPTION_NON_VOLATILE,
-                DesiredAccess,
-                NULL,
-                &Storage->RegKey,
-                NULL));
+                RegCreateKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    FullKeyName,
+                    0,
+                    NULL,
+                    REG_OPTION_NON_VOLATILE,
+                    DesiredAccess,
+                    NULL,
+                    &Storage->RegKey,
+                    NULL));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -184,7 +184,6 @@ CxPlatStorageOpen(
             goto Exit;
         }
     } else {
-        #pragma prefast(suppress:6001, "SAL can't track FullKeyName")
         Status =
             HRESULT_FROM_WIN32(
             RegOpenKeyExA(
