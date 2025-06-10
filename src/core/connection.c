@@ -7742,12 +7742,6 @@ QuicConnDrainOperations(
     _Inout_ BOOLEAN* StillHasPriorityWork
     )
 {
-    QUIC_OPERATION* Oper;
-    const uint32_t MaxOperationCount =
-        Connection->Settings.MaxOperationsPerDrain;
-    uint32_t OperationCount = 0;
-    BOOLEAN HasMoreWorkToDo = TRUE;
-
     CXPLAT_PASSIVE_CODE();
 
     if (!Connection->State.Initialized && !Connection->State.ShutdownComplete) {
@@ -7774,10 +7768,18 @@ QuicConnDrainOperations(
         }
     }
 
+    const uint32_t MaxOperationCount =
+        Connection->Settings.MaxOperationsPerDrain;
+    uint32_t OperationCount = 0;
+    BOOLEAN HasMoreWorkToDo = TRUE;
+    QUIC_OPERATION* MoreFlushSendOper = NULL;
+    QUIC_OPERATION* MoreFlushRecvOper = NULL;
+
     while (!Connection->State.UpdateWorker &&
            OperationCount++ < MaxOperationCount) {
 
-        Oper = QuicOperationDequeue(&Connection->OperQ, Connection->Partition);
+        QUIC_OPERATION* Oper =
+            QuicOperationDequeue(&Connection->OperQ, Connection->Partition);
         if (Oper == NULL) {
             HasMoreWorkToDo = FALSE;
             break;
@@ -7806,7 +7808,7 @@ QuicConnDrainOperations(
                 // queue.
                 //
                 FreeOper = FALSE;
-                (void)QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, Oper);
+                MoreFlushRecvOper = Oper;
             }
             break;
 
@@ -7841,7 +7843,7 @@ QuicConnDrainOperations(
                 // queue.
                 //
                 FreeOper = FALSE;
-                (void)QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, Oper);
+                MoreFlushSendOper = Oper;
             }
             break;
 
@@ -7877,6 +7879,15 @@ QuicConnDrainOperations(
 
         Connection->Stats.Schedule.OperationCount++;
         QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_OPER_COMPLETED);
+    }
+
+    if (MoreFlushRecvOper) {
+        (void)QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, MoreFlushRecvOper);
+        HasMoreWorkToDo = TRUE;
+    }
+    if (MoreFlushSendOper) {
+        (void)QuicOperationEnqueue(&Connection->OperQ, Connection->Partition, MoreFlushSendOper);
+        HasMoreWorkToDo = TRUE;
     }
 
     if (Connection->State.ProcessShutdownComplete) {
