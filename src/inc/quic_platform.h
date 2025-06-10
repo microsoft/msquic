@@ -49,6 +49,8 @@ extern "C" {
 #define CXPLAT_CONTAINING_RECORD(address, type, field) \
     ((type *)((uint8_t*)(address) - offsetof(type, field)))
 
+#define CXPLAT_FIELD_SIZE(type, field) (sizeof(((type *)0)->field))
+
 #define CXPLAT_STRUCT_SIZE_THRU_FIELD(Type, Field) \
     (offsetof(Type, Field) + sizeof(((Type*)0)->Field))
 
