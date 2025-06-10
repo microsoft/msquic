@@ -141,6 +141,6 @@ The following are the complete (manual) steps for publishing the Rust crate.
 
 ## Synchronizing with Windows
 
-1. Once the release branch is created, set the pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868) to ingest the release branch into Windows, and run it.
-2. When the pipeline passes tests, it'll create a PR.
+1. Once the release branch is created, set the pipeline [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required) resources tab to ingest the latest release tag, and run it.
+2. Once the pipeline passes tests, create a PR to point to the VPACK created by the pipline run.
 3. Review and merge the PR to complete the process.
