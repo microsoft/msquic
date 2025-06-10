@@ -677,10 +677,7 @@ CxPlatStorageClear(
             AllocatedLength,
             &InfoLength);
 
-        if (Status == STATUS_NO_MORE_ENTRIES) {
-            Status = QUIC_STATUS_SUCCESS;
-            break;
-        } else if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL) {
+        if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL) {
             //
             // Reallocate buffer only if current buffer is too small
             //
@@ -711,21 +708,12 @@ CxPlatStorageClear(
                 Info,
                 AllocatedLength,
                 &InfoLength);
+        }
+        CXPLAT_DBG_ASSERT(InfoLength <= AllocatedLength);
 
-            if (Status == STATUS_NO_MORE_ENTRIES) {
-                Status = QUIC_STATUS_SUCCESS;
-                break;
-            } else if (QUIC_FAILED(Status)) {
-                QuicTraceEvent(
-                    LibraryErrorStatus,
-                    "[ lib] ERROR, %u, %s.",
-                    Status,
-                    "ZwEnumerateValueKey (realloc) failed");
-                goto Exit;
-            }
-
-            CXPLAT_DBG_ASSERT(InfoLength <= AllocatedLength);
-
+        if (Status == STATUS_NO_MORE_ENTRIES) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
         } else if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,

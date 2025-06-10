@@ -5998,6 +5998,7 @@ public:
     }
 
     QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&& Other) {
+        TEST_EQUAL(m_Storage, nullptr);
         m_Storage = Other.m_Storage;
         Other.m_Storage = nullptr;
     }
