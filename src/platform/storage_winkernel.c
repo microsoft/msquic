@@ -344,11 +344,6 @@ CxPlatStorageOpen(
 #pragma warning(pop)
     }
 
-    QuicTraceLogVerbose(
-        StorageOpenKeyKernel,
-        "[ reg] Opening %ws",
-        PathUnicode != NULL ? PathUnicode->Buffer : BaseKeyPath.Buffer);
-
     ACCESS_MASK DesiredAccess = KEY_READ;
 
     if (Callback != NULL) {
