@@ -152,7 +152,11 @@ CxPlatStorageOpen(
         "[ reg] Opening %s",
         FullKeyName);
 
-    REGSAM DesiredAccess = KEY_READ | KEY_NOTIFY;
+    REGSAM DesiredAccess = KEY_READ;
+
+    if (Callback != NULL) {
+        DesiredAccess |= KEY_NOTIFY;
+    }
 
     if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITE) {
         DesiredAccess |= KEY_WRITE;

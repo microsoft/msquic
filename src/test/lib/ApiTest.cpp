@@ -5997,17 +5997,16 @@ public:
         Other.m_Storage = nullptr;
     }
 
-    QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&& Other) {
-        TEST_EQUAL(m_Storage, nullptr);
+    QuicStorageSettingScopeGuard& operator=(
+        _In_ QuicStorageSettingScopeGuard&& Other) {
+        ClearAndClose(m_Storage);
         m_Storage = Other.m_Storage;
         Other.m_Storage = nullptr;
+        return *this;
     }
 
     ~QuicStorageSettingScopeGuard() {
-        if (m_Storage != nullptr) {
-            TEST_QUIC_SUCCEEDED(CxPlatStorageClear(m_Storage));
-            CxPlatStorageClose(m_Storage);
-        }
+        ClearAndClose(m_Storage);
     }
 
     operator CXPLAT_STORAGE*() const {
@@ -6027,6 +6026,14 @@ private:
         TEST_NOT_EQUAL(m_Storage, nullptr);
     }
 
+    void ClearAndClose(
+        _In_opt_ CXPLAT_STORAGE* Storage) {
+        if (Storage != nullptr) {
+            TEST_QUIC_SUCCEEDED(CxPlatStorageClear(Storage));
+            CxPlatStorageClose(Storage);
+        }
+    }
+
     CXPLAT_STORAGE* m_Storage = nullptr;
 };
 
@@ -6041,7 +6048,7 @@ QuicTestStorage()
 #endif
 
     {
-        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create(nullptr);
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
         MsQuicSettings Settings;
 
         //
@@ -6077,7 +6084,7 @@ QuicTestStorage()
     // App settings
     //
     {
-        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("MsQuicStorageTest");
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
         MsQuicSettings Settings;
 
         MsQuicRegistration Registration("MsQuicStorageTest");
@@ -6124,7 +6131,7 @@ QuicTestVersionStorage()
     const uint32_t VersionList[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H};
     const uint32_t VersionListLength = ARRAYSIZE(VersionList);
     {
-        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create(nullptr);
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
         MsQuicVersionSettings Settings{};
 
         //
@@ -6215,7 +6222,7 @@ QuicTestVersionStorage()
     // App settings
     //
     {
-        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("MsQuicStorageTest");
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
         MsQuicRegistration Registration("MsQuicStorageTest");
         TEST_TRUE(Registration.IsValid());
 

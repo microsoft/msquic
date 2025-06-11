@@ -414,7 +414,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
 
     QUIC_STATUS Status =
         CxPlatStorageOpen(
-            "MsQuicUnitTestStorage",
+            "Apps\\MsQuicUnitTestStorage",
             nullptr,
             nullptr,
             CXPLAT_STORAGE_OPEN_FLAG_CREATE,
@@ -428,7 +428,7 @@ TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
     ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
 
     QuicStorageSettingScopeGuard StorageGuard =
-        QuicStorageSettingScopeGuard::Create("MsQuicUnitTestStorage");
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
 
     uint32_t Value = 0;
     ASSERT_EQ(
@@ -488,7 +488,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
 
     QUIC_STATUS Status =
         CxPlatStorageOpen(
-            "MsQuicUnitTestStorage",
+            "Apps\\MsQuicUnitTestStorage",
             nullptr,
             nullptr,
             CXPLAT_STORAGE_OPEN_FLAG_CREATE,
@@ -502,7 +502,7 @@ TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
     ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
 
     QuicStorageSettingScopeGuard StorageGuard =
-        QuicStorageSettingScopeGuard::Create("MsQuicUnitTestStorage");
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
 
     uint32_t Value = 0;
     ASSERT_EQ(
@@ -534,7 +534,7 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
 
     QUIC_STATUS Status =
         CxPlatStorageOpen(
-            "MsQuicUnitTestStorage",
+            "Apps\\MsQuicUnitTestStorage",
             nullptr,
             nullptr,
             CXPLAT_STORAGE_OPEN_FLAG_CREATE,
@@ -548,7 +548,7 @@ TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
     ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
 
     QuicStorageSettingScopeGuard StorageGuard =
-        QuicStorageSettingScopeGuard::Create("MsQuicUnitTestStorage");
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
 
     QUIC_SETTINGS_INTERNAL Settings;
     CxPlatZeroMemory(&Settings, sizeof(Settings));

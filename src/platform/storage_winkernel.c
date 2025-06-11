@@ -344,7 +344,16 @@ CxPlatStorageOpen(
 #pragma warning(pop)
     }
 
-    ACCESS_MASK DesiredAccess = KEY_READ | KEY_NOTIFY;
+    QuicTraceLogVerbose(
+        StorageOpenKeyKernel,
+        "[ reg] Opening %ws",
+        PathUnicode != NULL ? PathUnicode->Buffer : BaseKeyPath.Buffer);
+
+    ACCESS_MASK DesiredAccess = KEY_READ;
+
+    if (Callback != NULL) {
+        DesiredAccess |= KEY_NOTIFY;
+    }
 
     if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITE) {
         DesiredAccess |= KEY_WRITE;
