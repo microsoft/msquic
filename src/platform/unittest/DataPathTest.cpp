@@ -764,6 +764,27 @@ struct CxPlatSocket {
         return Route.RemoteAddress;
     }
 
+    void CreateRdma(
+        _In_ CxPlatDataPath& Datapath,
+        _In_opt_ const QUIC_ADDR* LocalAddress,
+        _In_ const QUIC_ADDR* RemoteAddress,
+        _In_opt_ void* CallbackContext,
+        _In_ CXPLAT_RDMA_CONFIG* Config
+        ) noexcept
+    {
+        InitStatus =
+            CxPlatSocketCreateRdma(
+                Datapath,
+                LocalAddress,
+                RemoteAddress,
+                CallbackContext,
+                Config,
+                &Socket);
+        if (QUIC_SUCCEEDED(InitStatus)) {
+            CxPlatSocketGetLocalAddress(Socket, &Route.LocalAddress);
+            CxPlatSocketGetRemoteAddress(Socket, &Route.RemoteAddress);
+        }
+    }
     void CreateRdmaListener(
         _In_ CxPlatDataPath& Datapath,
         _In_opt_ const QUIC_ADDR* LocalAddress,
@@ -1458,9 +1479,10 @@ TEST_P(DataPathTest, TcpDataServer)
 //
 TEST_F(DataPathTest, RdmaListener)
 {
+    /*
     QUIC_ADDR ListenerAddress = {};
     CXPLAT_RDMA_CONFIG RdmaConfig = {};
-    QuicAddrFromString("10.1.0.5", 0x50c3, &ListenerAddress);
+    QuicAddrFromString("10.1.0.5", 0x50c5, &ListenerAddress);
 
     RdmaConfig.SendRingBufferSize = 0x8000;
     RdmaConfig.RecvRingBufferSize = 0x8000;
@@ -1476,10 +1498,65 @@ TEST_F(DataPathTest, RdmaListener)
     ASSERT_NE(nullptr, Datapath.Datapath);
 
     RdmaListenerContext ListenerContext;
-    CxPlatSocket Listener; Listener.CreateRdmaListener(Datapath, &ListenerAddress, &ListenerContext, &RdmaConfig);
+    CxPlatSocket Listener;
+    Listener.CreateRdmaListener(Datapath, &ListenerAddress, &ListenerContext, &RdmaConfig);
     VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
     ASSERT_NE(nullptr, Listener.Socket);
     ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+    */
+}
+
+TEST_P(DataPathTest, RdmaConnect)
+{
+    QUIC_ADDR LocalAddress = {};
+    QUIC_ADDR ListenerAddress = {};
+    CXPLAT_RDMA_CONFIG RdmaConfig = {};
+    QuicAddrFromString("10.1.0.5", 0, &LocalAddress);
+    QuicAddrFromString("10.1.0.5", 50000, &ListenerAddress);
+
+    RdmaConfig.SendRingBufferSize = 0x8000;
+    RdmaConfig.RecvRingBufferSize = 0x8000;
+    RdmaConfig.Flags |= CXPLAT_RDMA_FLAG_NO_MEMORY_WINDOW;
+
+    QUIC_EXECUTION_CONFIG RdmaExecConfig = { QUIC_EXECUTION_CONFIG_FLAG_RDMA, 0, 0, {0}, &LocalAddress };
+    CxPlatDataPath Datapath(nullptr, nullptr, &RdmaCallbacks, 0, &RdmaExecConfig);
+    if (!Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_RDMA)) {
+        GTEST_SKIP_("RDMA is not supported");
+    }
+    VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
+    ASSERT_NE(nullptr, Datapath.Datapath);
+
+    RdmaListenerContext ListenerContext;
+    CxPlatSocket Listener;
+    Listener.CreateRdmaListener(Datapath, &ListenerAddress, &ListenerContext, &RdmaConfig);
+    VERIFY_QUIC_SUCCESS(Listener.GetInitStatus());
+    ASSERT_NE(nullptr, Listener.Socket);
+    ASSERT_NE(Listener.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+    
+
+    RdmaClientContext ClientContext;
+    CxPlatSocket Client;
+    Client.CreateRdma(Datapath, &LocalAddress , &ListenerAddress, &ClientContext, &RdmaConfig);
+    VERIFY_QUIC_SUCCESS(Client.GetInitStatus());
+    ASSERT_NE(nullptr, Client.Socket);
+    ASSERT_NE(Client.GetLocalAddress().Ipv4.sin_port, (uint16_t)0);
+
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.ConnectEvent, 500));
+    
+    
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ListenerContext.AcceptEvent, 500));
+    ASSERT_NE(nullptr, ListenerContext.Server);
+    QUIC_ADDR ServerRemote = {};
+    CxPlatSocketGetRemoteAddress(ListenerContext.Server, &ServerRemote);
+    QUIC_ADDR ServerLocal = {};
+    CxPlatSocketGetLocalAddress(ListenerContext.Server, &ServerLocal);
+    ASSERT_NE(ServerRemote.Ipv4.sin_port, (uint16_t)0);
+    ASSERT_NE(ServerLocal.Ipv4.sin_port, (uint16_t)0);
+    ASSERT_EQ(ServerRemote.Ipv4.sin_port, Client.GetLocalAddress().Ipv4.sin_port);
+
+    ListenerContext.DeleteSocket();
+
+    ASSERT_TRUE(CxPlatEventWaitWithTimeout(ClientContext.DisconnectEvent, 500));
 }
 
 INSTANTIATE_TEST_SUITE_P(DataPathTest, DataPathTest, ::testing::Values(4, 6), testing::PrintToStringParamName());
