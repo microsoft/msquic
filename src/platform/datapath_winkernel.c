@@ -641,10 +641,11 @@ CxPlatDataPathQuerySockoptSupport(
     } while (FALSE);
 
     //
-    // Some USO/URO bug blocks TTL feature support on Windows Server 2022.
+    // Some USO/URO bug blocks TTL/Recv DSCP feature support on Windows Server 2022.
     //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
+        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
     }
 
 Error:
@@ -1474,42 +1475,82 @@ SocketCreateUdp(
         goto Error;
     }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IPV6_RECVTCLASS,
-            IPPROTO_IPV6,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IPV6_RECVTCLASS");
-        goto Error;
-    }
+    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_DSCP) {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_RECVTCLASS,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_RECVTCLASS");
+            goto Error;
+        }
 
-    Option = TRUE;
-    Status =
-        CxPlatDataPathSetControlSocket(
-            Binding,
-            WskSetOption,
-            IP_RECVTOS,
-            IPPROTO_IP,
-            sizeof(Option),
-            &Option);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            Binding,
-            Status,
-            "Set IP_RECVTOS");
-        goto Error;
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_RECVTOS,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_RECVTOS");
+            goto Error;
+        }
+    } else {
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IPV6_ECN,
+                IPPROTO_IPV6,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IPV6_ECN");
+            goto Error;
+        }
+
+        Option = TRUE;
+        Status =
+            CxPlatDataPathSetControlSocket(
+                Binding,
+                WskSetOption,
+                IP_ECN,
+                IPPROTO_IP,
+                sizeof(Option),
+                &Option);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Binding,
+                Status,
+                "Set IP_ECN");
+            goto Error;
+        }
     }
 
     Option = TRUE;
@@ -2069,6 +2110,9 @@ CxPlatDataPathSocketReceive(
                 } else if (CMsg->cmsg_type == IPV6_TCLASS) {
                     TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IPV6_ECN) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService <= CXPLAT_ECN_CE);
                 } else if (CMsg->cmsg_type == IPV6_HOPLIMIT) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
@@ -2092,6 +2136,9 @@ CxPlatDataPathSocketReceive(
                 } else if (CMsg->cmsg_type == IP_TOS) {
                     TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(TypeOfService < UINT8_MAX);
+                } else if (CMsg->cmsg_type == IP_ECN) {
+                    TypeOfService = *(PINT)WSA_CMSG_DATA(CMsg);
+                    CXPLAT_DBG_ASSERT(TypeOfService <= CXPLAT_ECN_CE);
                 } else if (CMsg->cmsg_type == IP_TTL) {
                     HopLimitTTL = *(PINT)WSA_CMSG_DATA(CMsg);
                     CXPLAT_DBG_ASSERT(HopLimitTTL < 256);
