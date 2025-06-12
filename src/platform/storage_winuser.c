@@ -190,12 +190,12 @@ CxPlatStorageOpen(
     } else {
         Status =
             HRESULT_FROM_WIN32(
-            RegOpenKeyExA(
-                HKEY_LOCAL_MACHINE,
-                FullKeyName,
-                0,
-                DesiredAccess,
-                &Storage->RegKey));
+                RegOpenKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    FullKeyName,
+                    0,
+                    DesiredAccess,
+                    &Storage->RegKey));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -209,12 +209,12 @@ CxPlatStorageOpen(
     if (Callback != NULL) {
         Status =
             HRESULT_FROM_WIN32(
-            RegNotifyChangeKeyValue(
-                Storage->RegKey,
-                FALSE,
-                REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
-                Storage->NotifyEvent,
-                TRUE));
+                RegNotifyChangeKeyValue(
+                    Storage->RegKey,
+                    FALSE,
+                    REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
+                    Storage->NotifyEvent,
+                    TRUE));
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,

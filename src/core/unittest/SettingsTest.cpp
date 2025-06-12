@@ -361,7 +361,8 @@ class QuicStorageSettingScopeGuard {
 public:
     static
     QuicStorageSettingScopeGuard Create(
-        _In_opt_ const char* StorageName) {
+        _In_opt_ const char* StorageName = nullptr)
+    {
         return QuicStorageSettingScopeGuard(StorageName);
     }
 
@@ -369,21 +370,23 @@ public:
     QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
 
     QuicStorageSettingScopeGuard(
-        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage) {
+        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage)
+    {
         Other.m_Storage = nullptr;
     }
 
-    QuicStorageSettingScopeGuard& operator=(QuicStorageSettingScopeGuard&& Other) = delete;
+    QuicStorageSettingScopeGuard& operator=(
+        _In_ QuicStorageSettingScopeGuard&& Other)
+    {
+        ClearAndClose(m_Storage);
+        m_Storage = Other.m_Storage;
+        Other.m_Storage = nullptr;
+        return *this;
+    }
 
-    ~QuicStorageSettingScopeGuard() {
-        if (m_Storage != nullptr) {
-            EXPECT_EQ(
-                QUIC_STATUS_SUCCESS,
-                CxPlatStorageClear(
-                    m_Storage));
-
-            CxPlatStorageClose(m_Storage);
-        }
+    ~QuicStorageSettingScopeGuard()
+    {
+        ClearAndClose(m_Storage);
     }
 
     operator CXPLAT_STORAGE*() const {
@@ -392,7 +395,8 @@ public:
 
 private:
     QuicStorageSettingScopeGuard(
-        _In_opt_ const char* StorageName) {
+        _In_opt_ const char* StorageName)
+    {
         EXPECT_EQ(
             QUIC_STATUS_SUCCESS,
             CxPlatStorageOpen(
@@ -402,6 +406,15 @@ private:
                 CXPLAT_STORAGE_OPEN_FLAG_DELETE | CXPLAT_STORAGE_OPEN_FLAG_WRITE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
                 &m_Storage));
         EXPECT_NE(m_Storage, nullptr);
+    }
+
+    void ClearAndClose(
+        _In_opt_ CXPLAT_STORAGE* Storage)
+    {
+        if (Storage != nullptr) {
+            EXPECT_EQ(QUIC_STATUS_SUCCESS, CxPlatStorageClear(Storage));
+            CxPlatStorageClose(Storage);
+        }
     }
 
     CXPLAT_STORAGE* m_Storage = nullptr;

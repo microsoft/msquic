@@ -120,6 +120,9 @@ CxPlatStorageRegKeyChangeCallback(
 typedef struct CXPLAT_STORAGE {
 
     HKEY RegKey;
+    //
+    // Lock is used to synchronize registry change notifications with the Close function.
+    //
     CXPLAT_LOCK Lock;
     CXPLAT_EVENT* CleanupEvent;
     WORK_QUEUE_ITEM WorkItem;
@@ -377,11 +380,7 @@ CxPlatStorageOpen(
             goto Exit;
         }
     } else {
-        Status =
-            ZwOpenKey(
-                &Storage->RegKey,
-                DesiredAccess,
-                &Attributes);
+        Status = ZwOpenKey(&Storage->RegKey, DesiredAccess, &Attributes);
         if (QUIC_FAILED(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
@@ -445,12 +444,19 @@ CxPlatStorageClose(
         if (Storage->Callback != NULL) {
             CxPlatEventInitialize(&CleanupEvent, TRUE, FALSE);
 
+            //
+            // Acquire the lock here to prevent change notifications from racing.
+            //
             CxPlatLockAcquire(&Storage->Lock);
         }
         ZwClose(Storage->RegKey); // Triggers one final notif change callback.
         Storage->RegKey = NULL;
 
         if (Storage->Callback != NULL) {
+            //
+            // Share CleanupEvent with the notification callback then release the lock
+            // to allow the notification to run.
+            //
             Storage->CleanupEvent = &CleanupEvent;
             CxPlatLockRelease(&Storage->Lock);
 
@@ -473,6 +479,9 @@ CxPlatStorageRegKeyChangeCallback(
     CXPLAT_EVENT* CleanupEvent = NULL;
 
     CxPlatLockAcquire(&Storage->Lock);
+    //
+    // Only run the callback if Close isn't in the midst of cleaning up.
+    //
     if (Storage->CleanupEvent == NULL) {
         CXPLAT_DBG_ASSERT(Storage->RegKey != NULL);
         Storage->Callback(Storage->CallbackContext);
@@ -624,7 +633,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageDeleteValue(
     _In_ CXPLAT_STORAGE* Storage,
-    _In_z_ const char * Name
+    _In_z_ const char* Name
     )
 {
     QUIC_STATUS Status;

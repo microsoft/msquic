@@ -5985,7 +5985,8 @@ class QuicStorageSettingScopeGuard {
 public:
     static
     QuicStorageSettingScopeGuard Create(
-        _In_opt_ const char* StorageName = nullptr) {
+        _In_opt_ const char* StorageName = nullptr)
+    {
         return QuicStorageSettingScopeGuard(StorageName);
     }
 
@@ -5993,19 +5994,22 @@ public:
     QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
 
     QuicStorageSettingScopeGuard(
-        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage) {
+        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage)
+    {
         Other.m_Storage = nullptr;
     }
 
     QuicStorageSettingScopeGuard& operator=(
-        _In_ QuicStorageSettingScopeGuard&& Other) {
+        _In_ QuicStorageSettingScopeGuard&& Other)
+    {
         ClearAndClose(m_Storage);
         m_Storage = Other.m_Storage;
         Other.m_Storage = nullptr;
         return *this;
     }
 
-    ~QuicStorageSettingScopeGuard() {
+    ~QuicStorageSettingScopeGuard()
+    {
         ClearAndClose(m_Storage);
     }
 
@@ -6015,7 +6019,8 @@ public:
 
 private:
     QuicStorageSettingScopeGuard(
-        _In_opt_ const char* StorageName) {
+        _In_opt_ const char* StorageName)
+    {
         TEST_QUIC_SUCCEEDED(
             CxPlatStorageOpen(
                 StorageName,
@@ -6027,7 +6032,8 @@ private:
     }
 
     void ClearAndClose(
-        _In_opt_ CXPLAT_STORAGE* Storage) {
+        _In_opt_ CXPLAT_STORAGE* Storage)
+    {
         if (Storage != nullptr) {
             TEST_QUIC_SUCCEEDED(CxPlatStorageClear(Storage));
             CxPlatStorageClose(Storage);
