@@ -6002,6 +6002,10 @@ public:
     QuicStorageSettingScopeGuard& operator=(
         _In_ QuicStorageSettingScopeGuard&& Other)
     {
+        if (this == &Other)
+        {
+            return;
+        }
         ClearAndClose(m_Storage);
         m_Storage = Other.m_Storage;
         Other.m_Storage = nullptr;
