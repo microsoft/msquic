@@ -6004,7 +6004,7 @@ public:
     {
         if (this == &Other)
         {
-            return;
+            return Other;
         }
         ClearAndClose(m_Storage);
         m_Storage = Other.m_Storage;
