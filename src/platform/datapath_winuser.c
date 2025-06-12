@@ -158,7 +158,7 @@ typedef struct DATAPATH_RX_IO_BLOCK {
         RIO_CMSG_BASE_SIZE +
         WSA_CMSG_SPACE(sizeof(IN6_PKTINFO)) +   // IP_PKTINFO
         WSA_CMSG_SPACE(sizeof(DWORD)) +         // UDP_COALESCED_INFO
-        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_ECN/IP_TOS
+        WSA_CMSG_SPACE(sizeof(INT)) +           // IP_TOS, or IP_ECN if RECV_DSCP isn't supported
         WSA_CMSG_SPACE(sizeof(INT))             // IP_HOP_LIMIT
         ];
 
