@@ -119,7 +119,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageClear(
     _In_ CXPLAT_STORAGE* Storage
-);
+    );
 
 #if defined(__cplusplus)
 }
