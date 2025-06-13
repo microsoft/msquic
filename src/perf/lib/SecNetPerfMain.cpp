@@ -29,6 +29,7 @@ uint8_t PerfDefaultEcnEnabled = false;
 uint8_t PerfDefaultQeoAllowed = false;
 uint8_t PerfDefaultHighPriority = false;
 uint8_t PerfDefaultAffinitizeThreads = false;
+uint8_t PerfDefaultDscpValue = 0;
 
 #ifdef _KERNEL_MODE
 volatile int BufferCurrent;
@@ -142,6 +143,7 @@ PrintHelp(
         "  -cpu:<cpu_index>         Specify the processor(s) to use.\n"
         "  -cipher:<value>          Decimal value of 1 or more QUIC_ALLOWED_CIPHER_SUITE_FLAGS.\n"
         "  -highpri:<0/1>           Configures MsQuic to run threads at high priority. (def:0)\n"
+        "  -dscp:<0-63>             Specify DSCP value to mark sent packets with. (def:0)\n"
         "\n",
         PERF_DEFAULT_PORT,
         PERF_DEFAULT_PORT
@@ -290,6 +292,11 @@ QuicMainStart(
 
     TryGetValue(argc, argv, "ecn", &PerfDefaultEcnEnabled);
     TryGetValue(argc, argv, "qeo", &PerfDefaultQeoAllowed);
+    TryGetValue(argc, argv, "dscp", &PerfDefaultDscpValue);
+    if (PerfDefaultDscpValue > CXPLAT_MAX_DSCP) {
+        WriteOutput("DSCP Value %u is outside the valid range (0-63). Using 0.\n", PerfDefaultDscpValue);
+        PerfDefaultDscpValue = 0;
+    }
 
     uint32_t WatchdogTimeout = 0;
     if (TryGetValue(argc, argv, "watchdog", &WatchdogTimeout) && WatchdogTimeout != 0) {
