@@ -47,12 +47,12 @@ tracepoint(CLOG_STORAGE_WINUSER_C, StorageOpenKey , arg2);\
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegOpenKeyExA failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegCreateKeyExA failed");
 // arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "RegOpenKeyExA failed" = arg3
+// arg3 = arg3 = "RegCreateKeyExA failed" = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
 #define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\

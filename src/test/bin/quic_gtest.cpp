@@ -2735,7 +2735,7 @@ int main(int argc, char** argv) {
     DWORD Result =
         RegCreateKeyA(
             HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\MsQuicStorageTest",
             &Key);
     CanRunStorageTests = Result == NO_ERROR;
     RegCloseKey(Key);

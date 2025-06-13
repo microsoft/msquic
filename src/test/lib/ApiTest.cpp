@@ -5980,549 +5980,343 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
 }
 
+
+class QuicStorageSettingScopeGuard {
+public:
+    static
+    QuicStorageSettingScopeGuard Create(
+        _In_opt_ const char* StorageName = nullptr)
+    {
+        return QuicStorageSettingScopeGuard(StorageName);
+    }
+
+    QuicStorageSettingScopeGuard(const QuicStorageSettingScopeGuard&) = delete;
+    QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
+
+    QuicStorageSettingScopeGuard(
+        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage)
+    {
+        Other.m_Storage = nullptr;
+    }
+
+    QuicStorageSettingScopeGuard& operator=(
+        _In_ QuicStorageSettingScopeGuard&& Other)
+    {
+        if (this == &Other)
+        {
+            return Other;
+        }
+        ClearAndClose(m_Storage);
+        m_Storage = Other.m_Storage;
+        Other.m_Storage = nullptr;
+        return *this;
+    }
+
+    ~QuicStorageSettingScopeGuard()
+    {
+        ClearAndClose(m_Storage);
+    }
+
+    operator CXPLAT_STORAGE*() const {
+        return m_Storage;
+    }
+
+private:
+    QuicStorageSettingScopeGuard(
+        _In_opt_ const char* StorageName)
+    {
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageOpen(
+                StorageName,
+                nullptr,
+                nullptr,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETE | CXPLAT_STORAGE_OPEN_FLAG_WRITE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+                &m_Storage));
+        TEST_NOT_EQUAL(m_Storage, nullptr);
+    }
+
+    void ClearAndClose(
+        _In_opt_ CXPLAT_STORAGE* Storage)
+    {
+        if (Storage != nullptr) {
+            TEST_QUIC_SUCCEEDED(CxPlatStorageClear(Storage));
+            CxPlatStorageClose(Storage);
+        }
+    }
+
+    CXPLAT_STORAGE* m_Storage = nullptr;
+};
+
 void
 QuicTestStorage()
 {
     const uint32_t SpecialInitialRtt = 55;
 
-#ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(ValueName, L"InitialRttMs");
-    HANDLE GlobalKey, AppKey;
-    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    InitializeObjectAttributes(
-        &AppAttributes,
-        (PUNICODE_STRING)&AppStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&ValueName);
-    if (QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes))) {
-        ZwDeleteKey(AppKey);
-        ZwClose(AppKey);
+#if !defined(_KERNEL_MODE) && !defined(_WIN32)
+    TEST_FAILURE("Storage tests not supported on this platform");
+    return;
+#endif
+
+    {
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
+        MsQuicSettings Settings;
+
+        //
+        // Global settings
+        //
+
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_INITIAL_RTT,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(SpecialInitialRtt),
+                (uint8_t*)&SpecialInitialRtt));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_INITIAL_RTT));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
     }
-    TEST_QUIC_SUCCEEDED(
-        ZwCreateKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes,
-            0,
-            NULL,
-            REG_OPTION_NON_VOLATILE,
-            NULL));
-#elif _WIN32
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-        "InitialRttMs");
-    RegDeleteKeyA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest");
-    HKEY Key;
-    RegCreateKeyA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-        &Key);
-    RegCloseKey(Key);
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    MsQuicSettings Settings;
-
-    //
-    // Global settings
-    //
-
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&ValueName,
-            0,
-            REG_DWORD,
-            (PVOID)&SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-            "InitialRttMs",
-            REG_DWORD,
-            &SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&ValueName));
-    ZwClose(GlobalKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-            "InitialRttMs"));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
     //
     // App settings
     //
+    {
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
+        MsQuicSettings Settings;
 
-    MsQuicRegistration Registration("StorageTest");
-    TEST_TRUE(Registration.IsValid());
+        MsQuicRegistration Registration("MsQuicStorageTest");
+        TEST_TRUE(Registration.IsValid());
 
-    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
-    TEST_TRUE(Configuration.IsValid());
+        MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+        TEST_TRUE(Configuration.IsValid());
 
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&ValueName,
-            0,
-            REG_DWORD,
-            (PVOID)&SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-            "InitialRttMs",
-            REG_DWORD,
-            &SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_INITIAL_RTT,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(SpecialInitialRtt),
+                (uint8_t*)&SpecialInitialRtt));
 
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&ValueName));
-    ZwClose(AppKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-            "InitialRttMs"));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_INITIAL_RTT));
 
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+    }
 }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage()
 {
+#if !defined(_KERNEL_MODE) && !defined(_WIN32)
+    TEST_FAILURE("Storage tests not supported on this platform");
+    return;
+#endif
+
     const uint32_t VersionList[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H};
     const uint32_t VersionListLength = ARRAYSIZE(VersionList);
+    {
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
+        MsQuicVersionSettings Settings{};
 
-#ifdef _KERNEL_MODE
-#define __WIDEN(quote) L##quote
-#define WIDEN(quote) __WIDEN(quote)
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, WIDEN(QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, WIDEN(QUIC_SETTING_OFFERED_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, WIDEN(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-    HANDLE GlobalKey, AppKey;
-    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    InitializeObjectAttributes(
-        &AppAttributes,
-        (PUNICODE_STRING)&AppStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&AcceptableVersionsValueName);
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&OfferedVersionsValueName);
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&FullyDeployedVersionsValueName);
-    if (QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes))) {
-        ZwDeleteKey(AppKey);
-        ZwClose(AppKey);
+        //
+        // Global settings
+        //
+
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        CxPlatSleep(100);
+        uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
+        MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
+        uint32_t ReadSize = sizeof(Scratch);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                &ReadSize,
+                ReadSettings));
+        TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+        for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+        }
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
     }
-    TEST_QUIC_SUCCEEDED(
-        ZwCreateKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes,
-            0,
-            NULL,
-            REG_OPTION_NON_VOLATILE,
-            NULL));
-#elif _WIN32
-#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
-#define MSQUIC_APP_PARAMETERS_PATH      "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest"
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_ACCEPTABLE_VERSIONS);
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_OFFERED_VERSIONS);
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_FULLY_DEPLOYED_VERSIONS);
-    RegDeleteKeyA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_APP_PARAMETERS_PATH);
-    HKEY Key;
-    RegCreateKeyA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_APP_PARAMETERS_PATH,
-        &Key);
-    RegCloseKey(Key);
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    MsQuicVersionSettings Settings{};
-
-    //
-    // Global settings
-    //
-
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-#endif
-
-    CxPlatSleep(100);
-    uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
-    MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
-    uint32_t ReadSize = sizeof(Scratch);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-            &ReadSize,
-            ReadSettings));
-    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
-    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
-    }
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
-    ZwClose(GlobalKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 
     //
     // App settings
     //
+    {
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
+        MsQuicRegistration Registration("MsQuicStorageTest");
+        TEST_TRUE(Registration.IsValid());
 
-    MsQuicRegistration Registration("StorageTest");
-    TEST_TRUE(Registration.IsValid());
+        MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+        TEST_TRUE(Configuration.IsValid());
 
-    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
-    TEST_TRUE(Configuration.IsValid());
+        MsQuicVersionSettings Settings{};
 
-    ReadSize = sizeof(Settings);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+        uint32_t ReadSize = sizeof(Settings);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-#endif
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
 
-    CxPlatSleep(100);
-    ReadSize = sizeof(Scratch);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(*ReadSettings, &ReadSize));
-    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
-    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        CxPlatSleep(100);
+        uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
+        MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
+        ReadSize = sizeof(Scratch);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(*ReadSettings, &ReadSize));
+        TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+        for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+        }
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+
+        CxPlatSleep(100);
+        ReadSize = sizeof(Settings);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
     }
-    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
-    }
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
-    ZwClose(AppKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#endif
-
-    CxPlatSleep(100);
-    ReadSize = sizeof(Settings);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 }
 
 void

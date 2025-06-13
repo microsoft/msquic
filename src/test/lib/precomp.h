@@ -27,6 +27,7 @@
 #include "msquichelper.h"
 #include "quic_var_int.h"
 #include "../core/quicdef.h"
+#include "quic_storage.h"
 
 #ifdef _KERNEL_MODE
 #ifdef PAGEDX
