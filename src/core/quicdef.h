@@ -319,6 +319,12 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_HANDSHAKE_IDLE_TIMEOUT     10000
 
 //
+// Minimum interval (in microseconds) between CONNECTION_CLOSE responses in
+// closing state.
+//
+#define QUIC_CLOSING_RESPONSE_MIN_INTERVAL      5000
+
+//
 // The default value for keep alives being enabled or not.
 //
 #define QUIC_DEFAULT_KEEP_ALIVE_ENABLE          FALSE

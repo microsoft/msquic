@@ -21,6 +21,29 @@ TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, NoSrcCidAvailable,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SkipPacketNumber
+// [conn][%p] Skipped packet number %llu
+// QuicTraceLogConnWarning(
+                SkipPacketNumber,
+                Connection,
+                "Skipped packet number %llu",
+                Connection->Send.SkippedPacketNumber);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->Send.SkippedPacketNumber = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PACKET_BUILDER_C, SkipPacketNumber,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for GetPacketTypeFailure
 // [conn][%p] Failed to get packet type for control frames, 0x%x
 // QuicTraceLogConnWarning(

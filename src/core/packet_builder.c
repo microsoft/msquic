@@ -379,6 +379,27 @@ QuicPacketBuilderPrepare(
             Builder->Metadata->PacketId,
             Builder->BatchId);
 
+        //
+        // Occassionally skip a packet number for improved security.
+        //
+        if (Connection->Send.NextSkippedPacketNumber == Connection->Send.NextPacketNumber) {
+            Connection->Send.SkippedPacketNumber =
+                Connection->Send.NextPacketNumber++;
+            QuicTraceLogConnWarning(
+                SkipPacketNumber,
+                Connection,
+                "Skipped packet number %llu",
+                Connection->Send.SkippedPacketNumber);
+
+            //
+            // Randomly skip a packet number (from 0 to 65535).
+            //
+            uint16_t RandomSkip = 0;
+            CxPlatRandom(sizeof(RandomSkip), &RandomSkip);
+            Connection->Send.NextSkippedPacketNumber =
+                Connection->Send.NextPacketNumber + RandomSkip;
+        }
+
         Builder->Metadata->FrameCount = 0;
         Builder->Metadata->PacketNumber = Connection->Send.NextPacketNumber++;
         Builder->Metadata->Flags.KeyType = NewPacketKeyType;

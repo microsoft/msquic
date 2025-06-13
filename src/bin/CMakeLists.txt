@@ -251,7 +251,7 @@ endif()
 
 file(GLOB PUBLIC_HEADERS "../inc/*.h" "../inc/*.hpp")
 
-if(QUIC_TLS_LIB STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     list(APPEND OTHER_TARGETS OpenSSL OpenSSLQuic)
 endif()
 

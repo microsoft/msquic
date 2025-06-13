@@ -24,12 +24,12 @@ TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, StorageOpenKey,
 // Decoder Ring for LibraryErrorStatus
 // [ lib] ERROR, %u, %s.
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegOpenKeyExA failed");
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegCreateKeyExA failed");
 // arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "RegOpenKeyExA failed" = arg3
+// arg3 = arg3 = "RegCreateKeyExA failed" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, LibraryErrorStatus,
     TP_ARGS(

@@ -1329,6 +1329,22 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t i = 0;
     QUIC_SUBRANGE* AckBlock;
     while ((AckBlock = QuicRangeGetSafe(AckBlocks, i++)) != NULL) {
+        //
+        // ATTACK DETECTION: Check if the skipped packet number is in this ACK
+        // block. If so, this indicates a potential injection attack.
+        //
+        if (Connection->Send.SkippedPacketNumber >= AckBlock->Low &&
+            Connection->Send.SkippedPacketNumber <= QuicRangeGetHigh(AckBlock)) {
+            QuicTraceLogConnError(
+                AttackDetected,
+                Connection,
+                "Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+                Connection->Send.SkippedPacketNumber,
+                AckBlock->Low,
+                QuicRangeGetHigh(AckBlock));
+            QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+            return;
+        }
 
         //
         // Check to see if any packets in the LostPackets list are acknowledged,

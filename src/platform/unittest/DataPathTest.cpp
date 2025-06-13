@@ -494,6 +494,12 @@ struct CxPlatDataPath {
         ) const noexcept {
         return static_cast<bool>(GetSupportedFeatures(SocketFlags) & feature);
     }
+    bool
+    IsDscpSupported() const noexcept {
+        return
+            IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP) &&
+            IsSupported(CXPLAT_DATAPATH_FEATURE_RECV_DSCP);
+    }
 };
 
 static
@@ -801,7 +807,7 @@ TEST_P(DataPathTest, UdpData)
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -842,7 +848,7 @@ TEST_P(DataPathTest, UdpDataPolling)
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -882,7 +888,7 @@ TEST_P(DataPathTest, UdpDataRebind)
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -942,7 +948,7 @@ TEST_P(DataPathTest, UdpDataECT0)
     RecvContext.EcnType = CXPLAT_ECN_ECT_0;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
 
@@ -982,7 +988,7 @@ TEST_P(DataPathTest, UdpShareClientSocket)
     UdpRecvContext RecvContext;
     CxPlatDataPath Datapath(&UdpRecvCallbacks);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
     VERIFY_QUIC_SUCCESS(Datapath.GetInitStatus());
     ASSERT_NE(nullptr, Datapath.Datapath);
     // TODO: Linux XDP (duonic) to support port sharing
@@ -1069,7 +1075,7 @@ TEST_P(DataPathTest, MultiBindListenerSingleProcessor) {
     QUIC_GLOBAL_EXECUTION_CONFIG Config = { QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NO_IDEAL_PROC, UINT32_MAX, 1, 0 };
     CxPlatDataPath Datapath(&UdpRecvCallbacks, nullptr, 0, &Config);
     RecvContext.TtlSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_TTL);
-    RecvContext.DscpSupported = Datapath.IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
+    RecvContext.DscpSupported = Datapath.IsDscpSupported();
 
     auto ServerAddress = GetNewLocalAddr();
     CxPlatSocket Server1(Datapath, &ServerAddress.SockAddr, nullptr, &RecvContext);

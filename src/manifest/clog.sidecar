@@ -219,6 +219,30 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "AttackDetected": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+      "UniqueId": "AttackDetected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "BindingCleanup": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Cleaning up",
@@ -11604,6 +11628,22 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "SkipPacketNumber": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Skipped packet number %llu",
+      "UniqueId": "SkipPacketNumber",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "SockCreateFail": {
       "ModuleProperites": {},
       "TraceString": "[sock] Failed to create socket, status:%d",
@@ -14108,6 +14148,11 @@
         "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",
         "TraceID": "ApplySettings",
         "EncodingString": "[conn][%p] Applying new settings"
+      },
+      {
+        "UniquenessHash": "2577283e-0a65-186c-be40-d33b66b0062d",
+        "TraceID": "AttackDetected",
+        "EncodingString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]"
       },
       {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
@@ -17608,6 +17653,11 @@
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",
         "TraceID": "ShutdownImmediatePendingReliableReset",
         "EncodingString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset)."
+      },
+      {
+        "UniquenessHash": "2656ff28-78a8-28d2-b18f-0aa4ec664a0d",
+        "TraceID": "SkipPacketNumber",
+        "EncodingString": "[conn][%p] Skipped packet number %llu"
       },
       {
         "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",

@@ -535,6 +535,20 @@ PerfClientConnection::Initialize() {
             }
         }
 
+        if (PerfDefaultDscpValue != 0) {
+            Status =
+                MsQuic->SetParam(
+                    Handle,
+                    QUIC_PARAM_CONN_SEND_DSCP,
+                    sizeof(PerfDefaultDscpValue),
+                    &PerfDefaultDscpValue);
+            if (QUIC_FAILED(Status)) {
+                WriteOutput("SetSendDscp failed, 0x%x\n", Status);
+                Worker.ConnectionPool.Free(this);
+                return;
+            }
+        }
+
         if (Client.CibirIdLength) {
             Status =
                 MsQuic->SetParam(
