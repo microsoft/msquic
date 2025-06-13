@@ -492,7 +492,6 @@ public:
 
 extern const MsQuicApi* MsQuic;
 
-#ifndef _KERNEL_MODE
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 
 struct MsQuicExecution {
@@ -545,7 +544,6 @@ struct MsQuicExecution {
 };
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
-#endif // _KERNEL_MODE
 
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};

@@ -509,76 +509,283 @@ _CxPlatEventWaitWithTimeout(
 #define CxPlatEventWaitWithTimeout(Event, TimeoutMs) \
     (STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(&Event, TimeoutMs))
 
+#ifndef IO_COMPLETION_ALL_ACCESS // TODO: Remove onces APIs are published
+#define IO_COMPLETION_ALL_ACCESS (STANDARD_RIGHTS_REQUIRED|SYNCHRONIZE|0x3) // winnt
+
+typedef struct _FILE_IO_COMPLETION_INFORMATION {
+    PVOID               KeyContext;
+    PVOID               ApcContext;
+    IO_STATUS_BLOCK     IoStatusBlock;
+} FILE_IO_COMPLETION_INFORMATION, *PFILE_IO_COMPLETION_INFORMATION;
+
+NTSYSAPI
+NTSTATUS
+NTAPI
+ZwCreateIoCompletion(
+    OUT         PHANDLE IoCompletionHandle,
+    IN          ACCESS_MASK DesiredAccess,
+    IN OPTIONAL POBJECT_ATTRIBUTES ObjectAttributes,
+    IN OPTIONAL ULONG Count
+    );
+
+typedef struct _IO_MINI_COMPLETION_PACKET_USER IO_MINI_COMPLETION_PACKET_USER, *PIO_MINI_COMPLETION_PACKET_USER;
+
+typedef
+VOID
+IO_MINI_PACKET_CALLBACK_ROUTINE(
+    _In_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket,
+    _In_opt_ PVOID Context
+    );
+
+typedef IO_MINI_PACKET_CALLBACK_ROUTINE *PIO_MINI_PACKET_CALLBACK_ROUTINE;
+
+NTSYSAPI
+NTSTATUS
+IoSetIoCompletionEx(
+    _In_ PVOID IoCompletion,
+    _In_opt_ PVOID KeyContext,
+    _In_opt_ PVOID ApcContext,
+    _In_ NTSTATUS IoStatus,
+    _In_ ULONG_PTR IoStatusInformation,
+    _In_ BOOLEAN Quota,
+    _In_opt_ PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+
+NTSYSAPI
+NTSTATUS
+IoRemoveIoCompletion(
+    _In_  PVOID IoCompletionPtr,
+    _Out_writes_(Count) PFILE_IO_COMPLETION_INFORMATION IoCompletionInformation,
+    _Out_writes_(Count) PLIST_ENTRY *EntryArray,
+    _In_  ULONG Count,
+    _Out_ PULONG NumEntriesRemoved,
+    _In_  KPROCESSOR_MODE PreviousMode,
+    _In_opt_ PLARGE_INTEGER CapturedTimeout,
+    _In_  BOOLEAN Alertable
+    );
+
+NTSYSAPI
+PIO_MINI_COMPLETION_PACKET_USER
+IoAllocateMiniCompletionPacket(
+    __in PIO_MINI_PACKET_CALLBACK_ROUTINE CallbackRoutine,
+    __in_opt PVOID Context
+    );
+
+NTSYSAPI
+VOID
+IoFreeMiniCompletionPacket(
+    __inout PIO_MINI_COMPLETION_PACKET_USER MiniPacket
+    );
+#endif // IO_COMPLETION_ALL_ACCESS
+
 //
 // Event Queue Interfaces
 //
 
-typedef KEVENT CXPLAT_EVENTQ; // Event queue
-typedef void* CXPLAT_CQE;
+typedef PKQUEUE CXPLAT_EVENTQ;
 
+typedef FILE_IO_COMPLETION_INFORMATION CXPLAT_CQE;
+
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+
+typedef struct CXPLAT_SQE {
+    PIO_MINI_COMPLETION_PACKET_USER MiniPacket;
+    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+} CXPLAT_SQE;
+
+QUIC_INLINE
+VOID
+IoMiniPacketCallbackRoutineNoOp(
+    _In_ struct _IO_MINI_COMPLETION_PACKET_USER * MiniPacket,
+    _In_opt_ PVOID Context
+    )
+{
+    UNREFERENCED_PARAMETER(MiniPacket);
+    UNREFERENCED_PARAMETER(Context);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Success_(return != FALSE)
 QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
-    _Out_ CXPLAT_EVENTQ* queue
+    _Out_ CXPLAT_EVENTQ* Queue
     )
 {
-    KeInitializeEvent(queue, SynchronizationEvent, FALSE);
-    return TRUE;
+    HANDLE Handle;
+    OBJECT_ATTRIBUTES KernelObjectAttributes;
+    InitializeObjectAttributes(
+        &KernelObjectAttributes,
+        NULL,
+        OBJ_KERNEL_HANDLE,
+        NULL,
+        NULL);
+
+    NTSTATUS Status =
+        ZwCreateIoCompletion(
+            &Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            &KernelObjectAttributes,
+            0);
+    if (!NT_SUCCESS(Status)) {
+        return FALSE;
+    }
+
+    Status =
+        ObReferenceObjectByHandle(
+            Handle,
+            IO_COMPLETION_ALL_ACCESS,
+            NULL,
+            KernelMode,
+            (PVOID*)Queue,
+            NULL);
+
+    NtClose(Handle);
+    return NT_SUCCESS(Status);
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_INLINE
 void
 CxPlatEventQCleanup(
-    _In_ CXPLAT_EVENTQ* queue
+    _In_ CXPLAT_EVENTQ* Queue
     )
 {
-    UNREFERENCED_PARAMETER(queue);
+    ObDereferenceObject(*Queue);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
+    )
+{
+    return
+        NT_SUCCESS(
+        IoSetIoCompletionEx(
+            *Queue,
+            0,
+            Sqe,
+            STATUS_SUCCESS,
+            0,
+            FALSE,
+            Sqe->MiniPacket));
+}
+
+#define CXPLAT_EVENTQ_DEQUEUE_MAX 16
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+uint32_t
+CxPlatEventQDequeue(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _Out_writes_to_(Count, return) CXPLAT_CQE* Events,
+    _In_range_(0, CXPLAT_EVENTQ_DEQUEUE_MAX)
+        uint32_t Count,
+    _In_ uint32_t WaitTime // milliseconds
+    )
+{
+    NTSTATUS Status;
+    ULONG EntriesRemoved;
+    PLIST_ENTRY EntryPtrArray[CXPLAT_EVENTQ_DEQUEUE_MAX];
+    CXPLAT_DBG_ASSERT(Count <= CXPLAT_EVENTQ_DEQUEUE_MAX);
+    if (WaitTime == UINT32_MAX) {
+        Status =
+            IoRemoveIoCompletion(
+                *Queue,
+                Events,
+                EntryPtrArray,
+                Count,
+                &EntriesRemoved,
+                KernelMode,
+                NULL,
+                FALSE);
+    } else {
+        LARGE_INTEGER Timeout;
+        Timeout.QuadPart = -10000LL * WaitTime;
+        Status =
+            IoRemoveIoCompletion(
+                *Queue,
+                Events,
+                EntryPtrArray,
+                Count,
+                &EntriesRemoved,
+                KernelMode,
+                &Timeout,
+                FALSE);
+    }
+    return NT_SUCCESS(Status) ? EntriesRemoved : 0;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_INLINE
+void
+CxPlatEventQReturn(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ uint32_t Count
+    )
+{
+    UNREFERENCED_PARAMETER(Queue);
+    UNREFERENCED_PARAMETER(Count);
 }
 
 QUIC_INLINE
 BOOLEAN
-_CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue
+CxPlatSqeInitialize(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* Sqe
     )
 {
-    KeSetEvent(queue, IO_NO_INCREMENT, FALSE);
-    return TRUE;
-}
-
-#define CxPlatEventQEnqueue(queue, sqe) _CxPlatEventQEnqueue(queue)
-
-QUIC_INLINE
-uint32_t
-CxPlatEventQDequeue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
-    _In_ uint32_t count,
-    _In_ uint32_t wait_time // milliseconds
-    )
-{
-    UNREFERENCED_PARAMETER(count);
-    *events = NULL;
-    return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
+    UNREFERENCED_PARAMETER(Queue);
+    Sqe->Completion = completion;
+    Sqe->MiniPacket =
+        IoAllocateMiniCompletionPacket(
+            IoMiniPacketCallbackRoutineNoOp,
+            NULL);
+    return Sqe->MiniPacket ? TRUE : FALSE;
 }
 
 QUIC_INLINE
 void
-CxPlatEventQReturn(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ uint32_t count
+CxPlatSqeInitializeEx(
+    _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* Sqe
     )
 {
-    UNREFERENCED_PARAMETER(queue);
-    UNREFERENCED_PARAMETER(count);
+    Sqe->Completion = completion;
+    Sqe->MiniPacket =
+        IoAllocateMiniCompletionPacket(
+            IoMiniPacketCallbackRoutineNoOp,
+            NULL);
 }
 
 QUIC_INLINE
-void*
-CxPlatCqeUserData(
-    _In_ const CXPLAT_CQE* cqe
+void
+CxPlatSqeCleanup(
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
     )
 {
-    return *cqe;
+    UNREFERENCED_PARAMETER(Queue);
+    IoFreeMiniCompletionPacket(Sqe->MiniPacket);
+}
+
+QUIC_INLINE
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
+    _In_ const CXPLAT_CQE* Cqe
+    )
+{
+    return (CXPLAT_SQE*)Cqe->ApcContext;
 }
 
 //

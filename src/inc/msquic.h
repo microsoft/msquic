@@ -297,8 +297,6 @@ typedef struct QUIC_GLOBAL_EXECUTION_CONFIG {
 #define QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE \
     (uint32_t)FIELD_OFFSET(QUIC_GLOBAL_EXECUTION_CONFIG, ProcessorList)
 
-#ifndef _KERNEL_MODE
-
 //
 // Execution Context abstraction, which allows the application layer to
 // completely control execution of all MsQuic work.
@@ -348,8 +346,6 @@ uint32_t
 (QUIC_API * QUIC_EXECUTION_POLL_FN)(
     _In_ QUIC_EXECUTION* Execution
     );
-
-#endif // _KERNEL_MODE
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
@@ -1822,11 +1818,9 @@ typedef struct QUIC_API_TABLE {
 
     QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
 
-#ifndef _KERNEL_MODE
     QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
-#endif // _KERNEL_MODE
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
