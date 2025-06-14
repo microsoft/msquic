@@ -518,16 +518,6 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     CxPlatFreeTestCert(&Arg.CredConfig);
 }
 
-TEST(ParameterValidation, RetryConfigSetting)
-{
-    TestLogger Logger("QuicTestRetryConfigSetting");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING));
-    } else {
-        QuicTestRetryConfigSetting();
-    }
-}
-
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     if (TestingKernelMode) {
@@ -2511,7 +2501,23 @@ TEST(Basic, TestVersionStorage) {
         QuicTestVersionStorage();
     }
 }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+#if  defined(DEBUG) // This test needs a GetParam API that is only available in debug builds.
+TEST(ParameterValidation, RetryConfigSetting)
+{
+    if (!CanRunStorageTests) {
+        GTEST_SKIP();
+    }
+
+    TestLogger Logger("QuicTestRetryConfigSetting");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING));
+    } else {
+        QuicTestRetryConfigSetting();
+    }
+}
+#endif // DEBUG
 
 #endif // _WIN32
 
