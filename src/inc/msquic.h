@@ -892,8 +892,6 @@ typedef enum QUIC_AEAD_ALGORITHM_TYPE {
     QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 = 2,
 } QUIC_AEAD_ALGORITHM_TYPE;
 
-#pragma warning(push)
-#pragma warning(disable:4200)  // nonstandard extension used: zero-sized array in struct/union
 typedef struct QUIC_STATELESS_RETRY_CONFIG {
     QUIC_AEAD_ALGORITHM_TYPE Algorithm; // AEAD algorithm for the key.
     uint32_t RotationMs;                // Key rotation interval in milliseconds.
@@ -901,7 +899,6 @@ typedef struct QUIC_STATELESS_RETRY_CONFIG {
     _Field_size_bytes_(SecretLength)
         const uint8_t* Secret;          // Secret to generate the key.
 } QUIC_STATELESS_RETRY_CONFIG;
-#pragma warning(pop)
 
 //
 // Functions for associating application contexts with QUIC handles. MsQuic
