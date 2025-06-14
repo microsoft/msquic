@@ -92,7 +92,7 @@ overwrite = [ "dep:bindgen" ]
 
 [build-dependencies]
 cmake = { version = "0.1", optional = true }
-bindgen = { version = "0.71", optional = true }
+bindgen = { version = "0.72", optional = true }
 
 [dependencies]
 bitflags = "2.9"
