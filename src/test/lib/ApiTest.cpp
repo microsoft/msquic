@@ -6833,4 +6833,19 @@ QuicTestRetryConfigSetting()
     TEST_EQUAL(16, ResultConfig->SecretLength);
     TEST_EQUAL(54321, ResultConfig->RotationMs);
     TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+
+    //
+    // Set back to defaults
+    //
+    ResultConfig->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+    ResultConfig->SecretLength = 32;
+    ResultConfig->RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    ResultConfig->Secret = ResultBuffer + sizeof(QUIC_STATELESS_RETRY_CONFIG);
+    CxPlatRandom(sizeof(ResultConfig->Secret), (uint8_t*)ResultConfig->Secret);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+            sizeof(QUIC_STATELESS_RETRY_CONFIG),
+            ResultConfig));
 }
