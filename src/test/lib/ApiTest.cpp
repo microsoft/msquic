@@ -2787,6 +2787,7 @@ void QuicTestGlobalParam()
         Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
         Config->RotationMs = 60000;
         Config->Secret = (uint8_t*)(Config + 1);
+        CxPlatRandom(SecretLength, (uint8_t*)(Config + 1));
 
         // Null buffer
         TEST_QUIC_STATUS(
@@ -2859,7 +2860,7 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 BufferLength,
                 Config));
-        Config->RotationMs = 60000;
+        Config->RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
