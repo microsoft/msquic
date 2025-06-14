@@ -6627,228 +6627,209 @@ QuicTestValidateConnectionPoolCreate()
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-struct QuicTestResetGlobalRegConfig {
-    public:
-    QuicTestResetGlobalRegConfig(_In_z_ const char* Name) : BufferLength(0), RegNotPresent(false) {
-#ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    HANDLE GlobalKey;
-    OBJECT_ATTRIBUTES GlobalAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-
-    PUNICODE_STRING TempRegName;
-    TEST_QUIC_SUCCEEDED(
-        CxPlatConvertUtf8ToUnicode(
-            Name,
-            QUIC_POOL_TEST,
-            &TempRegName));
-    RegName.reset(TempRegName);
-    TempRegName = nullptr;
-
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-
-    ULONG InfoLength = 0;
-
-    QUIC_STATUS Status =
-        ZwQueryValueKey(
-            GlobalKey,
-            RegName.get(),
-            KeyValuePartialInformation,
-            NULL,
-            0,
-            &InfoLength);
-    if (Status == STATUS_BUFFER_OVERFLOW || Status == STATUS_BUFFER_TOO_SMALL) {
-
-        BufferLength = InfoLength - BASE_KEY_INFO_LENGTH;
-        Buffer.reset(new (std::nothrow) uint8_t[BufferLength]);
-        TEST_NOT_EQUAL(Buffer.get(), nullptr);
-
-        UniquePtr<uint8_t[]> InfoBuffer(new (std::nothrow) uint8_t[InfoLength]);
-        TEST_NOT_EQUAL(InfoBuffer.get(), nullptr);
-        PKEY_VALUE_PARTIAL_INFORMATION Info = (PKEY_VALUE_PARTIAL_INFORMATION)InfoBuffer.get();
-
-        TEST_QUIC_SUCCEEDED(
-            ZwQueryValueKey(
-                GlobalRegKey,
-                RegName.get(),
-                KeyValuePartialInformation,
-                Info,
-                InfoLength,
-                &InfoLength));
-
-        TEST_EQUAL(BufferLength, Info->DataLength);
-        RegType = Info->Type;
-        CxPlatCopyMemory(Buffer.get(), Info->Data, Info->DataLength);
-
-        ZwDeleteValueKey(
-            GlobalKey,
-            RegName.get());
-    } else {
-        TEST_EQUAL(STATUS_OBJECT_NAME_NOT_FOUND, Status);
-        RegNotPresent = true;
-    }
-    ZwClose(GlobalKey);
-#elif _WIN32
-#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
-    const auto NameLen = strnlen(Name, UINT16_MAX);
-    RegName.reset(new (std::nothrow) char[NameLen]);
-    strncpy_s(RegName.get(), NameLen, Name, UINT16_MAX);
-
-    HKEY RegKey;
-    TEST_QUIC_SUCCEEDED(
-        HRESULT_FROM_WIN32(
-        RegOpenKeyExA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            0,
-            KEY_READ,
-            &RegKey)));
-
-    if (QUIC_SUCCEEDED(
-        HRESULT_FROM_WIN32(
-            RegQueryValueExA(
-                RegKey,
-                RegName.get(),
-                NULL,
-                (PDWORD)&RegType,
-                nullptr,
-                (PDWORD)&BufferLength)))) {
-
-        Buffer.reset(new (std::nothrow) uint8_t[BufferLength]);
-
-        TEST_QUIC_SUCCEEDED(
-            HRESULT_FROM_WIN32(
-                RegQueryValueExA(
-                    RegKey,
-                    RegName.get(),
-                    NULL,
-                    (PDWORD)&RegType,
-                    Buffer.get(),
-                    (PDWORD)&BufferLength)));
-
-        TEST_EQUAL(NO_ERROR, RegCloseKey(RegKey));
-
-        TEST_EQUAL(NO_ERROR,
-            RegDeleteKeyValueA(
-                HKEY_LOCAL_MACHINE,
-                MSQUIC_GLOBAL_PARAMETERS_PATH,
-                RegName.get()));
-
-    } else {
-        RegCloseKey(RegKey);
-        RegNotPresent = true;
-    }
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-    }
-
-    QuicTestResetGlobalRegConfig(const QuicTestResetGlobalRegConfig& other) = delete;
-    QuicTestResetGlobalRegConfig(QuicTestResetGlobalRegConfig&& other) = delete;
-    QuicTestResetGlobalRegConfig& operator=(const QuicTestResetGlobalRegConfig& other) = delete;
-    QuicTestResetGlobalRegConfig& operator=(QuicTestResetGlobalRegConfig&& other) = delete;
-
-    ~QuicTestResetGlobalRegConfig() {
-#ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    HANDLE GlobalKey;
-    OBJECT_ATTRIBUTES GlobalAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-
-    if (RegNotPresent) {
-        ZwDeleteValueKey(
-            GlobalKey,
-            RegName.get());
-
-    } else {
-        TEST_QUIC_SUCCEEDED(
-            ZwSetValueKey(
-                GlobalKey,
-                RegName.get(),
-                0,
-                RegType,
-                Buffer.get(),
-                BufferLength));
-    }
-    ZwClose(GlobalKey);
-#elif _WIN32
-        if (RegNotPresent) {
-            RegDeleteKeyValueA(
-                HKEY_LOCAL_MACHINE,
-                MSQUIC_GLOBAL_PARAMETERS_PATH,
-                RegName.get());
-
-        } else {
-            HKEY RegKey;
-            TEST_QUIC_SUCCEEDED(
-                HRESULT_FROM_WIN32(
-                RegOpenKeyExA(
-                    HKEY_LOCAL_MACHINE,
-                    MSQUIC_GLOBAL_PARAMETERS_PATH,
-                    0,
-                    KEY_WRITE,
-                    &RegKey)));
-            TEST_EQUAL(
-                NO_ERROR,
-                RegSetKeyValueA(
-                    HKEY_LOCAL_MACHINE,
-                    MSQUIC_GLOBAL_PARAMETERS_PATH,
-                    RegName.get(),
-                    RegType,
-                    Buffer.get(),
-                    BufferLength));
-            RegCloseKey(RegKey);
-        }
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-    }
-private:
-#ifdef _KERNEL_MODE
-    UniquePtr<UNICODE_STRING> RegName;
-#else
-    UniquePtr<char[]> RegName;
-#endif
-    UniquePtr<uint8_t[]> Buffer;
-    uint32_t BufferLength;
-    uint32_t RegType;
-    bool RegNotPresent;
-};
-
 void
-QuicTestRetryConfigStorage() {
-    QuicTestResetGlobalRegConfig KeyScopeGuard("RetryKeyAlgorithm");
-    QuicTestResetGlobalRegConfig RotationScopeGuard("RetryKeyRotationMs");
-    QuicTestResetGlobalRegConfig SecretScopeGuard("RetrySecret");
+QuicTestRetryConfigSetting()
+{
+    uint8_t TestSecret[32]{};
+    uint8_t ResultBuffer[sizeof(QUIC_STATELESS_RETRY_CONFIG) + 32]{};
+    QUIC_STATELESS_RETRY_CONFIG* ResultConfig = (QUIC_STATELESS_RETRY_CONFIG*)ResultBuffer;
+    uint32_t ResultBufferSize = sizeof(ResultBuffer);
+    uint32_t TestRotationMs = 54321;
+    QUIC_AEAD_ALGORITHM_TYPE TestAlg = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+    MsQuicRegistration Registration("TestRetryConfigSetting");
+    {
+        QuicStorageSettingScopeGuard GlobalSettings = QuicStorageSettingScopeGuard::Create();
+
+        //
+        // Test that the defaults were correctly picked up.
+        //
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(QUIC_STATELESS_RETRY_KEY_LIFETIME_MS, ResultConfig->RotationMs);
+
+        //
+        // Test Key Rotation Ms is picked up automatically
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        //
+        // Test that key and algorithm must be changed together
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm); // hasn't changed because the secret length hasn't changed.
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(TestSecret), TestSecret));
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                16, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                TestSecret));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+
+        //
+        // test that invalid settings aren't picked up
+        //
+
+        //
+        // Can't set rotation to 0.
+        //
+        TestRotationMs = 0;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestRotationMs = 54321;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        //
+        // Can't set an unknown algorithm type.
+        //
+        TestAlg = (QUIC_AEAD_ALGORITHM_TYPE)(QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 + 1);
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestAlg = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        //
+        // Can't set a secret size that doesn't match the algorithm.
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                17, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                TestSecret));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                16, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                TestSecret));
+    }
 
     //
-    // Test to make sure that settings are changed only when all three settings are present
+    // Validate settings remain in memory once registry is cleaned up.
     //
-#if _KERNEL_MODE
-
-#elif _WIN32
-#endif
-
-    // test that updating each reg will be picked up automatically
-    // test that invalid settings aren't picked up
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+            &ResultBufferSize,
+            ResultBuffer));
+    TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+    TEST_EQUAL(16, ResultConfig->SecretLength);
+    TEST_EQUAL(54321, ResultConfig->RotationMs);
+    TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
 }

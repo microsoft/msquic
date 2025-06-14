@@ -1629,7 +1629,7 @@ QuicLibraryGetGlobalParam(
             break;
         }
         QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer;
-        Config->Algorithm = MsQuicLib.RetryAeadAlgorithm;
+        Config->Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)MsQuicLib.RetryAeadAlgorithm;
         Config->RotationMs = MsQuicLib.RetryKeyRotationMs;
         Config->SecretLength = MsQuicLib.RetrySecretLength;
         Config->Secret = (uint8_t*)(Config + 1);
