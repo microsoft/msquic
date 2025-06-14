@@ -315,6 +315,22 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
 // [ lib] Invalid retry key algorithm: %d.
 // QuicTraceLogError(

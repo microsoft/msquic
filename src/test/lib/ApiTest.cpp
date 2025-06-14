@@ -2815,7 +2815,7 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 BufferLength,
                 Config));
-        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
 
         // zero length secret
         Config->SecretLength = 0;

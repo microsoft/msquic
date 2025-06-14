@@ -342,6 +342,22 @@ tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull
+#define _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
 // [ lib] Invalid retry key algorithm: %d.
 // QuicTraceLogError(
