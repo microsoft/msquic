@@ -350,7 +350,7 @@ CxPlatStorageClear(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD Error = NO_ERROR;
-    DWORD AllocatedLength = 30;
+    DWORD AllocatedLength = 255;
     PSTR ValueName = NULL;
 
     ValueName = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);

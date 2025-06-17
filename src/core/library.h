@@ -211,7 +211,7 @@ typedef struct QUIC_LIBRARY {
     //
     // The base secret used to generate keys for the stateless retry token.
     //
-    uint8_t BaseRetrySecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
+    uint8_t BaseRetrySecret[CXPLAT_AEAD_MAX_SIZE];
 
     //
     // Length of the secret stored in BaseRetrySecret. Depents on the algorithm type.

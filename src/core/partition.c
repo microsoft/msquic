@@ -74,6 +74,12 @@ QuicPartitionUninitialize(
     CxPlatHashFree(Partition->ResetTokenHash);
 }
 
+//
+// MUST be called while holding the per-partition StatelessRetryKeysLock to
+// ensure no-concurrent modification of the per-partition encryption key *AND*
+// while holding the the global MsQuicLib.StatelessRetryLock in shared mode to
+// ensure the configuration is read in a complete state.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 CXPLAT_KEY*

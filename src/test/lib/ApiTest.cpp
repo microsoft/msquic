@@ -2779,15 +2779,14 @@ void QuicTestGlobalParam()
     {
         TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
         const uint32_t SecretLength = 32;
-        const auto BufferLength = sizeof(QUIC_STATELESS_RETRY_CONFIG) + SecretLength;
-        UniquePtr<uint8_t[]> Buffer (new (std::nothrow) uint8_t[BufferLength]);
-        QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer.get();
+        uint8_t Buffer[SecretLength];
+        QUIC_STATELESS_RETRY_CONFIG Config;
 
-        Config->SecretLength = SecretLength;
-        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
-        Config->RotationMs = 60000;
-        Config->Secret = (uint8_t*)(Config + 1);
-        CxPlatRandom(SecretLength, (uint8_t*)(Config + 1));
+        Config.SecretLength = SecretLength;
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        Config.RotationMs = 60000;
+        Config.Secret = Buffer;
+        CxPlatRandom(sizeof(Buffer), Buffer);
 
         // Null buffer
         TEST_QUIC_STATUS(
@@ -2795,7 +2794,7 @@ void QuicTestGlobalParam()
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
+                sizeof(Config),
                 nullptr));
 
         // Wrong size - smaller than QUIC_STATELESS_RETRY_CONFIG
@@ -2804,70 +2803,81 @@ void QuicTestGlobalParam()
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                sizeof(QUIC_STATELESS_RETRY_CONFIG) - 1,
-                Config));
+                sizeof(Config) - 1,
+                &Config));
 
         // Invalid algorithm
-        Config->Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
+        Config.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
-        Config->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+                sizeof(Config),
+                &Config));
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+
+        // Invalid algorithm, negative number
+        Config.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)-2;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
 
         // zero length secret
-        Config->SecretLength = 0;
+        Config.SecretLength = 0;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
-        Config->SecretLength = SecretLength;
+                sizeof(Config),
+                &Config));
+        Config.SecretLength = SecretLength;
 
         // Null secret
-        Config->Secret = nullptr;
+        Config.Secret = nullptr;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
-        Config->Secret = (uint8_t*)(Config + 1);
+                sizeof(Config),
+                &Config));
+        Config.Secret = Buffer;
 
         // Incorrect length secret
-        Config->SecretLength = 10;
+        Config.SecretLength = 10;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
-        Config->SecretLength = SecretLength;
+                sizeof(Config),
+                &Config));
+        Config.SecretLength = SecretLength;
 
         // Zero rotation
-        Config->RotationMs = 0;
+        Config.RotationMs = 0;
         TEST_QUIC_STATUS(
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
-        Config->RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+                sizeof(Config),
+                &Config));
+        Config.RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
 
         TEST_QUIC_SUCCEEDED(
             MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                BufferLength,
-                Config));
+                sizeof(Config),
+                &Config));
     }
 
     //
@@ -6640,6 +6650,19 @@ QuicTestRetryConfigSetting()
     MsQuicRegistration Registration("TestRetryConfigSetting");
     {
         QuicStorageSettingScopeGuard GlobalSettings = QuicStorageSettingScopeGuard::Create();
+
+        //
+        // Test that the needed size is returned.
+        //
+        uint32_t TestRequiredSize = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &TestRequiredSize,
+                nullptr));
+        TEST_EQUAL(ResultBufferSize, TestRequiredSize);
 
         //
         // Test that the defaults were correctly picked up.

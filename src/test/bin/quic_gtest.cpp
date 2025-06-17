@@ -2503,7 +2503,7 @@ TEST(Basic, TestVersionStorage) {
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
-#if  defined(DEBUG) // This test needs a GetParam API that is only available in debug builds.
+#ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
 TEST(ParameterValidation, RetryConfigSetting)
 {
     if (!CanRunStorageTests) {

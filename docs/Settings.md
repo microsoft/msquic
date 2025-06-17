@@ -120,7 +120,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
 | `QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES`<br> 12    | uint32_t[]               | Get-only  | Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details. |
 | `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
-| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 12    | QUIC_STATELESS_RETRY_CONFIG | Set-Only | Configure the stateless retry token key, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
+| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 12    | [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) | Set-Only | Configure the stateless retry token key, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
 
 ## Registration Parameters
 
