@@ -9,6 +9,8 @@ Abstract:
 
 --*/
 
+#define QUIC_UNIT_TESTS
+
 #include "main.h"
 #ifdef QUIC_CLOG
 #include "SettingsTest.cpp.clog.h"
@@ -334,6 +336,247 @@ TEST(SettingsTest, StreamRecvWindowDefaultGetsOverridenByIndividualLimits)
 
 #define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
     (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
+
+TEST(SettingsTest, QuicSettingsSetDefault_DoesNotOverwriteSetFields)
+{
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    // Set a few fields and mark them as set
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 0;
+    Settings.IsSet.PacingEnabled = 1;
+    Settings.PacingEnabled = 0;
+    QuicSettingsSetDefault(&Settings);
+
+    // These should not be overwritten
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0);
+    ASSERT_EQ(Settings.PacingEnabled, 0);
+
+    // But an unset field should be set to default
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+}
+
+class QuicStorageSettingScopeGuard {
+public:
+    static
+    QuicStorageSettingScopeGuard Create(
+        _In_opt_ const char* StorageName = nullptr)
+    {
+        return QuicStorageSettingScopeGuard(StorageName);
+    }
+
+    QuicStorageSettingScopeGuard(const QuicStorageSettingScopeGuard&) = delete;
+    QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
+
+    QuicStorageSettingScopeGuard(
+        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage)
+    {
+        Other.m_Storage = nullptr;
+    }
+
+    QuicStorageSettingScopeGuard& operator=(
+        _In_ QuicStorageSettingScopeGuard&& Other)
+    {
+        if (this == &Other)
+        {
+            return Other;
+        }
+        ClearAndClose(m_Storage);
+        m_Storage = Other.m_Storage;
+        Other.m_Storage = nullptr;
+        return *this;
+    }
+
+    ~QuicStorageSettingScopeGuard()
+    {
+        ClearAndClose(m_Storage);
+    }
+
+    operator CXPLAT_STORAGE*() const {
+        return m_Storage;
+    }
+
+private:
+    QuicStorageSettingScopeGuard(
+        _In_opt_ const char* StorageName)
+    {
+        EXPECT_EQ(
+            QUIC_STATUS_SUCCESS,
+            CxPlatStorageOpen(
+                StorageName,
+                nullptr,
+                nullptr,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETE | CXPLAT_STORAGE_OPEN_FLAG_WRITE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+                &m_Storage));
+        EXPECT_NE(m_Storage, nullptr);
+    }
+
+    void ClearAndClose(
+        _In_opt_ CXPLAT_STORAGE* Storage)
+    {
+        if (Storage != nullptr) {
+            EXPECT_EQ(QUIC_STATUS_SUCCESS, CxPlatStorageClear(Storage));
+            CxPlatStorageClose(Storage);
+        }
+    }
+
+    CXPLAT_STORAGE* m_Storage = nullptr;
+};
+
+// --- Test: QuicSettingsLoad sets fields from storage ---
+TEST(SettingsTest, QuicSettingsLoad_SetsFieldsFromStorage)
+{
+    CXPLAT_STORAGE* TestStorage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "Apps\\MsQuicUnitTestStorage",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+            &TestStorage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+    CxPlatStorageClose(TestStorage);
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    QuicStorageSettingScopeGuard StorageGuard =
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
+
+    uint32_t Value = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_UINT32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard,
+            QUIC_SETTING_SEND_PACING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_UINT32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard,
+            QUIC_SETTING_MIGRATION_ENABLED,
+            CXPLAT_STORAGE_TYPE_UINT32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+
+    Value = 7;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard,
+            QUIC_SETTING_MAX_OPERATIONS_PER_DRAIN,
+            CXPLAT_STORAGE_TYPE_UINT32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, StorageGuard);
+
+    // Check that the values were loaded
+    ASSERT_EQ(Settings.SendBufferingEnabled, 0u);
+    ASSERT_EQ(Settings.PacingEnabled, 0u);
+    ASSERT_EQ(Settings.MigrationEnabled, 0u);
+    ASSERT_EQ(Settings.MaxOperationsPerDrain, 7u);
+
+    QuicSettingsDumpNew(&Settings);
+}
+
+// --- Test: QuicSettingsLoad does not overwrite set fields ---
+TEST(SettingsTest, QuicSettingsLoad_DoesNotOverwriteSetFields)
+{
+    CXPLAT_STORAGE* TestStorage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "Apps\\MsQuicUnitTestStorage",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+            &TestStorage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+    CxPlatStorageClose(TestStorage);
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    QuicStorageSettingScopeGuard StorageGuard =
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
+
+    uint32_t Value = 0;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        CxPlatStorageWriteValue(
+            StorageGuard,
+            QUIC_SETTING_SEND_BUFFERING_DEFAULT,
+            CXPLAT_STORAGE_TYPE_UINT32,
+            sizeof(Value),
+            (uint8_t*)&Value));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    // Mark SendBufferingEnabled as set
+    Settings.IsSet.SendBufferingEnabled = 1;
+    Settings.SendBufferingEnabled = 1;
+
+    QuicSettingsLoad(&Settings, StorageGuard);
+
+    // Should not be overwritten
+    ASSERT_EQ(Settings.SendBufferingEnabled, 1u);
+}
+
+// --- Test: QuicSettingsLoad uses default if storage missing ---
+TEST(SettingsTest, QuicSettingsLoad_UsesDefaultIfStorageMissing)
+{
+    CXPLAT_STORAGE* TestStorage = NULL;
+
+    QUIC_STATUS Status =
+        CxPlatStorageOpen(
+            "Apps\\MsQuicUnitTestStorage",
+            nullptr,
+            nullptr,
+            CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+            &TestStorage);
+
+    if (Status == QUIC_STATUS_NOT_SUPPORTED) {
+        GTEST_SKIP() << "Skipping test because storage is not available. Status:" << Status;
+    }
+    CxPlatStorageClose(TestStorage);
+
+    ASSERT_EQ(Status, QUIC_STATUS_SUCCESS);
+
+    QuicStorageSettingScopeGuard StorageGuard =
+        QuicStorageSettingScopeGuard::Create("Apps\\MsQuicUnitTestStorage");
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QuicSettingsLoad(&Settings, StorageGuard);
+
+    // Should use default
+    ASSERT_EQ(Settings.SendBufferingEnabled, QUIC_DEFAULT_SEND_BUFFERING_ENABLE);
+    ASSERT_EQ(Settings.PacingEnabled, QUIC_DEFAULT_SEND_PACING);
+    ASSERT_EQ(Settings.MigrationEnabled, QUIC_DEFAULT_MIGRATION_ENABLED);
+
+}
 
 TEST(SettingsTest, SettingsSizesGet)
 {
