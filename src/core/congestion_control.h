@@ -171,6 +171,32 @@ typedef struct QUIC_CONGESTION_CONTROL {
 
 } QUIC_CONGESTION_CONTROL;
 
+
+//
+// V1 supports careful resume on 1 path per remote endpoint
+//
+typedef struct QUIC_CONN_CAREFUL_RESUME_V1 {
+
+    // Path RTT parameters
+    uint64_t SmoothedRtt;
+    uint64_t MinRtt;
+
+    // Remote endpoint and the Path RTT parameters help match the path during Careful Resume
+    QUIC_ADDR RemoteEndpoint;
+
+    // Future Expiration Time in Unix Epoch microsecond units
+    uint64_t Expiration;
+
+    // Congestion algorithm last used
+    QUIC_CONGESTION_CONTROL_ALGORITHM Algorithm;
+
+    // CWND size in bytes for Careful Resume
+    uint32_t CongestionWindow;
+
+} QUIC_CONN_CAREFUL_RESUME_V1;
+
+typedef struct QUIC_CONN_CAREFUL_RESUME_V1 QUIC_CONN_CAREFUL_RESUME_STATE;
+
 //
 // Initializes the algorithm specific congestion control algorithm.
 //
