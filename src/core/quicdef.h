@@ -458,11 +458,6 @@ CXPLAT_STATIC_ASSERT(
 #define CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2    2
 
 //
-// Length in bytes of V2 extension to the resumption ticket
-//
-#define RESUMPTION_TICKET_V2_EXTENSION_LENGTH      64
-
-//
 // Min version of the wire-format for resumption tickets.
 //
 #define CXPLAT_TLS_RESUMPTION_TICKET_VERSION       CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V1

@@ -491,6 +491,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
             sizeof(AppData),
             AppData,
             &ServerTP,
+            NULL,
             NegotiatedAlpn[0],
             NegotiatedAlpn + 1,
             &EncodedServerTicket,
@@ -507,6 +508,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -518,7 +520,7 @@ TEST(ResumptionTicketTest, ServerEncDec)
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
-TEST(ResumptionTicketTest, ServerEncDecNoAppData)
+TEST(ResumptionTicketTest, ServerEncDecNoAppDataNoCR)
 {
     QUIC_TRANSPORT_PARAMETERS ServerTP;
     uint8_t NegotiatedAlpn[] = {4, 't', 'e', 's', 't'};
@@ -552,6 +554,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
             0,
             nullptr,
             &ServerTP,
+            NULL,
             NegotiatedAlpn[0],
             NegotiatedAlpn + 1,
             &EncodedServerTicket,
@@ -568,6 +571,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
             &DecodedServerTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -578,8 +582,443 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppData)
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
-TEST(ResumptionTicketTest, ServerDecFail)
+TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV4CR)
 {
+    QUIC_TRANSPORT_PARAMETERS ServerTP;
+    uint8_t NegotiatedAlpn[] = {4, 't', 'e', 's', 't'};
+    uint8_t* EncodedServerTicket = nullptr;
+    uint32_t EncodedServerTicketLength = 0;
+
+    QUIC_TRANSPORT_PARAMETERS DecodedServerTP;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = {};
+    QUIC_CONN_CAREFUL_RESUME_STATE DecodedCarefulResumeState = {};
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
+
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    ServerTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    ServerTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    // Set IPv4 address 192.0.2.1 (do not set port)
+    CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xC0000201); // 192.0.2.1
+
+    // Test all valid QUIC_CONGESTION_CONTROL_ALGORITHM values
+    const struct {
+        QUIC_CONGESTION_CONTROL_ALGORITHM Algorithm;
+        const char* Name;
+    } kAlgorithms[] = {
+        { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, "CUBIC" },
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        { QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, "BBR" },
+#endif
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(kAlgorithms); ++i) {
+        // Populate CarefulResumeState with test values
+        CarefulResumeState.SmoothedRtt = 12345 + (uint64_t)i;
+        CarefulResumeState.MinRtt = 2345 + (uint64_t)i;
+        CarefulResumeState.Expiration = 0x1122334455667788 + (uint64_t)i;
+        CarefulResumeState.Algorithm = kAlgorithms[i].Algorithm;
+        CarefulResumeState.CongestionWindow = 65536 + (uint32_t)i;
+
+        EncodedServerTicket = nullptr;
+        EncodedServerTicketLength = 0;
+        CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+        CxPlatZeroMemory(&DecodedCarefulResumeState, sizeof(DecodedCarefulResumeState));
+        DecodedAppData = nullptr;
+        DecodedAppDataLength = 0;
+
+        TEST_QUIC_SUCCEEDED(
+            QuicCryptoEncodeServerTicket(
+                nullptr,
+                QUIC_VERSION_LATEST,
+                0,
+                nullptr,
+                &ServerTP,
+                &CarefulResumeState,
+                NegotiatedAlpn[0],
+                NegotiatedAlpn + 1,
+                &EncodedServerTicket,
+                &EncodedServerTicketLength));
+
+        ASSERT_NE(EncodedServerTicket, nullptr);
+        ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            QuicCryptoDecodeServerTicket(
+                &Connection,
+                (uint16_t)EncodedServerTicketLength,
+                EncodedServerTicket,
+                NegotiatedAlpn,
+                sizeof(NegotiatedAlpn),
+                &DecodedServerTP,
+                &DecodedCarefulResumeState,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+
+        ASSERT_EQ((uint16_t)DecodedAppDataLength, 0);
+        ASSERT_EQ(DecodedAppData, nullptr);
+        CompareTransportParameters(&ServerTP, &DecodedServerTP);
+
+        // Validate CarefulResumeState fields (except port)
+        ASSERT_EQ(CarefulResumeState.SmoothedRtt, DecodedCarefulResumeState.SmoothedRtt) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.MinRtt, DecodedCarefulResumeState.MinRtt) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr) << kAlgorithms[i].Name;
+
+        CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    }
+}
+
+TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV4ClassBCR)
+{
+    QUIC_TRANSPORT_PARAMETERS ServerTP;
+    uint8_t NegotiatedAlpn[] = {4, 't', 'e', 's', 't'};
+    uint8_t* EncodedServerTicket = nullptr;
+    uint32_t EncodedServerTicketLength = 0;
+
+    QUIC_TRANSPORT_PARAMETERS DecodedServerTP;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = {};
+    QUIC_CONN_CAREFUL_RESUME_STATE DecodedCarefulResumeState = {};
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
+
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    ServerTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    ServerTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    // Set IPv4 Class B address 172.16.0.1 (do not set port)
+    CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xAC100001); // 172.16.0.1
+
+    // Use only CUBIC algorithm
+    CarefulResumeState.SmoothedRtt = 12345;
+    CarefulResumeState.MinRtt = 2345;
+    CarefulResumeState.Expiration = 0x1122334455667788;
+    CarefulResumeState.Algorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    CarefulResumeState.CongestionWindow = 65536;
+
+    // AppData: 250 bytes, monotonically increasing
+    uint8_t AppData[250];
+    for (uint32_t i = 0; i < sizeof(AppData); ++i) {
+        AppData[i] = (uint8_t)i;
+    }
+
+    EncodedServerTicket = nullptr;
+    EncodedServerTicketLength = 0;
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    CxPlatZeroMemory(&DecodedCarefulResumeState, sizeof(DecodedCarefulResumeState));
+    DecodedAppData = nullptr;
+    DecodedAppDataLength = 0;
+
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoEncodeServerTicket(
+            nullptr,
+            QUIC_VERSION_LATEST,
+            sizeof(AppData),
+            AppData,
+            &ServerTP,
+            &CarefulResumeState,
+            NegotiatedAlpn[0],
+            NegotiatedAlpn + 1,
+            &EncodedServerTicket,
+            &EncodedServerTicketLength));
+
+    ASSERT_NE(EncodedServerTicket, nullptr);
+    ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            NegotiatedAlpn,
+            sizeof(NegotiatedAlpn),
+            &DecodedServerTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
+    ASSERT_NE(DecodedAppData, nullptr);
+    ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
+    CompareTransportParameters(&ServerTP, &DecodedServerTP);
+
+    // Validate CarefulResumeState fields (except port)
+    ASSERT_EQ(CarefulResumeState.SmoothedRtt, DecodedCarefulResumeState.SmoothedRtt);
+    ASSERT_EQ(CarefulResumeState.MinRtt, DecodedCarefulResumeState.MinRtt);
+    ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
+    ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
+    ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
+
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+}
+
+TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
+{
+    QUIC_TRANSPORT_PARAMETERS ServerTP;
+    uint8_t NegotiatedAlpn[] = {4, 't', 'e', 's', 't'};
+    uint8_t* EncodedServerTicket = nullptr;
+    uint32_t EncodedServerTicketLength = 0;
+
+    QUIC_TRANSPORT_PARAMETERS DecodedServerTP;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = {};
+    QUIC_CONN_CAREFUL_RESUME_STATE DecodedCarefulResumeState = {};
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
+
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    ServerTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    ServerTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    // Set IPv6 address 2001:db8::1 (do not set port)
+    CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
+    // 2001:0db8:0000:0000:0000:0000:0000:0001
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[0] = 0x20;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[1] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[2] = 0x0d;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[3] = 0xb8;
+    for (int i = 4; i < 15; ++i) {
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[i] = 0x00;
+    }
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[15] = 0x01;
+
+    // Test all valid QUIC_CONGESTION_CONTROL_ALGORITHM values
+    const struct {
+        QUIC_CONGESTION_CONTROL_ALGORITHM Algorithm;
+        const char* Name;
+    } kAlgorithms[] = {
+        { QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC, "CUBIC" },
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+        { QUIC_CONGESTION_CONTROL_ALGORITHM_BBR, "BBR" },
+#endif
+    };
+
+    for (size_t i = 0; i < ARRAYSIZE(kAlgorithms); ++i) {
+        // Populate CarefulResumeState with test values
+        CarefulResumeState.SmoothedRtt = 12345 + (uint64_t)i;
+        CarefulResumeState.MinRtt = 2345 + (uint64_t)i;
+        CarefulResumeState.Expiration = 0x1122334455667788 + (uint64_t)i;
+        CarefulResumeState.Algorithm = kAlgorithms[i].Algorithm;
+        CarefulResumeState.CongestionWindow = 65536 + (uint32_t)i;
+
+        EncodedServerTicket = nullptr;
+        EncodedServerTicketLength = 0;
+        CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+        CxPlatZeroMemory(&DecodedCarefulResumeState, sizeof(DecodedCarefulResumeState));
+        DecodedAppData = nullptr;
+        DecodedAppDataLength = 0;
+
+        TEST_QUIC_SUCCEEDED(
+            QuicCryptoEncodeServerTicket(
+                nullptr,
+                QUIC_VERSION_LATEST,
+                0,
+                nullptr,
+                &ServerTP,
+                &CarefulResumeState,
+                NegotiatedAlpn[0],
+                NegotiatedAlpn + 1,
+                &EncodedServerTicket,
+                &EncodedServerTicketLength));
+
+        ASSERT_NE(EncodedServerTicket, nullptr);
+        ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
+
+        TEST_QUIC_SUCCEEDED(
+            QuicCryptoDecodeServerTicket(
+                &Connection,
+                (uint16_t)EncodedServerTicketLength,
+                EncodedServerTicket,
+                NegotiatedAlpn,
+                sizeof(NegotiatedAlpn),
+                &DecodedServerTP,
+                &DecodedCarefulResumeState,
+                &DecodedAppData,
+                &DecodedAppDataLength));
+
+        ASSERT_EQ((uint16_t)DecodedAppDataLength, 0);
+        ASSERT_EQ(DecodedAppData, nullptr);
+        CompareTransportParameters(&ServerTP, &DecodedServerTP);
+
+        // Validate CarefulResumeState fields (except port)
+        ASSERT_EQ(CarefulResumeState.SmoothedRtt, DecodedCarefulResumeState.SmoothedRtt) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.MinRtt, DecodedCarefulResumeState.MinRtt) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family) << kAlgorithms[i].Name;
+        ASSERT_EQ(0, memcmp(
+            CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+            DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+            16)) << kAlgorithms[i].Name;
+
+        CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+    }
+}
+
+TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
+{
+    QUIC_TRANSPORT_PARAMETERS ServerTP;
+    uint8_t NegotiatedAlpn[] = {4, 't', 'e', 's', 't'};
+    uint8_t* EncodedServerTicket = nullptr;
+    uint32_t EncodedServerTicketLength = 0;
+
+    QUIC_TRANSPORT_PARAMETERS DecodedServerTP;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = {};
+    QUIC_CONN_CAREFUL_RESUME_STATE DecodedCarefulResumeState = {};
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
+
+    CxPlatZeroMemory(&ServerTP, sizeof(ServerTP));
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    ServerTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    ServerTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    // Set IPv6 address 2001:db8::1 (do not set port)
+    CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
+    // 2001:0db8:0000:0000:0000:0000:0000:0001
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[0] = 0x20;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[1] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[2] = 0x0d;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[3] = 0xb8;
+    for (int i = 4; i < 15; ++i) {
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[i] = 0x00;
+    }
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[15] = 0x01;
+
+    // Use only CUBIC algorithm
+    CarefulResumeState.SmoothedRtt = 12345;
+    CarefulResumeState.MinRtt = 2345;
+    CarefulResumeState.Expiration = 0x1122334455667788;
+    CarefulResumeState.Algorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    CarefulResumeState.CongestionWindow = 65536;
+
+    // AppData: 250 bytes, monotonically increasing
+    uint8_t AppData[250];
+    for (uint32_t i = 0; i < sizeof(AppData); ++i) {
+        AppData[i] = (uint8_t)i;
+    }
+
+    EncodedServerTicket = nullptr;
+    EncodedServerTicketLength = 0;
+    CxPlatZeroMemory(&DecodedServerTP, sizeof(DecodedServerTP));
+    CxPlatZeroMemory(&DecodedCarefulResumeState, sizeof(DecodedCarefulResumeState));
+    DecodedAppData = nullptr;
+    DecodedAppDataLength = 0;
+
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoEncodeServerTicket(
+            nullptr,
+            QUIC_VERSION_LATEST,
+            sizeof(AppData),
+            AppData,
+            &ServerTP,
+            &CarefulResumeState,
+            NegotiatedAlpn[0],
+            NegotiatedAlpn + 1,
+            &EncodedServerTicket,
+            &EncodedServerTicketLength));
+
+    ASSERT_NE(EncodedServerTicket, nullptr);
+    ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
+
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            NegotiatedAlpn,
+            sizeof(NegotiatedAlpn),
+            &DecodedServerTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+
+    ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
+    ASSERT_NE(DecodedAppData, nullptr);
+    ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
+    CompareTransportParameters(&ServerTP, &DecodedServerTP);
+
+    // Validate CarefulResumeState fields (except port)
+    ASSERT_EQ(CarefulResumeState.SmoothedRtt, DecodedCarefulResumeState.SmoothedRtt);
+    ASSERT_EQ(CarefulResumeState.MinRtt, DecodedCarefulResumeState.MinRtt);
+    ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
+    ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
+    ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family);
+    ASSERT_EQ(0, memcmp(
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+        DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+        16));
+
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
+}
+TEST(ResumptionTicketTest, ServerTicketDecodeFailureCases)
+{
+    const uint8_t TicketBufferFixedV1HeaderLength = 8;
+    const uint8_t TicketBufferFixedV2HeaderLength = TicketBufferFixedV1HeaderLength + 1; // for CR lengths < 0x3F
     const uint8_t TransportParametersLength = 21; // Update if TP size changes
     const uint8_t AppData[] = {1,2,3,4,5};
     const uint8_t Alpn[] = {'t', 'e', 's', 't'};
@@ -601,12 +1040,13 @@ TEST(ResumptionTicketTest, ServerDecFail)
     CxPlatZeroMemory(&Connection, sizeof(Connection));
     Connection.Stats.QuicVersion = QUIC_VERSION_1;
 
-    uint8_t InputTicketBuffer[8 + TransportParametersLength + sizeof(Alpn) +
-                              RESUMPTION_TICKET_V2_EXTENSION_LENGTH + sizeof(AppData)] = {
+    uint8_t InputTicketBuffer[TicketBufferFixedV2HeaderLength + TransportParametersLength +
+                                sizeof(Alpn) + sizeof(AppData)] = {
         CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION,
         0,0,0,1,                    // QUIC version
         4,                          // ALPN length
         0,                          // TP length, update after encoding
+        0,                          // CR length
         (uint8_t)sizeof(AppData),   // App Data Length
     };
 
@@ -635,21 +1075,20 @@ TEST(ResumptionTicketTest, ServerDecFail)
     ASSERT_GT(sizeof(InputTicketBuffer), EncodedTPLength);
 
     CxPlatCopyMemory(
-        &InputTicketBuffer[8],
+        &InputTicketBuffer[TicketBufferFixedV2HeaderLength],
         Alpn,
         sizeof(Alpn));
 
     CxPlatCopyMemory(
-        &InputTicketBuffer[8 + sizeof(Alpn)],
+        &InputTicketBuffer[TicketBufferFixedV2HeaderLength + sizeof(Alpn)],
         EncodedHandshakeTP + CxPlatTlsTPHeaderSize,
         EncodedTPLength - CxPlatTlsTPHeaderSize);
     InputTicketBuffer[6] = (uint8_t)(EncodedTPLength - CxPlatTlsTPHeaderSize);
 
-    ASSERT_GT(sizeof(InputTicketBuffer),
-        (EncodedTPLength + RESUMPTION_TICKET_V2_EXTENSION_LENGTH + sizeof(AppData)));
+    ASSERT_GT(sizeof(InputTicketBuffer),(EncodedTPLength + sizeof(AppData)));
+
     CxPlatCopyMemory(
-        &InputTicketBuffer[(8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize) +
-                            RESUMPTION_TICKET_V2_EXTENSION_LENGTH)],
+        &InputTicketBuffer[(TicketBufferFixedV2HeaderLength + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize))],
         AppData,
         sizeof(AppData));
 
@@ -659,12 +1098,13 @@ TEST(ResumptionTicketTest, ServerDecFail)
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             &Connection,
-            (8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) +
-                RESUMPTION_TICKET_V2_EXTENSION_LENGTH + (uint16_t)sizeof(AppData)),
+            (TicketBufferFixedV2HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) +
+             (uint16_t)sizeof(AppData)),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
@@ -673,25 +1113,26 @@ TEST(ResumptionTicketTest, ServerDecFail)
     //
     // Validate decoding of hand-crafted v1 ticket
     //
-    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION;
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
 
     //
-    // Without modifying the buffer size, simply move the AppData up the buffer and
+    // Without modifying the buffer size, simply move the AppData length, Alpn, EncodedTP and AppData up the buffer and
     // pass in a smaller input buffer length here to match V1 tickets
     //
-    CxPlatCopyMemory(
-        &InputTicketBuffer[8 + sizeof(Alpn) + (EncodedTPLength - CxPlatTlsTPHeaderSize)],
-        AppData,
-        sizeof(AppData));
+    CxPlatMoveMemory(
+        &InputTicketBuffer[TicketBufferFixedV1HeaderLength - 1],
+        &InputTicketBuffer[TicketBufferFixedV1HeaderLength],
+        sizeof(InputTicketBuffer) - TicketBufferFixedV1HeaderLength);
 
     TEST_QUIC_SUCCEEDED(
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
+            TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
@@ -711,6 +1152,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -724,6 +1166,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -737,6 +1180,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -750,6 +1194,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -763,6 +1208,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -776,17 +1222,19 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)(sizeof(Alpn) / 2),
+            TicketBufferFixedV1HeaderLength + (uint16_t)(sizeof(Alpn) / 2),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -795,33 +1243,36 @@ TEST(ResumptionTicketTest, ServerDecFail)
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn),
+            TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)((EncodedTPLength - CxPlatTlsTPHeaderSize) / 2),
+            TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)((EncodedTPLength - CxPlatTlsTPHeaderSize) / 2),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) - 1,
+            TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) - 1,
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -830,23 +1281,24 @@ TEST(ResumptionTicketTest, ServerDecFail)
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize),
+            TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            (8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize +
-                RESUMPTION_TICKET_V2_EXTENSION_LENGTH -1)),
+            (TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize -1)),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -855,24 +1307,25 @@ TEST(ResumptionTicketTest, ServerDecFail)
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            (8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) +
-            RESUMPTION_TICKET_V2_EXTENSION_LENGTH),
+            (TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize)),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     ASSERT_EQ(
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            (8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) +
-                RESUMPTION_TICKET_V2_EXTENSION_LENGTH + (uint16_t)(sizeof(AppData) - 1)),
+            (TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) +
+                (uint16_t)(sizeof(AppData) - 1)),
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -882,7 +1335,9 @@ TEST(ResumptionTicketTest, ServerDecFail)
     //
 
     const uint16_t ActualEncodedTicketLength =
-        8 + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData);
+        TicketBufferFixedV1HeaderLength + (uint16_t)sizeof(Alpn) + (uint16_t)(EncodedTPLength - CxPlatTlsTPHeaderSize) + (uint16_t)sizeof(AppData);
+
+    const uint16_t ActualEncodedV2TicketLength = ActualEncodedTicketLength + (TicketBufferFixedV2HeaderLength - TicketBufferFixedV1HeaderLength);
 
     // Incorrect ticket version
     InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 1;
@@ -890,14 +1345,17 @@ TEST(ResumptionTicketTest, ServerDecFail)
         QUIC_STATUS_INVALID_PARAMETER,
         QuicCryptoDecodeServerTicket(
             &Connection,
-            ActualEncodedTicketLength,
+            ActualEncodedV2TicketLength,
             InputTicketBuffer,
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
-    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_CLIENT_TICKET_VERSION;
+
+    // Revert back to V1 ticket and test other error conditions
+    InputTicketBuffer[0] = CXPLAT_TLS_RESUMPTION_TICKET_VERSION;
 
     // Unsupported QUIC version
     InputTicketBuffer[1] = 1;
@@ -913,6 +1371,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -928,6 +1387,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
     InputTicketBuffer[1] = 0;
@@ -955,6 +1415,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
@@ -970,6 +1431,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -992,6 +1454,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
@@ -1015,6 +1478,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
@@ -1030,6 +1494,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
             AlpnList,
             sizeof(AlpnList),
             &DecodedTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
@@ -1051,6 +1516,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
@@ -1074,6 +1540,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
@@ -1089,6 +1556,7 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
 
@@ -1110,9 +1578,187 @@ TEST(ResumptionTicketTest, ServerDecFail)
                 AlpnList,
                 sizeof(AlpnList),
                 &DecodedTP,
+                NULL,
                 &DecodedAppData,
                 &DecodedAppDataLength));
     }
+}
+
+TEST(ResumptionTicketTest, ServerTicketDecodeFailureCasesWithCR)
+{
+    const uint8_t TicketBufferFixedV1HeaderLength = 8;
+    const uint8_t TicketBufferFixedV2HeaderLength = TicketBufferFixedV1HeaderLength + 1; // for CR lengths < 0x3F
+    const uint8_t TransportParametersLength = 21; // Update if TP size changes
+    const uint8_t AppData[] = {1,2,3,4,5};
+    const uint8_t Alpn[] = {'t', 'e', 's', 't'};
+    const uint8_t AlpnList[] = {4, 't', 'e', 's', 't'};
+    QUIC_TRANSPORT_PARAMETERS HandshakeTP;
+    QUIC_TRANSPORT_PARAMETERS DecodedTP;
+    const uint8_t* EncodedHandshakeTP = nullptr;
+    uint32_t EncodedTPLength = 0;
+    const uint8_t* DecodedAppData = nullptr;
+    uint32_t DecodedAppDataLength = 0;
+
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = {};
+    QUIC_CONN_CAREFUL_RESUME_STATE DecodedCarefulResumeState = {};
+
+    // Populate CarefulResumeState with IPv4 address 172.16.0.1 (Class B)
+    CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
+    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xAC100001); // 172.16.0.1
+    CarefulResumeState.SmoothedRtt = 12345;
+    CarefulResumeState.MinRtt = 2345;
+    CarefulResumeState.Expiration = 0x1122334455667788;
+    CarefulResumeState.Algorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    CarefulResumeState.CongestionWindow = 65536;
+
+    QUIC_CONNECTION Connection;
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
+    Connection.Stats.QuicVersion = QUIC_VERSION_1;
+
+    uint8_t* EncodedServerTicket = nullptr;
+    uint32_t EncodedServerTicketLength = 0;
+
+    CxPlatZeroMemory(&DecodedTP, sizeof(DecodedTP));
+    CxPlatZeroMemory(&HandshakeTP, sizeof(HandshakeTP));
+    HandshakeTP.Flags =
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_INITIAL_MAX_DATA |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_LOCAL |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_BIDI_REMOTE |
+        QUIC_TP_FLAG_INITIAL_MAX_STRM_DATA_UNI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_BIDI |
+        QUIC_TP_FLAG_INITIAL_MAX_STRMS_UNI;
+    HandshakeTP.ActiveConnectionIdLimit = QUIC_TP_ACTIVE_CONNECTION_ID_LIMIT_MIN;
+
+    // Encode a ticket with CarefulResumeState
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoEncodeServerTicket(
+            &Connection,
+            QUIC_VERSION_LATEST,
+            sizeof(AppData),
+            AppData,
+            &HandshakeTP,
+            &CarefulResumeState,
+            sizeof(Alpn),
+            Alpn,
+            &EncodedServerTicket,
+            &EncodedServerTicketLength));
+
+    ASSERT_NE(EncodedServerTicket, nullptr);
+    ASSERT_NE((uint16_t)EncodedServerTicketLength, 0);
+
+    // Validate decode works with correct input
+    TEST_QUIC_SUCCEEDED(
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    ASSERT_EQ(DecodedAppDataLength, sizeof(AppData));
+    ASSERT_NE(DecodedAppData, nullptr);
+    ASSERT_TRUE(memcmp(AppData, DecodedAppData, sizeof(AppData)) == 0);
+    CompareTransportParameters(&HandshakeTP, &DecodedTP);
+    // Validate CarefulResumeState fields (except port)
+    ASSERT_EQ(CarefulResumeState.SmoothedRtt, DecodedCarefulResumeState.SmoothedRtt);
+    ASSERT_EQ(CarefulResumeState.MinRtt, DecodedCarefulResumeState.MinRtt);
+    ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
+    ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
+    ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
+
+    // Now test decode failure cases by corrupting the encoded ticket
+    // 1. Corrupt the version
+    EncodedServerTicket[0] = EncodedServerTicket[0] + 1;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    EncodedServerTicket[0] = EncodedServerTicket[0] - 1;
+
+    // 2. Corrupt the ALPN length (set to too large)
+    uint8_t savedAlpnLen = EncodedServerTicket[5];
+    EncodedServerTicket[5] = (uint8_t)(sizeof(Alpn) + 1);
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    EncodedServerTicket[5] = savedAlpnLen;
+
+    // 3. Corrupt the TP length (set to too large)
+    uint8_t savedTpLen = EncodedServerTicket[6];
+    EncodedServerTicket[6] = (uint8_t)(TransportParametersLength + 1);
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    EncodedServerTicket[6] = savedTpLen;
+
+    // 4. Corrupt the CR length (set to too large)
+    uint8_t savedCrLen = EncodedServerTicket[7];
+    EncodedServerTicket[7] = 0xFF;
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    EncodedServerTicket[7] = savedCrLen;
+
+    // 5. Corrupt the AppData length (set to too large)
+    uint8_t savedAppDataLen = EncodedServerTicket[8];
+    EncodedServerTicket[8] = (uint8_t)(sizeof(AppData) + 1);
+    ASSERT_EQ(
+        QUIC_STATUS_INVALID_PARAMETER,
+        QuicCryptoDecodeServerTicket(
+            &Connection,
+            (uint16_t)EncodedServerTicketLength,
+            EncodedServerTicket,
+            AlpnList,
+            sizeof(AlpnList),
+            &DecodedTP,
+            &DecodedCarefulResumeState,
+            &DecodedAppData,
+            &DecodedAppDataLength));
+    EncodedServerTicket[8] = savedAppDataLen;
+
+    CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
 
 TEST(ResumptionTicketTest, ClientServerEndToEnd)
@@ -1159,6 +1805,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
             sizeof(AppData),
             AppData,
             &ServerTP,
+            NULL,
             NegotiatedAlpn[0],
             NegotiatedAlpn + 1,
             &EncodedServerTicket,
@@ -1204,6 +1851,7 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
             NegotiatedAlpn,
             sizeof(NegotiatedAlpn),
             &DecodedServerTP,
+            NULL,
             &DecodedAppData,
             &DecodedAppDataLength));
 
