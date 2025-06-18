@@ -2254,7 +2254,7 @@ QuicCryptoDecodeAddr(
 
     QuicAddrSetFamily(Addr, (QUIC_ADDRESS_FAMILY)Family);
     if (Family == QUIC_ADDRESS_FAMILY_INET) {
-        if (BufferLength - Offset < sizeof(Addr->Ipv4.sin_addr)) {
+        if (BufferLength < Offset + sizeof(Addr->Ipv4.sin_addr)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -2266,7 +2266,7 @@ QuicCryptoDecodeAddr(
         Offset += sizeof(Addr->Ipv4.sin_addr);
     }
     else if (Family == QUIC_ADDRESS_FAMILY_INET6) {
-        if (BufferLength - Offset < sizeof(Addr->Ipv6.sin6_addr)) {
+        if (BufferLength < Offset + sizeof(Addr->Ipv6.sin6_addr)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
