@@ -2344,15 +2344,8 @@ QuicCryptoEncodeCRState(
 
     uint16_t AddrLen = 0;
     uint8_t EncodedAddr[QUIC_CR_STATE_MAX_ADDR_LENGTH]; // Max size to fit IPv6 address
-    if (QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint) > sizeof(EncodedAddr)) {
-        QuicTraceEvent(
-            ConnError,
-            "[conn][%p] ERROR, %s.",
-            Connection,
-            "Unexpected address size");
-        CXPLAT_DBG_ASSERT(FALSE);
-        return;
-    }
+
+    CXPLAT_DBG_ASSERT(QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint) <= sizeof(EncodedAddr));
 
     QuicCryptoEncodeAddr(EncodedAddr, &AddrLen, &CarefulResumeState->RemoteEndpoint);
     if (AddrLen > sizeof(EncodedAddr)) {
