@@ -1586,16 +1586,12 @@ TEST(ResumptionTicketTest, ServerTicketDecodeFailureCases)
 
 TEST(ResumptionTicketTest, ServerTicketDecodeFailureCasesWithCR)
 {
-    const uint8_t TicketBufferFixedV1HeaderLength = 8;
-    const uint8_t TicketBufferFixedV2HeaderLength = TicketBufferFixedV1HeaderLength + 1; // for CR lengths < 0x3F
     const uint8_t TransportParametersLength = 21; // Update if TP size changes
     const uint8_t AppData[] = {1,2,3,4,5};
     const uint8_t Alpn[] = {'t', 'e', 's', 't'};
     const uint8_t AlpnList[] = {4, 't', 'e', 's', 't'};
     QUIC_TRANSPORT_PARAMETERS HandshakeTP;
     QUIC_TRANSPORT_PARAMETERS DecodedTP;
-    const uint8_t* EncodedHandshakeTP = nullptr;
-    uint32_t EncodedTPLength = 0;
     const uint8_t* DecodedAppData = nullptr;
     uint32_t DecodedAppDataLength = 0;
 

@@ -1100,10 +1100,10 @@ CxPlatTlsCertificateVerifyCallback(
 // Static build time checks to make sure OpenSSL protection levels
 // map correctly to msquic key levels
 //
-CXPLAT_STATIC_ASSERT((int)0 == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_EARLY == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_HANDSHAKE == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)OSSL_RECORD_PROTECTION_LEVEL_APPLICATION == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)0 == (int)(QUIC_PACKET_KEY_INITIAL), "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)(OSSL_RECORD_PROTECTION_LEVEL_EARLY) == (int)(QUIC_PACKET_KEY_0_RTT), "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)(OSSL_RECORD_PROTECTION_LEVEL_HANDSHAKE) == (int)(QUIC_PACKET_KEY_HANDSHAKE), "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((int)(OSSL_RECORD_PROTECTION_LEVEL_APPLICATION) == (int)(QUIC_PACKET_KEY_1_RTT), "Code assumes exact match!");
 
 //
 // @brief OpenSSL flush flight callback for QUIC.

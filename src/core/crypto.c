@@ -2368,7 +2368,7 @@ QuicCryptoEncodeCRState(
     _Analysis_assume_(TicketCursor + QuicVarIntSize((uint8_t)CarefulResumeState->Algorithm) <= Buffer + BufferLength);
     TicketCursor = QuicVarIntEncode((uint8_t)CarefulResumeState->Algorithm, TicketCursor);
     _Analysis_assume_(TicketCursor + QuicVarIntSize(CarefulResumeState->CongestionWindow) <= Buffer + BufferLength);
-    TicketCursor = QuicVarIntEncode(CarefulResumeState->CongestionWindow, TicketCursor);
+    (void)QuicVarIntEncode(CarefulResumeState->CongestionWindow, TicketCursor);
 
     *CRLength = RequiredCRLen;
 }
