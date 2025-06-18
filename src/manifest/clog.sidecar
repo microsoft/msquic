@@ -3479,6 +3479,22 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DecodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu",
+      "UniqueId": "DecodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: ACK Delay Exponent (%llu)",
@@ -4010,6 +4026,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "EncodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Encoding Careful Resume State",
+      "UniqueId": "EncodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -15041,6 +15069,11 @@
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
       },
       {
+        "UniquenessHash": "4f93225a-16ce-0454-82c8-a9a874bfead9",
+        "TraceID": "DecodeCRStart",
+        "EncodingString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu"
+      },
+      {
         "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
         "TraceID": "DecodeTPAckDelayExponent",
         "EncodingString": "[conn][%p] TP: ACK Delay Exponent (%llu)"
@@ -15209,6 +15242,11 @@
         "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
         "TraceID": "EcnValidationUnknown",
         "EncodingString": "[conn][%p] ECN unknown."
+      },
+      {
+        "UniquenessHash": "89d8241b-7af6-1a03-5c55-9b788a7d2924",
+        "TraceID": "EncodeCRStart",
+        "EncodingString": "[conn][%p] Encoding Careful Resume State"
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",

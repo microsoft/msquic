@@ -821,14 +821,14 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
     CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
     CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
     // 2001:0db8:0000:0000:0000:0000:0000:0001
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[0] = 0x20;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[1] = 0x01;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[2] = 0x0d;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[3] = 0xb8;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[0] = 0x20;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[1] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[2] = 0x0d;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[3] = 0xb8;
     for (int i = 4; i < 15; ++i) {
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[i] = 0x00;
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[i] = 0x00;
     }
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[15] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[15] = 0x01;
 
     // Test all valid QUIC_CONGESTION_CONTROL_ALGORITHM values
     const struct {
@@ -896,8 +896,8 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
         ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family) << kAlgorithms[i].Name;
         ASSERT_EQ(0, memcmp(
-            CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
-            DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+            CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
+            DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
             16)) << kAlgorithms[i].Name;
 
         CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
@@ -939,14 +939,14 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
     CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
     CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
     // 2001:0db8:0000:0000:0000:0000:0000:0001
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[0] = 0x20;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[1] = 0x01;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[2] = 0x0d;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[3] = 0xb8;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[0] = 0x20;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[1] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[2] = 0x0d;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[3] = 0xb8;
     for (int i = 4; i < 15; ++i) {
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[i] = 0x00;
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[i] = 0x00;
     }
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte[15] = 0x01;
+    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[15] = 0x01;
 
     // Use only CUBIC algorithm
     CarefulResumeState.SmoothedRtt = 12345;
@@ -1009,8 +1009,8 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
     ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family);
     ASSERT_EQ(0, memcmp(
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
-        DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.u.Byte,
+        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
+        DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
         16));
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
