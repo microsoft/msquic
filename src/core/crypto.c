@@ -2180,49 +2180,50 @@ IsQuicIncomingResumptionTicketSupported(
 }
 
 #define QUIC_CR_STATE_MIN_ADDR_LENGTH \
-    (QuicVarIntSize(AF_INET) + sizeof(struct in_addr))
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET) + sizeof(IN_ADDR))
 
 #define QUIC_CR_STATE_MAX_ADDR_LENGTH \
-    (QuicVarIntSize(AF_INET6) + sizeof(struct in6_addr))
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET6) + sizeof(IN6_ADDR))
 
 // TODO: We default to IPv6 addr size for all non-IPv4 address families.
 #define QuicCryptoAddrSize(Addr) \
-    ((Addr)->si_family == AF_INET ? QUIC_CR_STATE_MIN_ADDR_LENGTH : \
+    (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET ? QUIC_CR_STATE_MIN_ADDR_LENGTH : \
      QUIC_CR_STATE_MAX_ADDR_LENGTH)
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCryptoEncodeAddr(
     _Out_writes_bytes_(_Inexpressible_("Too Dynamic")) uint8_t* Buffer,
-    _Out_ uint16_t* AddrLength,
-    _In_ const QUIC_ADDR* Addr)
+    _Out_range_(<=, QUIC_CR_STATE_MAX_ADDR_LENGTH) uint16_t* AddrLength,
+    _In_ const QUIC_ADDR* Addr
+    )
 {
-    uint16_t AddrSize = QuicCryptoAddrSize(Addr);
+    *AddrLength = (uint16_t)QuicCryptoAddrSize(Addr);
+    uint8_t AddrFamily = (uint8_t)QuicAddrGetFamily(Addr);
 
-    uint8_t* TicketCursor = QuicVarIntEncode(Addr->si_family, Buffer);
-    if (Addr->si_family == AF_INET) {
+    _Analysis_assume_(AddrFamily == QUIC_ADDRESS_FAMILY_INET ||
+        AddrFamily == QUIC_ADDRESS_FAMILY_INET6);
+    uint8_t* TicketCursor = QuicVarIntEncode(AddrFamily, Buffer);
+    if (AddrFamily == QUIC_ADDRESS_FAMILY_INET) {
         CxPlatCopyMemory(TicketCursor,
-            &Addr->Ipv4.sin_addr.s_addr,
-            sizeof(Addr->Ipv4.sin_addr.s_addr));
+            &Addr->Ipv4.sin_addr,
+            sizeof(IN_ADDR));
     }
-    else if (Addr->si_family == AF_INET6) {
+    else if (AddrFamily == QUIC_ADDRESS_FAMILY_INET6) {
         CxPlatCopyMemory(TicketCursor,
-            &Addr->Ipv6.sin6_addr.s6_addr,
-            sizeof(Addr->Ipv6.sin6_addr.s6_addr));
+            &Addr->Ipv6.sin6_addr,
+            sizeof(IN6_ADDR));
     }
     else {
         // TODO: We encode unsupported address family like an empty IPv6 address.
         // TODO: This is to avoid any potential app compat issues.
         // TODO: This address will be rejected during careful resumption
-        CxPlatZeroMemory(TicketCursor,
-            sizeof(Addr->Ipv6.sin6_addr.s6_addr));
+        CxPlatZeroMemory(TicketCursor, *AddrLength);
     }
-
-    *AddrLength = AddrSize;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOL
+BOOLEAN
 QuicCryptoDecodeAddr(
     _In_reads_bytes_(BufferLength) const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
@@ -2251,9 +2252,9 @@ QuicCryptoDecodeAddr(
         return FALSE;
     }
 
-    Addr->si_family = (uint16_t)Family;
-    if (Addr->si_family == AF_INET) {
-        if (BufferLength - Offset < sizeof(Addr->Ipv4.sin_addr.s_addr)) {
+    QuicAddrSetFamily(Addr, (QUIC_ADDRESS_FAMILY)Family);
+    if (Family == QUIC_ADDRESS_FAMILY_INET) {
+        if (BufferLength - Offset < sizeof(Addr->Ipv4.sin_addr)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -2261,11 +2262,11 @@ QuicCryptoDecodeAddr(
                 "Invalid Careful Resume State IPv4 address");
             return FALSE;
         }
-        CxPlatCopyMemory(&Addr->Ipv4.sin_addr.s_addr, Buffer + Offset, sizeof(Addr->Ipv4.sin_addr.s_addr));
-        Offset += sizeof(Addr->Ipv4.sin_addr.s_addr);
+        CxPlatCopyMemory(&Addr->Ipv4.sin_addr, Buffer + Offset, sizeof(Addr->Ipv4.sin_addr));
+        Offset += sizeof(Addr->Ipv4.sin_addr);
     }
-    else if (Addr->si_family == AF_INET6) {
-        if (BufferLength - Offset < sizeof(Addr->Ipv6.sin6_addr.s6_addr)) {
+    else if (Family == QUIC_ADDRESS_FAMILY_INET6) {
+        if (BufferLength - Offset < sizeof(Addr->Ipv6.sin6_addr)) {
             QuicTraceEvent(
                 ConnError,
                 "[conn][%p] ERROR, %s.",
@@ -2273,8 +2274,8 @@ QuicCryptoDecodeAddr(
                 "Invalid Careful Resume State IPv6 address");
             return FALSE;
         }
-        CxPlatCopyMemory(&Addr->Ipv6.sin6_addr.s6_addr, Buffer + Offset, sizeof(Addr->Ipv6.sin6_addr.s6_addr));
-        Offset += sizeof(Addr->Ipv6.sin6_addr.s6_addr);
+        CxPlatCopyMemory(&Addr->Ipv6.sin6_addr, Buffer + Offset, sizeof(Addr->Ipv6.sin6_addr));
+        Offset += sizeof(Addr->Ipv6.sin6_addr);
     }
     else {
         // TODO: Unsupported address family will be treated as cleared IPv6
@@ -2298,8 +2299,7 @@ QuicCryptoDecodeAddr(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCryptoGetEncodeCRStateSize(
-    _In_  const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
-    _In_opt_ QUIC_CONNECTION* Connection
+    _In_  const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState
 )
 {
     size_t AddrSize = QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint);
@@ -2311,26 +2311,26 @@ size_t
 QUIC_CR_STATE_ENCODED_MIN_LENGTH()
 {
     QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = { 0 };
-    CarefulResumeState.RemoteEndpoint.si_family = AF_INET;
-    return QuicCryptoGetEncodeCRStateSize(&CarefulResumeState, NULL);
+    QuicAddrSetFamily(&CarefulResumeState.RemoteEndpoint, QUIC_ADDRESS_FAMILY_INET);
+    return QuicCryptoGetEncodeCRStateSize(&CarefulResumeState);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicCryptoEncodeCRState(
-    _Out_writes_bytes_to_(BufferLength, *CRLength) uint8_t* Buffer,
-    _Out_ uint32_t* CRLength,
     _In_ uint32_t BufferLength,
     _In_ const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
-    _In_opt_ QUIC_CONNECTION* Connection
-)
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* CRLength,
+    _Out_writes_bytes_to_(BufferLength, *CRLength) uint8_t* Buffer
+    )
 {
     QuicTraceLogConnVerbose(
         EncodeCRStart,
         Connection,
         "Encoding Careful Resume State");
 
-    uint32_t RequiredCRLen = QuicCryptoGetEncodeCRStateSize(CarefulResumeState, Connection);
+    uint32_t RequiredCRLen = QuicCryptoGetEncodeCRStateSize(CarefulResumeState);
 
     if (BufferLength < RequiredCRLen) {
         QuicTraceEvent(
@@ -2452,8 +2452,7 @@ QuicCryptoDecodeCRState(
     }
 
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &Value) ||
-        Value < QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC ||
-        Value > QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
+        Value >= (uint8_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
         QuicTraceEvent(
             ConnErrorStatus,
             "[conn][%p] ERROR, %u, %s.",
@@ -2548,7 +2547,7 @@ QuicCryptoEncodeServerTicket(
     //
     // (Server-only) Careful Resumption State
     //
-    uint32_t EncodedCRLength = (NULL == CarefulResumeState) ? 0 : QuicCryptoGetEncodeCRStateSize(CarefulResumeState, Connection);
+    uint32_t EncodedCRLength = (NULL == CarefulResumeState) ? 0 : QuicCryptoGetEncodeCRStateSize(CarefulResumeState);
     uint32_t TotalTicketLength =
         (uint32_t)(QuicVarIntSize(CXPLAT_TLS_RESUMPTION_TICKET_VERSION) +
         sizeof(QuicVersion) +
@@ -2598,7 +2597,7 @@ QuicCryptoEncodeServerTicket(
     TicketCursor += EncodedTPLength;
 
     if (NULL != CarefulResumeState) {
-        QuicCryptoEncodeCRState(TicketCursor, &EncodedCRLength, EncodedCRLength, CarefulResumeState, Connection);
+        QuicCryptoEncodeCRState(EncodedCRLength, CarefulResumeState, Connection, &EncodedCRLength, TicketCursor);
         TicketCursor += EncodedCRLength;
     }
 
