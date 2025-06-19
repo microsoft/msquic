@@ -2035,7 +2035,6 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
 {
     QUIC_CONN_CAREFUL_RESUME_STATE crState = {};
     uint8_t buffer[128] = {0};
-    uint16_t bufLen = 0;
     QUIC_ADDR addr;
     CxPlatZeroMemory(&addr, sizeof(addr));
     QuicAddrFromString("192.0.2.1", 0, &addr);
