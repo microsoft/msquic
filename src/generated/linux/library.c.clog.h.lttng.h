@@ -375,9 +375,9 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
             LibrarySetRetryKeySecretLengthInvalid,
             "[ lib] Invalid retry key secret length: %u. Expected %u.",
             Config->SecretLength,
-            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
+            AlgSecretLen);
 // arg2 = arg2 = Config->SecretLength = arg2
-// arg3 = arg3 = CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm) = arg3
+// arg3 = arg3 = AlgSecretLen = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid,
     TP_ARGS(

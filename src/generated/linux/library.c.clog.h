@@ -400,9 +400,9 @@ tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
             LibrarySetRetryKeySecretLengthInvalid,
             "[ lib] Invalid retry key secret length: %u. Expected %u.",
             Config->SecretLength,
-            CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm));
+            AlgSecretLen);
 // arg2 = arg2 = Config->SecretLength = arg2
-// arg3 = arg3 = CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm) = arg3
+// arg3 = arg3 = AlgSecretLen = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid
 #define _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\

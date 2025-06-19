@@ -6688,13 +6688,22 @@ QuicTestRetryConfigSetting()
                 sizeof(TestRotationMs),
                 (uint8_t*)&TestRotationMs));
 
-        CxPlatSleep(100);
         TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                &ResultBufferSize,
-                ResultBuffer));
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->RotationMs == 54321) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
         TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
         TEST_EQUAL(32, ResultConfig->SecretLength);
         TEST_EQUAL(54321, ResultConfig->RotationMs);
@@ -6730,13 +6739,23 @@ QuicTestRetryConfigSetting()
                 16, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
                 TestSecret));
 
-        CxPlatSleep(100);
         TEST_QUIC_SUCCEEDED(
-            MsQuic->GetParam(
-                nullptr,
-                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
-                &ResultBufferSize,
-                ResultBuffer));
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->SecretLength == 16 &&
+                    ResultConfig->Algorithm == QUIC_AEAD_ALGORITHM_AES_128_GCM) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
         TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
         TEST_EQUAL(16, ResultConfig->SecretLength);
         TEST_EQUAL(54321, ResultConfig->RotationMs);
