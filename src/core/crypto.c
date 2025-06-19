@@ -2185,7 +2185,7 @@ IsQuicIncomingResumptionTicketSupported(
 #define QUIC_CR_STATE_MAX_ADDR_LENGTH \
     (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET6) + sizeof(IN6_ADDR))
 
-// TODO: We default to IPv6 addr size for all non-IPv4 address families.
+// We default to IPv6 addr size for all non-IPv4 address families.
 #define QuicCryptoAddrSize(Addr) \
     (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET ? QUIC_CR_STATE_MIN_ADDR_LENGTH : \
      QUIC_CR_STATE_MAX_ADDR_LENGTH)
@@ -2215,10 +2215,9 @@ QuicCryptoEncodeAddr(
             sizeof(IN6_ADDR));
     }
     else {
-        // TODO: We encode unsupported address family like an empty IPv6 address.
-        // TODO: This is to avoid any potential app compat issues.
-        // TODO: This address will be rejected during careful resumption
+        // Unsupported address family.
         CxPlatZeroMemory(TicketCursor, *AddrLength);
+        CXPLAT_FRE_ASSERT(FALSE);
     }
 }
 
@@ -2278,10 +2277,12 @@ QuicCryptoDecodeAddr(
         Offset += sizeof(Addr->Ipv6.sin6_addr);
     }
     else {
-        // TODO: Unsupported address family will be treated as cleared IPv6
-        // TODO: This is to avoid any potential app compat issues.
-        // TODO: This address will be rejected during careful resumption
-        CxPlatZeroMemory(&Addr->Ipv6.sin6_addr.s6_addr, sizeof(Addr->Ipv6.sin6_addr.s6_addr));
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Unsupported address family in Careful Resume State");
+        return FALSE;
     }
 
     return TRUE;
