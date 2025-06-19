@@ -2433,7 +2433,6 @@ QuicCryptoDecodeCRState(
     }
 
     Offset += (uint16_t)AddrLen;
-    QUIC_VAR_INT Value;
 
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->Expiration)) {
         QuicTraceEvent(
@@ -2444,6 +2443,7 @@ QuicCryptoDecodeCRState(
         return FALSE;
     }
 
+    QUIC_VAR_INT Value = 0;
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &Value) ||
         Value >= (uint8_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
         QuicTraceEvent(
