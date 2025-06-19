@@ -4003,15 +4003,16 @@ CxPlatDataPathRdmaProcessGetConnectionRequestCompletion(
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket != NULL);
         CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket->RdmaContext != NULL);
         AcceptSocketProc = &ListenerSocketProc->AcceptSocket->PerProcSockets[0];
-        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
-        
-        RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
-        RdmaConnection->State = RdmaConnectionStateWaitingForAccept;
 
         if (!CxPlatRundownAcquire(&AcceptSocketProc->RundownRef))
         {
             goto ErrorExit;
         }
+
+        CXPLAT_DBG_ASSERT(ListenerSocketProc->AcceptSocket == AcceptSocketProc->Parent);
+        
+        RdmaConnection = (RDMA_CONNECTION*)ListenerSocketProc->AcceptSocket->RdmaContext;
+        RdmaConnection->State = RdmaConnectionStateWaitingForAccept;
 
         CXPLAT_DATAPATH* Datapath = ListenerSocketProc->Parent->Datapath;
         PartitionIndex = (uint16_t)(CxPlatProcCurrentNumber() % Datapath->PartitionCount);
@@ -4182,11 +4183,6 @@ ErrorExit:
         SocketDelete(ListenerSocketProc->AcceptSocket);
         ListenerSocketProc->AcceptSocket = NULL;
     }
-
-    //
-    // Start a new accept
-    //
-    ListenerSocketProc->AcceptSocket = NULL;
 
     CxPlatRdmaStartAccept(ListenerSocketProc);
 
