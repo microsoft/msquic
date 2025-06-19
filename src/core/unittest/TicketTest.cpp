@@ -613,8 +613,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV4CR)
 
     // Set IPv4 address 192.0.2.1 (do not set port)
     CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xC0000201); // 192.0.2.1
+    QuicAddrFromString("192.0.2.1", 0, &CarefulResumeState.RemoteEndpoint);
 
     // Test all valid QUIC_CONGESTION_CONTROL_ALGORITHM values
     const struct {
@@ -680,8 +679,14 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV4CR)
         ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
-        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family) << kAlgorithms[i].Name;
-        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr) << kAlgorithms[i].Name;
+        ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
+                                        &DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
+
+        // Redundant checks
+        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
+                    DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family) << kAlgorithms[i].Name;
+        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
+                    DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr) << kAlgorithms[i].Name;
 
         CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
     }
@@ -718,8 +723,7 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV4ClassBCR)
 
     // Set IPv4 Class B address 172.16.0.1 (do not set port)
     CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xAC100001); // 172.16.0.1
+    QuicAddrFromString("172.16.0.1", 0, &CarefulResumeState.RemoteEndpoint);
 
     // Use only CUBIC algorithm
     CarefulResumeState.SmoothedRtt = 12345;
@@ -780,8 +784,13 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV4ClassBCR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
+    ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
+                                    &DecodedCarefulResumeState.RemoteEndpoint));
+    // Redundant checks
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
+                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
+                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
@@ -817,18 +826,7 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
 
     // Set IPv6 address 2001:db8::1 (do not set port)
     CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
-    // 2001:0db8:0000:0000:0000:0000:0000:0001
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[0] = 0x20;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[1] = 0x01;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[2] = 0x0d;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[3] = 0xb8;
-    for (int i = 4; i < 15; ++i) {
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[i] = 0x00;
-    }
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[15] = 0x01;
+    QuicAddrFromString("2001:db8::1", 0, &CarefulResumeState.RemoteEndpoint);
 
     // Test all valid QUIC_CONGESTION_CONTROL_ALGORITHM values
     const struct {
@@ -894,6 +892,10 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
         ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
+        ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
+            &DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
+
+        // Redundant checks
         ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family) << kAlgorithms[i].Name;
         ASSERT_EQ(0, memcmp(
             CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
@@ -935,18 +937,7 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
 
     // Set IPv6 address 2001:db8::1 (do not set port)
     CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family = QUIC_ADDRESS_FAMILY_INET6;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_flowinfo = 0;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_scope_id = 0;
-    // 2001:0db8:0000:0000:0000:0000:0000:0001
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[0] = 0x20;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[1] = 0x01;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[2] = 0x0d;
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[3] = 0xb8;
-    for (int i = 4; i < 15; ++i) {
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[i] = 0x00;
-    }
-    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr[15] = 0x01;
+    QuicAddrFromString("2001:db8::1", 0, &CarefulResumeState.RemoteEndpoint);
 
     // Use only CUBIC algorithm
     CarefulResumeState.SmoothedRtt = 12345;
@@ -1007,11 +998,15 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family);
+    ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
+                                    &DecodedCarefulResumeState.RemoteEndpoint));
+    // Redundant checks
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family,
+                DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family);
     ASSERT_EQ(0, memcmp(
-        CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-        DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-        16));
+                    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
+                    DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
+                    sizeof(DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr)));
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
@@ -1600,8 +1595,7 @@ TEST(ResumptionTicketTest, ServerTicketDecodeFailureCasesWithCR)
 
     // Populate CarefulResumeState with IPv4 address 172.16.0.1 (Class B)
     CxPlatZeroMemory(&CarefulResumeState.RemoteEndpoint, sizeof(CarefulResumeState.RemoteEndpoint));
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_family = QUIC_ADDRESS_FAMILY_INET;
-    CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr = htonl(0xAC100001); // 172.16.0.1
+    QuicAddrFromString("172.16.0.1", 0, &CarefulResumeState.RemoteEndpoint);
     CarefulResumeState.SmoothedRtt = 12345;
     CarefulResumeState.MinRtt = 2345;
     CarefulResumeState.Expiration = 0x1122334455667788;
@@ -1666,8 +1660,13 @@ TEST(ResumptionTicketTest, ServerTicketDecodeFailureCasesWithCR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr, DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
+    ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
+                                    &DecodedCarefulResumeState.RemoteEndpoint));
+    // Redundant checks
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
+                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
+    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
+                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
 
     // Now test decode failure cases by corrupting the encoded ticket
     // 1. Corrupt the version
