@@ -2227,7 +2227,8 @@ QuicCryptoDecodeAddr(
     _In_reads_bytes_(BufferLength) const uint8_t* Buffer,
     _In_ uint16_t BufferLength,
     _In_opt_ QUIC_CONNECTION* Connection,
-    _Out_ QUIC_ADDR* Addr)
+    _Out_ QUIC_ADDR* Addr
+    )
 {
     CxPlatZeroMemory(Addr, sizeof(QUIC_ADDR));
 
@@ -2301,7 +2302,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 QuicCryptoGetEncodeCRStateSize(
     _In_  const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState
-)
+    )
 {
     size_t AddrSize = QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint);
     return (uint32_t)QuicEncodedCRStateSize(AddrSize, CarefulResumeState);
@@ -2382,7 +2383,7 @@ QuicCryptoDecodeCRState(
     _In_reads_(CRBufLength) const uint8_t * Buffer,
     _In_ uint16_t CRBufLength,
     _In_opt_ QUIC_CONNECTION * Connection
-)
+    )
 {
     QuicTraceLogConnVerbose(
         DecodeCRStart,

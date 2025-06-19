@@ -378,10 +378,22 @@ CxPlatTlsCertificateVerifyCallback(
     return status;
 }
 
+//
+// Silence overactive compiler warnings about comparing enum values esp. in static asserts
+//
+#ifdef _WIN32
+#pragma warning(push)
+#pragma warning(disable:5287)
+#endif
+
 CXPLAT_STATIC_ASSERT((int)(ssl_encryption_initial) == (int)(QUIC_PACKET_KEY_INITIAL), "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)(ssl_encryption_early_data) == (int)(QUIC_PACKET_KEY_0_RTT), "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)(ssl_encryption_handshake) == (int)(QUIC_PACKET_KEY_HANDSHAKE), "Code assumes exact match!");
 CXPLAT_STATIC_ASSERT((int)(ssl_encryption_application) == (int)(QUIC_PACKET_KEY_1_RTT), "Code assumes exact match!");
+
+#ifdef _WIN32
+#pragma warning(pop)
+#endif
 
 void
 CxPlatTlsNegotiatedCiphers(

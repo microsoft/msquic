@@ -1859,3 +1859,278 @@ TEST(ResumptionTicketTest, ClientServerEndToEnd)
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
     CXPLAT_FREE(DecodedServerTicket, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
 }
+
+//
+// Declarations for test purposes
+//
+
+extern "C" {
+
+BOOLEAN
+IsQuicIncomingResumptionTicketSupported(
+    _In_ QUIC_VAR_INT TicketVersion
+);
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoEncodeAddr(
+    _Out_writes_bytes_(_Inexpressible_("Too Dynamic")) uint8_t* Buffer,
+    _Out_range_(<= , QUIC_CR_STATE_MAX_ADDR_LENGTH) uint16_t* AddrLength,
+    _In_ const QUIC_ADDR* Addr
+);
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCryptoDecodeAddr(
+    _In_reads_bytes_(BufferLength) const uint8_t* Buffer,
+    _In_ uint16_t BufferLength,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _Out_ QUIC_ADDR* Addr
+);
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCryptoGetEncodeCRStateSize(
+    _In_  const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState
+);
+
+void
+QuicCryptoEncodeCRState(
+    _In_ uint32_t BufferLength,
+    _In_ const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* CRLength,
+    _Out_writes_bytes_to_(BufferLength, *CRLength) uint8_t* Buffer
+);
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicCryptoDecodeCRState(
+    _Out_  QUIC_CONN_CAREFUL_RESUME_STATE * CarefulResumeState,
+    _In_reads_(CRBufLength) const uint8_t * Buffer,
+    _In_ uint16_t CRBufLength,
+    _In_opt_ QUIC_CONNECTION * Connection
+);
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+size_t
+QUIC_CR_STATE_ENCODED_MIN_LENGTH();
+
+
+}
+
+#define QUIC_CR_STATE_MIN_ADDR_LENGTH \
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET) + sizeof(IN_ADDR))
+
+#define QUIC_CR_STATE_MAX_ADDR_LENGTH \
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET6) + sizeof(IN6_ADDR))
+
+TEST(ResumptionTicketTest, IsQuicIncomingResumptionTicketSupported)
+{
+    //
+    // Supported range: [CXPLAT_TLS_RESUMPTION_TICKET_VERSION, CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION]
+    //
+    EXPECT_TRUE(IsQuicIncomingResumptionTicketSupported(CXPLAT_TLS_RESUMPTION_TICKET_VERSION));
+    EXPECT_TRUE(IsQuicIncomingResumptionTicketSupported(CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION));
+
+    //
+    // Below supported range
+    //
+    EXPECT_FALSE(IsQuicIncomingResumptionTicketSupported(
+        CXPLAT_TLS_RESUMPTION_TICKET_VERSION - 1));
+
+    //
+    // Above supported range
+    //
+    EXPECT_FALSE(IsQuicIncomingResumptionTicketSupported(
+        CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION + 1));
+}
+
+TEST(ResumptionTicketTest, QuicCryptoEncodeAddr)
+{
+    //
+    // IPv4 test
+    //
+    QUIC_ADDR addr4;
+    CxPlatZeroMemory(&addr4, sizeof(addr4));
+    QuicAddrFromString("192.0.2.123", 0, &addr4);
+
+    uint8_t buffer4[32] = {0};
+    uint16_t addrLen4 = 0;
+    QuicCryptoEncodeAddr(buffer4, &addrLen4, &addr4);
+
+    //
+    // Should encode to at least the minimum length
+    //
+    ASSERT_GE(addrLen4, QUIC_CR_STATE_MIN_ADDR_LENGTH);
+
+    QUIC_ADDR decoded4;
+    ASSERT_TRUE(QuicCryptoDecodeAddr(buffer4, addrLen4, nullptr, &decoded4));
+    ASSERT_TRUE(QuicAddrCompareIp(&addr4, &decoded4));
+    ASSERT_EQ(addr4.Ipv4.sin_family, decoded4.Ipv4.sin_family);
+    ASSERT_EQ(addr4.Ipv4.sin_addr.s_addr, decoded4.Ipv4.sin_addr.s_addr);
+
+    //
+    // IPv6 test
+    //
+    QUIC_ADDR addr6;
+    CxPlatZeroMemory(&addr6, sizeof(addr6));
+    QuicAddrFromString("2001:db8::abcd", 0, &addr6);
+
+    uint8_t buffer6[64] = {0};
+    uint16_t addrLen6 = 0;
+    QuicCryptoEncodeAddr(buffer6, &addrLen6, &addr6);
+
+    //
+    // Should encode to at least the maximum length for IPv6
+    //
+    ASSERT_GE(addrLen6, QUIC_CR_STATE_MAX_ADDR_LENGTH - 8); // allow for varint size
+
+    QUIC_ADDR decoded6;
+    ASSERT_TRUE(QuicCryptoDecodeAddr(buffer6, addrLen6, nullptr, &decoded6));
+    ASSERT_TRUE(QuicAddrCompareIp(&addr6, &decoded6));
+    ASSERT_EQ(addr6.Ipv6.sin6_family, decoded6.Ipv6.sin6_family);
+    ASSERT_EQ(0, memcmp(&addr6.Ipv6.sin6_addr, &decoded6.Ipv6.sin6_addr, sizeof(addr6.Ipv6.sin6_addr)));
+}
+
+TEST(ResumptionTicketTest, QuicCryptoDecodeAddrFailureCases)
+{
+    uint8_t buffer[64] = { 0 };
+    uint16_t addrLen = 0;
+    QUIC_ADDR decodedAddr;
+
+    //
+    // Test with null address
+    //
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, addrLen, nullptr, &decodedAddr));
+
+    //
+    // Test with zero length
+    //
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, 0, nullptr, &decodedAddr));
+
+    //
+    // Test with insufficient buffer length
+    //
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, 1, nullptr, &decodedAddr));
+
+    //
+    // Test with invalid IPv4 data
+    //
+    buffer[0] = 0x01; // Invalid family
+    addrLen = 4; // Length for IPv4
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, addrLen, nullptr, &decodedAddr));
+
+    //
+    // Test with invalid IPv6 data
+    //
+    buffer[0] = AF_INET6; // Valid family
+    addrLen = 16; // Length for IPv6
+    memset(buffer + 1, 0xFF, 15); // Invalid address
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, addrLen, nullptr, &decodedAddr));
+}
+
+TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
+{
+    QUIC_CONN_CAREFUL_RESUME_STATE crState = {};
+    uint8_t buffer[128] = {0};
+    uint16_t bufLen = 0;
+    QUIC_ADDR addr;
+    CxPlatZeroMemory(&addr, sizeof(addr));
+    QuicAddrFromString("192.0.2.1", 0, &addr);
+
+    //
+    // Prepare a valid encoded CRState for reference
+    //
+    QUIC_CONN_CAREFUL_RESUME_STATE validState = {};
+    validState.RemoteEndpoint = addr;
+    validState.SmoothedRtt = 1000;
+    validState.MinRtt = 500;
+    validState.Expiration = 123456789;
+    validState.Algorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
+    validState.CongestionWindow = 10000;
+    uint32_t requiredSize = QuicCryptoGetEncodeCRStateSize(&validState);
+    ASSERT_LE(requiredSize, sizeof(buffer));
+    uint32_t crLength = 0;
+    QuicCryptoEncodeCRState(
+        sizeof(buffer),
+        &validState,
+        nullptr,
+        &crLength,
+        buffer);
+    ASSERT_EQ(crLength, requiredSize);
+
+    //
+    // 1. Buffer too small (less than minimum length)
+    //
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, buffer, 0, nullptr));
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, buffer, (uint16_t)(QUIC_CR_STATE_ENCODED_MIN_LENGTH() - 1), nullptr));
+
+    //
+    // 2. Invalid address length (set AddrLen to 0)
+    //
+    uint8_t corruptBuf[128];
+    memcpy(corruptBuf, buffer, crLength);
+    corruptBuf[0] = 0; // AddrLen varint = 0
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
+
+    //
+    // 3. AddrLen too large
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    corruptBuf[0] = (uint8_t)(QUIC_CR_STATE_MAX_ADDR_LENGTH + 1);
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
+
+    //
+    // 4. Corrupt RTT values (make SmoothedRtt varint incomplete)
+    // Set AddrLen to valid, but truncate buffer so SmoothedRtt can't be decoded
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, 1, nullptr));
+
+    //
+    // 5. Corrupt address (invalid family)
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    uint16_t offset = 0;
+    QUIC_VAR_INT addrLen = 0;
+    QUIC_VAR_INT temp = 0;
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &addrLen)); // Offset of address length
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &temp)); // Offset of smoothedRTT
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &temp)); // Offset of minRtt
+    corruptBuf[offset] = 0xFF; // Invalid family
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
+
+    //
+    // 6. Corrupt Expiration (truncate buffer so Expiration can't be decoded)
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)(crLength - 2), nullptr));
+
+    //
+    // 7. Corrupt Algorithm (set to invalid value)
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    offset = 0;
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &addrLen)); // AddrLen
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &temp)); // SmoothedRtt
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &temp)); // MinRtt
+    offset += (uint16_t)addrLen; // skip address
+    ASSERT_TRUE(QuicVarIntDecode((uint16_t)crLength, corruptBuf, &offset, &temp)); // Expiration
+    corruptBuf[offset] = (uint8_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX; // Set algorithm to invalid
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
+
+    //
+    // 8. Corrupt CongestionWindow (truncate buffer so CongestionWindow can't be decoded)
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)(crLength - 1), nullptr));
+
+    //
+    // 9. Buffer length mismatch (extra bytes at end)
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    corruptBuf[crLength] = 0xAA;
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)(crLength + 1), nullptr));
+}
