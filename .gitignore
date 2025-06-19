@@ -366,6 +366,9 @@ FodyWeavers.xsd
 # VS Code settings folder
 .vscode/
 
+# VS Code Workspace settings
+*.code-workspace/
+
 # PGO Local Test Copy
 artifacts_server/
 
