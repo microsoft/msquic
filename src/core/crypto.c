@@ -2185,10 +2185,20 @@ IsQuicIncomingResumptionTicketSupported(
 #define QUIC_CR_STATE_MAX_ADDR_LENGTH \
     (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET6) + sizeof(IN6_ADDR))
 
-// We default to IPv6 addr size for all non-IPv4 address families.
-#define QuicCryptoAddrSize(Addr) \
-    (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET ? QUIC_CR_STATE_MIN_ADDR_LENGTH : \
-     QUIC_CR_STATE_MAX_ADDR_LENGTH)
+size_t
+QuicCryptoAddrSize(
+    _In_ const QUIC_ADDR* Addr
+    )
+{
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
+        return QUIC_CR_STATE_MIN_ADDR_LENGTH;
+    }
+
+    //
+    // We default to IPv6 addr size for all non-IPv4 address families.
+    //
+    return QUIC_CR_STATE_MAX_ADDR_LENGTH;
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
@@ -2289,14 +2299,24 @@ QuicCryptoDecodeAddr(
     return TRUE;
 }
 
-#define QuicEncodedCRStateSize(AddrSize, CRState) \
-        (QuicVarIntSize(AddrSize) +\
-         QuicVarIntSize(CRState->SmoothedRtt) + \
-         QuicVarIntSize(CRState->MinRtt) + \
-         AddrSize + \
-         QuicVarIntSize(CRState->Expiration) + \
-         QuicVarIntSize(CRState->Algorithm) + \
-         QuicVarIntSize(CRState->CongestionWindow))
+size_t
+QuicEncodedCRStateSize(
+    _In_ size_t AddrSize,
+    _In_ const QUIC_CONN_CAREFUL_RESUME_STATE* CRState
+    )
+{
+
+    CXPLAT_FRE_ASSERT(AddrSize >= QUIC_CR_STATE_MIN_ADDR_LENGTH &&
+                      AddrSize <= QUIC_CR_STATE_MAX_ADDR_LENGTH);
+
+    return (QuicVarIntSize(AddrSize) +
+        QuicVarIntSize(CRState->SmoothedRtt) +
+        QuicVarIntSize(CRState->MinRtt) +
+        AddrSize +
+        QuicVarIntSize(CRState->Expiration) +
+        QuicVarIntSize(CRState->Algorithm) +
+        QuicVarIntSize(CRState->CongestionWindow));
+}
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
@@ -2422,6 +2442,15 @@ QuicCryptoDecodeCRState(
             "[conn][%p] ERROR, %s.",
             Connection,
             "Invalid Careful Resume State RTT values");
+        return FALSE;
+    }
+
+    if (CRBufLength < Offset + AddrLen) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "CR buffer is too small for address");
         return FALSE;
     }
 

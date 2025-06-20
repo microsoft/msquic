@@ -1917,7 +1917,6 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 size_t
 QUIC_CR_STATE_ENCODED_MIN_LENGTH();
 
-
 }
 
 #define QUIC_CR_STATE_MIN_ADDR_LENGTH \
@@ -2011,7 +2010,7 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeAddrFailureCases)
     ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, 0, nullptr, &decodedAddr));
 
     //
-    // Test with insufficient buffer length
+    // Test with insufficient buffer length (IPv4/IPv6)
     //
     ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, 1, nullptr, &decodedAddr));
 
@@ -2029,12 +2028,20 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeAddrFailureCases)
     addrLen = 16; // Length for IPv6
     memset(buffer + 1, 0xFF, 15); // Invalid address
     ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, addrLen, nullptr, &decodedAddr));
+
+    //
+    // Test with IPv6 data but IPv4 length
+    //
+    buffer[0] = AF_INET6; // Valid family
+    addrLen = QUIC_CR_STATE_MIN_ADDR_LENGTH; // Correct length for IPv4, but not IPv6
+    memset(buffer + 1, 0, sizeof(IN6_ADDR));
+    ASSERT_FALSE(QuicCryptoDecodeAddr(buffer, addrLen, nullptr, &decodedAddr));
 }
 
 TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
 {
     QUIC_CONN_CAREFUL_RESUME_STATE crState = {};
-    uint8_t buffer[128] = {0};
+    uint8_t buffer[0x11] = {};
     QUIC_ADDR addr;
     CxPlatZeroMemory(&addr, sizeof(addr));
     QuicAddrFromString("192.0.2.1", 0, &addr);
@@ -2050,15 +2057,16 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
     validState.Algorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_CUBIC;
     validState.CongestionWindow = 10000;
     uint32_t requiredSize = QuicCryptoGetEncodeCRStateSize(&validState);
-    ASSERT_LE(requiredSize, sizeof(buffer));
-    uint32_t crLength = 0;
+    uint32_t crLength = requiredSize;
+
     QuicCryptoEncodeCRState(
-        sizeof(buffer),
+        requiredSize,
         &validState,
         nullptr,
         &crLength,
         buffer);
     ASSERT_EQ(crLength, requiredSize);
+    ASSERT_EQ(crLength, sizeof(buffer));
 
     //
     // 1. Buffer too small (less than minimum length)
@@ -2069,7 +2077,9 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
     //
     // 2. Invalid address length (set AddrLen to 0)
     //
-    uint8_t corruptBuf[128];
+    uint8_t corruptBuf[0x12];
+    ASSERT_EQ(sizeof(corruptBuf), sizeof(buffer) + 1);
+
     memcpy(corruptBuf, buffer, crLength);
     corruptBuf[0] = 0; // AddrLen varint = 0
     ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
@@ -2132,4 +2142,59 @@ TEST(ResumptionTicketTest, QuicCryptoDecodeCRStateFailureCases)
     memcpy(corruptBuf, buffer, crLength);
     corruptBuf[crLength] = 0xAA;
     ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)(crLength + 1), nullptr));
+
+    //
+    // 10. Invalid address length for IPv4
+    //
+    memcpy(corruptBuf, buffer, crLength);
+    corruptBuf[0] = (uint8_t)(QUIC_CR_STATE_MAX_ADDR_LENGTH); // Use the IPv6 length for IPv4
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf, (uint16_t)crLength, nullptr));
+
+    //
+    // 11. Ensure correct decoding of a valid state
+    //
+
+    QUIC_CONN_CAREFUL_RESUME_STATE decodedState = {};
+    ASSERT_TRUE(QuicCryptoDecodeCRState(&decodedState, buffer, (uint16_t)crLength, nullptr));
+
+    //
+    // Compare the decoded values to original values
+    //
+    ASSERT_EQ(decodedState.SmoothedRtt, validState.SmoothedRtt);
+    ASSERT_EQ(decodedState.MinRtt, validState.MinRtt);
+    ASSERT_EQ(decodedState.Expiration, validState.Expiration);
+    ASSERT_TRUE(QuicAddrCompareIp(&decodedState.RemoteEndpoint, &validState.RemoteEndpoint));
+    ASSERT_EQ(decodedState.Algorithm, validState.Algorithm);
+    ASSERT_EQ(decodedState.CongestionWindow, validState.CongestionWindow);
+
+    //
+    // 12. Invalid address length for IPv6
+    //
+    QUIC_ADDR addr6;
+    QuicAddrFromString("2001:db8::1", 0, &addr6);
+    validState.RemoteEndpoint = addr6;
+    uint32_t requiredSize2 = QuicCryptoGetEncodeCRStateSize(&validState);
+    uint8_t buffer2[0x1D] = {};
+    uint8_t corruptBuf2[0x1D] = {};
+    uint32_t crLength2 = requiredSize2;
+
+    ASSERT_EQ(sizeof(buffer2), crLength2);
+    ASSERT_EQ(sizeof(corruptBuf2), crLength2);
+
+    //
+    // Encode a valid state with IPv6 address
+    //
+    QuicCryptoEncodeCRState(
+        requiredSize2,
+        &validState,
+        nullptr,
+        &crLength2,
+        buffer2);
+    ASSERT_EQ(crLength2, requiredSize2);
+
+    ASSERT_TRUE(QuicCryptoDecodeCRState(&decodedState, buffer2, (uint16_t)crLength2, nullptr));
+
+    memcpy(corruptBuf2, buffer2, crLength2);
+    corruptBuf2[0] = (uint8_t)(QUIC_CR_STATE_MIN_ADDR_LENGTH); // Use the IPv4 length for IPv6
+    ASSERT_FALSE(QuicCryptoDecodeCRState(&crState, corruptBuf2, (uint16_t)crLength2, nullptr));
 }
