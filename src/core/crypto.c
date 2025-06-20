@@ -2395,6 +2395,10 @@ QuicCryptoEncodeCRState(
     *CRLength = RequiredCRLen;
 }
 
+//
+// Decodes the Careful Resume State from the packed buffer.
+// See QuicCryptoEncodeCRState for the encoding format.
+//
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != FALSE)
 BOOLEAN
@@ -2424,6 +2428,10 @@ QuicCryptoDecodeCRState(
 
     uint16_t Offset = 0;
     QUIC_VAR_INT AddrLen = 0;
+
+    //
+    // First read the length of the variable address field
+    //
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &AddrLen) ||
         AddrLen < QUIC_CR_STATE_MIN_ADDR_LENGTH ||
         AddrLen > QUIC_CR_STATE_MAX_ADDR_LENGTH) {
@@ -2435,6 +2443,9 @@ QuicCryptoDecodeCRState(
         return FALSE;
     }
 
+    //
+    // Read the initial var int values
+    //
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->SmoothedRtt) ||
         !QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->MinRtt)) {
         QuicTraceEvent(
@@ -2445,6 +2456,9 @@ QuicCryptoDecodeCRState(
         return FALSE;
     }
 
+    //
+    // Read the variable length address field
+    //
     if (CRBufLength < Offset + AddrLen) {
         QuicTraceEvent(
             ConnError,
@@ -2465,6 +2479,9 @@ QuicCryptoDecodeCRState(
 
     Offset += (uint16_t)AddrLen;
 
+    //
+    // Read the remaining var int values
+    //
     if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->Expiration)) {
         QuicTraceEvent(
             ConnError,
