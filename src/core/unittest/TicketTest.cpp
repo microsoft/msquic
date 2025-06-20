@@ -679,14 +679,10 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV4CR)
         ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
+        ASSERT_EQ(QuicAddrGetFamily(&CarefulResumeState.RemoteEndpoint),
+                    QuicAddrGetFamily(&DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
         ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
                                         &DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
-
-        // Redundant checks
-        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
-                    DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family) << kAlgorithms[i].Name;
-        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
-                    DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr) << kAlgorithms[i].Name;
 
         CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
     }
@@ -784,13 +780,10 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV4ClassBCR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(QuicAddrGetFamily(&CarefulResumeState.RemoteEndpoint),
+                QuicAddrGetFamily(&DecodedCarefulResumeState.RemoteEndpoint));
     ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
                                     &DecodedCarefulResumeState.RemoteEndpoint));
-    // Redundant checks
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
-                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
-                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
@@ -892,15 +885,10 @@ TEST(ResumptionTicketTest, ServerEncDecNoAppDataWithIpV6CR)
         ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm) << kAlgorithms[i].Name;
         ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow) << kAlgorithms[i].Name;
+        ASSERT_EQ(QuicAddrGetFamily(&CarefulResumeState.RemoteEndpoint),
+                    QuicAddrGetFamily(&DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
         ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
-            &DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
-
-        // Redundant checks
-        ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family, DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family) << kAlgorithms[i].Name;
-        ASSERT_EQ(0, memcmp(
-            CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-            DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-            16)) << kAlgorithms[i].Name;
+                                        &DecodedCarefulResumeState.RemoteEndpoint)) << kAlgorithms[i].Name;
 
         CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
     }
@@ -998,15 +986,10 @@ TEST(ResumptionTicketTest, ServerEncDecAppData250WithIpV6CR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(QuicAddrGetFamily(&CarefulResumeState.RemoteEndpoint),
+                QuicAddrGetFamily(&DecodedCarefulResumeState.RemoteEndpoint));
     ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
                                     &DecodedCarefulResumeState.RemoteEndpoint));
-    // Redundant checks
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv6.sin6_family,
-                DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_family);
-    ASSERT_EQ(0, memcmp(
-                    CarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-                    DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr,
-                    sizeof(DecodedCarefulResumeState.RemoteEndpoint.Ipv6.sin6_addr.s6_addr)));
 
     CXPLAT_FREE(EncodedServerTicket, QUIC_POOL_SERVER_CRYPTO_TICKET);
 }
@@ -1660,13 +1643,10 @@ TEST(ResumptionTicketTest, ServerTicketDecodeFailureCasesWithCR)
     ASSERT_EQ(CarefulResumeState.Expiration, DecodedCarefulResumeState.Expiration);
     ASSERT_EQ(CarefulResumeState.Algorithm, DecodedCarefulResumeState.Algorithm);
     ASSERT_EQ(CarefulResumeState.CongestionWindow, DecodedCarefulResumeState.CongestionWindow);
+    ASSERT_EQ(QuicAddrGetFamily(&CarefulResumeState.RemoteEndpoint),
+                QuicAddrGetFamily(&DecodedCarefulResumeState.RemoteEndpoint));
     ASSERT_TRUE(QuicAddrCompareIp(&CarefulResumeState.RemoteEndpoint,
                                     &DecodedCarefulResumeState.RemoteEndpoint));
-    // Redundant checks
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_family,
-                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_family);
-    ASSERT_EQ(CarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr,
-                DecodedCarefulResumeState.RemoteEndpoint.Ipv4.sin_addr.s_addr);
 
     // Now test decode failure cases by corrupting the encoded ticket
     // 1. Corrupt the version
