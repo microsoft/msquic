@@ -401,6 +401,10 @@ QuicLibraryLoadRetryConfig(
     }
 
     if (SecretChanged && AlgorithmChanged) {
+        //
+        // Both secret and algorithm must be present in the registry for
+        // either to take effect.
+        //
         RetryConfig.Algorithm = KeyAlgorithm;
         RetryConfig.Secret = Secret;
         RetryConfig.SecretLength = SecretLength;
