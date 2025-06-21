@@ -240,6 +240,26 @@ tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+        Config->Algorithm,
+        Config->RotationMs);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated
+#define _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibraryRetryKeyUpdated , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -315,6 +335,78 @@ tracepoint(CLOG_LIBRARY_C, LibraryMsQuicClose );\
 #ifndef _clog_2_ARGS_TRACE_LibraryLoadBalancingModeSetAfterInUse
 #define _clog_2_ARGS_TRACE_LibraryLoadBalancingModeSetAfterInUse(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull
+#define _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
+// [ lib] Invalid retry key algorithm: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+// arg2 = arg2 = Config->Algorithm = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibrarySetRetryKeyAlgorithmInvalid
+#define _clog_3_ARGS_TRACE_LibrarySetRetryKeyAlgorithmInvalid(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyRotationInvalid
+// [ lib] Invalid retry key rotation ms: %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+// arg2 = arg2 = Config->RotationMs = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid
+#define _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
+// [ lib] Invalid retry key secret length: %u. Expected %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            AlgSecretLen);
+// arg2 = arg2 = Config->SecretLength = arg2
+// arg3 = arg3 = AlgSecretLen = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid
+#define _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid , arg2, arg3);\
 
 #endif
 
