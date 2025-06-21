@@ -197,6 +197,11 @@ Supported only by Windows currently.</p>
 <p>For more info, take a look at the <a href="../scripts/build.ps1">build.ps1</a> script.</p>
 <h2 id="build-output">Build Output</h2>
 <p>By default the build output will go in the <code>build</code> folder and the final build binaries in the <code>artifacts</code> folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.</p>
+<h2 id="updating-clog-sidecar">Updating Clog Sidecar</h2>
+<p>Some code changes such as adding/updating new MsQuic traces require updating the CLOG sidecar for successful Linux builds. This is done by running the following command:</p>
+<pre><code class="lang-PowerShell">./scripts/update-sidecar.ps1
+</code></pre>
+<p>This makes any necessary updates to the clog sidecar manifest and the generated files under <code>src/generated/</code> folder. The modified files must be committed along with the rest of the code changes for addressing the Linux build failures.</p>
 <h1 id="building-with-cmake">Building with CMake</h1>
 <p>The following section details how to build MsQuic purely with CMake commands.</p>
 <blockquote>
