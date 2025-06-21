@@ -2054,6 +2054,7 @@ QuicConnSendResumptionTicket(
             AppDataLength,
             AppResumptionData,
             Connection->HandshakeTP,
+            NULL,    // No Careful Resumption data
             AlpnLength,
             Connection->Crypto.TlsState.NegotiatedAlpn + 1,
             &TicketBuffer,
@@ -2112,6 +2113,7 @@ QuicConnRecvResumptionTicket(
                 Connection->Configuration->AlpnList,
                 Connection->Configuration->AlpnListLength,
                 &ResumedTP,
+                NULL,    // No Careful Resumption data
                 &AppData,
                 &AppDataLength);
         if (QUIC_FAILED(Status)) {

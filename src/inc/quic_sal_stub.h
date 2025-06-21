@@ -135,6 +135,10 @@
 #define _In_reads_bytes_opt_(...)
 #endif
 
+#ifndef _Out_writes_bytes_to_
+#define _Out_writes_bytes_to_(...)
+#endif
+
 #ifndef _Out_writes_bytes_to_opt_
 #define _Out_writes_bytes_to_opt_(...)
 #endif
