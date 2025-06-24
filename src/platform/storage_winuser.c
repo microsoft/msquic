@@ -57,6 +57,14 @@ RegNotifyChangeKeyValue(
     _In_opt_ HANDLE hEvent,
     _In_ BOOL fAsynchronous
     );
+
+WINADVAPI
+LSTATUS
+APIENTRY
+RegDeleteTreeA(
+    _In_ HKEY hKey,
+    _In_opt_ LPCSTR lpSubKey
+    );
 #endif
 
 #ifdef QUIC_UWP_BUILD
