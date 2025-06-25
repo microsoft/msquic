@@ -468,18 +468,18 @@ typedef struct CXPLAT_EXECUTION_STATE {
 
 typedef struct CXPLAT_WORKER_POOL CXPLAT_WORKER_POOL;
 
-#ifndef _KERNEL_MODE
-
 //
 // Worker pool API used for driving execution contexts
 //
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreate(
     _In_opt_ QUIC_GLOBAL_EXECUTION_CONFIG* Config
     );
 
 _Success_(return != NULL)
+_IRQL_requires_max_(PASSIVE_LEVEL)
 CXPLAT_WORKER_POOL*
 CxPlatWorkerPoolCreateExternal(
     _In_ uint32_t Count,
@@ -487,38 +487,45 @@ CxPlatWorkerPoolCreateExternal(
     _Out_writes_(Count) QUIC_EXECUTION** Executions
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolDelete(
     _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatWorkerPoolGetCount(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 CxPlatWorkerPoolAddRef(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 CxPlatWorkerPoolRelease(
     _In_ CXPLAT_WORKER_POOL* WorkerPool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 uint32_t
 CxPlatWorkerPoolGetIdealProcessor(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint32_t Index // Into the worker pool
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
 CXPLAT_EVENTQ*
 CxPlatWorkerPoolGetEventQ(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint16_t Index // Into the worker pool
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -526,10 +533,13 @@ CxPlatWorkerPoolAddExecutionContext(
     _In_ uint16_t Index // Into the worker pool
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 uint32_t
 CxPlatWorkerPoolWorkerPoll(
     _In_ QUIC_EXECUTION* Execution
     );
+
+#ifndef _KERNEL_MODE
 
 //
 // Supports more dynamic operations, but must be submitted to the platform worker
@@ -584,14 +594,11 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-#ifdef _KERNEL_MODE // Not supported on kernel mode
-#define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
-#else
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
-#endif
 
 //
 // Test Interface for loading a self-signed certificate.

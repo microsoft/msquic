@@ -95,16 +95,13 @@ QuicWorkerInitialize(
     Worker->ExecutionContext.NextTimeUs = UINT64_MAX;
     Worker->ExecutionContext.Ready = TRUE;
 
-#ifndef _KERNEL_MODE // Not supported on kernel mode
     if (ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT) {
         Worker->IsExternal = TRUE;
         CxPlatWorkerPoolAddExecutionContext(
             MsQuicLib.WorkerPool,
             &Worker->ExecutionContext,
             Partition->Index);
-    } else
-#endif // _KERNEL_MODE
-    {
+    } else {
         uint16_t ThreadFlags;
         switch (ExecProfile) {
         default:

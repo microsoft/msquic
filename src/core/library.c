@@ -138,14 +138,10 @@ QuicLibraryInitializePartitions(
     CXPLAT_FRE_ASSERT(MsQuicLib.PartitionCount > 0);
 
     uint16_t* ProcessorList = NULL;
-#ifndef _KERNEL_MODE
     if (MsQuicLib.WorkerPool != NULL) {
         MsQuicLib.CustomPartitions = TRUE;
         MsQuicLib.PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
     } else if (
-#else
-    if (
-#endif
         MsQuicLib.ExecutionConfig &&
         MsQuicLib.ExecutionConfig->ProcessorCount &&
         MsQuicLib.ExecutionConfig->ProcessorCount != MsQuicLib.PartitionCount) {
@@ -204,14 +200,10 @@ QuicLibraryInitializePartitions(
             QuicPartitionInitialize(
                 &MsQuicLib.Partitions[i],
                 i,
-#ifndef _KERNEL_MODE
                 ProcessorList ? ProcessorList[i] :
                     (MsQuicLib.CustomPartitions ?
                         (uint16_t)CxPlatWorkerPoolGetIdealProcessor(MsQuicLib.WorkerPool, i) :
                         i),
-#else
-                ProcessorList ? ProcessorList[i] : i,
-#endif
                 CXPLAT_HASH_SHA256,
                 ResetHashKey,
                 sizeof(ResetHashKey));
@@ -611,10 +603,9 @@ MsQuicLibraryUninitialize(
         LibraryUninitialized,
         "[ lib] Uninitialized");
 
-#ifndef _KERNEL_MODE
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool = NULL;
-#endif
+
     CxPlatUninitialize();
 }
 
@@ -715,7 +706,6 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
-#ifndef _KERNEL_MODE
     if (MsQuicLib.WorkerPool == NULL) {
         MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
         if (!MsQuicLib.WorkerPool) {
@@ -725,7 +715,6 @@ QuicLibraryLazyInitialize(
         }
         CreatedWorkerPool = TRUE;
     }
-#endif
 
     Status =
         CxPlatDataPathInitialize(
@@ -747,12 +736,10 @@ QuicLibraryLazyInitialize(
         }
     } else {
         MsQuicLibraryFreePartitions();
-#ifndef _KERNEL_MODE
         if (CreatedWorkerPool) {
             CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
             MsQuicLib.WorkerPool = NULL;
         }
-#endif
         goto Exit;
     }
 
@@ -1888,11 +1875,9 @@ MsQuicOpenVersion(
 
     Api->DatagramSend = MsQuicDatagramSend;
 
-#ifndef _KERNEL_MODE
     Api->ExecutionCreate = MsQuicExecutionCreate;
     Api->ExecutionDelete = MsQuicExecutionDelete;
     Api->ExecutionPoll = MsQuicExecutionPoll;
-#endif
 
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
@@ -2483,8 +2468,6 @@ QuicLibraryGenerateStatelessResetToken(
     return Status;
 }
 
-#ifndef _KERNEL_MODE
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -2581,5 +2564,3 @@ MsQuicExecutionPoll(
 
     return Result;
 }
-
-#endif
