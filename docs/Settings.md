@@ -100,7 +100,14 @@ The following settings are available via registry as well as via [QUIC_STATELESS
 
 The `uint8_t[]` type is a `REG_BINARY` blob of the secret material, and must be the same length (in bytes) as the algorithm's key.
 
-When changing the stateless retry configuration via registry, it is recommended to delete the existing Retry* values before writing the new configuration.
+These settings only take effect in the global registry location.
+
+When changing the stateless retry configuration via registry, admins **MUST** delete the existing RetryKeyRotationMs, RetryKeyAlgorithm, and RetryKeySecret registry values (if present) before writing the new values. This prevents a split state from occurring while applying settings.
+
+For consistency when configuring Stateless Retry via the registry, values **MUST** be written in the following order:
+1. RetryKeyRotationMs
+2. RetryKeyAlgorithm
+3. RetryKeySecret
 
 See [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) for more information.
 

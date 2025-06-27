@@ -363,7 +363,8 @@ QuicLibraryLoadRetryConfig(
     BOOLEAN AlgorithmChanged = FALSE;
 
     //
-    // Initialize RetryConfig with current settings
+    // Initialize RetryConfig with current settings. Secret is set to a
+    // sentinel value that won't get copied when only RotationMs changes.
     //
     CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
     RetryConfig.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)MsQuicLib.StatelessRetry.AeadAlgorithm;
@@ -404,6 +405,8 @@ QuicLibraryLoadRetryConfig(
         //
         // Both secret and algorithm must be present in the registry for
         // either to take effect.
+        // We expect admins to delete the existing values when changing
+        // algorithm or secret, to prevent split state. See Settings.md.
         //
         RetryConfig.Algorithm = KeyAlgorithm;
         RetryConfig.Secret = Secret;

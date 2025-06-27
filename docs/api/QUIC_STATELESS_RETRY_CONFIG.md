@@ -45,8 +45,6 @@ Changing `RotationMs`, `Algorithm`, or `Secret` will invalidate all retry tokens
 All servers deployed in a cluster and sharing the secret must have their clocks synchronized within `RotationMs` of UTC.
 A server whose clock is ahead of UTC may produce a retry token that other servers in that deployment are unable to validate.
 
-If configuring via the registry
-
 # See Also
 
 [Settings](../Settings.md)<br>
