@@ -381,7 +381,7 @@ CxPlatStorageClear(
                 NULL,   // Data
                 NULL);  // DataLength
 
-        while (Error == ERROR_MORE_DATA && AllocatedLength < 32767) {
+        while (Error == ERROR_MORE_DATA && AllocatedLength < MAXSHORT) {
             //
             // Reallocate buffer only if current buffer is too small
             //
@@ -390,13 +390,13 @@ CxPlatStorageClear(
             CXPLAT_FREE(ValueName, QUIC_POOL_PLATFORM_TMP_ALLOC);
 
             AllocatedLength *= 2; // The API doesn't tell us the needed length; just double it.
-            if (AllocatedLength > 32767) {
+            if (AllocatedLength > MAXSHORT) {
                 //
                 // The registry API interprets this value as a SHORT, so
                 // values larger than 32,767 will cause it to overflow and
                 // return ERROR_MORE_DATA. So limit allocation to this length.
                 //
-                AllocatedLength = 32767;
+                AllocatedLength = MAXSHORT;
             }
 
             ValueName = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
