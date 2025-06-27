@@ -348,6 +348,12 @@ CxPlatStorageClear(
     _In_ CXPLAT_STORAGE* Storage
     )
 {
+    //
+    // Clear only values in this registry key, not subkeys, to preserve 
+    // separation between global and per-app settings. RegDeleteTreeA would
+    // delete the entire subtree and wipe all app-specific data when clearing
+    // global storage.
+    //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD Error = NO_ERROR;
     DWORD AllocatedLength = 255;
