@@ -21,23 +21,29 @@ typedef struct QUIC_STATELESS_RETRY_CONFIG {
 
 The AEAD algorithm used for protecting the retry token. Must be one of the following constants:
 
-Constant |  Key Length
+Constant |  Key Length (bytes)
 ---------|------------
 **QUIC_AEAD_ALGORITHM_AES_128_GCM**<br> 0 | 16
 **QUIC_AEAD_ALGORITHM_AES_256_GCM**<br>1<br> *The default* | 32
-**QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305**<br>2 | 32
 
 `RotationMs`
 
-The interval to rotate the retry key. 30,000ms is the default.
+The interval to rotate the retry key. 30,000ms is the default. A token is valid for twice this interval. Zero is not allowed.
 
 `SecretLength`
 
-The length in bytes pointed to by Secret. Must match the key size of the chosen `Algorithm`.
+The length in bytes pointed to by Secret. Must match the key length of the chosen `Algorithm`.
 
 `Secret`
 
 A non-NULL pointer to a buffer containing `SecretLength` bytes of randomness. Used to generate the keys protecting the retry token.
+
+# Remarks
+
+`RotationMs` should be kept to a short interval, as retry tokens are returned immediately by clients.
+Changing `RotationMs` will invalidate all retry tokens issued prior to the change.
+All servers deployed in a cluster and sharing the secret must have their clocks synchronized within `RotationMs` of UTC.
+A server whose clock is ahead of UTC may produce a retry token that other servers in that deployment are unable to validate.
 
 # See Also
 

@@ -2731,7 +2731,7 @@ QuicLibrarySetRetryKeyConfig(
             "[ lib] Invalid retry key secret: NULL.");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
-    if (Config->Algorithm > QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 ||
+    if (Config->Algorithm > QUIC_AEAD_ALGORITHM_AES_256_GCM ||
         Config->Algorithm < QUIC_AEAD_ALGORITHM_AES_128_GCM) {
         QuicTraceLogError(
             LibrarySetRetryKeyAlgorithmInvalid,

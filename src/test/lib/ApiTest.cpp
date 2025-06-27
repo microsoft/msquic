@@ -6762,6 +6762,59 @@ QuicTestRetryConfigSetting()
         TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
 
         //
+        // Try setting the secret before the algorithm
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                32, // This size matches QUIC_AEAD_ALGORITHM_AES_256_GCM
+                TestSecret));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);  // hasn't changed because the secret length hasn't changed.
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestAlg = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->SecretLength == 32 &&
+                    ResultConfig->Algorithm == QUIC_AEAD_ALGORITHM_AES_256_GCM) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
+
+        //
         // test that invalid settings aren't picked up
         //
 
@@ -6784,8 +6837,8 @@ QuicTestRetryConfigSetting()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 &ResultBufferSize,
                 ResultBuffer));
-        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
-        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
         TEST_EQUAL(54321, ResultConfig->RotationMs);
 
         TestRotationMs = 54321;
@@ -6800,7 +6853,7 @@ QuicTestRetryConfigSetting()
         //
         // Can't set an unknown algorithm type.
         //
-        TestAlg = (QUIC_AEAD_ALGORITHM_TYPE)(QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 + 1);
+        TestAlg = (QUIC_AEAD_ALGORITHM_TYPE)(QUIC_AEAD_ALGORITHM_AES_256_GCM + 1);
         TEST_QUIC_SUCCEEDED(
             CxPlatStorageWriteValue(
                 GlobalSettings,
@@ -6816,11 +6869,11 @@ QuicTestRetryConfigSetting()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 &ResultBufferSize,
                 ResultBuffer));
-        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
-        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
         TEST_EQUAL(54321, ResultConfig->RotationMs);
 
-        TestAlg = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+        TestAlg = QUIC_AEAD_ALGORITHM_AES_256_GCM;
         TEST_QUIC_SUCCEEDED(
             CxPlatStorageWriteValue(
                 GlobalSettings,
@@ -6837,7 +6890,7 @@ QuicTestRetryConfigSetting()
                 GlobalSettings,
                 QUIC_SETTING_RETRY_KEY_SECRET,
                 CXPLAT_STORAGE_TYPE_BINARY,
-                17, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                31, // This size doesn't match QUIC_AEAD_ALGORITHM_AES_256_GCM
                 TestSecret));
 
         CxPlatSleep(100);
@@ -6847,17 +6900,17 @@ QuicTestRetryConfigSetting()
                 QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
                 &ResultBufferSize,
                 ResultBuffer));
-        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
-        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
         TEST_EQUAL(54321, ResultConfig->RotationMs);
-        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
 
         TEST_QUIC_SUCCEEDED(
             CxPlatStorageWriteValue(
                 GlobalSettings,
                 QUIC_SETTING_RETRY_KEY_SECRET,
                 CXPLAT_STORAGE_TYPE_BINARY,
-                16, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                32, // This size matches QUIC_AEAD_ALGORITHM_AES_256_GCM
                 TestSecret));
     }
 
@@ -6871,10 +6924,10 @@ QuicTestRetryConfigSetting()
             QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
             &ResultBufferSize,
             ResultBuffer));
-    TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
-    TEST_EQUAL(16, ResultConfig->SecretLength);
+    TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+    TEST_EQUAL(32, ResultConfig->SecretLength);
     TEST_EQUAL(54321, ResultConfig->RotationMs);
-    TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+    TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
 
     //
     // Set back to defaults
