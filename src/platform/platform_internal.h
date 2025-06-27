@@ -446,6 +446,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     CXPLAT_SQE IoSqe;
 
     //
+    // Submission queue event for RDMA notify disconnect
+    //
+    CXPLAT_SQE DisconnectIoSqe;
+
+    //
     // Submission queue event for RIO IO completion
     //
     CXPLAT_SQE RioSqe;
@@ -1480,9 +1485,21 @@ RdmaSocketSend(
     _In_ CXPLAT_SEND_DATA* SendData
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatRdmaSocketUninitialize(
+    _In_ CXPLAT_SOCKET* Socket
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatSocketRdmaRelease(
+CxPlatRdmaSocketContextRelease(
+    _In_ CXPLAT_SOCKET_PROC* SocketProc
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatRdmaSocketRelease(
     _In_ CXPLAT_SOCKET* Socket
     );
 
@@ -1500,4 +1517,11 @@ CxPlatCreateRdmaSendPool(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t Index
     );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatProcessorContextRelease(
+    _In_ CXPLAT_DATAPATH_PARTITION* DatapathProc
+    );
+
 #endif // CX_PLATFORM_LINUX || _WIN32

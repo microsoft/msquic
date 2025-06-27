@@ -2689,7 +2689,7 @@ SocketDelete(
     }
     else if (Socket->UseRdma)
     {
-        CxPlatSocketRdmaRelease(Socket);
+        CxPlatRdmaSocketUninitialize(Socket);
     }
     else
     {
@@ -2795,6 +2795,7 @@ CxPlatSocketContextUninitialize(
                 "closesocket");
         }
         CxPlatSocketContextRelease(SocketProc);
+        
         return;
     }
 
