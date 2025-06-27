@@ -169,6 +169,7 @@ pub const QUIC_PARAM_GLOBAL_EXECUTION_CONFIG: u32 = 16777225;
 pub const QUIC_PARAM_GLOBAL_TLS_PROVIDER: u32 = 16777226;
 pub const QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY: u32 = 16777227;
 pub const QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES: u32 = 16777228;
+pub const QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: u32 = 16777229;
 pub const QUIC_PARAM_CONFIGURATION_SETTINGS: u32 = 50331648;
 pub const QUIC_PARAM_CONFIGURATION_TICKET_KEYS: u32 = 50331649;
 pub const QUIC_PARAM_CONFIGURATION_VERSION_SETTINGS: u32 = 50331650;
@@ -4877,6 +4878,32 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, StreamBlockedByFlowControlUs) - 48usize];
     ["Offset of field: QUIC_STREAM_STATISTICS::StreamBlockedByAppUs"]
         [::std::mem::offset_of!(QUIC_STREAM_STATISTICS, StreamBlockedByAppUs) - 56usize];
+};
+pub const QUIC_AEAD_ALGORITHM_TYPE_QUIC_AEAD_ALGORITHM_AES_128_GCM: QUIC_AEAD_ALGORITHM_TYPE = 0;
+pub const QUIC_AEAD_ALGORITHM_TYPE_QUIC_AEAD_ALGORITHM_AES_256_GCM: QUIC_AEAD_ALGORITHM_TYPE = 1;
+pub type QUIC_AEAD_ALGORITHM_TYPE = ::std::os::raw::c_int;
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STATELESS_RETRY_CONFIG {
+    pub Algorithm: QUIC_AEAD_ALGORITHM_TYPE,
+    pub RotationMs: u32,
+    pub SecretLength: u32,
+    pub Secret: *const u8,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_STATELESS_RETRY_CONFIG"]
+        [::std::mem::size_of::<QUIC_STATELESS_RETRY_CONFIG>() - 24usize];
+    ["Alignment of QUIC_STATELESS_RETRY_CONFIG"]
+        [::std::mem::align_of::<QUIC_STATELESS_RETRY_CONFIG>() - 8usize];
+    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Algorithm"]
+        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Algorithm) - 0usize];
+    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::RotationMs"]
+        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, RotationMs) - 4usize];
+    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::SecretLength"]
+        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, SecretLength) - 8usize];
+    ["Offset of field: QUIC_STATELESS_RETRY_CONFIG::Secret"]
+        [::std::mem::offset_of!(QUIC_STATELESS_RETRY_CONFIG, Secret) - 16usize];
 };
 pub type QUIC_SET_CONTEXT_FN = ::std::option::Option<
     unsafe extern "C" fn(Handle: HQUIC, Context: *mut ::std::os::raw::c_void),

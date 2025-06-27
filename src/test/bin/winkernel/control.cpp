@@ -532,6 +532,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(INT32),
     sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1541,6 +1542,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING:
+        QuicTestCtlRun(QuicTestRetryConfigSetting());
         break;
 
     default:
