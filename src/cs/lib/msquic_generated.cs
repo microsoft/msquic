@@ -2453,7 +2453,6 @@ namespace Microsoft.Quic
     {
         QUIC_AEAD_ALGORITHM_AES_128_GCM = 0,
         QUIC_AEAD_ALGORITHM_AES_256_GCM = 1,
-        QUIC_AEAD_ALGORITHM_CHACHA20_POLY1305 = 2,
     }
 
     internal unsafe partial struct QUIC_STATELESS_RETRY_CONFIG

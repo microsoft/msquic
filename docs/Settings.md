@@ -90,6 +90,20 @@ All restrictions and effects on the versions mentioned in [QUIC_VERSION_SETTINGS
 
 Particularly, on server, these must be set **GLOBALLY** if you want them to take effect for servers.
 
+The following settings are available via registry as well as via [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md):
+
+| Setting | Type | Registry Name | Default | Description |
+|---------|------|---------------|---------|-------------|
+| Stateless Retry Key Rotation interval | uint32_t | RetryKeyRotationMs | 30000 | The interval stateless retry keys are rotated on. A token is valid for 2x this interval. |
+| Stateless Retry Key Algorithm | uint32_t | RetryKeyAlgorithm | QUIC_AEAD_ALGORITHM_AES_256_GCM | The algorithm used to protect the stateless retry token. |
+| Stateless Retry Key Secret | uint8_t[] | RetryKeySecret | Randomly Generated | The secret material used to generate the stateless retry keys. **MUST** be secure randomness! |
+
+The `uint8_t[]` type is a `REG_BINARY` blob of the secret material, and must be the same length (in bytes) as the algorithm's key.
+
+When changing the stateless retry configuration via registry, it is recommended to delete the existing Retry* values before writing the new configuration.
+
+See [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) for more information.
+
 ## QUIC_SETTINGS
 
 A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings on a `Configuration` handle, `Connection` handle, or globally.
@@ -120,7 +134,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
 | `QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES`<br> 12    | uint32_t[]               | Get-only  | Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details. |
 | `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
-| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 13    | [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) | Set-Only | Configure the stateless retry token key, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
+| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 13    | [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) | Set-Only | Configure the stateless retry token secret, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
 
 ## Registration Parameters
 

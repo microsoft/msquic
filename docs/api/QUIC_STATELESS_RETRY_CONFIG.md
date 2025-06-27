@@ -40,10 +40,12 @@ A non-NULL pointer to a buffer containing `SecretLength` bytes of randomness. Us
 
 # Remarks
 
-`RotationMs` should be kept to a short interval, as retry tokens are returned immediately by clients.
-Changing `RotationMs` will invalidate all retry tokens issued prior to the change.
+`RotationMs` should be kept to a short interval, less than a minute, as retry tokens are returned immediately by clients.
+Changing `RotationMs`, `Algorithm`, or `Secret` will invalidate all retry tokens issued prior to the change.
 All servers deployed in a cluster and sharing the secret must have their clocks synchronized within `RotationMs` of UTC.
 A server whose clock is ahead of UTC may produce a retry token that other servers in that deployment are unable to validate.
+
+If configuring via the registry
 
 # See Also
 
