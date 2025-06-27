@@ -274,8 +274,13 @@
 </ol>
 <h2 id="synchronizing-with-windows">Synchronizing with Windows</h2>
 <ol>
-<li>Once the release branch is created, set the pipeline <a href="https://mscodehub.visualstudio.com/msquic/_build?definitionId=1868">here</a> to ingest the release branch into Windows, and run it.</li>
-<li>When the pipeline passes tests, it'll create a PR.</li>
+<li>Once the release branch/tag is created, the undock pipeline should run automatically.
+<ul>
+<li>If for some reason there's a problem, you may need to run the pipline manually by clicking on &quot;Run Pipeline&quot; <a href="https://microsoft.visualstudio.com/undock/_build?definitionId=134439">here</a> (MSFT-only access required), scroll down to the <strong>resources tab</strong> and pick the MsQuic release tag of interest then run the pipeline.</li>
+<li>Another workaround to force a manual re-run by going <a href="https://microsoft.visualstudio.com/undock/_git/msquic/tags">here</a> (MSFT-only access required) and deleting the tag, and then waiting for the <a href="https://microsoft.visualstudio.com/undock/_build?definitionId=134727">mirror pipeline</a> (MSFT-only access required) to run automatically re-copy over the tag from GitHub.</li>
+</ul>
+</li>
+<li>Once the pipeline passes tests, get the VPACK ID from the &quot;Create VPACK&quot; stage, and create a PR to point <a href="https://microsoft.visualstudio.com/OS/_git/os.2020?path=/minio/netio/quic/msquic/msquic.man">this file</a> (MSFT-only access required) to the VPACK created by the pipline run.</li>
 <li>Review and merge the PR to complete the process.</li>
 </ol>
 
