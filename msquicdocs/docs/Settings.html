@@ -484,6 +484,51 @@ Generally MsQuic already choses the best / most correct default values for all s
 <p>The <code>uint32_t[]</code> type is a <code>REG_BINARY</code> blob of the versions list, with each version in little-endian format.</p>
 <p>All restrictions and effects on the versions mentioned in <a href="Versions.html">QUIC_VERSION_SETTINGS</a> apply to the registry-set versions as well.</p>
 <p>Particularly, on server, these must be set <strong>GLOBALLY</strong> if you want them to take effect for servers.</p>
+<p>The following settings are available via registry as well as via <a href="api/QUIC_STATELESS_RETRY_CONFIG.html">QUIC_STATELESS_RETRY_CONFIG</a>:</p>
+<table>
+<thead>
+<tr>
+<th>Setting</th>
+<th>Type</th>
+<th>Registry Name</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Stateless Retry Key Rotation interval</td>
+<td>uint32_t</td>
+<td>RetryKeyRotationMs</td>
+<td>30000</td>
+<td>The interval stateless retry keys are rotated on. A token is valid for 2x this interval.</td>
+</tr>
+<tr>
+<td>Stateless Retry Key Algorithm</td>
+<td>uint32_t</td>
+<td>RetryKeyAlgorithm</td>
+<td>QUIC_AEAD_ALGORITHM_AES_256_GCM</td>
+<td>The algorithm used to protect the stateless retry token.</td>
+</tr>
+<tr>
+<td>Stateless Retry Key Secret</td>
+<td>uint8_t[]</td>
+<td>RetryKeySecret</td>
+<td>Randomly Generated</td>
+<td>The secret material used to generate the stateless retry keys. <strong>MUST</strong> be secure randomness!</td>
+</tr>
+</tbody>
+</table>
+<p>The <code>uint8_t[]</code> type is a <code>REG_BINARY</code> blob of the secret material, and must be the same length (in bytes) as the algorithm's key.</p>
+<p>These settings only take effect in the global registry location.</p>
+<p>When changing the stateless retry configuration via registry, admins <strong>MUST</strong> delete the existing RetryKeyRotationMs, RetryKeyAlgorithm, and RetryKeySecret registry values (if present) before writing the new values. This prevents a split state from occurring while applying settings.</p>
+<p>For consistency when configuring Stateless Retry via the registry, values <strong>MUST</strong> be written in the following order:</p>
+<ol>
+<li>RetryKeyRotationMs</li>
+<li>RetryKeyAlgorithm</li>
+<li>RetryKeySecret</li>
+</ol>
+<p>See <a href="api/QUIC_STATELESS_RETRY_CONFIG.html">QUIC_STATELESS_RETRY_CONFIG</a> for more information.</p>
 <h2 id="quic_settings">QUIC_SETTINGS</h2>
 <p>A <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a> struct is used to configure settings on a <code>Configuration</code> handle, <code>Connection</code> handle, or globally.</p>
 <p>For more details see <a href="api/QUIC_SETTINGS.html">QUIC_SETTINGS</a>.</p>
@@ -584,6 +629,12 @@ Generally MsQuic already choses the best / most correct default values for all s
 <td>uint8_t (BOOLEAN)</td>
 <td>Both</td>
 <td>Globally enable the version negotiation extension for all client and server connections.</td>
+</tr>
+<tr>
+<td><code>QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG</code><br> 13</td>
+<td><a href="api/QUIC_STATELESS_RETRY_CONFIG.html">QUIC_STATELESS_RETRY_CONFIG</a></td>
+<td>Set-Only</td>
+<td>Configure the stateless retry token secret, key algorithm, and key rotation interval. The secret length <em>must</em> match the AEAD algorithm key length.</td>
 </tr>
 </tbody>
 </table>

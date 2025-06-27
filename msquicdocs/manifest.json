@@ -612,6 +612,16 @@
     },
     {
       "type": "Conceptual",
+      "source_relative_path": "docs/api/QUIC_STATELESS_RETRY_CONFIG.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/api/QUIC_STATELESS_RETRY_CONFIG.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
       "source_relative_path": "docs/api/QUIC_STATUS.md",
       "output": {
         ".html": {
