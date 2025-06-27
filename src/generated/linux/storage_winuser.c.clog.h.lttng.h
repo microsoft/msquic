@@ -40,3 +40,26 @@ TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, LibraryErrorStatus,
         ctf_string(arg3, arg3)
     )
 )
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RegEnumValueA ValueName",
+            AllocatedLength);
+// arg2 = arg2 = "RegEnumValueA ValueName" = arg2
+// arg3 = arg3 = AllocatedLength = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STORAGE_WINUSER_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
