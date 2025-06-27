@@ -66,11 +66,18 @@ typedef enum CXPLAT_AEAD_TYPE {
 
 } CXPLAT_AEAD_TYPE;
 
+CXPLAT_STATIC_ASSERT(
+    (uint32_t)CXPLAT_AEAD_AES_128_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_128_GCM &&
+    (uint32_t)CXPLAT_AEAD_AES_256_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_256_GCM,
+    "CXPLAT AEAD algorithm enum values must match the QUIC API enum values.");
+
 typedef enum CXPLAT_AEAD_TYPE_SIZE {
 
     CXPLAT_AEAD_AES_128_GCM_SIZE       = 16,
     CXPLAT_AEAD_AES_256_GCM_SIZE       = 32,
-    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32
+    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32,
+
+    CXPLAT_AEAD_MAX_SIZE               = 32 // This should be the max of the above values.
 
 } CXPLAT_AEAD_TYPE_SIZE;
 

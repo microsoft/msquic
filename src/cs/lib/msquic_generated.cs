@@ -2428,6 +2428,26 @@ namespace Microsoft.Quic
         internal ulong StreamBlockedByAppUs;
     }
 
+    internal enum QUIC_AEAD_ALGORITHM_TYPE
+    {
+        QUIC_AEAD_ALGORITHM_AES_128_GCM = 0,
+        QUIC_AEAD_ALGORITHM_AES_256_GCM = 1,
+    }
+
+    internal unsafe partial struct QUIC_STATELESS_RETRY_CONFIG
+    {
+        internal QUIC_AEAD_ALGORITHM_TYPE Algorithm;
+
+        [NativeTypeName("uint32_t")]
+        internal uint RotationMs;
+
+        [NativeTypeName("uint32_t")]
+        internal uint SecretLength;
+
+        [NativeTypeName("const uint8_t *")]
+        internal byte* Secret;
+    }
+
     internal unsafe partial struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W
     {
         [NativeTypeName("unsigned long")]
@@ -3614,6 +3634,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES 0x0100000C")]
         internal const uint QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES = 0x0100000C;
+
+        [NativeTypeName("#define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG 0x0100000D")]
+        internal const uint QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG = 0x0100000D;
 
         [NativeTypeName("#define QUIC_PARAM_CONFIGURATION_SETTINGS 0x03000000")]
         internal const uint QUIC_PARAM_CONFIGURATION_SETTINGS = 0x03000000;

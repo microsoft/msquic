@@ -1061,3 +1061,30 @@ WaitForMsQuicInUse() {
 
     return MsQuicInUse && Status == QUIC_STATUS_SUCCESS;
 }
+
+//
+// Call Condition every RetryIntervalMs until TimeoutMs has elapsed.
+// Returns QUIC_STATUS_CONNECTION_TIMEOUT if it runs until TimeoutMs
+// has elapsed.
+// The Condition lambda takes no parameters, and returns a QUIC_STATUS.
+// If Condition returns QUIC_STATUS_CONTINUE, TryUntil will keep trying.
+// Any other QUIC_STATUS, TryUntil will stop and return that value.
+//
+template<class Predicate>
+QUIC_STATUS
+TryUntil(
+    uint32_t RetryIntervalMs,
+    uint32_t TimeoutMs,
+    Predicate Condition)
+{
+    uint32_t Tries = TimeoutMs / RetryIntervalMs + 1;
+    for (uint32_t i = 0; i < Tries; i++) {
+        QUIC_STATUS Status = Condition();
+        if (Status == QUIC_STATUS_CONTINUE) {
+            CxPlatSleep(RetryIntervalMs);
+        } else {
+            return Status;
+        }
+    }
+    return QUIC_STATUS_CONNECTION_TIMEOUT;
+}
