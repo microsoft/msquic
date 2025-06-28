@@ -212,7 +212,7 @@ bool ParseLongHeaderPacket(QUIC_RX_PACKET* Packet) {
             Packet->AvailBuffer,
             &Offset,
             &TokenLength);
-        CXPLAT_FRE_ASSERT(TokenLength <= Packet->AvailBufferLength - Offset);
+        CXPLAT_FRE_ASSERT(TokenLength <= (QUIC_VAR_INT)(Packet->AvailBufferLength - Offset));
         Offset += (uint16_t)TokenLength; // Ignore token
         Stats.RecvInitialPackets++;
     } else {
@@ -225,7 +225,7 @@ bool ParseLongHeaderPacket(QUIC_RX_PACKET* Packet) {
         Packet->AvailBuffer,
         &Offset,
         &PayloadLength);
-    CXPLAT_FRE_ASSERT(PayloadLength <= Packet->AvailBufferLength - Offset);
+    CXPLAT_FRE_ASSERT(PayloadLength <= (QUIC_VAR_INT)(Packet->AvailBufferLength - Offset));
     Packet->HeaderLength = Offset;
     Packet->PayloadLength = (uint16_t)PayloadLength;
     Packet->ValidatedHeaderVer = TRUE;
@@ -575,7 +575,7 @@ void WriteClientPacket(
     QUIC_CID* DestCid = (QUIC_CID*)DestCidBuffer;
     DestCid->IsInitial = TRUE;
     DestCid->Length = PacketParams->DestCidLen;
-    if (PacketParams->DestCid == nullptr) {
+    if (PacketParams->DestCidLen == 0 || PacketParams->DestCid[0] == 0) {
         GetRandomBytes(sizeof(uint64_t), DestCid->Data);
     } else {
         memcpy(DestCid->Data, PacketParams->DestCid, PacketParams->DestCidLen);
@@ -585,7 +585,7 @@ void WriteClientPacket(
     QUIC_CID* SourceCid = (QUIC_CID*)SourceCidBuffer;
     SourceCid->IsInitial = TRUE;
     SourceCid->Length = PacketParams->SourceCidLen;
-    if (PacketParams->SourceCid == nullptr) {
+    if (PacketParams->SourceCidLen == 0 || PacketParams->SourceCid[0] == 0) {
         GetRandomBytes(sizeof(uint64_t), SourceCid->Data);
     } else {
         memcpy(SourceCid->Data, PacketParams->SourceCid, PacketParams->SourceCidLen);
@@ -630,7 +630,19 @@ void WriteClientPacket(
         }
     }
 
-    PayloadLength += GetRandom<uint8_t>(64); // More random padding
+    //
+    // When no frames are present, we might still add random padding, but allow
+    // zero payload packets to test RFC 9000 §12.4 compliance
+    //
+    if (PacketParams->NumFrames > 0) {
+        PayloadLength += GetRandom<uint8_t>(64); // More random padding
+    } else {
+        // For zero frame packets, occasionally generate zero payload to test RFC compliance
+        if (GetRandom<uint8_t>(4) != 0) {
+            PayloadLength += GetRandom<uint8_t>(64); // Usually add some padding
+        }
+        // else PayloadLength remains 0 to test no-frame packet handling
+    }
 
     *PacketLength = *HeaderLength + PayloadLength + CXPLAT_ENCRYPTION_OVERHEAD;
     CXPLAT_FRE_ASSERT(*PacketLength + PacketNumberLength < BufferLength);
@@ -806,7 +818,6 @@ bool DecryptPacket(
 
     Packet->HeaderLength += CompressedPacketNumberLength;
     Packet->PayloadLength -= CompressedPacketNumberLength;
-    QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
     Packet->PacketNumber =
         QuicPktNumDecompress(
             PacketParams->PacketNumber + 1,
@@ -849,6 +860,13 @@ void FuzzInitial(
     PacketParams.Mode = 0;
     GetRandomBytes(sizeof(uint64_t), &PacketParams.SourceCid);
 
+    //
+    // Occasionally generate packets with no frames to test RFC 9000 §12.4 compliance
+    //
+    if (GetRandom<uint8_t>(16) == 0) {
+        PacketParams.NumFrames = 0;
+    }
+
     TlsContext ClientContext;
     ClientContext.CreateContext(PacketParams.SourceCid);
     CXPLAT_FRE_ASSERT(ClientContext.ProcessData() & CXPLAT_TLS_RESULT_DATA);
@@ -873,6 +891,13 @@ void FuzzHandshake(
     PacketParams.Mode = 1;
     GetRandomBytes(sizeof(uint64_t), &PacketParams.SourceCid);
     memcpy(&CurrSrcCid, PacketParams.SourceCid, sizeof(uint64_t)); // Save for receive path
+
+    //
+    // Occasionally generate packets with no frames to test RFC 9000 §12.4 compliance
+    //
+    if (GetRandom<uint8_t>(16) == 0) {
+        PacketParams.NumFrames = 0;
+    }
 
     TlsContext ClientContext;
     ClientContext.CreateContext(PacketParams.SourceCid);
