@@ -206,12 +206,14 @@ bool ParseLongHeaderPacket(QUIC_RX_PACKET* Packet) {
 
     uint16_t Offset = MIN_INV_LONG_HDR_LENGTH + Packet->DestCidLen + Packet->SourceCidLen;
     if (IsInitial) {
-        QUIC_VAR_INT TokenLength;
-        QuicVarIntDecode(
+        QUIC_VAR_INT TokenLength = 0;
+        if (!QuicVarIntDecode(
             Packet->AvailBufferLength,
             Packet->AvailBuffer,
             &Offset,
-            &TokenLength);
+            &TokenLength)) {
+            return false;
+        }
         CXPLAT_FRE_ASSERT(TokenLength <= (QUIC_VAR_INT)(Packet->AvailBufferLength - Offset));
         Offset += (uint16_t)TokenLength; // Ignore token
         Stats.RecvInitialPackets++;
@@ -219,12 +221,14 @@ bool ParseLongHeaderPacket(QUIC_RX_PACKET* Packet) {
         Stats.RecvHandshakePackets++;
     }
 
-    QUIC_VAR_INT PayloadLength;
-    QuicVarIntDecode(
+    QUIC_VAR_INT PayloadLength = 0;
+    if (!QuicVarIntDecode(
         Packet->AvailBufferLength,
         Packet->AvailBuffer,
         &Offset,
-        &PayloadLength);
+        &PayloadLength)) {
+        return false;
+    }
     CXPLAT_FRE_ASSERT(PayloadLength <= (QUIC_VAR_INT)(Packet->AvailBufferLength - Offset));
     Packet->HeaderLength = Offset;
     Packet->PayloadLength = (uint16_t)PayloadLength;
