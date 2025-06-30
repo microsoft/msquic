@@ -375,7 +375,6 @@ CxPlatStorageClear(
         NULL,                   // MaxValueLen
         NULL,                   // SecurityDescriptor
         NULL);                  // LastWriteTime
-
     if (Error != NO_ERROR) {
         Status = HRESULT_FROM_WIN32(Error);
         QuicTraceEvent(
