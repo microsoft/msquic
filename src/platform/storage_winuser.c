@@ -356,8 +356,39 @@ CxPlatStorageClear(
     //
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     DWORD Error = NO_ERROR;
-    DWORD AllocatedLength = 255;
+    DWORD AllocatedLength = 0;
     PSTR ValueName = NULL;
+
+    //
+    // Query registry key info to get the maximum value name length
+    //
+    Error = RegQueryInfoKeyA(
+        Storage->RegKey,
+        NULL,                   // Class
+        NULL,                   // ClassLength
+        NULL,                   // Reserved
+        NULL,                   // SubKeys
+        NULL,                   // MaxSubKeyLen
+        NULL,                   // MaxClassLen
+        NULL,                   // Values
+        &AllocatedLength,       // MaxValueNameLen
+        NULL,                   // MaxValueLen
+        NULL,                   // SecurityDescriptor
+        NULL);                  // LastWriteTime
+
+    if (Error != NO_ERROR) {
+        Status = HRESULT_FROM_WIN32(Error);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RegQueryInfoKeyA failed");
+        goto Exit;
+    }
+    //
+    // Add 1 for null terminator (RegQueryInfoKeyA returns length without null terminator)
+    //
+    AllocatedLength++;
 
     ValueName = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
     if (ValueName == NULL) {
@@ -386,52 +417,6 @@ CxPlatStorageClear(
                 NULL,   // Type
                 NULL,   // Data
                 NULL);  // DataLength
-
-        while (Error == ERROR_MORE_DATA && AllocatedLength < MAXSHORT) {
-            //
-            // Reallocate buffer only if current buffer is too small
-            //
-            CXPLAT_DBG_ASSERT(ValueName != NULL);
-
-            CXPLAT_FREE(ValueName, QUIC_POOL_PLATFORM_TMP_ALLOC);
-
-            AllocatedLength *= 2; // The API doesn't tell us the needed length; just double it.
-            if (AllocatedLength > MAXSHORT) {
-                //
-                // The registry API interprets this value as a SHORT, so
-                // values larger than 32,767 will cause it to overflow and
-                // return ERROR_MORE_DATA. So limit allocation to this length.
-                //
-                AllocatedLength = MAXSHORT;
-            }
-
-            ValueName = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
-            if (ValueName == NULL) {
-                Status = QUIC_STATUS_OUT_OF_MEMORY;
-                QuicTraceEvent(
-                    AllocFailure,
-                    "Allocation of '%s' failed. (%llu bytes)",
-                    "RegEnumValueA ValueName (realloc)",
-                    AllocatedLength);
-                goto Exit;
-            }
-
-            NameLength = AllocatedLength;
-
-            //
-            // Get the value name
-            //
-            Error =
-                RegEnumValueA(
-                    Storage->RegKey,
-                    0, // Always use index 0 since we delete as we go
-                    ValueName,
-                    &NameLength,
-                    NULL,   // Reserved
-                    NULL,   // Type
-                    NULL,   // Data
-                    NULL);  // DataLength
-        }
 
         if (Error == ERROR_NO_MORE_ITEMS) {
             Status = QUIC_STATUS_SUCCESS;
