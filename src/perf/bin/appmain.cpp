@@ -323,11 +323,11 @@ main(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Exit;
         }
-    }
 
-    if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
-        SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-        SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
+            SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+            SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        }
     }
 
     if (DriverName != nullptr) {
