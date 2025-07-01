@@ -112,7 +112,7 @@ PerfServer::Init(
         }
         for (uint16_t i = 0; i < ProcCount; ++i) {
             if (!DelayWorkers[i].Initialize(this, i)) {
-                for (uint16_t j = 0; j < ProcCount; ++j) {
+                for (uint16_t j = 0; j < i; ++j) {
                     DelayWorkers[j].Shutdown();
                 }
                 delete[] DelayWorkers;
