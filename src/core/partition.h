@@ -124,6 +124,7 @@ QuicPartitionUninitialize(
 // Returns the current stateless retry key.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Requires_lock_held_(Partition->StatelessRetryKeysLock)
 _Ret_maybenull_
 CXPLAT_KEY*
 QuicPartitionGetCurrentStatelessRetryKey(
@@ -134,6 +135,7 @@ QuicPartitionGetCurrentStatelessRetryKey(
 // Returns the stateless retry key for that timestamp.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Requires_lock_held_(Partition->StatelessRetryKeysLock)
 _Ret_maybenull_
 CXPLAT_KEY*
 QuicPartitionGetStatelessRetryKeyForTimestamp(
