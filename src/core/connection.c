@@ -309,7 +309,6 @@ QuicConnFree(
     )
 {
     QUIC_PARTITION* Partition = Connection->Partition;
-    QuicConfigurationAttachSilo(Connection->Configuration);
     CXPLAT_FRE_ASSERT(!Connection->State.Freed);
     CXPLAT_TEL_ASSERT(Connection->RefCount == 0);
     if (Connection->State.ExternalOwner) {
@@ -318,7 +317,9 @@ QuicConnFree(
     CXPLAT_TEL_ASSERT(Connection->SourceCids.Next == NULL);
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicRangeUninitialize(&Connection->DecodedAckRanges);
+    QuicConfigurationAttachSilo(Connection->Configuration);
     QuicCryptoUninitialize(&Connection->Crypto);
+    QuicConfigurationDetachSilo();
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
@@ -409,7 +410,6 @@ QuicConnFree(
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
     QuicPerfCounterDecrement(Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
-    QuicConfigurationDetachSilo();
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
