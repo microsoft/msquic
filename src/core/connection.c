@@ -309,6 +309,7 @@ QuicConnFree(
     )
 {
     QUIC_PARTITION* Partition = Connection->Partition;
+    QuicConfigurationAttachSilo(Connection->Configuration);
     CXPLAT_FRE_ASSERT(!Connection->State.Freed);
     CXPLAT_TEL_ASSERT(Connection->RefCount == 0);
     if (Connection->State.ExternalOwner) {
@@ -408,6 +409,7 @@ QuicConnFree(
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
     QuicPerfCounterDecrement(Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
+    QuicConfigurationDetachSilo();
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
