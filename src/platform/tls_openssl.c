@@ -679,6 +679,38 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             }
             break;
         case QUIC_PACKET_KEY_1_RTT:
+            if (TlsContext->IsServer) {
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+            } else {
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+            }
+            if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL &&
+                AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                /*
+                 * We're done installing secrets
+                 */
+                TlsContext->TlsSecrets = NULL;
+            }
+
+            break;
         default:
             break;
         }
