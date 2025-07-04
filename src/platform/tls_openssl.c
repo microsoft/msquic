@@ -636,6 +636,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         // on whether we are a server, what type of key we're writing
         // and the Direction (1 for write, 0 for read)
         //
+        TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch(KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
             if (TlsContext->IsServer) {
