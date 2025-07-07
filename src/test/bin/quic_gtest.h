@@ -656,12 +656,32 @@ struct CancelOnLossArgs {
     }
 };
 
+struct DeadlineExpiredArgs {
+    bool IsDeadlineExpiredScenario;
+    static ::std::vector<DeadlineExpiredArgs> Generate() {
+        ::std::vector<DeadlineExpiredArgs> list;
+        for (bool IsDeadlineExpiredScenario : {false, true})
+            list.push_back({ IsDeadlineExpiredScenario });
+        return list;
+    }
+};
+
 std::ostream& operator << (std::ostream& o, const CancelOnLossArgs& args) {
     return o << "DropPackets: " << (args.DropPackets ? "true" : "false");
 }
 
+std::ostream& operator << (std::ostream& o,
+                           const DeadlineExpiredArgs& args) {
+    return o << "DeadlineExpiredScenario: " << (
+                    args.IsDeadlineExpiredScenario ? "true" : "false");
+}
+
 class WithCancelOnLossArgs : public testing::Test,
     public testing::WithParamInterface<CancelOnLossArgs> {
+};
+
+class WithDeadlineExpiredArgs : public testing::Test,
+    public testing::WithParamInterface<DeadlineExpiredArgs> {
 };
 
 struct CidUpdateArgs {

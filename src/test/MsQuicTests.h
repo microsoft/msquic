@@ -508,6 +508,11 @@ QuicCancelOnLossSend(
     );
 
 void
+QuicDeadlineExpired(
+    _In_ bool DeadlineExpiredScenario
+    );
+
+void
 QuicTestCidUpdate(
     _In_ int Family,
     _In_ uint16_t Iterations
@@ -1338,6 +1343,10 @@ typedef struct {
     bool DropPackets;
 } QUIC_RUN_CANCEL_ON_LOSS_PARAMS;
 
+typedef struct {
+    bool IsDeadlineExpiredScenario;
+} QUIC_RUN_DEADLINE_EXPIRED_PARAMS;
+
 #pragma pack(pop)
 
 #define IOCTL_QUIC_RUN_CANCEL_ON_LOSS \
@@ -1407,4 +1416,7 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING \
     QUIC_CTL_CODE(134, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 134
+#define IOCTL_QUIC_RUN_DEADLINE_EXPIRED \
+    QUIC_CTL_CODE(135, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 135
