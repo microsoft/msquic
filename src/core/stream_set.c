@@ -794,6 +794,8 @@ QuicStreamSetGetStreamForPeer(
             }
 
             Stream->ID = NewStreamId;
+            // The peer which accepts the stream has no notion of deadline
+            Stream->Deadline = QUIC_TIME_POINT_INFINITE;
             Status = QuicStreamStart(Stream, QUIC_STREAM_START_FLAG_NONE, TRUE);
             if (QUIC_FAILED(Status)) {
                 *FatalError = TRUE;

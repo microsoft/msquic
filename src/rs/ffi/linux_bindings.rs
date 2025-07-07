@@ -217,6 +217,7 @@ pub const QUIC_PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 134217730;
 pub const QUIC_PARAM_STREAM_PRIORITY: u32 = 134217731;
 pub const QUIC_PARAM_STREAM_STATISTICS: u32 = 134217732;
 pub const QUIC_PARAM_STREAM_RELIABLE_OFFSET: u32 = 134217733;
+pub const QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE_ERROR_CODE: u32 = 0;
 pub const QUIC_API_VERSION_1: u32 = 1;
 pub const QUIC_API_VERSION_2: u32 = 2;
 pub type BOOLEAN = ::std::os::raw::c_uchar;
@@ -258,6 +259,8 @@ pub struct QUIC_HANDLE {
 }
 pub type HQUIC = *mut QUIC_HANDLE;
 pub type QUIC_UINT62 = u64;
+pub type QUIC_TIME_POINT = u64;
+pub type QUIC_TIME_DIFF = u64;
 pub const QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_SCHANNEL: QUIC_TLS_PROVIDER = 0;
 pub const QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_OPENSSL: QUIC_TLS_PROVIDER = 1;
 pub type QUIC_TLS_PROVIDER = ::std::os::raw::c_uint;
@@ -5993,6 +5996,8 @@ pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE: QUIC_
     8;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_PEER_ACCEPTED: QUIC_STREAM_EVENT_TYPE = 9;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_CANCEL_ON_LOSS: QUIC_STREAM_EVENT_TYPE = 10;
+pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE:
+    QUIC_STREAM_EVENT_TYPE = 11;
 pub type QUIC_STREAM_EVENT_TYPE = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -6012,6 +6017,7 @@ pub union QUIC_STREAM_EVENT__bindgen_ty_1 {
     pub SHUTDOWN_COMPLETE: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7,
     pub IDEAL_SEND_BUFFER_SIZE: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8,
     pub CANCEL_ON_LOSS: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9,
+    pub CANCEL_ON_EXPIRED_DEADLINE: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6432,6 +6438,22 @@ const _: () = {
     ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9::ErrorCode"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9, ErrorCode) - 0usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10 {
+    pub ErrorCode: QUIC_UINT62,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
+    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
+    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10::ErrorCode"][::std::mem::offset_of!(
+        QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10,
+        ErrorCode
+    ) - 0usize];
+};
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_STREAM_EVENT__bindgen_ty_1"]
@@ -6456,6 +6478,10 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, IDEAL_SEND_BUFFER_SIZE) - 0usize];
     ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_LOSS"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, CANCEL_ON_LOSS) - 0usize];
+    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_EXPIRED_DEADLINE"][::std::mem::offset_of!(
+        QUIC_STREAM_EVENT__bindgen_ty_1,
+        CANCEL_ON_EXPIRED_DEADLINE
+    ) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
@@ -6479,6 +6505,16 @@ pub type QUIC_STREAM_OPEN_FN = ::std::option::Option<
         Handler: QUIC_STREAM_CALLBACK_HANDLER,
         Context: *mut ::std::os::raw::c_void,
         Stream: *mut HQUIC,
+    ) -> ::std::os::raw::c_uint,
+>;
+pub type QUIC_STREAM_OPEN_WITH_DEADLINE_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Connection: HQUIC,
+        Flags: QUIC_STREAM_OPEN_FLAGS,
+        Handler: QUIC_STREAM_CALLBACK_HANDLER,
+        Context: *mut ::std::os::raw::c_void,
+        Stream: *mut HQUIC,
+        MsToDeadline: QUIC_TIME_DIFF,
     ) -> ::std::os::raw::c_uint,
 >;
 pub type QUIC_STREAM_CLOSE_FN = ::std::option::Option<unsafe extern "C" fn(Stream: HQUIC)>;
@@ -6603,6 +6639,7 @@ pub struct QUIC_API_TABLE {
     pub ConnectionSetConfiguration: QUIC_CONNECTION_SET_CONFIGURATION_FN,
     pub ConnectionSendResumptionTicket: QUIC_CONNECTION_SEND_RESUMPTION_FN,
     pub StreamOpen: QUIC_STREAM_OPEN_FN,
+    pub StreamOpenWithDeadline: QUIC_STREAM_OPEN_WITH_DEADLINE_FN,
     pub StreamClose: QUIC_STREAM_CLOSE_FN,
     pub StreamStart: QUIC_STREAM_START_FN,
     pub StreamShutdown: QUIC_STREAM_SHUTDOWN_FN,
@@ -6621,7 +6658,7 @@ pub struct QUIC_API_TABLE {
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 296usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6667,40 +6704,42 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionSendResumptionTicket) - 160usize];
     ["Offset of field: QUIC_API_TABLE::StreamOpen"]
         [::std::mem::offset_of!(QUIC_API_TABLE, StreamOpen) - 168usize];
+    ["Offset of field: QUIC_API_TABLE::StreamOpenWithDeadline"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamOpenWithDeadline) - 176usize];
     ["Offset of field: QUIC_API_TABLE::StreamClose"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamClose) - 176usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamClose) - 184usize];
     ["Offset of field: QUIC_API_TABLE::StreamStart"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamStart) - 184usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamStart) - 192usize];
     ["Offset of field: QUIC_API_TABLE::StreamShutdown"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamShutdown) - 192usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamShutdown) - 200usize];
     ["Offset of field: QUIC_API_TABLE::StreamSend"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamSend) - 200usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamSend) - 208usize];
     ["Offset of field: QUIC_API_TABLE::StreamReceiveComplete"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveComplete) - 208usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveComplete) - 216usize];
     ["Offset of field: QUIC_API_TABLE::StreamReceiveSetEnabled"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveSetEnabled) - 216usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamReceiveSetEnabled) - 224usize];
     ["Offset of field: QUIC_API_TABLE::DatagramSend"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, DatagramSend) - 224usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, DatagramSend) - 232usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionResumptionTicketValidationComplete"][::std::mem::offset_of!(
         QUIC_API_TABLE,
         ConnectionResumptionTicketValidationComplete
-    ) - 232usize];
+    ) - 240usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionCertificateValidationComplete"][::std::mem::offset_of!(
         QUIC_API_TABLE,
         ConnectionCertificateValidationComplete
-    ) - 240usize];
+    ) - 248usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionOpenInPartition"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenInPartition) - 248usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionOpenInPartition) - 256usize];
     ["Offset of field: QUIC_API_TABLE::StreamProvideReceiveBuffers"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 256usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, StreamProvideReceiveBuffers) - 264usize];
     ["Offset of field: QUIC_API_TABLE::ConnectionPoolCreate"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 264usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ConnectionPoolCreate) - 272usize];
     ["Offset of field: QUIC_API_TABLE::ExecutionCreate"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionCreate) - 272usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionCreate) - 280usize];
     ["Offset of field: QUIC_API_TABLE::ExecutionDelete"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionDelete) - 280usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionDelete) - 288usize];
     ["Offset of field: QUIC_API_TABLE::ExecutionPoll"]
-        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
+        [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 296usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 4294967294;

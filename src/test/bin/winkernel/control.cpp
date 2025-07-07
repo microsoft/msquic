@@ -552,6 +552,7 @@ typedef union {
     QUIC_RUN_CID_UPDATE_PARAMS Params5;
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
     QUIC_RUN_CANCEL_ON_LOSS_PARAMS Params7;
+    QUIC_RUN_DEADLINE_EXPIRED_PARAMS Params7;
     UINT8 EnableKeepAlive;
     UINT8 StopListenerFirst;
     QUIC_RUN_DRILL_INITIAL_PACKET_CID_PARAMS DrillParams;
@@ -1475,6 +1476,11 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicCancelOnLossSend(Params->Params7.DropPackets));
+        break;
+
+    case IOCTL_QUIC_RUN_CANCEL_ON_LOSS:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicDeadlineExpired(Params->Params7.IsDeadlineExpiredScenario));
         break;
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

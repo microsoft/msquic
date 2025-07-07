@@ -452,7 +452,7 @@ QuicStreamTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
-    _In_ QUIC_STREAM* Stream,
+    _In_ const QUIC_STREAM* Stream,
     _Inout_ QUIC_STREAM_EVENT* Event
     )
 {
