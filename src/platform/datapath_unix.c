@@ -108,7 +108,6 @@ CxPlatDataPathResolveAddress(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     ADDRINFO Hints = {0};
     ADDRINFO* AddrInfo = NULL;
     int Result = 0;
@@ -155,9 +154,11 @@ CxPlatDataPathResolveAddress(
         "[%p] Couldn't resolve hostname '%s' to an IP address",
         Datapath,
         HostName);
-    Status = (QUIC_STATUS)Result;
 
 Exit:
-
-    return Status;
+    if(Result != 0) {
+        return QUIC_STATUS_INVALID_PARAMETER;
+    } else {
+        return QUIC_STATUS_SUCCESS;
+    }
 }
