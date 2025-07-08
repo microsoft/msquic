@@ -310,7 +310,7 @@ QuicConnFree(
 {
     QUIC_PARTITION* Partition = Connection->Partition;
 #ifdef QUIC_SILO
-    QUIC_SILO Silo = QUIC_SILO_INVALID;
+    QUIC_SILO Silo = NULL;
     QuicConfigurationAttachSilo(Connection->Configuration);
 #endif
 
@@ -424,9 +424,7 @@ QuicConnFree(
     QuicPerfCounterDecrement(Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
 #ifdef QUIC_SILO
     QuicConfigurationDetachSilo();
-    if (Silo != QUIC_SILO_INVALID) {
-        QuicSiloRelease(Silo);
-    }
+    QuicSiloRelease(Silo);
 #endif
 }
 
