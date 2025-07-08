@@ -375,6 +375,11 @@ QuicConnFree(
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
 #ifdef QUIC_SILO
+        //
+        // Take a ref on the silo before releasing the configuration
+        // to prevent the silo from being destroyed while we are still
+        // holding onto the thread to clean up other stuff for this connection.
+        //
         Silo = Connection->Configuration->Silo;
         QuicSiloAddRef(Silo);
 #endif
