@@ -309,6 +309,11 @@ QuicConnFree(
     )
 {
     QUIC_PARTITION* Partition = Connection->Partition;
+#ifdef QUIC_SILO
+    QUIC_SILO Silo = QUIC_SILO_INVALID;
+    QuicConfigurationAttachSilo(Connection->Configuration);
+#endif
+
     CXPLAT_FRE_ASSERT(!Connection->State.Freed);
     CXPLAT_TEL_ASSERT(Connection->RefCount == 0);
     if (Connection->State.ExternalOwner) {
@@ -317,9 +322,7 @@ QuicConnFree(
     CXPLAT_TEL_ASSERT(Connection->SourceCids.Next == NULL);
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Connection->Streams.ClosedStreams));
     QuicRangeUninitialize(&Connection->DecodedAckRanges);
-    QuicConfigurationAttachSilo(Connection->Configuration);
     QuicCryptoUninitialize(&Connection->Crypto);
-    QuicConfigurationDetachSilo();
     QuicLossDetectionUninitialize(&Connection->LossDetection);
     QuicSendUninitialize(&Connection->Send);
     for (uint32_t i = 0; i < ARRAYSIZE(Connection->Packets); i++) {
@@ -371,6 +374,10 @@ QuicConnFree(
     QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
+#ifdef QUIC_SILO
+        Silo = Connection->Configuration->Silo;
+        QuicSiloAddRef(Silo);
+#endif
         QuicConfigurationRelease(Connection->Configuration);
         Connection->Configuration = NULL;
     }
@@ -410,6 +417,12 @@ QuicConnFree(
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
     QuicPerfCounterDecrement(Partition, QUIC_PERF_COUNTER_CONN_ACTIVE);
+#ifdef QUIC_SILO
+    QuicConfigurationDetachSilo();
+    if (Silo != QUIC_SILO_INVALID) {
+        QuicSiloRelease(Silo);
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
