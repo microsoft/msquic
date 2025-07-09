@@ -270,3 +270,12 @@ TEST(TransportParamTest, ReliableResetEnabled)
     EncodeDecodeAndCompare(&OriginalTP);
     EncodeDecodeAndCompare(&OriginalTP, true);
 }
+
+TEST(TransportParamTest, StreamStatistics)
+{
+    QUIC_TRANSPORT_PARAMETERS OriginalTP;
+    CxPlatZeroMemory(&OriginalTP, sizeof(OriginalTP));
+    OriginalTP.Flags = QUIC_TP_FLAG_STREAM_STATISTICS;
+    EncodeDecodeAndCompare(&OriginalTP);
+    EncodeDecodeAndCompare(&OriginalTP, true);
+}
