@@ -2587,7 +2587,7 @@ CxPlatSendBufferPoolAlloc(
     MmInitializeMdl(
         &SendBuffer->Mdl,
         SendBuffer->RawBuffer,
-        NumberOfBytes - sizeof(*SendBuffer));
+        NumberOfBytes - sizeof(*Header) - sizeof(*SendBuffer));
     MmBuildMdlForNonPagedPool(&SendBuffer->Mdl);
 
     return Header;
