@@ -800,7 +800,6 @@ CxPlatKbKdfDerive(
     _Out_writes_(OutputLength) uint8_t* Output
     )
 {
-    NTSTATUS Status;
     BCRYPT_KEY_HANDLE KeyHandle = NULL;
     BCryptBuffer ParameterList[3];
     BCryptBufferDesc Parameters;
@@ -809,8 +808,7 @@ CxPlatKbKdfDerive(
 
     LabelLength = (ULONG)strnlen_s(Label, 255);
 
-    // Create symmetric key from the secret using HMAC-SHA256
-    Status =
+    NTSTATUS Status =
         BCryptGenerateSymmetricKey(
             CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
             &KeyHandle,
@@ -847,13 +845,14 @@ CxPlatKbKdfDerive(
     //
     // Derive the key using SP800-108 CTR mode
     //
-    Status = BCryptKeyDerivation(
-        KeyHandle,
-        &Parameters,
-        Output,
-        OutputLength,
-        &DerivedKeyLength,
-        0);
+    Status =
+        BCryptKeyDerivation(
+            KeyHandle,
+            &Parameters,
+            Output,
+            OutputLength,
+            &DerivedKeyLength,
+            0);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
             LibraryErrorStatus,

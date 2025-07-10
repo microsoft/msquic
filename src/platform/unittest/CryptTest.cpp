@@ -520,26 +520,45 @@ TEST_F(CryptTest, HpMaskAes128)
 
 TEST_F(CryptTest, KbKdfDerive)
 {
-    QuicBuffer Key("3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83");
+    QuicBuffer Key256("3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83");
     uint64_t Context = 1752112221;
     const char* Label = "test";
-    QuicBuffer ExpectedOutput256("B7BFF374C8928335AA41589D41084B64211876771C459C23B06BA4A2EA89B5AE");
+    QuicBuffer ExpectedOutput256_Key256("B7BFF374C8928335AA41589D41084B64211876771C459C23B06BA4A2EA89B5AE");
     TestKbKdfDerive(
-        Key,
+        Key256,
         Label,
         &Context,
         sizeof(Context),
-        ExpectedOutput256.Length,
-        ExpectedOutput256);
+        ExpectedOutput256_Key256.Length,
+        ExpectedOutput256_Key256);
 
-    QuicBuffer ExpectedOutput128("2775BB8F82B3B5EB667C8CF548C2F06F");
+    QuicBuffer ExpectedOutput128_Key256("2775BB8F82B3B5EB667C8CF548C2F06F");
     TestKbKdfDerive(
-        Key,
+        Key256,
         Label,
         &Context,
         sizeof(Context),
-        ExpectedOutput128.Length,
-        ExpectedOutput128);
+        ExpectedOutput128_Key256.Length,
+        ExpectedOutput128_Key256);
+
+    QuicBuffer Key128("5ddd79f7b33f1f4a6dd57c34a8eec42e");
+    QuicBuffer ExpectedOutput256_Key128("0D90AEEEA79D7068283FC33561277AD8B641F5D0F2C47A3360DE8BBCB2D1A6E6");
+    TestKbKdfDerive(
+        Key128,
+        Label,
+        &Context,
+        sizeof(Context),
+        ExpectedOutput256_Key128.Length,
+        ExpectedOutput256_Key128);
+
+    QuicBuffer ExpectedOutput128_Key128("3D49CD6A27AC5CA5F0F51893A755D160");
+    TestKbKdfDerive(
+        Key128,
+        Label,
+        &Context,
+        sizeof(Context),
+        ExpectedOutput128_Key128.Length,
+        ExpectedOutput128_Key128);
 }
 
 TEST_P(CryptTest, Encryption)
