@@ -807,7 +807,7 @@ CxPlatKbKdfDerive(
     ULONG LabelLength = 0;
     ULONG DerivedKeyLength;
 
-    LabelLength = strnlen_s(Label, 255);
+    LabelLength = (ULONG)strnlen_s(Label, 255);
 
     // Create symmetric key from the secret using HMAC-SHA256
     Status =

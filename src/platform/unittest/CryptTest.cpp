@@ -350,16 +350,18 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
     }
 
     void
-    TestKdfDerive(
+    TestKbKdfDerive(
         _In_ QuicBuffer& Key,
         _In_z_ const char* const Label,
         _In_ const void* Context,
-        _In_ const size_t ContextLength,
-        _In_ const size_t OutputLength,
+        _In_ const uint32_t ContextLength,
+        _In_ const uint32_t OutputLength,
         _In_ QuicBuffer& ExpectedOutput)
     {
-        uint8_t Output[OutputLength];
+        uint8_t Output[CXPLAT_AEAD_MAX_SIZE];
+        ASSERT_LE(OutputLength, sizeof(Output)); // Ensure the test doesn't overrun the buffer.
         CxPlatZeroMemory(Output, OutputLength);
+
         VERIFY_QUIC_SUCCESS(
             CxPlatKbKdfDerive(
                 Key.Data,
@@ -516,13 +518,13 @@ TEST_F(CryptTest, HpMaskAes128)
     CxPlatHpKeyFree(HpKey);
 }
 
-TEST_F(CryptTest, KdfDerive)
+TEST_F(CryptTest, KbKdfDerive)
 {
     QuicBuffer Key("3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83");
     uint64_t Context = 1752112221;
     const char* Label = "test";
     QuicBuffer ExpectedOutput256("B7BFF374C8928335AA41589D41084B64211876771C459C23B06BA4A2EA89B5AE");
-    TestKdfDerive(
+    TestKbKdfDerive(
         Key,
         Label,
         &Context,
@@ -531,7 +533,7 @@ TEST_F(CryptTest, KdfDerive)
         ExpectedOutput256);
 
     QuicBuffer ExpectedOutput128("2775BB8F82B3B5EB667C8CF548C2F06F");
-    TestKdfDerive(
+    TestKbKdfDerive(
         Key,
         Label,
         &Context,
