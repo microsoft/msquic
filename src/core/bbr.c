@@ -653,10 +653,10 @@ BbrCongestionControlGetSendAllowance(
         //
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
             SendAllowance = (uint32_t)CXPLAT_MAX(
-                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT,
+                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT,
                 CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
         } else {
-            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT);
+            SendAllowance = (uint32_t)(BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT);
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
