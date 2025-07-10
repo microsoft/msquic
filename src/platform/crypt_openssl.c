@@ -711,3 +711,62 @@ CxPlatHashCompute(
     CXPLAT_FRE_ASSERT(ActualOutputSize == OutputLength);
     return QUIC_STATUS_SUCCESS;
 }
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    EVP_KDF *kdf;
+    EVP_KDF_CTX *kctx;
+    OSSL_PARAM Params[6];
+
+    kdf = EVP_KDF_fetch(NULL, "KBKDF", NULL);
+    kctx = EVP_KDF_CTX_new(kdf);
+    EVP_KDF_free(kdf);
+
+    Params[0] =
+        OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST,"SHA2-256", 0);
+
+    Params[1] =
+        OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_MAC,"HMAC", 0);
+
+    Params[2] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_KEY,
+            (void*)Secret,
+            SecretLength);
+
+    Params[3] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_SALT,
+            (void*)Label,
+            strnlen(Label, 255));
+
+    Params[4] =
+        OSSL_PARAM_construct_octet_string(
+            OSSL_KDF_PARAM_INFO,
+            (void*)Context,
+            ContextLength);
+
+    Params[5] = OSSL_PARAM_construct_end();
+
+    if (EVP_KDF_derive(kctx, Output, OutputLength, Params) <= 0) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "EVP_KDF_derive failed");
+        Status = QUIC_STATUS_INTERNAL_ERROR;
+    }
+
+    EVP_KDF_CTX_free(kctx);
+    return Status;
+}

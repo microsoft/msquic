@@ -348,6 +348,34 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
         QuicPacketKeyFree(PacketKey);
     }
+
+    void
+    TestKdfDerive(
+        _In_ QuicBuffer& Key,
+        _In_z_ const char* const Label,
+        _In_ const void* Context,
+        _In_ const size_t ContextLength,
+        _In_ const size_t OutputLength,
+        _In_ QuicBuffer& ExpectedOutput)
+    {
+        uint8_t Output[OutputLength];
+        CxPlatZeroMemory(Output, OutputLength);
+        VERIFY_QUIC_SUCCESS(
+            CxPlatKbKdfDerive(
+                Key.Data,
+                Key.Length,
+                Label,
+                (uint8_t*)Context,
+                ContextLength,
+                OutputLength,
+                Output));
+        
+        if (memcmp(ExpectedOutput.Data, Output, ExpectedOutput.Length) != 0) {
+            LogTestBuffer("Expected Output:     ", ExpectedOutput.Data, ExpectedOutput.Length);
+            LogTestBuffer("Calculated Output:   ", Output, ExpectedOutput.Length);
+            FAIL();
+        }
+    }
 };
 
 TEST_F(CryptTest, WellKnownClientInitialv1)
@@ -486,6 +514,30 @@ TEST_F(CryptTest, HpMaskAes128)
     }
 
     CxPlatHpKeyFree(HpKey);
+}
+
+TEST_F(CryptTest, KdfDerive)
+{
+    QuicBuffer Key("3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83");
+    uint64_t Context = 1752112221;
+    const char* Label = "test";
+    QuicBuffer ExpectedOutput256("B7BFF374C8928335AA41589D41084B64211876771C459C23B06BA4A2EA89B5AE");
+    TestKdfDerive(
+        Key,
+        Label,
+        &Context,
+        sizeof(Context),
+        ExpectedOutput256.Length,
+        ExpectedOutput256);
+
+    QuicBuffer ExpectedOutput128("2775BB8F82B3B5EB667C8CF548C2F06F");
+    TestKdfDerive(
+        Key,
+        Label,
+        &Context,
+        sizeof(Context),
+        ExpectedOutput128.Length,
+        ExpectedOutput128);
 }
 
 TEST_P(CryptTest, Encryption)
