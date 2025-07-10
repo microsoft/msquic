@@ -208,9 +208,9 @@ CxPlatCryptInitialize(
 
     Status =
         BCryptOpenAlgorithmProvider(
-            CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
+            &CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
             BCRYPT_SP800108_CTR_HMAC_ALGORITHM,
-            NULL,
+            MS_PRIMITIVE_PROVIDER,
             BCRYPT_PROV_DISPATCH);
     if (!NT_SUCCESS(Status)) {
         QuicTraceEvent(
