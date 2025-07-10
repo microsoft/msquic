@@ -32,6 +32,7 @@ on:
         default: 'windows-2022'
         # options:
         #   - windows-2022
+        #   - WinServerPrerelease
       arch:
         required: false
         default: 'x64'
