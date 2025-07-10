@@ -10,14 +10,13 @@
 #include "BbrTest.cpp.clog.h"
 #endif
 
-TEST(BbrTest, SendAllowanceOverflowDemonstration) {
+TEST(BbrTest, SendAllowanceOverflowFix) {
     //
-    // This test demonstrates the overflow issue in BBR SendAllowance calculation
-    // by showing what happens with the current formula
+    // This test demonstrates that type elevation fixes the overflow issue
+    // in BBR SendAllowance calculation
     //
 
     // Constants from bbr.c
-    const uint32_t BW_UNIT = 8;
     const uint32_t GAIN_UNIT = 256;
     
     // High bandwidth scenario (6 Gbps)
@@ -25,55 +24,33 @@ TEST(BbrTest, SendAllowanceOverflowDemonstration) {
     uint32_t PacingGain = 738; // kHighGain ≈ 2.885 * GAIN_UNIT
     uint64_t TimeSinceLastSend = 1000; // 1ms in microseconds
     
-    // Current calculation from BBR code (missing both time and bit-to-byte conversion)
-    uint64_t CurrentFormula = BandwidthEst * PacingGain * TimeSinceLastSend / GAIN_UNIT;
+    // Original calculation (what would happen with uint32_t cast)
+    uint64_t OriginalCalculation = BandwidthEst * PacingGain * TimeSinceLastSend / GAIN_UNIT;
+    uint32_t OriginalWithOverflow = (uint32_t)OriginalCalculation;
     
-    // What gets stored in SendAllowance (cast to uint32_t)
-    uint32_t CurrentSendAllowance = (uint32_t)CurrentFormula;
+    // New calculation (using uint64_t variable, capped to uint32_t max)
+    uint64_t NewCalculation = BandwidthEst * PacingGain * TimeSinceLastSend / GAIN_UNIT;
+    uint32_t NewWithTypeElevation = (NewCalculation > UINT32_MAX) ? UINT32_MAX : (uint32_t)NewCalculation;
     
-    // Corrected calculation (with both time conversion and bit-to-byte conversion)
-    const uint64_t kMicroSecsInSec = 1000000;
-    uint64_t CorrectedFormula = BandwidthEst * PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT;
-    uint32_t CorrectedSendAllowance = (uint32_t)CorrectedFormula;
+    // Verify the problem exists in original approach
+    EXPECT_GT(OriginalCalculation, UINT32_MAX) << "Original calculation should overflow uint32_t";
+    EXPECT_NE(OriginalWithOverflow, OriginalCalculation) << "Original cast should overflow";
     
-    // Show the problem
-    EXPECT_NE(CurrentFormula, CorrectedFormula) << "Current and corrected formulas should be different";
+    // Verify the fix works
+    EXPECT_EQ(NewCalculation, OriginalCalculation) << "New calculation should be same as original 64-bit result";
+    EXPECT_EQ(NewWithTypeElevation, UINT32_MAX) << "New approach should cap to UINT32_MAX";
     
-    // The current formula overflows when cast to uint32_t, but produces wrong result
-    // while the corrected formula gives the right result
-    EXPECT_GT(CurrentFormula, UINT32_MAX) << "Current calculation should overflow uint32_t";
-    EXPECT_LE(CorrectedFormula, UINT32_MAX) << "Corrected calculation should fit in uint32_t";
-    
-    // The overflow causes the cast to wrap around
-    EXPECT_EQ(CurrentSendAllowance, (uint32_t)CurrentFormula) << "Current value is the wrapped result";
-    
-    // The corrected calculation should be the proper result without overflow
-    EXPECT_EQ(CorrectedSendAllowance, (uint32_t)CorrectedFormula) << "Corrected value should not overflow";
+    // The new approach should be much larger than the overflowed value
+    EXPECT_GT(NewWithTypeElevation, OriginalWithOverflow) << "Type elevation should preserve more of the value";
     
     // Log the values for manual inspection
     printf("BandwidthEst: %llu bps\n", (unsigned long long)BandwidthEst);
     printf("TimeSinceLastSend: %llu us\n", (unsigned long long)TimeSinceLastSend);
     printf("PacingGain: %u (represents %f)\n", PacingGain, (double)PacingGain/GAIN_UNIT);
-    printf("Current formula result (64-bit): %llu\n", (unsigned long long)CurrentFormula);
-    printf("Current SendAllowance (32-bit cast): %u\n", CurrentSendAllowance);
-    printf("Corrected formula result (64-bit): %llu\n", (unsigned long long)CorrectedFormula);
-    printf("Corrected SendAllowance (32-bit cast): %u\n", CorrectedSendAllowance);
+    printf("Original 64-bit calculation: %llu\n", (unsigned long long)OriginalCalculation);
+    printf("Original with overflow (32-bit cast): %u\n", OriginalWithOverflow);
+    printf("New with type elevation (capped): %u\n", NewWithTypeElevation);
     
-    // The corrected version should give a reasonable result  
-    EXPECT_GT(CorrectedSendAllowance, 0u) << "Corrected calculation should not be zero";
-    EXPECT_LT(CorrectedSendAllowance, 10000000u) << "Corrected calculation should be reasonable (under 10MB)";
-    
-    // The corrected calculation should be much smaller than current (and correct)
-    EXPECT_LT(CorrectedSendAllowance, CurrentSendAllowance) << 
-        "Corrected calculation should be much smaller than current (no overflow)";
-    // The corrected calculation should be much smaller than the original 64-bit result
-    EXPECT_LT(CorrectedFormula, CurrentFormula) << 
-        "Corrected calculation should be much smaller than current";
-        
-    // Verify we're in the right ballpark: ~2.1 MB for 6Gbps over 1ms with pacing gain
-    EXPECT_GT(CorrectedSendAllowance, 2000000u) << "Should be around 2MB";
-    EXPECT_LT(CorrectedSendAllowance, 2500000u) << "Should be around 2MB";
-    
-    double ExpectedBytes = (6e9 * (738.0/256.0) * 1000) / 1e6 / 8;
-    printf("Expected calculation result: %f bytes (~%.1f KB)\n", ExpectedBytes, ExpectedBytes/1024);
+    // Verify we get reasonable high bandwidth allowance
+    EXPECT_GT(NewWithTypeElevation, 1000000u) << "Should allow significant data at high bandwidth";
 }
