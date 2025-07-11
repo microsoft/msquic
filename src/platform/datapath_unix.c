@@ -157,7 +157,7 @@ CxPlatDataPathResolveAddress(
 
 Exit:
     if(Result != 0) {
-        return QUIC_STATUS_INVALID_PARAMETER;
+        return NETDB_ERR_CODE_TO_QUIC_STATUS(Result);
     } else {
         return QUIC_STATUS_SUCCESS;
     }
