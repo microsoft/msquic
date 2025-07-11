@@ -394,6 +394,18 @@ CxPlatCryptSupports(
     CXPLAT_AEAD_TYPE AeadType
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
+    );
+
 #if defined(__cplusplus)
 }
 #endif

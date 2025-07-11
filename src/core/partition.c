@@ -98,19 +98,24 @@ QuicPartitionGetStatelessRetryKey(
     }
 
     //
-    // Generate a new key from the base retry key combined with the index.
+    // Generate a new key from the base retry secret using SP800-108 CTR-HMAC.
     //
-    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
-    CxPlatCopyMemory(
-        RawKey,
-        MsQuicLib.StatelessRetry.BaseSecret,
-        MsQuicLib.StatelessRetry.SecretLength);
-    for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
-        RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
+    uint8_t RawKey[CXPLAT_AEAD_MAX_SIZE];
+    QUIC_STATUS Status =
+        CxPlatKbKdfDerive(
+            MsQuicLib.StatelessRetry.BaseSecret,
+            MsQuicLib.StatelessRetry.SecretLength,
+            "QUIC Stateless Retry Key",
+            (uint8_t*)&KeyIndex,
+            sizeof(KeyIndex),
+            MsQuicLib.StatelessRetry.SecretLength,
+            RawKey);
+    if (QUIC_FAILED(Status)) {
+        return NULL;
     }
 
     CXPLAT_KEY* NewKey;
-    QUIC_STATUS Status =
+    Status =
         CxPlatKeyCreate(
             MsQuicLib.StatelessRetry.AeadAlgorithm,
             RawKey,
@@ -121,12 +126,14 @@ QuicPartitionGetStatelessRetryKey(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Create stateless retry key");
+        CxPlatSecureZeroMemory(RawKey, sizeof(RawKey));
         return NULL;
     }
 
     CxPlatKeyFree(Partition->StatelessRetryKeys[KeyIndex & 1].Key);
     Partition->StatelessRetryKeys[KeyIndex & 1].Key = NewKey;
     Partition->StatelessRetryKeys[KeyIndex & 1].Index = KeyIndex;
+    CxPlatSecureZeroMemory(RawKey, sizeof(RawKey));
 
     return NewKey;
 }
