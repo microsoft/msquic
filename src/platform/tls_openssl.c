@@ -381,10 +381,10 @@ CxPlatTlsCertificateVerifyCallback(
     return status;
 }
 
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_initial == (int)QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_early_data == (int)QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_handshake == (int)QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
-CXPLAT_STATIC_ASSERT((int)ssl_encryption_application == (int)QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((QUIC_PACKET_KEY_TYPE)ssl_encryption_initial == QUIC_PACKET_KEY_INITIAL, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((QUIC_PACKET_KEY_TYPE)ssl_encryption_early_data == QUIC_PACKET_KEY_0_RTT, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((QUIC_PACKET_KEY_TYPE)ssl_encryption_handshake == QUIC_PACKET_KEY_HANDSHAKE, "Code assumes exact match!");
+CXPLAT_STATIC_ASSERT((QUIC_PACKET_KEY_TYPE)ssl_encryption_application == QUIC_PACKET_KEY_1_RTT, "Code assumes exact match!");
 
 void
 CxPlatTlsNegotiatedCiphers(

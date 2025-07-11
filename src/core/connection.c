@@ -312,6 +312,11 @@ QuicConnFree(
     _In_ __drv_freesMem(Mem) QUIC_CONNECTION* Connection
     )
 {
+#ifdef QUIC_SILO
+    QUIC_SILO Silo = NULL;
+    QuicConfigurationAttachSilo(Connection->Configuration);
+#endif
+
     CXPLAT_FRE_ASSERT(!Connection->State.Freed);
     CXPLAT_TEL_ASSERT(Connection->RefCount == 0);
     if (Connection->State.ExternalOwner) {
@@ -372,6 +377,15 @@ QuicConnFree(
     QuicDatagramSendShutdown(&Connection->Datagram);
     QuicDatagramUninitialize(&Connection->Datagram);
     if (Connection->Configuration != NULL) {
+#ifdef QUIC_SILO
+        //
+        // Take a ref on the silo before releasing the configuration
+        // to prevent the silo from being destroyed while we are still
+        // holding onto the thread to clean up other stuff for this connection.
+        //
+        Silo = Connection->Configuration->Silo;
+        QuicSiloAddRef(Silo);
+#endif
         QuicConfigurationRelease(Connection->Configuration);
         Connection->Configuration = NULL;
     }
@@ -413,6 +427,10 @@ QuicConnFree(
     InterlockedDecrement(&MsQuicLib.ConnectionCount);
 #endif
     QuicPerfCounterDecrement(QUIC_PERF_COUNTER_CONN_ACTIVE);
+#ifdef QUIC_SILO
+    QuicConfigurationDetachSilo();
+    QuicSiloRelease(Silo);
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

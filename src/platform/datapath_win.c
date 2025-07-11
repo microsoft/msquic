@@ -368,7 +368,8 @@ CxPlatDataPathProcessCqe(
     case CXPLAT_CQE_TYPE_SOCKET_IO: {
         DATAPATH_IO_SQE* Sqe =
             CONTAINING_RECORD(CxPlatCqeUserData(Cqe), DATAPATH_IO_SQE, DatapathSqe);
-        if (Sqe->IoType == DATAPATH_XDP_IO_RECV || Sqe->IoType == DATAPATH_XDP_IO_SEND) {
+        if ((DATAPATH_XDP_IO_TYPE)Sqe->IoType == DATAPATH_XDP_IO_RECV ||
+            (DATAPATH_XDP_IO_TYPE)Sqe->IoType == DATAPATH_XDP_IO_SEND) {
             RawDataPathProcessCqe(Cqe);
         } else {
             DataPathProcessCqe(Cqe);
