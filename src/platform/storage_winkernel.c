@@ -574,8 +574,9 @@ CxPlatStorageReadValue(
                 InfoLength,
                 &InfoLength);
         if (QUIC_SUCCEEDED(Status)) {
-            CXPLAT_DBG_ASSERT(*BufferLength == Info->DataLength);
+            CXPLAT_DBG_ASSERT(*BufferLength >= Info->DataLength);
             memcpy(Buffer, Info->Data, Info->DataLength);
+            *BufferLength = Info->DataLength;
         } else if (Status != STATUS_OBJECT_NAME_NOT_FOUND) {
             QuicTraceEvent(
                 LibraryErrorStatus,

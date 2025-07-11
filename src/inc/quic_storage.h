@@ -89,6 +89,13 @@ typedef enum CXPLAT_STORAGE_TYPE {
 } CXPLAT_STORAGE_TYPE;
 
 //
+// Write support is not needed in the product code, and is potentially
+// dangerous in product code, so it is gated behind this flag that is only
+// enabled in test code.
+//
+#ifdef CXPLAT_STORAGE_ENABLE_WRITE_SUPPORT
+
+//
 // Writes a value to the storage context
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -120,6 +127,8 @@ QUIC_STATUS
 CxPlatStorageClear(
     _In_ CXPLAT_STORAGE* Storage
     );
+
+#endif // CXPLAT_STORAGE_ENABLE_WRITE_SUPPORT
 
 #if defined(__cplusplus)
 }
