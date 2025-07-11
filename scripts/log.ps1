@@ -147,8 +147,8 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
     }
-    perf version 2>&1 | Out-Null
-    if (!$?) {
+    try { perf version | Out-Null }
+    catch {
         Write-Debug "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
