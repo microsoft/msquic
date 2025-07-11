@@ -801,20 +801,13 @@ CxPlatKbKdfDerive(
     )
 {
     BCRYPT_KEY_HANDLE KeyHandle = NULL;
-    BCryptBuffer ParameterList[3];
-    BCryptBufferDesc Parameters;
-    ULONG LabelLength = 0;
-    ULONG DerivedKeyLength;
-
-    LabelLength = (ULONG)strnlen_s(Label, 255);
-
     NTSTATUS Status =
         BCryptGenerateSymmetricKey(
             CXPLAT_SP800108_CTR_HMAC_ALG_HANDLE,
             &KeyHandle,
             NULL, // Let BCrypt manage the memory
             0,
-            (PUCHAR)Secret,
+            (UCHAR*)Secret,
             SecretLength,
             0);
     if (!NT_SUCCESS(Status)) {
@@ -826,18 +819,20 @@ CxPlatKbKdfDerive(
         goto Error;
     }
 
+    BCryptBuffer ParameterList[3];
     ParameterList[0].BufferType = KDF_HASH_ALGORITHM;
     ParameterList[0].pvBuffer = (PVOID)BCRYPT_SHA256_ALGORITHM;
     ParameterList[0].cbBuffer = sizeof(BCRYPT_SHA256_ALGORITHM);
 
     ParameterList[1].BufferType = KDF_LABEL;
     ParameterList[1].pvBuffer = (PVOID)Label;
-    ParameterList[1].cbBuffer = LabelLength;
+    ParameterList[1].cbBuffer = (ULONG)strnlen_s(Label, 255);
 
     ParameterList[2].BufferType = KDF_CONTEXT;
     ParameterList[2].pvBuffer = (PVOID)Context;
     ParameterList[2].cbBuffer = ContextLength;
 
+    BCryptBufferDesc Parameters;
     Parameters.ulVersion = BCRYPTBUFFER_VERSION;
     Parameters.cBuffers = ARRAYSIZE(ParameterList);
     Parameters.pBuffers = ParameterList;
@@ -845,6 +840,7 @@ CxPlatKbKdfDerive(
     //
     // Derive the key using SP800-108 CTR mode
     //
+    ULONG DerivedKeyLength = 0;
     Status =
         BCryptKeyDerivation(
             KeyHandle,

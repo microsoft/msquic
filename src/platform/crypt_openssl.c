@@ -725,13 +725,13 @@ CxPlatKbKdfDerive(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    EVP_KDF *kdf;
-    EVP_KDF_CTX *kctx;
+    EVP_KDF* Kdf;
+    EVP_KDF_CTX* KdfCtx;
     OSSL_PARAM Params[6];
 
-    kdf = EVP_KDF_fetch(NULL, "KBKDF", NULL);
-    kctx = EVP_KDF_CTX_new(kdf);
-    EVP_KDF_free(kdf);
+    Kdf = EVP_KDF_fetch(NULL, "KBKDF", NULL);
+    KdfCtx = EVP_KDF_CTX_new(Kdf);
+    EVP_KDF_free(Kdf);
 
     Params[0] =
         OSSL_PARAM_construct_utf8_string(OSSL_KDF_PARAM_DIGEST,"SHA2-256", 0);
@@ -759,7 +759,7 @@ CxPlatKbKdfDerive(
 
     Params[5] = OSSL_PARAM_construct_end();
 
-    if (EVP_KDF_derive(kctx, Output, OutputLength, Params) <= 0) {
+    if (EVP_KDF_derive(KdfCtx, Output, OutputLength, Params) <= 0) {
         QuicTraceEvent(
             LibraryError,
             "[ lib] ERROR, %s.",
@@ -767,6 +767,6 @@ CxPlatKbKdfDerive(
         Status = QUIC_STATUS_INTERNAL_ERROR;
     }
 
-    EVP_KDF_CTX_free(kctx);
+    EVP_KDF_CTX_free(KdfCtx);
     return Status;
 }
