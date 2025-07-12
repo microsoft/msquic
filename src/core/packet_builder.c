@@ -747,7 +747,7 @@ QuicPacketBuilderFinalize(
                 Builder->Datagram = NULL;
             }
         }
-        if (Builder->Path->Allowance != UINT32_MAX) {
+        if (Builder->Path->Allowance != UINT64_MAX) {
             QuicConnAddOutFlowBlockedReason(
                 Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
         }
@@ -1005,7 +1005,7 @@ QuicPacketBuilderFinalize(
         //
         // Remove the bytes from the allowance.
         //
-        if ((uint32_t)Builder->Metadata->PacketLength > Builder->SendAllowance) {
+        if (Builder->Metadata->PacketLength > Builder->SendAllowance) {
             Builder->SendAllowance = 0;
         } else {
             Builder->SendAllowance -= Builder->Metadata->PacketLength;
