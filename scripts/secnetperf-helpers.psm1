@@ -377,7 +377,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client timeout!"
@@ -390,7 +392,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client exit code: $($Process.ExitCode)"
