@@ -614,7 +614,7 @@ BbrCongestionControlGetTargetCwnd(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+uint64_t
 BbrCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
@@ -653,10 +653,10 @@ BbrCongestionControlGetSendAllowance(
         //
         if (Bbr->BbrState == BBR_STATE_STARTUP) {
             SendAllowance = CXPLAT_MAX(
-                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT,
+                BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT,
                 CongestionWindow * Bbr->PacingGain / GAIN_UNIT - Bbr->BytesInFlight);
         } else {
-            SendAllowance = BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT;
+            SendAllowance = BandwidthEst * Bbr->PacingGain * TimeSinceLastSend / GAIN_UNIT / kMicroSecsInSec / BW_UNIT;
         }
 
         if (SendAllowance > CongestionWindow - Bbr->BytesInFlight) {
@@ -668,12 +668,7 @@ BbrCongestionControlGetSendAllowance(
         }
     }
     
-    // Cap to uint32_t range since we return uint32_t
-    if (SendAllowance > UINT32_MAX) {
-        SendAllowance = UINT32_MAX;
-    }
-    
-    return (uint32_t)SendAllowance;
+    return SendAllowance;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

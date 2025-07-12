@@ -175,7 +175,7 @@ CubicCongestionControlReset(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+uint64_t
 CubicCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
@@ -184,7 +184,7 @@ CubicCongestionControlGetSendAllowance(
 {
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Cc->Cubic;
 
-    uint32_t SendAllowance;
+    uint64_t SendAllowance;
     QUIC_CONNECTION* Connection = QuicCongestionControlGetConnection(Cc);
     if (Cubic->BytesInFlight >= Cubic->CongestionWindow) {
         //
