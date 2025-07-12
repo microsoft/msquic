@@ -216,6 +216,19 @@ MsQuicStreamOpen(
         HQUIC *Stream
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamOpenWithDeadline(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewStream,
+    _In_ QUIC_TIME_DIFF MsToDeadline
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QUIC_API

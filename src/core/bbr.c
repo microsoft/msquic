@@ -37,7 +37,7 @@ typedef enum RECOVERY_STATE {
 } RECOVERY_STATE;
 
 //
-// Bandwidth is measured as (bytes / BW_UNIT) per second
+// Bandwidth is measured as (bytes * BW_UNIT) per second
 //
 #define BW_UNIT 8 // 1 << 3
 
