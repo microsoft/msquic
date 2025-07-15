@@ -705,7 +705,9 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             }
             if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL &&
                 AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                //
                 // We're done installing secrets
+                //
                 TlsContext->TlsSecrets = NULL;
             }
 
