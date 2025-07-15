@@ -133,7 +133,6 @@ jobs:
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
           { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
