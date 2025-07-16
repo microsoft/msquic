@@ -1,5 +1,6 @@
 
 version: 2
+enable-beta-ecosystems: true
 updates:
 
   - package-ecosystem: "github-actions"
@@ -15,6 +16,15 @@ updates:
       day: "saturday"
 
   - package-ecosystem: "cargo"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    labels:
+      - "dependencies"
+      - "Language: Rust"
+
+  - package-ecosystem: "rust-toolchain"
     directory: "/"
     schedule:
       interval: "weekly"
