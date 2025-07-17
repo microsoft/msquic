@@ -12,6 +12,9 @@ This script provides helpers for building msquic.
 .PARAMETER Platform
     Specify which platform to build for.
 
+.PARAMETER UseLatestWinSdk
+    Specify whether latest Windows SDK must be used (Windows-only).
+
 .PARAMETER Static
     Specify a static library is preferred (shared is the default).
 
@@ -127,6 +130,9 @@ param (
     [Parameter(Mandatory = $false)]
     [ValidateSet("gamecore_console", "uwp", "windows", "linux", "macos", "android", "ios")] # For future expansion
     [string]$Platform = "",
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseLatestWinSdk = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$Static = $false,
@@ -259,6 +265,11 @@ if (!$IsWindows -And $Platform -eq "uwp") {
 
 if (!$IsWindows -And ($Platform -eq "gamecore_console")) {
     Write-Error "[$(Get-Date)] Cannot build gamecore on non windows platforms"
+    exit
+}
+
+if (!$IsWindows -And $UseLatestWinSdk) {
+    Write-Error "[$(Get-Date)] Cannot use latest Windows SDK to build on non windows platforms"
     exit
 }
 
@@ -480,6 +491,12 @@ function CMake-Generate {
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
+    }
+    if ($IsWindows -and $UseLatestWinSdk -and $Platform -ne "uwp" -and $Platform -ne "gamecore_console") {
+        $SdkVersions = Get-ChildItem -Path $sdkPath -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -ExpandProperty Name
+        $LatestWinSdk = $SdkVersions | Sort-Object -Descending | Select-Object -First 1
+        Write-Host "Using latest Windows SDK version: $LatestWinSdk"
+        $Arguments += " -DCMAKE_SYSTEM_VERSION=$LatestWinSdk"
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
