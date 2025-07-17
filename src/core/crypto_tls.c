@@ -68,6 +68,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 #define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
 #define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
+#define QUIC_TP_ID_STREAM_STATISTICS                        0x73FB          // N/A
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -904,6 +905,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ENABLE_TIMESTAMP,
                 QuicVarIntSize(value));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_STREAM_STATISTICS,
+                0);
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1245,6 +1252,18 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Timestamp (%u)",
             value);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
+        TPBuf =
+            TlsWriteTransportParam(
+                QUIC_TP_ID_STREAM_STATISTICS,
+                0,
+                NULL,
+                TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPStreamStatistics,
+            Connection,
+            "TP: Stream Statistics");
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1952,6 +1971,22 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             TransportParams->Flags |= (uint32_t)value;
             break;
         }
+
+        case QUIC_TP_ID_STREAM_STATISTICS:
+            if (Length != 0) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Invalid length of QUIC_TP_ID_STREAM_STATISTICS");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_STREAM_STATISTICS;
+            QuicTraceLogConnVerbose(
+                DecodeTPStreamStatistics,
+                Connection,
+                "TP: Stream Statistics");
+            break;
 
         default:
             if (QuicTpIdIsReserved(Id)) {

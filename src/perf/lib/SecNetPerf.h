@@ -249,6 +249,38 @@ QuicPrintStreamStatistics(
         (unsigned long long)Stats.StreamBlockedByAppUs);
 }
 
+QUIC_INLINE
+void
+QuicPrintPeerStreamStatistics(
+    _In_ const QUIC_API_TABLE* ApiTable,
+    _In_ HQUIC Stream
+    )
+{
+    QUIC_STREAM_STATISTICS Stats = {0};
+    uint32_t BufferLength = sizeof(Stats);
+    if (QUIC_SUCCEEDED(
+        ApiTable->GetParam(Stream, QUIC_PARAM_STREAM_PEER_STATISTICS, &BufferLength, &Stats))) {
+        WriteOutput(
+            "Stream Timings (Peer) (flow blocked):\n"
+            "  SCHEDULING:               %llu us\n"
+            "  PACING:                   %llu us\n"
+            "  AMPLIFICATION_PROT:       %llu us\n"
+            "  CONGESTION_CONTROL:       %llu us\n"
+            "  CONN_FLOW_CONTROL:        %llu us\n"
+            "  STREAM_ID_FLOW_CONTROL:   %llu us\n"
+            "  STREAM_FLOW_CONTROL:      %llu us\n"
+            "  APP:                      %llu us\n",
+            (unsigned long long)Stats.ConnBlockedBySchedulingUs,
+            (unsigned long long)Stats.ConnBlockedByPacingUs,
+            (unsigned long long)Stats.ConnBlockedByAmplificationProtUs,
+            (unsigned long long)Stats.ConnBlockedByCongestionControlUs,
+            (unsigned long long)Stats.ConnBlockedByFlowControlUs,
+            (unsigned long long)Stats.StreamBlockedByIdFlowControlUs,
+            (unsigned long long)Stats.StreamBlockedByFlowControlUs,
+            (unsigned long long)Stats.StreamBlockedByAppUs);
+    }
+}
+
 extern const char* TimeUnits[];
 extern const uint64_t TimeMult[];
 extern const char* SizeUnits[];
