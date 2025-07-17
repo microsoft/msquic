@@ -493,7 +493,8 @@ function CMake-Generate {
         $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
     }
     if ($IsWindows -and $UseLatestWinSdk -and $Platform -ne "uwp" -and $Platform -ne "gamecore_console") {
-        $SdkVersions = Get-ChildItem -Path $sdkPath -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -ExpandProperty Name
+        $SdkIncPath = ${env:ProgramFiles(x86)} + "\Windows Kits\10\Include"
+        $SdkVersions = Get-ChildItem -Path $SdkIncPath -Directory | Where-Object { $_.Name -match '^\d+\.\d+\.\d+\.\d+$' } | Select-Object -ExpandProperty Name
         $LatestWinSdk = $SdkVersions | Sort-Object -Descending | Select-Object -First 1
         Write-Host "Using latest Windows SDK version: $LatestWinSdk"
         $Arguments += " -DCMAKE_SYSTEM_VERSION=$LatestWinSdk"
