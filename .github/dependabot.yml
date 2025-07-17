@@ -34,13 +34,10 @@ updates:
       - "Language: Rust"
 
   - package-ecosystem: "docker"
-    directory: "/.docker/ubuntu-22.04"
+    directories:
+      - "/.docker/ubuntu-20.04"
+      - "/.docker/ubuntu-22.04"
     schedule:
       interval: "weekly"
       day: "saturday"
 
-  - package-ecosystem: "docker"
-    directory: "/.docker/ubuntu-20.04"
-    schedule:
-      interval: "weekly"
-      day: "saturday"
