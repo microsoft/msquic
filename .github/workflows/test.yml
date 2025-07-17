@@ -79,8 +79,8 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", targetSpecs: "- UseLatestWinSdk" },
-          { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", targetSpecs: "- UseLatestWinSdk" }
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", targetSpecs: "-UseLatestWinSdk" },
+          { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test", targetSpecs: "-UseLatestWinSdk" }
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
