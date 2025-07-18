@@ -209,6 +209,29 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryNotInUse,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+        Config->Algorithm,
+        Config->RotationMs);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryRetryKeyUpdated,
+    TP_ARGS(
+        int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryMsQuicOpenVersionNull
 // [ api] MsQuicOpenVersion, NULL
 // QuicTraceLogVerbose(
@@ -286,6 +309,83 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse,
     TP_ARGS(
 ), 
     TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
+// [ lib] Invalid retry key algorithm: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+// arg2 = arg2 = Config->Algorithm = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyRotationInvalid
+// [ lib] Invalid retry key rotation ms: %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+// arg2 = arg2 = Config->RotationMs = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid,
+    TP_ARGS(
+        unsigned int, arg2), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
+// [ lib] Invalid retry key secret length: %u. Expected %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            AlgSecretLen);
+// arg2 = arg2 = Config->SecretLength = arg2
+// arg3 = arg3 = AlgSecretLen = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

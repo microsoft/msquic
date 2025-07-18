@@ -295,4 +295,16 @@
 #define _Check_return_
 #endif
 
+#ifndef _Requires_lock_held_
+#define _Requires_lock_held_(...)
+#endif
+
+#ifndef _Requires_exclusive_lock_held_
+#define _Requires_exclusive_lock_held_(...)
+#endif
+
+#ifndef _Requires_shared_lock_held_
+#define _Requires_shared_lock_held_(...)
+#endif
+
 #endif // _SAL_STUB_H
