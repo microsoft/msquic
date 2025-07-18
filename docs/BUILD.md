@@ -117,7 +117,7 @@ Note at minimum CMake 3.20 on windows and 3.16 on other platforms is required. I
   * [Visual Studio 2019 or 2022](https://www.visualstudio.com/vs/) (or Build Tools for Visual Studio 2019/2022) with
     - C++ CMake tools for Windows
     - MSVC v142 - VS 2019 (or 2022) C++ (_Arch_) build tools
-    - Windows SDK
+    - [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk) version 10.0.26100.0 or newer
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds (required for SChannel build)
 
 ## Running a Build
