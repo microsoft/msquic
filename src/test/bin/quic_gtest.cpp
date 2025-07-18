@@ -2127,6 +2127,18 @@ TEST_P(WithCancelOnLossArgs, CancelOnLossSend) {
 }
 #endif
 
+TEST_P(WithDeadlineExpiredArgs, DeadlineExpiredSend) {
+    TestLoggerT<ParamType> Logger("QuicDeadlineExpiredSend", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_DEADLINE_EXPIRED_PARAMS Params = {
+            GetParam().IsDeadlineExpiredScenario
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_DEADLINE_EXPIRED, Params));
+    } else {
+        QuicDeadlineExpired(GetParam().IsDeadlineExpiredScenario);
+    }
+}
+
 TEST_P(WithCidUpdateArgs, CidUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestCidUpdate", GetParam());
     if (TestingKernelMode) {
@@ -2711,6 +2723,11 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(CancelOnLossArgs::Generate()));
 
 #endif
+
+INSTANTIATE_TEST_SUITE_P(
+    Misc,
+    WithDeadlineExpiredArgs,
+    testing::ValuesIn(DeadlineExpiredArgs::Generate()));
 
 INSTANTIATE_TEST_SUITE_P(
     Misc,

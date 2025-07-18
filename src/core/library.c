@@ -2016,6 +2016,7 @@ MsQuicOpenVersion(
     Api->ConnectionCertificateValidationComplete = MsQuicConnectionCertificateValidationComplete;
 
     Api->StreamOpen = MsQuicStreamOpen;
+    Api->StreamOpenWithDeadline = MsQuicStreamOpenWithDeadline;
     Api->StreamClose = MsQuicStreamClose;
     Api->StreamShutdown = MsQuicStreamShutdown;
     Api->StreamStart = MsQuicStreamStart;
