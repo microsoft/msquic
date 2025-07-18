@@ -120,6 +120,8 @@ Environment:
 #define QUIC_STATUS_STREAM_LIMIT_REACHED    ERROR_QUIC_STREAM_LIMIT_REACHED                 // 0x80410008
 #define QUIC_STATUS_ALPN_IN_USE             ERROR_QUIC_ALPN_IN_USE                          // 0x80410009
 
+#define NETDB_ERR_CODE_TO_QUIC_STATUS(Alert)        (Alert)
+
 #define QUIC_STATUS_TLS_ALERT(Alert)        (QUIC_TLS_ALERT_HRESULT_PREFIX | (0xff & Alert))
 
 #define QUIC_STATUS_CLOSE_NOTIFY            QUIC_STATUS_TLS_ALERT(0)    // Close notify
