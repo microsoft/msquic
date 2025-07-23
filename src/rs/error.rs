@@ -81,7 +81,7 @@ impl From<StatusCode> for QUIC_STATUS {
 /// The display string is the same as the debug string, i.e. the enum string.
 impl core::fmt::Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        core::write!(f, "{:?}", self)
+        core::write!(f, "{self:?}")
     }
 }
 
