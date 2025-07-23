@@ -121,10 +121,10 @@ jobs:
     - name: Install msquic from apt
       run: |
         wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
-        sudo DEBIAN_FRONTEND=noninteractive dpkg --install packages-microsoft-prod.deb;
+        yes | sudo dpkg -i packages-microsoft-prod.deb;
         sudo apt-get update;
-        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libmsquic;
-        DEBIAN_FRONTEND=noninteractive dpkg -L libmsquic;
+        sudo apt-get install -y libmsquic;
+        dpkg -L libmsquic;
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
