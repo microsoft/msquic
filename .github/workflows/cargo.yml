@@ -49,7 +49,7 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
-        toolchain: 1.86.0
+        toolchain: 1.88.0
         components: rustfmt, clippy
     - name: Cargo fmt
       run: cargo fmt --all -- --check
@@ -116,14 +116,14 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
-        toolchain: 1.86.0
+        toolchain: 1.88.0
         components: rustfmt, clippy
     - name: Install msquic from apt
       run: |
         wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
-        sudo dpkg -i packages-microsoft-prod.deb;
+        sudo DEBIAN_FRONTEND=noninteractive dpkg --install packages-microsoft-prod.deb;
         sudo apt-get update;
-        sudo apt-get install libmsquic;
+        sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libmsquic;
         dpkg -L libmsquic;
     - name: Cargo fmt
       run: cargo fmt --all -- --check
