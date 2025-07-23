@@ -124,7 +124,7 @@ jobs:
         sudo DEBIAN_FRONTEND=noninteractive dpkg --install packages-microsoft-prod.deb;
         sudo apt-get update;
         sudo DEBIAN_FRONTEND=noninteractive apt-get install -y libmsquic;
-        dpkg -L libmsquic;
+        DEBIAN_FRONTEND=noninteractive dpkg -L libmsquic;
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
