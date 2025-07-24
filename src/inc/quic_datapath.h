@@ -192,14 +192,17 @@ typedef struct CXPLAT_RAW_TCP_STATE {
 } CXPLAT_RAW_TCP_STATE;
 
 //
+// An opaque queue type. Each queue is associated with a single RSS queue on a
+// single interface.
+//
+typedef struct CXPLAT_QUEUE CXPLAT_QUEUE;
+
+//
 // Structure to represent a network route.
 //
 typedef struct CXPLAT_ROUTE {
 
-    //
-    // The (RSS) queue that this route is primarily associated with.
-    //
-    void* Queue;
+    CXPLAT_QUEUE* Queue;
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
@@ -433,6 +436,7 @@ typedef enum CXPLAT_DATAPATH_FEATURES {
     CXPLAT_DATAPATH_FEATURE_TTL                = 0x00000080,
     CXPLAT_DATAPATH_FEATURE_SEND_DSCP          = 0x00000100,
     CXPLAT_DATAPATH_FEATURE_RIO                = 0x00000200,
+    CXPLAT_DATAPATH_FEATURE_RECV_DSCP          = 0x00000400,
 } CXPLAT_DATAPATH_FEATURES;
 
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)

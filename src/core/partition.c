@@ -74,10 +74,18 @@ QuicPartitionUninitialize(
     CxPlatHashFree(Partition->ResetTokenHash);
 }
 
+//
+// MUST be called while holding the per-partition StatelessRetryKeysLock to
+// ensure no-concurrent modification of the per-partition encryption key *AND*
+// while holding the the global MsQuicLib.StatelessRetry.Lock in shared mode to
+// ensure the configuration is read in a complete state.
+//
+_Requires_lock_held_(Partition->StatelessRetryKeysLock)
+_Requires_shared_lock_held_(MsQuicLib.StatelessRetry.Lock)
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Ret_maybenull_
 CXPLAT_KEY*
-QuicPartitioGetStatelessRetryKey(
+QuicPartitionGetStatelessRetryKey(
     _In_ QUIC_PARTITION* Partition,
     _In_ int64_t KeyIndex
     )
@@ -90,21 +98,26 @@ QuicPartitioGetStatelessRetryKey(
     }
 
     //
-    // Generate a new key from the base retry key combined with the index.
+    // Generate a new key from the base retry secret using SP800-108 CTR-HMAC.
     //
-    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
-    CxPlatCopyMemory(
-        RawKey,
-        MsQuicLib.BaseRetrySecret,
-        sizeof(MsQuicLib.BaseRetrySecret));
-    for (size_t i = 0; i < sizeof(KeyIndex); ++i) {
-        RawKey[i] ^= ((uint8_t*)&KeyIndex)[i];
+    uint8_t RawKey[CXPLAT_AEAD_MAX_SIZE];
+    QUIC_STATUS Status =
+        CxPlatKbKdfDerive(
+            MsQuicLib.StatelessRetry.BaseSecret,
+            MsQuicLib.StatelessRetry.SecretLength,
+            "QUIC Stateless Retry Key",
+            (uint8_t*)&KeyIndex,
+            sizeof(KeyIndex),
+            MsQuicLib.StatelessRetry.SecretLength,
+            RawKey);
+    if (QUIC_FAILED(Status)) {
+        return NULL;
     }
 
     CXPLAT_KEY* NewKey;
-    QUIC_STATUS Status =
+    Status =
         CxPlatKeyCreate(
-            CXPLAT_AEAD_AES_256_GCM,
+            MsQuicLib.StatelessRetry.AeadAlgorithm,
             RawKey,
             &NewKey);
     if (QUIC_FAILED(Status)) {
@@ -113,17 +126,20 @@ QuicPartitioGetStatelessRetryKey(
             "[ lib] ERROR, %u, %s.",
             Status,
             "Create stateless retry key");
+        CxPlatSecureZeroMemory(RawKey, sizeof(RawKey));
         return NULL;
     }
 
     CxPlatKeyFree(Partition->StatelessRetryKeys[KeyIndex & 1].Key);
     Partition->StatelessRetryKeys[KeyIndex & 1].Key = NewKey;
     Partition->StatelessRetryKeys[KeyIndex & 1].Index = KeyIndex;
+    CxPlatSecureZeroMemory(RawKey, sizeof(RawKey));
 
     return NewKey;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Requires_lock_held_(Partition->StatelessRetryKeysLock)
 _Ret_maybenull_
 CXPLAT_KEY*
 QuicPartitionGetCurrentStatelessRetryKey(
@@ -131,11 +147,15 @@ QuicPartitionGetCurrentStatelessRetryKey(
     )
 {
     const int64_t Now = CxPlatTimeEpochMs64();
-    const int64_t KeyIndex = Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-    return QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
+    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    const int64_t KeyIndex = Now / MsQuicLib.StatelessRetry.KeyRotationMs;
+    CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
+    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    return Key;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
+_Requires_lock_held_(Partition->StatelessRetryKeysLock)
 _Ret_maybenull_
 CXPLAT_KEY*
 QuicPartitionGetStatelessRetryKeyForTimestamp(
@@ -144,15 +164,19 @@ QuicPartitionGetStatelessRetryKeyForTimestamp(
     )
 {
     const int64_t Now = CxPlatTimeEpochMs64();
-    const int64_t CurrentKeyIndex = Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-    const int64_t KeyIndex = Timestamp / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    const int64_t CurrentKeyIndex = Now / MsQuicLib.StatelessRetry.KeyRotationMs;
+    const int64_t KeyIndex = Timestamp / MsQuicLib.StatelessRetry.KeyRotationMs;
 
     if (KeyIndex < CurrentKeyIndex - 1 || KeyIndex > CurrentKeyIndex) {
         //
         // This key index is too old or too new.
         //
+        CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
         return NULL;
     }
 
-    return QuicPartitioGetStatelessRetryKey(Partition, KeyIndex);
+    CXPLAT_KEY* Key = QuicPartitionGetStatelessRetryKey(Partition, KeyIndex);
+    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    return Key;
 }

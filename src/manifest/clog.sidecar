@@ -219,6 +219,30 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "AttackDetected": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+      "UniqueId": "AttackDetected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
+    },
     "BindingCleanup": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Cleaning up",
@@ -3455,6 +3479,22 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DecodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu",
+      "UniqueId": "DecodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] TP: ACK Delay Exponent (%llu)",
@@ -3986,6 +4026,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "EncodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Encoding Careful Resume State",
+      "UniqueId": "EncodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -5888,6 +5940,22 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
+    "GetTxOffloadConfig": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] %u, %u",
+      "UniqueId": "GetTxOffloadConfig",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (ack)",
@@ -6822,6 +6890,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryRetryKeyUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+      "UniqueId": "LibraryRetryKeyUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryRetryMemoryLimitSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Updated retry memory limit = %hu",
@@ -6864,6 +6948,69 @@
       "UniqueId": "LibraryServerInit",
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
+    },
+    "LibrarySetRetryConfigLengthInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Config buffer insufficient: %u. Expected %u",
+      "UniqueId": "LibrarySetRetryConfigLengthInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeyAlgorithmInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key algorithm: %d.",
+      "UniqueId": "LibrarySetRetryKeyAlgorithmInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeyRotationInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key rotation ms: %u.",
+      "UniqueId": "LibrarySetRetryKeyRotationInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeySecretLengthInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key secret length: %u. Expected %u.",
+      "UniqueId": "LibrarySetRetryKeySecretLengthInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeySecretNull": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key secret: NULL.",
+      "UniqueId": "LibrarySetRetryKeySecretNull",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
     },
     "LibrarySetSettings": {
       "ModuleProperites": {},
@@ -11509,6 +11656,22 @@
       ],
       "macroName": "QuicTraceLogStreamWarning"
     },
+    "SkipPacketNumber": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Skipped packet number %llu",
+      "UniqueId": "SkipPacketNumber",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
+    },
     "SockCreateFail": {
       "ModuleProperites": {},
       "TraceString": "[sock] Failed to create socket, status:%d",
@@ -14015,6 +14178,11 @@
         "EncodingString": "[conn][%p] Applying new settings"
       },
       {
+        "UniquenessHash": "2577283e-0a65-186c-be40-d33b66b0062d",
+        "TraceID": "AttackDetected",
+        "EncodingString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]"
+      },
+      {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
         "TraceID": "BindingCleanup",
         "EncodingString": "[bind][%p] Cleaning up"
@@ -14980,6 +15148,11 @@
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
       },
       {
+        "UniquenessHash": "4f93225a-16ce-0454-82c8-a9a874bfead9",
+        "TraceID": "DecodeCRStart",
+        "EncodingString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu"
+      },
+      {
         "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
         "TraceID": "DecodeTPAckDelayExponent",
         "EncodingString": "[conn][%p] TP: ACK Delay Exponent (%llu)"
@@ -15148,6 +15321,11 @@
         "UniquenessHash": "59a602dd-2f8a-6b1d-4fe2-2ac0c1316f05",
         "TraceID": "EcnValidationUnknown",
         "EncodingString": "[conn][%p] ECN unknown."
+      },
+      {
+        "UniquenessHash": "89d8241b-7af6-1a03-5c55-9b788a7d2924",
+        "TraceID": "EncodeCRStart",
+        "EncodingString": "[conn][%p] Encoding Careful Resume State"
       },
       {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
@@ -15625,6 +15803,11 @@
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
       },
       {
+        "UniquenessHash": "72895611-1b21-d389-c78b-ab44b14b458f",
+        "TraceID": "GetTxOffloadConfig",
+        "EncodingString": "[ lib] %u, %u"
+      },
+      {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
         "TraceID": "HandshakeConfirmedAck",
         "EncodingString": "[conn][%p] Handshake confirmed (ack)"
@@ -15940,6 +16123,11 @@
         "EncodingString": "[ lib] Release"
       },
       {
+        "UniquenessHash": "7e60f269-ff18-fed5-550c-388521d4164d",
+        "TraceID": "LibraryRetryKeyUpdated",
+        "EncodingString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u"
+      },
+      {
         "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
         "TraceID": "LibraryRetryMemoryLimitSet",
         "EncodingString": "[ lib] Updated retry memory limit = %hu"
@@ -15958,6 +16146,31 @@
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
         "TraceID": "LibraryServerInit",
         "EncodingString": "[ lib] Shared server state initializing"
+      },
+      {
+        "UniquenessHash": "46c73e98-adfd-96b8-38c1-8ba4f06b8dc1",
+        "TraceID": "LibrarySetRetryConfigLengthInvalid",
+        "EncodingString": "[ lib] Config buffer insufficient: %u. Expected %u"
+      },
+      {
+        "UniquenessHash": "486e116e-95bb-bdeb-5f27-de64f47dd51a",
+        "TraceID": "LibrarySetRetryKeyAlgorithmInvalid",
+        "EncodingString": "[ lib] Invalid retry key algorithm: %d."
+      },
+      {
+        "UniquenessHash": "44f860ad-7ed6-6b7d-281a-ebdbf5af5d78",
+        "TraceID": "LibrarySetRetryKeyRotationInvalid",
+        "EncodingString": "[ lib] Invalid retry key rotation ms: %u."
+      },
+      {
+        "UniquenessHash": "e3e48450-245f-f818-02d3-8e25aae09b6e",
+        "TraceID": "LibrarySetRetryKeySecretLengthInvalid",
+        "EncodingString": "[ lib] Invalid retry key secret length: %u. Expected %u."
+      },
+      {
+        "UniquenessHash": "58822e02-9fc2-7ca6-ca3e-ae4e399f16f8",
+        "TraceID": "LibrarySetRetryKeySecretNull",
+        "EncodingString": "[ lib] Invalid retry key secret: NULL."
       },
       {
         "UniquenessHash": "8b631421-6922-c7cf-8f9e-0b9ded090611",
@@ -17478,6 +17691,11 @@
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",
         "TraceID": "ShutdownImmediatePendingReliableReset",
         "EncodingString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset)."
+      },
+      {
+        "UniquenessHash": "2656ff28-78a8-28d2-b18f-0aa4ec664a0d",
+        "TraceID": "SkipPacketNumber",
+        "EncodingString": "[conn][%p] Skipped packet number %llu"
       },
       {
         "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",

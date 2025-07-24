@@ -117,7 +117,7 @@ Note at minimum CMake 3.20 on windows and 3.16 on other platforms is required. I
   * [Visual Studio 2019 or 2022](https://www.visualstudio.com/vs/) (or Build Tools for Visual Studio 2019/2022) with
     - C++ CMake tools for Windows
     - MSVC v142 - VS 2019 (or 2022) C++ (_Arch_) build tools
-    - Windows SDK
+    - [Windows SDK](https://developer.microsoft.com/en-us/windows/downloads/windows-sdk) version 10.0.26100.0 or newer
   * Latest [Windows Insider](https://insider.windows.com/en-us/) builds (required for SChannel build)
 
 ## Running a Build
@@ -154,6 +154,14 @@ For more info, take a look at the [build.ps1](../scripts/build.ps1) script.
 ## Build Output
 
 By default the build output will go in the `build` folder and the final build binaries in the `artifacts` folder. Under that it will create per-platform folders with subfolders for architecture/tls combinations. This allows for building different platforms and configurations at the same time.
+
+## Updating Clog Sidecar
+
+Some code changes such as adding/updating new MsQuic traces require updating the CLOG sidecar for successful Linux builds. This is done by running the following command:
+```PowerShell
+./scripts/update-sidecar.ps1
+```
+This makes any necessary updates to the clog sidecar manifest and the generated files under `src/generated/` folder. The modified files must be committed along with the rest of the code changes for addressing the Linux build failures.
 
 # Building with CMake
 
@@ -322,3 +330,20 @@ cd vcpkg
 ./vcpkg install ms-quic
 ```
 The `MsQuic` port in vcpkg is kept up to date by Microsoft team members and community contributors. If the version is out of date, please [create an issue or pull   request](https://github.com/Microsoft/vcpkg) on the vcpkg repository.
+
+# Build Automation
+
+MsQuic has several types and locations for build automation.
+
+## GitHub
+
+The most comprehensive build automation is on GitHub and run via GitHub Action workflows (see [here](https://github.com/microsoft/msquic/actions/workflows/build.yml)) on every PR and push to main. As of June 2025, over 200 different build configurations are run. These are meant to completely cover pretty much all build scenarios that are important to the project.
+
+These builds don't produce any official, signed artifacts. They are merely used for validation and then test (execution) purposes.
+
+## Internal
+
+Microsoft then has official build pipelines that run internally (private) in secure build containers to produce the official binaries. These are then signed and eventually officially released. The main pipeline may be found [here](https://microsoft.visualstudio.com/undock/_build?definitionId=134439) (MSFT-only access required). This pipeline automatically picks up all main branch, release branch and tags from the public repo and mirrors them internally.
+
+There is an older pipeline [here](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1738), which has _mostly_ been superceded by the pipeline above. Issue [#4766](https://github.com/microsoft/msquic/issues/4766) tracks the work to completely move things over. For instance, Linux package publishing still only functions in this older pipeline.
+

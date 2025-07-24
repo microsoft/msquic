@@ -1601,7 +1601,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     FuzzData = new FuzzingData(data, size);
     if (!FuzzData->Initialize()) {
-        return 0;
+        goto cleanup;
     }
 
     SpinSettings.RunServer = true;
@@ -1618,6 +1618,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     SpinSettings.RepeatCount = 1;
 
     start();
+
+cleanup:
     delete FuzzData;
     return 0;
 }

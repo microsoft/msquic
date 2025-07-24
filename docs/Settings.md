@@ -90,6 +90,27 @@ All restrictions and effects on the versions mentioned in [QUIC_VERSION_SETTINGS
 
 Particularly, on server, these must be set **GLOBALLY** if you want them to take effect for servers.
 
+The following settings are available via registry as well as via [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md):
+
+| Setting | Type | Registry Name | Default | Description |
+|---------|------|---------------|---------|-------------|
+| Stateless Retry Key Rotation interval | uint32_t | RetryKeyRotationMs | 30000 | The interval stateless retry keys are rotated on. A token is valid for 2x this interval. |
+| Stateless Retry Key Algorithm | uint32_t | RetryKeyAlgorithm | QUIC_AEAD_ALGORITHM_AES_256_GCM | The algorithm used to protect the stateless retry token. |
+| Stateless Retry Key Secret | uint8_t[] | RetryKeySecret | Randomly Generated | The secret material used to generate the stateless retry keys. **MUST** be secure randomness! |
+
+The `uint8_t[]` type is a `REG_BINARY` blob of the secret material, and must be the same length (in bytes) as the algorithm's key.
+
+These settings only take effect in the global registry location.
+
+When changing the stateless retry configuration via registry, admins **MUST** delete the existing RetryKeyRotationMs, RetryKeyAlgorithm, and RetryKeySecret registry values (if present) before writing the new values. This prevents a split state from occurring while applying settings.
+
+For consistency when configuring Stateless Retry via the registry, values **MUST** be written in the following order:
+1. RetryKeyRotationMs
+2. RetryKeyAlgorithm
+3. RetryKeySecret
+
+See [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) for more information.
+
 ## QUIC_SETTINGS
 
 A [QUIC_SETTINGS](./api/QUIC_SETTINGS.md) struct is used to configure settings on a `Configuration` handle, `Connection` handle, or globally.
@@ -118,7 +139,9 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_GLOBAL_EXECUTION_CONFIG`<br> 9 (preview)        | QUIC_GLOBAL_EXECUTION_CONFIG   | Both      | Globally configure the execution model used for QUIC. Must be set before opening registration.        |
 | `QUIC_PARAM_GLOBAL_TLS_PROVIDER`<br> 10           | QUIC_TLS_PROVIDER       | Get-Only  | The TLS provider being used by MsQuic for the TLS handshake.                                          |
 | `QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY`<br> 11    | uint8_t[]               | Set-Only  | Globally change the stateless reset key for all subsequent connections.                               |
+| `QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES`<br> 12    | uint32_t[]               | Get-only  | Array of well-known sizes for each version of the QUIC_STATISTICS_V2 struct. The output array length is variable; pass a buffer of uint32_t and check BufferLength for the number of sizes returned. See GetParam documentation for usage details. |
 | `QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED`<br> (preview) | uint8_t (BOOLEAN) | Both | Globally enable the version negotiation extension for all client and server connections. |
+| `QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG`<br> 13    | [QUIC_STATELESS_RETRY_CONFIG](./api/QUIC_STATELESS_RETRY_CONFIG.md) | Set-Only | Configure the stateless retry token secret, key algorithm, and key rotation interval. The secret length *must* match the AEAD algorithm key length. |
 
 ## Registration Parameters
 
@@ -182,6 +205,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 | `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | The original destination connection ID used by the client to connect to the server.       |
 | `QUIC_PARAM_CONN_SEND_DSCP` <br> 25               | uint8_t                       | Both      | The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection. |
+| `QUIC_PARAM_CONN_NETWORK_STATISTICS` <br> 20      | QUIC_NETWORK_STATISTICS       | Get-only  | Returns Connection level network statistics |
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 

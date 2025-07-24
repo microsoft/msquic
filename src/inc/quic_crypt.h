@@ -66,11 +66,18 @@ typedef enum CXPLAT_AEAD_TYPE {
 
 } CXPLAT_AEAD_TYPE;
 
+CXPLAT_STATIC_ASSERT(
+    (uint32_t)CXPLAT_AEAD_AES_128_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_128_GCM &&
+    (uint32_t)CXPLAT_AEAD_AES_256_GCM == (uint32_t)QUIC_AEAD_ALGORITHM_AES_256_GCM,
+    "CXPLAT AEAD algorithm enum values must match the QUIC API enum values.");
+
 typedef enum CXPLAT_AEAD_TYPE_SIZE {
 
     CXPLAT_AEAD_AES_128_GCM_SIZE       = 16,
     CXPLAT_AEAD_AES_256_GCM_SIZE       = 32,
-    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32
+    CXPLAT_AEAD_CHACHA20_POLY1305_SIZE = 32,
+
+    CXPLAT_AEAD_MAX_SIZE               = 32 // This should be the max of the above values.
 
 } CXPLAT_AEAD_TYPE_SIZE;
 
@@ -385,6 +392,18 @@ CxPlatHashCompute(
 BOOLEAN
 CxPlatCryptSupports(
     CXPLAT_AEAD_TYPE AeadType
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatKbKdfDerive(
+    _In_reads_(SecretLength) const uint8_t* Secret,
+    _In_ uint32_t SecretLength,
+    _In_z_ const char* Label,
+    _In_reads_opt_(ContextLength) const uint8_t* Context,
+    _In_ uint32_t ContextLength,
+    _In_ uint32_t OutputLength,
+    _Out_writes_(OutputLength) uint8_t* Output
     );
 
 #if defined(__cplusplus)

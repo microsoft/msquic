@@ -327,6 +327,7 @@ pub const PARAM_CONN_VERSION_SETTINGS: u32 = 0x05000014;
 pub const PARAM_CONN_INITIAL_DCID_PREFIX: u32 = 0x05000015;
 pub const PARAM_CONN_STATISTICS_V2: u32 = 0x05000016;
 pub const PARAM_CONN_STATISTICS_V2_PLAT: u32 = 0x05000017;
+pub const PARAM_CONN_NETWORK_STATISTICS: u32 = 0x05000020;
 
 pub const PARAM_TLS_HANDSHAKE_INFO: u32 = 0x06000000;
 pub const PARAM_TLS_NEGOTIATED_ALPN: u32 = 0x06000001;
@@ -400,7 +401,7 @@ impl Api {
                 let mut table: *const QUIC_API_TABLE = ptr::null();
                 let status = MsQuicOpenVersion(2, std::ptr::addr_of_mut!(table));
                 if let Err(err) = Status::ok_from_raw(status as QUIC_STATUS) {
-                    panic!("Failed to open MsQuic: {}", err);
+                    panic!("Failed to open MsQuic: {err}");
                 }
                 APITABLE = table;
             });

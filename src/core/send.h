@@ -268,6 +268,17 @@ typedef struct QUIC_SEND {
     uint64_t NextPacketNumber;
 
     //
+    // The current skipped packet number for attack detection. If this is
+    // acknowledged, it indicates an attack.
+    //
+    uint64_t SkippedPacketNumber;
+
+    //
+    // The next packet number we will skip for attack detection.
+    //
+    uint64_t NextSkippedPacketNumber;
+
+    //
     // Last time send flush occurred. Used for pacing calculations.
     //
     uint64_t LastFlushTime;

@@ -1,6 +1,6 @@
 [package]
 name = "msquic"
-version = "2.5.0-beta"
+version = "2.6.0-beta"
 edition = "2021"
 authors = ["Microsoft"]
 description = "Microsoft implementation of the IETF QUIC protocol"
@@ -28,7 +28,11 @@ include = [
     "/submodules/quictls/engines",
     "/submodules/quictls/exporters",
     "/submodules/quictls/external",
-    "/submodules/quictls/fuzz",
+    "/submodules/quictls/fuzz/*.c",
+    "/submodules/quictls/fuzz/*.h", 
+    "/submodules/quictls/fuzz/*.py",
+    "/submodules/quictls/fuzz/*.pl",
+    "/submodules/quictls/fuzz/build.info",
     "/submodules/quictls/include",
     "/submodules/quictls/ms",
     "/submodules/quictls/os-dep",
@@ -36,7 +40,29 @@ include = [
     "/submodules/quictls/ssl",
     "/submodules/quictls/tools",
     "/submodules/quictls/util",
-    "/submodules/quictls/VMS",
+    "/submodules/openssl/*.*",
+    "/submodules/openssl/apps",
+    "/submodules/openssl/CHANGES",
+    "/submodules/openssl/config",
+    "/submodules/openssl/Configure",
+    "/submodules/openssl/Configurations",
+    "/submodules/openssl/crypto",
+    "/submodules/openssl/engines",
+    "/submodules/openssl/external",
+    "/submodules/openssl/include",
+    "/submodules/openssl/ms",
+    "/submodules/openssl/os-dep",
+    "/submodules/openssl/ssl",
+    "/submodules/openssl/tools",
+    "/submodules/openssl/fuzz/*.c",
+    "/submodules/openssl/fuzz/*.h",
+    "/submodules/openssl/fuzz/*.py",
+    "/submodules/openssl/fuzz/*.pl",
+    "/submodules/openssl/fuzz/build.info",
+    "/submodules/openssl/doc",
+    "/submodules/openssl/exporters",
+    "/submodules/openssl/providers",
+    "/submodules/openssl/util",
     "/submodules/xdp-for-windows/published/external",
     "/scripts/build.rs",
     "/src/**/*.rs",
@@ -62,6 +88,8 @@ src = [ "dep:cmake" ]
 find = []
 # Windows uses schannel, and linux uses quictls by default.
 # This feature enables quictls on windows, and has no effect on linux.
+# This feature enables openssl on windows, and has no effect on linux.
+openssl = []
 quictls = []
 static = []
 preview-api = []
@@ -70,11 +98,11 @@ overwrite = [ "dep:bindgen" ]
 
 [build-dependencies]
 cmake = { version = "0.1", optional = true }
-bindgen = { version = "0.71", optional = true }
+bindgen = { version = "0.72", optional = true }
 
 [dependencies]
 bitflags = "2.9"
 libc = "0.2"
-c-types = "4.0"
+c-types = "5.0"
 ctor = "0.4"
-socket2 = "0.5"
+socket2 = "0.6"

@@ -21,14 +21,22 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu-latest, windows-latest, macos-latest, macos-latest-xlarge]
-        features: ["", "--features static", "--features quictls", "--features quictls,static", "--features overwrite"]
+        vec: [
+          { tls: "quictls", features: "" },
+          { tls: "quictls", features: "--features static" },
+          { tls: "quictls", features: "--features quictls" },
+          { tls: "quictls", features: "--features quictls,static" },
+          { tls: "openssl", features: "--features openssl" },
+          { tls: "openssl", features: "--features openssl,static" },
+          { tls: "quictls", features: "--features overwrite" }
+        ]
     runs-on: ${{ matrix.os }}
     name: Cargo
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls quictls -ForBuild -InstallTestCertificates
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
@@ -41,14 +49,14 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
-        toolchain: 1.86.0
+        toolchain: 1.88.0
         components: rustfmt, clippy
     - name: Cargo fmt
       run: cargo fmt --all -- --check
     - name: Cargo clippy
-      run: cargo clippy --all-targets ${{ matrix.features }} -- -D warnings
+      run: cargo clippy --all-targets ${{ matrix.vec.features }} -- -D warnings
     - name: Cargo build
-      run: cargo build --all ${{ matrix.features }}
+      run: cargo build --all ${{ matrix.vec.features }}
     - name: Check all generated files with git
       id: bindings_diff
       shell: bash
@@ -90,7 +98,7 @@ jobs:
       if: steps.bindings_diff.outputs.diff-found == 'true'
       run: exit 1
     - name: Cargo test
-      run: cargo test --all ${{ matrix.features }}
+      run: cargo test --all ${{ matrix.vec.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty --no-verify
   # Test rust crate with preinstalled msquic lib.
@@ -108,14 +116,14 @@ jobs:
     - name: Install Rust
       uses: dtolnay/rust-toolchain@b3b07ba8b418998c39fb20f53e8b695cdcc8de1b
       with:
-        toolchain: 1.86.0
+        toolchain: 1.88.0
         components: rustfmt, clippy
     - name: Install msquic from apt
       run: |
         wget -q https://packages.microsoft.com/config/ubuntu/$(lsb_release -rs)/packages-microsoft-prod.deb;
-        sudo dpkg -i packages-microsoft-prod.deb;
+        yes | sudo dpkg -i packages-microsoft-prod.deb;
         sudo apt-get update;
-        sudo apt-get install libmsquic;
+        sudo apt-get install -y libmsquic;
         dpkg -L libmsquic;
     - name: Cargo fmt
       run: cargo fmt --all -- --check

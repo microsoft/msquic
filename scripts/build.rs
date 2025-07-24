@@ -50,11 +50,17 @@ fn cmake_build() {
     }
 
     // By default enable schannel on windows, unless openssl feature is selected.
-    if cfg!(windows) && !cfg!(feature = "quictls") {
+    if cfg!(feature = "quictls") {
+        config.define("QUIC_TLS_LIB", "quictls");
+    } else if cfg!(feature = "openssl") {
+        config.define("QUIC_TLS_LIB", "openssl");
+    } else if cfg!(windows) {
         config.define("QUIC_TLS_LIB", "schannel");
     } else {
+        // Default to quictls
         config.define("QUIC_TLS_LIB", "quictls");
     }
+
     if cfg!(feature = "static") {
         config.define("QUIC_BUILD_SHARED", "off");
     }
@@ -81,9 +87,9 @@ fn cmake_build() {
             let numa_lib_path = match target.as_str() {
                 "x86_64-unknown-linux-gnu" => "/usr/lib/x86_64-linux-gnu",
                 "aarch64-unknown-linux-gnu" => "/usr/lib/aarch64-linux-gnu",
-                _ => panic!("Unsupported target: {}", target),
+                _ => panic!("Unsupported target: {target}"),
             };
-            println!("cargo:rustc-link-search=native={}", numa_lib_path);
+            println!("cargo:rustc-link-search=native={numa_lib_path}");
             println!("cargo:rustc-link-lib=static:+whole-archive=numa");
         } else if cfg!(target_os = "macos") {
             println!("cargo:rustc-link-lib=framework=CoreFoundation");

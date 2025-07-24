@@ -25,6 +25,9 @@ This script assumes the latest MsQuic commit is built and downloaded as artifact
 .PARAMETER io
     The network IO interface to be used (not all are supported on all platforms).
 
+.PARAMETER serverio
+    The network IO interface to be used on the server (not all are supported on all platforms).
+
 .PARAMETER filter
     Run only the tests whose arguments match one of the positive patterns but
     none of the negative patterns (prefixed by '-'). '?' matches any single
@@ -57,12 +60,16 @@ param (
     [string]$arch = "x64",
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("quictls", "schannel")]
+    [ValidateSet("quictls", "schannel", "openssl")]
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $false)]
     [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$io = "",
+
+    [Parameter(Mandatory = $false)]
+    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [string]$serverio = "",
 
     [Parameter(Mandatory = $false)]
     [string]$filter = "",
@@ -77,6 +84,11 @@ param (
 Set-StrictMode -Version "Latest"
 $PSDefaultParameterValues["*:ErrorAction"] = "Stop"
 
+function Is-XdpRequiredByIo {
+    param ($Io)
+
+    return ($Io -eq "xdp" -or $Io -eq "qtip")
+}
 
 $RemotePowershellSupported = $env:netperf_remote_powershell_supported
 $RunId = $env:netperf_run_id
@@ -109,13 +121,16 @@ if ($io -eq "") {
         $io = "epoll"
     }
 }
+if ($serverio -eq "") {
+    $serverio = $io
+}
 $NoLogs = ($LogProfile -eq "" -or $LogProfile -eq "NULL")
 if ($isWindows -and $NoLogs) {
     # Always collect basic, low volume logs on Windows.
     $LogProfile = "Basic.Light"
 }
 
-$useXDP = ($io -eq "xdp" -or $io -eq "qtip")
+$useXDP = (Is-XdpRequiredByIo $io) -or (Is-XdpRequiredByIo $serverio)
 if ($RemotePowershellSupported -eq $true) {
 
     # Set up the connection to the peer over remote powershell.
@@ -196,16 +211,18 @@ if (!($Session -eq "NOT_SUPPORTED")) {
     Copy-Item -ToSession $Session ./artifacts -Destination "$RemoteDir/artifacts" -Recurse
     Copy-Item -ToSession $Session ./scripts -Destination "$RemoteDir/scripts" -Recurse
     Copy-Item -ToSession $Session ./src/manifest/MsQuic.wprp -Destination "$RemoteDir/scripts"
+}
 
-    # Create the logs directories on both machines.
-    New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+# Create the logs directories on both machines.
+New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
+if ($Session -ne "NOT_SUPPORTED") {
     Invoke-Command -Session $Session -ScriptBlock {
         New-Item -ItemType Directory -Path $Using:RemoteDir/artifacts/logs | Out-Null
     }
 }
 
 # Collect some info about machine state.
-if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
+if (!$NoLogs -and $isWindows) {
     $Arguments = "-SkipNetsh"
     if (Get-Help Get-NetView -Parameter SkipWindowsRegistry -ErrorAction Ignore) {
         $Arguments += " -SkipWindowsRegistry"
@@ -224,18 +241,20 @@ if (!$NoLogs -and $isWindows -and !($Session -eq "NOT_SUPPORTED")) {
     } catch { Write-Host $_ }
     Write-Host "::endgroup::"
 
-    Write-Host "::group::Collecting information on peer machine state"
-    try {
-        Invoke-Command -Session $Session -ScriptBlock {
-            Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
-            Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
-            $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
-            Rename-Item $filePath "get-netview.peer.zip"
-        }
-        Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
-        Write-Host "Generated get-netview.peer.zip"
-    } catch { Write-Host $_ }
-    Write-Host "::endgroup::"
+    if ($Session -ne "NOT_SUPPORTED") {
+        Write-Host "::group::Collecting information on peer machine state"
+        try {
+            Invoke-Command -Session $Session -ScriptBlock {
+                Invoke-Expression "Get-NetView -OutputDirectory $Using:RemoteDir/artifacts/logs $Using:Arguments"
+                Remove-Item $Using:RemoteDir/artifacts/logs/msdbg.$env:COMPUTERNAME -recurse
+                $filePath = (Get-ChildItem -Path $Using:RemoteDir/artifacts/logs/ -Recurse -Filter msdbg.$env:COMPUTERNAME*.zip)[0].FullName
+                Rename-Item $filePath "get-netview.peer.zip"
+            }
+            Copy-Item -FromSession $Session -Path "$RemoteDir/artifacts/logs/get-netview.peer.zip" -Destination ./artifacts/logs/
+            Write-Host "Generated get-netview.peer.zip"
+        } catch { Write-Host $_ }
+        Write-Host "::endgroup::"
+    }
 }
 
 $json = @{}
@@ -331,7 +350,7 @@ $regressionJson = Get-Content -Raw -Path "watermark_regression.json" | ConvertFr
 # Run all the test cases.
 Write-Host "Setup complete! Running all tests"
 foreach ($scenario in $allScenarios) {
-    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $filter $environment $RunId $SyncerSecret
+    $Output = Invoke-Secnetperf $Session $RemoteName $RemoteDir $UserName $SecNetPerfPath $LogProfile $scenario $io $ServerIo $filter $environment $RunId $SyncerSecret
     $Test = $Output[-1]
     if ($Test.HasFailures) { $hasFailures = $true }
 

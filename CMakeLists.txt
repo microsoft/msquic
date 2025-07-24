@@ -24,7 +24,7 @@ message(STATUS "Source Dir: ${CMAKE_CURRENT_SOURCE_DIR}")
 message(STATUS "Host System name: ${CMAKE_HOST_SYSTEM_NAME}")
 if ("${CMAKE_HOST_SYSTEM_NAME}" STREQUAL "Windows")
     if (NOT DEFINED CMAKE_SYSTEM_VERSION)
-        set(CMAKE_SYSTEM_VERSION 10.0.22621.0 CACHE STRING INTERNAL FORCE)
+        set(CMAKE_SYSTEM_VERSION 10.0.26100.0 CACHE STRING INTERNAL FORCE)
     endif()
 endif()
 
@@ -57,7 +57,7 @@ message(STATUS "Platform version: ${CMAKE_VS_WINDOWS_TARGET_PLATFORM_VERSION}")
 message(STATUS "Build type: ${CMAKE_BUILD_TYPE}")
 
 set(QUIC_MAJOR_VERSION 2)
-set(QUIC_FULL_VERSION 2.5.0)
+set(QUIC_FULL_VERSION 2.6.0)
 
 if (WIN32)
     set(CX_PLATFORM "windows")
@@ -373,7 +373,7 @@ if(QUIC_TLS_LIB STREQUAL "schannel")
     list(APPEND QUIC_COMMON_DEFINES QUIC_ENABLE_ANON_CLIENT_AUTH_TESTS)
 endif()
 
-if(QUIC_TLS_LIB STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     message(STATUS "Enabling quictls/openssl configuration tests")
     list(APPEND QUIC_COMMON_DEFINES QUIC_TEST_OPENSSL_FLAGS=1)
     if (NOT WIN32)
@@ -701,7 +701,7 @@ else() #!WIN32
     set(QUIC_CXX_FLAGS ${QUIC_COMMON_FLAGS})
 endif()
 
-if(QUIC_TLS_LIB STREQUAL "quictls")
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
     add_library(OpenSSL INTERFACE)
 
     include(FetchContent)

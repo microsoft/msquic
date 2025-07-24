@@ -2501,7 +2501,23 @@ TEST(Basic, TestVersionStorage) {
         QuicTestVersionStorage();
     }
 }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+#ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
+TEST(ParameterValidation, RetryConfigSetting)
+{
+    if (!CanRunStorageTests) {
+        GTEST_SKIP();
+    }
+
+    TestLogger Logger("QuicTestRetryConfigSetting");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING));
+    } else {
+        QuicTestRetryConfigSetting();
+    }
+}
+#endif // DEBUG
 
 #endif // _WIN32
 
@@ -2735,7 +2751,7 @@ int main(int argc, char** argv) {
     DWORD Result =
         RegCreateKeyA(
             HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\MsQuicStorageTest",
             &Key);
     CanRunStorageTests = Result == NO_ERROR;
     RegCloseKey(Key);

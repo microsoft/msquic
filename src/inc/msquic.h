@@ -641,6 +641,17 @@ typedef struct QUIC_STATISTICS_V2 {
 
 } QUIC_STATISTICS_V2;
 
+typedef struct QUIC_NETWORK_STATISTICS
+{
+    uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
+    uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
+    uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
+    uint64_t SmoothedRTT;                // Smoothed RTT value
+    uint32_t CongestionWindow;           // Congestion Window
+    uint64_t Bandwidth;                  // Estimated bandwidth
+
+} QUIC_NETWORK_STATISTICS;
+
 #define QUIC_STRUCT_SIZE_THRU_FIELD(Struct, Field) \
     (FIELD_OFFSET(Struct, Field) + sizeof(((Struct*)0)->Field))
 
@@ -875,6 +886,19 @@ typedef struct QUIC_STREAM_STATISTICS {
     uint64_t StreamBlockedByAppUs;
 } QUIC_STREAM_STATISTICS;
 
+typedef enum QUIC_AEAD_ALGORITHM_TYPE {
+    QUIC_AEAD_ALGORITHM_AES_128_GCM = 0,
+    QUIC_AEAD_ALGORITHM_AES_256_GCM = 1,
+} QUIC_AEAD_ALGORITHM_TYPE;
+
+typedef struct QUIC_STATELESS_RETRY_CONFIG {
+    QUIC_AEAD_ALGORITHM_TYPE Algorithm; // AEAD algorithm for the key.
+    uint32_t RotationMs;                // Key rotation interval in milliseconds.
+    uint32_t SecretLength;              // Length of the secret.
+    _Field_size_bytes_(SecretLength)
+        const uint8_t* Secret;          // Secret to generate the key.
+} QUIC_STATELESS_RETRY_CONFIG;
+
 //
 // Functions for associating application contexts with QUIC handles. MsQuic
 // provides no explicit synchronization between parallel calls to these
@@ -946,6 +970,8 @@ void
 #endif
 #define QUIC_PARAM_GLOBAL_TLS_PROVIDER                  0x0100000A  // QUIC_TLS_PROVIDER
 #define QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY           0x0100000B  // uint8_t[] - Array size is QUIC_STATELESS_RESET_KEY_LENGTH
+#define QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES           0x0100000C  // uint32_t[] - Array of sizes for each QUIC_STATISTICS_V2 version. Get-only. Pass a buffer of uint32_t, output count is variable. See documentation for details.
+#define QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG        0x0100000D  // QUIC_STATELESS_RETRY_CONFIG
 
 //
 // Parameters for Registration.
@@ -1010,6 +1036,9 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_STATISTICS_V2_PLAT              0x05000017  // QUIC_STATISTICS_V2
 #define QUIC_PARAM_CONN_ORIG_DEST_CID                   0x05000018  // uint8_t[]
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+#define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct QUIC_NETWORK_STATISTICS
+#endif
 
 //
 // Parameters for TLS.
@@ -1359,14 +1388,7 @@ typedef struct QUIC_CONNECTION_EVENT {
             BOOLEAN SendNegotiated;             // TRUE if sending one-way delay timestamps is negotiated.
             BOOLEAN ReceiveNegotiated;          // TRUE if receiving one-way delay timestamps is negotiated.
         } ONE_WAY_DELAY_NEGOTIATED;
-        struct {
-           uint32_t BytesInFlight;              // Bytes that were sent on the wire, but not yet acked
-           uint64_t PostedBytes;                // Total bytes queued, but not yet acked. These may contain sent bytes that may have potentially lost too.
-           uint64_t IdealBytes;                 // Ideal number of bytes required to be available to  avoid limiting throughput
-           uint64_t SmoothedRTT;                // Smoothed RTT value
-           uint32_t CongestionWindow;           // Congestion Window
-           uint64_t Bandwidth;                  // Estimated bandwidth
-        } NETWORK_STATISTICS;
+        QUIC_NETWORK_STATISTICS NETWORK_STATISTICS;
 #endif
     };
 } QUIC_CONNECTION_EVENT;

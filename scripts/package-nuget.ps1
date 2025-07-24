@@ -16,7 +16,7 @@ param (
     [string]$Config = "Release",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "quictls")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]
@@ -153,7 +153,7 @@ $DistDir = Join-Path $BaseArtifactsDir "dist"
 $CurrentCommitHash = Get-GitHash -RepoDir $RootDir
 $RepoRemote = Get-GitRemote -RepoDir $RootDir
 
-$Version = "2.5.0"
+$Version = "2.6.0"
 
 $BuildId = $env:BUILD_BUILDID
 if ($null -ne $BuildId) {

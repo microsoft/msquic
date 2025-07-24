@@ -24,7 +24,6 @@ Environment:
 #include <share.h>
 #endif // _WIN32
 
-
 typedef struct QUIC_CREDENTIAL_CONFIG_HELPER {
     QUIC_CREDENTIAL_CONFIG CredConfig;
     union {
@@ -1019,5 +1018,34 @@ WriteSslKeyLogFile(
     WriteSslKeyLogFileUserMode(FileName, TlsSecrets);
 #endif
 }
+
+#ifdef _KERNEL_MODE
+#include <new.h>
+#else
+#include <new>
+#endif
+
+struct StrBuffer
+{
+    uint8_t* Data;
+    uint16_t Length;
+
+    StrBuffer(const char* HexBytes)
+    {
+        Length = (uint16_t)(strlen(HexBytes) / 2);
+        Data = new(std::nothrow) uint8_t[Length];
+        if (Data == nullptr) {
+            Length = 0;
+            return;
+        }
+        for (uint16_t i = 0; i < Length; ++i) {
+            Data[i] =
+                (DecodeHexChar(HexBytes[i * 2]) << 4) |
+                DecodeHexChar(HexBytes[i * 2 + 1]);
+        }
+    }
+
+    ~StrBuffer() { delete [] Data; }
+};
 
 #endif // defined(__cplusplus)

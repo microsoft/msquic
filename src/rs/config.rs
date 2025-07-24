@@ -193,7 +193,7 @@ impl CertificateHash {
         use std::fmt::Write;
         // write every byte in hex.
         self.0.ShaHash.iter().fold(String::new(), |mut out, x| {
-            write!(out, "{:02X}", x).unwrap();
+            write!(out, "{x:02X}").unwrap();
             out
         })
     }
@@ -486,7 +486,7 @@ mod tests {
                 .unwrap_err()
                 .try_as_status_code()
                 .unwrap();
-            if cfg!(windows) && !cfg!(feature = "quictls") {
+            if cfg!(windows) && !cfg!(feature = "openssl") && !cfg!(feature = "quictls") {
                 // schannel does not support load from file.
                 assert_eq!(load_err, StatusCode::QUIC_STATUS_NOT_SUPPORTED);
             } else {

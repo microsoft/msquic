@@ -136,7 +136,8 @@ RawDataPathGetSupportedFeatures(
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL | CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+    return CXPLAT_DATAPATH_FEATURE_RAW | CXPLAT_DATAPATH_FEATURE_TTL |
+        CXPLAT_DATAPATH_FEATURE_SEND_DSCP | CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -354,12 +355,11 @@ RawSocketSend(
         CASTED_CLOG_BYTEARRAY(sizeof(Route->LocalAddress), &Route->LocalAddress));
     CXPLAT_DBG_ASSERT(Route->State == RouteResolved);
     CXPLAT_DBG_ASSERT(Route->Queue != NULL);
-    const CXPLAT_INTERFACE* Interface = CxPlatDpRawGetInterfaceFromQueue(Route->Queue);
 
     CxPlatFramingWriteHeaders(
-        Socket, Route, &SendData->Buffer, SendData->ECN, SendData->DSCP,
-        Interface->OffloadStatus.Transmit.NetworkLayerXsum,
-        Interface->OffloadStatus.Transmit.TransportLayerXsum,
+        Socket, Route, SendData, &SendData->Buffer, SendData->ECN, SendData->DSCP,
+        CxPlatDpRawIsL3TxXsumOffloadedOnQueue(Route->Queue),
+        CxPlatDpRawIsL4TxXsumOffloadedOnQueue(Route->Queue),
         Route->TcpState.SequenceNumber,
         Route->TcpState.AckNumber,
         TH_ACK);

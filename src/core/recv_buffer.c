@@ -167,27 +167,27 @@ QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
     _Inout_updates_(AllocLength) uint8_t* Buffer,
-    _In_ BOOLEAN AppOwnedBuffer
+    _In_ BOOLEAN AllocatedFromPool
     )
 {
     Chunk->AllocLength = AllocLength;
     Chunk->Buffer = Buffer;
     Chunk->ExternalReference = FALSE;
-    Chunk->AppOwnedBuffer = AppOwnedBuffer;
+    Chunk->AllocatedFromPool = AllocatedFromPool;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicRecvChunkFree(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _In_ QUIC_RECV_CHUNK* Chunk
     )
 {
-    if (Chunk == RecvBuffer->PreallocatedChunk) {
-        return;
-    }
-
-    if (Chunk->AppOwnedBuffer) {
+    //
+    // The data buffer of the chunk is allocated in the same allocation
+    // as the chunk itself if and only if it is owned by the receive buffer:
+    // freeing the chunk will free the data buffer as needed.
+    //
+    if (Chunk->AllocatedFromPool) {
         CxPlatPoolFree(Chunk);
     } else {
         CXPLAT_FREE(Chunk, QUIC_POOL_RECVBUF);
@@ -273,6 +273,7 @@ QuicRecvBufferInitialize(
 {
     CXPLAT_DBG_ASSERT(AllocBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(VirtualBufferLength != 0 || RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+    CXPLAT_DBG_ASSERT(PreallocatedChunk == NULL || RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT((AllocBufferLength & (AllocBufferLength - 1)) == 0);     // Power of 2
     CXPLAT_DBG_ASSERT((VirtualBufferLength & (VirtualBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(AllocBufferLength <= VirtualBufferLength);
@@ -282,7 +283,6 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadPendingLength = 0;
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
-    RecvBuffer->PreallocatedChunk = PreallocatedChunk;
     RecvBuffer->RetiredChunk = NULL;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
@@ -330,11 +330,11 @@ QuicRecvBufferUninitialize(
                 CxPlatListRemoveHead(&RecvBuffer->Chunks),
                 QUIC_RECV_CHUNK,
                 Link);
-        QuicRecvChunkFree(RecvBuffer, Chunk);
+        QuicRecvChunkFree(Chunk);
     }
 
     if (RecvBuffer->RetiredChunk != NULL) {
-        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
+        QuicRecvChunkFree(RecvBuffer->RetiredChunk);
     }
 }
 
@@ -454,11 +454,9 @@ QuicRecvBufferResize(
         TargetBufferLength != 0 &&
         (TargetBufferLength & (TargetBufferLength - 1)) == 0); // Power of 2
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks)); // Should always have at least one chunk
+
     QUIC_RECV_CHUNK* LastChunk =
-        CXPLAT_CONTAINING_RECORD(
-            RecvBuffer->Chunks.Blink,
-            QUIC_RECV_CHUNK,
-            Link);
+        CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
     CXPLAT_DBG_ASSERT(TargetBufferLength > LastChunk->AllocLength); // Should only be called when buffer needs to grow
     BOOLEAN LastChunkIsFirst = LastChunk->Link.Blink == &RecvBuffer->Chunks;
 
@@ -476,95 +474,69 @@ QuicRecvBufferResize(
     QuicRecvChunkInitialize(NewChunk, TargetBufferLength, (uint8_t*)(NewChunk + 1), FALSE);
     CxPlatListInsertTail(&RecvBuffer->Chunks, &NewChunk->Link);
 
-    if (!LastChunk->ExternalReference) {
+    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE && LastChunk->ExternalReference) {
         //
-        // If the last chunk isn't externally referenced, then we can just
-        // replace it with the new chunk.
+        // In Multiple mode, if the last chunk is referenced, simply add the new chunk to the list.
+        // The last chunk is still used for reads and writes but drains reduce its capacity until it
+        // can be freed.
         //
-        if (LastChunkIsFirst) {
-            //
-            // If it's the first chunk, then the data may not start from the
-            // beginning.
-            //
-            uint32_t Span = QuicRecvBufferGetSpan(RecvBuffer);
-            if (Span < LastChunk->AllocLength) {
-                Span = LastChunk->AllocLength;
-            }
-            uint32_t LengthTillWrap = LastChunk->AllocLength - RecvBuffer->ReadStart;
-            if (Span <= LengthTillWrap) {
-                CxPlatCopyMemory(
-                    NewChunk->Buffer,
-                    LastChunk->Buffer + RecvBuffer->ReadStart,
-                    Span);
-            } else {
-                CxPlatCopyMemory(
-                    NewChunk->Buffer,
-                    LastChunk->Buffer + RecvBuffer->ReadStart,
-                    LengthTillWrap);
-                CxPlatCopyMemory(
-                    NewChunk->Buffer + LengthTillWrap,
-                    LastChunk->Buffer,
-                    Span - LengthTillWrap);
-            }
-            RecvBuffer->ReadStart = 0;
-            CXPLAT_DBG_ASSERT(NewChunk->AllocLength == TargetBufferLength);
-            RecvBuffer->Capacity = NewChunk->AllocLength;
+        return TRUE;
+    }
 
-        } else {
-            //
-            // If it's not the first chunk, then it always starts from the
-            // beginning of the buffer.
-            //
+    //
+    // In Single and Circular modes, or in Multiple mode when the last chunk is not referenced,
+    // replace the last chunk is with the new one:
+    // - copy the data to the new chunk
+    // - remove the last chunk from the list
+    //
+
+    if (LastChunkIsFirst) {
+        uint32_t WrittenSpan =
+            CXPLAT_MIN(LastChunk->AllocLength, QuicRecvBufferGetSpan(RecvBuffer));
+        uint32_t LengthBeforeWrap = LastChunk->AllocLength - RecvBuffer->ReadStart;
+        if (WrittenSpan <= LengthBeforeWrap) {
             CxPlatCopyMemory(
                 NewChunk->Buffer,
+                LastChunk->Buffer + RecvBuffer->ReadStart,
+                WrittenSpan);
+        } else {
+            CxPlatCopyMemory(
+                NewChunk->Buffer,
+                LastChunk->Buffer + RecvBuffer->ReadStart,
+                LengthBeforeWrap);
+            CxPlatCopyMemory(
+                NewChunk->Buffer + LengthBeforeWrap,
                 LastChunk->Buffer,
-                LastChunk->AllocLength);
+                WrittenSpan - LengthBeforeWrap);
         }
-
-        CxPlatListEntryRemove(&LastChunk->Link);
-        QuicRecvChunkFree(RecvBuffer, LastChunk);
-
-        return TRUE;
-    }
-
-    //
-    // If the chunk is already referenced, and if we're in multiple receive
-    // mode, we can just add the new chunk to the end of the list.
-    //
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
-        return TRUE;
-    }
-
-    //
-    // Otherwise, we need to copy the data from the existing chunk
-    // into the new chunk, and retire the existing chunk until we can free it.
-    //
-
-    //
-    // If it's the first chunk, then it may not start from the beginning.
-    //
-    uint32_t Span = QuicRecvBufferGetSpan(RecvBuffer);
-    uint32_t LengthTillWrap = LastChunk->AllocLength - RecvBuffer->ReadStart;
-    if (Span <= LengthTillWrap) {
-        CxPlatCopyMemory(
-            NewChunk->Buffer,
-            LastChunk->Buffer + RecvBuffer->ReadStart,
-            Span);
+        RecvBuffer->ReadStart = 0;
+        RecvBuffer->Capacity = NewChunk->AllocLength;
     } else {
-        CxPlatCopyMemory(
-            NewChunk->Buffer,
-            LastChunk->Buffer + RecvBuffer->ReadStart,
-            LengthTillWrap);
-        CxPlatCopyMemory(
-            NewChunk->Buffer + LengthTillWrap,
-            LastChunk->Buffer,
-            Span - LengthTillWrap);
+        //
+        // If it isn't the first chunk, it always starts from the beginning of the buffer.
+        //
+        CxPlatCopyMemory(NewChunk->Buffer, LastChunk->Buffer, LastChunk->AllocLength);
     }
-    RecvBuffer->ReadStart = 0;
-    RecvBuffer->Capacity = NewChunk->AllocLength;
+
+    //
+    // The chunk data has been copied, remove the chunk from the list.
+    //
     CxPlatListEntryRemove(&LastChunk->Link);
-    CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL);
-    RecvBuffer->RetiredChunk = LastChunk;
+
+    if (LastChunk->ExternalReference) {
+        //
+        // The chunk is referenced, so we need to retire it until we can free it.
+        // (only one read can be pending at a time, so there is no retired chunk)
+        //
+        CXPLAT_DBG_ASSERT(
+            RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
+            RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR);
+        CXPLAT_DBG_ASSERT(RecvBuffer->RetiredChunk == NULL);
+
+        RecvBuffer->RetiredChunk = LastChunk;
+    } else {
+        QuicRecvChunkFree(LastChunk);
+    }
 
     return TRUE;
 }
@@ -575,55 +547,17 @@ QuicRecvBufferGetTotalAllocLength(
     _In_ QUIC_RECV_BUFFER* RecvBuffer
     )
 {
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
-        RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR) {
-        //
-        // In single and circular mode, the last chunk is the only chunk being
-        // written to at any given time, and therefore the only chunk we care
-        // about in terms of total allocation space.
-        //
-        QUIC_RECV_CHUNK* Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                RecvBuffer->Chunks.Blink,
-                QUIC_RECV_CHUNK,
-                Link);
-        return Chunk->AllocLength;
-    }
+    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
 
     //
-    // For multiple mode and app-owned mode, several chunks may be used at any
-    // point in time, so we need to consider the space allocated for all of them.
-    // Additionally, the first one is special because it may be already partially
-    // drained, making it only partially usable.
-    //
-    QUIC_RECV_CHUNK* Chunk =
-        CXPLAT_CONTAINING_RECORD(
-            RecvBuffer->Chunks.Flink,
-            QUIC_RECV_CHUNK,
-            Link);
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE &&
-        Chunk->Link.Flink == &RecvBuffer->Chunks) {
-        //
-        // In Multiple mode, only one chunk means we don't have an artificial
-        // "end", and are using the full allocated length of the buffer in a
-        // circular fashion.
-        //
-        return Chunk->AllocLength;
-    }
-
-    //
-    // Otherwise, it is possible part of the first chunk has already been
-    // drained, so we don't use the allocated length, but the Capacity instead
-    // when calculating total available space.
+    // The first chunk might have a reduced capacity (if more chunks are present and it is being
+    // consumed). Other chunks are always allocated at their full alloc size.
     //
     uint32_t AllocLength = RecvBuffer->Capacity;
-    while (Chunk->Link.Flink != &RecvBuffer->Chunks) {
-        Chunk =
-            CXPLAT_CONTAINING_RECORD(
-                Chunk->Link.Flink,
-                QUIC_RECV_CHUNK,
-                Link);
-        CXPLAT_DBG_ASSERT((uint64_t)AllocLength + (uint64_t)Chunk->AllocLength < UINT32_MAX);
+    for (CXPLAT_LIST_ENTRY* Link = RecvBuffer->Chunks.Flink->Flink; // Skip the first chunk
+         Link != &RecvBuffer->Chunks;
+         Link = Link->Flink) {
+        QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(Link, QUIC_RECV_CHUNK, Link);
         AllocLength += Chunk->AllocLength;
     }
     return AllocLength;
@@ -702,7 +636,7 @@ QuicRecvBufferWrite(
     //
     // Check if the write buffer has already been completely written before.
     //
-    uint64_t AbsoluteLength = WriteOffset + WriteLength;
+    const uint64_t AbsoluteLength = WriteOffset + WriteLength;
     if (AbsoluteLength <= RecvBuffer->BaseOffset) {
         *WriteLimit = 0;
         return QUIC_STATUS_SUCCESS;
@@ -744,15 +678,13 @@ QuicRecvBufferWrite(
         uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
         if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
             //
-            // If we don't currently have enough room then we will want to resize
-            // the last chunk to be big enough to hold everything. We do this by
-            // repeatedly doubling its size until it is large enough.
+            // There isn't enough space to write the data.
+            // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
+            // until there is enough space for the write.
             //
-            uint32_t NewBufferLength =
-                CXPLAT_CONTAINING_RECORD(
-                    RecvBuffer->Chunks.Blink,
-                    QUIC_RECV_CHUNK,
-                    Link)->AllocLength << 1;
+            QUIC_RECV_CHUNK* LastChunk =
+                CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
+            uint32_t NewBufferLength = LastChunk->AllocLength << 1;
             while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
                 NewBufferLength <<= 1;
             }
@@ -979,7 +911,7 @@ QuicRecvBufferDrainFullChunks(
         ChunkIt = ChunkIt->Flink;
 
         CxPlatListEntryRemove(&Chunk->Link);
-        QuicRecvChunkFree(RecvBuffer, Chunk);
+        QuicRecvChunkFree(Chunk);
     }
 
     RecvBuffer->Capacity = NewFirstChunk != NULL ? NewFirstChunk->AllocLength : 0;
@@ -1025,10 +957,10 @@ QuicRecvBufferDrainFirstChunk(
         // In Single mode, the readable data must always start at the front of the buffer,
         // move all written data if needed.
         //
+        uint32_t WrittenSpan =
+            CXPLAT_MIN(FirstChunk->AllocLength, QuicRecvBufferGetSpan(RecvBuffer));
         CxPlatMoveMemory(
-            FirstChunk->Buffer,
-            FirstChunk->Buffer + RecvBuffer->ReadStart,
-            FirstChunk->AllocLength - RecvBuffer->ReadStart); // TODO - Might be able to copy less than the full alloc length
+            FirstChunk->Buffer, FirstChunk->Buffer + RecvBuffer->ReadStart, WrittenSpan);
         RecvBuffer->ReadStart = 0;
     }
 }
@@ -1071,7 +1003,7 @@ QuicRecvBufferDrain(
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_SINGLE ||
             RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_CIRCULAR);
 
-        QuicRecvChunkFree(RecvBuffer, RecvBuffer->RetiredChunk);
+        QuicRecvChunkFree(RecvBuffer->RetiredChunk);
         RecvBuffer->RetiredChunk = NULL;
     }
 
