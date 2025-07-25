@@ -213,7 +213,7 @@ jobs:
 
   interop:
     name: Interop
-    needs: [build-windows, build-unix]
+    needs: [build-windows]
     strategy:
       fail-fast: false
       matrix:
