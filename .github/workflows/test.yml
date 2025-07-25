@@ -65,7 +65,7 @@ jobs:
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
       build: ${{ matrix.vec.build }}
-      ref: ${{ inputs.ref || '' }}
+      ref: 8cce724d0f3403cf27549610932375452dcd3f22
       repo: ${{ github.repository }}
 
   build-windows:
@@ -89,7 +89,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
-      ref: ${{ inputs.ref || '' }}
+      ref: 8cce724d0f3403cf27549610932375452dcd3f22
       repo: ${{ github.repository }}
 
   build-unix:
@@ -119,7 +119,7 @@ jobs:
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
       xdp: ${{ matrix.vec.xdp }}
-      ref: ${{ inputs.ref || '' }}
+      ref: 8cce724d0f3403cf27549610932375452dcd3f22
       repo: ${{ github.repository }}
 
   bvt:
@@ -161,7 +161,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ${{ inputs.ref || '' }}
+        ref: 8cce724d0f3403cf27549610932375452dcd3f22
     - name: Download Windows Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
@@ -228,7 +228,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ${{ inputs.ref || '' }}
+        ref: 8cce724d0f3403cf27549610932375452dcd3f22
     - name: Download Kernel Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with: # note we always use kernel binaries built on windows-2022.
@@ -280,7 +280,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ${{ inputs.ref || '' }}
+        ref: 8cce724d0f3403cf27549610932375452dcd3f22
     - name: Download Windows Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
