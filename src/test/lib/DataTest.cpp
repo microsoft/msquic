@@ -626,6 +626,27 @@ QuicTestConnectAndPing(
                                 ServerSecret->ClientEarlyTrafficSecret,
                                 ClientSecret->SecretLength));
                         Match = true;
+                        //
+                        // This test dynamically allocates ClientSecrets and ServerSecrets
+                        // as a unique_ptr, which then gets passed and used by the underlying TLS
+                        // backend.  However, this code doesn't wait for the connections to finish
+                        // getting established before exiting.  As such it may occur that another
+                        // thread continues establishing the connection while this function exits,
+                        // which automatically deletes the allcoated memory in the Secrets, leading
+                        // to a potential NULL pointer deref in the TLS backend.  We could shutdown
+                        // the connections here, but given that they're not yet fully established,
+                        // that on occaision fails.  Instead, just spin here for a moment waiting
+                        // for the Client and Server Traffic Secrets to get set, at which point
+                        // we are guaranteed that the TLS backend will drop any reference to the
+                        // TLS pointer, so its safe to delete.
+                        //
+                        while (ClientSecret->IsSet.ClientTrafficSecret0 == 0 ||
+                               ClientSecret->IsSet.ServerTrafficSecret0 == 0 ||
+                               ServerSecret->IsSet.ClientTrafficSecret0 == 0 ||
+                               ServerSecret->IsSet.ServerTrafficSecret0 == 0) {
+                                CxPlatSleep(500); // Sleep for a little bit
+                        }
+
                     }
                 }
                 if (!Match) {
