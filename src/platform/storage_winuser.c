@@ -441,7 +441,7 @@ CxPlatStorageClear(
                 Status,
                 "ZwDeleteValueKey failed");
             goto Exit;
-        }
+        } 
     }
 
 Exit:
