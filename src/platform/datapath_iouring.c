@@ -511,7 +511,6 @@ CxPlatSocketContextSqeInitialize(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET* Binding = SocketContext->Binding;
     BOOLEAN ShutdownSqeInitialized = FALSE;
-    BOOLEAN IoSqeInitialized = FALSE;
 
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -542,7 +541,6 @@ CxPlatSocketContextSqeInitialize(
             "CxPlatSqeInitialize failed");
         goto Exit;
     }
-    IoSqeInitialized = TRUE;
 
     SocketContext->SqeInitialized = TRUE;
     return QUIC_STATUS_SUCCESS;
@@ -551,9 +549,6 @@ Exit:
 
     if (ShutdownSqeInitialized) {
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
-    }
-    if (IoSqeInitialized) {
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
     }
 
     return Status;
@@ -1951,7 +1946,7 @@ CxPlatSendDataSendSegmented(
     io_uring_sqe_set_data(Sqe, (void *)&SendData->Sqe);
     CxPlatSqeInitialize2(
         DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete,
-        (void *)DatapathContextSend, &SendData->Sqe);
+        (void *)DatapathContextSend, &SendData->Sqe); // NOLINT performance-no-int-to-ptr
 
 Exit:
 
@@ -2104,7 +2099,7 @@ GetSocketContextFromSqe(
     _In_ CXPLAT_SQE* Sqe
     )
 {
-    switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
+    switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
     case DatapathContextRecv:
         return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
     case DatapathContextSend:
@@ -2146,7 +2141,7 @@ CxPlatSocketContextIoEventComplete(
             // Review: these functions could be unrolled to batch within an IO
             // type on a socket.
             //
-            switch ((DATAPATH_CONTEXT_TYPE)Sqe->Context) {
+            switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
             case DatapathContextRecv:
                 CxPlatSocketReceiveComplete(SocketContext, *Cqes[0]);
                 break;
