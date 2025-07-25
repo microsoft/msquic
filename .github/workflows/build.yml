@@ -190,6 +190,9 @@ jobs:
           os: 'ubuntu-22.04'
         - iouring: "-UseIoUring"
           arch: x86
+        # Linux io_uring is incompatible with XDP for now
+        - iouring: "-UseIoUring"
+          xdp: "-UseXdp"
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ matrix.config }}
