@@ -646,7 +646,7 @@ else() #!WIN32
         set(MARCH -march=native)
     endif()
 
-    set(CMAKE_C_FLAGS_DEBUG "-Og -fno-omit-frame-pointer")
+    set(CMAKE_C_FLAGS_DEBUG "-O0 -fno-omit-frame-pointer")
     set(CMAKE_C_FLAGS_MINSIZEREL "-Os -DNDEBUG")
     set(CMAKE_C_FLAGS_RELWITHDEBINFO "-O3 -fno-omit-frame-pointer ${MARCH} -DNDEBUG")
     set(CMAKE_C_FLAGS_RELEASE "-O3 ${MARCH} -DNDEBUG")
