@@ -184,7 +184,7 @@ jobs:
       run: |
         sudo chmod -R 777 artifacts
     - name: Prepare Machine
-      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }} ${{ matrix.vec.iouring }}
+      run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
     - name: Install ETW Manifest
       if: matrix.vec.plat == 'windows'
