@@ -243,7 +243,8 @@ DataPathInitialize(
     Datapath->WorkerPool = WorkerPool;
 
     Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
-    Datapath->Features = CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
+    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     CxPlatDataPathCalculateFeatureSupport(Datapath);
 
