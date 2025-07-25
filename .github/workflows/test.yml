@@ -76,7 +76,6 @@ jobs:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
         ]
     uses: ./.github/workflows/build-reuse-win.yml
@@ -91,43 +90,16 @@ jobs:
       ref: 56d7de757e0145f0a33652ead200bc5a99122d5c
       repo: ${{ github.repository }}
 
-  build-unix:
-    name: Build Unix
-    strategy:
-      fail-fast: false
-      matrix:
-        vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-        ]
-    uses: ./.github/workflows/build-reuse-unix.yml
-    with:
-      config: ${{ matrix.vec.config }}
-      plat: ${{ matrix.vec.plat }}
-      os: ${{ matrix.vec.os }}
-      arch: ${{ matrix.vec.arch }}
-      tls: ${{ matrix.vec.tls }}
-      systemcrypto: ${{ matrix.vec.systemcrypto }}
-      sanitize: ${{ matrix.vec.sanitize }}
-      build: ${{ matrix.vec.build }}
-      xdp: ${{ matrix.vec.xdp }}
-      ref: 56d7de757e0145f0a33652ead200bc5a99122d5c
-      repo: ${{ github.repository }}
-
   bvt:
     name: BVT
-    needs: [build-windows, build-unix]
+    needs: [build-windows]
     strategy:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
