@@ -1800,10 +1800,10 @@ QuicConnStart(
 
     CXPLAT_TEL_ASSERT(Path->Binding == NULL);
 
-    QuicConnApplyNewSettings(
-        Connection,
-        FALSE,
-        &Configuration->Settings);
+    // QuicConnApplyNewSettings(
+    //     Connection,
+    //     FALSE,
+    //     &Configuration->Settings);
 
     if (!Connection->State.RemoteAddressSet) {
 
@@ -2478,12 +2478,16 @@ QuicConnSetConfiguration(
     QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
 
-    if (QuicConnIsServer(Connection)) {
-        QuicConnApplyNewSettings(
+    // if (QuicConnIsServer(Connection)) {
+    //     QuicConnApplyNewSettings(
+    //         Connection,
+    //         FALSE,
+    //         &Configuration->Settings);
+    // }
+    QuicConnApplyNewSettings(
             Connection,
             FALSE,
             &Configuration->Settings);
-    }
 
     if (QuicConnIsClient(Connection)) {
 
