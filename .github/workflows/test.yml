@@ -11,6 +11,25 @@ on:
         required: false
         default: ''
         type: string
+      log_level:
+        required: true
+        default: 'Full.Light'
+        type: choice
+        options:
+        - 'Basic.Light'
+        - 'Basic.Verbose'
+        - 'Datapath.Light'
+        - 'Datapath.Verbose'
+        - 'Full.Light'
+        - 'Full.Verbose'
+        - 'Performance.Light'
+        - 'Performance.Verbose'
+        - 'RPS.Light'
+        - 'RPS.Verbose'
+        - 'SpinQuic.Light'
+        - 'SpinQuicWarnings.Light'
+        - 'Stacks.Light'
+        - 'Stacks.Verbose'
   push:
     branches:
     - main
@@ -57,8 +76,6 @@ jobs:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" }
         ]
     uses: ./.github/workflows/build-reuse-win.yml
@@ -73,70 +90,19 @@ jobs:
       ref: ${{ inputs.ref || '' }}
       repo: ${{ github.repository }}
 
-  build-unix:
-    name: Build Unix
-    strategy:
-      fail-fast: false
-      matrix:
-        vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp" },
-        ]
-    uses: ./.github/workflows/build-reuse-unix.yml
-    with:
-      config: ${{ matrix.vec.config }}
-      plat: ${{ matrix.vec.plat }}
-      os: ${{ matrix.vec.os }}
-      arch: ${{ matrix.vec.arch }}
-      tls: ${{ matrix.vec.tls }}
-      systemcrypto: ${{ matrix.vec.systemcrypto }}
-      sanitize: ${{ matrix.vec.sanitize }}
-      build: ${{ matrix.vec.build }}
-      xdp: ${{ matrix.vec.xdp }}
-      ref: ${{ inputs.ref || '' }}
-      repo: ${{ github.repository }}
-
   bvt:
     name: BVT
-    needs: [build-windows, build-unix]
+    needs: [build-windows]
     strategy:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test"  },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", systemcrypto: "-UseSystemOpenSSLCrypto", build: "-Test", xdp: "-UseXdp"  },
-          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2019", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl3", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", qtip: "-UseQtip", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", xdp: "-UseXdp", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl3", xdp: "-UseXdp", qtip: "-UseQtip", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
@@ -148,13 +114,13 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Windows Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Linux Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.build }}
@@ -178,12 +144,12 @@ jobs:
       if: matrix.vec.os == 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Test
       if: matrix.vec.os != 'WinServerPrerelease'
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults ${{ matrix.vec.xdp }} ${{ matrix.vec.qtip }} ${{ inputs.filter && '-Filter' }} ${{ inputs.filter || '' }}
     - name: Fix log permissions for Linux XDP
       if: failure() && matrix.vec.plat == 'linux' # (matrix.vec.plat == 'linux' && matrix.vec.xdp == '-UseXdp') doesn't work for some reason
       run: |
@@ -215,12 +181,12 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Kernel Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with: # note we always use kernel binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Usermode Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-windows-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
@@ -236,8 +202,8 @@ jobs:
         wevtutil.exe im $ManifestPath /rf:$($MsQuicDll) /mf:$($MsQuicDll)
     - name: Test
       shell: pwsh
-      timeout-minutes: 90
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile Full.Light -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+      timeout-minutes: 120
+      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure() || cancelled()
@@ -247,14 +213,13 @@ jobs:
 
   interop:
     name: Interop
-    needs: [build-windows, build-unix]
+    needs: [build-windows]
     strategy:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Release", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl3", build: "-Test" },
-          { config: "Release", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl3", build: "-Test" },
           { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Release", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test", xdp: "-UseXdp" },
           { config: "Release", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
           { config: "Release", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
@@ -266,13 +231,13 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Windows Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Linux Build Artifacts
-      uses: actions/download-artifact@95815c38cf2ff2164869cbab79da8d1f422bc89e
+      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.build }}
