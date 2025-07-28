@@ -116,7 +116,7 @@ CxPlatDataPathIsPaddingPreferred(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatUMSocketCreateUdp(
+CxPlatHasRawSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
@@ -179,7 +179,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-CxPlatKMSocketCreateUdp(
+CxPlatNoRawSocketCreateUdp(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ const CXPLAT_UDP_CONFIG* Config,
     _Out_ CXPLAT_SOCKET** NewSocket
@@ -200,24 +200,6 @@ CxPlatKMSocketCreateUdp(
     }
 
     (*NewSocket)->RawSocketAvailable = 0;
-    if (Datapath->RawDataPath) {
-        Status =
-            RawSocketCreateUdp(
-                Datapath->RawDataPath,
-                Config,
-                CxPlatSocketToRaw(*NewSocket));
-        (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogVerbose(
-                RawSockCreateFail,
-                "[sock] Failed to create raw socket, status:%d", Status);
-            if (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP) {
-                CxPlatSocketDelete(*NewSocket);
-                goto Error;
-            }
-            Status = QUIC_STATUS_SUCCESS;
-        }
-    }
 
 Error:
     return Status;
@@ -231,10 +213,10 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    #if _WIN32
-    return CxPlatUMSocketCreateUdp(Datapath, Config, NewSocket);
+    #ifdef _WIN32
+    return CxPlatHasRawSocketCreateUdp(Datapath, Config, NewSocket);
     #else
-    return CxPlatKMSocketCreateUdp(Datapath, Config, NewSocket);
+    return CxPlatNoRawSocketCreateUdp(Datapath, Config, NewSocket);
     #endif
 }
 
@@ -292,7 +274,7 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    #if _WIN32
+    #ifdef _WIN32
     if (Route->UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(Route);
@@ -489,7 +471,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    #if _WIN32
+    #ifdef _WIN32
     if (Socket->HasFixedRemoteAddress) {
         //
         // For clients,
