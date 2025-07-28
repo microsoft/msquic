@@ -231,11 +231,9 @@ CxPlatSocketCreateUdp(
     _Out_ CXPLAT_SOCKET** NewSocket
     )
 {
-    #ifdef _KERNEL_MODE
+    #if _WIN32
     return CxPlatKMSocketCreateUdp(Datapath, Config, NewSocket);
-    #endif
-
-    #ifndef _KERNEL_MODE
+    #else
     return CxPlatUMSocketCreateUdp(Datapath, Config, NewSocket);
     #endif
 }
@@ -294,14 +292,12 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    #ifndef _KERNEL_MODE
+    #if _WIN32
     if (Route->UseQTIP || (Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(Route);
     }
-    #endif
-
-    #ifdef _KERNEL_MODE
+    #else
     if ((Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(Route);
@@ -493,7 +489,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    #ifndef _KERNEL_MODE
+    #if _WIN32
     if (Socket->HasFixedRemoteAddress) {
         //
         // For clients,
@@ -515,9 +511,7 @@ CxPlatResolveRoute(
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);
     }
     Route->State = RouteResolved;
-    #endif
-
-    #ifdef _KERNEL_MODE
+    #else
     if (Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
