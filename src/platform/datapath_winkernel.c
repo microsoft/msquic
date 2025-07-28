@@ -1293,7 +1293,8 @@ SocketCreateUdp(
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Error;
     }
-
+    
+    Binding->ReserveAuxTcpSock = FALSE;
     //
     // Must set output pointer first thing, as the receive path will try to
     // use the output.
