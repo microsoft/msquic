@@ -132,53 +132,37 @@ CxPlatSocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    //
-    // In a real production (XDP/QTIP+XDP) scenario, we never have to loop more than once
-    // because server admins will ensure whatever port they are binding to is available.
-    // The reason we have this loop is to eliminate test flakiness. The tests treat server
-    // sockets the same as client sockets, in that they bind to some random free UDP port.
-    // However, what's free in UDP may not be free in TCP. So we loop until we find a free port.
-    //
-    for (uint32_t TryCount = 0; TryCount < 1000; TryCount++) {
+
+    Status =
+        SocketCreateUdp(
+            Datapath,
+            Config,
+            NewSocket);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogVerbose(
+            SockCreateFail,
+            "[sock] Failed to create socket, status:%d", Status);
+        goto Error;
+    }
+
+    (*NewSocket)->RawSocketAvailable = 0;
+    if (Datapath->RawDataPath) {
         Status =
-            SocketCreateUdp(
-                Datapath,
+            RawSocketCreateUdp(
+                Datapath->RawDataPath,
                 Config,
-                NewSocket
-            );
+                CxPlatSocketToRaw(*NewSocket));
+        (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
         if (QUIC_FAILED(Status)) {
             QuicTraceLogVerbose(
-                SockCreateFail,
-                "[sock] Failed to create socket, status:%d", Status);
-            goto Error;
-        }
-
-        (*NewSocket)->RawSocketAvailable = 0;
-        if (Datapath->RawDataPath) {
-            Status =
-                RawSocketCreateUdp(
-                    Datapath->RawDataPath,
-                    Config,
-                    CxPlatSocketToRaw(*NewSocket));
-            (*NewSocket)->RawSocketAvailable = QUIC_SUCCEEDED(Status);
-            if (QUIC_FAILED(Status)) {
-                QuicTraceLogVerbose(
-                    RawSockCreateFail,
-                    "[sock] Failed to create raw socket, status:%d", Status);
-                BOOLEAN IsWildcardAddr = Config->LocalAddress == NULL || QuicAddrIsWildCard(Config->LocalAddress);
-                if (IsWildcardAddr && (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    CxPlatSocketDelete(*NewSocket);
-                    continue;
-                }
-                if (!(Config->Flags & CXPLAT_SOCKET_FLAG_QTIP)) {
-                    Status = QUIC_STATUS_SUCCESS;
-                } else {
-                    CxPlatSocketDelete(*NewSocket);
-                }
+                RawSockCreateFail,
+                "[sock] Failed to create raw socket, status:%d", Status);
+            if (Config->Flags & CXPLAT_SOCKET_FLAG_QTIP) {
+                CxPlatSocketDelete(*NewSocket);
                 goto Error;
             }
+            Status = QUIC_STATUS_SUCCESS;
         }
-        break;
     }
 
 Error:
@@ -239,7 +223,7 @@ CxPlatSocketGetLocalMtu(
     )
 {
     CXPLAT_DBG_ASSERT(Socket != NULL);
-    if (Route->UseQTIP || (Socket->RawSocketAvailable &&
+    if ((Socket->RawSocketAvailable &&
         !IS_LOOPBACK(Socket->RemoteAddress))) {
         return RawSocketGetLocalMtu(Route);
     }
@@ -429,22 +413,7 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     )
 {
-    if (Socket->HasFixedRemoteAddress) {
-        //
-        // For clients,
-        // It must be true that Route->UseQTIP == Socket->ReserveAuxTcpSock because client
-        // connections can only send/recv either UDP or TCP traffic.
-        //
-        // For servers,
-        // It could be the case that Route->UseQTIP != Socket->ReserveAuxTcpSock. The state of
-        // Socket->ReserveAuxTcpSock simply determines whether or not we initialize an auxiliary TCP socket
-        // to prevent XDP from hijacking traffic from other processes. Therefore, servers rely
-        // on the receive path to set Route->UseQTIP, depending on the type of XDP traffic it sees.
-        //
-        Route->UseQTIP = Socket->ReserveAuxTcpSock;
-    }
-
-    if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
+    if (Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
         return RawResolveRoute(CxPlatSocketToRaw(Socket), Route, PathId, Context, Callback);
