@@ -232,9 +232,9 @@ CxPlatSocketCreateUdp(
     )
 {
     #if _WIN32
-    return CxPlatKMSocketCreateUdp(Datapath, Config, NewSocket);
-    #else
     return CxPlatUMSocketCreateUdp(Datapath, Config, NewSocket);
+    #else
+    return CxPlatKMSocketCreateUdp(Datapath, Config, NewSocket);
     #endif
 }
 
