@@ -676,7 +676,12 @@ else() #!WIN32
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls -fno-var-tracking-assignments)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        # Clang/LLVM doesn't support this flag, but GCC does.
+        check_c_compiler_flag(-fno-var-tracking-assignments HAS_NO_VAR_TRACKING)
+        if (HAS_NO_VAR_TRACKING)
+            list(APPEND QUIC_COMMON_FLAGS -fno-var-tracking-assignments)
+        endif()
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
