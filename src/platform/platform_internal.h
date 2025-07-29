@@ -1487,19 +1487,7 @@ RdmaSocketSend(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-CxPlatRdmaSocketUninitialize(
-    _In_ CXPLAT_SOCKET* Socket
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatRdmaSocketContextRelease(
-    _In_ CXPLAT_SOCKET_PROC* SocketProc
-    );
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-CxPlatRdmaSocketRelease(
+CxPlatRdmaSocketDelete(
     _In_ CXPLAT_SOCKET* Socket
     );
 

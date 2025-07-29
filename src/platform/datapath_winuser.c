@@ -2689,7 +2689,7 @@ SocketDelete(
     }
     else if (Socket->UseRdma)
     {
-        CxPlatRdmaSocketUninitialize(Socket);
+        CxPlatRdmaSocketDelete(Socket);
     }
     else
     {
@@ -2727,7 +2727,8 @@ CxPlatSocketContextRelease(
     )
 {
     CXPLAT_DBG_ASSERT(!SocketProc->Freed);
-    if (CxPlatRefDecrement(&SocketProc->RefCount)) {
+    if (CxPlatRefDecrement(&SocketProc->RefCount))
+    {
         if (SocketProc->Parent->Type != CXPLAT_SOCKET_TCP_LISTENER && 
             SocketProc->Parent->Type != CXPLAT_SOCKET_RDMA_LISTENER)
         {

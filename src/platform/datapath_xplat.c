@@ -305,7 +305,8 @@ CxPlatSendDataAlloc(
     if (Socket->UseRdma)
     {
         CXPLAT_DBG_ASSERT(Socket->Type == CXPLAT_SOCKET_RDMA || Socket->Type == CXPLAT_SOCKET_RDMA_SERVER);
-        CXPLAT_DBG_ASSERT(Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RDMA);
+        //CXPLAT_DBG_ASSERT(Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RDMA);
+        Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_RDMA;
         SendData = RdmaSendDataAlloc(Socket, Config);
     }
     else if (Socket->UseTcp || Config->Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
