@@ -252,7 +252,8 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter Handshake/WithHandshakeArgs10.HandshakeSpecificLossPatterns/*
+      run: for ($i = 1; $i -le 40; $i++) { scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter Handshake/WithHandshakeArgs10.HandshakeSpecificLossPatterns/* }
+    - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure() || cancelled()
       with:
