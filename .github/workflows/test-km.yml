@@ -1,0 +1,42 @@
+name: BVT
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: false
+        default: ''
+        type: string
+      filter:
+        required: false
+        default: ''
+        type: string
+      log_level:
+        required: true
+        default: 'Full.Light'
+        type: choice
+        options:
+        - 'Basic.Light'
+        - 'Basic.Verbose'
+        - 'Datapath.Light'
+        - 'Datapath.Verbose'
+        - 'Full.Light'
+        - 'Full.Verbose'
+        - 'Performance.Light'
+        - 'Performance.Verbose'
+        - 'RPS.Light'
+        - 'RPS.Verbose'
+        - 'SpinQuic.Light'
+        - 'SpinQuicWarnings.Light'
+        - 'Stacks.Light'
+        - 'Stacks.Verbose'
+
+concurrency:
+  # Cancel any workflow currently in progress for the same PR.
+  # Allow running concurrently with any other commits.
+  group: bvt-${{ github.event.pull_request.number || github.sha }}
+  cancel-in-progress: true
+
+permissions: read-all
+
+
