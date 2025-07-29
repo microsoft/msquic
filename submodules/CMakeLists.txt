@@ -265,6 +265,8 @@ else()
             CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
     endif()
 
+    list(APPEND OPENSSL_CONFIG_FLAGS ${CMAKE_C_FLAGS})
+
     # Create working and output directories as needed
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL})
