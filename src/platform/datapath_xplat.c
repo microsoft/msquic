@@ -437,7 +437,7 @@ CxPlatResolveRoute(
     }
 
     #ifdef _KERNEL_MODE
-    CXPLAT_ASSERT(Route->UseQTIP == FALSE);
+    CXPLAT_DBG_ASSERT(Route->UseQTIP == FALSE);
     #endif
 
     if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
