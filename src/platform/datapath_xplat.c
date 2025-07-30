@@ -440,6 +440,14 @@ CxPlatResolveRoute(
     Route->UseQTIP = FALSE;
     #endif
 
+    #if defined(CX_PLATFORM_LINUX)
+    Route->UseQTIP = FALSE;
+    #endif
+
+    #if defined(CX_PLATFORM_DARWIN)
+    Route->UseQTIP = FALSE;
+    #endif
+
     if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
