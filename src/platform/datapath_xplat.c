@@ -436,6 +436,10 @@ CxPlatResolveRoute(
         Route->UseQTIP = Socket->ReserveAuxTcpSock;
     }
 
+    #ifdef _KERNEL_MODE
+    Route->UseQTIP = FALSE;
+    #endif
+
     if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||
         (Route->DatapathType == CXPLAT_DATAPATH_TYPE_UNKNOWN &&
         Socket->RawSocketAvailable && !IS_LOOPBACK(Route->RemoteAddress))) {
