@@ -65,7 +65,7 @@ jobs:
       arch: ${{ matrix.vec.arch }}
       tls: ${{ matrix.vec.tls }}
       build: ${{ matrix.vec.build }}
-      ref: ec50f1cba339b081d0603671196bb307bd0602a9 
+      ref: a80b368ed50593939a87928aece12fe75cac1a4d
       repo: ${{ github.repository }}
 
   build-windows:
@@ -87,7 +87,7 @@ jobs:
       tls: ${{ matrix.vec.tls }}
       sanitize: ${{ matrix.vec.sanitize }}
       build: ${{ matrix.vec.build }}
-      ref: ec50f1cba339b081d0603671196bb307bd0602a9 
+      ref: a80b368ed50593939a87928aece12fe75cac1a4d
       repo: ${{ github.repository }}
 
   bvt:
@@ -112,7 +112,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ec50f1cba339b081d0603671196bb307bd0602a9 
+        ref: a80b368ed50593939a87928aece12fe75cac1a4d
     - name: Download Windows Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
@@ -179,7 +179,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ec50f1cba339b081d0603671196bb307bd0602a9 
+        ref: a80b368ed50593939a87928aece12fe75cac1a4d
     - name: Download Kernel Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       with: # note we always use kernel binaries built on windows-2022.
@@ -203,7 +203,7 @@ jobs:
     - name: Test
       shell: pwsh
       timeout-minutes: 120
-      run: scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter -*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*
+      run: for ($i = 1; $i -le 15; $i++) { scripts/test.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -OsRunner ${{ matrix.vec.os }} -GHA -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }} -GenerateXmlResults -Kernel -Filter Handshake/WithHandshakeArgs10.HandshakeSpecificLossPatterns/* }
     - name: Upload on Failure or Cancellation
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure() || cancelled()
@@ -229,7 +229,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0 # Don't need history.
-        ref: ec50f1cba339b081d0603671196bb307bd0602a9 
+        ref: a80b368ed50593939a87928aece12fe75cac1a4d
     - name: Download Windows Build Artifacts
       uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
       if: matrix.vec.plat == 'windows'
