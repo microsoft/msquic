@@ -146,7 +146,7 @@ else()
         add_custom_command(
             OUTPUT ${QUIC_STATIC_LIBRARY}
             COMMAND ${CMAKE_COMMAND} -E make_directory ${CMAKE_LIBRARY_OUTPUT_DIRECTORY}
-            COMMAND libtool -static -o \"${QUIC_STATIC_LIBRARY}\" @${QUIC_DEPS_FILE}
+            COMMAND ar -rcs \"${QUIC_STATIC_LIBRARY}\" ${DEPS_LIST}
             DEPENDS ${QUIC_DEPS_FILE}
             DEPENDS core
             DEPENDS msquic_platform
