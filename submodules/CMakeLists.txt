@@ -226,6 +226,10 @@ else()
                     --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
                 else()
                     set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure linux-aarch64)
+                    check_c_compiler_flag(--target=aarch64-linux-gnu HAVE_AARCH64_TARGET)
+                    if (HAVE_AARCH64_TARGET)
+                        list(APPEND OPENSSL_CONFIG_FLAGS --target=aarch64-linux-gnu)
+                    endif()
                 endif()
                 list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
             elseif (CMAKE_TARGET_ARCHITECTURE STREQUAL arm)
@@ -264,8 +268,6 @@ else()
         set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/config
             CC=${CMAKE_C_COMPILER} CXX=${CMAKE_CXX_COMPILER})
     endif()
-
-    list(APPEND OPENSSL_CONFIG_FLAGS ${CMAKE_C_FLAGS})
 
     # Create working and output directories as needed
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/include)
