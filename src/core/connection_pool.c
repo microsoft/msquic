@@ -157,16 +157,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnPoolGetStartingLocalAddress(
     _In_ QUIC_ADDR* RemoteAddress,
-    _Out_ QUIC_ADDR* LocalAddress,
-    _In_ BOOLEAN UseQTIP
+    _Out_ QUIC_ADDR* LocalAddress
     )
 {
     CXPLAT_SOCKET* Socket = NULL;
     CXPLAT_UDP_CONFIG UdpConfig;
     CxPlatZeroMemory(&UdpConfig, sizeof(UdpConfig));
-    if (UseQTIP) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
-    }
     UdpConfig.RemoteAddress = RemoteAddress;
     QUIC_STATUS Status =
         CxPlatSocketCreateUdp(MsQuicLib.Datapath, &UdpConfig, &Socket);
@@ -459,20 +455,10 @@ MsQuicConnectionPoolCreate(
     QuicAddrSetPort(&ResolvedRemoteAddress, Config->ServerPort);
 
     //
-    // Copying how Connection Settings flow downwards. It will first inherit the global settings,
-    // if a global setting field is not set, but the configuration setting is set, override the global.
-    //
-    BOOLEAN UseQTIP = MsQuicLib.Settings.QTIPEnabled;
-    if (!MsQuicLib.Settings.IsSet.QTIPEnabled
-        && ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.IsSet.QTIPEnabled) {
-        UseQTIP = ((QUIC_CONFIGURATION*) Config->Configuration)->Settings.QTIPEnabled;
-    }
-
-    //
     // Get the local address and a port to start from.
     //
     QUIC_ADDR LocalAddress;
-    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress, UseQTIP);
+    Status = QuicConnPoolGetStartingLocalAddress(&ResolvedRemoteAddress, &LocalAddress);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }

@@ -330,10 +330,6 @@ MsQuicListenerStart(
             UdpConfig.CibirIdLength);
     }
 
-    if (MsQuicLib.Settings.QTIPEnabled) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
-    }
-
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
         QuicLibraryGetBinding(

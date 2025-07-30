@@ -114,6 +114,7 @@ typedef struct QUIC_LISTENER {
     // the ID in the CID and the rest payload of the identifier.
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
+
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO

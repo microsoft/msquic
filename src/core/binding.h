@@ -279,7 +279,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicBindingInitialize(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Outptr_ QUIC_BINDING** NewBinding
+    _Out_ QUIC_BINDING** NewBinding
     );
 
 //
