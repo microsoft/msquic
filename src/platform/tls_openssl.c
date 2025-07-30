@@ -630,6 +630,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     // If we are installing initial Secrets TlsSecrets aren't allocated yet
     //
     if (TlsContext->TlsSecrets != NULL) {
+        TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         //
         // We pass our Secrets one at a time instead of together
         // So we need to map which Secret we're assigning based
@@ -641,7 +642,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             if (TlsContext->IsServer) {
                 if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
-                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][1].SecretLen);
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ServerHandshakeTrafficSecret = TRUE;
                 }
                 if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
@@ -679,6 +680,31 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             }
             break;
         case QUIC_PACKET_KEY_1_RTT:
+            if (TlsContext->IsServer) {
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+            } else {
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+            }
+
+            break;
         default:
             break;
         }
