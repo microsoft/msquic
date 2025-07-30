@@ -476,11 +476,9 @@ MsQuicConnectionPoolCreate(
     }
 
     if (MsQuicLib.Settings.QTIPEnabled) {
-        CXPLAT_DBG_ASSERT(FALSE);
         SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
     if (ConnectionConfig->Settings.IsSet.QTIPEnabled) {
-        CXPLAT_DBG_ASSERT(FALSE);
         if (ConnectionConfig->Settings.QTIPEnabled) {
             SocketFlags |= CXPLAT_SOCKET_FLAG_QTIP;
         } else {

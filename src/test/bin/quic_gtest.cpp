@@ -2252,23 +2252,23 @@ TEST(Misc, NthPacketDrop) {
 }
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
-// TEST(Misc, StreamPriority) {
-//     TestLogger Logger("StreamPriority");
-//     if (TestingKernelMode) {
-//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY));
-//     } else {
-//         QuicTestStreamPriority();
-//     }
-// }
+TEST(Misc, StreamPriority) {
+    TestLogger Logger("StreamPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY));
+    } else {
+        QuicTestStreamPriority();
+    }
+}
 
-// TEST(Misc, StreamPriorityInfiniteLoop) {
-//     TestLogger Logger("StreamPriorityInfiniteLoop");
-//     if (TestingKernelMode) {
-//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP));
-//     } else {
-//         QuicTestStreamPriorityInfiniteLoop();
-//     }
-// }
+TEST(Misc, StreamPriorityInfiniteLoop) {
+    TestLogger Logger("StreamPriorityInfiniteLoop");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_PRIORITY_INFINITE_LOOP));
+    } else {
+        QuicTestStreamPriorityInfiniteLoop();
+    }
+}
 
 TEST(Misc, StreamDifferentAbortErrors) {
     TestLogger Logger("StreamDifferentAbortErrors");
@@ -2365,23 +2365,23 @@ TEST(Misc, StreamAbortConnFlowControl) {
     }
 }
 
-// TEST(Basic, OperationPriority) {
-//     TestLogger Logger("OperationPriority");
-//     if (TestingKernelMode) {
-//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
-//     } else {
-//         QuicTestOperationPriority();
-//     }
-// }
+TEST(Basic, OperationPriority) {
+    TestLogger Logger("OperationPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_OPERATION_PRIORITY));
+    } else {
+        QuicTestOperationPriority();
+    }
+}
 
-// TEST(Basic, ConnectionPriority) {
-//     TestLogger Logger("ConnectionPriority");
-//     if (TestingKernelMode) {
-//         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
-//     } else {
-//         QuicTestConnectionPriority();
-//     }
-// }
+TEST(Basic, ConnectionPriority) {
+    TestLogger Logger("ConnectionPriority");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_PRIORITY));
+    } else {
+        QuicTestConnectionPriority();
+    }
+}
 
 TEST(Drill, VarIntEncoder) {
     TestLogger Logger("QuicDrillTestVarIntEncoder");
