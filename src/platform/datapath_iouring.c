@@ -315,22 +315,31 @@ Exit:
     return Status;
 }
 
-void
+QUIC_STATUS
 CxPlatProcessorContextInitialize(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint16_t PartitionIndex,
     _Out_ CXPLAT_DATAPATH_PARTITION* DatapathPartition
     )
 {
+    QUIC_STATUS Status;
+
     CXPLAT_DBG_ASSERT(Datapath != NULL);
     DatapathPartition->Datapath = Datapath;
     DatapathPartition->PartitionIndex = PartitionIndex;
     DatapathPartition->EventQ = CxPlatWorkerPoolGetEventQ(Datapath->WorkerPool, PartitionIndex);
     CxPlatRefInitialize(&DatapathPartition->RefCount);
-    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED( // TODO handle errors.
+
+    CxPlatPoolInitialize(
+        TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathPartition->SendBlockPool);
+
+    Status =
         CxPlatCreateBufferPool(
             DatapathPartition, Datapath->RecvBlockSize, RecvBufCount,
-            CxPlatIoRingBufGroupRecv, &DatapathPartition->RecvRegisteredBufferPool)));
+            CxPlatIoRingBufGroupRecv, &DatapathPartition->RecvRegisteredBufferPool);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
 
     for (uint32_t i = 0; i < RecvBufCount; i++) {
         DATAPATH_RX_IO_BLOCK* IoBlock =
@@ -347,8 +356,9 @@ CxPlatProcessorContextInitialize(
     }
     io_uring_buf_ring_advance(DatapathPartition->RecvRegisteredBufferPool.Ring, RecvBufCount);
 
-    CxPlatPoolInitialize(
-        TRUE, Datapath->SendDataSize, QUIC_POOL_DATA, &DatapathPartition->SendBlockPool);
+Exit:
+
+    return Status;
 }
 
 QUIC_STATUS
@@ -440,8 +450,11 @@ DataPathInitialize(
     // Initialize the per processor contexts.
     //
     for (uint32_t i = 0; i < Datapath->PartitionCount; i++) {
-        CxPlatProcessorContextInitialize(
-            Datapath, i, &Datapath->Partitions[i]);
+        QUIC_STATUS Status =
+            CxPlatProcessorContextInitialize(Datapath, i, &Datapath->Partitions[i]);
+        if (QUIC_FAILED(Status)) {
+            return Status;
+        }
     }
 
     CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
@@ -1144,9 +1157,11 @@ CxPlatSocketContextEnableRecvUnderLock(
             errno,
             "CxPlatAllocSqe failed");
         //
-        // TODO: this will cause the receive data path to hang.
+        // Review: this will cause the receive data path to hang. Elsewhere,
+        // MsQuic has similar gaps in its data path low resource handling, but
+        // this should be made more robust.
         //
-        CXPLAT_FRE_ASSERT(FALSE);
+        CXPLAT_DBG_ASSERT(FALSE);
         return;
     }
 
@@ -1603,7 +1618,7 @@ CxPlatSocketReceiveComplete(
             &DatapathPartition->RecvRegisteredBufferPool, BufferIndex);
     IoPayload = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
     RecvMsgOut = io_uring_recvmsg_validate(IoPayload, Cqe->res, (struct msghdr*)&CxPlatRecvMsgHdr);
-    CXPLAT_FRE_ASSERT(RecvMsgOut != NULL); // TODO: can this legally fail?
+    CXPLAT_FRE_ASSERT(RecvMsgOut != NULL); // Review: can this legally fail?
 
     IoBlock->Route.State = RouteResolved;
 
@@ -1922,13 +1937,13 @@ CxPlatSendDataSendSegmented(
 
     if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
         CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
-        Status = QUIC_STATUS_PENDING; // TODO clean this up.
+        Status = QUIC_STATUS_PENDING;
         goto Exit;
     }
 
     Sqe = CxPlatAllocSqe(DatapathPartition->EventQ);
     if (Sqe == NULL) {
-        Status = QUIC_STATUS_PENDING; // TODO clean this up.
+        Status = QUIC_STATUS_PENDING;
         CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
         goto Exit;
     }
@@ -1956,13 +1971,12 @@ Exit:
 
     if (!AlreadyLocked) {
         //
-        // TODO: clean up.
-        //
-        // As an experiment with batching, instead of immediately submitting,
-        // mark the EventQ as needing a submit and do it when the EventQ is
-        // next dequeued. This only works if the caller is running on the
-        // socket's partition. There is not a good abstraction for that check
-        // right now.
+        // Review: as an experiment with batching, instead of immediately
+        // submitting, this marks the EventQ as needing a submit and performs
+        // the submit when the EventQ is next dequeued. This only works if the
+        // caller is running on the socket's partition. There is not a good
+        // abstraction for that check right now, because caller alignment is
+        // not guaranteed.
         //
         if (DatapathPartition->OwningThreadID == CxPlatCurThreadID()) {
             DatapathPartition->EventQ->NeedsSubmit = TRUE;
@@ -2068,7 +2082,8 @@ CxPlatSocketContextSendComplete(
         QUIC_STATUS Status = CxPlatSendDataSend(SendData, TRUE);
         if (Status == QUIC_STATUS_PENDING) {
             //
-            // The io_uring is full. We'll get a completion when there's more space.
+            // The io_uring is full. We'll get a completion when there's more space, and then
+            // continue sending.
             //
             return;
         }
@@ -2127,7 +2142,9 @@ CxPlatSocketContextIoEventComplete(
     DatapathPartition = SocketContext->DatapathPartition;
 
     //
-    // TODO: big hack.
+    // Review: this lazy thread ID initialization is not ideal. Instead,
+    // partitions boundaries should be strictly enforced in io_uring mode,
+    // eliminating the need for thread + locks.
     //
     if (DatapathPartition->OwningThreadID == 0) {
         DatapathPartition->OwningThreadID = CxPlatCurThreadID();
