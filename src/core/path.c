@@ -26,6 +26,7 @@ QuicPathInitialize(
     )
 {
     CxPlatZeroMemory(Path, sizeof(QUIC_PATH));
+    CxPlatInitializeRoute(&Path->Route);
     Path->ID = Connection->NextPathId++; // TODO - Check for duplicates after wrap around?
     Path->InUse = TRUE;
     Path->MinRtt = UINT32_MAX;

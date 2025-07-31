@@ -436,16 +436,8 @@ CxPlatResolveRoute(
         Route->UseQTIP = Socket->ReserveAuxTcpSock;
     }
 
-    #ifdef _KERNEL_MODE
-    Route->UseQTIP = FALSE;
-    #endif
-
-    #if defined(CX_PLATFORM_LINUX)
-    Route->UseQTIP = FALSE;
-    #endif
-
-    #if defined(CX_PLATFORM_DARWIN)
-    Route->UseQTIP = FALSE;
+    #if defined(_KERNEL_MODE) || defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
+    CXPLAT_DBG_ASSERT(Route->UseQTIP == FALSE);
     #endif
 
     if (Route->UseQTIP || Route->DatapathType == CXPLAT_DATAPATH_TYPE_RAW ||

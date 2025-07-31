@@ -2003,7 +2003,9 @@ CxPlatSocketAllocRxIoBlock(
 
     DATAPATH_RX_IO_BLOCK* IoBlock = CxPlatPoolAlloc(Pool);
 
+
     if (IoBlock != NULL) {
+        CxPlatInitializeRoute(&IoBlock->Route);
         IoBlock->Route.State = RouteResolved;
         IoBlock->ProcContext = &Datapath->ProcContexts[ProcIndex];
         IoBlock->DataBufferStart = NULL;
