@@ -1462,6 +1462,42 @@ struct CancelOnLossContext
     CxPlatEvent SendPhaseEndedEvent = {};
 };
 
+struct DeadlineExpiredContext
+{
+    DeadlineExpiredContext(bool IsDeadlineExpiredScenario,
+                        bool IsServer, MsQuicConfiguration* Configuration)
+        : IsDeadlineExpiredScenario(IsDeadlineExpiredScenario)
+        , IsServer{ IsServer }
+        , Configuration{ Configuration }
+    { }
+
+    ~DeadlineExpiredContext() {
+        delete Stream;
+        Stream = nullptr;
+
+        delete Connection;
+        Connection = nullptr;
+    }
+
+    // Static parameters
+    static constexpr uint64_t SuccessExitCode = 42;
+    static constexpr uint64_t ErrorExitCode = 24;
+
+    // State
+    const bool IsDeadlineExpiredScenario = false;
+    const bool IsServer = false;
+    const MsQuicConfiguration* Configuration = nullptr;
+    MsQuicConnection* Connection = nullptr;
+    MsQuicStream* Stream = nullptr;
+
+    // Connection tracking
+    CxPlatEvent ConnectedEvent = {};
+
+    // Test case tracking
+    uint64_t ExitCode = 0;
+    CxPlatEvent SendPhaseEndedEvent = {};
+};
+
 _Function_class_(MsQuicStreamCallback)
 QUIC_STATUS
 QUIC_API
@@ -1525,6 +1561,80 @@ QuicCancelOnLossConnectionHandler(
             Event->PEER_STREAM_STARTED.Stream,
             CleanUpManual,
             QuicCancelOnLossStreamHandler,
+            Context);
+        break;
+    case QUIC_CONNECTION_EVENT_CONNECTED:
+        TestContext->ConnectedEvent.Set();
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_Function_class_(MsQuicStreamCallback)
+QUIC_STATUS
+QUIC_API
+QuicDeadlineExpiredStreamHandler(
+    _In_ struct MsQuicStream* /* Stream */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_STREAM_EVENT* Event
+    )
+{
+    auto TestContext = reinterpret_cast<DeadlineExpiredContext*>(Context);
+    switch (Event->Type) {
+    case QUIC_STREAM_EVENT_RECEIVE:
+        if (TestContext->IsServer) { // only server receives
+            TestContext->ExitCode = DeadlineExpiredContext::SuccessExitCode;
+            TestContext->SendPhaseEndedEvent.Set();
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
+        if (TestContext->IsServer) { // server-side 'Deadline Expired' detection
+            TestContext->ExitCode = Event->PEER_SEND_ABORTED.ErrorCode;
+            TestContext->SendPhaseEndedEvent.Set();
+        }
+        break;
+    case QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN:
+        if (TestContext->IsServer) {
+            TestContext->SendPhaseEndedEvent.Set();
+        }
+        break;
+    case QUIC_STREAM_EVENT_SEND_COMPLETE:
+        if (!TestContext->IsServer) { // only client sends
+            if (!TestContext->IsDeadlineExpiredScenario) { // if drop scenario, we use 'Deadline Expired' event
+                TestContext->SendPhaseEndedEvent.Set();
+            }
+        }
+        break;
+    case QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE:
+        if (!TestContext->IsServer && TestContext->IsDeadlineExpiredScenario) { // only client sends & only happens if in drop scenario
+            Event->CANCEL_ON_EXPIRED_DEADLINE.ErrorCode = DeadlineExpiredContext::ErrorExitCode;
+            TestContext->SendPhaseEndedEvent.Set();
+        }
+        break;
+    default:
+        break;
+    }
+    return QUIC_STATUS_SUCCESS;
+}
+
+_Function_class_(MsQuicConnectionCallback)
+QUIC_STATUS
+QUIC_API
+QuicDeadlineExpiredConnectionHandler(
+    _In_ struct MsQuicConnection* /* Connection */,
+    _In_opt_ void* Context,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    auto TestContext = reinterpret_cast<DeadlineExpiredContext*>(Context);
+    switch (Event->Type) {
+    case QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED:
+        TestContext->Stream = new(std::nothrow) MsQuicStream(
+            Event->PEER_STREAM_STARTED.Stream,
+            CleanUpManual,
+            QuicDeadlineExpiredStreamHandler,
             Context);
         break;
     case QUIC_CONNECTION_EVENT_CONNECTED:
@@ -1638,6 +1748,114 @@ QuicCancelOnLossSend(
         Listener.LastConnection->Close();
     }
 }
+
+void
+QuicDeadlineExpired(
+    _In_ bool IsDeadlineExpiredScenario
+    )
+{
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    MsQuicSettings Settings;
+    Settings.SetIdleTimeoutMs(1'000);
+    Settings.SetServerResumptionLevel(QUIC_SERVER_NO_RESUME);
+    Settings.SetPeerBidiStreamCount(1);
+    Settings.SetMinimumMtu(1280).SetMaximumMtu(1280); // avoid running path MTU discovery (PMTUD)
+
+    uint8_t RawBuffer[] = "Deadline Expires Test: Deadline = 0ms";
+    QUIC_BUFFER MessageBuffer = { sizeof(RawBuffer), RawBuffer };
+    SelectiveLossHelper LossHelper; // used later to trigger packet drops
+
+    MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
+    TEST_TRUE(ServerConfiguration.IsValid());
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    DeadlineExpiredContext ServerContext(IsDeadlineExpiredScenario, true /* IsServer */, &ServerConfiguration);
+    MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, QuicDeadlineExpiredConnectionHandler, &ServerContext);
+    TEST_TRUE(Listener.IsValid());
+    TEST_EQUAL(Listener.Start(Alpn), QUIC_STATUS_SUCCESS);
+    QuicAddr ServerLocalAddr;
+    TEST_EQUAL(Listener.GetLocalAddr(ServerLocalAddr), QUIC_STATUS_SUCCESS);
+
+    DeadlineExpiredContext ClientContext(IsDeadlineExpiredScenario, false /* IsServer */, &ClientConfiguration);
+    ClientContext.Connection = new(std::nothrow) MsQuicConnection(
+        Registration,
+        CleanUpManual,
+        QuicDeadlineExpiredConnectionHandler,
+        &ClientContext);
+    TEST_TRUE(ClientContext.Connection->IsValid());
+
+    TEST_QUIC_SUCCEEDED(
+        ClientContext.Connection->Start(
+            ClientConfiguration,
+            QUIC_ADDRESS_FAMILY_INET,
+            QUIC_TEST_LOOPBACK_FOR_AF(QUIC_ADDRESS_FAMILY_INET),
+            ServerLocalAddr.GetPort()));
+
+    // Wait for connection to be established.
+    constexpr uint32_t EventWaitTimeoutMs{ 1'000 };
+    if (!ClientContext.ConnectedEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Client failed to get connected before timeout!");
+        return;
+    }
+    if (!ServerContext.ConnectedEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Server failed to get connected before timeout!");
+        return;
+    }
+
+    // Sleep a bit to wait for all handshake packets to be exchanged.
+    CxPlatSleep(100);
+
+    QUIC_TIME_DIFF MsToDeadline;
+    if(IsDeadlineExpiredScenario) {
+        MsToDeadline = 0;
+    } else {
+        // Sets deadline very far into the future but not to infinity.
+        MsToDeadline = (QUIC_TIME_DIFF)-1000;
+    }
+
+    // Set up stream.
+    ClientContext.Stream = new(std::nothrow) MsQuicStream(
+        *ClientContext.Connection,
+        QUIC_STREAM_OPEN_FLAG_NONE,
+        MsToDeadline,
+        CleanUpManual,
+        QuicDeadlineExpiredStreamHandler,
+        &ClientContext);
+    TEST_TRUE(ClientContext.Stream->IsValid());
+    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Start());
+    TEST_QUIC_SUCCEEDED(ClientContext.Stream->Send(&MessageBuffer, 1, QUIC_SEND_FLAG_NONE));
+
+    // Wait for the send phase to conclude.
+    if (!ClientContext.SendPhaseEndedEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Timed out waiting for send phase to conclude on client.");
+        return;
+    }
+    if (!ServerContext.SendPhaseEndedEvent.WaitTimeout(EventWaitTimeoutMs)) {
+        TEST_FAILURE("Timed out waiting for send phase to conclude on server.");
+    }
+
+    // Check results.
+    if (IsDeadlineExpiredScenario) {
+        if (ServerContext.ExitCode != DeadlineExpiredContext::ErrorExitCode) {
+            TEST_FAILURE("ServerContext.ExitCode %u != ErrorExitCode", ServerContext.ExitCode);
+        }
+    } else {
+        if (ServerContext.ExitCode != DeadlineExpiredContext::SuccessExitCode) {
+            TEST_FAILURE("ServerContext.ExitCode %u != SuccessExitCode", ServerContext.ExitCode);
+        }
+    }
+
+    if (Listener.LastConnection) {
+        Listener.LastConnection->Close();
+    }
+}
+
 
 struct RecvResumeTestContext {
     RecvResumeTestContext(

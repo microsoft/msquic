@@ -636,15 +636,24 @@ Error:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicStreamOpen(
+MsQuicStreamOpenWithDeadline(
     _In_ _Pre_defensive_ HQUIC Handle,
     _In_ QUIC_STREAM_OPEN_FLAGS Flags,
     _In_ _Pre_defensive_ QUIC_STREAM_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
     _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC *NewStream
+        HQUIC *NewStream,
+    _In_ QUIC_TIME_DIFF MsToDeadline
     )
 {
+    QUIC_TIME_POINT Now = CxPlatTimeUs64();
+    QUIC_TIME_POINT Deadline;
+    if(MsToDeadline >= QUIC_TIME_POINT_INFINITE - Now) {
+        // Sets deadline to infinite if the requested deadline is too far in the future.
+        Deadline = QUIC_TIME_POINT_INFINITE;
+    } else {
+        Deadline = Now + MsToDeadline;
+    }
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection;
 
@@ -692,6 +701,7 @@ MsQuicStreamOpen(
 
     (*(QUIC_STREAM**)NewStream)->ClientCallbackHandler = Handler;
     (*(QUIC_STREAM**)NewStream)->ClientContext = Context;
+    (*(QUIC_STREAM**)NewStream)->Deadline = Deadline;
 
 Error:
 
@@ -701,6 +711,28 @@ Error:
         Status);
 
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicStreamOpen(
+    _In_ _Pre_defensive_ HQUIC Handle,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewStream, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewStream
+    )
+{
+    return
+        MsQuicStreamOpenWithDeadline(
+            Handle,
+            Flags,
+            Handler,
+            Context,
+            NewStream,
+            QUIC_TIME_POINT_INFINITE);
 }
 
 #pragma warning(push)

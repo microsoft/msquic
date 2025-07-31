@@ -470,6 +470,11 @@ typedef struct QUIC_STREAM {
         uint64_t CachedConnCongestionControlUs;
         uint64_t CachedConnFlowControlUs;
     } BlockedTimings;
+
+    //
+    // The deadline (in microseconds) for the stream to be processed.
+    //
+    QUIC_TIME_POINT Deadline;
 } QUIC_STREAM;
 
 //
@@ -634,7 +639,7 @@ QuicStreamTraceRundown(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicStreamIndicateEvent(
-    _In_ QUIC_STREAM* Stream,
+    _In_ const QUIC_STREAM* Stream,
     _Inout_ QUIC_STREAM_EVENT* Event
     );
 

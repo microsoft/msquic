@@ -38,6 +38,10 @@ Abstract:
 #include "stream_send.c.clog.h"
 #endif
 
+BOOLEAN DrainBeforeDeadlineEngine(
+    _In_ const QUIC_STREAM* Stream
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicStreamCompleteSendRequest(
@@ -336,7 +340,7 @@ QuicStreamHasPending0RttData(
 
 //
 // Returns TRUE if the stream can send a STREAM frame immediately. This
-// function does not include any congestion control state checks.
+// function does not include any congestion control state and deadline checks.
 //
 BOOLEAN
 QuicStreamSendCanWriteDataFrames(
@@ -372,9 +376,15 @@ QuicStreamSendCanWriteDataFrames(
     // Some unsent data. Can send only if flow control will allow.
     //
     QUIC_SEND* Send = &Stream->Connection->Send;
+
+    BOOLEAN CanWeDrainBeforeDeadline = TRUE;
+    if(Stream->Deadline != QUIC_TIME_POINT_INFINITE) {
+        CanWeDrainBeforeDeadline = DrainBeforeDeadlineEngine(Stream);
+    }
+
     return
         Stream->NextSendOffset < Stream->MaxAllowedSendOffset &&
-        Send->OrderedStreamBytesSent < Send->PeerMaxData;
+        Send->OrderedStreamBytesSent < Send->PeerMaxData && CanWeDrainBeforeDeadline;
 }
 
 BOOLEAN
