@@ -2005,7 +2005,7 @@ CxPlatSocketAllocRxIoBlock(
 
 
     if (IoBlock != NULL) {
-        CxPlatInitializeRoute(&IoBlock->Route);
+        CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
         IoBlock->Route.State = RouteResolved;
         IoBlock->ProcContext = &Datapath->ProcContexts[ProcIndex];
         IoBlock->DataBufferStart = NULL;

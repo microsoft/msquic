@@ -2478,11 +2478,12 @@ QuicConnSetConfiguration(
     QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
 
-    QuicConnApplyNewSettings(
-        Connection,
-        FALSE,
-        &Configuration->Settings);
-
+    if (QuicConnIsServer(Connection)) {
+        QuicConnApplyNewSettings(
+            Connection,
+            FALSE,
+            &Configuration->Settings);
+    }
 
     if (QuicConnIsClient(Connection)) {
 

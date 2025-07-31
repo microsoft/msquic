@@ -877,14 +877,6 @@ CxPlatResolveRoute(
     _In_ CXPLAT_ROUTE_RESOLUTION_CALLBACK_HANDLER Callback
     );
 
-//
-// Initializes the CXPLAT_ROUTE structure to default values.
-//
-void
-CxPlatInitializeRoute(
-    _Out_writes_bytes_(sizeof(CXPLAT_ROUTE)) CXPLAT_ROUTE* Route
-    );
-
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatUpdateRoute(

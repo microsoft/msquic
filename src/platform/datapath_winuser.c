@@ -2856,7 +2856,7 @@ CxPlatSocketAllocRxIoBlock(
     }
 
     if (IoBlock != NULL) {
-        CxPlatInitializeRoute(&IoBlock->Route);
+        CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
         IoBlock->Route.State = RouteResolved;
         IoBlock->ReferenceCount = 0;
         IoBlock->SocketProc = SocketProc;
