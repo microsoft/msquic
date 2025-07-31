@@ -235,3 +235,44 @@ CxPlatSocketConfigureRss(
     return QUIC_STATUS_NOT_SUPPORTED;
 #endif
 }
+
+void
+CxPlatSocketHandleError(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ int ErrNum
+    )
+{
+    CXPLAT_DBG_ASSERT(ErrNum != 0);
+
+    QuicTraceEvent(
+        DatapathErrorStatus,
+        "[data][%p] ERROR, %u, %s.",
+        SocketContext->Binding,
+        ErrNum,
+        "Socket error event");
+
+    if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
+        //
+        // Send unreachable notification to MsQuic if any related
+        // errors were received.
+        //
+        if (ErrNum == ECONNREFUSED ||
+            ErrNum == EHOSTUNREACH ||
+            ErrNum == ENETUNREACH) {
+            if (!SocketContext->Binding->PcpBinding) {
+                SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                    SocketContext->Binding,
+                    SocketContext->Binding->ClientContext,
+                    &SocketContext->Binding->RemoteAddress);
+            }
+        }
+    } else {
+        if (!SocketContext->Binding->DisconnectIndicated) {
+            SocketContext->Binding->DisconnectIndicated = TRUE;
+            SocketContext->Binding->Datapath->TcpHandlers.Connect(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                FALSE);
+        }
+    }
+}

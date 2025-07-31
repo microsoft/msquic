@@ -243,7 +243,6 @@ DataPathInitialize(
     Datapath->WorkerPool = WorkerPool;
 
     Datapath->PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(WorkerPool);
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
     CxPlatDataPathCalculateFeatureSupport(Datapath);
@@ -1554,37 +1553,7 @@ CxPlatSocketHandleErrors(
             errno,
             "getsockopt(SO_ERROR) failed");
     } else if (ErrNum != 0) {
-        QuicTraceEvent(
-            DatapathErrorStatus,
-            "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
-            ErrNum,
-            "Socket error event");
-
-        if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
-            //
-            // Send unreachable notification to MsQuic if any related
-            // errors were received.
-            //
-            if (ErrNum == ECONNREFUSED ||
-                ErrNum == EHOSTUNREACH ||
-                ErrNum == ENETUNREACH) {
-                if (!SocketContext->Binding->PcpBinding) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                        SocketContext->Binding,
-                        SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
-                }
-            }
-        } else {
-            if (!SocketContext->Binding->DisconnectIndicated) {
-                SocketContext->Binding->DisconnectIndicated = TRUE;
-                SocketContext->Binding->Datapath->TcpHandlers.Connect(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    FALSE);
-            }
-        }
+        CxPlatSocketHandleError(SocketContext, ErrNum);
     }
 }
 

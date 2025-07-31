@@ -1585,12 +1585,16 @@ CxPlatSocketReceiveComplete(
 
     if (Cqe->res == -ENOBUFS) {
         //
-        // Ignore packet loss.
+        // Ignore packet loss indications for now.
         //
         return;
     }
 
-    CXPLAT_FRE_ASSERT(Cqe->res > 0); // TODO: handle any other errors
+    if (Cqe->res < 0) {
+        CxPlatSocketHandleError(SocketContext, -Cqe->res);
+        return;
+    }
+
     CXPLAT_DBG_ASSERT(Cqe->flags & IORING_CQE_F_BUFFER);
 
     BufferIndex = Cqe->flags >> 16;

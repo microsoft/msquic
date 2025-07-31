@@ -60,3 +60,9 @@ DataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t PollingIdleTimeoutUs
     );
+
+void
+CxPlatSocketHandleError(
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ int ErrNum
+    );
