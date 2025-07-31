@@ -636,6 +636,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         // on whether we are a server, what type of key we're writing
         // and the Direction (1 for write, 0 for read)
         //
+        TlsContext->TlsSecrets->SecretLength = (uint8_t)SecretLen;
         switch(KeyType) {
         case QUIC_PACKET_KEY_HANDSHAKE:
             if (TlsContext->IsServer) {
@@ -679,6 +680,38 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
             }
             break;
         case QUIC_PACKET_KEY_1_RTT:
+            if (TlsContext->IsServer) {
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+            } else {
+                if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ServerTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ServerTrafficSecret0 = TRUE;
+                }
+                if (AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                    memcpy(TlsContext->TlsSecrets->ClientTrafficSecret0,
+                           AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
+                    TlsContext->TlsSecrets->IsSet.ClientTrafficSecret0 = TRUE;
+                }
+            }
+            if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL &&
+                AData->SecretSet[ProtLevel][DIR_WRITE].Secret != NULL) {
+                //
+                // We're done installing secrets
+                //
+                TlsContext->TlsSecrets = NULL;
+            }
+
+            break;
         default:
             break;
         }
@@ -3431,7 +3464,7 @@ CxPlatTlsParamGet(
     switch (Param) {
 
         case QUIC_PARAM_TLS_HANDSHAKE_INFO: {
-            if (*BufferLength < sizeof(QUIC_HANDSHAKE_INFO)) {
+            if (*BufferLength < CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_HANDSHAKE_INFO, CipherSuite)) {
                 *BufferLength = sizeof(QUIC_HANDSHAKE_INFO);
                 Status = QUIC_STATUS_BUFFER_TOO_SMALL;
                 break;
