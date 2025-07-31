@@ -448,3 +448,17 @@ CxPlatResolveRoute(
     Route->State = RouteResolved;
     return QUIC_STATUS_SUCCESS;
 }
+
+//
+// Initializes the CXPLAT_ROUTE structure to default values.
+//
+void
+CxPlatInitializeRoute(
+    _Out_writes_bytes_(sizeof(CXPLAT_ROUTE)) CXPLAT_ROUTE* Route
+    )
+{
+    //
+    // For platform specific logic, use the corresponding #ifdef.
+    //
+    CxPlatZeroMemory(Route, sizeof(CXPLAT_ROUTE));
+}
