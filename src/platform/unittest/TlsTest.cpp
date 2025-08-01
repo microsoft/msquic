@@ -1151,9 +1151,18 @@ TEST_F(TlsTest, HandshakeParallel)
     }
 }
 
-#ifndef QUIC_DISABLE_0RTT_TESTS
+BOOLEAN
+CanRun1RTTTests()
+{
+    return CxPlatSupports1Rtt();
+}
+
 TEST_F(TlsTest, HandshakeResumption)
 {
+    if (!CanRun1RTTTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
@@ -1176,8 +1185,13 @@ TEST_F(TlsTest, HandshakeResumption)
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
 
+#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumptionRejection)
 {
+    if (!CanRun1RTTTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
@@ -1203,6 +1217,10 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
 
 TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 {
+    if (!CanRun1RTTTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
         QUIC_ALLOWED_CIPHER_SUITE_NONE,
@@ -1219,6 +1237,10 @@ TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 
 TEST_F(TlsTest, HandshakeResumptionServerDisabled)
 {
+    if (!CanRun1RTTTests()) {
+        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    }
+
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
@@ -1244,7 +1266,8 @@ TEST_F(TlsTest, HandshakeResumptionServerDisabled)
     ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
-#endif
+
+#endif // !QUIC_DISABLE_0RTT_TESTS
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {
