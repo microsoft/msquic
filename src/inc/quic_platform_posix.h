@@ -68,6 +68,16 @@ extern "C" {
 #define ALIGN_UP(length, type) \
     (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
+#ifndef ALIGN_DOWN_BY
+#define ALIGN_DOWN_BY(Length, Alignment) \
+    ((uintptr_t)(Length)& ~((uintptr_t)(Alignment) - 1))
+#endif
+
+#ifndef ALIGN_UP_BY
+#define ALIGN_UP_BY(Length, Alignment) \
+    (ALIGN_DOWN_BY(((uintptr_t)(Length) + (Alignment) - 1), Alignment))
+#endif
+
 //
 // Generic stuff.
 //
@@ -527,7 +537,9 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
-typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
+#define CXPLAT_MEMORY_ALIGNMENT 16
+
+typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) CXPLAT_POOL_HEADER {
     union {
     CXPLAT_POOL* Owner;
     CXPLAT_SLIST_ENTRY Entry;
@@ -846,7 +858,7 @@ typedef struct CXPLAT_EVENT {
     // Mutex and condition. The alignas is important, as the perf tanks
     // if the event is not aligned.
     //
-    alignas(16) pthread_mutex_t Mutex;
+    alignas(CXPLAT_MEMORY_ALIGNMENT) pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //

@@ -441,18 +441,22 @@ DataPathInitialize(
     }
 
     Datapath->RecvBlockStride =
-        sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength;
+        ALIGN_UP_BY(sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength, CXPLAT_MEMORY_ALIGNMENT);
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Datapath->RecvBlockBufferOffset =
             sizeof(DATAPATH_RX_IO_BLOCK) +
             CXPLAT_MAX_IO_BATCH_SIZE * Datapath->RecvBlockStride;
         Datapath->RecvBlockSize =
-            Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE;
+            ALIGN_UP_BY(
+                Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE,
+                CXPLAT_MEMORY_ALIGNMENT);
     } else {
         Datapath->RecvBlockBufferOffset =
             sizeof(DATAPATH_RX_IO_BLOCK) + Datapath->RecvBlockStride;
         Datapath->RecvBlockSize =
-            Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE;
+            ALIGN_UP_BY(
+                Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE,
+                CXPLAT_MEMORY_ALIGNMENT);
     }
 
     //
@@ -1115,7 +1119,18 @@ CxPlatSocketContextUninitializeEventComplete(
     CXPLAT_SOCKET_CONTEXT* SocketContext =
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
     CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
-    CxPlatSocketIoComplete(SocketContext);
+
+    if (SocketContext->SocketFd != INVALID_SOCKET) {
+        CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
+        struct io_uring_sqe* Sqe = CxPlatSocketAllocSqe(SocketContext);
+        CXPLAT_FRE_ASSERT(Sqe != NULL);
+        io_uring_prep_close(Sqe, SocketContext->SocketFd);
+        io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
+        io_uring_submit(&DatapathPartition->EventQ->Ring);
+        SocketContext->SocketFd = INVALID_SOCKET;
+    } else {
+        CxPlatSocketIoComplete(SocketContext);
+    }
 }
 
 void
@@ -1158,7 +1173,7 @@ CxPlatSocketContextUninitialize(
         CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
         Sqe = CxPlatSocketAllocSqe(SocketContext);
         CXPLAT_FRE_ASSERT(Sqe != NULL);
-        io_uring_prep_cancel_fd(Sqe, SocketContext->SocketFd, IORING_ASYNC_CANCEL_ALL);
+        io_uring_prep_cancel(Sqe, &SocketContext->IoSqe, 0);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
         io_uring_submit(&DatapathPartition->EventQ->Ring);
         SocketContext->Shutdown = TRUE;
@@ -1618,6 +1633,12 @@ CxPlatSocketReceiveComplete(
     struct iovec RecvIov;
     uint32_t BufferIndex;
     struct io_uring_recvmsg_out *RecvMsgOut;
+
+    if (Cqe->res == -ECANCELED) {
+        CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
+        CXPLAT_DBG_ASSERT(SocketContext->IoCount > 0);
+        goto Exit;
+    }
 
     if (Cqe->res == -ENOBUFS) {
         //

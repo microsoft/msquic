@@ -687,6 +687,19 @@ CxPlatProcessEvents(
     uint32_t CurrentCqeCount = CqeCount;
     CXPLAT_CQE* CurrentCqe = Cqes;
 
+#if DEBUG
+    //
+    // On Ubuntu 24.04, at least, CQE addresses are not mapped into the
+    // debugger. To simplify debugging, copy the CQE contents into the stack
+    // address space.
+    //
+    struct io_uring_cqe IoCqes[ARRAYSIZE(Cqes)];
+    for (uint32_t i = 0; i < CqeCount; i++) {
+        IoCqes[i] = *Cqes[i];
+    }
+    UNREFERENCED_PARAMETER(IoCqes);
+#endif
+
     InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
 #if DEBUG // Debug statistics
