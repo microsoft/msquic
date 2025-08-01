@@ -1846,7 +1846,8 @@ SendDataIsFull(
 QUIC_STATUS
 CxPlatSendDataSend(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN AlreadyLocked
+    _In_ BOOLEAN AlreadyLocked,
+    _In_ BOOLEAN AlreadyQueued
     );
 
 void
@@ -1881,7 +1882,7 @@ SocketSend(
     //
     // Go ahead and try to send on the socket.
     //
-    CxPlatSendDataSend(SendData, FALSE);
+    CxPlatSendDataSend(SendData, FALSE, FALSE);
 }
 
 //
@@ -1950,7 +1951,8 @@ CxPlatSendDataPopulateAncillaryData(
 QUIC_STATUS
 CxPlatSendDataSendSegmented(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN AlreadyLocked
+    _In_ BOOLEAN AlreadyLocked,
+    _In_ BOOLEAN AlreadyQueued
     )
 {
     CXPLAT_DATAPATH_PARTITION* DatapathPartition = SendData->SocketContext->DatapathPartition;
@@ -1963,15 +1965,19 @@ CxPlatSendDataSendSegmented(
     }
 
     if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
-        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+        if (!AlreadyQueued) {
+            CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+        }
         Status = QUIC_STATUS_PENDING;
         goto Exit;
     }
 
     Sqe = CxPlatSocketAllocSqe(SocketContext);
     if (Sqe == NULL) {
+        if (!AlreadyQueued) {
+            CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+        }
         Status = QUIC_STATUS_PENDING;
-        CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
         goto Exit;
     }
 
@@ -2020,7 +2026,8 @@ Exit:
 QUIC_STATUS
 CxPlatSendDataSend(
     _In_ CXPLAT_SEND_DATA* SendData,
-    _In_ BOOLEAN AlreadyLocked
+    _In_ BOOLEAN AlreadyLocked,
+    _In_ BOOLEAN AlreadyQueued
     )
 {
     CXPLAT_DBG_ASSERT(SendData != NULL);
@@ -2030,7 +2037,7 @@ CxPlatSendDataSend(
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     CXPLAT_SOCKET_CONTEXT* SocketContext = SendData->SocketContext;
 
-    Status = CxPlatSendDataSendSegmented(SendData, AlreadyLocked);
+    Status = CxPlatSendDataSendSegmented(SendData, AlreadyLocked, AlreadyQueued);
 
     if (QUIC_FAILED(Status)) {
         if (Status != QUIC_STATUS_PENDING) {
@@ -2111,7 +2118,7 @@ CxPlatSocketContextSendComplete(
     }
 
     while (SendData != NULL) {
-        QUIC_STATUS Status = CxPlatSendDataSend(SendData, TRUE);
+        QUIC_STATUS Status = CxPlatSendDataSend(SendData, TRUE, TRUE);
         if (Status == QUIC_STATUS_PENDING) {
             //
             // The io_uring is full. We'll get a completion when there's more space, and then
