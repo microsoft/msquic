@@ -626,19 +626,22 @@ QuicRecvBufferWrite(
     _In_ uint64_t WriteOffset,
     _In_ uint16_t WriteLength,
     _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
-    _Inout_ uint64_t* WriteLimit,
-    _Out_ BOOLEAN* ReadyToRead
+    _In_ uint64_t WriteQuota,
+    _Out_ uint64_t* QuotaConsumed,
+    _Out_ BOOLEAN* NewDataReady,
+    _Out_ uint64_t* BufferSizeNeeded
     )
 {
     CXPLAT_DBG_ASSERT(WriteLength != 0);
-    *ReadyToRead = FALSE; // Most cases below aren't ready to read.
+    *NewDataReady = FALSE; // Most cases below aren't ready to read.
+    *QuotaConsumed = 0;
+    *BufferSizeNeeded = 0;
 
     //
     // Check if the write buffer has already been completely written before.
     //
     const uint64_t AbsoluteLength = WriteOffset + WriteLength;
     if (AbsoluteLength <= RecvBuffer->BaseOffset) {
-        *WriteLimit = 0;
         return QUIC_STATUS_SUCCESS;
     }
 
@@ -651,18 +654,17 @@ QuicRecvBufferWrite(
     }
 
     //
-    // Check to see if the write buffer is trying to write beyond the allowed
-    // (input) limit. If it's in bounds, update the output to indicate how much
-    // new data was actually written.
+    // Check that the write is not going to cause us to consume more than the
+    // quota allocated by the connection flow control.
+    // If it is in bound, update the output to indicate how much of the quota is
+    // being consumed.
     //
-    uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
+    const uint64_t CurrentMaxLength = QuicRecvBufferGetTotalLength(RecvBuffer);
     if (AbsoluteLength > CurrentMaxLength) {
-        if (AbsoluteLength - CurrentMaxLength > *WriteLimit) {
+        if (AbsoluteLength - CurrentMaxLength > WriteQuota) {
             return QUIC_STATUS_BUFFER_TOO_SMALL;
         }
-        *WriteLimit = AbsoluteLength - CurrentMaxLength;
-    } else {
-        *WriteLimit = 0;
+        *QuotaConsumed = AbsoluteLength - CurrentMaxLength;
     }
 
     //
@@ -674,11 +676,20 @@ QuicRecvBufferWrite(
     // This is skipped in app-owned mode since the entire virtual length is
     // always allocated.
     //
-    if (RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
-        if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
+    const uint32_t AllocLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
+    if (AbsoluteLength > RecvBuffer->BaseOffset + AllocLength) {
+        //
+        // There isn't enough space to write the data.
+        //
+        if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
             //
-            // There isn't enough space to write the data.
+            // We can't allocate more space in app-owned mode.
+            // Let the caller notify the app to provide more buffer space.
+            //
+            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        } else {
+            //
             // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
             // until there is enough space for the write.
             //
@@ -722,7 +733,7 @@ QuicRecvBufferWrite(
     //
     // We have new data to read if we just wrote to the front of the buffer.
     //
-    *ReadyToRead = UpdatedRange->Low == 0;
+    *NewDataReady = UpdatedRange->Low == 0;
 
     //
     // Write the data into the chunks now that everything has been validated.

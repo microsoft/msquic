@@ -126,7 +126,7 @@ struct RecvBuffer {
     QUIC_STATUS Write(
         _In_ uint64_t WriteOffset,
         _In_ uint16_t WriteLength,
-        _Inout_ uint64_t* WriteLimit,
+        _Inout_ uint64_t* WriteQuota,
         _Out_ BOOLEAN* NewDataReady
         ) {
         auto BufferToWrite = new (std::nothrow) uint8_t[WriteLength];
@@ -136,7 +136,21 @@ struct RecvBuffer {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
         }
         printf("Write: Offset=%llu, Length=%u\n", (unsigned long long)WriteOffset, WriteLength);
-        auto Status = QuicRecvBufferWrite(&RecvBuf, WriteOffset, WriteLength, BufferToWrite, WriteLimit, NewDataReady);
+        uint64_t BufferSizeNeeded = 0;
+        uint64_t QuotaConsumed = 0;
+        auto Status =
+            QuicRecvBufferWrite(
+                &RecvBuf,
+                WriteOffset,
+                WriteLength,
+                BufferToWrite,
+                *WriteQuota,
+                &QuotaConsumed,
+                NewDataReady,
+                &BufferSizeNeeded);
+        if (QUIC_SUCCEEDED(Status)) {
+            *WriteQuota = QuotaConsumed;
+        }
         delete [] BufferToWrite;
         Dump();
         return Status;

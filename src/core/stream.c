@@ -1012,3 +1012,34 @@ QuicStreamProvideRecvBuffers(
     }
     return Status;
 }
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicStreamNotifyRecvBufferTooSmall(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLengthNeeded,
+    _Out_ QUIC_VAR_INT* ShutdownErrorCode
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+
+    *ShutdownErrorCode = 0;
+
+    QUIC_STREAM_EVENT Event = {0};
+    // TODO guhetier: Consider renaming to "INSUFICIENT_RECEIVE_BUFFER"
+    Event.Type = QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED;
+    Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded = BufferLengthNeeded;
+
+    QuicTraceLogStreamVerbose(
+        StreamNotifyRecvBufferTooSmall,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+        Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
+
+    if (QUIC_FAILED(QuicStreamIndicateEvent(Stream, &Event))) {
+        return FALSE;
+    };
+
+    *ShutdownErrorCode = Event.RECEIVE_BUFFER_NEEDED.ErrorCode;
+    return Event.RECEIVE_BUFFER_NEEDED.ShutdownStream;
+}

@@ -292,6 +292,24 @@ tracepoint(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamShutdownOutOfAppBuffer
+// [strm][%p] Out of app-provided receive buffer, shutting stream down.
+// QuicTraceLogStreamVerbose(
+                    StreamShutdownOutOfAppBuffer,
+                    Stream,
+                    "Out of app-provided receive buffer, shutting stream down.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_StreamShutdownOutOfAppBuffer
+#define _clog_3_ARGS_TRACE_StreamShutdownOutOfAppBuffer(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_STREAM_RECV_C, StreamShutdownOutOfAppBuffer , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FlowControlExhausted
 // [strm][%p] Flow control window exhausted!
 // QuicTraceLogStreamVerbose(

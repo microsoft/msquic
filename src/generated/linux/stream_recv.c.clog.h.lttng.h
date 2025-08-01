@@ -280,6 +280,25 @@ TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, IgnoreRecvAfterAbort,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamShutdownOutOfAppBuffer
+// [strm][%p] Out of app-provided receive buffer, shutting stream down.
+// QuicTraceLogStreamVerbose(
+                    StreamShutdownOutOfAppBuffer,
+                    Stream,
+                    "Out of app-provided receive buffer, shutting stream down.");
+// arg1 = arg1 = Stream = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_RECV_C, StreamShutdownOutOfAppBuffer,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FlowControlExhausted
 // [strm][%p] Flow control window exhausted!
 // QuicTraceLogStreamVerbose(

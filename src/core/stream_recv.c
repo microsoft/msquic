@@ -481,9 +481,11 @@ QuicStreamProcessStreamFrame(
         // On return from QuicRecvBufferWrite, this represents the
         // actual number of bytes written.
         //
-        uint64_t WriteLength =
+        const uint64_t FlowControlQuota =
             Stream->Connection->Send.MaxData -
             Stream->Connection->Send.OrderedStreamBytesReceived;
+        uint64_t QuotaConsumed = 0;
+        uint64_t BufferSizeNeeded = 0;
 
         //
         // Write any nonduplicate data to the receive buffer.
@@ -495,8 +497,52 @@ QuicStreamProcessStreamFrame(
                 Frame->Offset,
                 (uint16_t)Frame->Length,
                 Frame->Data,
-                &WriteLength,
-                &ReadyToDeliver);
+                FlowControlQuota,
+                &QuotaConsumed,
+                &ReadyToDeliver,
+                &BufferSizeNeeded);
+
+        if (BufferSizeNeeded > 0) {
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
+            CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+            //
+            // The application didn't provide enough buffer space.
+            // Give it a chance to react by providing more buffer space or shutting down the stream.
+            //
+            QUIC_VAR_INT ErrorCode = 0;
+            const BOOLEAN ShutdownStream =
+                QuicStreamNotifyRecvBufferTooSmall(Stream, BufferSizeNeeded, &ErrorCode);
+
+            if (ShutdownStream) {
+                //
+                // The app chose to abort the stream.
+                //
+                QuicTraceLogStreamVerbose(
+                    StreamShutdownOutOfAppBuffer,
+                    Stream,
+                    "Out of app-provided receive buffer, shutting stream down.");
+
+                QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
+                Status = QUIC_STATUS_SUCCESS;
+                goto Error;
+            } else {
+                //
+                // The app should have provided more buffer space, try to write again.
+                // On failure, the connection will be aborted.
+                //
+                Status =
+                    QuicRecvBufferWrite(
+                        &Stream->RecvBuffer,
+                        Frame->Offset,
+                        (uint16_t)Frame->Length,
+                        Frame->Data,
+                        FlowControlQuota,
+                        &QuotaConsumed,
+                        &ReadyToDeliver,
+                        &BufferSizeNeeded);
+            }
+        }
+
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -504,9 +550,9 @@ QuicStreamProcessStreamFrame(
         //
         // Keep track of the total ordered bytes received.
         //
-        Stream->Connection->Send.OrderedStreamBytesReceived += WriteLength;
+        Stream->Connection->Send.OrderedStreamBytesReceived += QuotaConsumed;
         CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived <= Stream->Connection->Send.MaxData);
-        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
+        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= QuotaConsumed);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
             QuicTraceLogStreamVerbose(
