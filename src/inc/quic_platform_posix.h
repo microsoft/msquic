@@ -1044,7 +1044,6 @@ Exit:
 // TODO: build on other 64-bit architectures
 //
 #if CXPLAT_USE_IO_URING && defined(__x86_64__) // liburing
-#define IOURINGINLINE inline
 #define LIBURING_INTERNAL
 
 #if defined(__cplusplus)
@@ -1090,7 +1089,13 @@ typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER ClassicCompletion;
     CXPLAT_EVENT_BATCH_COMPLETION* Completion;
     void* Context; // Review: create an encapsulating structure for this?
+#if DEBUG
+    uint32_t Signature;
+#endif
 } CXPLAT_SQE;
+
+#define CXPLAT_SQE_SIGNATURE_INITIALIZED 'SQEI'
+#define CXPLAT_SQE_SIGNATURE_CLEANEDUP 'SQEC'
 
 typedef enum CXPLAT_IO_RING_BUF_GROUP {
     CxPlatIoRingBufGroupSend,
@@ -1135,6 +1140,7 @@ CxPlatEventQEnqueue(
     )
 {
     BOOLEAN Enqueued = FALSE;
+    CXPLAT_DBG_ASSERT(Sqe->Signature == CXPLAT_SQE_SIGNATURE_INITIALIZED);
     CxPlatLockAcquire(&Queue->Lock);
     struct io_uring_sqe *io_sqe = io_uring_get_sqe(&Queue->Ring);
     if (io_sqe == NULL) {
@@ -1251,6 +1257,9 @@ CxPlatSqeInitialize(
     UNREFERENCED_PARAMETER(queue);
     sqe->ClassicCompletion = completion;
     sqe->Completion = CxPlatSqeClassicCompletion;
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_INITIALIZED;
+#endif
     return TRUE;
 }
 
@@ -1266,6 +1275,9 @@ CxPlatSqeInitialize2(
     UNREFERENCED_PARAMETER(queue);
     sqe->Completion = completion;
     sqe->Context = Context;
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_INITIALIZED;
+#endif
     return TRUE;
 }
 
@@ -1276,6 +1288,9 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_CLEANEDUP;
+#endif
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
 }

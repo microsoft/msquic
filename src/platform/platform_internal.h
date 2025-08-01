@@ -831,6 +831,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
+    // The number of active IOs.
+    //
+    uint32_t IoCount;
+
+    //
     // Inidicates the SQEs have been initialized.
     //
     BOOLEAN SqeInitialized : 1;
@@ -839,6 +844,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // Inidicates if the socket has started IO processing.
     //
     BOOLEAN IoStarted : 1;
+
+    //
+    // Indicates if the socket has started shutting down.
+    //
+    BOOLEAN Shutdown : 1;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
