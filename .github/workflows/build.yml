@@ -129,6 +129,8 @@ jobs:
         clang: ['', '-Clang']
         codecheck: ['', '-CodeCheck']
         xdp: ['', '-UseXdp']
+        iouring: ['', '-UseIoUring']
+
         exclude:
         # Android doesn't support x86, XDP, Clang, CodeCheck or SystemCrypto
         - plat: android
@@ -158,6 +160,9 @@ jobs:
           clang: '-Clang'
         - plat: android
           codecheck: '-CodeCheck'
+        # linux io_uring is for ubuntu24.04 only for now
+        - plat: android
+          iouring: "-UseIoUring"
         # CodeCheck doesn't work with SystemCrypto, Clang, Static or Release builds
         - codecheck: '-CodeCheck'
           systemcrypto: '-UseSystemOpenSSLCrypto'
@@ -180,6 +185,14 @@ jobs:
           os: 'ubuntu-22.04'
         - xdp: "-UseXdp"
           arch: x86
+        # Linux io_uring is for x64 ubuntu24.04 only for now
+        - iouring: "-UseIoUring"
+          os: 'ubuntu-22.04'
+        - iouring: "-UseIoUring"
+          arch: x86
+        # Linux io_uring is incompatible with XDP for now
+        - iouring: "-UseIoUring"
+          xdp: "-UseXdp"
     uses: ./.github/workflows/build-reuse-unix.yml
     with:
       config: ${{ matrix.config }}
@@ -192,6 +205,7 @@ jobs:
       clang: ${{ matrix.clang }}
       codecheck: ${{ matrix.codecheck }}
       xdp: ${{ matrix.xdp }}
+      iouring: ${{ matrix.iouring }}
       repo: ${{ github.repository }}
 
   build-darwin:

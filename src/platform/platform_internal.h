@@ -831,6 +831,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
+    // The number of active IOs.
+    //
+    uint32_t IoCount;
+
+    //
     // Inidicates the SQEs have been initialized.
     //
     BOOLEAN SqeInitialized : 1;
@@ -839,6 +844,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // Inidicates if the socket has started IO processing.
     //
     BOOLEAN IoStarted : 1;
+
+    //
+    // Indicates if the socket has started shutting down.
+    //
+    BOOLEAN Shutdown : 1;
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -912,6 +922,14 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
+typedef struct CXPLAT_REGISTERED_BUFFER_POOL {
+    void *Ring;
+    uint8_t *Buffers;
+    uint32_t BufferSize;
+    uint32_t TotalSize;
+    CXPLAT_LOCK Lock;
+} CXPLAT_REGISTERED_BUFFER_POOL;
+
 //
 // A per processor datapath context.
 //
@@ -947,11 +965,30 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
     //
     CXPLAT_POOL RecvBlockPool;
 
+#ifdef CXPLAT_USE_IO_URING
+    //
+    // Backing pool of registered buffers for the RecvBlockPool.
+    //
+    CXPLAT_REGISTERED_BUFFER_POOL RecvRegisteredBufferPool;
+#endif
+
     //
     // Pool of send packet contexts and buffers to be shared by all sockets
     // on this core.
     //
     CXPLAT_POOL SendBlockPool;
+
+#ifdef CXPLAT_USE_IO_URING
+    //
+    // Backing pool of registered buffers for the SendBlockPool.
+    //
+    CXPLAT_REGISTERED_BUFFER_POOL SendRegisteredBufferPool;
+#endif
+
+    //
+    // TODO: big hack for batching experiment.
+    //
+    CXPLAT_THREAD_ID OwningThreadID;
 
 } CXPLAT_DATAPATH_PARTITION;
 

@@ -16,6 +16,19 @@ Abstract:
 #include "PlatformTest.cpp.clog.h"
 #endif
 
+uint32_t
+CxPlatEventQDequeueAndReturn(
+    _In_ CXPLAT_EVENTQ* queue,
+    _Out_ CXPLAT_CQE* events,
+    _In_ uint32_t count,
+    _In_ uint32_t wait_time // milliseconds
+    )
+{
+    uint32_t Result = ::CxPlatEventQDequeue(queue, events, count, wait_time);
+    ::CxPlatEventQReturn(queue, Result);
+    return Result;
+}
+
 struct PlatformTest : public ::testing::TestWithParam<int32_t>
 {
 };
@@ -68,14 +81,14 @@ TEST(PlatformTest, EventQueue)
             ASSERT_TRUE(((my_sqe*)Sqe)->data == 0x90);
         }
     };
-    
+
     CXPLAT_EVENTQ queue;
     ASSERT_TRUE(CxPlatEventQInitialize(&queue));
 
     // Empty queue tests
     CXPLAT_CQE events[2];
-    ASSERT_EQ(0u, CxPlatEventQDequeue(&queue, events, 2, 0));
-    ASSERT_EQ(0u, CxPlatEventQDequeue(&queue, events, 2, 100));
+    ASSERT_EQ(0u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 0));
+    ASSERT_EQ(0u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 100));
 
     my_sqe sqe1, sqe2, sqe3;
     sqe1.data = 0x1234;
@@ -87,16 +100,16 @@ TEST(PlatformTest, EventQueue)
 
     // Single queue/dequeue tests
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1));
-    ASSERT_EQ(1u, CxPlatEventQDequeue(&queue, events, 2, 0));
+    ASSERT_EQ(1u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 0));
     ASSERT_EQ(&sqe1, (my_sqe*)CxPlatCqeGetSqe(&events[0]));
 
     // Multiple queue/dequeue tests
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe1));
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe2));
     ASSERT_TRUE(CxPlatEventQEnqueue(&queue, &sqe3));
-    ASSERT_EQ(2u, CxPlatEventQDequeue(&queue, events, 2, 100));
-    ASSERT_EQ(1u, CxPlatEventQDequeue(&queue, events, 2, 0));
-    ASSERT_EQ(0u, CxPlatEventQDequeue(&queue, events, 2, 0));
+    ASSERT_EQ(2u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 100));
+    ASSERT_EQ(1u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 0));
+    ASSERT_EQ(0u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 0));
 
     struct EventQueueContext {
         CXPLAT_EVENTQ* queue;
@@ -114,7 +127,7 @@ TEST(PlatformTest, EventQueue)
     CXPLAT_THREAD_CONFIG config = { 0, 0, NULL, EventQueueContext::EventQueueCallback, &context };
     CXPLAT_THREAD thread;
     ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatThreadCreate(&config, &thread)));
-    ASSERT_EQ(1u, CxPlatEventQDequeue(&queue, events, 2, 1000));
+    ASSERT_EQ(1u, CxPlatEventQDequeueAndReturn(&queue, events, 2, 1000));
     ASSERT_EQ(&sqe1, (my_sqe*)CxPlatCqeGetSqe(&events[0]));
     CxPlatThreadWait(&thread);
     CxPlatThreadDelete(&thread);
@@ -143,10 +156,14 @@ TEST(PlatformTest, EventQueueWorker)
             auto ctx = (EventQueueContext*)Context;
             CXPLAT_CQE events[4];
             while (ctx->running) {
-                uint32_t count = CxPlatEventQDequeue(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
+                uint32_t count = CxPlatEventQDequeueAndReturn(ctx->queue, events, ARRAYSIZE(events), UINT32_MAX);
                 for (uint32_t i = 0; i < count; i++) {
                     auto sqe = CxPlatCqeGetSqe(&events[i]);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
+                    sqe->ClassicCompletion(&events[i]);
+#else
                     sqe->Completion(&events[i]);
+#endif
                 }
             }
             CXPLAT_THREAD_RETURN(0);
@@ -168,7 +185,7 @@ TEST(PlatformTest, EventQueueWorker)
     CXPLAT_THREAD_CONFIG config = { 0, 0, NULL, EventQueueContext::EventQueueCallback, &context };
     CXPLAT_THREAD thread;
     ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatThreadCreate(&config, &thread)));
-    
+
     my_sqe shutdown, sqe1, sqe2, sqe3;
     shutdown.context = &context;
     ASSERT_TRUE(CxPlatSqeInitialize(&queue, EventQueueContext::shutdown_completion, &shutdown));

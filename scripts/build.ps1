@@ -60,6 +60,9 @@ This script provides helpers for building msquic.
 .PARAMETER UseXdp
     Enables XDP support (Linux-only).
 
+.PARAMETER UseIoUring
+    Enables io_uring support (Linux-only).
+
 .PARAMETER Generator
     Specifies a specific cmake generator (Only supported on unix)
 
@@ -173,6 +176,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$UseXdp = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$UseIoUring = $false,
 
     [Parameter(Mandatory = $false)]
     [string]$Generator = "",
@@ -480,6 +486,9 @@ function CMake-Generate {
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
+    }
+    if ($UseIoUring) {
+        $Arguments += " -DQUIC_LINUX_IOURING_ENABLED=on"
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"

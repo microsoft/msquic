@@ -94,6 +94,7 @@ option(QUIC_UWP_BUILD "Build for UWP" OFF)
 option(QUIC_GAMECORE_BUILD "Build for GameCore" OFF)
 option(QUIC_EXTERNAL_TOOLCHAIN "Enable if system libs and include paths are configured by CMake toolchain" OFF)
 option(QUIC_PGO "Enables profile guided optimizations" OFF)
+option(QUIC_LINUX_IOURING_ENABLED "Enables io_uring support" OFF)
 option(QUIC_LINUX_XDP_ENABLED "Enables XDP support" OFF)
 option(QUIC_SOURCE_LINK "Enables source linking on MSVC" ON)
 option(QUIC_EMBED_GIT_HASH "Embed git commit hash in the binary" ON)
@@ -455,6 +456,15 @@ if (NOT MSVC AND NOT APPLE AND NOT ANDROID)
     endif()
 endif()
 
+if (QUIC_LINUX_IOURING_ENABLED)
+    find_library(LIBURING NAMES liburing-ffi.so)
+    if (LIBURING)
+        message(STATUS "Found liburing: ${LIBURING}")
+    else()
+        message(STATUS "liburing not found. If build fails, install liburing")
+    endif()
+endif()
+
 if (CMAKE_GENERATOR_PLATFORM STREQUAL "")
 string(TOLOWER ${CMAKE_SYSTEM_PROCESSOR} SYSTEM_PROCESSOR)
 else()
@@ -676,7 +686,7 @@ else() #!WIN32
 
     if(QUIC_ENABLE_SANITIZERS)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
         # Clang/LLVM doesn't support this flag, but GCC does.
         check_c_compiler_flag(-fno-var-tracking-assignments HAS_NO_VAR_TRACKING)
         if (HAS_NO_VAR_TRACKING)
@@ -716,6 +726,10 @@ endif()
 
 if (QUIC_USE_SYSTEM_LIBCRYPTO)
     list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
+endif()
+
+if (QUIC_LINUX_IOURING_ENABLED)
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_USE_IO_URING)
 endif()
 
 if(QUIC_CODE_CHECK)
