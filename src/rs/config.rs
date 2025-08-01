@@ -193,7 +193,7 @@ impl CertificateHash {
         use std::fmt::Write;
         // write every byte in hex.
         self.0.ShaHash.iter().fold(String::new(), |mut out, x| {
-            write!(out, "{:02X}", x).unwrap();
+            write!(out, "{x:02X}").unwrap();
             out
         })
     }

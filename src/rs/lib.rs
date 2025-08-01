@@ -401,7 +401,7 @@ impl Api {
                 let mut table: *const QUIC_API_TABLE = ptr::null();
                 let status = MsQuicOpenVersion(2, std::ptr::addr_of_mut!(table));
                 if let Err(err) = Status::ok_from_raw(status as QUIC_STATUS) {
-                    panic!("Failed to open MsQuic: {}", err);
+                    panic!("Failed to open MsQuic: {err}");
                 }
                 APITABLE = table;
             });

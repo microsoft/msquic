@@ -1,5 +1,6 @@
 
 version: 2
+enable-beta-ecosystems: true
 updates:
 
   - package-ecosystem: "github-actions"
@@ -22,3 +23,21 @@ updates:
     labels:
       - "dependencies"
       - "Language: Rust"
+
+  - package-ecosystem: "rust-toolchain"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    labels:
+      - "dependencies"
+      - "Language: Rust"
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/.docker/ubuntu-20.04"
+      - "/.docker/ubuntu-22.04"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+

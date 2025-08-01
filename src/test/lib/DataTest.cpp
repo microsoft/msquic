@@ -419,6 +419,9 @@ QuicTestConnectAndPing(
     }
 #endif
 
+    UniquePtr<QUIC_TLS_SECRETS[]> ClientSecrets;
+    UniquePtr<QUIC_TLS_SECRETS[]> ServerSecrets;
+
     MsQuicRegistration Registration(NULL, QUIC_EXECUTION_PROFILE_TYPE_MAX_THROUGHPUT, true);
     TEST_TRUE(Registration.IsValid());
 
@@ -428,8 +431,6 @@ QuicTestConnectAndPing(
         //
     }
 
-    UniquePtr<QUIC_TLS_SECRETS[]> ClientSecrets;
-    UniquePtr<QUIC_TLS_SECRETS[]> ServerSecrets;
     if (ClientZeroRtt && !ServerRejectZeroRtt) {
         ClientSecrets.reset(
                 new(std::nothrow) QUIC_TLS_SECRETS[ConnectionCount]);
