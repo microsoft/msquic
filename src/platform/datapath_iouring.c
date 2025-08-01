@@ -1115,8 +1115,6 @@ CxPlatSocketContextUninitializeEventComplete(
     CXPLAT_SOCKET_CONTEXT* SocketContext =
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
     CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
-    int res = (*Cqe)->res;
-    CXPLAT_DBG_ASSERT(res >= 0);
     CxPlatSocketIoComplete(SocketContext);
 }
 
