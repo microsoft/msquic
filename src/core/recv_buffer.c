@@ -284,6 +284,7 @@ QuicRecvBufferInitialize(
     RecvBuffer->ReadLength = 0;
     RecvBuffer->RecvMode = RecvMode;
     RecvBuffer->RetiredChunk = NULL;
+    RecvBuffer->VirtualBufferLength = VirtualBufferLength;
     QuicRangeInitialize(QUIC_MAX_RANGE_ALLOC_SIZE, &RecvBuffer->WrittenRanges);
     CxPlatListInitializeHead(&RecvBuffer->Chunks);
 
@@ -308,10 +309,8 @@ QuicRecvBufferInitialize(
         }
         CxPlatListInsertHead(&RecvBuffer->Chunks, &Chunk->Link);
         RecvBuffer->Capacity = AllocBufferLength;
-        RecvBuffer->VirtualBufferLength = VirtualBufferLength;
     } else {
         RecvBuffer->Capacity = 0;
-        RecvBuffer->VirtualBufferLength = 0;
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -389,9 +388,32 @@ QuicRecvBufferIncreaseVirtualBufferLength(
     _In_ uint32_t NewLength
     )
 {
-    CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(NewLength >= RecvBuffer->VirtualBufferLength); // Don't support decrease.
     RecvBuffer->VirtualBufferLength = NewLength;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicRecvBufferGetTotalAllocLength(
+    _In_ QUIC_RECV_BUFFER* RecvBuffer
+    )
+{
+    if (CxPlatListIsEmpty(&RecvBuffer->Chunks)) {
+        return 0;
+    }
+
+    //
+    // The first chunk might have a reduced capacity (if more chunks are present and it is being
+    // consumed). Other chunks are always allocated at their full alloc size.
+    //
+    uint32_t AllocLength = RecvBuffer->Capacity;
+    for (CXPLAT_LIST_ENTRY* Link = RecvBuffer->Chunks.Flink->Flink; // Skip the first chunk
+         Link != &RecvBuffer->Chunks;
+         Link = Link->Flink) {
+        QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(Link, QUIC_RECV_CHUNK, Link);
+        AllocLength += Chunk->AllocLength;
+    }
+    return AllocLength;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -404,7 +426,7 @@ QuicRecvBufferProvideChunks(
     CXPLAT_DBG_ASSERT(RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(Chunks));
 
-    uint64_t NewBufferLength = RecvBuffer->VirtualBufferLength;
+    uint64_t NewBufferLength = QuicRecvBufferGetTotalAllocLength(RecvBuffer);
     for (CXPLAT_LIST_ENTRY* Link = Chunks->Flink;
          Link != Chunks;
          Link = Link->Flink) {
@@ -429,7 +451,12 @@ QuicRecvBufferProvideChunks(
         RecvBuffer->Capacity = FirstChunk->AllocLength;
     }
 
-    RecvBuffer->VirtualBufferLength = (uint32_t)NewBufferLength;
+    //
+    // Ensure the virtual length is at least the allocated length.
+    //
+    RecvBuffer->VirtualBufferLength =
+        CXPLAT_MAX(RecvBuffer->VirtualBufferLength, (uint32_t)NewBufferLength);
+
     CxPlatListMoveItems(Chunks, &RecvBuffer->Chunks);
 
     return QUIC_STATUS_SUCCESS;
@@ -539,28 +566,6 @@ QuicRecvBufferResize(
     }
 
     return TRUE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
-QuicRecvBufferGetTotalAllocLength(
-    _In_ QUIC_RECV_BUFFER* RecvBuffer
-    )
-{
-    CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
-
-    //
-    // The first chunk might have a reduced capacity (if more chunks are present and it is being
-    // consumed). Other chunks are always allocated at their full alloc size.
-    //
-    uint32_t AllocLength = RecvBuffer->Capacity;
-    for (CXPLAT_LIST_ENTRY* Link = RecvBuffer->Chunks.Flink->Flink; // Skip the first chunk
-         Link != &RecvBuffer->Chunks;
-         Link = Link->Flink) {
-        QUIC_RECV_CHUNK* Chunk = CXPLAT_CONTAINING_RECORD(Link, QUIC_RECV_CHUNK, Link);
-        AllocLength += Chunk->AllocLength;
-    }
-    return AllocLength;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -687,7 +692,7 @@ QuicRecvBufferWrite(
             // Let the caller notify the app to provide more buffer space.
             //
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
-            return QUIC_STATUS_OUT_OF_MEMORY;
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
         } else {
             //
             // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
@@ -700,6 +705,7 @@ QuicRecvBufferWrite(
                 NewBufferLength <<= 1;
             }
             if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
+                *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
                 return QUIC_STATUS_OUT_OF_MEMORY;
             }
         }
@@ -986,6 +992,7 @@ QuicRecvBufferDrain(
     CXPLAT_DBG_ASSERT(QuicRangeGetSafe(&RecvBuffer->WrittenRanges, 0) != NULL);
     CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->ReadPendingLength);
     CXPLAT_DBG_ASSERT(!CxPlatListIsEmpty(&RecvBuffer->Chunks));
+    CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->VirtualBufferLength);
 
     if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_MULTIPLE) {
         //
@@ -994,14 +1001,6 @@ QuicRecvBufferDrain(
         RecvBuffer->ReadPendingLength -= DrainLength;
     } else {
         RecvBuffer->ReadPendingLength = 0;
-    }
-
-    CXPLAT_DBG_ASSERT(DrainLength <= RecvBuffer->VirtualBufferLength);
-    if (RecvBuffer->RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
-        //
-        // In App-owned mode, memory is never reused: a drain consume virtual buffer length.
-        //
-        RecvBuffer->VirtualBufferLength -= (uint32_t)(DrainLength);
     }
 
     RecvBuffer->BaseOffset += DrainLength;

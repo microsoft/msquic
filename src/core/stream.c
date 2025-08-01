@@ -999,16 +999,20 @@ QuicStreamProvideRecvBuffers(
     QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
     if (Status == QUIC_STATUS_SUCCESS) {
         //
-        // Update the maximum allowed received size to take into account the new
-        // capacity.
+        // Update the maximum allowed received offset if the new chunks caused an update of the
+        // virtual buffer size.
         //
-        Stream->MaxAllowedRecvOffset =
+        uint64_t NewMaxAllowedRecvOffset =
             Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-        QuicSendSetStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA,
-            FALSE);
+        if (Stream->MaxAllowedRecvOffset < NewMaxAllowedRecvOffset) {
+            Stream->MaxAllowedRecvOffset =
+                Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                FALSE);
+        }
     }
     return Status;
 }

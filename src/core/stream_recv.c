@@ -502,9 +502,9 @@ QuicStreamProcessStreamFrame(
                 &ReadyToDeliver,
                 &BufferSizeNeeded);
 
-        if (BufferSizeNeeded > 0) {
+        if (BufferSizeNeeded > 0 && Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
             CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
-            CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+
             //
             // The application didn't provide enough buffer space.
             // Give it a chance to react by providing more buffer space or shutting down the stream.
@@ -816,8 +816,7 @@ QuicStreamOnBytesDelivered(
         // on the amount of buffer space provided by the app.
         //
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
-            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
-            !Stream->Flags.UseAppOwnedRecvBuffers) {
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
 
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);
