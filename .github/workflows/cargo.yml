@@ -93,6 +93,7 @@ jobs:
           ```diff
           ${{ steps.bindings_diff.outputs.diff-content }}
           ```
+          
         edit-mode: replace
     - name: Fail if generated files are not up to date
       if: steps.bindings_diff.outputs.diff-found == 'true'
