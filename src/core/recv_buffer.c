@@ -693,21 +693,21 @@ QuicRecvBufferWrite(
             //
             *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
             return QUIC_STATUS_BUFFER_TOO_SMALL;
-        } else {
-            //
-            // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
-            // until there is enough space for the write.
-            //
-            QUIC_RECV_CHUNK* LastChunk =
-                CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
-            uint32_t NewBufferLength = LastChunk->AllocLength << 1;
-            while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
-                NewBufferLength <<= 1;
-            }
-            if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
-                *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
-                return QUIC_STATUS_OUT_OF_MEMORY;
-            }
+        }
+
+        //
+        // Add a new chunk (or replace the existing one), doubling the size of the largest chunk
+        // until there is enough space for the write.
+        //
+        QUIC_RECV_CHUNK* LastChunk =
+            CXPLAT_CONTAINING_RECORD(RecvBuffer->Chunks.Blink, QUIC_RECV_CHUNK, Link);
+        uint32_t NewBufferLength = LastChunk->AllocLength << 1;
+        while (AbsoluteLength > RecvBuffer->BaseOffset + NewBufferLength) {
+            NewBufferLength <<= 1;
+        }
+        if (!QuicRecvBufferResize(RecvBuffer, NewBufferLength)) {
+            *BufferSizeNeeded = AbsoluteLength - (RecvBuffer->BaseOffset + AllocLength);
+            return QUIC_STATUS_OUT_OF_MEMORY;
         }
     }
 

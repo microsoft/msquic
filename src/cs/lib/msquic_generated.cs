@@ -3094,6 +3094,7 @@ namespace Microsoft.Quic
         IDEAL_SEND_BUFFER_SIZE = 8,
         PEER_ACCEPTED = 9,
         CANCEL_ON_LOSS = 10,
+        INSUFFICIENT_RECEIVE_BUFFER = 11,
     }
 
     internal partial struct QUIC_STREAM_EVENT
@@ -3175,6 +3176,14 @@ namespace Microsoft.Quic
             }
         }
 
+        internal ref _Anonymous_e__Union._INSUFFICIENT_RECEIVE_BUFFER_e__Struct INSUFFICIENT_RECEIVE_BUFFER
+        {
+            get
+            {
+                return ref MemoryMarshal.GetReference(MemoryMarshal.CreateSpan(ref Anonymous.INSUFFICIENT_RECEIVE_BUFFER, 1));
+            }
+        }
+
         [StructLayout(LayoutKind.Explicit)]
         internal partial struct _Anonymous_e__Union
         {
@@ -3213,6 +3222,10 @@ namespace Microsoft.Quic
             [FieldOffset(0)]
             [NativeTypeName("struct (anonymous struct)")]
             internal _CANCEL_ON_LOSS_e__Struct CANCEL_ON_LOSS;
+
+            [FieldOffset(0)]
+            [NativeTypeName("struct (anonymous struct)")]
+            internal _INSUFFICIENT_RECEIVE_BUFFER_e__Struct INSUFFICIENT_RECEIVE_BUFFER;
 
             internal partial struct _START_COMPLETE_e__Struct
             {
@@ -3376,6 +3389,12 @@ namespace Microsoft.Quic
             {
                 [NativeTypeName("QUIC_UINT62")]
                 internal ulong ErrorCode;
+            }
+
+            internal partial struct _INSUFFICIENT_RECEIVE_BUFFER_e__Struct
+            {
+                [NativeTypeName("uint64_t")]
+                internal ulong BufferLengthNeeded;
             }
         }
     }
