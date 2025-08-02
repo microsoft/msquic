@@ -2337,12 +2337,12 @@ TEST(Misc, StreamAppProvidedBuffers) {
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
-    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
+    TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE));
     } else {
-        QuicTestStreamAppProvidedBuffersZeroWindow();
+        QuicTestStreamAppProvidedBuffersOutOfSpace();
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES

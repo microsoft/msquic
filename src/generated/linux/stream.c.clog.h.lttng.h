@@ -213,6 +213,29 @@ TRACEPOINT_EVENT(CLOG_STREAM_C, IndicateStreamShutdownComplete,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for StreamNotifyInsufficientRecvBuffer
+// [strm][%p] Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]
+// QuicTraceLogStreamVerbose(
+        StreamNotifyInsufficientRecvBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]",
+        Event.INSUFFICIENT_RECEIVE_BUFFER.BufferLengthNeeded);
+// arg1 = arg1 = Stream = arg1
+// arg3 = arg3 = Event.INSUFFICIENT_RECEIVE_BUFFER.BufferLengthNeeded = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_STREAM_C, StreamNotifyInsufficientRecvBuffer,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(uint64_t, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for StreamAlloc
 // [strm][%p] Allocated, Conn=%p
 // QuicTraceEvent(
