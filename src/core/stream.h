@@ -1060,14 +1060,12 @@ QuicStreamProvideRecvBuffers(
 //
 // Notifies the app that the receive buffer is too small to hold the
 // incoming data.
-// The app can increase the buffer size or request a stream shutdown.
-// Returns TRUE if the stream should be shutdown.
-// Only for app-owned buffering mode.
+// The app can increase the buffer size or shutdown the stream inline
+// as a reaction. Only for app-owned buffering mode.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicStreamNotifyRecvBufferTooSmall(
+void
+QuicStreamNotifyInsufficientRecvBuffer(
     _In_ QUIC_STREAM* Stream,
-    _In_ uint64_t BufferLengthNeeded,
-    _Out_ QUIC_VAR_INT* ShutdownErrorCode
+    _In_ uint64_t BufferLengthNeeded
     );

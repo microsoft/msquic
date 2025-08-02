@@ -4631,10 +4631,10 @@ struct AppBuffersReceiverContext {
                 ReceiverContext->ReceivedBytesThresholdReached.Set();
                 ReceiverContext->ReceivedBytesThreshold = 0;
             }
-        } else if (Event->Type == QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED) {
+        } else if (Event->Type == QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER) {
             if (ReceiverContext->ShutdownOnInsufficientRecvBuffer) {
-                Event->RECEIVE_BUFFER_NEEDED.ErrorCode = 1;
-                Event->RECEIVE_BUFFER_NEEDED.ShutdownStream = TRUE;
+                ReceiverContext->Stream->Shutdown(
+                    1, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE | QUIC_STREAM_SHUTDOWN_FLAG_INLINE);
             } else if (ReceiverContext->NumBuffersForInsufficientRecvBuffer > 0) {
                 ReceiverContext->Stream->ProvideReceiveBuffers(
                     ReceiverContext->NumBuffersForInsufficientRecvBuffer,
@@ -4683,12 +4683,17 @@ QuicTestStreamAppProvidedBuffers(
             QuicBuffers[i].Length = BufferSize / NumBuffers;
         }
 
+        // Prepare a receiver stream context
+        // - some initial receive buffer space will be provided when the stream is accepted
+        // - more receive buffer space will be provided after 0x1500 bytes are received
+        // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
         AppBuffersReceiverContext ReceiveContext;
         ReceiveContext.BuffersForStreamStarted = QuicBuffers;
         ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
         ReceiveContext.BuffersForThreshold = QuicBuffers + NumBuffers / 2;
         ReceiveContext.NumBuffersForThreshold = NumBuffers / 2;
         ReceiveContext.MoreBufferThreshold = 0x1500;
+        ReceiveContext.ReceivedBytesThreshold = 0x1500;
 
         // Setup a listener
         MsQuicAutoAcceptListener Listener(Registration, ServerConfiguration, AppBuffersReceiverContext::ConnCallback, &ReceiveContext);
@@ -4713,9 +4718,14 @@ QuicTestStreamAppProvidedBuffers(
         TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
         TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
-        // Send data
-        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
-        TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+        // Send data, waiting for the treshold to be  reached to ensure
+        // buffer space is provided in time.
+        QUIC_BUFFER Buffer1{BufferSize / 2, SendDataBuffer.get()};
+        QUIC_BUFFER Buffer2{BufferSize / 2, SendDataBuffer.get() + BufferSize / 2};
+
+        TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer1, 1));
+        TEST_TRUE(ReceiveContext.ReceivedBytesThresholdReached.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
         TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
         TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
@@ -4761,11 +4771,14 @@ QuicTestStreamAppProvidedBuffers(
             QuicBuffers[i].Length = BufferSize / NumBuffers;
         }
 
-        // Create and start a stream
+        // Create and start a receiver stream
+        // - more receive buffer space will be provided after 0x1500 bytes are received
+        // - an event will be signaled when 0x1500 bytes are received to synchronize with the sender
         AppBuffersReceiverContext ReceiveContext;
         ReceiveContext.BuffersForThreshold = QuicBuffers + NumBuffers / 2;
         ReceiveContext.NumBuffersForThreshold = NumBuffers / 2;
         ReceiveContext.MoreBufferThreshold = 0x1500;
+        ReceiveContext.ReceivedBytesThreshold = 0x1500;
 
         MsQuicStream ClientStream(
             Connection,
@@ -4785,9 +4798,15 @@ QuicTestStreamAppProvidedBuffers(
         auto* SenderStream = SenderContext.WaitForSenderStream();
         TEST_NOT_EQUAL(SenderStream, nullptr);
 
-        // Send data
-        QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
-        TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
+        //
+        // Send data, waiting for the treshold to be  reached to ensure
+        // buffer space is provided in time.
+        QUIC_BUFFER Buffer1{BufferSize / 2, SendDataBuffer.get()};
+        QUIC_BUFFER Buffer2{BufferSize / 2, SendDataBuffer.get() + BufferSize / 2};
+
+        TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer1, 1));
+        TEST_TRUE(ReceiveContext.ReceivedBytesThresholdReached.WaitTimeout(TestWaitTimeout));
+        TEST_QUIC_SUCCEEDED(SenderStream->Send(&Buffer2, 1, QUIC_SEND_FLAG_FIN));
 
         TEST_TRUE(ReceiveContext.SenderStreamClosed.WaitTimeout(TestWaitTimeout));
         TEST_EQUAL(ReceiveContext.ReceivedBytes, BufferSize);
@@ -4830,6 +4849,11 @@ QuicTestStreamAppProvidedBuffersOutOfSpace(
             QuicBuffers[i].Length = BufferSize / NumBuffers;
         }
 
+        //
+        // Prepare a receiver stream context
+        // - some initial receive buffer space will be provided when the stream is accepted
+        // - more receive buffer space will be provided when the stream runs out of buffer space
+        //
         AppBuffersReceiverContext ReceiveContext;
         ReceiveContext.BuffersForStreamStarted = QuicBuffers;
         ReceiveContext.NumBuffersForStreamStarted = NumBuffers / 2;
@@ -4859,7 +4883,8 @@ QuicTestStreamAppProvidedBuffersOutOfSpace(
         TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
         TEST_QUIC_SUCCEEDED(ClientStream.Start(QUIC_STREAM_START_FLAG_IMMEDIATE));
 
-        // Send data
+        // Send all data at once. The receiver will provide more receive buffer inline in the
+        // insufficent receive buffer notification.
         QUIC_BUFFER Buffer{BufferSize, SendDataBuffer.get()};
         TEST_QUIC_SUCCEEDED(ClientStream.Send(&Buffer, 1, QUIC_SEND_FLAG_FIN));
 
@@ -4919,8 +4944,7 @@ QuicTestStreamAppProvidedBuffersOutOfSpace(
         TEST_QUIC_SUCCEEDED(ClientStream.GetInitStatus());
 
         ReceiveContext.Stream = &ClientStream;
-        // Setup the context to provide more buffers when the
-        // "insufficient receive buffer" notification is received
+        // The stream will be shutdown inline when it runs out of receive buffer space.
         ReceiveContext.ShutdownOnInsufficientRecvBuffer = TRUE;
 
         // Provide some receive buffers before starting the stream

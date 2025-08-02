@@ -11183,6 +11183,22 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "StreamNotifyInsufficientRecvBuffer": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]",
+      "UniqueId": "StreamNotifyInsufficientRecvBuffer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
+    },
     "StreamNotifyRecvBufferTooSmall": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
@@ -16570,6 +16586,11 @@
         "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
         "TraceID": "StreamError",
         "EncodingString": "[strm][%p] ERROR, %s."
+      },
+      {
+        "UniquenessHash": "5ec50805-9ab7-8891-38b7-f40981539ab7",
+        "TraceID": "StreamNotifyInsufficientRecvBuffer",
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]"
       },
       {
         "UniquenessHash": "19ab059a-85df-d6d3-5860-d7f270ff3ba0",

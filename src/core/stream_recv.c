@@ -412,7 +412,7 @@ QuicStreamProcessStreamFrame(
 
     if (Stream->Flags.SentStopSending) {
         //
-        // The app has already aborting the receive path, but the peer might end
+        // The app has already aborted the receive path, but the peer might end
         // up sending a FIN instead of a reset. Ignore the data but treat any
         // FIN as a reset.
         //
@@ -507,40 +507,31 @@ QuicStreamProcessStreamFrame(
 
             //
             // The application didn't provide enough buffer space.
-            // Give it a chance to react by providing more buffer space or shutting down the stream.
+            // Give it a chance to react inline in a notification.
             //
-            QUIC_VAR_INT ErrorCode = 0;
-            const BOOLEAN ShutdownStream =
-                QuicStreamNotifyRecvBufferTooSmall(Stream, BufferSizeNeeded, &ErrorCode);
+            QuicStreamNotifyInsufficientRecvBuffer(Stream, BufferSizeNeeded);
 
-            if (ShutdownStream) {
-                //
-                // The app chose to abort the stream.
-                //
-                QuicTraceLogStreamVerbose(
-                    StreamShutdownOutOfAppBuffer,
-                    Stream,
-                    "Out of app-provided receive buffer, shutting stream down.");
-
-                QuicStreamRecvShutdown(Stream, FALSE, ErrorCode);
+            //
+            // The app may have aborted the receive path inline. Check it again.
+            //
+            if (Stream->Flags.SentStopSending) {
                 Status = QUIC_STATUS_SUCCESS;
                 goto Error;
-            } else {
-                //
-                // The app should have provided more buffer space, try to write again.
-                // On failure, the connection will be aborted.
-                //
-                Status =
-                    QuicRecvBufferWrite(
-                        &Stream->RecvBuffer,
-                        Frame->Offset,
-                        (uint16_t)Frame->Length,
-                        Frame->Data,
-                        FlowControlQuota,
-                        &QuotaConsumed,
-                        &ReadyToDeliver,
-                        &BufferSizeNeeded);
             }
+
+            //
+            // The app may have provided more buffer space inline, try to write again.
+            //
+            Status =
+                QuicRecvBufferWrite(
+                    &Stream->RecvBuffer,
+                    Frame->Offset,
+                    (uint16_t)Frame->Length,
+                    Frame->Data,
+                    FlowControlQuota,
+                    &QuotaConsumed,
+                    &ReadyToDeliver,
+                    &BufferSizeNeeded);
         }
 
         if (QUIC_FAILED(Status)) {
