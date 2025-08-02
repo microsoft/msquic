@@ -529,6 +529,9 @@ QuicTlsPopulateOffloadKeys(
     _Inout_ CXPLAT_QEO_CONNECTION* Offload
     );
 
+BOOLEAN
+CxPlatSupports1Rtt();
+
 #if defined(__cplusplus)
 }
 #endif
