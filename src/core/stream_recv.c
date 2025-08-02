@@ -522,7 +522,7 @@ QuicStreamProcessStreamFrame(
                     Stream,
                     "Out of app-provided receive buffer, shutting stream down.");
 
-                QuicStreamRecvShutdown(Stream, TRUE, ErrorCode);
+                QuicStreamRecvShutdown(Stream, FALSE, ErrorCode);
                 Status = QUIC_STATUS_SUCCESS;
                 goto Error;
             } else {
