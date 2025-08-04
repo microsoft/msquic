@@ -200,7 +200,7 @@ CXPLAT_EVENT_COMPLETION CxPlatSocketContextUninitializeEventComplete;
 CXPLAT_EVENT_BATCH_COMPLETION CxPlatSocketContextIoEventComplete;
 
 const struct msghdr CxPlatRecvMsgHdr = {
-    .msg_namelen = sizeof(QUIC_ADDR),
+    .msg_namelen = ALIGN_UP_BY(sizeof(QUIC_ADDR), CXPLAT_MEMORY_ALIGNMENT),
     .msg_controllen = CXPLAT_FIELD_SIZE(CXPLAT_RECV_MSG_CONTROL_BUFFER, Data),
 };
 const uint32_t RecvBufCount = 1024;
@@ -272,6 +272,8 @@ CxPlatCreateBufferPool(
 {
     int Result;
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    CXPLAT_DBG_ASSERT(BufferSize % CXPLAT_MEMORY_ALIGNMENT == 0);
 
     CxPlatZeroMemory(Pool, sizeof(*Pool));
     CxPlatLockInitialize(&Pool->Lock);
@@ -1661,6 +1663,8 @@ CxPlatSocketReceiveComplete(
     IoPayload = (uint8_t*)IoBlock + DatapathPartition->Datapath->RecvBlockBufferOffset;
     RecvMsgOut = io_uring_recvmsg_validate(IoPayload, Cqe->res, (struct msghdr*)&CxPlatRecvMsgHdr);
     CXPLAT_FRE_ASSERT(RecvMsgOut != NULL); // Review: can this legally fail?
+
+    CXPLAT_DBG_ASSERT((uintptr_t)IoBlock % CXPLAT_MEMORY_ALIGNMENT == 0);
 
     IoBlock->Route.State = RouteResolved;
 
