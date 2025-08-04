@@ -1780,6 +1780,16 @@ QUIC_STATUS
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
+// Dummy function for testing CI changes
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_DUMMY_TEST_FN)(
+    void
+    );
+
+//
 // Version 2 API Function Table. Returned from MsQuicOpenVersion when Version
 // is 2. Also returned from MsQuicOpen2.
 //
@@ -1842,6 +1852,8 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+    QUIC_DUMMY_TEST_FN                  DummyTest;           // Dummy function for testing CI
 
 } QUIC_API_TABLE;
 
