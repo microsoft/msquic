@@ -1052,10 +1052,7 @@ Exit:
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
 
-//
-// TODO: build on other 64-bit architectures
-//
-#if CXPLAT_USE_IO_URING && defined(__x86_64__) // liburing
+#if CXPLAT_USE_IO_URING // liburing
 #define LIBURING_INTERNAL
 
 #if defined(__cplusplus)
