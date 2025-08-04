@@ -92,8 +92,8 @@ jobs:
           The rust bindings need to be updated. Please apply (`git apply`) this [patch](${{ steps.upload_patch.outputs.artifact-url }}):
           ```diff
           ${{ steps.bindings_diff.outputs.diff-content }}
+
           ```
-          
         edit-mode: replace
     - name: Fail if generated files are not up to date
       if: steps.bindings_diff.outputs.diff-found == 'true'
