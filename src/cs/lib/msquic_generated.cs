@@ -815,17 +815,31 @@ namespace Microsoft.Quic
             }
         }
 
-        [NativeTypeName("uint32_t : 25")]
-        internal uint RESERVED
+        [NativeTypeName("uint32_t : 1")]
+        internal uint StreamStatisticsNegotiated
         {
             get
             {
-                return (_bitfield >> 7) & 0x1FFFFFFu;
+                return (_bitfield >> 7) & 0x1u;
             }
 
             set
             {
-                _bitfield = (_bitfield & ~(0x1FFFFFFu << 7)) | ((value & 0x1FFFFFFu) << 7);
+                _bitfield = (_bitfield & ~(0x1u << 7)) | ((value & 0x1u) << 7);
+            }
+        }
+
+        [NativeTypeName("uint32_t : 24")]
+        internal uint RESERVED
+        {
+            get
+            {
+                return (_bitfield >> 8) & 0xFFFFFFu;
+            }
+
+            set
+            {
+                _bitfield = (_bitfield & ~(0xFFFFFFu << 8)) | ((value & 0xFFFFFFu) << 8);
             }
         }
 
@@ -3774,6 +3788,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_STREAM_RELIABLE_OFFSET 0x08000005")]
         internal const uint QUIC_PARAM_STREAM_RELIABLE_OFFSET = 0x08000005;
+
+        [NativeTypeName("#define QUIC_PARAM_STREAM_PEER_STATISTICS 0X08000006")]
+        internal const uint QUIC_PARAM_STREAM_PEER_STATISTICS = 0X08000006;
 
         [NativeTypeName("#define QUIC_API_VERSION_2 2")]
         internal const uint QUIC_API_VERSION_2 = 2;
