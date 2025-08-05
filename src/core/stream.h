@@ -1069,3 +1069,4 @@ QuicStreamNotifyInsufficientRecvBuffer(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLengthNeeded
     );
+    
