@@ -5,8 +5,8 @@ coverage:
         target: auto
         threshold: 2%
     patch:
-      target: 80%
-      threshold: 2%
+      default:
+        target: 80%
 ignore:
   - "**/*.md"
-  - "docs"
+  - "docs/**/*"
