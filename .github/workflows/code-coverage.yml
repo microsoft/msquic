@@ -242,7 +242,8 @@ jobs:
     - name: Upload coverage reports to Codecov
       uses: codecov/codecov-action@18283e04ce6e62d37312384ff67231eb8fd56d24
       with:
-        fail_ci_if_error: true
+        # Set to false to rely on codecov.yml thresholds instead of failing on upload
+        fail_ci_if_error: false
         files: msquiccoverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
     - name: Code Coverage Summary Report
