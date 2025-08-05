@@ -258,18 +258,25 @@ DataPathInitialize(
     }
 
     Datapath->RecvBlockStride =
-        sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength;
+        ALIGN_UP_BY(sizeof(DATAPATH_RX_PACKET) + ClientRecvDataLength, CXPLAT_MEMORY_ALIGNMENT);
     if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_COALESCING) {
         Datapath->RecvBlockBufferOffset =
-            sizeof(DATAPATH_RX_IO_BLOCK) +
-            CXPLAT_MAX_IO_BATCH_SIZE * Datapath->RecvBlockStride;
+            ALIGN_UP_BY(
+                sizeof(DATAPATH_RX_IO_BLOCK) + CXPLAT_MAX_IO_BATCH_SIZE * Datapath->RecvBlockStride,
+                CXPLAT_MEMORY_ALIGNMENT);
         Datapath->RecvBlockSize =
-            Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE;
+            ALIGN_UP_BY(
+                Datapath->RecvBlockBufferOffset + CXPLAT_LARGE_IO_BUFFER_SIZE,
+                CXPLAT_MEMORY_ALIGNMENT);
+
     } else {
         Datapath->RecvBlockBufferOffset =
-            sizeof(DATAPATH_RX_IO_BLOCK) + Datapath->RecvBlockStride;
+            ALIGN_UP_BY(
+                sizeof(DATAPATH_RX_IO_BLOCK) + Datapath->RecvBlockStride, CXPLAT_MEMORY_ALIGNMENT);
         Datapath->RecvBlockSize =
-            Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE;
+            ALIGN_UP_BY(
+                Datapath->RecvBlockBufferOffset + CXPLAT_SMALL_IO_BUFFER_SIZE,
+                CXPLAT_MEMORY_ALIGNMENT);
     }
 
     //
