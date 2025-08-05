@@ -11199,22 +11199,6 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "StreamNotifyRecvBufferTooSmall": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
-      "UniqueId": "StreamNotifyRecvBufferTooSmall",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "llu",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
     "StreamOutFlowBlocked": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Send Blocked Flags: %hhu",
@@ -11314,18 +11298,6 @@
         }
       ],
       "macroName": "QuicTraceEvent"
-    },
-    "StreamShutdownOutOfAppBuffer": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Out of app-provided receive buffer, shutting stream down.",
-      "UniqueId": "StreamShutdownOutOfAppBuffer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamWriteFrames": {
       "ModuleProperites": {},
@@ -16588,13 +16560,8 @@
         "EncodingString": "[strm][%p] ERROR, %s."
       },
       {
-        "UniquenessHash": "5ec50805-9ab7-8891-38b7-f40981539ab7",
+        "UniquenessHash": "556a140f-9a69-1c56-aaee-8358e3ece719",
         "TraceID": "StreamNotifyInsufficientRecvBuffer",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]"
-      },
-      {
-        "UniquenessHash": "19ab059a-85df-d6d3-5860-d7f270ff3ba0",
-        "TraceID": "StreamNotifyRecvBufferTooSmall",
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]"
       },
       {
@@ -16626,11 +16593,6 @@
         "UniquenessHash": "0a4d4b4f-3622-3e1b-99be-acf0719d1bdf",
         "TraceID": "StreamSendState",
         "EncodingString": "[strm][%p] Send State: %hhu"
-      },
-      {
-        "UniquenessHash": "54244bf7-880e-5078-6c6b-36a21df0937d",
-        "TraceID": "StreamShutdownOutOfAppBuffer",
-        "EncodingString": "[strm][%p] Out of app-provided receive buffer, shutting stream down."
       },
       {
         "UniquenessHash": "cc7f8746-a729-760b-90cc-8f3973b3fde2",

@@ -6020,8 +6020,8 @@ pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE: QUIC_
     8;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_PEER_ACCEPTED: QUIC_STREAM_EVENT_TYPE = 9;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_CANCEL_ON_LOSS: QUIC_STREAM_EVENT_TYPE = 10;
-pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED:
-    QUIC_STREAM_EVENT_TYPE = 11;
+pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED: QUIC_STREAM_EVENT_TYPE =
+    11;
 pub type QUIC_STREAM_EVENT_TYPE = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -6503,10 +6503,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, IDEAL_SEND_BUFFER_SIZE) - 0usize];
     ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_LOSS"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, CANCEL_ON_LOSS) - 0usize];
-    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE_BUFFER_NEEDED"][::std::mem::offset_of!(
-        QUIC_STREAM_EVENT__bindgen_ty_1,
-        RECEIVE_BUFFER_NEEDED
-    ) - 0usize];
+    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE_BUFFER_NEEDED"]
+        [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, RECEIVE_BUFFER_NEEDED) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
