@@ -1122,17 +1122,8 @@ CxPlatSocketContextUninitializeEventComplete(
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
     CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
 
-    if (SocketContext->SocketFd != INVALID_SOCKET) {
-        CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
-        struct io_uring_sqe* Sqe = CxPlatSocketAllocSqe(SocketContext);
-        CXPLAT_FRE_ASSERT(Sqe != NULL);
-        io_uring_prep_close(Sqe, SocketContext->SocketFd);
-        io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
-        io_uring_submit(&DatapathPartition->EventQ->Ring);
-        SocketContext->SocketFd = INVALID_SOCKET;
-    } else {
-        CxPlatSocketIoComplete(SocketContext);
-    }
+    CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->MultiRecvStarted);
+    CxPlatSocketIoComplete(SocketContext);
 }
 
 void
@@ -1175,7 +1166,7 @@ CxPlatSocketContextUninitialize(
         CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
         Sqe = CxPlatSocketAllocSqe(SocketContext);
         CXPLAT_FRE_ASSERT(Sqe != NULL);
-        io_uring_prep_cancel(Sqe, &SocketContext->IoSqe, 0);
+        io_uring_prep_cancel(Sqe, &SocketContext->IoSqe, IORING_ASYNC_CANCEL_ALL);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
         io_uring_submit(&DatapathPartition->EventQ->Ring);
         SocketContext->Shutdown = TRUE;
@@ -1184,11 +1175,14 @@ CxPlatSocketContextUninitialize(
 }
 
 void
-CxPlatSocketContextEnableRecvUnderLock(
+CxPlatSocketContextStartMultiRecvUnderLock(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
+
+    CXPLAT_DBG_ASSERT(!SocketContext->MultiRecvStarted);
+    CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
 
     struct io_uring_sqe* Sqe = CxPlatSocketAllocSqe(SocketContext);
     if (Sqe == NULL) {
@@ -1213,16 +1207,19 @@ CxPlatSocketContextEnableRecvUnderLock(
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe);
     io_uring_submit(&EventQ->Ring);
+
+    SocketContext->MultiRecvStarted = TRUE;
+    CxPlatSocketIoStart(SocketContext);
 }
 
 void
-CxPlatSocketContextEnableRecv(
+CxPlatSocketContextStartMultiRecv(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
     CxPlatLockAcquire(&EventQ->Lock);
-    CxPlatSocketContextEnableRecvUnderLock(SocketContext);
+    CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
     CxPlatLockRelease(&EventQ->Lock);
 }
 
@@ -1331,7 +1328,7 @@ SocketCreateUdp(
         //
         // Review: the sockets can be registered with io_uring for better perf.
         //
-        CxPlatSocketContextEnableRecv(&Binding->SocketContexts[i]);
+        CxPlatSocketContextStartMultiRecv(&Binding->SocketContexts[i]);
         Binding->SocketContexts[i].IoStarted = TRUE;
     }
 
@@ -1438,29 +1435,34 @@ CxPlatSocketHandleErrors(
             ErrNum,
             "Socket error event");
 
-        if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
-            //
-            // Send unreachable notification to MsQuic if any related
-            // errors were received.
-            //
-            if (ErrNum == ECONNREFUSED ||
-                ErrNum == EHOSTUNREACH ||
-                ErrNum == ENETUNREACH) {
-                if (!SocketContext->Binding->PcpBinding) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+
+        if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+            if (SocketContext->Binding->Type == CXPLAT_SOCKET_UDP) {
+                //
+                // Send unreachable notification to MsQuic if any related
+                // errors were received.
+                //
+                if (ErrNum == ECONNREFUSED ||
+                    ErrNum == EHOSTUNREACH ||
+                    ErrNum == ENETUNREACH) {
+                    if (!SocketContext->Binding->PcpBinding) {
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
+                    }
+                }
+            } else {
+                if (!SocketContext->Binding->DisconnectIndicated) {
+                    SocketContext->Binding->DisconnectIndicated = TRUE;
+                    SocketContext->Binding->Datapath->TcpHandlers.Connect(
                         SocketContext->Binding,
                         SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
+                        FALSE);
                 }
             }
-        } else {
-            if (!SocketContext->Binding->DisconnectIndicated) {
-                SocketContext->Binding->DisconnectIndicated = TRUE;
-                SocketContext->Binding->Datapath->TcpHandlers.Connect(
-                    SocketContext->Binding,
-                    SocketContext->Binding->ClientContext,
-                    FALSE);
-            }
+
+            CxPlatRundownRelease(&SocketContext->UpcallRundown);
         }
     }
 }
@@ -1608,17 +1610,21 @@ CxPlatSocketContextRecvComplete(
         return;
     }
 
-    if (!SocketContext->Binding->PcpBinding) {
-        CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
-        SocketContext->Binding->Datapath->UdpHandlers.Receive(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            DatagramHead);
-    } else{
-        CxPlatPcpRecvCallback(
-            SocketContext->Binding,
-            SocketContext->Binding->ClientContext,
-            DatagramHead);
+    if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+        if (!SocketContext->Binding->PcpBinding) {
+            CXPLAT_DBG_ASSERT(SocketContext->Binding->Datapath->UdpHandlers.Receive);
+            SocketContext->Binding->Datapath->UdpHandlers.Receive(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                DatagramHead);
+        } else{
+            CxPlatPcpRecvCallback(
+                SocketContext->Binding,
+                SocketContext->Binding->ClientContext,
+                DatagramHead);
+        }
+
+        CxPlatRundownRelease(&SocketContext->UpcallRundown);
     }
 }
 
@@ -1635,12 +1641,6 @@ CxPlatSocketReceiveComplete(
     struct iovec RecvIov;
     uint32_t BufferIndex;
     struct io_uring_recvmsg_out *RecvMsgOut;
-
-    if (Cqe->res == -ECANCELED) {
-        CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
-        CXPLAT_DBG_ASSERT(SocketContext->IoCount > 0);
-        goto Exit;
-    }
 
     if (Cqe->res == -ENOBUFS) {
         //
@@ -1688,8 +1688,15 @@ CxPlatSocketReceiveComplete(
 
 Exit:
 
-    if (!(Cqe->flags & IORING_CQE_F_MORE) && !SocketContext->Shutdown) {
-        CxPlatSocketContextEnableRecvUnderLock(SocketContext);
+    if (!(Cqe->flags & IORING_CQE_F_MORE)) {
+        CXPLAT_DBG_ASSERT(SocketContext->MultiRecvStarted);
+        SocketContext->MultiRecvStarted = FALSE;
+
+        if (!SocketContext->Shutdown) {
+            CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
+        }
+
+        CxPlatSocketIoComplete(SocketContext);
     }
 }
 
@@ -2105,11 +2112,15 @@ CxPlatSendDataSend(
             if (Status == ECONNREFUSED ||
                 Status == EHOSTUNREACH ||
                 Status == ENETUNREACH) {
-                if (!SocketContext->Binding->PcpBinding) {
-                    SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
-                        SocketContext->Binding,
-                        SocketContext->Binding->ClientContext,
-                        &SocketContext->Binding->RemoteAddress);
+                if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+                    if (!SocketContext->Binding->PcpBinding) {
+                        SocketContext->Binding->Datapath->UdpHandlers.Unreachable(
+                            SocketContext->Binding,
+                            SocketContext->Binding->ClientContext,
+                            &SocketContext->Binding->RemoteAddress);
+                    }
+
+                    CxPlatRundownRelease(&SocketContext->UpcallRundown);
                 }
             }
         }
@@ -2205,9 +2216,8 @@ CxPlatSocketContextIoEventComplete(
 {
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(*Cqes);
     CXPLAT_SOCKET_CONTEXT* SocketContext = GetSocketContextFromSqe(Sqe);
-    CXPLAT_DATAPATH_PARTITION* DatapathPartition;
-
-    DatapathPartition = SocketContext->DatapathPartition;
+    CXPLAT_DATAPATH_PARTITION* DatapathPartition = SocketContext->DatapathPartition;
+    CXPLAT_EVENTQ* EventQ = DatapathPartition->EventQ;
 
     //
     // Review: this lazy thread ID initialization is not ideal. Instead,
@@ -2218,30 +2228,23 @@ CxPlatSocketContextIoEventComplete(
         DatapathPartition->OwningThreadID = CxPlatCurThreadID();
     }
 
-    CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
+    CxPlatLockAcquire(&EventQ->Lock);
 
     while (TRUE) {
 
         //
-        // Review: this loop could be unrolled further to batch within a socket.
+        // Review: these functions could be unrolled to batch within an IO
+        // type on a socket.
         //
-        if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
-            //
-            // Review: these functions could be unrolled to batch within an IO
-            // type on a socket.
-            //
-            switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
-            case DatapathContextRecv:
-                CxPlatSocketReceiveComplete(SocketContext, *Cqes[0]);
-                break;
-            case DatapathContextSend:
-                CxPlatSocketContextSendComplete(SocketContext, *Cqes[0]);
-                break;
-            default:
-                CXPLAT_DBG_ASSERT(FALSE);
-            }
-
-            CxPlatRundownRelease(&SocketContext->UpcallRundown);
+        switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
+        case DatapathContextRecv:
+            CxPlatSocketReceiveComplete(SocketContext, *Cqes[0]);
+            break;
+        case DatapathContextSend:
+            CxPlatSocketContextSendComplete(SocketContext, *Cqes[0]);
+            break;
+        default:
+            CXPLAT_DBG_ASSERT(FALSE);
         }
 
         (*Cqes)++;
@@ -2256,7 +2259,7 @@ CxPlatSocketContextIoEventComplete(
         SocketContext = GetSocketContextFromSqe(Sqe);
     }
 
-    io_uring_submit(&DatapathPartition->EventQ->Ring);
+    io_uring_submit(&EventQ->Ring);
 
-    CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
+    CxPlatLockRelease(&EventQ->Lock);
 }
