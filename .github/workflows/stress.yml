@@ -30,6 +30,10 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "openssl", build: "-Test" },
         ]
     uses: ./.github/workflows/build-reuse-win.yml
     with:
@@ -91,6 +95,10 @@ jobs:
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2025", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}

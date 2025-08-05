@@ -32,7 +32,7 @@ jobs:
     permissions:
       contents: read # for actions/checkout to fetch code
     name: Build Perf
-    runs-on: windows-latest
+    runs-on: windows-2025
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
@@ -57,7 +57,7 @@ jobs:
     permissions:
       contents: read # for actions/checkout to fetch code
     name: Run Tests
-    runs-on: windows-2022
+    runs-on: windows-2025
     needs: build-perf
     env:
       seed: 41473a2e60b6958500ec0add7dcfb9 # TODO - Randomize?
