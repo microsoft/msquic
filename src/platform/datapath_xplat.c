@@ -111,7 +111,7 @@ CxPlatDataPathIsPaddingPreferred(
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_RAW);
     return
         DatapathType(SendData) == CXPLAT_DATAPATH_TYPE_NORMAL ?
-            DataPathIsPaddingPreferred(Datapath) : RawDataPathIsPaddingPreferred(Datapath);
+            DataPathIsPaddingPreferred(Datapath, SendData) : RawDataPathIsPaddingPreferred(Datapath);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
