@@ -1747,6 +1747,7 @@ CxPlatSocketReceiveCoalesced(
             goto Exit;
         }
 
+        CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
         IoBlock->Route.State = RouteResolved;
 
         struct msghdr* MsgHdr = &RecvMsgHdr.msg_hdr;
@@ -1821,6 +1822,7 @@ CxPlatSocketReceiveMessages(
             }
 
             IoBlocks[i] = IoBlock;
+            CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
             IoBlock->Route.State = RouteResolved;
 
             struct msghdr* MsgHdr = &RecvMsgHdr[i].msg_hdr;
@@ -1894,6 +1896,7 @@ CxPlatSocketReceiveTcpData(
             goto Exit;
         }
 
+        CxPlatZeroMemory(&IoBlock->Route, sizeof(CXPLAT_ROUTE));
         IoBlock->Route.State = RouteResolved;
         IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketContext;
         IoBlock->RefCount = 0;
