@@ -4,9 +4,21 @@ coverage:
       default:
         target: auto
         threshold: 2%
+        # Allow 2% decrease in project coverage
+        if_not_found: success
+        if_ci_failed: error
     patch:
       default:
         target: 80%
+        # Require 80% coverage for new patches
+        if_not_found: success
+        if_ci_failed: error
+
 ignore:
   - "**/*.md"
   - "docs/**/*"
+
+comment:
+  layout: "reach,diff,flags,files,footer"
+  behavior: default
+  require_changes: false
