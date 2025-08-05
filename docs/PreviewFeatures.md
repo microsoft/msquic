@@ -1,4 +1,4 @@
-Preview features
+GPreview features
 =========
 > [!IMPORTANT]
 >
@@ -38,4 +38,4 @@ TODO
 ### App-provided receive buffers
 
 - [StreamProvideReceiveBuffers](api/StreamProvideReceiveBuffers.md)
-- [QUIC_API_ENABLE_PREVIEW_FEATURES](api/QUIC_STREAM_EVENT.md#quic_stream_event_insufficient_receive_buffer)
+- [QUIC_API_ENABLE_PREVIEW_FEATURES](api/QUIC_STREAM_EVENT.md#quic_stream_event_receive_buffer_needed)

@@ -32,7 +32,7 @@ This is an asynchronous API but it can run inline if called in a callback.
 If called inline when handling a `QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED` event, it will convert
 the stream to app-owned buffer mode.
 
-If called inline when handling a `QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER` event, the provided
+If called inline when handling a `QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED` event, the provided
 memory buffers will be used to store the received data.
 
 # See also

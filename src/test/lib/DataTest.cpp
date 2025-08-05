@@ -4631,7 +4631,7 @@ struct AppBuffersReceiverContext {
                 ReceiverContext->ReceivedBytesThresholdReached.Set();
                 ReceiverContext->ReceivedBytesThreshold = 0;
             }
-        } else if (Event->Type == QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER) {
+        } else if (Event->Type == QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED) {
             if (ReceiverContext->ShutdownOnInsufficientRecvBuffer) {
                 ReceiverContext->Stream->Shutdown(
                     1, QUIC_STREAM_SHUTDOWN_FLAG_ABORT_RECEIVE | QUIC_STREAM_SHUTDOWN_FLAG_INLINE);

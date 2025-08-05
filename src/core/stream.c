@@ -1019,7 +1019,7 @@ QuicStreamProvideRecvBuffers(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicStreamNotifyInsufficientRecvBuffer(
+QuicStreamNotifyReceiveBufferNeeded(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLengthNeeded
     )
@@ -1027,14 +1027,14 @@ QuicStreamNotifyInsufficientRecvBuffer(
     CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
 
     QUIC_STREAM_EVENT Event = {0};
-    Event.Type = QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER;
-    Event.INSUFFICIENT_RECEIVE_BUFFER.BufferLengthNeeded = BufferLengthNeeded;
+    Event.Type = QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED;
+    Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded = BufferLengthNeeded;
 
     QuicTraceLogStreamVerbose(
         StreamNotifyInsufficientRecvBuffer,
         Stream,
-        "Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]",
-        Event.INSUFFICIENT_RECEIVE_BUFFER.BufferLengthNeeded);
+        "Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+        Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
 
     (void)QuicStreamIndicateEvent(Stream, &Event);
 }

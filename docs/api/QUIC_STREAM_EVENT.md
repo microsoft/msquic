@@ -18,7 +18,7 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
     QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-    QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER = 11,
+    QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED = 11,
 #endif
 } QUIC_STREAM_EVENT_TYPE;
 ```
@@ -75,7 +75,7 @@ typedef struct QUIC_STREAM_EVENT {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         struct {
             /* in */  uint64_t BufferLengthNeeded;
-        } INSUFFICIENT_RECEIVE_BUFFER;
+        } RECEIVE_BUFFER_NEEDED;
 #endif
     };
 } QUIC_STREAM_EVENT;
@@ -269,7 +269,7 @@ The application can supply an error code in this struct to be sent to the peer.
 
 The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event on its stream object.
 
-## QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER
+## QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED
 
 This event is raised when a stream using app-provided receive buffers runs out of receive buffer space.
 

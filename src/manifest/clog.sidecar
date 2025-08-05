@@ -11185,7 +11185,7 @@
     },
     "StreamNotifyInsufficientRecvBuffer": {
       "ModuleProperites": {},
-      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]",
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
       "UniqueId": "StreamNotifyInsufficientRecvBuffer",
       "splitArgs": [
         {
@@ -16590,7 +16590,7 @@
       {
         "UniquenessHash": "5ec50805-9ab7-8891-38b7-f40981539ab7",
         "TraceID": "StreamNotifyInsufficientRecvBuffer",
-        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_INSUFFICIENT_RECEIVE_BUFFER [BufferLengthNeeded=%llu]"
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]"
       },
       {
         "UniquenessHash": "19ab059a-85df-d6d3-5860-d7f270ff3ba0",

@@ -1065,8 +1065,7 @@ QuicStreamProvideRecvBuffers(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicStreamNotifyInsufficientRecvBuffer(
+QuicStreamNotifyReceiveBufferNeeded(
     _In_ QUIC_STREAM* Stream,
     _In_ uint64_t BufferLengthNeeded
     );
-    

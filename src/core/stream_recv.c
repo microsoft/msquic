@@ -509,7 +509,7 @@ QuicStreamProcessStreamFrame(
             // The application didn't provide enough buffer space.
             // Give it a chance to react inline in a notification.
             //
-            QuicStreamNotifyInsufficientRecvBuffer(Stream, BufferSizeNeeded);
+            QuicStreamNotifyReceiveBufferNeeded(Stream, BufferSizeNeeded);
 
             //
             // The app may have aborted the receive path inline. Check it again.
