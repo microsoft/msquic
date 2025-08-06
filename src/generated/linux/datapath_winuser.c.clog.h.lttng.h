@@ -59,25 +59,6 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathOpenUdpSocketFailed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for DatapathQueryRioDispatchFailed
-// [data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x
-// QuicTraceLogWarning(
-            DatapathQueryRioDispatchFailed,
-            "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
-            WsaError);
-// arg2 = arg2 = WsaError = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_DATAPATH_WINUSER_C, DatapathQueryRioDispatchFailed,
-    TP_ARGS(
-        unsigned int, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned int, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for DatapathQueryUdpSendMsgFailed
 // [data] Query for UDP_SEND_MSG_SIZE failed, 0x%x
 // QuicTraceLogWarning(
