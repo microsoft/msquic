@@ -31,17 +31,8 @@
 //
 #define CXPLAT_MAX_IO_BATCH_SIZE ((uint16_t)(CXPLAT_LARGE_IO_BUFFER_SIZE / (1280 - CXPLAT_MIN_IPV6_HEADER_SIZE - CXPLAT_UDP_HEADER_SIZE)))
 
-#ifdef DEBUG
 #define CXPLAT_DBG_ASSERT_CMSG(CMsg, type) \
-    if (CMsg->cmsg_len < CMSG_LEN(sizeof(type))) { \
-        printf("%u: cmsg[%u:%u] len (%u) < exp_len (%u)\n", \
-            (uint32_t)__LINE__, \
-            (uint32_t)CMsg->cmsg_level, (uint32_t)CMsg->cmsg_type, \
-            (uint32_t)CMsg->cmsg_len, (uint32_t)CMSG_LEN(sizeof(type))); \
-    }
-#else
-#define CXPLAT_DBG_ASSERT_CMSG(CMsg, type)
-#endif
+    CXPLAT_DBG_ASSERT((CMsg)->cmsg_len >= CMSG_LEN(sizeof(type)))
 
 void
 CxPlatDataPathCalculateFeatureSupport(

@@ -932,8 +932,8 @@ typedef struct CXPLAT_SOCKET {
 } CXPLAT_SOCKET;
 
 typedef struct CXPLAT_REGISTERED_BUFFER_POOL {
-    void *Ring;
-    uint8_t *Buffers;
+    void* Ring;
+    uint8_t* Buffers;
     uint32_t BufferSize;
     uint32_t TotalSize;
     CXPLAT_LOCK Lock;

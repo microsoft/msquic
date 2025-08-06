@@ -3,10 +3,6 @@
     Copyright (c) Microsoft Corporation.
     Licensed under the MIT License.
 
-Abstract:
-
-    QUIC datapath Abstraction Layer.
-
 Environment:
 
     Linux
@@ -219,7 +215,7 @@ CxPlatSocketAllocSqe(
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
-    struct io_uring_sqe *io_sqe = io_uring_get_sqe(&EventQ->Ring);
+    struct io_uring_sqe* io_sqe = io_uring_get_sqe(&EventQ->Ring);
     if (io_sqe == NULL) {
         io_uring_submit(&EventQ->Ring);
         io_sqe = io_uring_get_sqe(&EventQ->Ring);
@@ -267,7 +263,7 @@ CxPlatCreateBufferPool(
     _In_ uint32_t BufferSize,
     _In_ uint32_t BufferCount,
     _In_ CXPLAT_IO_RING_BUF_GROUP BufferGroup,
-    _Out_ CXPLAT_REGISTERED_BUFFER_POOL *Pool
+    _Out_ CXPLAT_REGISTERED_BUFFER_POOL* Pool
     )
 {
     int Result;
@@ -559,7 +555,7 @@ CxPlatSocketContextSqeInitialize(
     if (!CxPlatSqeInitialize2(
             SocketContext->DatapathPartition->EventQ,
             CxPlatSocketContextIoEventComplete,
-            (void *)DatapathContextRecv,
+            (void*)DatapathContextRecv,
             &SocketContext->IoSqe)) {
         Status = errno;
         QuicTraceEvent(
@@ -992,7 +988,7 @@ CxPlatSocketContextInitialize(
     Result =
         getsockname(
             SocketContext->SocketFd,
-            (struct sockaddr *)&Binding->LocalAddress,
+            (struct sockaddr*)&Binding->LocalAddress,
             &AssignedLocalAddressLength);
     if (Result == SOCKET_ERROR) {
         Status = errno;
@@ -1202,7 +1198,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     }
 
     io_uring_prep_recvmsg_multishot(
-        Sqe, SocketContext->SocketFd, (struct msghdr *)&CxPlatRecvMsgHdr, MSG_TRUNC);
+        Sqe, SocketContext->SocketFd, (struct msghdr*)&CxPlatRecvMsgHdr, MSG_TRUNC);
     Sqe->flags |= IOSQE_BUFFER_SELECT;
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe);
@@ -1499,7 +1495,7 @@ CxPlatSocketContextRecvComplete(
         // type of service and possibly the GRO segmentation length.
         //
         struct msghdr* Msg = RecvMsgHdr;
-        for (struct cmsghdr *CMsg = CMSG_FIRSTHDR(Msg); CMsg != NULL; CMsg = CMSG_NXTHDR(Msg, CMsg)) {
+        for (struct cmsghdr*CMsg = CMSG_FIRSTHDR(Msg); CMsg != NULL; CMsg = CMSG_NXTHDR(Msg, CMsg)) {
             if (CMsg->cmsg_level == IPPROTO_IPV6) {
                 if (CMsg->cmsg_type == IPV6_PKTINFO) {
                     struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*)CMSG_DATA(CMsg);
@@ -1640,7 +1636,7 @@ CxPlatSocketReceiveComplete(
     struct msghdr RecvMsgHdrs[1];
     struct iovec RecvIov;
     uint32_t BufferIndex;
-    struct io_uring_recvmsg_out *RecvMsgOut;
+    struct io_uring_recvmsg_out* RecvMsgOut;
 
     if (Cqe->res == -ENOBUFS) {
         //
@@ -1939,7 +1935,7 @@ CxPlatSendDataPopulateAncillaryData(
     )
 {
     Mhdr->msg_controllen = CMSG_SPACE(sizeof(int));
-    struct cmsghdr *CMsg = CMSG_FIRSTHDR(Mhdr);
+    struct cmsghdr* CMsg = CMSG_FIRSTHDR(Mhdr);
     CMsg->cmsg_level = SendData->LocalAddress.Ip.sa_family == AF_INET ? IPPROTO_IP : IPPROTO_IPV6;
     CMsg->cmsg_type = SendData->LocalAddress.Ip.sa_family == AF_INET ? IP_TOS : IPV6_TCLASS;
     CMsg->cmsg_len = CMSG_LEN(sizeof(int));
@@ -1952,7 +1948,7 @@ CxPlatSendDataPopulateAncillaryData(
             CMsg->cmsg_level = IPPROTO_IP;
             CMsg->cmsg_type = IP_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in_pktinfo));
-            struct in_pktinfo *PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
+            struct in_pktinfo* PktInfo = (struct in_pktinfo*)CMSG_DATA(CMsg);
             PktInfo->ipi_ifindex = SendData->LocalAddress.Ipv6.sin6_scope_id;
             PktInfo->ipi_spec_dst = SendData->LocalAddress.Ipv4.sin_addr;
             PktInfo->ipi_addr = SendData->LocalAddress.Ipv4.sin_addr;
@@ -1962,7 +1958,7 @@ CxPlatSendDataPopulateAncillaryData(
             CMsg->cmsg_level = IPPROTO_IPV6;
             CMsg->cmsg_type = IPV6_PKTINFO;
             CMsg->cmsg_len = CMSG_LEN(sizeof(struct in6_pktinfo));
-            struct in6_pktinfo *PktInfo6 = (struct in6_pktinfo*)CMSG_DATA(CMsg);
+            struct in6_pktinfo* PktInfo6 = (struct in6_pktinfo*)CMSG_DATA(CMsg);
             PktInfo6->ipi6_ifindex = SendData->LocalAddress.Ipv6.sin6_scope_id;
             PktInfo6->ipi6_addr = SendData->LocalAddress.Ipv6.sin6_addr;
         }
@@ -2030,10 +2026,10 @@ CxPlatSendDataSendSegmented(
     }
 
     io_uring_prep_sendmsg(Sqe, SendData->SocketContext->SocketFd, &SendData->MsgHdr, 0);
-    io_uring_sqe_set_data(Sqe, (void *)&SendData->Sqe);
+    io_uring_sqe_set_data(Sqe, (void*)&SendData->Sqe);
     CxPlatSqeInitialize2(
         DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete,
-        (void *)DatapathContextSend, &SendData->Sqe); // NOLINT performance-no-int-to-ptr
+        (void*)DatapathContextSend, &SendData->Sqe); // NOLINT performance-no-int-to-ptr
     CxPlatSocketIoStart(SocketContext);
 
 Exit:
