@@ -130,6 +130,9 @@ TEST(SettingsTest, TestAllSettingsFieldsSet)
     SETTINGS_FEATURE_SET_TEST(NetStatsEventEnabled, QuicSettingsSettingsToInternal);
     SETTINGS_FEATURE_SET_TEST(StreamMultiReceiveEnabled, QuicSettingsSettingsToInternal);
 
+    // Bias field count on behalf of erstwhile ReservedRioEnabled
+    FieldCount++;
+
     Settings.IsSetFlags = 0;
     Settings.IsSet.RESERVED = ~Settings.IsSet.RESERVED;
     ASSERT_EQ(FieldCount, (sizeof(Settings.IsSetFlags) * 8) - PopCount(Settings.IsSetFlags));
