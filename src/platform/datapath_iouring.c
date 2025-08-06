@@ -1650,7 +1650,10 @@ CxPlatSocketReceiveComplete(
     }
 
     if (Cqe->res < 0) {
-        CxPlatSocketHandleError(SocketContext, -Cqe->res);
+        if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
+            CxPlatSocketHandleError(SocketContext, -Cqe->res);
+            CxPlatRundownRelease(&SocketContext->UpcallRundown);
+        }
         goto Exit;
     }
 
