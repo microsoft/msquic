@@ -239,9 +239,6 @@ PerfClient::Init(
             Settings.SetXdpEnabled(true);
             Settings.SetQtipEnabled(true);
         }
-        if (IoMode && IsValue(IoMode, "rio")) {
-            Settings.SetRioEnabled(true);
-        }
         Configuration.SetSettings(Settings);
     }
 
