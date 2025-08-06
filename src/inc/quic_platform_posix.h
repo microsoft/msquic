@@ -311,9 +311,11 @@ CxPlatLogAssert(
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_DBG_ONLY(exp) (exp)
 #else
 #define CXPLAT_DBG_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg)
+#define CXPLAT_DBG_ONLY(exp)
 #endif
 
 #if DEBUG // TODO - Do something with QUIC_TELEMETRY_ASSERTS

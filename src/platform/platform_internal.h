@@ -851,10 +851,12 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     BOOLEAN Shutdown : 1;
 
+#if DEBUG
     //
     // Indicates if the socket socket has a multi recv outstanding.
     //
     BOOLEAN MultiRecvStarted : 1;
+#endif
 #endif
 
 #if DEBUG

@@ -1208,7 +1208,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe);
     io_uring_submit(&EventQ->Ring);
 
-    SocketContext->MultiRecvStarted = TRUE;
+    CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = TRUE);
     CxPlatSocketIoStart(SocketContext);
 }
 
@@ -1328,8 +1328,8 @@ SocketCreateUdp(
         //
         // Review: the sockets can be registered with io_uring for better perf.
         //
-        CxPlatSocketContextStartMultiRecv(&Binding->SocketContexts[i]);
         Binding->SocketContexts[i].IoStarted = TRUE;
+        CxPlatSocketContextStartMultiRecv(&Binding->SocketContexts[i]);
     }
 
     Binding = NULL;
@@ -1690,7 +1690,7 @@ Exit:
 
     if (!(Cqe->flags & IORING_CQE_F_MORE)) {
         CXPLAT_DBG_ASSERT(SocketContext->MultiRecvStarted);
-        SocketContext->MultiRecvStarted = FALSE;
+        CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = FALSE);
 
         if (!SocketContext->Shutdown) {
             CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
