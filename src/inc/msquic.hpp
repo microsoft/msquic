@@ -711,7 +711,6 @@ public:
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
     MsQuicSettings& SetXdpEnabled(bool value) { XdpEnabled = value; IsSet.XdpEnabled = TRUE; return *this; }
     MsQuicSettings& SetQtipEnabled(bool value) { QTIPEnabled = value; IsSet.QTIPEnabled = TRUE; return *this; }
-    MsQuicSettings& SetRioEnabled(bool value) { RioEnabled = value; IsSet.RioEnabled = TRUE; return *this; }
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
     MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }

@@ -64,11 +64,11 @@ param (
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [ValidateSet("", "iocp", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$io = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [ValidateSet("", "iocp", "xdp", "qtip", "wsk", "epoll", "kqueue")]
     [string]$serverio = "",
 
     [Parameter(Mandatory = $false)]

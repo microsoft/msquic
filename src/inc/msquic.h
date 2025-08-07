@@ -784,7 +784,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t StreamMultiReceiveEnabled              : 1;
             uint64_t XdpEnabled                             : 1;
             uint64_t QTIPEnabled                            : 1;
-            uint64_t RioEnabled                             : 1;
+            uint64_t ReservedRioEnabled                     : 1;
             uint64_t RESERVED                               : 18;
 #else
             uint64_t RESERVED                               : 26;
@@ -838,7 +838,7 @@ typedef struct QUIC_SETTINGS {
             uint64_t StreamMultiReceiveEnabled : 1;
             uint64_t XdpEnabled                : 1;
             uint64_t QTIPEnabled               : 1;
-            uint64_t RioEnabled                : 1;
+            uint64_t ReservedRioEnabled        : 1;
             uint64_t ReservedFlags             : 55;
 #else
             uint64_t ReservedFlags             : 63;

@@ -377,11 +377,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_POOL SendDataPool;
 
     //
-    // Pool of send contexts to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendDataPool;
-
-    //
     // Pool of send buffers to be shared by all sockets on this core.
     //
     CXPLAT_POOL SendBufferPool;
@@ -393,27 +388,10 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_POOL LargeSendBufferPool;
 
     //
-    // Pool of send buffers to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all RIO sockets on
-    // this core.
-    //
-    CXPLAT_POOL RioLargeSendBufferPool;
-
-    //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
     // on this core.
     //
     CXPLAT_POOL_EX RecvDatagramPool;
-
-    //
-    // Pool of RIO receive datagram contexts and buffers to be shared by all
-    // RIO sockets on this core.
-    //
-    CXPLAT_POOL RioRecvPool;
 
 } CXPLAT_DATAPATH_PARTITION;
 
@@ -430,11 +408,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     // Submission queue event for IO completion
     //
     CXPLAT_SQE IoSqe;
-
-    //
-    // Submission queue event for RIO IO completion
-    //
-    CXPLAT_SQE RioSqe;
 
     //
     // The datapath per-processor context.
@@ -479,17 +452,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 
     union {
     //
-    // Normal TCP/UDP socket data
-    //
-    struct {
-    RIO_CQ RioCq;
-    RIO_RQ RioRq;
-    ULONG RioRecvCount;
-    ULONG RioSendCount;
-    CXPLAT_LIST_ENTRY RioSendOverflow;
-    BOOLEAN RioNotifyArmed;
-    };
-    //
     // TCP Listener socket data
     //
     struct {
@@ -527,11 +489,6 @@ typedef struct CXPLAT_DATAPATH {
     // Function pointer to WSARecvMsg.
     //
     LPFN_WSARECVMSG WSARecvMsg;
-
-    //
-    // Function pointer table for RIO.
-    //
-    RIO_EXTENSION_FUNCTION_TABLE RioDispatch;
 
     //
     // Used to synchronize clean up.
@@ -621,11 +578,6 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the binding is being used for PCP.
     //
     uint8_t PcpBinding : 1;
-
-    //
-    // Flag indicates the socket is using RIO instead of traditional Winsock.
-    //
-    uint8_t UseRio : 1;
 
     //
     // Debug flags.

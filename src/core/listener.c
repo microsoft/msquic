@@ -336,9 +336,6 @@ MsQuicListenerStart(
     if (MsQuicLib.Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
-    if (MsQuicLib.Settings.RioEnabled) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
-    }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =

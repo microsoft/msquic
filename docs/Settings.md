@@ -67,7 +67,6 @@ The following settings are available via registry as well as via [QUIC_SETTINGS]
 | Stream Multi Receive               | uint8_t    | StreamMultiReceiveEnabled   |         0 (FALSE) | Enable multi receive support                                                                                                  |
 | XDP                                | uint8_t    | XdpEnabled                  |         0 (FALSE) | Enable XDP. |
 | QTIP                               | uint8_t    | QTIPEnabled                 |         0 (FALSE) | Enable QTIP. XDP must be used. Clients will only send/recv QTIP xor UDP traffic, listeners accept both. [More info](./QTIP.md)|
-| RIO                                | uint8_t    | RioEnabled                  |         0 (FALSE) | Enable RIO. |
 
 The types map to registry types as follows:
   - `uint64_t` is a `REG_QWORD`.
