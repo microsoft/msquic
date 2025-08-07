@@ -579,7 +579,7 @@ typedef struct QUIC_SQE {
     QUIC_EVENT_COMPLETION_HANDLER Completion;
 } QUIC_SQE;
 
-#endif
+#endif // epoll
 
 #elif __APPLE__ || __FreeBSD__ // kqueue
 

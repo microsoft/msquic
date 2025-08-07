@@ -372,7 +372,7 @@ CxPlatSocketContextSqeInitialize(
     if (!CxPlatSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
             CxPlatSocketContextIoEventComplete,
-            &SocketContext->IoSqe)) {
+            &SocketContext->IoSqe.Sqe)) {
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -407,7 +407,7 @@ Exit:
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
     }
     if (IoSqeInitialized) {
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
     }
 
     return Status;
@@ -957,7 +957,7 @@ CxPlatSocketContextUninitializeComplete(
 
     if (SocketContext->SqeInitialized) {
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
     }
 
@@ -1034,7 +1034,7 @@ CxPlatSocketContextSetEvents(
     )
 {
     struct epoll_event SockFdEpEvt = {
-        .events = Events, .data = { .ptr = &SocketContext->IoSqe, } };
+        .events = Events, .data = { .ptr = &SocketContext->IoSqe.Sqe, } };
 
     int Ret =
         epoll_ctl(
@@ -2572,7 +2572,7 @@ CxPlatSocketContextIoEventComplete(
     )
 {
     CXPLAT_SOCKET_CONTEXT* SocketContext =
-        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe);
+        CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, IoSqe.Sqe);
 
     if (CxPlatRundownAcquire(&SocketContext->UpcallRundown)) {
         if (EPOLLERR & Cqe->events) {

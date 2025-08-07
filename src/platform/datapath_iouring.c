@@ -31,7 +31,7 @@ typedef enum DATAPATH_CONTEXT_TYPE {
 // Contains all the info for a single RX IO operation. Multiple RX packets may
 // come from a single IO operation.
 //
-typedef struct __attribute__((aligned(16))) DATAPATH_RX_IO_BLOCK {
+typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) DATAPATH_RX_IO_BLOCK {
     //
     // Represents the network route.
     //
@@ -66,7 +66,7 @@ typedef struct __attribute__((aligned(16))) DATAPATH_RX_IO_BLOCK {
 
 } DATAPATH_RX_IO_BLOCK;
 
-typedef struct __attribute__((aligned(16))) DATAPATH_RX_PACKET {
+typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) DATAPATH_RX_PACKET {
     //
     // The IO block that owns the packet.
     //
