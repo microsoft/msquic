@@ -811,22 +811,6 @@ TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingQTIPEnabled,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SettingRioEnabled
-// [sett] RioEnabled             = %hhu
-// QuicTraceLogVerbose(SettingRioEnabled,                  "[sett] RioEnabled             = %hhu", Settings->RioEnabled);
-// arg2 = arg2 = Settings->RioEnabled = arg2
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_SETTINGS_C, SettingRioEnabled,
-    TP_ARGS(
-        unsigned char, arg2), 
-    TP_FIELDS(
-        ctf_integer(unsigned char, arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for SettingOneWayDelayEnabled
 // [sett] OneWayDelayEnabled     = %hhu
 // QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);

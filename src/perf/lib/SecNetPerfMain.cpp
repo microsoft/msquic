@@ -135,7 +135,7 @@ PrintHelp(
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
 #ifndef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {iocp, rio, xdp, qtip, epoll, kqueue}\n"
+        "                            - {iocp, xdp, qtip, epoll, kqueue}\n"
 #else
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
         "                            - {wsk}\n"
@@ -187,9 +187,7 @@ QuicMainStart(
     const char* IoMode = GetValue(argc, argv, "io");
     if (IoMode) {
         MsQuicSettings Settings;
-        if (IsValue(IoMode, "rio")) {
-            Settings.SetRioEnabled(true);
-        } else if (IsValue(IoMode, "xdp")) {
+        if (IsValue(IoMode, "xdp")) {
             Settings.SetXdpEnabled(true);
         } else if (IsValue(IoMode, "qtip")) {
             Settings.SetXdpEnabled(true);

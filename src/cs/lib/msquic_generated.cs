@@ -1447,16 +1447,16 @@ namespace Microsoft.Quic
             }
         }
 
-        internal ulong RioEnabled
+        internal ulong ReservedRioEnabled
         {
             get
             {
-                return Anonymous2.Anonymous.RioEnabled;
+                return Anonymous2.Anonymous.ReservedRioEnabled;
             }
 
             set
             {
-                Anonymous2.Anonymous.RioEnabled = value;
+                Anonymous2.Anonymous.ReservedRioEnabled = value;
             }
         }
 
@@ -2119,7 +2119,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong RioEnabled
+                internal ulong ReservedRioEnabled
                 {
                     get
                     {
@@ -2276,7 +2276,7 @@ namespace Microsoft.Quic
                 }
 
                 [NativeTypeName("uint64_t : 1")]
-                internal ulong RioEnabled
+                internal ulong ReservedRioEnabled
                 {
                     get
                     {
