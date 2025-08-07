@@ -93,7 +93,7 @@ typedef struct CXPLAT_SEND_DATA {
     //
     // The submission queue entry for the send.
     //
-    CXPLAT_SQE Sqe;
+    CXPLAT_SOCKET_SQE Sqe;
 
     //
     // Entry in the pending send list.
@@ -552,11 +552,11 @@ CxPlatSocketContextSqeInitialize(
     ShutdownSqeInitialized = TRUE;
     CxPlatSocketIoStart(SocketContext);
 
-    if (!CxPlatSqeInitialize2(
+    if (!CxPlatBatchSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
             CxPlatSocketContextIoEventComplete,
-            (void*)DatapathContextRecv,
-            &SocketContext->IoSqe)) {
+            &SocketContext->IoSqe.Sqe)) {
+        SocketContext->IoSqe.Context = (void*)DatapathContextRecv;
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -1086,7 +1086,7 @@ CxPlatSocketContextUninitializeComplete(
 
     if (SocketContext->SqeInitialized) {
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->ShutdownSqe);
-        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe);
+        CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->IoSqe.Sqe);
         CxPlatSqeCleanup(SocketContext->DatapathPartition->EventQ, &SocketContext->FlushTxSqe);
     }
 
@@ -1162,7 +1162,7 @@ CxPlatSocketContextUninitialize(
         CxPlatLockAcquire(&DatapathPartition->EventQ->Lock);
         Sqe = CxPlatSocketAllocSqe(SocketContext);
         CXPLAT_FRE_ASSERT(Sqe != NULL);
-        io_uring_prep_cancel(Sqe, &SocketContext->IoSqe, IORING_ASYNC_CANCEL_ALL);
+        io_uring_prep_cancel(Sqe, &SocketContext->IoSqe.Sqe, IORING_ASYNC_CANCEL_ALL);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
         io_uring_submit(&DatapathPartition->EventQ->Ring);
         SocketContext->Shutdown = TRUE;
@@ -1201,7 +1201,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
         Sqe, SocketContext->SocketFd, (struct msghdr*)&CxPlatRecvMsgHdr, MSG_TRUNC);
     Sqe->flags |= IOSQE_BUFFER_SELECT;
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
-    io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe);
+    io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe.Sqe);
     io_uring_submit(&EventQ->Ring);
 
     CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = TRUE);
@@ -2027,9 +2027,9 @@ CxPlatSendDataSendSegmented(
 
     io_uring_prep_sendmsg(Sqe, SendData->SocketContext->SocketFd, &SendData->MsgHdr, 0);
     io_uring_sqe_set_data(Sqe, (void*)&SendData->Sqe);
-    CxPlatSqeInitialize2(
-        DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete,
-        (void*)DatapathContextSend, &SendData->Sqe); // NOLINT performance-no-int-to-ptr
+    CxPlatBatchSqeInitialize(
+        DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe); // NOLINT performance-no-int-to-ptr
+    SendData->Sqe.Context = (void*)DatapathContextSend;
     CxPlatSocketIoStart(SocketContext);
 
 Exit:
@@ -2196,9 +2196,11 @@ GetSocketContextFromSqe(
     _In_ CXPLAT_SQE* Sqe
     )
 {
-    switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
+    CXPLAT_SOCKET_SQE* SocketSqe = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_SQE, Sqe);
+
+    switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)SocketSqe->Context) {
     case DatapathContextRecv:
-        return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe);
+        return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_CONTEXT, IoSqe.Sqe);
     case DatapathContextSend:
         return CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe)->SocketContext;
     default:
@@ -2230,12 +2232,13 @@ CxPlatSocketContextIoEventComplete(
     CxPlatLockAcquire(&EventQ->Lock);
 
     while (TRUE) {
+        CXPLAT_SOCKET_SQE* SocketSqe = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SOCKET_SQE, Sqe);
 
         //
         // Review: these functions could be unrolled to batch within an IO
         // type on a socket.
         //
-        switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)Sqe->Context) {
+        switch ((DATAPATH_CONTEXT_TYPE)(uintptr_t)SocketSqe->Context) {
         case DatapathContextRecv:
             CxPlatSocketReceiveComplete(SocketContext, *Cqes[0]);
             break;

@@ -1037,7 +1037,6 @@ typedef CXPLAT_EVENT_BATCH_COMPLETION *CXPLAT_EVENT_BATCH_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
     CXPLAT_EVENT_COMPLETION_HANDLER ClassicCompletion;
     CXPLAT_EVENT_BATCH_COMPLETION* Completion;
-    void* Context; // Review: create an encapsulating structure for this?
 #if DEBUG
     uint32_t Signature;
 #endif
@@ -1211,16 +1210,14 @@ CxPlatSqeInitialize(
 
 QUIC_INLINE
 BOOLEAN
-CxPlatSqeInitialize2(
+CxPlatBatchSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
     _In_ CXPLAT_EVENT_BATCH_COMPLETION_HANDLER completion,
-    _In_opt_ void* Context,
     _Out_ CXPLAT_SQE* sqe
     )
 {
     UNREFERENCED_PARAMETER(queue);
     sqe->Completion = completion;
-    sqe->Context = Context;
 #if DEBUG
     sqe->Signature = CXPLAT_SQE_SIGNATURE_INITIALIZED;
 #endif

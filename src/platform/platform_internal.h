@@ -780,6 +780,13 @@ CxPlatDpRawGetDatapathSize(
 
 typedef struct CXPLAT_DATAPATH_PARTITION CXPLAT_DATAPATH_PARTITION;
 
+typedef struct CXPLAT_SOCKET_SQE {
+    CXPLAT_SQE Sqe;
+#ifdef CXPLAT_USE_IO_URING
+    void* Context;
+#endif
+} CXPLAT_SOCKET_SQE;
+
 //
 // Socket context.
 //
@@ -808,7 +815,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The submission queue event for IO.
     //
-    CXPLAT_SQE IoSqe;
+    CXPLAT_SOCKET_SQE IoSqe;
 
     //
     // The submission queue event for flushing the send queue.
