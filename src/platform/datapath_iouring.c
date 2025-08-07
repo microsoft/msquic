@@ -556,7 +556,7 @@ CxPlatSocketContextSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
             CxPlatSocketContextIoEventComplete,
             &SocketContext->IoSqe.Sqe)) {
-        SocketContext->IoSqe.Context = (void*)DatapathContextRecv;
+        SocketContext->IoSqe.Context = (void*)DatapathContextRecv; // NOLINT performance-no-int-to-ptr
         Status = errno;
         QuicTraceEvent(
             DatapathErrorStatus,
@@ -2028,8 +2028,8 @@ CxPlatSendDataSendSegmented(
     io_uring_prep_sendmsg(Sqe, SendData->SocketContext->SocketFd, &SendData->MsgHdr, 0);
     io_uring_sqe_set_data(Sqe, (void*)&SendData->Sqe);
     CxPlatBatchSqeInitialize(
-        DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe); // NOLINT performance-no-int-to-ptr
-    SendData->Sqe.Context = (void*)DatapathContextSend;
+        DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe);
+    SendData->Sqe.Context = (void*)DatapathContextSend; // NOLINT performance-no-int-to-ptr
     CxPlatSocketIoStart(SocketContext);
 
 Exit:
