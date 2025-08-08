@@ -534,6 +534,8 @@ if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
     if ($InstallClog2Text) {
+        sudo apt-get update -y
+        sudo apt-get install -y dotnet-runtime-8.0
         Install-Clog2Text
     }
 

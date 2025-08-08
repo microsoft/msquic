@@ -135,7 +135,7 @@ PrintHelp(
         "  -qeo:<0/1>               Allows/disallowes QUIC encryption offload. (def:0)\n"
 #ifndef _KERNEL_MODE
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
-        "                            - {iocp, xdp, qtip, epoll, kqueue}\n"
+        "                            - {iocp, xdp, qtip, epoll, iouring, kqueue}\n"
 #else
         "  -io:<mode>               Configures a requested network IO model to be used.\n"
         "                            - {wsk}\n"
