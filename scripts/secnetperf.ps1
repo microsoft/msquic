@@ -277,7 +277,7 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
-Prepare-MachineForTest
+Prepare-MachineForTest $Session $RemoteDir
 
 if ($isWindows -and !($environment -eq "azure")) {
     $HasTestSigning = $false
