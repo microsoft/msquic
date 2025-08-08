@@ -412,7 +412,7 @@ QuicStreamProcessStreamFrame(
 
     if (Stream->Flags.SentStopSending) {
         //
-        // The app has already aborting the receive path, but the peer might end
+        // The app has already aborted the receive path, but the peer might end
         // up sending a FIN instead of a reset. Ignore the data but treat any
         // FIN as a reset.
         //
@@ -481,9 +481,11 @@ QuicStreamProcessStreamFrame(
         // On return from QuicRecvBufferWrite, this represents the
         // actual number of bytes written.
         //
-        uint64_t WriteLength =
+        const uint64_t FlowControlQuota =
             Stream->Connection->Send.MaxData -
             Stream->Connection->Send.OrderedStreamBytesReceived;
+        uint64_t QuotaConsumed = 0;
+        uint64_t BufferSizeNeeded = 0;
 
         //
         // Write any nonduplicate data to the receive buffer.
@@ -495,8 +497,43 @@ QuicStreamProcessStreamFrame(
                 Frame->Offset,
                 (uint16_t)Frame->Length,
                 Frame->Data,
-                &WriteLength,
-                &ReadyToDeliver);
+                FlowControlQuota,
+                &QuotaConsumed,
+                &ReadyToDeliver,
+                &BufferSizeNeeded);
+
+        if (BufferSizeNeeded > 0 && Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+            CXPLAT_DBG_ASSERT(Status == QUIC_STATUS_BUFFER_TOO_SMALL);
+
+            //
+            // The application didn't provide enough buffer space.
+            // Give it a chance to react inline in a notification.
+            //
+            QuicStreamNotifyReceiveBufferNeeded(Stream, BufferSizeNeeded);
+
+            //
+            // The app may have aborted the receive path inline. Check it again.
+            //
+            if (Stream->Flags.SentStopSending) {
+                Status = QUIC_STATUS_SUCCESS;
+                goto Error;
+            }
+
+            //
+            // The app may have provided more buffer space inline, try to write again.
+            //
+            Status =
+                QuicRecvBufferWrite(
+                    &Stream->RecvBuffer,
+                    Frame->Offset,
+                    (uint16_t)Frame->Length,
+                    Frame->Data,
+                    FlowControlQuota,
+                    &QuotaConsumed,
+                    &ReadyToDeliver,
+                    &BufferSizeNeeded);
+        }
+
         if (QUIC_FAILED(Status)) {
             goto Error;
         }
@@ -504,9 +541,9 @@ QuicStreamProcessStreamFrame(
         //
         // Keep track of the total ordered bytes received.
         //
-        Stream->Connection->Send.OrderedStreamBytesReceived += WriteLength;
+        Stream->Connection->Send.OrderedStreamBytesReceived += QuotaConsumed;
         CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived <= Stream->Connection->Send.MaxData);
-        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= WriteLength);
+        CXPLAT_DBG_ASSERT(Stream->Connection->Send.OrderedStreamBytesReceived >= QuotaConsumed);
 
         if (QuicRecvBufferGetTotalLength(&Stream->RecvBuffer) == Stream->MaxAllowedRecvOffset) {
             QuicTraceLogStreamVerbose(
@@ -770,8 +807,7 @@ QuicStreamOnBytesDelivered(
         // on the amount of buffer space provided by the app.
         //
         if (Stream->RecvBuffer.VirtualBufferLength != 0 &&
-            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow &&
-            !Stream->Flags.UseAppOwnedRecvBuffers) {
+            Stream->RecvBuffer.VirtualBufferLength < Stream->Connection->Settings.ConnFlowControlWindow) {
 
             uint64_t TimeThreshold =
                 ((Stream->RecvWindowBytesDelivered * Stream->Connection->Paths[0].SmoothedRtt) / RecvBufferDrainThreshold);

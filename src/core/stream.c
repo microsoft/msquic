@@ -999,16 +999,42 @@ QuicStreamProvideRecvBuffers(
     QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
     if (Status == QUIC_STATUS_SUCCESS) {
         //
-        // Update the maximum allowed received size to take into account the new
-        // capacity.
+        // Update the maximum allowed received offset if the new chunks caused an update of the
+        // virtual buffer size.
         //
-        Stream->MaxAllowedRecvOffset =
+        uint64_t NewMaxAllowedRecvOffset =
             Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-        QuicSendSetStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA,
-            FALSE);
+        if (Stream->MaxAllowedRecvOffset < NewMaxAllowedRecvOffset) {
+            Stream->MaxAllowedRecvOffset =
+                Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                FALSE);
+        }
     }
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamNotifyReceiveBufferNeeded(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLengthNeeded
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+
+    QUIC_STREAM_EVENT Event = {0};
+    Event.Type = QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED;
+    Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded = BufferLengthNeeded;
+
+    QuicTraceLogStreamVerbose(
+        StreamNotifyInsufficientRecvBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+        Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
+
+    (void)QuicStreamIndicateEvent(Stream, &Event);
 }

@@ -170,9 +170,16 @@ The application regains full ownership of a buffer after it get a receive notifi
 If the application accepts all the buffer's bytes **inline** from the receive notification, by returning `QUIC_STATUS_SUCCESS` and setting `TotalBufferLength` appropriately,
 it can free or reuse the buffer while in the notification handler.
 
+If more data is received on the stream than buffer space was provided by the application, MsQuic will emit a `QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED` notification.
+When receiving this notification, the app can:
+- provide a sufficient amount of buffer space **inline** from the callback using [`StreamProvideReceiveBuffers`](./api/StreamProvideReceiveBuffers.md)
+- shutdown the stream receive direction of the stream **inline** by calling [`StreamShutdown`](api/StreamShutdown.md) with the `QUIC_STREAM_SHUTDOWN_FLAG_INLINE` flag
+
+When the callback returns, if the stream has not been shutdown and a sufficient amount of memory is not available, the connection is closed abortively.
+Providing memory in reaction to `QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED` can impact performances negatively.
+
 For an application, providing receive buffers can improve performances by saving a copy: MsQuic places data directly in its final destination.
-However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control:
-an application providing too much or too little buffer space could negatively impact performances.
+However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control: an application providing too much or too little buffer space could negatively impact performances.
 Because of this, app-owned mode should be considered an advanced feature and used with caution.
 
 > **Note**: As of now, app-owned buffer mode is not compatible with multi-receive mode. If multi-receive mode is enabled for the connection and app-owned mode is enabled on a stream, that specific stream will behave as if multi-receive mode was disabled. This may change in the future.

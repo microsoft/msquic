@@ -1515,8 +1515,8 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
         break;
 
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersOutOfSpace());
         break;
 
     case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:

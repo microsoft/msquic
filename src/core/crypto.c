@@ -1234,7 +1234,7 @@ QuicCryptoProcessDataFrame(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    uint64_t FlowControlLimit = UINT16_MAX;
+    uint64_t FlowControlQuota = UINT16_MAX;
     uint32_t EncLevelOffset = 0;
 
     *DataReady = FALSE;
@@ -1292,14 +1292,18 @@ QuicCryptoProcessDataFrame(
         // Write the received data (could be duplicate) to the stream buffer. The
         // stream buffer will indicate if there is data to process.
         //
+        uint64_t BufferSizeNeeded = 0;
         Status =
             QuicRecvBufferWrite(
                 &Crypto->RecvBuffer,
                 EncLevelOffset + Frame->Offset,
                 (uint16_t)Frame->Length,
                 Frame->Data,
-                &FlowControlLimit,
-                DataReady);
+                FlowControlQuota,
+                &FlowControlQuota,
+                DataReady,
+                &BufferSizeNeeded);
+        CXPLAT_DBG_ASSERT(BufferSizeNeeded == 0);
         if (QUIC_FAILED(Status)) {
             if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
                 QuicTraceEvent(

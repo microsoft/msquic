@@ -1056,3 +1056,16 @@ QuicStreamProvideRecvBuffers(
     _In_ QUIC_STREAM* Stream,
     _Inout_ CXPLAT_LIST_ENTRY* /* QUIC_RECV_CHUNK */ Chunks
     );
+
+//
+// Notifies the app that the receive buffer is too small to hold the
+// incoming data.
+// The app can increase the buffer size or shutdown the stream inline
+// as a reaction. Only for app-owned buffering mode.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamNotifyReceiveBufferNeeded(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLengthNeeded
+    );

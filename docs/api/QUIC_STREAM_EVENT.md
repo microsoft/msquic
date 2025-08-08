@@ -17,6 +17,9 @@ typedef enum QUIC_STREAM_EVENT_TYPE {
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
     QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED = 11,
+#endif
 } QUIC_STREAM_EVENT_TYPE;
 ```
 
@@ -69,6 +72,11 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             /* out */ QUIC_UINT62 ErrorCode;
         } CANCEL_ON_LOSS;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            /* in */  uint64_t BufferLengthNeeded;
+        } RECEIVE_BUFFER_NEEDED;
+#endif
     };
 } QUIC_STREAM_EVENT;
 ```
@@ -260,6 +268,23 @@ The application can supply an error code in this struct to be sent to the peer.
 `ErrorCode`
 
 The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a `QUIC_STREAM_EVENT_PEER_SEND_ABORTED` event on its stream object.
+
+## QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED
+
+This event is raised when a stream using app-provided receive buffers runs out of receive buffer space.
+
+`BufferLengthNeeded`
+
+The number of bytes MsQuic needs to be able to store the received data.
+
+When receiving this notification, the app can:
+- provide a sufficient amount of buffer space **inline** from the callback using [`StreamProvideReceiveBuffers`](./StreamProvideReceiveBuffers.md)
+- shutdown the stream receive direction of the stream **inline** by calling [`StreamShutdown`](./StreamShutdown.md)
+    with the `QUIC_STREAM_SHUTDOWN_FLAG_INLINE` flag
+
+Otherwise, the connection will be closed abortively.
+
+See [App-Owned Buffer Mode](../Streams.md#App-Owned_Buffer_Mode) for further details.
 
 # See Also
 
