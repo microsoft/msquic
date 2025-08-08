@@ -587,6 +587,9 @@ protected:
             if (Context->ReceivedSessionTicket.Buffer == nullptr) {
                 Context->ReceivedSessionTicket.Buffer = // N.B - Add one so we don't ever allocate zero bytes.
                     (uint8_t*)CXPLAT_ALLOC_NONPAGED(TicketLength+1, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
+                if (Context->ReceivedSessionTicket.Buffer == nullptr) {
+                    return FALSE;
+                }
                 Context->ReceivedSessionTicket.Length = TicketLength;
                 if (TicketLength != 0) {
                     CxPlatCopyMemory(
