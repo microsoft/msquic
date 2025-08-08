@@ -509,7 +509,7 @@ function Get-LatencyOutput {
 function Is-TcpSupportedByIo {
     param ($Io)
 
-    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk"
+    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk" -and $Io -ne "iouring"
 }
 
 # Invokes secnetperf with the given arguments for both TCP and QUIC.

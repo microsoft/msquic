@@ -42,6 +42,10 @@ if ($Command.Contains("epoll")) {
     $io = "epoll"
 }
 
+if ($Command.Contains("iouring")) {
+    $io = "iouring"
+}
+
 if ($Command.Contains("xdp")) {
     $io = "xdp"
 }
