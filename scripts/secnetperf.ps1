@@ -277,13 +277,7 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
-Write-Host "Preparing local machine for testing"
-./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
-
-Write-Host "Preparing peer machine for testing"
-Invoke-Command -Session $Session -ScriptBlock {
-    & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
-}
+Prepare-MachineForTest
 
 if ($isWindows -and !($environment -eq "azure")) {
     $HasTestSigning = $false

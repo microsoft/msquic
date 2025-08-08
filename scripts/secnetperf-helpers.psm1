@@ -132,6 +132,23 @@ function Wait-DriverStarted {
     throw "$DriverName failed to start!"
 }
 
+function Prepare-MachineForTest {
+    param ($Session, $RemoteDir)
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates on peer"
+
+    if ($Session -eq "NOT_SUPPORTED") {
+        NetperfSendCommand "Prepare_MachineForTest"
+        NetperfWaitServerFinishExecution
+        return
+    }
+
+    Invoke-Command -Session $Session -ScriptBlock {
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -ForTest -InstallSigningCertificates
+    }
+}
+
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
