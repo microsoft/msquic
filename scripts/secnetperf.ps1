@@ -277,19 +277,18 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
-    Write-Host "Preparing local machine for testing"
-    ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
+Write-Host "Preparing local machine for testing"
+./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
 
-    Write-Host "Preparing peer machine for testing"
-    Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
-    }
+Write-Host "Preparing peer machine for testing"
+Invoke-Command -Session $Session -ScriptBlock {
+    & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
+}
 
-    if ($isWindows -and !($environment -eq "azure")) {
-        $HasTestSigning = $false
-        try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
-        if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
-    }
+if ($isWindows -and !($environment -eq "azure")) {
+    $HasTestSigning = $false
+    try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
+    if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
 }
 
 # Install any dependent drivers.
