@@ -3562,3 +3562,9 @@ Error:
 
     return QUIC_SUCCEEDED(Status);
 }
+
+BOOLEAN
+CxPlatSupports1Rtt()
+{
+    return TRUE;
+}
