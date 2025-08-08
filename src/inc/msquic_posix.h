@@ -522,7 +522,43 @@ QuicAddrToString(
 // Event Queue Abstraction
 //
 
-#if __linux__ // epoll
+#if __linux__
+
+//
+// TODO: build on other 64-bit architectures
+//
+#if CXPLAT_USE_IO_URING && defined(__x86_64__) // liburing
+#define LIBURING_INTERNAL
+
+#if defined(__cplusplus)
+extern "C++" {
+#endif
+#include <liburing.h>
+#if defined(__cplusplus)
+} // extern "C++"
+#endif
+
+typedef struct CXPLAT_EVENTQ QUIC_EVENTQ;
+typedef struct io_uring_cqe* CXPLAT_CQE;
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_COMPLETION)(
+    _In_ CXPLAT_CQE* Cqe
+    );
+typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+#define CXPLAT_USE_EVENT_BATCH_COMPLETION
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_BATCH_COMPLETION)(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    );
+typedef CXPLAT_EVENT_BATCH_COMPLETION *CXPLAT_EVENT_BATCH_COMPLETION_HANDLER;
+typedef struct CXPLAT_SQE QUIC_SQE;
+
+#else // epoll
 
 #include <sys/epoll.h>
 #include <sys/eventfd.h>
@@ -542,6 +578,8 @@ typedef struct QUIC_SQE {
     int fd;
     QUIC_EVENT_COMPLETION_HANDLER Completion;
 } QUIC_SQE;
+
+#endif // epoll
 
 #elif __APPLE__ || __FreeBSD__ // kqueue
 

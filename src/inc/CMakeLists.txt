@@ -9,7 +9,7 @@ target_compile_options(inc INTERFACE ${QUIC_C_FLAGS})
 target_compile_options(inc INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(inc INTERFACE ${QUIC_COMMON_DEFINES})
-target_include_directories(inc INTERFACE 
+target_include_directories(inc INTERFACE
     $<BUILD_INTERFACE:${QUIC_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -37,6 +37,10 @@ endif()
 
 if (NUMA)
     target_link_libraries(base_link INTERFACE ${NUMA})
+endif()
+
+if (LIBURING)
+    target_link_libraries(base_link INTERFACE ${LIBURING})
 endif()
 
 if(WIN32)
