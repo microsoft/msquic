@@ -19,7 +19,7 @@ This works with OpenSSL TLS Provider. It can also be used for Windows OpenSSL, h
 
 
 ## Start the server
-Locate the executable quicsample.exe or quicsample under your `artifacts/bin` directory under repo root. Start the server providing the thumbrint obtained in the previous step.
+Locate the executable quicsample.exe or quicsample under your `artifacts/bin` directory under repo root. Start the server providing the certificate and key obtained in the previous step.
 
 ```Powershell
 quicsample -server -cert_file:path/to/server.cert -key_file path/to/server.key
