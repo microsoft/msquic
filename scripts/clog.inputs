@@ -3,6 +3,7 @@
 ../src/platform/crypt.c
 ../src/platform/datapath_winkernel.c
 ../src/platform/datapath_epoll.c
+../src/platform/datapath_iouring.c
 ../src/platform/tls_schannel.c
 ../src/platform/selfsign_capi.c
 ../src/platform/cert_capi.c

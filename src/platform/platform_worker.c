@@ -684,15 +684,37 @@ CxPlatProcessEvents(
             Cqes,
             ARRAYSIZE(Cqes),
             Worker->State.WaitTime);
+    uint32_t CurrentCqeCount = CqeCount;
+    CXPLAT_CQE* CurrentCqe = Cqes;
+
+#if DEBUG && defined(CXPLAT_USE_IO_URING)
+    //
+    // On Ubuntu 24.04, at least, CQE addresses are not mapped into the
+    // debugger. To simplify debugging, copy the CQE contents into the stack
+    // address space.
+    //
+    struct io_uring_cqe IoCqes[ARRAYSIZE(Cqes)];
+    for (uint32_t i = 0; i < CqeCount; i++) {
+        IoCqes[i] = *Cqes[i];
+    }
+    UNREFERENCED_PARAMETER(IoCqes);
+#endif
+
     InterlockedFetchAndSetBoolean(&Worker->Running);
     if (CqeCount != 0) {
 #if DEBUG // Debug statistics
         Worker->CqeCount += CqeCount;
 #endif
         Worker->State.NoWorkCount = 0;
-        for (uint32_t i = 0; i < CqeCount; ++i) {
-            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqes[i]);
-            Sqe->Completion(&Cqes[i]);
+        while (CurrentCqeCount > 0) {
+            CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(CurrentCqe);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
+            Sqe->Completion(&CurrentCqe, &CurrentCqeCount);
+#else
+            Sqe->Completion(CurrentCqe);
+            CurrentCqe++;
+            CurrentCqeCount--;
+#endif
         }
         CxPlatEventQReturn(&Worker->EventQ, CqeCount);
     }
