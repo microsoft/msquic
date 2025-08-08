@@ -99,13 +99,17 @@
 </code></pre>
 <p>This works with OpenSSL TLS Provider. It can also be used for Windows OpenSSL, however we recommend the certificate store method above for ease of use. Currently key files with password protections are not supported. With these files, they can be passed to the sample server with <code>-cert_file:path/to/server.cert</code> and <code>-key_file path/to/server.key</code> parameters.</p>
 <h2 id="start-the-server">Start the server</h2>
-<p>Locate the quicsample.exe under your <code>artifacts/bin</code> directory under repo root. Start the server providing the thumbrint obtained in the previous step.</p>
-<pre><code class="lang-Powershell">quicsample.exe -server -cert_hash:FAF9B176D64930D67C372CB456BAD38E7E5689F7
+<p>Locate the executable quicsample.exe or quicsample under your <code>artifacts/bin</code> directory under repo root. Start the server providing the certificate and key obtained in the previous step.
+On Windows, certificate hash can be used to load from certficate store:</p>
+<pre><code>quicsample.exe -server -cert_hash:FAF9B176D64930D67C372CB456BAD38E7E5689F7
+</code></pre>
+<p>On Linux, file paths can be used to load server credential:</p>
+<pre><code>quicsample -server -cert_file:path/to/server.cert -key_file:path/to/server.key
 </code></pre>
 <p>By default, the server listens on port 4567.</p>
 <h2 id="start-the-client">Start the client</h2>
 <p>Start the client providing the IP address for the server. Here 127.0.0.1 is used as an example.</p>
-<pre><code class="lang-Powershell">quicsample.exe -client -unsecure -target:127.0.0.1
+<pre><code class="lang-Powershell">quicsample -client -unsecure -target:127.0.0.1
 </code></pre>
 <h2 id="troubleshooting-with-wireshark">Troubleshooting with Wireshark</h2>
 <p>When running the client you can set the environment variable <code>SSLKEYLOGFILE</code> to the absolute path of the file that will receive the TLS secrets. Learn how to load such file inside Wireshark and see what is being transmitted on the wire: <a href="https://wiki.wireshark.org/TLS#using-the-pre-master-secret">Using the (Pre)-Master-Secret</a></p>
