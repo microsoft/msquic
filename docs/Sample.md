@@ -22,7 +22,7 @@ This works with OpenSSL TLS Provider. It can also be used for Windows OpenSSL, h
 Locate the executable quicsample.exe or quicsample under your `artifacts/bin` directory under repo root. Start the server providing the certificate and key obtained in the previous step.
 
 ```Powershell
-quicsample -server -cert_file:path/to/server.cert -key_file path/to/server.key
+quicsample -server -cert_file:path/to/server.cert -key_file:path/to/server.key
 ```
 By default, the server listens on port 4567.
 
