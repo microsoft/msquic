@@ -4170,14 +4170,18 @@ QuicTestConnectionPoolCreate(
         QuicAddrSetToDuoNic(&ServerAddr.SockAddr);
     }
 
-    UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
-    TEST_NOT_EQUAL(nullptr, Connections);
-
+    //
+    // Make sure to create the connection contexts before the connections,
+    // to ensure they are not freed before the connection is closed.
+    //
     UniquePtrArray<ConnectionPoolConnectionContext> Contexts(new(std::nothrow) ConnectionPoolConnectionContext[NumberOfConnections]);
     TEST_NOT_EQUAL(nullptr, Contexts);
 
     UniquePtrArray<ConnectionPoolConnectionContext*> ContextPtrs(new(std::nothrow) ConnectionPoolConnectionContext*[NumberOfConnections]);
     TEST_NOT_EQUAL(nullptr, ContextPtrs);
+
+    UniquePtrArray<ConnectionScope> Connections(new(std::nothrow) ConnectionScope[NumberOfConnections]);
+    TEST_NOT_EQUAL(nullptr, Connections);
 
     for (uint32_t i = 0; i < NumberOfConnections; ++i) {
         ContextPtrs[i] = &Contexts[i];
