@@ -90,7 +90,7 @@ jobs:
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with:
         name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts

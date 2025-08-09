@@ -58,7 +58,7 @@ jobs:
       with:
         fetch-depth: 0
     - name: Download Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -108,7 +108,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -154,7 +154,7 @@ jobs:
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
@@ -195,22 +195,22 @@ jobs:
       shell: pwsh
       run: |
         New-Item -ItemType Directory -Force -Path artifacts\coverage\windows\x64_Debug_quictls
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       name: Download BVT Coverage Results
       with:
         name: BVT-Debug-windows-windows-2022-x64-quictls
         path: artifacts\coverage\windows\x64_Debug_quictls
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       name: Download BVT (XDP) Coverage Results
       with:
         name: BVT-Debug-windows-windows-2022-x64-quictls-UseXdp
         path: artifacts\coverage\windows\x64_Debug_quictls
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       name: Download SpinQuic Coverage Results
       with:
         name: Spin-Debug-windows-windows-2022-x64-quictls
         path: artifacts\coverage\windows\x64_Debug_quictls
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       name: Download RecvFuzz Coverage Results
       with:
         name: RecvFuzz-Debug-windows-windows-2022-x64-quictls
@@ -235,7 +235,7 @@ jobs:
     steps:
     - name: Checkout repository
       uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
-    - uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       name: Download Merged Coverage Report
       with:
         name: merged
