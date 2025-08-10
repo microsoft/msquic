@@ -6,11 +6,10 @@
 // undef the macro type and define the enum type.
 // This is ugly here but makes Rust code aligned with c code.
 #undef QUIC_STATUS
-typedef enum QUIC_STATUS {
+
 #ifndef _WIN32
-// on posix all status code relies on the macro type so we redefine it.
-#define QUIC_STATUS unsigned int
-#endif
+// on posix, this enum already exists.
+typedef enum QUIC_STATUS {
     SUCCESS = QUIC_STATUS_SUCCESS,
     PENDING = QUIC_STATUS_PENDING,
     CONTINUE = QUIC_STATUS_CONTINUE,
@@ -46,8 +45,6 @@ typedef enum QUIC_STATUS {
     CERT_EXPIRED = QUIC_STATUS_CERT_EXPIRED,
     CERT_UNTRUSTED_ROOT = QUIC_STATUS_CERT_UNTRUSTED_ROOT,
     CERT_NO_CERT = QUIC_STATUS_CERT_NO_CERT
-#ifndef _WIN32
-// posix need to undef the redefine.
-#undef QUIC_STATUS
-#endif
+
+#endif // ifndef _WIN32
 } QUIC_STATUS;
