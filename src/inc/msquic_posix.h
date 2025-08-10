@@ -81,7 +81,7 @@ QUIC_INLINE ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (EN
 #define QUIC_MAIN_EXPORT
 #ifdef __cplusplus
 typedef int QUIC_STATUS;
-static inline
+constexpr
 bool
 QUIC_FAILED(
     _In_ QUIC_STATUS Status
