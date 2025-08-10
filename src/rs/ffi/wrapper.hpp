@@ -7,7 +7,7 @@
 // This is ugly here but makes Rust code aligned with c code.
 #undef QUIC_STATUS
 
-#ifndef _WIN32
+#ifdef _WIN32
 // on posix, this enum already exists.
 typedef enum QUIC_STATUS {
     SUCCESS = QUIC_STATUS_SUCCESS,
@@ -46,5 +46,5 @@ typedef enum QUIC_STATUS {
     CERT_UNTRUSTED_ROOT = QUIC_STATUS_CERT_UNTRUSTED_ROOT,
     CERT_NO_CERT = QUIC_STATUS_CERT_NO_CERT
 
-#endif // ifndef _WIN32
 } QUIC_STATUS;
+#endif // ifdef _WIN32
