@@ -90,7 +90,7 @@ QUIC_FAILED(
     return Status > 0;
 }
 
-static inline
+constexpr
 bool
 QUIC_SUCCEEDED(
     _In_ QUIC_STATUS Status
