@@ -978,7 +978,7 @@ Exit:
 
 BOOLEAN
 QuicSendCanSendStreamNow(
-    _In_ QUIC_STREAM* Stream
+    _In_ const QUIC_STREAM* Stream
     )
 {
     CXPLAT_DBG_ASSERT(Stream->SendFlags != 0);
@@ -1015,6 +1015,19 @@ QuicSendGetNextStream(
         //
 
         QUIC_STREAM* Stream = CXPLAT_CONTAINING_RECORD(Entry, QUIC_STREAM, SendLink);
+
+        if(Stream->Deadline < CxPlatTimeUs64()) {
+            QuicSendSetStreamSendFlag(Send, Stream, QUIC_STREAM_SEND_FLAG_RECV_ABORT, TRUE);
+            QuicSendSetStreamSendFlag(Send, Stream, QUIC_STREAM_SEND_FLAG_SEND_ABORT, FALSE);
+
+            QUIC_STREAM_EVENT Event;
+            Event.Type = QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE;
+            Event.CANCEL_ON_EXPIRED_DEADLINE.ErrorCode = 0;
+            (void) QuicStreamIndicateEvent(Stream, &Event);
+
+            QuicStreamShutdown(Stream, QUIC_STREAM_SHUTDOWN_FLAG_ABORT,
+                 Event.CANCEL_ON_EXPIRED_DEADLINE.ErrorCode);
+        }
 
         //
         // Make sure, given the current state of the connection and the stream,
@@ -1393,8 +1406,7 @@ QuicSendFlush(
             } else {
                 WrotePacketFrames = FALSE;
             }
-        } else if (Stream != NULL ||
-            (Stream = QuicSendGetNextStream(Send, &StreamPacketCount)) != NULL) {
+        } else if (Stream != NULL || (Stream = QuicSendGetNextStream(Send, &StreamPacketCount)) != NULL) {
             if (!QuicPacketBuilderPrepareForStreamFrames(
                     &Builder,
                     Send->TailLossProbeNeeded)) {

@@ -1591,6 +1591,30 @@ struct MsQuicStream {
     }
 
     MsQuicStream(
+        _In_ const MsQuicConnection& Connection,
+        _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+        _In_ QUIC_TIME_DIFF DeadlineInMs,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicStreamCallback* Callback = NoOpCallback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        if (!Connection.IsValid()) {
+            InitStatus = Connection.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->StreamOpenWithDeadline(
+                    Connection,
+                    Flags,
+                    (QUIC_STREAM_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
+                    &Handle, DeadlineInMs))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicStream(
         _In_ HQUIC StreamHandle,
         _In_ MsQuicCleanUpMode CleanUpMode,
         _In_ MsQuicStreamCallback* Callback = NoOpCallback,

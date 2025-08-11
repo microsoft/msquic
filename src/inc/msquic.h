@@ -54,6 +54,10 @@ typedef struct QUIC_HANDLE *HQUIC;
 //
 typedef _In_range_(0, QUIC_UINT62_MAX) uint64_t QUIC_UINT62;
 
+typedef uint64_t QUIC_TIME_POINT;
+typedef uint64_t QUIC_TIME_DIFF;
+#define QUIC_TIME_POINT_INFINITE ((QUIC_TIME_POINT)-1)
+
 //
 // An ALPN must not exceed 255 bytes, and must not be zero-length.
 //
@@ -1532,18 +1536,21 @@ QUIC_STATUS
 //
 
 typedef enum QUIC_STREAM_EVENT_TYPE {
-    QUIC_STREAM_EVENT_START_COMPLETE            = 0,
-    QUIC_STREAM_EVENT_RECEIVE                   = 1,
-    QUIC_STREAM_EVENT_SEND_COMPLETE             = 2,
-    QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN        = 3,
-    QUIC_STREAM_EVENT_PEER_SEND_ABORTED         = 4,
-    QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED      = 5,
-    QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE    = 6,
-    QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE         = 7,
-    QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
-    QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
-    QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
+    QUIC_STREAM_EVENT_START_COMPLETE             = 0,
+    QUIC_STREAM_EVENT_RECEIVE                    = 1,
+    QUIC_STREAM_EVENT_SEND_COMPLETE              = 2,
+    QUIC_STREAM_EVENT_PEER_SEND_SHUTDOWN         = 3,
+    QUIC_STREAM_EVENT_PEER_SEND_ABORTED          = 4,
+    QUIC_STREAM_EVENT_PEER_RECEIVE_ABORTED       = 5,
+    QUIC_STREAM_EVENT_SEND_SHUTDOWN_COMPLETE     = 6,
+    QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE          = 7,
+    QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE     = 8,
+    QUIC_STREAM_EVENT_PEER_ACCEPTED              = 9,
+    QUIC_STREAM_EVENT_CANCEL_ON_LOSS             = 10,
+    QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE = 11
 } QUIC_STREAM_EVENT_TYPE;
+
+#define QUIC_STREAM_EVENT_CANCEL_ON_EXPIRED_DEADLINE_ERROR_CODE 0
 
 typedef struct QUIC_STREAM_EVENT {
     QUIC_STREAM_EVENT_TYPE Type;
@@ -1591,6 +1598,9 @@ typedef struct QUIC_STREAM_EVENT {
         struct {
             /* out */ QUIC_UINT62 ErrorCode;
         } CANCEL_ON_LOSS;
+        struct {
+            /* out */ QUIC_UINT62 ErrorCode;
+        } CANCEL_ON_EXPIRED_DEADLINE;
     };
 } QUIC_STREAM_EVENT;
 
@@ -1619,6 +1629,19 @@ QUIC_STATUS
     _In_opt_ void* Context,
     _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC* Stream
+    );
+
+typedef
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+(QUIC_API * QUIC_STREAM_OPEN_WITH_DEADLINE_FN)(
+    _In_ _Pre_defensive_ HQUIC Connection,
+    _In_ QUIC_STREAM_OPEN_FLAGS Flags,
+    _In_ _Pre_defensive_ QUIC_STREAM_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*Stream, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC* Stream,
+    _In_ QUIC_TIME_DIFF MsToDeadline
     );
 
 //
@@ -1815,6 +1838,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONNECTION_SEND_RESUMPTION_FN  ConnectionSendResumptionTicket;
 
     QUIC_STREAM_OPEN_FN                 StreamOpen;
+    QUIC_STREAM_OPEN_WITH_DEADLINE_FN   StreamOpenWithDeadline;
     QUIC_STREAM_CLOSE_FN                StreamClose;
     QUIC_STREAM_START_FN                StreamStart;
     QUIC_STREAM_SHUTDOWN_FN             StreamShutdown;
