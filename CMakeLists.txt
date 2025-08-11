@@ -287,6 +287,12 @@ else()
             set(QUIC_LOGGING_TYPE "lttng")
             message(STATUS "Choosing lttng as default logging type for platform")
         endif()
+        
+        if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$")
+            set(QUIC_LINUX_XDP_ENABLED OFF CACHE BOOL "XDP not supported on ARM architectures" FORCE)
+        else()
+            option(QUIC_LINUX_XDP_ENABLED "Enables XDP support" OFF)
+        endif()
 
     elseif(CX_PLATFORM STREQUAL "darwin")
         check_function_exists(sysctl HAS_SYSCTL)
