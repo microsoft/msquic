@@ -122,8 +122,9 @@ struct RecvBuffer {
     QUIC_STATUS Write(
         _In_ uint64_t WriteOffset,
         _In_ uint16_t WriteLength,
-        _Inout_ uint64_t* WriteLimit,
-        _Out_ BOOLEAN* NewDataReady
+        _Inout_ uint64_t* WriteQuota,
+        _Out_ BOOLEAN* NewDataReady,
+        _Out_ uint64_t* BufferSizeNeeded = NULL
         ) {
         auto BufferToWrite = new (std::nothrow) uint8_t[WriteLength];
         memset(BufferToWrite, 0, WriteLength); // Zero out the buffer (for debugging purposes)
@@ -132,7 +133,24 @@ struct RecvBuffer {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
         }
         printf("Write: Offset=%llu, Length=%u\n", (unsigned long long)WriteOffset, WriteLength);
-        auto Status = QuicRecvBufferWrite(&RecvBuf, WriteOffset, WriteLength, BufferToWrite, WriteLimit, NewDataReady);
+        uint64_t SizeNeeded = 0;
+        uint64_t QuotaConsumed = 0;
+        auto Status =
+            QuicRecvBufferWrite(
+                &RecvBuf,
+                WriteOffset,
+                WriteLength,
+                BufferToWrite,
+                *WriteQuota,
+                &QuotaConsumed,
+                NewDataReady,
+                &SizeNeeded);
+        if (QUIC_SUCCEEDED(Status)) {
+            *WriteQuota = QuotaConsumed;
+        }
+        if (BufferSizeNeeded != NULL) {
+            *BufferSizeNeeded = SizeNeeded;
+        }
         delete [] BufferToWrite;
         Dump();
         return Status;
@@ -1072,14 +1090,24 @@ TEST_P(WithMode, IncreaseVirtualLength)
     constexpr auto WriteLength = 2 * DEF_TEST_BUFFER_LENGTH;
     uint64_t InOutWriteLength = WriteLength;
     BOOLEAN NewDataReady = FALSE;
+    uint64_t BufferSizeNeeded = 0;
 
-    ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady));
+    auto Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady, &BufferSizeNeeded);
+    ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, Status);
 
-    if (Mode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        RecvBuf.IncreaseVirtualBufferLength(WriteLength);
+    // The limitation was the control flow limit, not the buffer size
+    ASSERT_EQ(BufferSizeNeeded, 0);
 
-        auto Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady);
+    RecvBuf.IncreaseVirtualBufferLength(WriteLength);
+
+    Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady, &BufferSizeNeeded);
+
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+        ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, Status);
+        ASSERT_EQ(BufferSizeNeeded, WriteLength - DEF_TEST_BUFFER_LENGTH);
+    } else {
         ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
+        ASSERT_EQ(BufferSizeNeeded, 0);
     }
 }
 
@@ -1834,6 +1862,32 @@ TEST(AppOwnedBuffersTest, ProvideChunksOverflow)
     ASSERT_FALSE(CxPlatListIsEmpty(&ChunkList));
 
     RecvBuf.FreeChunkList(ChunkList);
+}
+
+TEST(AppOwnedBuffersTest, ProvideChunksVitualBufferLengthGrowth)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
+    ASSERT_EQ(0, RecvBuf.RecvBuf.VirtualBufferLength);
+
+    // The virtual buffer length grow to match the provided memory size.
+    std::array<uint8_t, 16> Buffer{};
+    std::vector ChunkSizes{8u, 8u};
+    CXPLAT_LIST_ENTRY ChunkList;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
+
+    ASSERT_EQ(16, RecvBuf.RecvBuf.VirtualBufferLength);
+
+    // The virtual buffer length doesn't grow if it is already larger than the total memory size
+    RecvBuf.IncreaseVirtualBufferLength(42);
+
+    std::array<uint8_t, 16> Buffer2{};
+    std::vector ChunkSizes2{8u, 8u};
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes2, Buffer2.size(), Buffer2.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
+
+    ASSERT_EQ(42, RecvBuf.RecvBuf.VirtualBufferLength);
 }
 
 TEST(AppOwnedBuffersTest, PartialDrain)
