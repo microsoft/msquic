@@ -626,7 +626,7 @@ QuicTestEcn(
 void QuicTestStreamAppProvidedBuffers(
     );
 
-void QuicTestStreamAppProvidedBuffersZeroWindow(
+void QuicTestStreamAppProvidedBuffersOutOfSpace(
     );
 
 //
@@ -1379,7 +1379,7 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
     QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE \
     QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE \
