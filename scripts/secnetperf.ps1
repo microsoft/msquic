@@ -277,12 +277,22 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
-Prepare-MachineForTest $Session $RemoteDir
+    # TODO: Running the prepare-machine script on the linux lab machine is running into quite a few snags currently.
+    # PROBLEM: We don't copy over the entire repo via remote powershell (should we?) so "git submodule init..." commands fail.
+    #          Windows lab does not have this problem because prepare-machine does not run any of that on Windows.
+    if (!(!$IsWindows -and -$environment -eq "lab")) {
+        Prepare-MachineForTest $Session $RemoteDir
+    }
 
 if ($isWindows -and !($environment -eq "azure")) {
     $HasTestSigning = $false
     try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
+}
+
+if (!($Session -eq "NOT_SUPPORTED")) {
+    # Configure the dump collection.
+    Configure-DumpCollection $Session
 }
 
 # Install any dependent drivers.
