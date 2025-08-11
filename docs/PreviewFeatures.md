@@ -1,4 +1,4 @@
-GPreview features
+Preview features
 =========
 > [!IMPORTANT]
 >
