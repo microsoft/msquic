@@ -198,9 +198,16 @@ There is no guarantee the <code>QUIC_BUFFER</code>s indicated in a receive notif
 The application regains full ownership of a buffer after it get a receive notification for all bytes in the buffer and accept them by calling <a href="api/StreamReceiveComplete.html">StreamReceiveComplete</a>.
 If the application accepts all the buffer's bytes <strong>inline</strong> from the receive notification, by returning <code>QUIC_STATUS_SUCCESS</code> and setting <code>TotalBufferLength</code> appropriately,
 it can free or reuse the buffer while in the notification handler.</p>
+<p>If more data is received on the stream than buffer space was provided by the application, MsQuic will emit a <code>QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED</code> notification.
+When receiving this notification, the app can:</p>
+<ul>
+<li>provide a sufficient amount of buffer space <strong>inline</strong> from the callback using <a href="api/StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a></li>
+<li>shutdown the stream receive direction of the stream <strong>inline</strong> by calling <a href="api/StreamShutdown.html"><code>StreamShutdown</code></a> with the <code>QUIC_STREAM_SHUTDOWN_FLAG_INLINE</code> flag</li>
+</ul>
+<p>When the callback returns, if the stream has not been shutdown and a sufficient amount of memory is not available, the connection is closed abortively.
+Providing memory in reaction to <code>QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED</code> can impact performances negatively.</p>
 <p>For an application, providing receive buffers can improve performances by saving a copy: MsQuic places data directly in its final destination.
-However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control:
-an application providing too much or too little buffer space could negatively impact performances.
+However, it comes with a large complexity overhead for the application, both in term of memory management and in term of flow control: an application providing too much or too little buffer space could negatively impact performances.
 Because of this, app-owned mode should be considered an advanced feature and used with caution.</p>
 <blockquote>
 <p><strong>Note</strong>: As of now, app-owned buffer mode is not compatible with multi-receive mode. If multi-receive mode is enabled for the connection and app-owned mode is enabled on a stream, that specific stream will behave as if multi-receive mode was disabled. This may change in the future.</p>

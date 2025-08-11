@@ -107,8 +107,11 @@ QUIC_STATUS
 <li><code>Buffers</code>: An array of <code>QUIC_BUFFER</code>s pointing to the memory buffers</li>
 </ul>
 <h1 id="remarks">Remarks</h1>
-<p>This is an asynchronous API but it can run inline if called in a callback.
-If called inline when handling a <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> event, it will convert the stream to app-owned buffer mode.</p>
+<p>This is an asynchronous API but it can run inline if called in a callback.</p>
+<p>If called inline when handling a <code>QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED</code> event, it will convert
+the stream to app-owned buffer mode.</p>
+<p>If called inline when handling a <code>QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED</code> event, the provided
+memory buffers will be used to store the received data.</p>
 <h1 id="see-also">See also</h1>
 <p><a href="../Streams.html">Streams</a><br>
 <a href="StreamOpen.html">StreamOpen</a><br>

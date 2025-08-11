@@ -101,6 +101,9 @@
     QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE    = 8,
     QUIC_STREAM_EVENT_PEER_ACCEPTED             = 9,
     QUIC_STREAM_EVENT_CANCEL_ON_LOSS            = 10,
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED = 11,
+#endif
 } QUIC_STREAM_EVENT_TYPE;
 </code></pre>
 <p>The payload for QUIC stream events.</p>
@@ -150,6 +153,11 @@
         struct {
             /* out */ QUIC_UINT62 ErrorCode;
         } CANCEL_ON_LOSS;
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        struct {
+            /* in */  uint64_t BufferLengthNeeded;
+        } RECEIVE_BUFFER_NEEDED;
+#endif
     };
 } QUIC_STREAM_EVENT;
 </code></pre>
@@ -271,6 +279,18 @@ Client context to match this event with the original <code>StreamSend</code> ope
 <p>The application can supply an error code in this struct to be sent to the peer.</p>
 <p><code>ErrorCode</code></p>
 <p>The application can set this 62 bit error code to communicate to the peer about the stream shutdown, which is received by the peer as a <code>QUIC_STREAM_EVENT_PEER_SEND_ABORTED</code> event on its stream object.</p>
+<h2 id="quic_stream_event_receive_buffer_needed">QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED</h2>
+<p>This event is raised when a stream using app-provided receive buffers runs out of receive buffer space.</p>
+<p><code>BufferLengthNeeded</code></p>
+<p>The number of bytes MsQuic needs to be able to store the received data.</p>
+<p>When receiving this notification, the app can:</p>
+<ul>
+<li>provide a sufficient amount of buffer space <strong>inline</strong> from the callback using <a href="StreamProvideReceiveBuffers.html"><code>StreamProvideReceiveBuffers</code></a></li>
+<li>shutdown the stream receive direction of the stream <strong>inline</strong> by calling <a href="StreamShutdown.html"><code>StreamShutdown</code></a>
+with the <code>QUIC_STREAM_SHUTDOWN_FLAG_INLINE</code> flag</li>
+</ul>
+<p>Otherwise, the connection will be closed abortively.</p>
+<p>See <a href="../Streams.html#App-Owned_Buffer_Mode">App-Owned Buffer Mode</a> for further details.</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="../Streams.html">Streams</a><br>
 <a href="StreamOpen.html">StreamOpen</a><br>
