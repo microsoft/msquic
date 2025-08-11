@@ -1326,6 +1326,71 @@ QuicTimestampFrameDecode(
     return TRUE;
 }
 
+_Success_(return != FALSE)
+BOOLEAN
+QuicStreamStatisticsFrameEncode(
+    _In_ const QUIC_STREAM_STATISTICS_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset) uint8_t* Buffer
+    )
+{
+    uint16_t RequiredLength =
+        QuicVarIntSize(QUIC_FRAME_STREAM_STATISTICS) + // Type
+        QuicVarIntSize(Frame->StreamID) +
+        QuicVarIntSize(Frame->ConnBlockedBySchedulingUs) +
+        QuicVarIntSize(Frame->ConnBlockedByPacingUs) +
+        QuicVarIntSize(Frame->ConnBlockedByAmplificationProtUs) +
+        QuicVarIntSize(Frame->ConnBlockedByCongestionControlUs) +
+        QuicVarIntSize(Frame->ConnBlockedByFlowControlUs) +
+        QuicVarIntSize(Frame->StreamBlockedByIdFlowControlUs) +
+        QuicVarIntSize(Frame->StreamBlockedByFlowControlUs) +
+        QuicVarIntSize(Frame->StreamBlockedByAppUs);
+
+    if (BufferLength < *Offset + RequiredLength) {
+        return FALSE;
+    }
+
+    Buffer = Buffer + *Offset;
+    Buffer = QuicVarIntEncode(QUIC_FRAME_STREAM_STATISTICS, Buffer);
+    Buffer = QuicVarIntEncode(Frame->StreamID, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ConnBlockedBySchedulingUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ConnBlockedByPacingUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ConnBlockedByAmplificationProtUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ConnBlockedByCongestionControlUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->ConnBlockedByFlowControlUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->StreamBlockedByIdFlowControlUs, Buffer);
+    Buffer = QuicVarIntEncode(Frame->StreamBlockedByFlowControlUs, Buffer);
+    QuicVarIntEncode(Frame->StreamBlockedByAppUs, Buffer);
+    *Offset += RequiredLength;
+
+    return TRUE;
+}
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicStreamStatisticsFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_STREAM_STATISTICS_EX* Frame
+    )
+{
+    if (!QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamID) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ConnBlockedBySchedulingUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ConnBlockedByPacingUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ConnBlockedByAmplificationProtUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ConnBlockedByCongestionControlUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->ConnBlockedByFlowControlUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamBlockedByIdFlowControlUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamBlockedByFlowControlUs) ||
+        !QuicVarIntDecode(BufferLength, Buffer, Offset, &Frame->StreamBlockedByAppUs)) {
+        return FALSE;
+    }
+    return TRUE;
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicFrameLog(
@@ -2005,6 +2070,28 @@ QuicFrameLog(
             Frame.ErrorCode,
             Frame.FinalSize,
             Frame.ReliableSize);
+        break;
+    }
+
+    case QUIC_FRAME_STREAM_STATISTICS: {
+        QUIC_STREAM_STATISTICS_EX Frame;
+        if (!QuicStreamStatisticsFrameDecode(PacketLength, Packet, Offset, &Frame)) {
+            QuicTraceLogVerbose(
+                FrameLogStreamStatisticsInvalid,
+                "[%c][%cX][%llu]   STREAM_STATISTICS [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+            return FALSE;
+        }
+
+        QuicTraceLogVerbose(
+            FrameLogStreamStatistics,
+            "[%c][%cX][%llu]   STREAM_STATISTICS ID:%llu ...",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.StreamID);
         break;
     }
 

@@ -673,6 +673,25 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPTimestamp,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeTPStreamStatistics
+// [conn][%p] TP: Stream Statistics
+// QuicTraceLogConnVerbose(
+            EncodeTPStreamStatistics,
+            Connection,
+            "TP: Stream Statistics");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, EncodeTPStreamStatistics,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for EncodeTPTest
 // [conn][%p] TP: TEST TP (Type %hu, Length %hu)
 // QuicTraceLogConnVerbose(
@@ -1292,6 +1311,25 @@ TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPGreaseQuicBit,
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPReliableReset,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeTPStreamStatistics
+// [conn][%p] TP: Stream Statistics
+// QuicTraceLogConnVerbose(
+                DecodeTPStreamStatistics,
+                Connection,
+                "TP: Stream Statistics");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CRYPTO_TLS_C, DecodeTPStreamStatistics,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(

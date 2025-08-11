@@ -704,6 +704,23 @@ QuicStreamRecv(
         break;
     }
 
+    case QUIC_FRAME_STREAM_STATISTICS: {
+        QUIC_STREAM_STATISTICS_EX Frame;
+        if (!QuicStreamStatisticsFrameDecode(BufferLength, Buffer, Offset, &Frame)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        Stream->PeerStreamStats.ConnBlockedBySchedulingUs = Frame.ConnBlockedBySchedulingUs;
+        Stream->PeerStreamStats.ConnBlockedByPacingUs = Frame.ConnBlockedByPacingUs;
+        Stream->PeerStreamStats.ConnBlockedByAmplificationProtUs = Frame.ConnBlockedByAmplificationProtUs;
+        Stream->PeerStreamStats.ConnBlockedByCongestionControlUs = Frame.ConnBlockedByCongestionControlUs;
+        Stream->PeerStreamStats.ConnBlockedByFlowControlUs = Frame.ConnBlockedByFlowControlUs;
+        Stream->PeerStreamStats.StreamBlockedByIdFlowControlUs = Frame.StreamBlockedByIdFlowControlUs;
+        Stream->PeerStreamStats.StreamBlockedByFlowControlUs = Frame.StreamBlockedByFlowControlUs;
+
+        break;
+    }
+
     default: // QUIC_FRAME_STREAM*
     {
         QUIC_STREAM_EX Frame;

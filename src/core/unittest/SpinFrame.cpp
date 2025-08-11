@@ -35,6 +35,7 @@ union QuicV1Frames {
     QUIC_ACK_FREQUENCY_EX AckFrequencyFrame;
     QUIC_RELIABLE_RESET_STREAM_EX ReliableResetStreamFrame;
     QUIC_TIMESTAMP_EX TimestampFrame;
+    QUIC_STREAM_STATISTICS_EX StreamStatisticsFrame;
 };
 
 TEST(SpinFrame, SpinFrame1000000)
@@ -236,6 +237,13 @@ TEST(SpinFrame, SpinFrame1000000)
                 break;
             case QUIC_FRAME_TIMESTAMP:
                 if (QuicTimestampFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.TimestampFrame)) {
+                    SuccessfulDecodes++;
+                } else {
+                    FailedDecodes++;
+                }
+                break;
+            case QUIC_FRAME_STREAM_STATISTICS:
+                if (QuicStreamStatisticsFrameDecode(BufferLength, Buffer, &Offset, &DecodedFrame.StreamStatisticsFrame)) {
                     SuccessfulDecodes++;
                 } else {
                     FailedDecodes++;

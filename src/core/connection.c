@@ -2306,7 +2306,8 @@ QuicConnGenerateLocalTransportParameters(
         QUIC_TP_FLAG_MAX_UDP_PAYLOAD_SIZE |
         QUIC_TP_FLAG_MAX_ACK_DELAY |
         QUIC_TP_FLAG_MIN_ACK_DELAY |
-        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT;
+        QUIC_TP_FLAG_ACTIVE_CONNECTION_ID_LIMIT |
+        QUIC_TP_FLAG_STREAM_STATISTICS;
 
     if (Connection->Settings.IdleTimeoutMs != 0) {
         LocalTP->Flags |= QUIC_TP_FLAG_IDLE_TIMEOUT;
@@ -3000,6 +3001,10 @@ QuicConnProcessPeerTransportParameters(
             (void) CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
+            Connection->Stats.StreamStatisticsNegotiated = TRUE;
         }
 
         if (Connection->Settings.ReliableResetEnabled) {
@@ -4680,7 +4685,8 @@ QuicConnRecvFrames(
         case QUIC_FRAME_STREAM_7:
         case QUIC_FRAME_MAX_STREAM_DATA:
         case QUIC_FRAME_STREAM_DATA_BLOCKED:
-        case QUIC_FRAME_RELIABLE_RESET_STREAM: {
+        case QUIC_FRAME_RELIABLE_RESET_STREAM:
+        case QUIC_FRAME_STREAM_STATISTICS: {
             if (Closed) {
                 if (!QuicStreamFrameSkip(
                         FrameType, PayloadLength, Payload, &Offset)) {
@@ -6873,6 +6879,7 @@ QuicConnGetV2Statistics(
     Stats->ResumptionSucceeded = Connection->Stats.ResumptionSucceeded;
     Stats->GreaseBitNegotiated = Connection->Stats.GreaseBitNegotiated;
     Stats->EncryptionOffloaded = Connection->Stats.EncryptionOffloaded;
+    Stats->StreamStatisticsNegotiated = Connection->Stats.StreamStatisticsNegotiated;
     Stats->EcnCapable = Path->EcnValidationState == ECN_VALIDATION_CAPABLE;
     Stats->Rtt = (uint32_t)Path->SmoothedRtt;
     Stats->MinRtt = (uint32_t)Path->MinRtt;
@@ -7470,6 +7477,10 @@ QuicConnApplyNewSettings(
             (void)CxPlatRandom(sizeof(RandomValue), &RandomValue);
             Connection->State.FixedBit = (RandomValue % 2);
             Connection->Stats.GreaseBitNegotiated = TRUE;
+        }
+
+        if (Connection->PeerTransportParams.Flags & QUIC_TP_FLAG_STREAM_STATISTICS) {
+            Connection->Stats.StreamStatisticsNegotiated = TRUE;
         }
 
         if (QuicConnIsServer(Connection) && Connection->Settings.ReliableResetEnabled) {
