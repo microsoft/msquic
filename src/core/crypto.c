@@ -1235,7 +1235,6 @@ QuicCryptoProcessDataFrame(
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
     uint64_t FlowControlQuota = UINT16_MAX;
-    uint32_t EncLevelOffset = 0;
 
     *DataReady = FALSE;
 
