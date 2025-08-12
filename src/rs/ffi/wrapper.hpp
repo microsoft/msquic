@@ -7,7 +7,11 @@
 // This is ugly here but makes Rust code aligned with c code.
 #undef QUIC_STATUS
 
+#ifdef _WIN32
 typedef enum QUIC_STATUS {
+#else
+typedef enum QUIC_STATUS_
+#endif
     SUCCESS = QUIC_STATUS_SUCCESS,
     PENDING = QUIC_STATUS_PENDING,
     CONTINUE = QUIC_STATUS_CONTINUE,
@@ -44,4 +48,11 @@ typedef enum QUIC_STATUS {
     CERT_UNTRUSTED_ROOT = QUIC_STATUS_CERT_UNTRUSTED_ROOT,
     CERT_NO_CERT = QUIC_STATUS_CERT_NO_CERT
 
+#ifdef _WIN32
 } QUIC_STATUS;
+#else
+} QUIC_STATUS_;
+#ifdef __cplusplus
+using QUIC_STATUS = QUIC_STATUS_;
+#endif // __cplusplus
+#endif // ifdef _WIN32
