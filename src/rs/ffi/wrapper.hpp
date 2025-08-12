@@ -9,7 +9,7 @@
 typedef enum QUIC_STATUS {
 #ifndef _WIN32
 // on posix all status code relies on the macro type so we redefine it.
-#define QUIC_STATUS int
+#define QUIC_STATUS unsigned int
 #endif
     SUCCESS = QUIC_STATUS_SUCCESS,
     PENDING = QUIC_STATUS_PENDING,
