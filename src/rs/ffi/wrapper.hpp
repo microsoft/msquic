@@ -3,12 +3,10 @@
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
 #include "msquic.h"
 
-#if defined(_WIN32) || !defined(__cplusplus)
 // undef the macro type and define the enum type.
 // This is ugly here but makes Rust code aligned with c code.
 #undef QUIC_STATUS
 
-// on posix, this enum already exists.
 typedef enum QUIC_STATUS {
     SUCCESS = QUIC_STATUS_SUCCESS,
     PENDING = QUIC_STATUS_PENDING,
@@ -47,4 +45,3 @@ typedef enum QUIC_STATUS {
     CERT_NO_CERT = QUIC_STATUS_CERT_NO_CERT
 
 } QUIC_STATUS;
-#endif // if defined(_WIN32) || !defined(__cplusplus)
