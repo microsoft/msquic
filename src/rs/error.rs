@@ -120,7 +120,7 @@ impl Status {
         return self.0 >= 0;
 
         #[cfg(not(target_os = "windows"))]
-        return self.0 as i32 <= 0;
+        return self.0 <= 0;
     }
 }
 
