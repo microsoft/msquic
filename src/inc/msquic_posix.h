@@ -80,7 +80,7 @@ QUIC_INLINE ENUMTYPE &operator ^= (ENUMTYPE &a, ENUMTYPE b) throw() { return (EN
 #define QUIC_API
 #define QUIC_MAIN_EXPORT
 #ifdef __cplusplus
-typedef int QUIC_STATUS;
+using QUIC_STATUS = int;
 constexpr
 bool
 QUIC_FAILED(
