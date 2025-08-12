@@ -277,10 +277,7 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
-    # TODO: Running the prepare-machine script on the linux lab machine is running into quite a few snags currently.
-    # PROBLEM: We don't copy over the entire repo via remote powershell (should we?) so "git submodule init..." commands fail.
-    #          Windows lab does not have this problem because prepare-machine does not run any of that on Windows.
-    if (!(!$IsWindows -and $environment -eq "lab")) {
+    if ($IsWindows -or $environment -eq "azure") {
         Prepare-MachineForTest $Session $RemoteDir
     }
 
