@@ -32,7 +32,7 @@ function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
         NetperfSendCommand "Config_DumpCollection_Windows" $Session
-        NetperfWaitServerFinishExecution
+        NetperfWaitServerFinishExecution -Session $Session
         $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
