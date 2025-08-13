@@ -31,13 +31,8 @@ function Repo-Path {
 function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
-        Invoke-Command -Session $Session -ScriptBlock {
-            $DumpDir = "C:/_work/quic/artifacts/crashdumps"
-            New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
-            New-Item -Path $Using:WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
-        }
+        NetperfSendCommand "Config_DumpCollection_Windows" $Session
+        NetperfWaitServerFinishExecution
         $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
