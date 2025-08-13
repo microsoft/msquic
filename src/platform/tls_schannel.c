@@ -994,6 +994,26 @@ CxPlatTlsGetProvider(
 {
     return QUIC_TLS_PROVIDER_SCHANNEL;
 }
+_IRQL_requires_same_
+BOOLEAN
+ResumptionTicketManagementAllowed(
+    _In_ const QUIC_CREDENTIAL_FLAGS flags
+    )
+{
+    if (!(flags & QUIC_CREDENTIAL_FLAG_DISABLE_RESUMPTION) &&
+        (flags & QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT)) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+BOOLEAN
+AreResumptionTicketsManaged(_In_ const QUIC_CREDENTIAL_FLAGS flags)
+{
+    return (CxPlatSupportsTicketManagement() && ResumptionTicketManagementAllowed(flags));
+}
+
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -1159,8 +1179,22 @@ CxPlatTlsSecConfigCreate(
         Credentials->pTlsParameters->grbitDisabledProtocols = (DWORD)~SP_PROT_TLS1_3_SERVER;
         if (TlsCredFlags & CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION) {
             Credentials->dwFlags |= SCH_CRED_DISABLE_RECONNECTS;
+            AchContext->SecConfig->Flags |= QUIC_CREDENTIAL_FLAG_DISABLE_RESUMPTION;
         }
     }
+
+    if (ResumptionTicketManagementAllowed(AchContext->SecConfig->Flags)) {
+        if (CxPlatSupportsTicketManagement()) {
+            QuicTraceLogVerbose(
+                SchannelAch,
+                "[ tls] Explicit resumption ticket management enabled");
+        } else {
+            QuicTraceLogWarning(
+                SchannelAch,
+                "[ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform");
+        }
+    }
+
     //
     //  Disallow ChaCha20-Poly1305 until full support is possible.
     //
@@ -1951,7 +1985,7 @@ CxPlatTlsWriteDataToSchannel(
     //
     // We currently do not support client-side application ticket handling
     //
-    CXPLAT_FRE_ASSERT((IsTicketData && TlsContext->IsServer && CxPlatSupports1Rtt()) || !IsTicketData);
+    CXPLAT_FRE_ASSERT((IsTicketData && TlsContext->IsServer && CxPlatSupportsTicketManagement()) || !IsTicketData);
 
     if (IsTicketData) {
         //
@@ -2012,7 +2046,7 @@ CxPlatTlsWriteDataToSchannel(
             InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
             InSecBufferDesc.cBuffers++;
 
-            if (CxPlatSupports1Rtt() && TlsContext->ValidTxSessionStateTicket) {
+            if (CxPlatSupportsTicketManagement() && TlsContext->ValidTxSessionStateTicket) {
                 // 1-RTT resumption ticket, if any
                 InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_SESSION_TICKET;
                 InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->TxSessionTicketAllocLength;
@@ -2067,7 +2101,7 @@ CxPlatTlsWriteDataToSchannel(
 
     TlsContext->Workspace.InSecFlags.Flags = ISC_REQ_MESSAGES;
 
-    if (CxPlatSupports1Rtt()) { //TlsContext->IsServer) {
+    if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
         TlsContext->Workspace.InSecFlags.Flags |= ISC_REQ_EXPLICIT_SESSION;
     }
 
@@ -2177,7 +2211,7 @@ CxPlatTlsWriteDataToSchannel(
     ULONG ContextReq = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_CONFIDENTIALITY;
     ContextReq |= ASC_REQ_SESSION_TICKET; // session tickets for resumption
 
-    if (!IsTicketData && CxPlatSupports1Rtt()) {
+    if (!IsTicketData && CxPlatSupportsTicketManagement()) {
         // TODO: Check if this is returned on the client
         // The application is not sending state here.
         // Make space to receive application state from the extended session state
@@ -2346,11 +2380,11 @@ CxPlatTlsWriteDataToSchannel(
                     NewOwnTrafficSecrets[NewOwnTrafficSecretsCount++] = TrafficSecret;
                 }
             }
-        } else if (CxPlatSupports1Rtt() && RxAppSessionStateBuffer == NULL &&
+        } else if (CxPlatSupportsTicketManagement() && RxAppSessionStateBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_APP_SESSION_STATE) {
             RxAppSessionStateBuffer = &OutSecBufferDesc.pBuffers[i];
             // TODO: check if this is expected
-        } else if (CxPlatSupports1Rtt() && RxSessionTicketBuffer == NULL &&
+        } else if (CxPlatSupportsTicketManagement() && RxSessionTicketBuffer == NULL &&
             OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SESSION_TICKET) {
             RxSessionTicketBuffer = &OutSecBufferDesc.pBuffers[i];
             // TODO: check if this is expected
@@ -2887,7 +2921,7 @@ CxPlatTlsWriteDataToSchannel(
                 OutputTokenBuffer->cbBuffer);
         }
 
-        if (CxPlatSupports1Rtt() &&
+        if (CxPlatSupportsTicketManagement() &&
             TlsContext->IsServer &&
             RxAppSessionStateBuffer != NULL &&
             RxAppSessionStateBuffer->cbBuffer > 0) {
@@ -2918,7 +2952,7 @@ CxPlatTlsWriteDataToSchannel(
             TlsContext->ApplicationSessionStateRx = TRUE;
         }
 
-        if (CxPlatSupports1Rtt() &&
+        if (CxPlatSupportsTicketManagement() &&
             !TlsContext->IsServer &&
             RxSessionTicketBuffer != NULL &&
             RxSessionTicketBuffer->cbBuffer > 0) {
@@ -3052,7 +3086,7 @@ CxPlatTlsWriteDataToSchannel(
                 TLSExtensionAllocated = TRUE;
             }
 
-            if (CxPlatSupports1Rtt() &&
+            if (CxPlatSupportsTicketManagement() &&
                 TlsContext->IsServer &&
                 !TlsContext->ApplicationSessionStateRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxAppSessionStateAllocLength &&
@@ -3092,7 +3126,7 @@ CxPlatTlsWriteDataToSchannel(
                 AppSessionStateAllocated = TRUE;
             }
 
-            if (CxPlatSupports1Rtt() &&
+            if (CxPlatSupportsTicketManagement() &&
                 !TlsContext->IsServer &&
                 !TlsContext->SessionStateTicketRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxSessionTicketAllocLength &&
@@ -3215,44 +3249,33 @@ CxPlatTlsProcessData(
     )
 {
     CXPLAT_TLS_RESULT_FLAGS Result = 0;
+    BOOLEAN TicketData = FALSE;
+
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
-
-        QuicTraceLogConnVerbose(
-            SchannelProcessingData,
-            TlsContext->Connection,
-            "Sending ticket data, %u bytes",
-            *BufferLength);
-
-        if (!CxPlatSupports1Rtt()) {
+        if (!AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) ||
+            !TlsContext->IsServer) {
             Result = CXPLAT_TLS_RESULT_ERROR;
 
             QuicTraceLogConnVerbose(
                 SchannelIgnoringTicket,
                 TlsContext->Connection,
-                "Ignoring %u ticket bytes",
+                "Managed resumption tickets either not configured or not supported. Ignoring %u ticket bytes",
                 *BufferLength);
             goto Error;
+        } else {
+            TicketData = TRUE;
+            QuicTraceLogConnVerbose(
+                SchannelProcessingData,
+                TlsContext->Connection,
+                "Sending managed resumption ticket data, %u bytes",
+                *BufferLength);
         }
-    }
-
-    if (!CxPlatSupports1Rtt() && !TlsContext->IsServer &&
-        State->BufferOffset1Rtt > 0 && State->HandshakeComplete) {
-
-        //
-        // Schannel currently sends the NST after receiving client finished.
-        // We need to wait for the handshake to be complete before setting
-        // the flag, since we don't know if we've received the ticket yet.
-        //
-        (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
-            TlsContext->Connection,
-            0,
-            NULL);
     }
 
     QuicTraceLogConnVerbose(
         SchannelProcessingData,
         TlsContext->Connection,
-        "Processing %u received bytes",
+        "Processing %u TX or RX bytes",
         *BufferLength);
 
     Result =
@@ -3261,7 +3284,7 @@ CxPlatTlsProcessData(
             Buffer,
             BufferLength,
             State,
-            (DataType == CXPLAT_TLS_TICKET_DATA));
+            TicketData);
 
     if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
         goto Error;
@@ -3276,7 +3299,7 @@ CxPlatTlsProcessData(
                 Buffer,
                 BufferLength,
                 State,
-                (DataType == CXPLAT_TLS_TICKET_DATA));
+                TicketData);
 
         if ((Result & CXPLAT_TLS_RESULT_ERROR) != 0) {
             goto Error;
@@ -3285,48 +3308,91 @@ CxPlatTlsProcessData(
 
     if (State->HandshakeComplete &&
         State->BufferOffset1Rtt > 0) {
-        //
-        // On the client: Schannel currently sends the NST after receiving client finished.
-        // We need to wait for the handshake to be complete before setting
-        // the flag, since we don't know if we've received the ticket yet.
-        //
-        // On the server: NST is received after the handshake is marked complete
 
-        // TODO: Need to plumb in any option to opt in for app session ticket on servers here.
-        if (TlsContext->IsServer &&
-            TlsContext->ApplicationSessionStateRx &&
-            (Result & CXPLAT_TLS_RESULT_HANDSHAKE_COMPLETE)) {
-
-            if (!TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                TlsContext->Connection,
-                TlsContext->RxAppSessionState->AppSessionStateSize,
-                (void*)TlsContext->RxAppSessionState->AppSessionState)) {
+        //
+        // Notify any state/tickets only after the handshake is complete
+        //
+        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
+            if (TlsContext->IsServer &&
+                TlsContext->ApplicationSessionStateRx) {
 
                 //
-                // Application rejected the session state.
-                // Deny the connection resumption attempt
+                // Notify server application of the RX session state
                 //
-                QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "App resumption state rejected");
+                if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                        TlsContext->Connection,
+                        TlsContext->RxAppSessionState->AppSessionStateSize,
+                        (void*)TlsContext->RxAppSessionState->AppSessionState)) {
+                    //
+                    // Server app accepted the session state
+                    //
+                    QuicTraceLogConnVerbose(
+                        SchannelProcessingData,
+                        TlsContext->Connection,
+                        "Server app resumption state delivered. State size: %u bytes",
+                        TlsContext->RxAppSessionState->AppSessionStateSize);
+                } else {
+                    //
+                    // Server app rejected the session state but the TLS connection continues
+                    //
+                    QuicTraceLogConnInfo(
+                        SchannelIgnoringTicket,
+                        TlsContext->Connection,
+                        "Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
+                        TlsContext->RxAppSessionState->AppSessionStateSize);
+                }
 
-                Result |= CXPLAT_TLS_RESULT_ERROR;
+                //
+                // Application session state is delivered only once.
+                //
+                TlsContext->ApplicationSessionStateRx = FALSE;
+            } else if (!TlsContext->IsServer &&
+                       TlsContext->SessionStateTicketRx) {
+                //
+                // Notify client application of the RX TLS Session State/Resumption Ticket
+                // This is typically opaque data for the client.
+                //
+                if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                        TlsContext->Connection,
+                        TlsContext->RxSessionTicket->SessionTicketSize,
+                        (void*)TlsContext->RxSessionTicket->SessionTicket)) {
+                    //
+                    // Client app accepted the session ticket
+                    //
+                    QuicTraceLogConnVerbose(
+                        SchannelProcessingData,
+                        TlsContext->Connection,
+                        "Resumption session ticket delivered. Ticket size: %u bytes",
+                        TlsContext->RxSessionTicket->SessionTicketSize);
+                }
+                else {
+                    //
+                    // Client app rejected the session ticket but the TLS connection continues
+                    //
+                    QuicTraceLogConnInfo(
+                        SchannelIgnoringTicket,
+                        TlsContext->Connection,
+                        "Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
+                        TlsContext->RxSessionTicket->SessionTicketSize);
+                }
+
+                //
+                // Client session state ticket is delivered only once.
+                //
+                TlsContext->SessionStateTicketRx = FALSE;
             }
+        } else if (!CxPlatSupportsTicketManagement() && !TlsContext->IsServer) {
 
             //
-            // Application session state is only used once.
+            // Older client-side behavior:
+            // Schannel sends the NST after receiving client finished.
+            // We need to wait for the handshake to be complete before setting
+            // the flag, since we don't know if we've received the ticket yet.
             //
-            TlsContext->ApplicationSessionStateRx = FALSE;
-        }
-        else if (!TlsContext->IsServer && TlsContext->SessionStateTicketRx){
             (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
                 TlsContext->Connection,
-                TlsContext->RxSessionTicket->SessionTicketSize,
-                (void*)TlsContext->RxSessionTicket->SessionTicket);
-
-            TlsContext->SessionStateTicketRx = FALSE;
+                0,
+                NULL);
         }
     }
 
@@ -3782,7 +3848,7 @@ Error:
 }
 
 BOOLEAN
-CxPlatSupports1Rtt()
+CxPlatSupportsTicketManagement()
 {
     if (CxPlatform.dwBuildNumber >= 26100) {
         //
@@ -3792,4 +3858,22 @@ CxPlatSupports1Rtt()
     }
 
     return FALSE;
+}
+
+BOOLEAN
+CxPlatSupportsInline1RTTAppStateValidation()
+{
+    //
+    // Inline 1-RTT app state validation is not supported on Windows
+    //
+    return FALSE;
+}
+
+BOOLEAN
+CxPlatNeedsExplicitAppStateResumptionConfig()
+{
+    //
+    // Retrieving and generating 1-RTT app state resumption ticket needs explicit configuration
+    //
+    return TRUE;
 }

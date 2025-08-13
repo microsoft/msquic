@@ -3564,7 +3564,22 @@ Error:
 }
 
 BOOLEAN
-CxPlatSupports1Rtt()
+CxPlatSupportsTicketManagement()
 {
     return TRUE;
+}
+
+BOOLEAN
+CxPlatSupportsInline1RTTAppStateValidation()
+{
+    return TRUE;
+}
+
+BOOLEAN
+CxPlatNeedsExplicitAppStateResumptionConfig()
+{
+    //
+    // Retrieving and generating 1-RTT app state resumption ticket needs explicit configuration
+    //
+    return FALSE;
 }

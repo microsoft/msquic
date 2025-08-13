@@ -530,7 +530,13 @@ QuicTlsPopulateOffloadKeys(
     );
 
 BOOLEAN
-CxPlatSupports1Rtt();
+CxPlatSupportsTicketManagement();
+
+BOOLEAN
+CxPlatSupportsInline1RTTAppStateValidation();
+
+BOOLEAN
+CxPlatNeedsExplicitAppStateResumptionConfig();
 
 #if defined(__cplusplus)
 }

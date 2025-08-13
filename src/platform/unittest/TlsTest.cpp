@@ -90,6 +90,21 @@ protected:
             _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
             _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
+            Update(CredFlags, CipherFlags, TlsFlags);
+        }
+
+        // Update function to re-initialize the config with new parameters
+        void Update(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NONE,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+        )
+        {
+            // Clean up existing SecConfig if present
+            if (this->SecConfig) {
+                CxPlatTlsSecConfigDelete(this->SecConfig);
+                this->SecConfig = nullptr;
+            }
             SelfSignedCertParams->Flags = SelfSignedCertParamsFlags | CredFlags;
             SelfSignedCertParams->AllowedCipherSuites = CipherFlags;
             Load(SelfSignedCertParams, TlsFlags);
@@ -102,6 +117,22 @@ protected:
             _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
             _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
             ) {
+            Update(CredFlags, CipherFlags, TlsFlags);
+        }
+
+        // Update function to re-initialize the config with new parameters
+        void Update(
+            _In_ QUIC_CREDENTIAL_FLAGS CredFlags = QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
+            _In_ QUIC_ALLOWED_CIPHER_SUITE_FLAGS CipherFlags = QUIC_ALLOWED_CIPHER_SUITE_NONE,
+            _In_ CXPLAT_TLS_CREDENTIAL_FLAGS TlsFlags = CXPLAT_TLS_CREDENTIAL_FLAG_NONE
+        )
+        {
+            // Clean up existing SecConfig if present
+            if (this->SecConfig) {
+                CxPlatTlsSecConfigDelete(this->SecConfig);
+                this->SecConfig = nullptr;
+            }
+
             QUIC_CREDENTIAL_CONFIG CredConfig = {
                 QUIC_CREDENTIAL_TYPE_NONE,
                 QUIC_CREDENTIAL_FLAG_CLIENT,
@@ -1152,19 +1183,27 @@ TEST_F(TlsTest, HandshakeParallel)
 }
 
 BOOLEAN
-CanRun1RTTTests()
+CanRunExcplicitResumptionTests()
 {
-    return CxPlatSupports1Rtt();
+    return CxPlatSupportsTicketManagement();
 }
 
 TEST_F(TlsTest, HandshakeResumption)
 {
-    if (!CanRun1RTTTests()) {
+    if (!CanRunExcplicitResumptionTests()) {
         GTEST_SKIP() << "Skipping 0/1 RTT tests";
     }
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
@@ -1185,15 +1224,22 @@ TEST_F(TlsTest, HandshakeResumption)
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
 
-#ifndef QUIC_DISABLE_0RTT_TESTS
 TEST_F(TlsTest, HandshakeResumptionRejection)
 {
-    if (!CanRun1RTTTests()) {
+    if (!CanRunExcplicitResumptionTests()) {
         GTEST_SKIP() << "Skipping 0/1 RTT tests";
     }
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
@@ -1208,8 +1254,14 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
     ServerContext2.OnSessionTicketReceivedResult = FALSE;
     DoHandshake(ServerContext2, ClientContext2);
 
-    ASSERT_FALSE(ClientContext2.State.SessionResumed);
-    ASSERT_FALSE(ServerContext2.State.SessionResumed);
+    if (CxPlatSupportsInline1RTTAppStateValidation()) {
+        ASSERT_FALSE(ClientContext2.State.SessionResumed);
+        ASSERT_FALSE(ServerContext2.State.SessionResumed);
+    } else {
+        SUCCEED() << "Inline 1-RTT app state validation is not supported, so session resumption should succeed";
+        ASSERT_TRUE(ClientContext2.State.SessionResumed);
+        ASSERT_TRUE(ServerContext2.State.SessionResumed);
+    }
 
     ASSERT_NE(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
@@ -1217,7 +1269,7 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
 
 TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 {
-    if (!CanRun1RTTTests()) {
+    if (!CanRunExcplicitResumptionTests()) {
         GTEST_SKIP() << "Skipping 0/1 RTT tests";
     }
 
@@ -1226,6 +1278,12 @@ TEST_F(TlsTest, HandshakeResumptionClientDisabled)
         QUIC_ALLOWED_CIPHER_SUITE_NONE,
         CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION);
     CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
     TlsContext ServerContext, ClientContext;
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
@@ -1237,13 +1295,24 @@ TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 
 TEST_F(TlsTest, HandshakeResumptionServerDisabled)
 {
-    if (!CanRun1RTTTests()) {
+    if (!CanRunExcplicitResumptionTests()) {
         GTEST_SKIP() << "Skipping 0/1 RTT tests";
     }
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
     TlsContext ServerContext, ClientContext;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+    }
+
+    //
+    // Initial handshake involves resumption tickets enabled
+    //
     ClientContext.InitializeClient(ClientConfig);
     ServerContext.InitializeServer(ServerConfig);
     DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, true);
@@ -1251,6 +1320,9 @@ TEST_F(TlsTest, HandshakeResumptionServerDisabled)
     ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
     ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
 
+    //
+    // Disable server support for resumption tickets and perform a second handshake
+    //
     CxPlatServerSecConfig ResumptionDisabledServerConfig(
         QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION,
         QUIC_ALLOWED_CIPHER_SUITE_NONE,
@@ -1266,8 +1338,6 @@ TEST_F(TlsTest, HandshakeResumptionServerDisabled)
     ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
 }
-
-#endif // !QUIC_DISABLE_0RTT_TESTS
 
 TEST_F(TlsTest, HandshakeMultiAlpnServer)
 {
