@@ -195,7 +195,7 @@ else()
     list(APPEND OPENSSL_CONFIG_FLAGS --prefix=${OPENSSL_DIR})
 
     if (QUIC_ENABLE_SANITIZERS)
-        list(APPEND OPENSSL_CONFIG_FLAGS enable-asan enable-ubsan)
+        list(APPEND OPENSSL_CONFIG_FLAGS enable-asan)
     endif()
     if(ANDROID)
         message(STATUS "${ANDROID_ABI}")
