@@ -704,21 +704,43 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
-    if(QUIC_ENABLE_SANITIZERS)
+    if (QUIC_STANITIZER_ACTIVE)
         message(STATUS "Configuring sanitizers")
-        list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        # Append common flags for all sanitizer options
+        list(APPEND QUIC_COMMON_FLAGS -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+
         # Clang/LLVM doesn't support this flag, but GCC does.
         check_c_compiler_flag(-fno-var-tracking-assignments HAS_NO_VAR_TRACKING)
         if (HAS_NO_VAR_TRACKING)
             list(APPEND QUIC_COMMON_FLAGS -fno-var-tracking-assignments)
         endif()
+
         if (CX_PLATFORM STREQUAL "darwin")
             list(APPEND QUIC_COMMON_FLAGS -gdwarf)
         else()
             list(APPEND QUIC_COMMON_FLAGS -ggdb3)
         endif()
-        if (CMAKE_C_COMPILER_ID MATCHES "Clang")
-            list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
+
+        # Enable all sanitizers
+        if (QUIC_ENABLE_SANITIZERS)
+            list(APPEND QUIC_COMMON_FLAGS -fsanitize=address,leak,undefined,alignment -fsanitize-address-use-after-scope)
+            # Enable additional sanitizers offered by clang
+            if (CMAKE_C_COMPILER_ID MATCHES "Clang")
+                list(APPEND QUIC_COMMON_FLAGS -fsanitize=unsigned-integer-overflow -fsanitize=local-bounds -fsanitize=integer -fsanitize=nullability)
+            endif()
+        else()
+            # Enable specific sanitizers
+            if (QUIC_ENABLE_ASAN)
+                list(APPEND QUIC_COMMON_FLAGS -fsanitize=address)
+            endif()
+
+            if (QUIC_ENABLE_LSAN)
+                list(APPEND QUIC_COMMON_FLAGS -fsanitize=leak)
+            endif()
+
+            if (QUIC_ENABLE_UBSAN)
+                list(APPEND QUIC_COMMON_FLAGS -fsanitize=undefined)
+            endif()
         endif()
     endif()
 
