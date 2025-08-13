@@ -281,6 +281,6 @@ if(BUILD_SHARED_LIBS)
     install(EXPORT msquic NAMESPACE msquic:: DESTINATION share/msquic)
 endif()
 
-if (MSVC AND NOT QUIC_ENABLE_SANITIZERS AND BUILD_SHARED_LIBS)
+if (MSVC AND NOT QUIC_SANITIZER_ACTIVE AND BUILD_SHARED_LIBS)
     target_compile_options(msquic PRIVATE /analyze)
 endif()

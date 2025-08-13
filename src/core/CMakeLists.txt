@@ -66,7 +66,7 @@ target_link_libraries(core PRIVATE warnings main_binary_link_args)
 
 set_property(TARGET core PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
-if (MSVC AND NOT QUIC_ENABLE_SANITIZERS)
+if (MSVC AND NOT QUIC_SANITIZER_ACTIVE)
     target_compile_options(core PRIVATE /analyze)
 endif()
 
