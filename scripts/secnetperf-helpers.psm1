@@ -133,15 +133,8 @@ function Prepare-MachineForTest {
     .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
     Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates on peer"
 
-    if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Prepare_MachineForTest"
-        NetperfWaitServerFinishExecution
-        return
-    }
-
-    Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -ForTest -InstallSigningCertificates
-    }
+    NetperfSendCommand "Prepare_MachineForTest" $Session
+    NetperfWaitServerFinishExecution -Session $Session
 }
 
 # Download and install XDP on both local and remote machines.
