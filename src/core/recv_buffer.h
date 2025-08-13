@@ -183,8 +183,10 @@ QuicRecvBufferWrite(
     _In_ uint64_t WriteOffset,
     _In_ uint16_t WriteLength,
     _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
-    _Inout_ uint64_t* WriteLimit,
-    _Out_ BOOLEAN* NewDataReady
+    _In_ uint64_t WriteQuota,
+    _Out_ uint64_t* QuotaConsumed,
+    _Out_ BOOLEAN* NewDataReady,
+    _Out_ uint64_t* BufferSizeNeeded
     );
 
 //
