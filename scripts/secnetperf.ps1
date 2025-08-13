@@ -128,7 +128,8 @@ if ($isWindows -and $NoLogs) {
 
 $useXDP = (Is-XdpRequiredByIo $io) -or (Is-XdpRequiredByIo $serverio)
 
-$Session = InitNetperfLib "quic_callback.ps1" $RemoteDir
+$Session = InitNetperfLib "quic_callback.ps1" $RemoteDir $RemoteName $UserName
+Copy-RepoToPeer $Session
 
 if ($Session -ne "NOT_SUPPORTED") {
     # Make sure nothing is running from a previous run. This only applies to non-azure / 1ES environments.
@@ -151,8 +152,6 @@ if ($io -eq "wsk") {
     # Remove all the other kernel binaries since we don't need them any more.
     Remove-Item -Force -Recurse $KernelDir | Out-Null
 }
-
-Copy-RepoToPeer $Session
 
 # Create the logs directories on both machines.
 New-Item -ItemType Directory -Path ./artifacts/logs | Out-Null
