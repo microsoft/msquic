@@ -98,9 +98,6 @@ if ($psVersion.Major -lt 7) {
     $IsWindows = $true
 }
 
-Write-Host "Running tests with the following parameters:"
-Write-Host "$RemotePowershellSupported, $RunId"
-
 # Set up some important paths.
 $RemoteDir = "C:/_work/quic"
 if (!$isWindows) {
