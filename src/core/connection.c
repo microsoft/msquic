@@ -1888,9 +1888,6 @@ QuicConnStart(
     if (Connection->Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
     }
-    if (Connection->Settings.RioEnabled) {
-        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
-    }
 
     //
     // Get the binding for the current local & remote addresses.
@@ -6297,9 +6294,6 @@ QuicConnParamSet(
             }
             if (Connection->Settings.QTIPEnabled) {
                 UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
-            }
-            if (Connection->Settings.RioEnabled) {
-                UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
             }
             Status =
                 QuicLibraryGetBinding(

@@ -64,11 +64,11 @@ param (
     [string]$tls = "schannel",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [ValidateSet("", "iocp", "xdp", "qtip", "wsk", "epoll", "iouring", "kqueue")]
     [string]$io = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("", "iocp", "rio", "xdp", "qtip", "wsk", "epoll", "kqueue")]
+    [ValidateSet("", "iocp", "xdp", "qtip", "wsk", "epoll", "iouring","kqueue")]
     [string]$serverio = "",
 
     [Parameter(Mandatory = $false)]
@@ -277,25 +277,12 @@ $allScenarios = @("upload", "download", "hps", "rps", "rps-multi", "latency")
 $hasFailures = $false
 
 try {
+Prepare-MachineForTest $Session $RemoteDir
 
-# Prepare the machines for the testing.
 if ($isWindows -and !($environment -eq "azure")) {
-    Write-Host "Preparing local machine for testing"
-    ./scripts/prepare-machine.ps1 -ForTest -InstallSigningCertificates
-
-    Write-Host "Preparing peer machine for testing"
-    Invoke-Command -Session $Session -ScriptBlock {
-        & "$Using:RemoteDir/scripts/prepare-machine.ps1" -ForTest -InstallSigningCertificates
-    }
-
     $HasTestSigning = $false
     try { $HasTestSigning = ("$(bcdedit)" | Select-String -Pattern "testsigning\s+Yes").Matches.Success } catch { }
     if (!$HasTestSigning) { Write-Host "Test Signing Not Enabled!" }
-}
-
-if (!($Session -eq "NOT_SUPPORTED")) {
-    # Configure the dump collection.
-    Configure-DumpCollection $Session
 }
 
 # Install any dependent drivers.
@@ -303,8 +290,6 @@ if ($useXDP -and $isWindows) { Install-XDP $Session $RemoteDir }
 if ($io -eq "wsk") { Install-Kernel $Session $RemoteDir $SecNetPerfDir }
 
 if (!$isWindows) {
-    # Make sure the secnetperf binary is executable.
-    Write-Host "Updating secnetperf permissions"
     $GRO = "on"
     if ($io -eq "xdp") {
         $GRO = "off"
@@ -324,24 +309,6 @@ if (!$isWindows) {
     if ($os -eq "ubuntu-22.04") {
         sudo sh -c "ethtool -K eth0 generic-receive-offload $GRO"
     }
-
-    if ((Get-Content "/etc/security/limits.conf") -notcontains "root soft core unlimited") {
-        # Enable core dumps for the system.
-        Write-Host "Setting core dump size limit"
-        sudo sh -c "echo "root soft core unlimited" >> /etc/security/limits.conf"
-        sudo sh -c "echo "root hard core unlimited" >> /etc/security/limits.conf"
-        sudo sh -c "echo "* soft core unlimited" >> /etc/security/limits.conf"
-        sudo sh -c "echo "* hard core unlimited" >> /etc/security/limits.conf"
-        # Increase the number of file descriptors.
-        sudo sh -c "echo 'root soft nofile 1048576' >> /etc/security/limits.conf"
-        sudo sh -c "echo 'root hard nofile 1048576' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* soft nofile 1048576' >> /etc/security/limits.conf"
-        sudo sh -c "echo '* hard nofile 1048576' >> /etc/security/limits.conf"
-    }
-
-    # Set the core dump pattern.
-    Write-Host "Setting core dump pattern"
-    sudo sh -c "echo -n "%e.client.%p.%t.core" > /proc/sys/kernel/core_pattern"
 }
 
 Write-Host "Fetching watermark_regression.json"

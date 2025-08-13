@@ -42,6 +42,10 @@ if ($Command.Contains("epoll")) {
     $io = "epoll"
 }
 
+if ($Command.Contains("iouring")) {
+    $io = "iouring"
+}
+
 if ($Command.Contains("xdp")) {
     $io = "xdp"
 }
@@ -76,6 +80,9 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
 } elseif ($Command.Contains("C:/_work/quic/artifacts/bin/windows/x64_Release_schannel/secnetperf")) {
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
+} elseif ($Command.Contains("Prepare_MachineForTest")) {
+    Write-Host "Executing command: Prepare_MachineForTest"
+    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
     .\scripts\prepare-machine.ps1 -InstallXdpDriver

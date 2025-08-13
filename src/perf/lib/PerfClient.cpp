@@ -239,9 +239,12 @@ PerfClient::Init(
             Settings.SetXdpEnabled(true);
             Settings.SetQtipEnabled(true);
         }
-        if (IoMode && IsValue(IoMode, "rio")) {
-            Settings.SetRioEnabled(true);
+#ifndef CXPLAT_USE_IO_URING
+        if (IoMode && IsValue(IoMode, "iouring")) {
+            WriteOutput("iouring is not supported on this build\n");
+            return QUIC_STATUS_NOT_SUPPORTED;
         }
+#endif
         Configuration.SetSettings(Settings);
     }
 

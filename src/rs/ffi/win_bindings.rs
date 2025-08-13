@@ -3457,18 +3457,18 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub fn RioEnabled(&self) -> u64 {
+    pub fn ReservedRioEnabled(&self) -> u64 {
         unsafe { ::std::mem::transmute(self._bitfield_1.get(45usize, 1u8) as u64) }
     }
     #[inline]
-    pub fn set_RioEnabled(&mut self, val: u64) {
+    pub fn set_ReservedRioEnabled(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             self._bitfield_1.set(45usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub unsafe fn RioEnabled_raw(this: *const Self) -> u64 {
+    pub unsafe fn ReservedRioEnabled_raw(this: *const Self) -> u64 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
@@ -3478,7 +3478,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub unsafe fn set_RioEnabled_raw(this: *mut Self, val: u64) {
+    pub unsafe fn set_ReservedRioEnabled_raw(this: *mut Self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
@@ -3569,7 +3569,7 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
         StreamMultiReceiveEnabled: u64,
         XdpEnabled: u64,
         QTIPEnabled: u64,
-        RioEnabled: u64,
+        ReservedRioEnabled: u64,
         RESERVED: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -3776,8 +3776,8 @@ impl QUIC_SETTINGS__bindgen_ty_1__bindgen_ty_1 {
             QTIPEnabled as u64
         });
         __bindgen_bitfield_unit.set(45usize, 1u8, {
-            let RioEnabled: u64 = unsafe { ::std::mem::transmute(RioEnabled) };
-            RioEnabled as u64
+            let ReservedRioEnabled: u64 = unsafe { ::std::mem::transmute(ReservedRioEnabled) };
+            ReservedRioEnabled as u64
         });
         __bindgen_bitfield_unit.set(46usize, 18u8, {
             let RESERVED: u64 = unsafe { ::std::mem::transmute(RESERVED) };
@@ -4082,18 +4082,18 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub fn RioEnabled(&self) -> u64 {
+    pub fn ReservedRioEnabled(&self) -> u64 {
         unsafe { ::std::mem::transmute(self._bitfield_1.get(8usize, 1u8) as u64) }
     }
     #[inline]
-    pub fn set_RioEnabled(&mut self, val: u64) {
+    pub fn set_ReservedRioEnabled(&mut self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             self._bitfield_1.set(8usize, 1u8, val as u64)
         }
     }
     #[inline]
-    pub unsafe fn RioEnabled_raw(this: *const Self) -> u64 {
+    pub unsafe fn ReservedRioEnabled_raw(this: *const Self) -> u64 {
         unsafe {
             ::std::mem::transmute(<__BindgenBitfieldUnit<[u8; 8usize]>>::raw_get(
                 ::std::ptr::addr_of!((*this)._bitfield_1),
@@ -4103,7 +4103,7 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         }
     }
     #[inline]
-    pub unsafe fn set_RioEnabled_raw(this: *mut Self, val: u64) {
+    pub unsafe fn set_ReservedRioEnabled_raw(this: *mut Self, val: u64) {
         unsafe {
             let val: u64 = ::std::mem::transmute(val);
             <__BindgenBitfieldUnit<[u8; 8usize]>>::raw_set(
@@ -4157,7 +4157,7 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
         StreamMultiReceiveEnabled: u64,
         XdpEnabled: u64,
         QTIPEnabled: u64,
-        RioEnabled: u64,
+        ReservedRioEnabled: u64,
         ReservedFlags: u64,
     ) -> __BindgenBitfieldUnit<[u8; 8usize]> {
         let mut __bindgen_bitfield_unit: __BindgenBitfieldUnit<[u8; 8usize]> = Default::default();
@@ -4196,8 +4196,8 @@ impl QUIC_SETTINGS__bindgen_ty_2__bindgen_ty_1 {
             QTIPEnabled as u64
         });
         __bindgen_bitfield_unit.set(8usize, 1u8, {
-            let RioEnabled: u64 = unsafe { ::std::mem::transmute(RioEnabled) };
-            RioEnabled as u64
+            let ReservedRioEnabled: u64 = unsafe { ::std::mem::transmute(ReservedRioEnabled) };
+            ReservedRioEnabled as u64
         });
         __bindgen_bitfield_unit.set(9usize, 55u8, {
             let ReservedFlags: u64 = unsafe { ::std::mem::transmute(ReservedFlags) };
@@ -6020,6 +6020,8 @@ pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_IDEAL_SEND_BUFFER_SIZE: QUIC_
     8;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_PEER_ACCEPTED: QUIC_STREAM_EVENT_TYPE = 9;
 pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_CANCEL_ON_LOSS: QUIC_STREAM_EVENT_TYPE = 10;
+pub const QUIC_STREAM_EVENT_TYPE_QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED: QUIC_STREAM_EVENT_TYPE =
+    11;
 pub type QUIC_STREAM_EVENT_TYPE = ::std::os::raw::c_int;
 #[repr(C)]
 #[derive(Copy, Clone)]
@@ -6039,6 +6041,7 @@ pub union QUIC_STREAM_EVENT__bindgen_ty_1 {
     pub SHUTDOWN_COMPLETE: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_7,
     pub IDEAL_SEND_BUFFER_SIZE: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_8,
     pub CANCEL_ON_LOSS: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9,
+    pub RECEIVE_BUFFER_NEEDED: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10,
 }
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
@@ -6459,6 +6462,23 @@ const _: () = {
     ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9::ErrorCode"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_9, ErrorCode) - 0usize];
 };
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10 {
+    pub BufferLengthNeeded: u64,
+}
+#[allow(clippy::unnecessary_operation, clippy::identity_op)]
+const _: () = {
+    ["Size of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::size_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
+    ["Alignment of QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10"]
+        [::std::mem::align_of::<QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10>() - 8usize];
+    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10::BufferLengthNeeded"][::std::mem::offset_of!(
+        QUIC_STREAM_EVENT__bindgen_ty_1__bindgen_ty_10,
+        BufferLengthNeeded
+    )
+        - 0usize];
+};
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
     ["Size of QUIC_STREAM_EVENT__bindgen_ty_1"]
@@ -6483,6 +6503,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, IDEAL_SEND_BUFFER_SIZE) - 0usize];
     ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::CANCEL_ON_LOSS"]
         [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, CANCEL_ON_LOSS) - 0usize];
+    ["Offset of field: QUIC_STREAM_EVENT__bindgen_ty_1::RECEIVE_BUFFER_NEEDED"]
+        [::std::mem::offset_of!(QUIC_STREAM_EVENT__bindgen_ty_1, RECEIVE_BUFFER_NEEDED) - 0usize];
 };
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {

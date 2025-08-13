@@ -377,11 +377,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_POOL SendDataPool;
 
     //
-    // Pool of send contexts to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendDataPool;
-
-    //
     // Pool of send buffers to be shared by all sockets on this core.
     //
     CXPLAT_POOL SendBufferPool;
@@ -393,27 +388,10 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PROC {
     CXPLAT_POOL LargeSendBufferPool;
 
     //
-    // Pool of send buffers to be shared by all RIO sockets on this core.
-    //
-    CXPLAT_POOL RioSendBufferPool;
-
-    //
-    // Pool of large segmented send buffers to be shared by all RIO sockets on
-    // this core.
-    //
-    CXPLAT_POOL RioLargeSendBufferPool;
-
-    //
     // Pool of receive datagram contexts and buffers to be shared by all sockets
     // on this core.
     //
     CXPLAT_POOL_EX RecvDatagramPool;
-
-    //
-    // Pool of RIO receive datagram contexts and buffers to be shared by all
-    // RIO sockets on this core.
-    //
-    CXPLAT_POOL RioRecvPool;
 
 } CXPLAT_DATAPATH_PARTITION;
 
@@ -430,11 +408,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
     // Submission queue event for IO completion
     //
     CXPLAT_SQE IoSqe;
-
-    //
-    // Submission queue event for RIO IO completion
-    //
-    CXPLAT_SQE RioSqe;
 
     //
     // The datapath per-processor context.
@@ -479,17 +452,6 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_PROC {
 
     union {
     //
-    // Normal TCP/UDP socket data
-    //
-    struct {
-    RIO_CQ RioCq;
-    RIO_RQ RioRq;
-    ULONG RioRecvCount;
-    ULONG RioSendCount;
-    CXPLAT_LIST_ENTRY RioSendOverflow;
-    BOOLEAN RioNotifyArmed;
-    };
-    //
     // TCP Listener socket data
     //
     struct {
@@ -527,11 +489,6 @@ typedef struct CXPLAT_DATAPATH {
     // Function pointer to WSARecvMsg.
     //
     LPFN_WSARECVMSG WSARecvMsg;
-
-    //
-    // Function pointer table for RIO.
-    //
-    RIO_EXTENSION_FUNCTION_TABLE RioDispatch;
 
     //
     // Used to synchronize clean up.
@@ -621,11 +578,6 @@ typedef struct CXPLAT_SOCKET {
     // Flag indicates the binding is being used for PCP.
     //
     uint8_t PcpBinding : 1;
-
-    //
-    // Flag indicates the socket is using RIO instead of traditional Winsock.
-    //
-    uint8_t UseRio : 1;
 
     //
     // Debug flags.
@@ -780,6 +732,13 @@ CxPlatDpRawGetDatapathSize(
 
 typedef struct CXPLAT_DATAPATH_PARTITION CXPLAT_DATAPATH_PARTITION;
 
+typedef struct CXPLAT_SOCKET_SQE {
+    CXPLAT_SQE Sqe;
+#ifdef CXPLAT_USE_IO_URING
+    void* Context;
+#endif
+} CXPLAT_SOCKET_SQE;
+
 //
 // Socket context.
 //
@@ -808,7 +767,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     //
     // The submission queue event for IO.
     //
-    CXPLAT_SQE IoSqe;
+    CXPLAT_SOCKET_SQE IoSqe;
 
     //
     // The submission queue event for flushing the send queue.
@@ -831,6 +790,11 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     CXPLAT_RUNDOWN_REF UpcallRundown;
 
     //
+    // The number of active IOs.
+    //
+    uint32_t IoCount;
+
+    //
     // Inidicates the SQEs have been initialized.
     //
     BOOLEAN SqeInitialized : 1;
@@ -839,6 +803,20 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // Inidicates if the socket has started IO processing.
     //
     BOOLEAN IoStarted : 1;
+
+#ifdef CXPLAT_USE_IO_URING
+    //
+    // Indicates if the socket has started shutting down.
+    //
+    BOOLEAN Shutdown : 1;
+
+#if DEBUG
+    //
+    // Indicates if the socket socket has a multi recv outstanding.
+    //
+    BOOLEAN MultiRecvStarted : 1;
+#endif
+#endif
 
 #if DEBUG
     uint8_t Uninitialized : 1;
@@ -912,6 +890,14 @@ typedef struct CXPLAT_SOCKET {
 
 } CXPLAT_SOCKET;
 
+typedef struct CXPLAT_REGISTERED_BUFFER_POOL {
+    void* Ring;
+    uint8_t* Buffers;
+    uint32_t BufferSize;
+    uint32_t TotalSize;
+    CXPLAT_LOCK Lock;
+} CXPLAT_REGISTERED_BUFFER_POOL;
+
 //
 // A per processor datapath context.
 //
@@ -947,11 +933,30 @@ typedef struct QUIC_CACHEALIGN CXPLAT_DATAPATH_PARTITION {
     //
     CXPLAT_POOL RecvBlockPool;
 
+#ifdef CXPLAT_USE_IO_URING
+    //
+    // Backing pool of registered buffers for the RecvBlockPool.
+    //
+    CXPLAT_REGISTERED_BUFFER_POOL RecvRegisteredBufferPool;
+#endif
+
     //
     // Pool of send packet contexts and buffers to be shared by all sockets
     // on this core.
     //
     CXPLAT_POOL SendBlockPool;
+
+#ifdef CXPLAT_USE_IO_URING
+    //
+    // Backing pool of registered buffers for the SendBlockPool.
+    //
+    CXPLAT_REGISTERED_BUFFER_POOL SendRegisteredBufferPool;
+#endif
+
+    //
+    // TODO: big hack for batching experiment.
+    //
+    CXPLAT_THREAD_ID OwningThreadID;
 
 } CXPLAT_DATAPATH_PARTITION;
 

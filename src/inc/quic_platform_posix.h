@@ -68,6 +68,16 @@ extern "C" {
 #define ALIGN_UP(length, type) \
     (ALIGN_DOWN(((unsigned long)(length) + sizeof(type) - 1), type))
 
+#ifndef ALIGN_DOWN_BY
+#define ALIGN_DOWN_BY(Length, Alignment) \
+    ((uintptr_t)(Length)& ~((uintptr_t)(Alignment) - 1))
+#endif
+
+#ifndef ALIGN_UP_BY
+#define ALIGN_UP_BY(Length, Alignment) \
+    (ALIGN_DOWN_BY(((uintptr_t)(Length) + (Alignment) - 1), Alignment))
+#endif
+
 //
 // Generic stuff.
 //
@@ -301,9 +311,11 @@ CxPlatLogAssert(
 #ifdef DEBUG
 #define CXPLAT_DBG_ASSERT(exp) CXPLAT_FRE_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg) CXPLAT_FRE_ASSERT(exp)
+#define CXPLAT_DBG_ONLY(exp) (exp)
 #else
 #define CXPLAT_DBG_ASSERT(exp)
 #define CXPLAT_DBG_ASSERTMSG(exp, msg)
+#define CXPLAT_DBG_ONLY(exp)
 #endif
 
 #if DEBUG // TODO - Do something with QUIC_TELEMETRY_ASSERTS
@@ -462,7 +474,6 @@ CXPLAT_SLIST_ENTRY*
 CxPlatListPopEntry(
     _Inout_ CXPLAT_SLIST_ENTRY* ListHead
     );
-
 typedef struct CXPLAT_POOL {
 
     //
@@ -498,7 +509,9 @@ typedef struct CXPLAT_POOL {
 
 } CXPLAT_POOL;
 
-typedef struct __attribute__((aligned(16))) CXPLAT_POOL_HEADER {
+#define CXPLAT_MEMORY_ALIGNMENT 16
+
+typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) CXPLAT_POOL_HEADER {
     union {
     CXPLAT_POOL* Owner;
     CXPLAT_SLIST_ENTRY Entry;
@@ -785,7 +798,7 @@ typedef struct CXPLAT_EVENT {
     // Mutex and condition. The alignas is important, as the perf tanks
     // if the event is not aligned.
     //
-    alignas(16) pthread_mutex_t Mutex;
+    alignas(CXPLAT_MEMORY_ALIGNMENT) pthread_mutex_t Mutex;
     pthread_cond_t Cond;
 
     //
@@ -976,10 +989,34 @@ Exit:
 
 #if __linux__
 
-#if CXPLAT_USE_IO_URING // liburing
+#include <sys/epoll.h>
+#include <sys/eventfd.h>
 
+#if CXPLAT_USE_IO_URING // liburing
+#define LIBURING_INTERNAL
+
+#if defined(__cplusplus)
+extern "C++" {
+#endif
 #include <liburing.h>
-typedef struct io_uring CXPLAT_EVENTQ;
+#if defined(__cplusplus)
+} // extern "C++"
+#endif
+
+typedef struct CXPLAT_EVENTQ {
+    struct io_uring Ring;
+    //
+    // For rapid prototyping, use a lock to implement SQE single producer and
+    // validate CQE single consumer. If io_uring shows performance benefits,
+    // this can be optimized to use a different mechanism for multi-producer
+    // queueing.
+    //
+    CXPLAT_LOCK Lock;
+#if DEBUG
+    uint32_t ContentionCount;
+#endif
+    BOOLEAN NeedsSubmit;
+} CXPLAT_EVENTQ;
 typedef struct io_uring_cqe* CXPLAT_CQE;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -988,73 +1025,170 @@ void
     _In_ CXPLAT_CQE* Cqe
     );
 typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+#define CXPLAT_USE_EVENT_BATCH_COMPLETION
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(CXPLAT_EVENT_BATCH_COMPLETION)(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    );
+typedef CXPLAT_EVENT_BATCH_COMPLETION *CXPLAT_EVENT_BATCH_COMPLETION_HANDLER;
 typedef struct CXPLAT_SQE {
-    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
+    CXPLAT_EVENT_COMPLETION_HANDLER ClassicCompletion;
+    CXPLAT_EVENT_BATCH_COMPLETION* Completion;
+#if DEBUG
+    uint32_t Signature;
+#endif
 } CXPLAT_SQE;
+
+#define CXPLAT_SQE_SIGNATURE_INITIALIZED    0x1010
+#define CXPLAT_SQE_SIGNATURE_UNINITIALIZED  0x3030
+
+typedef enum CXPLAT_IO_RING_BUF_GROUP {
+    CxPlatIoRingBufGroupSend,
+    CxPlatIoRingBufGroupRecv,
+} CXPLAT_IO_RING_BUF_GROUP;
 
 QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
-    _Out_ CXPLAT_EVENTQ* queue
+    _Out_ CXPLAT_EVENTQ* Queue
     )
 {
-    return 0 == io_uring_queue_init(256, queue, 0); // TODO - make size configurable
+    CxPlatZeroMemory(Queue, sizeof(*Queue));
+    CxPlatLockInitialize(&Queue->Lock);
+    struct io_uring_params params;
+	memset(&params, 0, sizeof(params));
+	params.flags = 0
+#ifdef IORING_SETUP_SUBMIT_ALL
+        | IORING_SETUP_SUBMIT_ALL
+#endif
+#ifdef IORING_SETUP_COOP_TASKRUN
+        | IORING_SETUP_COOP_TASKRUN
+#endif
+        ;
+    return 0 == io_uring_queue_init_params(4096, &Queue->Ring, &params); // TODO - make size configurable
 }
 
 QUIC_INLINE
 void
 CxPlatEventQCleanup(
-    _In_ CXPLAT_EVENTQ* queue
+    _In_ CXPLAT_EVENTQ* Queue
     )
 {
-    io_uring_queue_exit(queue);
+    io_uring_queue_exit(&Queue->Ring);
 }
 
 QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ CXPLAT_SQE* Sqe
     )
 {
-    struct io_uring_sqe *io_sqe = io_uring_get_sqe(queue);
-    if (io_sqe == NULL) return FALSE; // OOM
+    BOOLEAN Enqueued = FALSE;
+    CXPLAT_DBG_ASSERT(Sqe->Signature == CXPLAT_SQE_SIGNATURE_INITIALIZED);
+    CxPlatLockAcquire(&Queue->Lock);
+    struct io_uring_sqe* io_sqe = io_uring_get_sqe(&Queue->Ring);
+    if (io_sqe == NULL) {
+        goto Exit; // OOM
+    }
     io_uring_prep_nop(io_sqe);
-    io_uring_sqe_set_data(io_sqe, sqe);
-    io_uring_submit(queue); // TODO - Extract to separate function?
-    return TRUE;
+    io_uring_sqe_set_data(io_sqe, Sqe);
+    io_uring_submit(&Queue->Ring); // TODO - Extract to separate function?
+    Enqueued = TRUE;
+Exit:
+    CxPlatLockRelease(&Queue->Lock);
+    return Enqueued;
 }
 
 QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _Out_ CXPLAT_CQE* events,
-    _In_ uint32_t count,
-    _In_ uint32_t wait_time // milliseconds
+    _In_ CXPLAT_EVENTQ* Queue,
+    _Out_ CXPLAT_CQE* Events,
+    _In_ uint32_t Count,
+    _In_ uint32_t WaitTime // milliseconds
     )
 {
-    int result = io_uring_peek_batch_cqe(queue, events, count);
-    if (result > 0 || wait_time == 0) return result;
-    if (wait_time != UINT32_MAX) {
-        struct __kernel_timespec timeout;
-        timeout.tv_sec = (wait_time / 1000);
-        timeout.tv_nsec = ((wait_time % 1000) * 1000000);
-        (void)io_uring_wait_cqe_timeout(queue, events, &timeout);
-    } else {
-        (void)io_uring_wait_cqe(queue, events);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    if (Queue->NeedsSubmit) {
+        //
+        // Review: can be batched with waits below.
+        //
+        io_uring_submit(&Queue->Ring);
+        Queue->NeedsSubmit = FALSE;
     }
-    return io_uring_peek_batch_cqe(queue, events, count);
+    int result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
+    if (result > 0 || WaitTime == 0) goto Exit;
+    if (WaitTime != UINT32_MAX) {
+        struct __kernel_timespec timeout;
+        timeout.tv_sec = (WaitTime / 1000);
+        timeout.tv_nsec = ((WaitTime % 1000) * 1000000);
+        (void)io_uring_wait_cqe_timeout(&Queue->Ring, Events, &timeout);
+    } else {
+        (void)io_uring_wait_cqe(&Queue->Ring, Events);
+    }
+    result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
+    if (result == -EAGAIN) {
+        result = 0;
+    }
+Exit:
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    return result;
 }
 
 QUIC_INLINE
 void
 CxPlatEventQReturn(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ uint32_t count
+    _In_ CXPLAT_EVENTQ* Queue,
+    _In_ uint32_t Count
     )
 {
-    io_uring_cq_advance(queue, count);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    io_uring_cq_advance(&Queue->Ring, Count);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+}
+
+QUIC_INLINE
+CXPLAT_SQE*
+CxPlatCqeGetSqe(
+    _In_ const CXPLAT_CQE* cqe
+    )
+{
+    return (CXPLAT_SQE*)(uintptr_t)(*cqe)->user_data;
+}
+
+QUIC_INLINE
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatSqeClassicCompletion(
+    _Inout_ CXPLAT_CQE** Cqes,
+    _Inout_ uint32_t* Count
+    )
+{
+    CXPLAT_DBG_ASSERT(*Count >= 1);
+    CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(*Cqes);
+    Sqe->ClassicCompletion(*Cqes);
+    (*Cqes)++;
+    (*Count)--;
 }
 
 QUIC_INLINE
@@ -1066,7 +1200,27 @@ CxPlatSqeInitialize(
     )
 {
     UNREFERENCED_PARAMETER(queue);
+    sqe->ClassicCompletion = completion;
+    sqe->Completion = CxPlatSqeClassicCompletion;
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_INITIALIZED;
+#endif
+    return TRUE;
+}
+
+QUIC_INLINE
+BOOLEAN
+CxPlatBatchSqeInitialize(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_EVENT_BATCH_COMPLETION_HANDLER completion,
+    _Out_ CXPLAT_SQE* sqe
+    )
+{
+    UNREFERENCED_PARAMETER(queue);
     sqe->Completion = completion;
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_INITIALIZED;
+#endif
     return TRUE;
 }
 
@@ -1077,23 +1231,14 @@ CxPlatSqeCleanup(
     _In_ CXPLAT_SQE* sqe
     )
 {
+#if DEBUG
+    sqe->Signature = CXPLAT_SQE_SIGNATURE_UNINITIALIZED;
+#endif
     UNREFERENCED_PARAMETER(queue);
     UNREFERENCED_PARAMETER(sqe);
 }
 
-QUIC_INLINE
-CXPLAT_SQE*
-CxPlatCqeGetSqe(
-    _In_ const CXPLAT_CQE* cqe
-    )
-{
-    return (CXPLAT_SQE*)(uintptr_t)cqe->user_data;
-}
-
 #else // epoll
-
-#include <sys/epoll.h>
-#include <sys/eventfd.h>
 
 typedef int CXPLAT_EVENTQ;
 typedef struct epoll_event CXPLAT_CQE;
