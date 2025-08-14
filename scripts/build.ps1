@@ -450,7 +450,7 @@ function CMake-Generate {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on -DQUIC_LOGGING_TYPE=" + $LoggingType
     }
     if ($SanitizeAddress) {
-        $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
+        $Arguments += " -DQUIC_ENABLE_ALL_SANITIZERS=on"
     }
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
