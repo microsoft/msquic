@@ -86,7 +86,7 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Prepare_MachineForTest")) {
     Write-Host "Executing command: $WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
-    iex "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    Invoke-Expression "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
     .\scripts\prepare-machine.ps1 -InstallXdpDriver
