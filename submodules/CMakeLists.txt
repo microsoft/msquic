@@ -196,10 +196,12 @@ else()
 
     if (NOT QUIC_SKIP_SANITIZE_SUBMODULES)
         if (QUIC_ENABLE_ASAN)
+            message(STATUS "Configuring ASAN for ${QUIC_OPENSSL}")
             list(APPEND OPENSSL_CONFIG_FLAGS enable-asan)
         endif()
 
         if (QUIC_ENABLE_UBSAN)
+            message(STATUS "Configuring UBSAN for ${QUIC_OPENSSL}")
             list(APPEND OPENSSL_CONFIG_FLAGS enable-ubsan)
         endif()
     endif()
