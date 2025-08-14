@@ -1,5 +1,9 @@
-param (
-    [string]$Command
+param(
+    [Parameter(Mandatory = $true)]
+    [string] $Command,
+
+    [Parameter(Mandatory = $false)]
+    [string] $WorkingDir = "."
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -81,8 +85,8 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Prepare_MachineForTest")) {
-    Write-Host "Executing command: Prepare_MachineForTest"
-    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    Write-Host "Executing command: $WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    Invoke-Expression "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
     .\scripts\prepare-machine.ps1 -InstallXdpDriver
@@ -118,6 +122,13 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     # if artifacts don't exist, make it
     New-Item -ItemType Directory "artifacts/logs/$artifactName/server" -ErrorAction Ignore | Out-Null
     .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
+} elseif ($Command.Contains("Config_DumpCollection_Windows")) {
+    $DumpDir = "C:/_work/quic/artifacts/crashdumps"
+    $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
+    New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
+    New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
+    Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
+    Set-ItemProperty -Path $WerDumpRegPath -Name DumpType -Value 2 | Out-Null
 } else {
     throw "Invalid command: $Command"
 }
