@@ -713,7 +713,7 @@ else() #!WIN32
         list(APPEND QUIC_COMMON_DEFINES QUIC_SHARED_EPHEMERAL_WORKAROUND)
     endif()
 
-    if (QUIC_STANITIZER_ACTIVE)
+    if (QUIC_SANITIZER_ACTIVE)
         message(STATUS "Configuring sanitizers: ASAN:${QUIC_ENABLE_ASAN} LSAN:${QUIC_ENABLE_LSAN} UBSAN:${QUIC_ENABLE_UBSAN} EXTRA:${QUIC_ENABLE_EXTRA_SANITIZERS}")
         # Append common flags for all sanitizer options
         list(APPEND QUIC_COMMON_FLAGS -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
