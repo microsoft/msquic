@@ -124,6 +124,7 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     .\scripts\log.ps1 -Stop -OutputPath "artifacts/logs/$artifactName/server" -RawLogOnly
 } elseif ($Command.Contains("Config_DumpCollection_Windows")) {
     $DumpDir = "C:/_work/quic/artifacts/crashdumps"
+    $WerDumpRegPath = "HKLM:\Software\Microsoft\Windows\Windows Error Reporting\LocalDumps\secnetperf.exe"
     New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
     New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
     Set-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
