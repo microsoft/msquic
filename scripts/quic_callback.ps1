@@ -1,5 +1,9 @@
-param (
-    [string]$Command
+param(
+    [Parameter(Mandatory = $true)]
+    [string] $Command,
+
+    [Parameter(Mandatory = $false)]
+    [string] $WorkingDir = "."
 )
 
 if ($PSVersionTable.PSVersion.Major -lt 7) {
@@ -81,8 +85,8 @@ if ($Command.Contains("/home/secnetperf/_work/quic/artifacts/bin/linux/x64_Relea
     Write-Host "Executing command: $(pwd)/artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats"
     ./artifacts/bin/windows/x64_Release_schannel/secnetperf -exec:$mode -io:$io -stats:$stats
 } elseif ($Command.Contains("Prepare_MachineForTest")) {
-    Write-Host "Executing command: Prepare_MachineForTest"
-    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    Write-Host "Executing command: $WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    iex "$WorkingDir\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates"
 } elseif ($Command.Contains("Install_XDP")) {
     Write-Host "Executing command: Install_XDP"
     .\scripts\prepare-machine.ps1 -InstallXdpDriver
