@@ -550,9 +550,10 @@ typedef struct CXPLAT_TLS {
     BOOLEAN PeerTransportParamsReceived : 1;
     BOOLEAN HandshakeKeyRead : 1;
     BOOLEAN ApplicationKeyRead : 1;
-    BOOLEAN ApplicationSessionStateRx : 1;
-    BOOLEAN SessionStateTicketRx : 1;
-    BOOLEAN ValidTxSessionStateTicket : 1;
+    BOOLEAN ServerAppSessionStateRx : 1;       // If TRUE, AppSessionState was received on the server
+    BOOLEAN ClientSessionStateTicketRx : 1;    // If TRUE, SessionTicket was received on the client
+    BOOLEAN TicketRxIndicated : 1;             // If TRUE, AppSessionState was indicated on the server OR SessionTicket was indicated on the client
+    BOOLEAN ClientSessionStateTicketForTx : 1; // If TRUE, TxSessionTicket is valid for single use when sending Client Hello
 
     //
     // The TLS extension type for the QUIC transport parameters.
@@ -616,25 +617,40 @@ typedef struct CXPLAT_TLS {
     QUIC_TLS_SECRETS* TlsSecrets;
 
     //
+    // Session state and resumption have traditionally been managed by the TLS layer without
+    // any intervention from the application layer. Managed application session state enhances this functionality
+    // by allowing the application to include payload in the resumption data as well as to control/participate
+    // in the session state management process.
+    //
+    // SChannel TLS implementation in Server2025 and newer releases includes this functionality. The main caveat
+    // is that SChannel requires the application to take ownership of session state management in order to use this feature.
+    // SChannel uses similar terminology/types for clear-text application session state as well as encrypted session tickets,
+    // and the context determines what type of data is behing handled.
+    //
+    // This TLS state structure represents either the client side or the server side of the TLS connection.
+    // The server side handles the plain-text application session state, which sometimes saved in the server instances of this struct.
+    // The client side handles only the encrypted session ticket, which is sometimes stored on the client instances of this struct.
+    //
+
+    //
     // Length of allocated application state buffer on the server
     //
     uint32_t RxAppSessionStateAllocLength;
 
     //
-    // Received application session state on the server
+    // Received application session state on the server, typically notified to the server app.
     //
     PSEC_APP_SESSION_STATE RxAppSessionState;
 
     //
-    // Length of allocated application state struct on the server
+    // Length of allocated session ticket struct on the client
     //
     uint32_t RxSessionTicketAllocLength;
 
     //
-    // Received Resumption/Reconnection Session ticket on the client
+    // Received Resumption/Reconnection Session ticket on the client, typically notified to the client app.
     //
     PSEC_SESSION_TICKET RxSessionTicket;
-
 
     //
     // Length of the allocated session ticket struct
@@ -642,8 +658,8 @@ typedef struct CXPLAT_TLS {
     uint32_t TxSessionTicketAllocLength;
 
     //
-    // Resumption/Reconnection Session ticket for use on the client for the current connection
-    // Use this if ValidTxSessionStateTicket is TRUE and this can be used only once.
+    // Resumption/Reconnection Session ticket on the client used when establishing the connection with a server
+    // Use this if ClientSessionStateTicketForTx is TRUE and this can be used only once.
     //
     PSEC_SESSION_TICKET TxSessionTicket;
 
@@ -1744,7 +1760,7 @@ CxPlatTlsInitialize(
             Config->ResumptionTicketLength);
         TlsContext->TxSessionTicket->SessionTicketSize =
             (uint16_t)Config->ResumptionTicketLength;
-        TlsContext->ValidTxSessionStateTicket = TRUE;
+        TlsContext->ClientSessionStateTicketForTx = TRUE;
 
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
@@ -2046,7 +2062,7 @@ CxPlatTlsWriteDataToSchannel(
             InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
             InSecBufferDesc.cBuffers++;
 
-            if (CxPlatSupportsTicketManagement() && TlsContext->ValidTxSessionStateTicket) {
+            if (CxPlatSupportsTicketManagement() && TlsContext->ClientSessionStateTicketForTx) {
                 // 1-RTT resumption ticket, if any
                 InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_SESSION_TICKET;
                 InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->TxSessionTicketAllocLength;
@@ -2057,7 +2073,7 @@ CxPlatTlsWriteDataToSchannel(
                 // Invalidate the session ticket after using it once.
                 // This can be changed later to allow multiple uses of the same ticket.
                 //
-                TlsContext->ValidTxSessionStateTicket = FALSE;
+                TlsContext->ClientSessionStateTicketForTx = FALSE;
             }
         }
         else {
@@ -2921,7 +2937,7 @@ CxPlatTlsWriteDataToSchannel(
                 OutputTokenBuffer->cbBuffer);
         }
 
-        if (CxPlatSupportsTicketManagement() &&
+        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) &&
             TlsContext->IsServer &&
             RxAppSessionStateBuffer != NULL &&
             RxAppSessionStateBuffer->cbBuffer > 0) {
@@ -2931,7 +2947,6 @@ CxPlatTlsWriteDataToSchannel(
 
             //
             // Received application session state
-            // TODO: check if this is server only
             //
             PSEC_APP_SESSION_STATE RxAppSessionState = (PSEC_APP_SESSION_STATE)RxAppSessionStateBuffer->pvBuffer;
             if (RxAppSessionStateBuffer->cbBuffer < sizeof(*RxAppSessionState) ||
@@ -2948,11 +2963,10 @@ CxPlatTlsWriteDataToSchannel(
                 break;
             }
 
-            // We have to signal application state even for zero-length buffers
-            TlsContext->ApplicationSessionStateRx = TRUE;
+            TlsContext->ServerAppSessionStateRx = (RxAppSessionState->AppSessionStateSize > 0);
         }
 
-        if (CxPlatSupportsTicketManagement() &&
+        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) &&
             !TlsContext->IsServer &&
             RxSessionTicketBuffer != NULL &&
             RxSessionTicketBuffer->cbBuffer > 0) {
@@ -2977,9 +2991,7 @@ CxPlatTlsWriteDataToSchannel(
                 break;
             }
 
-            if (RxSessionTicket->SessionTicketSize > 0) {
-                TlsContext->SessionStateTicketRx = TRUE;
-            }
+            TlsContext->ClientSessionStateTicketRx = (RxSessionTicket->SessionTicketSize > 0);
         }
 
         break;
@@ -3088,7 +3100,7 @@ CxPlatTlsWriteDataToSchannel(
 
             if (CxPlatSupportsTicketManagement() &&
                 TlsContext->IsServer &&
-                !TlsContext->ApplicationSessionStateRx &&
+                !TlsContext->ServerAppSessionStateRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxAppSessionStateAllocLength &&
                 OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_APP_SESSION_STATE) {
 
@@ -3128,7 +3140,7 @@ CxPlatTlsWriteDataToSchannel(
 
             if (CxPlatSupportsTicketManagement() &&
                 !TlsContext->IsServer &&
-                !TlsContext->SessionStateTicketRx &&
+                !TlsContext->ClientSessionStateTicketRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxSessionTicketAllocLength &&
                 OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SESSION_TICKET) {
 
@@ -3253,13 +3265,15 @@ CxPlatTlsProcessData(
 
     if (DataType == CXPLAT_TLS_TICKET_DATA) {
         if (!AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) ||
-            !TlsContext->IsServer) {
+            !TlsContext->IsServer ||
+            *BufferLength > QUIC_MAX_RESUMPTION_APP_DATA_LENGTH) {
+
             Result = CXPLAT_TLS_RESULT_ERROR;
 
             QuicTraceLogConnVerbose(
                 SchannelIgnoringTicket,
                 TlsContext->Connection,
-                "Managed resumption tickets either not configured or not supported. Ignoring %u ticket bytes",
+                "Managed resumption tickets either not configured or not supported or are used improperly. Ignoring %u ticket bytes",
                 *BufferLength);
             goto Error;
         } else {
@@ -3306,94 +3320,103 @@ CxPlatTlsProcessData(
         }
     }
 
-    if (State->HandshakeComplete &&
-        State->BufferOffset1Rtt > 0) {
-
-        //
-        // Notify any state/tickets only after the handshake is complete
-        //
-        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
-            if (TlsContext->IsServer &&
-                TlsContext->ApplicationSessionStateRx) {
-
-                //
-                // Notify server application of the RX session state
-                //
-                if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                        TlsContext->Connection,
-                        TlsContext->RxAppSessionState->AppSessionStateSize,
-                        (void*)TlsContext->RxAppSessionState->AppSessionState)) {
-                    //
-                    // Server app accepted the session state
-                    //
-                    QuicTraceLogConnVerbose(
-                        SchannelProcessingData,
-                        TlsContext->Connection,
-                        "Server app resumption state delivered. State size: %u bytes",
-                        TlsContext->RxAppSessionState->AppSessionStateSize);
-                } else {
-                    //
-                    // Server app rejected the session state but the TLS connection continues
-                    //
-                    QuicTraceLogConnInfo(
-                        SchannelIgnoringTicket,
-                        TlsContext->Connection,
-                        "Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
-                        TlsContext->RxAppSessionState->AppSessionStateSize);
-                }
-
-                //
-                // Application session state is delivered only once.
-                //
-                TlsContext->ApplicationSessionStateRx = FALSE;
-            } else if (!TlsContext->IsServer &&
-                       TlsContext->SessionStateTicketRx) {
-                //
-                // Notify client application of the RX TLS Session State/Resumption Ticket
-                // This is typically opaque data for the client.
-                //
-                if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                        TlsContext->Connection,
-                        TlsContext->RxSessionTicket->SessionTicketSize,
-                        (void*)TlsContext->RxSessionTicket->SessionTicket)) {
-                    //
-                    // Client app accepted the session ticket
-                    //
-                    QuicTraceLogConnVerbose(
-                        SchannelProcessingData,
-                        TlsContext->Connection,
-                        "Resumption session ticket delivered. Ticket size: %u bytes",
-                        TlsContext->RxSessionTicket->SessionTicketSize);
-                }
-                else {
-                    //
-                    // Client app rejected the session ticket but the TLS connection continues
-                    //
-                    QuicTraceLogConnInfo(
-                        SchannelIgnoringTicket,
-                        TlsContext->Connection,
-                        "Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
-                        TlsContext->RxSessionTicket->SessionTicketSize);
-                }
-
-                //
-                // Client session state ticket is delivered only once.
-                //
-                TlsContext->SessionStateTicketRx = FALSE;
-            }
-        } else if (!CxPlatSupportsTicketManagement() && !TlsContext->IsServer) {
+    //
+    // Notify any state/tickets as and when they are received.
+    //
+    if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
+        if (TlsContext->IsServer &&
+            TlsContext->ServerAppSessionStateRx) {
 
             //
-            // Older client-side behavior:
-            // Schannel sends the NST after receiving client finished.
-            // We need to wait for the handshake to be complete before setting
-            // the flag, since we don't know if we've received the ticket yet.
+            // Notify server application of the RX session state
             //
-            (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
+            if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
                 TlsContext->Connection,
-                0,
-                NULL);
+                TlsContext->RxAppSessionState->AppSessionStateSize,
+                (void*)TlsContext->RxAppSessionState->AppSessionState)) {
+                //
+                // Server app accepted the session state
+                //
+                QuicTraceLogConnVerbose(
+                    SchannelProcessingData,
+                    TlsContext->Connection,
+                    "Server app resumption state delivered. State size: %u bytes",
+                    TlsContext->RxAppSessionState->AppSessionStateSize);
+            }
+            else {
+                //
+                // Server app rejected the session state but the TLS connection continues
+                //
+                QuicTraceLogConnInfo(
+                    SchannelIgnoringTicket,
+                    TlsContext->Connection,
+                    "Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
+                    TlsContext->RxAppSessionState->AppSessionStateSize);
+            }
+
+            //
+            // Application session state is delivered only once.
+            //
+            TlsContext->ServerAppSessionStateRx = FALSE;
+            TlsContext->TicketRxIndicated = TRUE;
         }
+        else if (!TlsContext->IsServer &&
+            TlsContext->ClientSessionStateTicketRx) {
+            //
+            // Notify client application of the RX TLS Session State/Resumption Ticket
+            // This is typically opaque data for the client.
+            //
+            if (TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection,
+                TlsContext->RxSessionTicket->SessionTicketSize,
+                (void*)TlsContext->RxSessionTicket->SessionTicket)) {
+                //
+                // Client app accepted the session ticket
+                //
+                QuicTraceLogConnVerbose(
+                    SchannelProcessingData,
+                    TlsContext->Connection,
+                    "Resumption session ticket delivered. Ticket size: %u bytes",
+                    TlsContext->RxSessionTicket->SessionTicketSize);
+            }
+            else {
+                //
+                // Client app rejected the session ticket but the TLS connection continues
+                //
+                QuicTraceLogConnInfo(
+                    SchannelIgnoringTicket,
+                    TlsContext->Connection,
+                    "Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
+                    TlsContext->RxSessionTicket->SessionTicketSize);
+            }
+
+            //
+            // Client session state ticket is delivered only once.
+            //
+            TlsContext->ClientSessionStateTicketRx = FALSE;
+            TlsContext->TicketRxIndicated = TRUE;
+        }
+    }
+
+    if (State->HandshakeComplete &&
+        State->BufferOffset1Rtt > 0 &&
+        !TlsContext->TicketRxIndicated &&
+        (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) || !TlsContext->IsServer)) {
+        //
+        // If no state/ticket was received at the end of the handshake (which is always the case
+        // when resumption tickets are not managed), indicate an empty ticket.
+        //
+        // This is invoked on older clients and new client/servers.
+        //
+        // Older client behavior: Schannel sends the NST after receiving client finished.
+        // We need to wait for the handshake to be complete before setting
+        // the flag, since we don't know if we've received the ticket yet.
+        //
+        (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
+            TlsContext->Connection,
+            0,
+            NULL);
+        TlsContext->TicketRxIndicated = TRUE;
     }
 
 Error:
