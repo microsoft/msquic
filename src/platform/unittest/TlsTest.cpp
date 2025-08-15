@@ -1461,6 +1461,10 @@ TEST_F(TlsTest, HandshakeResumptionAppStateSizeLimit)
         GTEST_SKIP() << "Skipping 0/1 RTT tests";
     }
 
+#ifdef QUIC_TEST_OPENSSL_FLAGS
+    GTEST_SKIP() << "Skipping test for OpenSSL library";
+#endif
+
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
 

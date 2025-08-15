@@ -1708,13 +1708,14 @@ CxPlatTlsInitialize(
         goto Error;
     }
 
-    TlsContext->RxSessionTicketAllocLength = FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket)
-                                                + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
+    TlsContext->RxSessionTicketAllocLength =
+        FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
 
     TlsContext->RxSessionTicket =
         (PSEC_SESSION_TICKET) CXPLAT_ALLOC_NONPAGED(
             TlsContext->RxSessionTicketAllocLength,
             QUIC_POOL_TLS_EXTRAS);
+
     if (TlsContext->RxSessionTicket == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -1727,7 +1728,6 @@ CxPlatTlsInitialize(
 
     State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
     if (Config->ResumptionTicketLength > 0) {
-
         if (Config->ResumptionTicketLength > 0xFFFF) {
             QuicTraceEvent(
                 TlsError,
@@ -1739,12 +1739,14 @@ CxPlatTlsInitialize(
         }
 
         // Allocate the resumption ticket buffer with an extra byte
-        TlsContext->TxSessionTicketAllocLength = sizeof(SEC_SESSION_TICKET) + Config->ResumptionTicketLength;
+        TlsContext->TxSessionTicketAllocLength =
+            sizeof(SEC_SESSION_TICKET) + Config->ResumptionTicketLength;
 
         TlsContext->TxSessionTicket =
             (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
                 TlsContext->TxSessionTicketAllocLength,
                 QUIC_POOL_TLS_EXTRAS);
+
         if (TlsContext->TxSessionTicket == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -1775,15 +1777,12 @@ Error:
         if (TlsContext->RxAppSessionState) {
             CXPLAT_FREE(TlsContext->RxAppSessionState, QUIC_POOL_TLS_EXTRAS);
         }
-
         if (TlsContext->RxSessionTicket) {
             CXPLAT_FREE(TlsContext->RxSessionTicket, QUIC_POOL_TLS_EXTRAS);
         }
-
         if (TlsContext->TxSessionTicket) {
             CXPLAT_FREE(TlsContext->TxSessionTicket, QUIC_POOL_TLS_EXTRAS);
         }
-
         CXPLAT_FREE(TlsContext, QUIC_POOL_TLS_CTX);
     }
     return Status;
@@ -1968,7 +1967,7 @@ CXPLAT_TLS_RESULT_FLAGS
 CxPlatTlsWriteDataToSchannel(
     _In_ CXPLAT_TLS* TlsContext,
     _In_reads_(*InBufferLength)
-    const uint8_t* InBuffer,
+        const uint8_t* InBuffer,
     _Inout_ uint32_t* InBufferLength,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
     _In_ BOOLEAN IsTicketData
@@ -1984,7 +1983,7 @@ CxPlatTlsWriteDataToSchannel(
     SecBuffer* InSecBuffers = TlsContext->Workspace.InSecBuffers;
     SecBuffer* OutSecBuffers = TlsContext->Workspace.OutSecBuffers;
     PSEC_APP_SESSION_STATE AppSessionState = NULL;
-    size_t AppSessionStructSize = sizeof(*AppSessionState) + *InBufferLength;
+    size_t AppSessionStructSize = 0;
 
     SecBufferDesc InSecBufferDesc;
     InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
@@ -2005,12 +2004,12 @@ CxPlatTlsWriteDataToSchannel(
 
     if (IsTicketData) {
         //
-        // If this is a ticket data, we need to allocate a buffer for the
-        // application session state.
+        // Allocate a buffer for the application session state to write to Schannel.
         //
+        AppSessionStructSize = sizeof(*AppSessionState) + *InBufferLength;
         AppSessionState = (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
-            AppSessionStructSize,
-            QUIC_POOL_TLS_EXTRAS);
+                                                    AppSessionStructSize,
+                                                    QUIC_POOL_TLS_EXTRAS);
         if (AppSessionState == NULL) {
             QuicTraceEvent(
                 AllocFailure,
@@ -2127,6 +2126,8 @@ CxPlatTlsWriteDataToSchannel(
     InSecBufferDesc.cBuffers++;
 
     if (IsTicketData) {
+
+        CXPLAT_DBG_ASSERT(AppSessionStructSize >= sizeof(*AppSessionState));
         //
         // Ticket data is included after the flags
         //
