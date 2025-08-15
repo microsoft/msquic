@@ -6,6 +6,7 @@
 --*/
 
 #define _CRT_SECURE_NO_WARNINGS 1
+#define QUIC_API_ENABLE_PREVIEW_FEATURES
 #include "main.h"
 #include "msquic.h"
 #include "quic_tls.h"
@@ -1462,8 +1463,10 @@ TEST_F(TlsTest, HandshakeResumptionAppStateSizeLimit)
     }
 
 #ifdef QUIC_TEST_OPENSSL_FLAGS
-    GTEST_SKIP() << "Skipping test for OpenSSL library";
-#endif
+
+    GTEST_SKIP() << "Skipping test for OpenSSL scenario";
+
+#else
 
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
@@ -1480,6 +1483,8 @@ TEST_F(TlsTest, HandshakeResumptionAppStateSizeLimit)
     ServerContext3.InitializeServer(ServerConfig);
     // Send larger than permitted app session state to be included in the resumption ticket.
     DoHandshake(ServerContext3, ClientContext3, DefaultFragmentSize, 1, false, false, QUIC_MAX_RESUMPTION_APP_DATA_LENGTH + 1, true);
+
+#endif
 }
 
 TEST_F(TlsTest, HandshakeResumptionRejection)
