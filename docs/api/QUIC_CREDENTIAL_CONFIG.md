@@ -163,7 +163,23 @@ Enable CA certificate file provided in the `CaCertificateFile` member.
 
 `QUIC_CREDENTIAL_FLAG_DISABLE_AIA`
 
-The following flag can be set to explicitly disable AIA retrievals. Only valid on Windows.
+Explicitly disable AIA retrievals. Only valid on Windows.
+
+`QUIC_CREDENTIAL_FLAG_DISABLE_RESUMPTION`
+
+**Preview feature**: This flag is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+Disables TLS session resumption. Only valid on Windows with SChannel.
+
+`QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT`
+
+**Preview feature**: This flag is in [preview](../PreviewFeatures.md). It should be considered unstable and can be subject to breaking changes.
+
+Enables exclusive application management of TLS session resumption tickets and disables any automatic resumption ticket management in the underlying TLS library. Only valid on Windows Server 2025 or newer OS, with SChannel TLS.
+
+When enabled on a server application, resumption tickets must be issued by the server using the [ConnectionSendResumptionTicket](ConnectionSendResumptionTicket.md) API and incoming application state tickets are received through the [QUIC_CONNECTION_EVENT_RESUMED](QUIC_CONNECTION_EVENT.md) notification.
+
+When enabled on a client application, incoming resumption tickets are received through [QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED](QUIC_CONNECTION_EVENT.md) notification. A subsequent resuming client connection must apply the latest resumption ticket to the connection through the [QUIC_PARAM_CONN_RESUMPTION_TICKET](../Settings.md) connection setting.
 
 #### `CertificateHash`
 
