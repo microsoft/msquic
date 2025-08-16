@@ -3319,17 +3319,16 @@ CxPlatTlsProcessData(
 
     if (State->HandshakeComplete &&
         State->BufferOffset1Rtt > 0 &&
-        !TlsContext->TicketRxIndicated &&
-        (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) || !TlsContext->IsServer)) {
-        //
-        // If no state/ticket was received at the end of the handshake (which is always the case
-        // when resumption tickets are not managed), indicate an empty ticket.
-        //
-        // This is invoked on older clients and new client/servers.
+        !TlsContext->IsServer &&
+        (!AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) ||
+            !TlsContext->TicketRxIndicated)) {
         //
         // Older client behavior: Schannel sends the NST after receiving client finished.
         // We need to wait for the handshake to be complete before setting
         // the flag, since we don't know if we've received the ticket yet.
+        //
+        // New client behavior: If no session ticket was previously indicated,
+        // indicate an empty ticket here.
         //
         (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
             TlsContext->Connection,
@@ -3446,6 +3445,21 @@ CxPlatTlsProcessData(
             // Client session state ticket is delivered only once.
             //
             TlsContext->ClientSessionStateTicketRx = FALSE;
+            TlsContext->TicketRxIndicated = TRUE;
+        }
+
+        if (State->HandshakeComplete &&
+            State->BufferOffset1Rtt > 0 &&
+            TlsContext->IsServer &&
+            !TlsContext->TicketRxIndicated) {
+            //
+            // If no server app session state was received at the end of the handshake
+            // indicate an empty ticket.
+            //
+            (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
+                TlsContext->Connection,
+                0,
+                NULL);
             TlsContext->TicketRxIndicated = TRUE;
         }
     }
