@@ -1205,11 +1205,11 @@ CxPlatTlsSecConfigCreate(
     if (ResumptionTicketManagementAllowed(AchContext->SecConfig->Flags)) {
         if (CxPlatSupportsTicketManagement()) {
             QuicTraceLogVerbose(
-                SchannelAch,
+                SchannelTlsInitVerbose,
                 "[ tls] Explicit resumption ticket management enabled");
         } else {
             QuicTraceLogWarning(
-                SchannelAch,
+                SchannelTlsInitWarning,
                 "[ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform");
         }
     }
@@ -3300,17 +3300,18 @@ CxPlatTlsProcessData(
             *BufferLength > QUIC_MAX_RESUMPTION_APP_DATA_LENGTH) {
 
             Result = CXPLAT_TLS_RESULT_ERROR;
-
-            QuicTraceLogConnVerbose(
-                SchannelIgnoringTicket,
+            QuicTraceEvent(
+                TlsErrorStatus,
+                "[ tls][%p] Ticket size: %u, %s",
                 TlsContext->Connection,
-                "Managed resumption tickets either not configured or not supported or are used improperly. Ignoring %u ticket bytes",
-                *BufferLength);
+                *BufferLength,
+                "Managed resumption tickets either not configured or not supported or are used improperly.");
             goto Error;
         } else {
+
             TicketData = TRUE;
             QuicTraceLogConnVerbose(
-                SchannelProcessingData,
+                SchannelServerTxTicket,
                 TlsContext->Connection,
                 "Sending managed resumption ticket data, %u bytes",
                 *BufferLength);
@@ -3338,7 +3339,7 @@ CxPlatTlsProcessData(
     }
 
     QuicTraceLogConnVerbose(
-        SchannelProcessingData,
+        SchannelTlsProcessingData,
         TlsContext->Connection,
         "Processing %u TX or RX bytes",
         *BufferLength);
@@ -3389,7 +3390,7 @@ CxPlatTlsProcessData(
                 // Server app accepted the session state
                 //
                 QuicTraceLogConnVerbose(
-                    SchannelProcessingData,
+                    SchannelServerRxTicket,
                     TlsContext->Connection,
                     "Server app resumption state delivered. State size: %u bytes",
                     TlsContext->RxAppSessionState->AppSessionStateSize);
@@ -3399,7 +3400,7 @@ CxPlatTlsProcessData(
                 // Server app rejected the session state but the TLS connection continues
                 //
                 QuicTraceLogConnInfo(
-                    SchannelIgnoringTicket,
+                    SchannelServerIgnoringTicket,
                     TlsContext->Connection,
                     "Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
                     TlsContext->RxAppSessionState->AppSessionStateSize);
@@ -3425,7 +3426,7 @@ CxPlatTlsProcessData(
                 // Client app accepted the session ticket
                 //
                 QuicTraceLogConnVerbose(
-                    SchannelProcessingData,
+                    SchannelClientRxTicket,
                     TlsContext->Connection,
                     "Resumption session ticket delivered. Ticket size: %u bytes",
                     TlsContext->RxSessionTicket->SessionTicketSize);
@@ -3435,7 +3436,7 @@ CxPlatTlsProcessData(
                 // Client app rejected the session ticket but the TLS connection continues
                 //
                 QuicTraceLogConnInfo(
-                    SchannelIgnoringTicket,
+                    SchannelClientIgnoringTicket,
                     TlsContext->Connection,
                     "Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
                     TlsContext->RxSessionTicket->SessionTicketSize);
