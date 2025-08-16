@@ -179,7 +179,7 @@ Enables exclusive application management of TLS session resumption tickets and d
 
 When enabled on a server application, resumption tickets must be issued by the server using the [ConnectionSendResumptionTicket](ConnectionSendResumptionTicket.md) API and incoming application state tickets are received through the [QUIC_CONNECTION_EVENT_RESUMED](QUIC_CONNECTION_EVENT.md) notification.
 
-When enabled on a client application, incoming resumption tickets are received through [QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED](QUIC_CONNECTION_EVENT.md) notification. A subsequent resuming client connection must apply the latest resumption ticket to the connection through the [QUIC_PARAM_CONN_RESUMPTION_TICKET](../Settings.md) connection setting.
+When enabled on a client application, incoming session resumption tickets are received through [QUIC_CONNECTION_EVENT_RESUMPTION_TICKET_RECEIVED](QUIC_CONNECTION_EVENT.md) notification. A subsequent resuming client connection must apply the latest session resumption ticket to the connection through the [QUIC_PARAM_CONN_RESUMPTION_TICKET](../Settings.md) connection setting.
 
 #### `CertificateHash`
 

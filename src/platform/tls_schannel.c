@@ -624,8 +624,11 @@ typedef struct CXPLAT_TLS {
     //
     // SChannel TLS implementation in Server2025 and newer releases includes this functionality. The main caveat
     // is that SChannel requires the application to take ownership of session state management in order to use this feature.
-    // SChannel uses similar terminology/types for clear-text application session state as well as encrypted session tickets,
-    // and the context determines what type of data is behing handled.
+    // SChannel refers to encrypted client-side resumption token as "Session Ticket" and the server-side clear-text app session state
+    // as "App Session State". MsQuic refers to the latter as "ticket data" in some places.
+    //
+    // MsQuic uses a single callback function to notify the application of incoming App Session State or Session Ticket,
+    // relying on the context to determine what type of data is being handled.
     //
     // This TLS state structure represents either the client side or the server side of the TLS connection.
     // The server side handles the plain-text application session state, which sometimes saved in the server instances of this struct.
@@ -1619,7 +1622,7 @@ CxPlatTlsInitialize(
     _In_ const CXPLAT_TLS_CONFIG* Config,
     _Inout_ CXPLAT_TLS_PROCESS_STATE* State,
     _Out_ CXPLAT_TLS** NewTlsContext
-    )
+)
 {
     UNREFERENCED_PARAMETER(Config->Connection);
 
@@ -1690,79 +1693,84 @@ CxPlatTlsInitialize(
     TlsContext->TransportParams->BufferSize =
         (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
 
-    TlsContext->RxAppSessionStateAllocLength =
-        FIELD_OFFSET(SEC_APP_SESSION_STATE, AppSessionState) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
+    if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
+        TlsContext->RxAppSessionStateAllocLength =
+            FIELD_OFFSET(SEC_APP_SESSION_STATE, AppSessionState) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
 
-    TlsContext->RxAppSessionState =
-        (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
-            TlsContext->RxAppSessionStateAllocLength,
-            QUIC_POOL_TLS_EXTRAS);
-
-    if (TlsContext->RxAppSessionState == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Initial App Session State",
-            TlsContext->RxAppSessionStateAllocLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    TlsContext->RxSessionTicketAllocLength =
-        FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
-
-    TlsContext->RxSessionTicket =
-        (PSEC_SESSION_TICKET) CXPLAT_ALLOC_NONPAGED(
-            TlsContext->RxSessionTicketAllocLength,
-            QUIC_POOL_TLS_EXTRAS);
-
-    if (TlsContext->RxSessionTicket == NULL) {
-        QuicTraceEvent(
-            AllocFailure,
-            "Allocation of '%s' failed. (%llu bytes)",
-            "Initial Session Ticket",
-            TlsContext->RxSessionTicketAllocLength);
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Error;
-    }
-
-    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
-    if (Config->ResumptionTicketLength > 0) {
-        if (Config->ResumptionTicketLength > 0xFFFF) {
-            QuicTraceEvent(
-                TlsError,
-                "[ tls][%p] ERROR, %s.",
-                Config->Connection,
-                "Resumption ticket is too big");
-            Status = QUIC_STATUS_INVALID_PARAMETER;
-            goto Error;
-        }
-
-        // Allocate the resumption ticket buffer with an extra byte
-        TlsContext->TxSessionTicketAllocLength =
-            sizeof(SEC_SESSION_TICKET) + Config->ResumptionTicketLength;
-
-        TlsContext->TxSessionTicket =
-            (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
-                TlsContext->TxSessionTicketAllocLength,
+        TlsContext->RxAppSessionState =
+            (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
+                TlsContext->RxAppSessionStateAllocLength,
                 QUIC_POOL_TLS_EXTRAS);
 
-        if (TlsContext->TxSessionTicket == NULL) {
+        if (TlsContext->RxAppSessionState == NULL) {
             QuicTraceEvent(
                 AllocFailure,
                 "Allocation of '%s' failed. (%llu bytes)",
-                "Tx Session Ticket",
-                TlsContext->TxSessionTicketAllocLength);
+                "Initial App Session State",
+                TlsContext->RxAppSessionStateAllocLength);
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Error;
         }
 
-        memcpy(TlsContext->TxSessionTicket->SessionTicket,
-            Config->ResumptionTicketBuffer,
-            Config->ResumptionTicketLength);
-        TlsContext->TxSessionTicket->SessionTicketSize =
-            (uint16_t)Config->ResumptionTicketLength;
-        TlsContext->ClientSessionStateTicketForTx = TRUE;
+        TlsContext->RxSessionTicketAllocLength =
+            FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
+
+        TlsContext->RxSessionTicket =
+            (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
+                TlsContext->RxSessionTicketAllocLength,
+                QUIC_POOL_TLS_EXTRAS);
+
+        if (TlsContext->RxSessionTicket == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "Initial Session Ticket",
+                TlsContext->RxSessionTicketAllocLength);
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Error;
+        }
+    }
+
+    State->EarlyDataState = CXPLAT_TLS_EARLY_DATA_UNSUPPORTED; // 0-RTT not currently supported.
+    if (Config->ResumptionTicketBuffer != NULL) {
+        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
+
+            if (Config->ResumptionTicketLength > 0xFFFF) {
+                QuicTraceEvent(
+                    TlsError,
+                    "[ tls][%p] ERROR, %s.",
+                    Config->Connection,
+                    "Resumption ticket is too big");
+                Status = QUIC_STATUS_INVALID_PARAMETER;
+                goto Error;
+            }
+
+            // Allocate the resumption ticket buffer with an extra byte
+            TlsContext->TxSessionTicketAllocLength =
+                sizeof(SEC_SESSION_TICKET) + Config->ResumptionTicketLength;
+
+            TlsContext->TxSessionTicket =
+                (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
+                    TlsContext->TxSessionTicketAllocLength,
+                    QUIC_POOL_TLS_EXTRAS);
+
+            if (TlsContext->TxSessionTicket == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Tx Session Ticket",
+                    TlsContext->TxSessionTicketAllocLength);
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                goto Error;
+            }
+
+            memcpy(TlsContext->TxSessionTicket->SessionTicket,
+                Config->ResumptionTicketBuffer,
+                Config->ResumptionTicketLength);
+            TlsContext->TxSessionTicket->SessionTicketSize =
+                (uint16_t)Config->ResumptionTicketLength;
+            TlsContext->ClientSessionStateTicketForTx = TRUE;
+        }
 
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
@@ -1984,6 +1992,7 @@ CxPlatTlsWriteDataToSchannel(
     SecBuffer* OutSecBuffers = TlsContext->Workspace.OutSecBuffers;
     PSEC_APP_SESSION_STATE AppSessionState = NULL;
     size_t AppSessionStructSize = 0;
+    BOOLEAN ManagedResumptionTickets = AreResumptionTicketsManaged(TlsContext->SecConfig->Flags);
 
     SecBufferDesc InSecBufferDesc;
     InSecBufferDesc.ulVersion = SECBUFFER_VERSION;
@@ -1998,29 +2007,12 @@ CxPlatTlsWriteDataToSchannel(
     uint8_t AlertBufferRaw[2];
 
     //
-    // We currently do not support client-side application ticket handling
+    // Ticket data refers only to the server application session state
     //
-    CXPLAT_FRE_ASSERT((IsTicketData && TlsContext->IsServer && CxPlatSupportsTicketManagement()) || !IsTicketData);
-
-    if (IsTicketData) {
-        //
-        // Allocate a buffer for the application session state to write to Schannel.
-        //
-        AppSessionStructSize = sizeof(*AppSessionState) + *InBufferLength;
-        AppSessionState = (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
-                                                    AppSessionStructSize,
-                                                    QUIC_POOL_TLS_EXTRAS);
-        if (AppSessionState == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "App Session State",
-                AppSessionStructSize);
-            return CXPLAT_TLS_RESULT_ERROR;
-        }
-        AppSessionState->AppSessionStateSize = (unsigned short)*InBufferLength;
-        memcpy(AppSessionState->AppSessionState, InBuffer, *InBufferLength);
-    }
+    CXPLAT_DBG_ASSERT(!IsTicketData ||
+                      (IsTicketData &&
+                       TlsContext->IsServer &&
+                       ManagedResumptionTickets));
 
     if (!IsTicketData) {
 
@@ -2030,7 +2022,7 @@ CxPlatTlsWriteDataToSchannel(
         if (*InBufferLength == 0) {
 
             //
-            // If the input length is zero, then we are initializing the client
+            // If the input length is zero (and this is not ticket data), then we are initializing the client
             // side, and have a few special differences in this code path.
             //
             CXPLAT_DBG_ASSERT(TlsContext->IsServer == FALSE);
@@ -2061,8 +2053,11 @@ CxPlatTlsWriteDataToSchannel(
             InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = TlsContext->ApplicationProtocols;
             InSecBufferDesc.cBuffers++;
 
-            if (CxPlatSupportsTicketManagement() && TlsContext->ClientSessionStateTicketForTx) {
-                // 1-RTT resumption ticket, if any
+            if (ManagedResumptionTickets &&
+                TlsContext->ClientSessionStateTicketForTx) {
+                //
+                // 1-RTT resumption ticket supplied by the client app, if any
+                //
                 InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_SESSION_TICKET;
                 InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = TlsContext->TxSessionTicketAllocLength;
                 InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->TxSessionTicket;
@@ -2070,7 +2065,6 @@ CxPlatTlsWriteDataToSchannel(
 
                 //
                 // Invalidate the session ticket after using it once.
-                // This can be changed later to allow multiple uses of the same ticket.
                 //
                 TlsContext->ClientSessionStateTicketForTx = FALSE;
             }
@@ -2079,6 +2073,7 @@ CxPlatTlsWriteDataToSchannel(
 
             //
             // The first (input) secbuffer holds the received TLS data.
+            // This function is called either with TLS data OR with server app session ticket data, but never both.
             //
             InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_TOKEN;
             InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = *InBufferLength;
@@ -2116,7 +2111,11 @@ CxPlatTlsWriteDataToSchannel(
 
     TlsContext->Workspace.InSecFlags.Flags = ISC_REQ_MESSAGES;
 
-    if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
+    if (ManagedResumptionTickets) {
+        //
+        // Explicit session management is in force for this context.
+        // Using this flag at all times here helps simplify handling asynchronous events.
+        //
         TlsContext->Workspace.InSecFlags.Flags |= ISC_REQ_EXPLICIT_SESSION;
     }
 
@@ -2126,11 +2125,29 @@ CxPlatTlsWriteDataToSchannel(
     InSecBufferDesc.cBuffers++;
 
     if (IsTicketData) {
+        //
+        // Ticket data (App Session State) is included after the flags
+        //
 
-        CXPLAT_DBG_ASSERT(AppSessionStructSize >= sizeof(*AppSessionState));
         //
-        // Ticket data is included after the flags
+        // Allocate a buffer for the application session state to write to Schannel.
+        // Supplied Ticket data can also be of zero-length
         //
+        AppSessionStructSize = sizeof(*AppSessionState) + *InBufferLength;
+        AppSessionState = (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
+            AppSessionStructSize,
+            QUIC_POOL_TLS_EXTRAS);
+        if (AppSessionState == NULL) {
+            QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "App Session State",
+                AppSessionStructSize);
+            return CXPLAT_TLS_RESULT_ERROR;
+        }
+        AppSessionState->AppSessionStateSize = (unsigned short)*InBufferLength;
+        memcpy(AppSessionState->AppSessionState, InBuffer, *InBufferLength);
+
         InSecBuffers[InSecBufferDesc.cBuffers].BufferType = SECBUFFER_APP_SESSION_STATE;
         InSecBuffers[InSecBufferDesc.cBuffers].cbBuffer = (uint32_t)AppSessionStructSize;
         InSecBuffers[InSecBufferDesc.cBuffers].pvBuffer = AppSessionState;
@@ -2226,27 +2243,32 @@ CxPlatTlsWriteDataToSchannel(
     CXPLAT_STATIC_ASSERT(ISC_REQ_SEQUENCE_DETECT == ASC_REQ_SEQUENCE_DETECT, "These are assumed to match");
     CXPLAT_STATIC_ASSERT(ISC_REQ_CONFIDENTIALITY == ASC_REQ_CONFIDENTIALITY, "These are assumed to match");
     ULONG ContextReq = ISC_REQ_SEQUENCE_DETECT | ISC_REQ_CONFIDENTIALITY;
-    ContextReq |= ASC_REQ_SESSION_TICKET; // session tickets for resumption
 
-    if (!IsTicketData && CxPlatSupportsTicketManagement()) {
-        // TODO: Check if this is returned on the client
-        // The application is not sending state here.
-        // Make space to receive application state from the extended session state
-        OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_APP_SESSION_STATE;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->RxAppSessionStateAllocLength;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->RxAppSessionState;
-        OutSecBufferDesc.cBuffers++;
-
-
-        // TODO: this appears to be client only. move this to the check below
-        OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SESSION_TICKET;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->RxSessionTicketAllocLength;
-        OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->RxSessionTicket;
-        OutSecBufferDesc.cBuffers++;
+    if (ManagedResumptionTickets) {
+        if (TlsContext->IsServer) {
+            if (!IsTicketData) {
+                //
+                // Buffer to receive any application session state from SChannel on the server
+                //
+                OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_APP_SESSION_STATE;
+                OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->RxAppSessionStateAllocLength;
+                OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->RxAppSessionState;
+                OutSecBufferDesc.cBuffers++;
+            }
+        } else {
+            //
+            // Buffer to receive any session ticket from SChannel on the client
+            //
+            OutSecBuffers[OutSecBufferDesc.cBuffers].BufferType = SECBUFFER_SESSION_TICKET;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].cbBuffer = TlsContext->RxSessionTicketAllocLength;
+            OutSecBuffers[OutSecBufferDesc.cBuffers].pvBuffer = (void*)TlsContext->RxSessionTicket;
+            OutSecBufferDesc.cBuffers++;
+        }
     }
 
     if (TlsContext->IsServer) {
-        ContextReq |= ASC_REQ_EXTENDED_ERROR | ASC_REQ_STREAM;
+        ContextReq |= ASC_REQ_EXTENDED_ERROR | ASC_REQ_STREAM |
+            ASC_REQ_SESSION_TICKET; // Always use session tickets for resumption
 
         if (TlsContext->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION) {
             ContextReq |= ASC_REQ_MUTUAL_AUTH;
@@ -2397,14 +2419,19 @@ CxPlatTlsWriteDataToSchannel(
                     NewOwnTrafficSecrets[NewOwnTrafficSecretsCount++] = TrafficSecret;
                 }
             }
-        } else if (CxPlatSupportsTicketManagement() && RxAppSessionStateBuffer == NULL &&
-            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_APP_SESSION_STATE) {
+        } else if (ManagedResumptionTickets &&
+                   RxAppSessionStateBuffer == NULL &&
+                   OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_APP_SESSION_STATE) {
+
+            CXPLAT_DBG_ASSERT(TlsContext->IsServer);
             RxAppSessionStateBuffer = &OutSecBufferDesc.pBuffers[i];
-            // TODO: check if this is expected
-        } else if (CxPlatSupportsTicketManagement() && RxSessionTicketBuffer == NULL &&
-            OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SESSION_TICKET) {
+
+        } else if (ManagedResumptionTickets &&
+                   RxSessionTicketBuffer == NULL &&
+                   OutSecBufferDesc.pBuffers[i].BufferType == SECBUFFER_SESSION_TICKET) {
+
+            CXPLAT_DBG_ASSERT(!TlsContext->IsServer);
             RxSessionTicketBuffer = &OutSecBufferDesc.pBuffers[i];
-            // TODO: check if this is expected
         }
     }
 
@@ -2938,7 +2965,7 @@ CxPlatTlsWriteDataToSchannel(
                 OutputTokenBuffer->cbBuffer);
         }
 
-        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) &&
+        if (ManagedResumptionTickets &&
             TlsContext->IsServer &&
             RxAppSessionStateBuffer != NULL &&
             RxAppSessionStateBuffer->cbBuffer > 0) {
@@ -2947,7 +2974,7 @@ CxPlatTlsWriteDataToSchannel(
             CXPLAT_DBG_ASSERT(RxAppSessionStateBuffer->cbBuffer <= TlsContext->RxAppSessionStateAllocLength);
 
             //
-            // Received application session state
+            // Received application session state on the server
             //
             PSEC_APP_SESSION_STATE RxAppSessionState = (PSEC_APP_SESSION_STATE)RxAppSessionStateBuffer->pvBuffer;
             if (RxAppSessionStateBuffer->cbBuffer < sizeof(*RxAppSessionState) ||
@@ -2967,7 +2994,7 @@ CxPlatTlsWriteDataToSchannel(
             TlsContext->ServerAppSessionStateRx = (RxAppSessionState->AppSessionStateSize > 0);
         }
 
-        if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) &&
+        if (ManagedResumptionTickets &&
             !TlsContext->IsServer &&
             RxSessionTicketBuffer != NULL &&
             RxSessionTicketBuffer->cbBuffer > 0) {
@@ -2977,7 +3004,6 @@ CxPlatTlsWriteDataToSchannel(
 
             //
             // Session/resumption ticket received on the client
-            // TODO: check if this is client only
             //
             PSEC_SESSION_TICKET RxSessionTicket = (PSEC_SESSION_TICKET)RxSessionTicketBuffer->pvBuffer;
             if (RxSessionTicketBuffer->cbBuffer < sizeof(*RxSessionTicket) ||
@@ -3057,6 +3083,10 @@ CxPlatTlsWriteDataToSchannel(
 
     case SEC_E_EXT_BUFFER_TOO_SMALL:
 
+        //
+        // Check which of the variable sized buffers in the ASC/ISC calls above were insufficiently sized and
+        // attempt to allocate larger buffers for them.
+        //
         BOOL TLSExtensionAllocated = FALSE;
         BOOL AppSessionStateAllocated = FALSE;
         BOOL SessionTicketAllocated = FALSE;
@@ -3080,6 +3110,8 @@ CxPlatTlsWriteDataToSchannel(
                 if (TlsContext->PeerTransportParams != NULL) {
                     CXPLAT_FREE(TlsContext->PeerTransportParams, QUIC_POOL_TLS_TMP_TP);
                 }
+                TlsContext->PeerTransportParams = OutSecBufferDesc.pBuffers[i].pvBuffer = NULL;
+                TlsContext->PeerTransportParamsLength = 0;
 
                 TlsContext->PeerTransportParams =
                     CXPLAT_ALLOC_NONPAGED(
@@ -3099,7 +3131,7 @@ CxPlatTlsWriteDataToSchannel(
                 TLSExtensionAllocated = TRUE;
             }
 
-            if (CxPlatSupportsTicketManagement() &&
+            if (ManagedResumptionTickets &&
                 TlsContext->IsServer &&
                 !TlsContext->ServerAppSessionStateRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxAppSessionStateAllocLength &&
@@ -3108,11 +3140,9 @@ CxPlatTlsWriteDataToSchannel(
                 QuicTraceLogConnInfo(
                     SchannelTransParamsBufferTooSmall,
                     TlsContext->Connection,
-                    "Peer App Session State too large for available buffer (%u vs. %u)",
+                    "App Session State too large for available buffer (%u vs. %u)",
                     OutSecBufferDesc.pBuffers[i].cbBuffer,
-                    (TlsContext->RxAppSessionState != NULL) ?
-                    TlsContext->RxAppSessionStateAllocLength :
-                    *InBufferLength);
+                    TlsContext->RxAppSessionStateAllocLength);
 
                 if (TlsContext->RxAppSessionState != NULL) {
                     CXPLAT_FREE(TlsContext->RxAppSessionState, QUIC_POOL_TLS_EXTRAS);
@@ -3139,7 +3169,7 @@ CxPlatTlsWriteDataToSchannel(
                 AppSessionStateAllocated = TRUE;
             }
 
-            if (CxPlatSupportsTicketManagement() &&
+            if (ManagedResumptionTickets &&
                 !TlsContext->IsServer &&
                 !TlsContext->ClientSessionStateTicketRx &&
                 OutSecBufferDesc.pBuffers[i].cbBuffer > TlsContext->RxSessionTicketAllocLength &&
@@ -3148,7 +3178,7 @@ CxPlatTlsWriteDataToSchannel(
                 QuicTraceLogConnInfo(
                     SchannelTransParamsBufferTooSmall,
                     TlsContext->Connection,
-                    "Peer Session Ticket too large for available buffer (%u vs. %u)",
+                    "Session Ticket too large for available buffer (%u vs. %u)",
                     OutSecBufferDesc.pBuffers[i].cbBuffer,
                     TlsContext->RxSessionTicketAllocLength);
 
