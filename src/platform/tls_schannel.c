@@ -1694,40 +1694,54 @@ CxPlatTlsInitialize(
         (uint16_t)(Config->LocalTPLength - FIELD_OFFSET(SEND_GENERIC_TLS_EXTENSION, Buffer));
 
     if (AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)) {
-        TlsContext->RxAppSessionStateAllocLength =
-            FIELD_OFFSET(SEC_APP_SESSION_STATE, AppSessionState) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
 
-        TlsContext->RxAppSessionState =
-            (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
-                TlsContext->RxAppSessionStateAllocLength,
-                QUIC_POOL_TLS_EXTRAS);
+        if (TlsContext->IsServer) {
+            TlsContext->RxAppSessionStateAllocLength =
+                FIELD_OFFSET(SEC_APP_SESSION_STATE, AppSessionState) +
+                QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
 
-        if (TlsContext->RxAppSessionState == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Initial App Session State",
+            TlsContext->RxAppSessionState =
+                (PSEC_APP_SESSION_STATE)CXPLAT_ALLOC_NONPAGED(
+                    TlsContext->RxAppSessionStateAllocLength,
+                    QUIC_POOL_TLS_EXTRAS);
+
+            if (TlsContext->RxAppSessionState == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Initial App Session State",
+                    TlsContext->RxAppSessionStateAllocLength);
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                goto Error;
+            }
+
+            RtlZeroMemory(
+                TlsContext->RxAppSessionState,
                 TlsContext->RxAppSessionStateAllocLength);
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
         }
+        else {
+            TlsContext->RxSessionTicketAllocLength =
+                FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket) +
+                QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
 
-        TlsContext->RxSessionTicketAllocLength =
-            FIELD_OFFSET(SEC_SESSION_TICKET, SessionTicket) + QUIC_INITIAL_SCHANNEL_RX_APP_DATA_LENGTH;
+            TlsContext->RxSessionTicket =
+                (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
+                    TlsContext->RxSessionTicketAllocLength,
+                    QUIC_POOL_TLS_EXTRAS);
 
-        TlsContext->RxSessionTicket =
-            (PSEC_SESSION_TICKET)CXPLAT_ALLOC_NONPAGED(
-                TlsContext->RxSessionTicketAllocLength,
-                QUIC_POOL_TLS_EXTRAS);
+            if (TlsContext->RxSessionTicket == NULL) {
+                QuicTraceEvent(
+                    AllocFailure,
+                    "Allocation of '%s' failed. (%llu bytes)",
+                    "Initial Session Ticket",
+                    TlsContext->RxSessionTicketAllocLength);
+                Status = QUIC_STATUS_OUT_OF_MEMORY;
+                goto Error;
+            }
 
-        if (TlsContext->RxSessionTicket == NULL) {
-            QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "Initial Session Ticket",
+            RtlZeroMemory(
+                TlsContext->RxSessionTicket,
                 TlsContext->RxSessionTicketAllocLength);
-            Status = QUIC_STATUS_OUT_OF_MEMORY;
-            goto Error;
         }
     }
 
@@ -1745,7 +1759,9 @@ CxPlatTlsInitialize(
                 goto Error;
             }
 
+            //
             // Allocate the resumption ticket buffer with an extra byte
+            //
             TlsContext->TxSessionTicketAllocLength =
                 sizeof(SEC_SESSION_TICKET) + Config->ResumptionTicketLength;
 
@@ -1764,6 +1780,10 @@ CxPlatTlsInitialize(
                 goto Error;
             }
 
+            RtlZeroMemory(
+                TlsContext->TxSessionTicket,
+                TlsContext->TxSessionTicketAllocLength);
+
             memcpy(TlsContext->TxSessionTicket->SessionTicket,
                 Config->ResumptionTicketBuffer,
                 Config->ResumptionTicketLength);
@@ -1772,6 +1792,10 @@ CxPlatTlsInitialize(
             TlsContext->ClientSessionStateTicketForTx = TRUE;
         }
 
+        //
+        // TODO: Config is marked as an _in_ parameter, but we are required to free this buffer in this call
+        // The caller sets the buffer to NULL when this call returns
+        //
         CXPLAT_FREE(Config->ResumptionTicketBuffer, QUIC_POOL_CRYPTO_RESUMPTION_TICKET);
     }
 
@@ -3409,6 +3433,7 @@ CxPlatTlsProcessData(
             //
             // Application session state is delivered only once.
             //
+            TlsContext->RxAppSessionState->AppSessionStateSize = 0;
             TlsContext->ServerAppSessionStateRx = FALSE;
             TlsContext->TicketRxIndicated = TRUE;
         }
@@ -3445,6 +3470,7 @@ CxPlatTlsProcessData(
             //
             // Client session state ticket is delivered only once.
             //
+            TlsContext->RxSessionTicket->SessionTicketSize = 0;
             TlsContext->ClientSessionStateTicketRx = FALSE;
             TlsContext->TicketRxIndicated = TRUE;
         }
