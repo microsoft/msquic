@@ -15,6 +15,8 @@ Abstract:
 #include "msquic.hpp"
 #include <stdio.h>
 
+constexpr ULONG_PTR TestCompletionKey = 0x11223344;
+
 void PrintUsage()
 {
     printf(
@@ -144,7 +146,9 @@ main(
     MsQuicApi _MsQuic; if (!_MsQuic.IsValid()) { return 1; }
     MsQuic = &_MsQuic;
 
-    MsQuicExecution Execution(&_IOCP.IOCP); if (!Execution.IsValid()) { return 1; }
+    CXPLAT_EVENTQ eventQueue{ _IOCP.IOCP, TestCompletionKey };
+
+    MsQuicExecution Execution(&eventQueue); if (!Execution.IsValid()) { return 1; }
 
     MsQuicRegistration _Registration("quicexec"); if (!_Registration.IsValid()) { return 1; }
     Registration = &_Registration;
@@ -158,6 +162,13 @@ main(
         OVERLAPPED_ENTRY Overlapped[8];
         if (IOCP->Dequeue(Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime)) {
             for (ULONG i = 0; i < OverlappedCount; ++i) {
+
+                if (Overlapped[i].lpCompletionKey != TestCompletionKey)
+                {
+                    printf("Received an unexpected lpCompletionKey value!\n");
+                    return 1;
+                }
+
                 QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
                 Sqe->Completion(&Overlapped[i]);
             }

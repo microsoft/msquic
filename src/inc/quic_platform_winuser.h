@@ -713,7 +713,11 @@ CxPlatEventWaitWithTimeout(
 // Event Queue Interfaces
 //
 
-typedef HANDLE CXPLAT_EVENTQ;
+typedef struct CXPLAT_EVENTQ {
+    HANDLE IoCompletionPort;
+    ULONG_PTR CompletionKey;
+} CXPLAT_EVENTQ;
+
 typedef OVERLAPPED_ENTRY CXPLAT_CQE;
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -736,7 +740,9 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
-    return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
+    queue->CompletionKey = 0;
+
+    return (queue->IoCompletionPort = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
 }
 
 QUIC_INLINE
@@ -745,7 +751,7 @@ CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
     )
 {
-    CloseHandle(*queue);
+    CloseHandle(queue->IoCompletionPort);
 }
 
 QUIC_INLINE
@@ -755,22 +761,7 @@ CxPlatEventQAssociateHandle(
     _In_ HANDLE fileHandle
     )
 {
-    return *queue == CreateIoCompletionPort(fileHandle, *queue, 0, 0);
-}
-
-QUIC_INLINE
-BOOLEAN
-CxPlatEventQEnqueue(
-    _In_ CXPLAT_EVENTQ* queue,
-    _In_ CXPLAT_SQE* sqe
-    )
-{
-#if DEBUG
-    CXPLAT_DBG_ASSERT(!sqe->IsQueued);
-    sqe->IsQueued;
-#endif
-    CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
+    return queue->IoCompletionPort == CreateIoCompletionPort(fileHandle, queue->IoCompletionPort, queue->CompletionKey, 0);
 }
 
 QUIC_INLINE
@@ -786,7 +777,17 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     sqe->IsQueued;
 #endif
     CxPlatZeroMemory(&sqe->Overlapped, sizeof(sqe->Overlapped));
-    return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
+    return PostQueuedCompletionStatus(queue->IoCompletionPort, num_bytes, queue->CompletionKey, &sqe->Overlapped) != 0;
+}
+
+QUIC_INLINE
+BOOLEAN
+CxPlatEventQEnqueue(
+    _In_ CXPLAT_EVENTQ* queue,
+    _In_ CXPLAT_SQE* sqe
+)
+{
+    return CxPlatEventQEnqueueEx(queue, sqe, 0);
 }
 
 QUIC_INLINE
@@ -799,7 +800,7 @@ CxPlatEventQDequeue(
     )
 {
     ULONG out_count = 0;
-    if (!GetQueuedCompletionStatusEx(*queue, events, count, &out_count, wait_time, FALSE)) return 0;
+    if (!GetQueuedCompletionStatusEx(queue->IoCompletionPort, events, count, &out_count, wait_time, FALSE)) return 0;
     CXPLAT_DBG_ASSERT(out_count != 0);
     CXPLAT_DBG_ASSERT(events[0].lpOverlapped != NULL || out_count == 1);
 #if DEBUG
