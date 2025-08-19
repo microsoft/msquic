@@ -169,6 +169,11 @@ QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_N
 The above code creates a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.
 An application may expand this code to create multiple execution contexts, depending on their needs.
 
+When given an application-provided `CXPLAT_EVENTQ`, MsQuic does not acquire ownership of the underlying system objects. In other words, MsQuic will not call `CloseHandle` on the IOCP, or `close` on the epoll, etc. 
+The application should clean up its own objects after terminating the MsQuic library.
+
+The application does not need to keep its `CXPLAT_EVENTQ` structures alive after calling `ExecutionCreate`; the library makes a copy.
+
 To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
 The return value of `ExecutionPoll` tells the application how long it should wait (in milliseconds) before calling `ExecutionPoll` again, even if no new IO has completed. This is used by MsQuic to implement its internal timeouts. 
 If the application operates a simple loop around `GetQueuedCompletionStatus(Ex)` as in the following example, then it may conveniently pass that directly as its timeout value.
