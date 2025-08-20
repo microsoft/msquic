@@ -225,7 +225,11 @@ QuicTestConnect(
 
     MsQuicCredentialConfig ClientCredConfig;
     if (TrueResume && CxPlatNeedsExplicitAppStateResumptionConfig()) {
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         ClientCredConfig.Flags |= QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT;
+#else
+        TEST_FAILURE("Resumption ticket management is not supported in this build.");
+#endif
     }
 
     MsQuicConfiguration ClientConfiguration(Registration, Alpn1, Settings, ClientCredConfig);
