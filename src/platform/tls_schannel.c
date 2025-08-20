@@ -552,7 +552,6 @@ typedef struct CXPLAT_TLS {
     BOOLEAN ApplicationKeyRead : 1;
     BOOLEAN ServerAppSessionStateRx : 1;       // If TRUE, AppSessionState was received on the server
     BOOLEAN ClientSessionStateTicketRx : 1;    // If TRUE, SessionTicket was received on the client
-    BOOLEAN TicketRxIndicated : 1;             // If TRUE, AppSessionState was indicated on the server OR SessionTicket was indicated on the client
     BOOLEAN ClientSessionStateTicketForTx : 1; // If TRUE, TxSessionTicket is valid for single use when sending Client Hello
 
     //
@@ -3345,21 +3344,16 @@ CxPlatTlsProcessData(
     if (State->HandshakeComplete &&
         State->BufferOffset1Rtt > 0 &&
         !TlsContext->IsServer &&
-        (!AreResumptionTicketsManaged(TlsContext->SecConfig->Flags) ||
-            !TlsContext->TicketRxIndicated)) {
+        !AreResumptionTicketsManaged(TlsContext->SecConfig->Flags)){
         //
         // Older client behavior: Schannel sends the NST after receiving client finished.
         // We need to wait for the handshake to be complete before setting
         // the flag, since we don't know if we've received the ticket yet.
         //
-        // New client behavior: If no session ticket was previously indicated,
-        // indicate an empty ticket here.
-        //
         (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
             TlsContext->Connection,
             0,
             NULL);
-        TlsContext->TicketRxIndicated = TRUE;
     }
 
     QuicTraceLogConnVerbose(
@@ -3435,7 +3429,6 @@ CxPlatTlsProcessData(
             //
             TlsContext->RxAppSessionState->AppSessionStateSize = 0;
             TlsContext->ServerAppSessionStateRx = FALSE;
-            TlsContext->TicketRxIndicated = TRUE;
         }
         else if (!TlsContext->IsServer &&
             TlsContext->ClientSessionStateTicketRx) {
@@ -3472,22 +3465,6 @@ CxPlatTlsProcessData(
             //
             TlsContext->RxSessionTicket->SessionTicketSize = 0;
             TlsContext->ClientSessionStateTicketRx = FALSE;
-            TlsContext->TicketRxIndicated = TRUE;
-        }
-
-        if (State->HandshakeComplete &&
-            State->BufferOffset1Rtt > 0 &&
-            TlsContext->IsServer &&
-            !TlsContext->TicketRxIndicated) {
-            //
-            // If no server app session state was received at the end of the handshake
-            // indicate an empty ticket.
-            //
-            (void)TlsContext->SecConfig->Callbacks.ReceiveTicket(
-                TlsContext->Connection,
-                0,
-                NULL);
-            TlsContext->TicketRxIndicated = TRUE;
         }
     }
 

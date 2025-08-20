@@ -1295,45 +1295,6 @@ CanRunExcplicitResumptionTests()
     return CxPlatSupportsTicketManagement();
 }
 
-TEST_F(TlsTest, HandshakeResumptionZeroAppState)
-{
-    if (!CanRunExcplicitResumptionTests()) {
-        GTEST_SKIP() << "Skipping 0/1 RTT tests";
-    }
-
-    CxPlatClientSecConfig ClientConfig;
-    CxPlatServerSecConfig ServerConfig;
-
-    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
-        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
-            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
-        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
-            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
-    }
-
-    TlsContext ServerContext, ClientContext;
-    ClientContext.InitializeClient(ClientConfig);
-    ServerContext.InitializeServer(ServerConfig);
-    // Send a zero-length app session state to be included in the resumption ticket.
-    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, 1);
-
-    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
-    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
-
-    TlsContext ServerContext2, ClientContext2;
-    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
-    ServerContext2.InitializeServer(ServerConfig);
-    DoHandshake(ServerContext2, ClientContext2);
-
-    ASSERT_TRUE(ClientContext2.State.SessionResumed);
-    ASSERT_TRUE(ServerContext2.State.SessionResumed);
-
-    // Zero length session ticket should be received.
-    ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
-    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length);
-    ASSERT_TRUE(ServerContext2.SessionTicketReceived);
-}
-
 TEST_F(TlsTest, HandshakeResumptionSmallAppState)
 {
     if (!CanRunExcplicitResumptionTests()) {
@@ -1487,12 +1448,44 @@ TEST_F(TlsTest, HandshakeResumptionAppStateSizeLimit)
 #endif
 }
 
-TEST_F(TlsTest, HandshakeResumptionRejection)
+#ifndef QUIC_DISABLE_0RTT_TESTS
+TEST_F(TlsTest, HandshakeResumptionZeroAppState)
 {
-    if (!CanRunExcplicitResumptionTests()) {
-        GTEST_SKIP() << "Skipping 0/1 RTT tests";
+    CxPlatClientSecConfig ClientConfig;
+    CxPlatServerSecConfig ServerConfig;
+
+    if (CxPlatNeedsExplicitAppStateResumptionConfig()) {
+        ClientConfig.Update(QUIC_CREDENTIAL_FLAG_NO_CERTIFICATE_VALIDATION |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
+        ServerConfig.Update(QUIC_CREDENTIAL_FLAG_NONE |
+            QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT);
     }
 
+    TlsContext ServerContext, ClientContext;
+    ClientContext.InitializeClient(ClientConfig);
+    ServerContext.InitializeServer(ServerConfig);
+    // Send a zero-length app session state to be included in the resumption ticket.
+    DoHandshake(ServerContext, ClientContext, DefaultFragmentSize, 1);
+
+    ASSERT_NE(nullptr, ClientContext.ReceivedSessionTicket.Buffer);
+    ASSERT_NE((uint32_t)0, ClientContext.ReceivedSessionTicket.Length);
+
+    TlsContext ServerContext2, ClientContext2;
+    ClientContext2.InitializeClient(ClientConfig, false, 64, &ClientContext.ReceivedSessionTicket);
+    ServerContext2.InitializeServer(ServerConfig);
+    DoHandshake(ServerContext2, ClientContext2);
+
+    ASSERT_TRUE(ClientContext2.State.SessionResumed);
+    ASSERT_TRUE(ServerContext2.State.SessionResumed);
+
+    // Zero length session ticket should be received.
+    ASSERT_EQ(nullptr, ServerContext2.ReceivedSessionTicket.Buffer);
+    ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length);
+    ASSERT_TRUE(ServerContext2.SessionTicketReceived);
+}
+
+TEST_F(TlsTest, HandshakeResumptionRejection)
+{
     CxPlatClientSecConfig ClientConfig;
     CxPlatServerSecConfig ServerConfig;
 
@@ -1530,6 +1523,7 @@ TEST_F(TlsTest, HandshakeResumptionRejection)
     ASSERT_EQ((uint32_t)0, ServerContext2.ReceivedSessionTicket.Length); // TODO - Refactor to send non-zero length ticket
     ASSERT_TRUE(ServerContext2.SessionTicketReceived);
 }
+#endif
 
 TEST_F(TlsTest, HandshakeResumptionClientDisabled)
 {
