@@ -124,8 +124,12 @@ public:
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigSChannelResumption, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
             ServerSelfSignedCredConfigSChannelResumption.Flags |=
                 QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT;
+#endif
+
             ServerSelfSignedCredConfigClientAuth.Flags |=
                 QUIC_CREDENTIAL_FLAG_REQUIRE_CLIENT_AUTHENTICATION |
                 QUIC_CREDENTIAL_FLAG_DEFER_CERTIFICATE_VALIDATION |
@@ -796,6 +800,10 @@ TEST_P(WithHandshakeArgs1, TrueResume) {
         GTEST_SKIP_("Explicit resumption tests not supported on this platform");
     }
 
+#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
+    GTEST_SKIP_("Resumption ticket management is not supported in this build.");
+#else
+
     TestLoggerT<ParamType> Logger("QuicTestConnect-TrueResume", GetParam());
     if (TestingKernelMode) {
         QUIC_RUN_CONNECT_PARAMS Params = {
@@ -825,6 +833,7 @@ TEST_P(WithHandshakeArgs1, TrueResume) {
             0,      // RandomLossPercentage
             true);  // True resumption
     }
+#endif
 }
 
 TEST_P(WithHandshakeArgs1, ResumeAsync) {

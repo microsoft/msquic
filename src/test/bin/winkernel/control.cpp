@@ -717,9 +717,15 @@ QuicTestCtlEvtIoDeviceControl(
         ServerSelfSignedCredConfig.CertificateHash = &SelfSignedCertHash;
 
         ServerSelfSignedCredConfigSChannelResumption.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         ServerSelfSignedCredConfigSChannelResumption.Flags =
             QUIC_CREDENTIAL_FLAG_NONE |
             QUIC_CREDENTIAL_FLAG_ALLOW_RESUMPTION_TICKET_MANAGEMENT;
+#else
+        ServerSelfSignedCredConfigSChannelResumption.Flags = QUIC_CREDENTIAL_FLAG_NONE;
+#endif
+
         ServerSelfSignedCredConfigSChannelResumption.CertificateHash = &SelfSignedCertHash;
 
         ServerSelfSignedCredConfigClientAuth.Type = QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH;
@@ -792,6 +798,18 @@ QuicTestCtlEvtIoDeviceControl(
 
     case IOCTL_QUIC_RUN_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
+
+#ifndef QUIC_API_ENABLE_PREVIEW_FEATURES
+        if (Params->Params1.TrueResume) {
+            QuicTraceEvent(
+                LibraryError,
+                "[ lib] ERROR, %s.",
+                "True Resume not supported in this build");
+            Status = STATUS_NOT_SUPPORTED;
+            break;
+        }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
         QuicTestCtlRun(
             QuicTestConnect(
                 Params->Params1.Family,
@@ -802,7 +820,8 @@ QuicTestCtlEvtIoDeviceControl(
                 (QUIC_TEST_ASYNC_CONFIG_MODE)Params->Params1.AsyncConfiguration,
                 Params->Params1.MultiPacketClientInitial != 0,
                 (QUIC_TEST_RESUMPTION_MODE)Params->Params1.SessionResumption,
-                Params->Params1.RandomLossPercentage
+                Params->Params1.RandomLossPercentage,
+                Params->Params1.TrueResume
                 ));
         break;
 
