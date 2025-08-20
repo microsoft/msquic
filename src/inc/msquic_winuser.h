@@ -382,7 +382,10 @@ QuicAddrToString(
 // Event Queue Abstraction
 //
 
-typedef struct CXPLAT_EVENTQ QUIC_EVENTQ;
+typedef struct QUIC_EVENTQ {
+    HANDLE IoCompletionPort;
+    ULONG_PTR CompletionKey;
+} QUIC_EVENTQ;
 
 typedef OVERLAPPED_ENTRY QUIC_CQE;
 

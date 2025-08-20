@@ -131,35 +131,35 @@ To create an execution context, the app much first create an event queue object,
 On Windows, the following types are defined:
 
 ```c++
-typedef struct CXPLAT_EVENTQ {
+typedef struct QUIC_EVENTQ {
     HANDLE IoCompletionPort;
     ULONG_PTR CompletionKey;
-} CXPLAT_EVENTQ;
+} QUIC_EVENTQ;
 
-typedef OVERLAPPED_ENTRY CXPLAT_CQE;
+typedef OVERLAPPED_ENTRY QUIC_CQE;
 
 typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-(CXPLAT_EVENT_COMPLETION)(
-    _In_ CXPLAT_CQE* Cqe
+(QUIC_EVENT_COMPLETION)(
+    _In_ QUIC_CQE* Cqe
     );
-typedef CXPLAT_EVENT_COMPLETION *CXPLAT_EVENT_COMPLETION_HANDLER;
+typedef QUIC_EVENT_COMPLETION *QUIC_EVENT_COMPLETION_HANDLER;
 
-typedef struct CXPLAT_SQE {
+typedef struct QUIC_SQE {
     OVERLAPPED Overlapped;
-    CXPLAT_EVENT_COMPLETION_HANDLER Completion;
-} CXPLAT_SQE;
+    QUIC_EVENT_COMPLETION_HANDLER Completion;
+} QUIC_SQE;
 ```
 
-You will also notice the definiton for `CXPLAT_SQE` (SQE stands for submission queue entry), which defines the format that all completion events must take so they may be generically processed from the event queue (more on this below).
+You will also notice the definiton for `QUIC_SQE` (SQE stands for submission queue entry), which defines the format that all completion events must take so they may be generically processed from the event queue (more on this below).
 
 Once the app has the event queue, it may create the execution context with the `ExecutionCreate` function:
 
 ```c++
 HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
 ULONG_PTR completionKey = 0; // Optional
-CXPLAT_EVENTQ queueConfig = { IOCP, completionKey };
+QUIC_EVENTQ queueConfig = { IOCP, completionKey };
 QUIC_EXECUTION_CONFIG ExecConfig = { 0, &queueConfig };
 
 QUIC_EXECUTION* ExecContext = nullptr;
@@ -169,10 +169,10 @@ QUIC_STATUS Status = MsQuic->ExecutionCreate(QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_N
 The above code creates a new IOCP (for Windows), sets up an execution config, indicating an ideal processor of 0 and the pointer to the IOCP, and then calls MsQuic to create 1 execution context.
 An application may expand this code to create multiple execution contexts, depending on their needs.
 
-When given an application-provided `CXPLAT_EVENTQ`, MsQuic does not acquire ownership of the underlying system objects. In other words, MsQuic will not call `CloseHandle` on the IOCP, or `close` on the epoll, etc. 
+When given an application-provided `QUIC_EVENTQ`, MsQuic does not acquire ownership of the underlying system objects. In other words, MsQuic will not call `CloseHandle` on the IOCP, or `close` on the epoll, etc. 
 The application should clean up its own objects after terminating the MsQuic library.
 
-The application does not need to keep its `CXPLAT_EVENTQ` structures alive after calling `ExecutionCreate`; the library makes a copy.
+The application does not need to keep its `QUIC_EVENTQ` structures alive after calling `ExecutionCreate`; the library makes a copy.
 
 To drive this execution context, the app will need to to periodically call `ExecutionPoll` and use the platform specific function to drain completion events from the event queue.
 The return value of `ExecutionPoll` tells the application how long it should wait (in milliseconds) before calling `ExecutionPoll` again, even if no new IO has completed. This is used by MsQuic to implement its internal timeouts. 
@@ -187,7 +187,7 @@ while (!AllDone) {
     OVERLAPPED_ENTRY Overlapped[8];
     if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
         for (ULONG i = 0; i < OverlappedCount; ++i) {
-            CXPLAT_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, CXPLAT_SQE, Overlapped);
+            QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
             Sqe->Completion(&Overlapped[i]);
         }
     }
@@ -199,16 +199,16 @@ Above, you can see a simple loop that properly drives a single execution context
 
 Applications may also perform their own IOs alongside those of MsQuic, pointing to the same IOCP, so that the same threads may efficiently service both MsQuic and non-MsQuic IOs together.
 
-The sample above makes the assumption that _all_ dequeued OVERLAPPED_ENTRY values are in fact pointing to `CXPLAT_SQE` objects (which embed the traditional Win32 `OVERLAPPED` structure).
-To simplify mixing MsQuic with non-MsQuic IO, the application may decide to use the same base format as `CXPLAT_SQE` for its own IOs and streamline the event loop as in the above example. This approach will work for all platforms and not only Windows user-mode.
+The sample above makes the assumption that _all_ dequeued OVERLAPPED_ENTRY values are in fact pointing to `QUIC_SQE` objects (which embed the traditional Win32 `OVERLAPPED` structure).
+To simplify mixing MsQuic with non-MsQuic IO, the application may decide to use the same base format as `QUIC_SQE` for its own IOs and streamline the event loop as in the above example. This approach will work for all platforms and not only Windows user-mode.
 
-On Windows, if the application has its own structure embedding the `OVERLAPPED` for its own non-MsQuic IOs and cannot align with the same convention as `CXPLAT_SQE`, it may configure MsQuic to use a specific `CompletionKey`
-when posting packets to the IOCP. By inspecting this `CompletionKey`, the application may distinguish MsQuic-based IO (which means it is a `CXPLAT_SQE`), from non-MsQuic IO that may be in any other arbitrary shape.
+On Windows, if the application has its own structure embedding the `OVERLAPPED` for its own non-MsQuic IOs and cannot align with the same convention as `QUIC_SQE`, it may configure MsQuic to use a specific `CompletionKey`
+when posting packets to the IOCP. By inspecting this `CompletionKey`, the application may distinguish MsQuic-based IO (which means it is a `QUIC_SQE`), from non-MsQuic IO that may be in any other arbitrary shape.
 
 ```c++
 HANDLE IOCP = CreateIoCompletionPort(INVALID_HANDLE_VALUE, nullptr, 0, 1);
 ULONG_PTR completionKeyForMsQuic = 0x11223344;
-CXPLAT_EVENTQ queueConfig = { IOCP, completionKeyForMsQuic };
+QUIC_EVENTQ queueConfig = { IOCP, completionKeyForMsQuic };
 QUIC_EXECUTION_CONFIG ExecConfig = { 0, &queueConfig };
 
 // [...]
@@ -221,7 +221,7 @@ while (true) {
     if (GetQueuedCompletionStatusEx(IOCP, Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime, FALSE)) {
         for (ULONG i = 0; i < OverlappedCount; ++i) {
             if (Overlapped[i].lpCompletionKey == completionKeyForMsQuic) {
-                CXPLAT_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, CXPLAT_SQE, Overlapped);
+                QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
                 Sqe->Completion(&Overlapped[i]);
             } else {
                 // This IO did not originate from MSQuic and is app-specific.

@@ -388,9 +388,12 @@ CxPlatWorkerPoolCreateExternal(
         const uint16_t IdealProcessor = (uint16_t)Configs[i].IdealProcessor;
         CXPLAT_DBG_ASSERT(IdealProcessor < CxPlatProcCount());
 
+        CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_EVENTQ) == sizeof(QUIC_EVENTQ), "CXPLAT_EVENTQ and QUIC_EVENTQ must match.");
+        CXPLAT_EVENTQ* cxplatQueue = (CXPLAT_EVENTQ*)&Configs[i].EventQ;
+
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         if (!CxPlatWorkerPoolInitWorker(
-                Worker, IdealProcessor, Configs[i].EventQ, NULL)) {
+                Worker, IdealProcessor, cxplatQueue, NULL)) {
             goto Error;
         }
         Executions[i] = (QUIC_EXECUTION*)Worker;

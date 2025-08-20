@@ -146,7 +146,7 @@ main(
     MsQuicApi _MsQuic; if (!_MsQuic.IsValid()) { return 1; }
     MsQuic = &_MsQuic;
 
-    CXPLAT_EVENTQ eventQueue{ _IOCP.IOCP, TestCompletionKey };
+    QUIC_EVENTQ eventQueue{ _IOCP.IOCP, TestCompletionKey };
 
     MsQuicExecution Execution(&eventQueue); if (!Execution.IsValid()) { return 1; }
 
