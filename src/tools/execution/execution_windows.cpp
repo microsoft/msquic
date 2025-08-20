@@ -15,7 +15,8 @@ Abstract:
 #include "msquic.hpp"
 #include <stdio.h>
 
-constexpr ULONG_PTR TestCompletionKey = 0x11223344;
+constexpr ULONG_PTR MsquicCompletionKey = 0x11223344;
+constexpr ULONG_PTR ApplicationSpecificCompletionKey = 0x22334455;
 
 void PrintUsage()
 {
@@ -37,10 +38,9 @@ struct WindowsIOCP {
     bool IsValid() const noexcept { return IOCP != nullptr; }
     bool Enqueue(
         _In_ LPOVERLAPPED lpOverlapped,
-        _In_ DWORD dwNumberOfBytesTransferred = 0,
-        _In_ ULONG_PTR dwCompletionKey = 0
+        _In_ DWORD dwNumberOfBytesTransferred = 0
         ) noexcept {
-        return PostQueuedCompletionStatus(IOCP, dwNumberOfBytesTransferred, dwCompletionKey, lpOverlapped);
+        return PostQueuedCompletionStatus(IOCP, dwNumberOfBytesTransferred, ApplicationSpecificCompletionKey, lpOverlapped);
     }
     bool Dequeue(
         _Out_writes_to_(ulCount,*ulNumEntriesRemoved) LPOVERLAPPED_ENTRY lpCompletionPortEntries,
@@ -146,7 +146,7 @@ main(
     MsQuicApi _MsQuic; if (!_MsQuic.IsValid()) { return 1; }
     MsQuic = &_MsQuic;
 
-    QUIC_EVENTQ eventQueue{ _IOCP.IOCP, TestCompletionKey };
+    QUIC_EVENTQ eventQueue{ _IOCP.IOCP, MsquicCompletionKey };
 
     MsQuicExecution Execution(&eventQueue); if (!Execution.IsValid()) { return 1; }
 
@@ -154,6 +154,8 @@ main(
     Registration = &_Registration;
 
     QueueConnectJob();
+
+    int totalOperationsFromTheApp = 0;
 
     while (!AllDone) {
         uint32_t WaitTime = MsQuic->ExecutionPoll(Execution[0]);
@@ -163,10 +165,24 @@ main(
         if (IOCP->Dequeue(Overlapped, ARRAYSIZE(Overlapped), &OverlappedCount, WaitTime)) {
             for (ULONG i = 0; i < OverlappedCount; ++i) {
 
-                if (Overlapped[i].lpCompletionKey != TestCompletionKey)
-                {
+                // If the completion key is what we configured MsQuic with, it means
+                // this completion is for MSQuic to handle. Otherwise, we tag our own
+                // app-specific IOs with our other key. In this simple program, our IOs
+                // follow the QUIQ_SQE convention, meaning that we can simply invoke
+                // the 'Completion' callback in both cases, whether it came from MSQuic
+                // or some other source. If our app-specific IOs were not in the shape
+                // of QUIC_SQE, we could do different logic for the MSQuic versus
+                // non-MSQuic cases.
+                ULONG_PTR completionKey = Overlapped[i].lpCompletionKey;
+
+                if (completionKey != MsquicCompletionKey
+                    && completionKey != ApplicationSpecificCompletionKey) {
                     printf("Received an unexpected lpCompletionKey value!\n");
                     return 1;
+                }
+
+                if (completionKey == ApplicationSpecificCompletionKey) {
+                    ++totalOperationsFromTheApp;
                 }
 
                 QUIC_SQE* Sqe = CONTAINING_RECORD(Overlapped[i].lpOverlapped, QUIC_SQE, Overlapped);
@@ -176,6 +192,13 @@ main(
     }
 
     printf("Done.\n");
+
+    // As a high-level sanity, check that we indeed found our 3 expected app-specific
+    // IO completions: the 'Connect', 'Connected', and 'Cleanup' stages.
+    if (totalOperationsFromTheApp != 3) {
+        printf("Did not receive the expected number of IO completions tagged with ApplicationSpecificCompletionKey.\n");
+        return 1;
+    }
 
     return 0;
 }

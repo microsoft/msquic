@@ -389,7 +389,7 @@ CxPlatWorkerPoolCreateExternal(
         CXPLAT_DBG_ASSERT(IdealProcessor < CxPlatProcCount());
 
         CXPLAT_STATIC_ASSERT(sizeof(CXPLAT_EVENTQ) == sizeof(QUIC_EVENTQ), "CXPLAT_EVENTQ and QUIC_EVENTQ must match.");
-        CXPLAT_EVENTQ* cxplatQueue = (CXPLAT_EVENTQ*)&Configs[i].EventQ;
+        CXPLAT_EVENTQ* cxplatQueue = (CXPLAT_EVENTQ*)Configs[i].EventQ;
 
         CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
         if (!CxPlatWorkerPoolInitWorker(
