@@ -781,10 +781,7 @@ ClientConnectionCallback(
     UNREFERENCED_PARAMETER(Context);
 
     if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
-        const char* SslKeyLogFile = getenv(SslKeyLogEnvVar);
-        if (SslKeyLogFile != NULL) {
-            WriteSslKeyLogFile(SslKeyLogFile, &ClientSecrets);
-        }
+        WriteSslKeyLogFile("D:/tmp/guhetier_sslkeylog.txt", &ClientSecrets);
     }
 
     switch (Event->Type) {
