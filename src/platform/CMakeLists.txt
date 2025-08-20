@@ -134,7 +134,7 @@ elseif(QUIC_LINUX_XDP_ENABLED)
     target_include_directories(msquic_platform PRIVATE ${EXTRA_PLATFORM_INCLUDE_DIRECTORIES})
 endif()
 
-if (MSVC AND (QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "schannel") AND NOT QUIC_ENABLE_SANITIZERS)
+if (MSVC AND (QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "schannel") AND NOT QUIC_SANITIZER_ACTIVE)
     target_compile_options(msquic_platform PRIVATE /analyze)
 endif()
 

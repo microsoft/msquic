@@ -169,13 +169,13 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Windows Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.sanitize }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Linux Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.systemcrypto }}${{ matrix.vec.sanitize }}${{ matrix.vec.xdp }}${{ matrix.vec.iouring }}${{ matrix.vec.build }}
@@ -236,12 +236,12 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Kernel Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with: # note we always use kernel binaries built on windows-2022.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2022-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Usermode Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-windows-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
@@ -288,13 +288,13 @@ jobs:
         fetch-depth: 0 # Don't need history.
         ref: ${{ inputs.ref || '' }}
     - name: Download Windows Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       if: matrix.vec.plat == 'windows'
       with: # note we always use binaries built on windows-2025.
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-windows-2025-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.build }}
         path: artifacts
     - name: Download Linux Build Artifacts
-      uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093
+      uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
       if: matrix.vec.plat == 'linux'
       with:
         name: ${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}-UseSystemOpenSSLCrypto${{ matrix.vec.build }}

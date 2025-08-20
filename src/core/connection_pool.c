@@ -5,8 +5,25 @@
 
 Abstract:
 
-    Definitions for the MsQuic Connection Pool API, which allows clients to
-    create a pool of connections that are spread across RSS cores.
+    Connection pools allow client application to create a pool of connections
+    spread across RSS cores.
+
+    To create connection spread over RSS cores, the connection pool tries multiple
+    port numbers, until the connection lands on a new RSS core. To know where a
+    connection will land, the connection pool compute the RSS core based on the
+    connection parameters. To do so, it needs to query the driver RSS configuration,
+    and use the exact same RSS hash algorithm.
+
+    There is also a chance that a port number found by the connection pool is not
+    available, preventing the connection from starting successfully. To work around
+    this, the connection pool starts connection imediately, and retries with a different
+    port on failure. Special care is taken to avoid any app notification on a connection
+    that will not be in the final pool. Note that a connection might still fail to start
+    for other reasons and be kept in the pool (no guarantee that all connection in the
+    pool are successful).
+
+    Connection pools are currently only supported on Windows XDP datapath,
+    since this is the only datapath that supports querying the RSS configuration parameters.
 
 --*/
 
@@ -103,7 +120,7 @@ QuicConnPoolGetRssProcForTuple(
     )
 {
     //
-    // Calculate the Toeplitz Hash as if receiving packets from
+    // Calculate the RSS Hash in the same way a NIC/miniport would when receiving packets from
     // RemoteAddress to find the RSS processor.
     //
     uint32_t RssHash = 0, Offset;
