@@ -320,6 +320,7 @@ else()
         
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$")
             set(QUIC_LINUX_XDP_ENABLED OFF CACHE BOOL "XDP not supported on ARM architectures" FORCE)
+        endif()
 
     elseif(CX_PLATFORM STREQUAL "darwin")
         check_function_exists(sysctl HAS_SYSCTL)
