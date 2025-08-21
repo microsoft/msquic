@@ -440,9 +440,6 @@ function CMake-Generate {
     $Arguments += " -DQUIC_TLS_LIB=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
 
-    if ($IsLinux) {
-        $LoggingType = "lttng"
-    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
