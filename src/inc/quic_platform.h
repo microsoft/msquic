@@ -522,6 +522,14 @@ CxPlatWorkerPoolGetEventQ(
     _In_ uint16_t Index // Into the worker pool
     );
 
+#if DEBUG
+CXPLAT_THREAD_ID
+CxPlatWorkerPoolGetThreadId(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the worker pool
+    );
+#endif
+
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,

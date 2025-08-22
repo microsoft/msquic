@@ -317,6 +317,10 @@ MsQuicListenerStart(
 #ifdef QUIC_OWNING_PROCESS
     UdpConfig.OwningProcess = NULL;     // Owning process not supported for listeners.
 #endif
+    if (Listener->Partitioned) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
+        UdpConfig.PartitionIndex = Listener->PartitionIndex;
+    }
 
     // for RAW datapath
     UdpConfig.CibirIdLength = Listener->CibirId[0];
@@ -416,6 +420,7 @@ QuicListenerIndicateEvent(
 {
     CXPLAT_PASSIVE_CODE();
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatCurThreadID() == CxPlatWorkerPoolGetThreadId(MsQuicLib.WorkerPool, Listener->PartitionIndex));
     return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
@@ -431,6 +436,7 @@ QuicListenerIndicateDispatchEvent(
     )
 {
     CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED);
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatCurThreadID() == CxPlatWorkerPoolGetThreadId(MsQuicLib.WorkerPool, Listener->PartitionIndex));
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
@@ -803,6 +809,31 @@ QuicListenerParamSet(
         }
     }
 
+    if (Param == QUIC_PARAM_LISTENER_PARTITION_INDEX) {
+        uint16_t PartitionIndex;
+        if (BufferLength != sizeof(uint16_t)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+        PartitionIndex = *(uint16_t*)Buffer;
+        if (PartitionIndex >= MsQuicLib.PartitionCount ||
+            Listener->Registration->NoPartitioning ||
+            !Listener->Stopped) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+#if defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+        Listener->PartitionIndex = PartitionIndex;
+        Listener->Partitioned = TRUE;
+        QuicTraceLogVerbose(
+            ListenerPartitionIndexSet,
+            "[list][%p] PartitionIndex set (index %hu)",
+            Listener,
+            Listener->PartitionIndex);
+        return QUIC_STATUS_SUCCESS;
+#else
+        return QUIC_STATUS_NOT_SUPPORTED;
+#endif
+    }
+
     return QUIC_STATUS_INVALID_PARAMETER;
 }
 
@@ -902,6 +933,26 @@ QuicListenerParamGet(
 
         *BufferLength = sizeof(Listener->DosModeEventsEnabled);
         memcpy(Buffer, &Listener->DosModeEventsEnabled, sizeof(Listener->DosModeEventsEnabled));
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+    case QUIC_PARAM_LISTENER_PARTITION_INDEX:
+
+        if (*BufferLength < sizeof(Listener->PartitionIndex)) {
+            *BufferLength = sizeof(Listener->PartitionIndex);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        if (!Listener->Partitioned) {
+            return QUIC_STATUS_INVALID_STATE;
+        }
+
+        *BufferLength = sizeof(Listener->PartitionIndex);
+        *(uint16_t*)Buffer = Listener->PartitionIndex;
         Status = QUIC_STATUS_SUCCESS;
         break;
 

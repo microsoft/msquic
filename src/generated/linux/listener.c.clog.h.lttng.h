@@ -71,6 +71,29 @@ TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerCibirIdSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ListenerPartitionIndexSet
+// [list][%p] PartitionIndex set (index %hu)
+// QuicTraceLogVerbose(
+            ListenerPartitionIndexSet,
+            "[list][%p] PartitionIndex set (index %hu)",
+            Listener,
+            Listener->PartitionIndex);
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->PartitionIndex = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerPartitionIndexSet,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned short, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned short, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for CibirIdSet
 // [conn][%p] CIBIR ID set (len %hhu, offset %hhu)
 // QuicTraceLogConnInfo(

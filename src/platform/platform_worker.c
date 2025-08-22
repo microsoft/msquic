@@ -479,6 +479,24 @@ CxPlatWorkerPoolGetEventQ(
     return &WorkerPool->Workers[Index].EventQ;
 }
 
+#if DEBUG
+CXPLAT_THREAD_ID
+CxPlatWorkerPoolGetThreadId(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the worker pool
+    )
+{
+    //
+    // This is intended for debugging/diagnostics only, because accessing the
+    // thread ID of a worker thread other than its own thread will yield
+    // unpredictable results.
+    //
+    CXPLAT_DBG_ASSERT(WorkerPool);
+    CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
+    return WorkerPool->Workers[Index].State.ThreadID;
+}
+#endif
+
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
