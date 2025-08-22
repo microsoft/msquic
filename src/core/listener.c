@@ -694,6 +694,15 @@ QuicListenerClaimConnection(
     Connection->State.ListenerAccepted = TRUE;
     Connection->State.ExternalOwner = TRUE;
 
+    if (Listener->Partitioned) {
+        Connection->State.Partitioned = TRUE;
+        //
+        // The connection should not have already migrated partitions within a
+        // partitioned listener above a a partitioned binding.
+        //
+        CXPLAT_DBG_ASSERT(Connection->Partition->Index == Listener->PartitionIndex);
+    }
+
     QUIC_LISTENER_EVENT Event;
     Event.Type = QUIC_LISTENER_EVENT_NEW_CONNECTION;
     Event.NEW_CONNECTION.Info = Info;
