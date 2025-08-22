@@ -20,6 +20,18 @@ QuicListenerStopAsync(
     _In_ QUIC_LISTENER* Listener
     );
 
+#if DEBUG
+BOOLEAN
+QuicListenerCurrentThreadMatchesPartition(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    return
+        CxPlatCurThreadID() ==
+            CxPlatWorkerPoolGetThreadId(MsQuicLib.WorkerPool, Listener->PartitionIndex);
+}
+#endif
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -420,7 +432,7 @@ QuicListenerIndicateEvent(
 {
     CXPLAT_PASSIVE_CODE();
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
-    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatCurThreadID() == CxPlatWorkerPoolGetThreadId(MsQuicLib.WorkerPool, Listener->PartitionIndex));
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || QuicListenerCurrentThreadMatchesPartition(Listener));
     return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
@@ -436,13 +448,37 @@ QuicListenerIndicateDispatchEvent(
     )
 {
     CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED);
-    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatCurThreadID() == CxPlatWorkerPoolGetThreadId(MsQuicLib.WorkerPool, Listener->PartitionIndex));
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || QuicListenerCurrentThreadMatchesPartition(Listener));
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
             Listener->ClientContext,
             Event);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerIndicateStopCompleteEvent(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    QUIC_LISTENER_EVENT Event;
+    Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
+    Event.STOP_COMPLETE.AppCloseInProgress = Listener->AppClosed;
+
+    QuicListenerAttachSilo(Listener);
+
+    QuicTraceLogVerbose(
+        ListenerIndicateStopComplete,
+        "[list][%p] Indicating STOP_COMPLETE",
+        Listener);
+
+    Listener->StopCompleteThreadID = CxPlatCurThreadID();
+    (void)QuicListenerIndicateEvent(Listener, &Event);
+    Listener->StopCompleteThreadID = 0;
+
+    QuicListenerDetachSilo();
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -463,22 +499,12 @@ QuicListenerStopComplete(
     }
 
     if (IndicateEvent) {
-        QUIC_LISTENER_EVENT Event;
-        Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
-        Event.STOP_COMPLETE.AppCloseInProgress = Listener->AppClosed;
-
-        QuicListenerAttachSilo(Listener);
-
-        QuicTraceLogVerbose(
-            ListenerIndicateStopComplete,
-            "[list][%p] Indicating STOP_COMPLETE",
-            Listener);
-
-        Listener->StopCompleteThreadID = CxPlatCurThreadID();
-        (void)QuicListenerIndicateEvent(Listener, &Event);
-        Listener->StopCompleteThreadID = 0;
-
-        QuicListenerDetachSilo();
+        if (Listener->Partitioned) {
+            Listener->NeedsStopCompleteEvent = TRUE;
+            QuicWorkerQueueListener(Listener->Worker, Listener);
+        } else {
+            QuicListenerIndicateStopCompleteEvent(Listener);
+        }
     }
 
     const BOOLEAN CleanupOnExit = Listener->NeedsCleanup;
@@ -493,6 +519,15 @@ QuicListenerStopComplete(
     if (CleanupOnExit) {
         QuicListenerFree(Listener);
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerReference(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CxPlatRefIncrement(&Listener->RefCount);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -803,7 +838,7 @@ QuicListenerParamSet(
         if (BufferLength == sizeof(BOOLEAN)) {
             Listener->DosModeEventsEnabled = *(BOOLEAN*)Buffer;
             if (MsQuicLib.SendRetryEnabled && Listener->DosModeEventsEnabled) {
-                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled);
+                QuicListenerHandleDosModeStateChange(Listener, MsQuicLib.SendRetryEnabled, FALSE);
             }
             return QUIC_STATUS_SUCCESS;
         }
@@ -817,12 +852,15 @@ QuicListenerParamSet(
         PartitionIndex = *(uint16_t*)Buffer;
         if (PartitionIndex >= MsQuicLib.PartitionCount ||
             Listener->Registration->NoPartitioning ||
+            Listener->Partitioned ||
             !Listener->Stopped) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 #if defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
         Listener->PartitionIndex = PartitionIndex;
         Listener->Partitioned = TRUE;
+        QuicWorkerAssignListener(
+            &Listener->Registration->WorkerPool->Workers[PartitionIndex], Listener);
         QuicTraceLogVerbose(
             ListenerPartitionIndexSet,
             "[list][%p] PartitionIndex set (index %hu)",
@@ -969,18 +1007,54 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerHandleDosModeStateChange(
     _In_ QUIC_LISTENER* Listener,
-    _In_ BOOLEAN DosModeEnabled
+    _In_ BOOLEAN DosModeEnabled,
+    _In_ BOOLEAN OnWorker
     )
 {
     if (Listener->DosModeEventsEnabled) {
-        QUIC_LISTENER_EVENT Event;
-        Event.Type = QUIC_LISTENER_EVENT_DOS_MODE_CHANGED;
-        Event.DOS_MODE_CHANGED.DosModeEnabled = DosModeEnabled;
+        if (!Listener->Partitioned || OnWorker) {
+            QUIC_LISTENER_EVENT Event;
+            Event.Type = QUIC_LISTENER_EVENT_DOS_MODE_CHANGED;
+            Event.DOS_MODE_CHANGED.DosModeEnabled = DosModeEnabled;
 
-        QuicListenerAttachSilo(Listener);
+            QuicListenerAttachSilo(Listener);
 
-        (void)QuicListenerIndicateDispatchEvent(Listener, &Event);
+            (void)QuicListenerIndicateDispatchEvent(Listener, &Event);
 
-        QuicListenerDetachSilo();
+            QuicListenerDetachSilo();
+        } else {
+            //
+            // Best effort synchronization: the non-partitioned case is also
+            // racy.
+            //
+            Listener->DosModeEnabled = DosModeEnabled;
+            Listener->NeedsDosModeModeEvent = TRUE;
+            QuicWorkerQueueListener(Listener->Worker, Listener);
+        }
     }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicListenerDrainOperations(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CXPLAT_PASSIVE_CODE();
+
+    if (Listener->NeedsDosModeModeEvent) {
+        BOOLEAN DosModeEnabled;
+
+        DosModeEnabled = Listener->DosModeEnabled;
+        Listener->NeedsDosModeModeEvent = FALSE;
+
+        QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled, TRUE);
+    }
+
+    if (Listener->NeedsStopCompleteEvent) {
+        Listener->NeedsStopCompleteEvent = FALSE;
+        QuicListenerIndicateStopCompleteEvent(Listener);
+    }
+
+    return FALSE;
 }

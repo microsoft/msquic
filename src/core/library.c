@@ -2153,6 +2153,7 @@ QuicLibraryGetBinding(
         UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
     const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    const BOOLEAN Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -2193,7 +2194,9 @@ SharedEphemeralRetry:
             UdpConfig->RemoteAddress);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
-            (ServerOwned != Binding->ServerOwned)) {
+            (ServerOwned != Binding->ServerOwned) ||
+            (Partitioned != Binding->Partitioned) ||
+            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
