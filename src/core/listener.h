@@ -42,6 +42,11 @@ typedef struct QUIC_LISTENER {
     BOOLEAN DosModeEventsEnabled;
 
     //
+    // Indicates the listener is using a specific partition.
+    //
+    BOOLEAN Partitioned : 1;
+
+    //
     // The thread ID that the listener is actively indicating a stop compelete
     // callback on.
     //
@@ -114,6 +119,12 @@ typedef struct QUIC_LISTENER {
     // the ID in the CID and the rest payload of the identifier.
     //
     uint8_t CibirId[2 + QUIC_MAX_CIBIR_LENGTH];
+
+    //
+    // An optional app-configured partition index for the listener and its
+    // connections.
+    //
+    uint16_t PartitionIndex;
 } QUIC_LISTENER;
 
 #ifdef QUIC_SILO

@@ -1053,6 +1053,17 @@ struct MsQuicListener {
                 Length,
                 Value);
     }
+
+    QUIC_STATUS
+    SetPartitionId(
+        _In_ const uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(Value),
+                &Value);
+    }
 #endif
 
     QUIC_STATUS

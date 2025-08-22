@@ -6666,6 +6666,22 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "ListenerPartitionIndexSet": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] PartitionIndex set (index %hu)",
+      "UniqueId": "ListenerPartitionIndexSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "ListenerRundown": {
       "ModuleProperites": {},
       "TraceString": "[list][%p] Rundown, Registration=%p",
@@ -15103,6 +15119,11 @@
         "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
         "TraceID": "ListenerIndicateStopComplete",
         "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
+      },
+      {
+        "UniquenessHash": "81f937b4-2c2a-b818-6b6f-ad498e684df0",
+        "TraceID": "ListenerPartitionIndexSet",
+        "EncodingString": "[list][%p] PartitionIndex set (index %hu)"
       },
       {
         "UniquenessHash": "516f74f8-8802-7cdb-d034-3fa2e41d42c0",
