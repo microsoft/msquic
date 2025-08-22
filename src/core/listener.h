@@ -37,9 +37,24 @@ typedef struct QUIC_LISTENER {
     BOOLEAN NeedsCleanup;
 
     //
+    // Indicates the listener needs its stop complete event.
+    //
+    BOOLEAN NeedsStopCompleteEvent;
+
+    //
     // Indicates the listener opted in for DoS Mode event.
     //
     BOOLEAN DosModeEventsEnabled;
+
+    //
+    // Indicates a DoS Mode event indication is required.
+    //
+    BOOLEAN NeedsDosModeModeEvent;
+
+    //
+    // Tracks the most recent DoS Mode event state.
+    //
+    BOOLEAN DosModeEnabled;
 
     //
     // Indicates the listener is using a specific partition.
@@ -66,6 +81,23 @@ typedef struct QUIC_LISTENER {
     // Link into the registrations's list of listeners.
     //
     CXPLAT_LIST_ENTRY RegistrationLink;
+
+    //
+    // The listener worker.
+    //
+    QUIC_WORKER* Worker;
+
+    //
+    // Link into the worker.
+    //
+    CXPLAT_LIST_ENTRY WorkerLink;
+
+    //
+    // Indicates whether a worker is currently processing a listener.
+    // N.B. Multi-threaded access, synchronized by worker's listener lock.
+    //
+    BOOLEAN WorkerProcessing : 1;
+    BOOLEAN HasQueuedWork : 1;
 
 #ifdef QUIC_SILO
     //
@@ -154,6 +186,12 @@ QuicListenerTraceRundown(
     _In_ QUIC_LISTENER* Listener
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerReference(
+    _In_ QUIC_LISTENER* Listener
+    );
+
 //
 // Releases an active reference on the listener.
 //
@@ -229,5 +267,17 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerHandleDosModeStateChange(
     _In_ QUIC_LISTENER* Listener,
-    _In_ BOOLEAN DosModeEnabled
+    _In_ BOOLEAN DosModeEnabled,
+    _In_ BOOLEAN OnWorker
+    );
+
+//
+// Allows the listener to drain some operations that it currently has
+// queued up. Returns TRUE if there are still work to do after the function
+// returns.
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+BOOLEAN
+QuicListenerDrainOperations(
+    _In_ QUIC_LISTENER* Listener
     );
