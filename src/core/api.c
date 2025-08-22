@@ -98,6 +98,7 @@ MsQuicConnectionOpenInPartition(
         goto Error;
     }
 
+    Connection->State.Partitioned = TRUE;
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
