@@ -2481,6 +2481,16 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
+    if (Config->IsServer != !(Config->SecConfig->Flags & QUIC_CREDENTIAL_FLAG_CLIENT)) {
+        QuicTraceEvent(
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            Config->Connection,
+            "Mismatched SEC_CONFIG IsServer state");
+        Status = QUIC_STATUS_INVALID_PARAMETER;
+        goto Exit;
+    }
+
     TlsContext = CXPLAT_ALLOC_NONPAGED(sizeof(CXPLAT_TLS), QUIC_POOL_TLS_CTX);
     if (TlsContext == NULL) {
         QuicTraceEvent(
