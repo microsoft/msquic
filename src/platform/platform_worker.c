@@ -479,9 +479,8 @@ CxPlatWorkerPoolGetEventQ(
     return &WorkerPool->Workers[Index].EventQ;
 }
 
-#if DEBUG
-CXPLAT_THREAD_ID
-CxPlatWorkerPoolGetThreadId(
+BOOLEAN
+CxPlatWorkerPoolIsOnPartition(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
     _In_ uint16_t Index // Into the worker pool
     )
@@ -493,9 +492,8 @@ CxPlatWorkerPoolGetThreadId(
     //
     CXPLAT_DBG_ASSERT(WorkerPool);
     CXPLAT_FRE_ASSERT(Index < WorkerPool->WorkerCount);
-    return WorkerPool->Workers[Index].State.ThreadID;
+    return WorkerPool->Workers[Index].State.ThreadID == CxPlatCurThreadID();
 }
-#endif
 
 void
 CxPlatWorkerPoolAddExecutionContext(
