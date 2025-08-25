@@ -993,6 +993,7 @@ namespace Microsoft.Quic
         SEND_STATELESS_RESET,
         SEND_STATELESS_RETRY,
         CONN_LOAD_REJECT,
+        LISTEN_QUEUE_DEPTH,
         MAX,
     }
 
@@ -3676,6 +3677,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
         internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
+
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_PARTITION_INDEX 0x04000005")]
+        internal const uint QUIC_PARAM_LISTENER_PARTITION_INDEX = 0x04000005;
 
         [NativeTypeName("#define QUIC_PARAM_DOS_MODE_EVENTS 0x04000004")]
         internal const uint QUIC_PARAM_DOS_MODE_EVENTS = 0x04000004;
