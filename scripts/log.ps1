@@ -376,9 +376,19 @@ function Log-Decode {
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { Log-Start }
-if ($Cancel) { Log-Cancel }
-if ($Stop)   { Log-Stop }
-if ($Decode) { Log-Decode }
-if ($PerfRun) { Perf-Run }
-if ($PerfGraph) { Perf-Graph }
+#
+# Allow the CLOG sidecar to run on newer .NET versions.
+#
+$OriginalDOTNET_ROLL_FORWARD = $env:DOTNET_ROLL_FORWARD
+
+try {
+    $env:DOTNET_ROLL_FORWARD = "Major"
+    if ($Start)  { Log-Start }
+    if ($Cancel) { Log-Cancel }
+    if ($Stop)   { Log-Stop }
+    if ($Decode) { Log-Decode }
+    if ($PerfRun) { Perf-Run }
+    if ($PerfGraph) { Perf-Graph }
+} finally {
+    $env:DOTNET_ROLL_FORWARD = $OriginalDOTNET_ROLL_FORWARD
+}
