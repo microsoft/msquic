@@ -441,12 +441,13 @@ typedef enum CXPLAT_DATAPATH_FEATURES {
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)
 
 typedef enum CXPLAT_SOCKET_FLAGS {
-    CXPLAT_SOCKET_FLAG_NONE     = 0x00000000,
-    CXPLAT_SOCKET_FLAG_PCP      = 0x00000001, // Socket is used for internal PCP support
-    CXPLAT_SOCKET_FLAG_SHARE    = 0x00000002, // Forces sharing of the address and port
-    CXPLAT_SOCKET_SERVER_OWNED  = 0x00000004, // Indicates socket is a listener socket
-    CXPLAT_SOCKET_FLAG_XDP      = 0x00000008, // Socket will use XDP
-    CXPLAT_SOCKET_FLAG_QTIP     = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_NONE         = 0x00000000,
+    CXPLAT_SOCKET_FLAG_PCP          = 0x00000001, // Socket is used for internal PCP support
+    CXPLAT_SOCKET_FLAG_SHARE        = 0x00000002, // Forces sharing of the address and port
+    CXPLAT_SOCKET_SERVER_OWNED      = 0x00000004, // Indicates socket is a listener socket
+    CXPLAT_SOCKET_FLAG_XDP          = 0x00000008, // Socket will use XDP
+    CXPLAT_SOCKET_FLAG_QTIP         = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_PARTITIONED  = 0x00000020, // Socket is partitioned
 } CXPLAT_SOCKET_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_SOCKET_FLAGS)
@@ -587,7 +588,7 @@ typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* RemoteAddress;     // optional
     CXPLAT_SOCKET_FLAGS Flags;
     uint32_t InterfaceIndex;            // 0 means any/all
-    uint16_t PartitionIndex;            // Client-only
+    uint16_t PartitionIndex;            // optional
     void* CallbackContext;              // optional
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional

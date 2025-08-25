@@ -534,6 +534,21 @@ CxPlatUpdateExecutionContexts(
     }
 }
 
+BOOLEAN
+CxPlatInvokeExecutionContext(
+    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
+    _Inout_ CXPLAT_EXECUTION_STATE* State
+    )
+{
+    BOOLEAN Result;
+
+    Context->ThreadId = State->ThreadID;
+    Result = Context->Callback(Context->Context, State);
+    Context->ThreadId = UINT32_MAX;
+
+    return Result;
+}
+
 void
 CxPlatRunExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
@@ -559,7 +574,7 @@ CxPlatRunExecutionContexts(
             ++Worker->EcRunCount;
 #endif
             CXPLAT_SLIST_ENTRY* Next = Context->Entry.Next;
-            if (!Context->Callback(Context->Context, &Worker->State)) {
+            if (!CxPlatInvokeExecutionContext(Context, &Worker->State)) {
                 *EC = Next; // Remove Context from the list.
                 continue;
             }
@@ -596,16 +611,14 @@ CxPlatWorkerPoolWorkerPoll(
     )
 {
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Execution;
-    Worker->State.ThreadID = CxPlatCurThreadID();
     Worker->State.TimeNow = CxPlatTimeUs64();
+    Worker->State.ThreadID = CxPlatCurThreadID();
 
     CxPlatRunExecutionContexts(Worker);
     if (Worker->State.WaitTime && InterlockedFetchAndClearBoolean(&Worker->Running)) {
         Worker->State.TimeNow = CxPlatTimeUs64();
         CxPlatRunExecutionContexts(Worker); // Run once more to handle race conditions
     }
-
-    Worker->State.ThreadID = UINT32_MAX;
 
     return Worker->State.WaitTime;
 }

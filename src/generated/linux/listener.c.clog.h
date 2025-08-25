@@ -33,9 +33,9 @@ extern "C" {
 // Decoder Ring for ListenerIndicateStopComplete
 // [list][%p] Indicating STOP_COMPLETE
 // QuicTraceLogVerbose(
-            ListenerIndicateStopComplete,
-            "[list][%p] Indicating STOP_COMPLETE",
-            Listener);
+        ListenerIndicateStopComplete,
+        "[list][%p] Indicating STOP_COMPLETE",
+        Listener);
 // arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ListenerIndicateStopComplete
@@ -83,6 +83,26 @@ tracepoint(CLOG_LISTENER_C, ListenerIndicateNewConnection , arg2, arg3);\
 #ifndef _clog_5_ARGS_TRACE_ListenerCibirIdSet
 #define _clog_5_ARGS_TRACE_ListenerCibirIdSet(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
 tracepoint(CLOG_LISTENER_C, ListenerCibirIdSet , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ListenerPartitionIndexSet
+// [list][%p] PartitionIndex set (index %hu)
+// QuicTraceLogVerbose(
+            ListenerPartitionIndexSet,
+            "[list][%p] PartitionIndex set (index %hu)",
+            Listener,
+            Listener->PartitionIndex);
+// arg2 = arg2 = Listener = arg2
+// arg3 = arg3 = Listener->PartitionIndex = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ListenerPartitionIndexSet
+#define _clog_4_ARGS_TRACE_ListenerPartitionIndexSet(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LISTENER_C, ListenerPartitionIndexSet , arg2, arg3);\
 
 #endif
 

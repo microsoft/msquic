@@ -522,6 +522,12 @@ CxPlatWorkerPoolGetEventQ(
     _In_ uint16_t Index // Into the worker pool
     );
 
+BOOLEAN
+CxPlatWorkerPoolIsOnPartition(
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ uint16_t Index // Into the worker pool
+    );
+
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -584,6 +590,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
     volatile BOOLEAN Ready;
+    volatile CXPLAT_THREAD_ID ThreadId;
 
 } CXPLAT_EXECUTION_CONTEXT;
 
