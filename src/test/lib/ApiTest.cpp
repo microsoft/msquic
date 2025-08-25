@@ -6761,6 +6761,120 @@ QuicTestValidateExecutionContext()
 void QuicTestValidateExecutionContext() {}
 #endif // QUIC_API_EXECUTION_CONTEXT
 
+#if defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+
+uint32_t
+TestCurThreadID()
+{
+    return (uint32_t)gettid();
+}
+
+struct TestPartitionListenerContext {
+    MsQuicConnection** Server;
+    uint32_t ExpectedThreadId;
+    uint32_t ActualThreadId;
+};
+
+QUIC_STATUS
+TestPartitionListenerCallback(
+    _In_ MsQuicListener* /*Listener*/,
+    _In_opt_ void* ListenerContext,
+    _Inout_ QUIC_LISTENER_EVENT* Event)
+{
+    TestPartitionListenerContext* Context = (TestPartitionListenerContext*)ListenerContext;
+
+    if (TestCurThreadID() != Context->ExpectedThreadId) {
+        Context->ActualThreadId = TestCurThreadID();
+    }
+
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        *Context->Server = new(std::nothrow) MsQuicConnection(
+            Event->NEW_CONNECTION.Connection,
+            CleanUpManual,
+            [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                TestPartitionListenerContext* Context = (TestPartitionListenerContext*)ConnContext;
+                if (TestCurThreadID() != Context->ExpectedThreadId) {
+                    Context->ActualThreadId = TestCurThreadID();
+                }
+                return QUIC_STATUS_SUCCESS;
+            },
+            Context);
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestValidatePartition()
+{
+    TestPartitionListenerContext ListenerContext{};
+    ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = TestCurThreadID();
+    const uint32_t EcCount = 4;
+    TestEventQ Ecs[EcCount];
+    QUIC_EVENTQ* EventQs[EcCount];
+    const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
+        EventQs[i] = &Ec.QuicEventQ;
+    }
+
+    MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+    TEST_TRUE(Execution.IsValid());
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    UniquePtr<MsQuicConnection> Server;
+    ListenerContext.Server = (MsQuicConnection**)&Server;
+
+    MsQuicListener Listener(
+        Registration,
+        CleanUpManual,
+        TestPartitionListenerCallback,
+        &ListenerContext);
+    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+
+    TEST_QUIC_SUCCEEDED(
+        Listener.SetParam(
+            QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+
+    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+
+    QuicAddr ServerLocalAddr;
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    MsQuicCredentialConfig ClientCredConfig;
+    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
+    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+    MsQuicConnection Connection(Registration, PartitionIndex);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QUIC_ADDRESS_FAMILY_INET6, "localhost", ServerLocalAddr.GetPort()));
+
+    //
+    // Allow this thread to poll only the specified partition; the rest of the
+    // partitions will be idle.
+    //
+    TEST_QUIC_SUCCEEDED(
+        TryUntil(1, TestWaitTimeout, [&](){
+            MsQuic->ExecutionPoll(Execution[PartitionIndex]);
+            if (Connection.HandshakeComplete && Server) {
+                return QUIC_STATUS_SUCCESS;
+            }
+            return QUIC_STATUS_CONTINUE;
+        })
+    );
+
+    TEST_TRUE(Server->IsValid());
+    TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+}
+
+#endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
