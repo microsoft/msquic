@@ -34,7 +34,7 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/build/linux",
             "cacheVariables": {
-                "QUIC_LINUX_LOG_ENCODER": "lttng",
+                "QUIC_LOGGING_TYPE": "lttng",
                 "QUIC_ENABLE_LOGGING": "on",
                 "QUIC_BUILD_TOOLS": "on",
                 "QUIC_BUILD_TEST": "on",
