@@ -947,6 +947,7 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_STATE State = {
         0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
+    EC->ThreadId = State.ThreadID;
 
     QuicTraceEvent(
         WorkerStart,
@@ -1099,4 +1100,12 @@ QuicWorkerPoolGetLeastLoadedWorker(
 
     WorkerPool->LastWorker = MinQueueDelayWorker;
     return MinQueueDelayWorker;
+}
+
+BOOLEAN
+QuicWorkerPoolIsThisThread(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    return Worker->ExecutionContext.ThreadId == CxPlatCurThreadID();
 }

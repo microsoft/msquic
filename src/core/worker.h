@@ -217,3 +217,8 @@ QuicWorkerQueueOperation(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
     );
+
+BOOLEAN
+QuicWorkerPoolIsThisThread(
+    _In_ QUIC_WORKER* Worker
+    );

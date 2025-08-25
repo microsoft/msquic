@@ -590,6 +590,7 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
     volatile BOOLEAN Ready;
+    volatile CXPLAT_THREAD_ID ThreadId;
 
 } CXPLAT_EXECUTION_CONTEXT;
 

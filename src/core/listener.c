@@ -20,6 +20,15 @@ QuicListenerStopAsync(
     _In_ QUIC_LISTENER* Listener
     );
 
+BOOLEAN
+QuicListenerIsOnWorker(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    uint32_t WorkerIndex = Listener->Registration->NoPartitioning ? 0 : Listener->PartitionIndex;
+    return QuicWorkerPoolIsThisThread(&Listener->Registration->WorkerPool->Workers[WorkerIndex]);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -420,7 +429,7 @@ QuicListenerIndicateEvent(
 {
     CXPLAT_PASSIVE_CODE();
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
-    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatWorkerPoolIsOnPartition(MsQuicLib.WorkerPool, Listener->PartitionIndex));
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || QuicListenerIsOnWorker(Listener));
     return
         Listener->ClientCallbackHandler(
             (HQUIC)Listener,
@@ -436,7 +445,7 @@ QuicListenerIndicateDispatchEvent(
     )
 {
     CXPLAT_DBG_ASSERT(Event->Type == QUIC_LISTENER_EVENT_DOS_MODE_CHANGED);
-    CXPLAT_DBG_ASSERT(!Listener->Partitioned || CxPlatWorkerPoolIsOnPartition(MsQuicLib.WorkerPool, Listener->PartitionIndex));
+    CXPLAT_DBG_ASSERT(!Listener->Partitioned || QuicListenerIsOnWorker(Listener));
     CXPLAT_FRE_ASSERT(Listener->ClientCallbackHandler);
     return
         Listener->ClientCallbackHandler(
