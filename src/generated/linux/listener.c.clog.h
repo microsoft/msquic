@@ -33,9 +33,9 @@ extern "C" {
 // Decoder Ring for ListenerIndicateStopComplete
 // [list][%p] Indicating STOP_COMPLETE
 // QuicTraceLogVerbose(
-            ListenerIndicateStopComplete,
-            "[list][%p] Indicating STOP_COMPLETE",
-            Listener);
+        ListenerIndicateStopComplete,
+        "[list][%p] Indicating STOP_COMPLETE",
+        Listener);
 // arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_ListenerIndicateStopComplete
