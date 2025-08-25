@@ -5,9 +5,9 @@
 // Decoder Ring for ListenerIndicateStopComplete
 // [list][%p] Indicating STOP_COMPLETE
 // QuicTraceLogVerbose(
-            ListenerIndicateStopComplete,
-            "[list][%p] Indicating STOP_COMPLETE",
-            Listener);
+        ListenerIndicateStopComplete,
+        "[list][%p] Indicating STOP_COMPLETE",
+        Listener);
 // arg2 = arg2 = Listener = arg2
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LISTENER_C, ListenerIndicateStopComplete,
