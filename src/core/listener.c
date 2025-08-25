@@ -26,6 +26,7 @@ QuicListenerIsOnWorker(
     )
 {
     uint32_t WorkerIndex = Listener->Registration->NoPartitioning ? 0 : Listener->PartitionIndex;
+    CXPLAT_DBG_ASSERT(WorkerIndex < Listener->Registration->WorkerPool->WorkerCount);
     return QuicWorkerPoolIsThisThread(&Listener->Registration->WorkerPool->Workers[WorkerIndex]);
 }
 
