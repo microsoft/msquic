@@ -519,7 +519,7 @@ QuicListenerStopComplete(
     }
 }
 
-_IRQL_requires_max_(PASSIVE_LEVEL)
+_IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicListenerReference(
     _In_ QUIC_LISTENER* Listener
