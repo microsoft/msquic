@@ -6637,6 +6637,8 @@ QuicTestValidateConnectionPoolCreate()
     }
 }
 
+#ifdef QUIC_API_EXECUTION_CONTEXT
+
 struct TestEventQ {
     QUIC_EVENTQ QuicEventQ;
     BOOLEAN Initialized;
@@ -6754,6 +6756,11 @@ QuicTestValidateExecutionContext()
     QuicTestValidateExecutionContext(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
     QuicTestValidateExecutionContext(CxPlatProcCount());
 }
+
+#else // QUIC_API_EXECUTION_CONTEXT
+void
+QuicTestValidateExecutionContext();
+#endif // QUIC_API_EXECUTION_CONTEXT
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 

@@ -1845,6 +1845,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
 
 #ifndef _KERNEL_MODE
+#define QUIC_API_EXECUTION_CONTEXT
     QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
