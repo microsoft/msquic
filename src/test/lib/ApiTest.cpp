@@ -6686,16 +6686,14 @@ void
 QuicTestValidateExecutionContext(const uint32_t EcCount)
 {
     const uint32_t PollCount = 10;
-    struct {
-        TestEventQ EventQ;
-    } Ecs[EcCount];
+    UniquePtrArray<TestEventQ> Ecs = new (std::nothrow) TestEventQ[EcCount];
     QUIC_EVENTQ* EventQs[EcCount];
 
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
-        TEST_TRUE(CxPlatEventQInitialize(&Ec.EventQ.QuicEventQ));
-        TEST_TRUE(Ec.EventQ.QuicEventQ >= 0);
-        EventQs[i] = &Ec.EventQ.QuicEventQ;
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
+        TEST_TRUE(Ec.QuicEventQ >= 0);
+        EventQs[i] = &Ec.QuicEventQ;
     }
 
     {
