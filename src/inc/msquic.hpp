@@ -513,13 +513,6 @@ struct MsQuicExecution {
             delete [] Configs;
         }
     }
-    ~MsQuicExecution() noexcept {
-        if (Executions != nullptr) {
-            MsQuic->ExecutionDelete(Count, Executions);
-            Executions = nullptr;
-            Count = 0;
-        }
-    }
     MsQuicExecution(const MsQuicExecution&) = delete;
     MsQuicExecution& operator=(const MsQuicExecution&) = delete;
     MsQuicExecution(MsQuicExecution&&) = delete;

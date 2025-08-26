@@ -367,16 +367,7 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
         QuicTestValidateConnectionPoolCreate();
     }
 }
-
-TEST(ParameterValidation, ValidateExecutionContext) {
-    TestLogger Logger("QuicTestValidateExecutionContext");
-    if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT));
-    } else {
-        QuicTestValidateExecutionContext();
-    }
-}
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
