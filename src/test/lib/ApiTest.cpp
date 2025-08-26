@@ -6758,8 +6758,7 @@ QuicTestValidateExecutionContext()
 }
 
 #else // QUIC_API_EXECUTION_CONTEXT
-void
-QuicTestValidateExecutionContext();
+void QuicTestValidateExecutionContext() {}
 #endif // QUIC_API_EXECUTION_CONTEXT
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
