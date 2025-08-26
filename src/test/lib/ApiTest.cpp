@@ -6639,14 +6639,16 @@ QuicTestValidateConnectionPoolCreate()
 
 struct TestEventQ {
     QUIC_EVENTQ QuicEventQ;
-    TestEventQ() noexcept : QuicEventQ{-1} { }
+    BOOLEAN Initialized;
+    TestEventQ() noexcept : Initialized {FALSE} { }
     TestEventQ(const TestEventQ&) = delete;
     TestEventQ& operator=(const TestEventQ&) = delete;
     TestEventQ(TestEventQ&&) = delete;
     TestEventQ& operator=(TestEventQ&&) = delete;
     ~TestEventQ() {
-        if (QuicEventQ >= 0) {
-            close(QuicEventQ);
+        if (Initialized) {
+            CxPlatEventQCleanup(&QuicEventQ);
+            Initialized = FALSE;
         }
     }
 };
@@ -6691,7 +6693,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
 
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
-        Ec.EventQ.QuicEventQ = epoll_create1(EPOLL_CLOEXEC);
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.EventQ.QuicEventQ));
         TEST_TRUE(Ec.EventQ.QuicEventQ >= 0);
         EventQs[i] = &Ec.EventQ.QuicEventQ;
     }
