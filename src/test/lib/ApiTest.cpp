@@ -6686,8 +6686,11 @@ void
 QuicTestValidateExecutionContext(const uint32_t EcCount)
 {
     const uint32_t PollCount = 10;
-    UniquePtrArray<TestEventQ> Ecs = new (std::nothrow) TestEventQ[EcCount];
-    QUIC_EVENTQ* EventQs[EcCount];
+    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
 
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
@@ -6697,12 +6700,12 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     }
 
     {
-        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
     }
 
     {
-        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
         for (uint32_t i = 0; i < PollCount; i++) {
@@ -6714,7 +6717,7 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     }
 
     {
-        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
 
         for (uint32_t i = 0; i < PollCount; i++) {
