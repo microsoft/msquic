@@ -1532,6 +1532,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
         QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
         break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT:
+        QuicTestCtlRun(QuicTestValidateExecutionContext());
+        break;
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:

@@ -6636,6 +6636,123 @@ QuicTestValidateConnectionPoolCreate()
                 ConnectionPool));
     }
 }
+
+struct TestEventQ {
+    QUIC_EVENTQ QuicEventQ;
+    TestEventQ() noexcept : QuicEventQ{-1} { }
+    TestEventQ(const TestEventQ&) = delete;
+    TestEventQ& operator=(const TestEventQ&) = delete;
+    TestEventQ(TestEventQ&&) = delete;
+    TestEventQ& operator=(TestEventQ&&) = delete;
+    ~TestEventQ() {
+        if (QuicEventQ >= 0) {
+            close(QuicEventQ);
+        }
+    }
+};
+
+void
+QuicTestProcessEventQ(
+    QUIC_EVENTQ* EventQ,
+    uint32_t WaitTime
+    )
+{
+    CXPLAT_CQE Cqes[16];
+    uint32_t CqeCount =
+        CxPlatEventQDequeue(
+            EventQ,
+            Cqes,
+            ARRAYSIZE(Cqes),
+            WaitTime);
+    uint32_t CurrentCqeCount = CqeCount;
+    CXPLAT_CQE* CurrentCqe = Cqes;
+
+    while (CurrentCqeCount > 0) {
+        CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(CurrentCqe);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
+        Sqe->Completion(&CurrentCqe, &CurrentCqeCount);
+#else
+        Sqe->Completion(CurrentCqe);
+        CurrentCqe++;
+        CurrentCqeCount--;
+#endif
+    }
+    CxPlatEventQReturn(EventQ, CqeCount);
+}
+
+void
+QuicTestValidateExecutionContext(const uint32_t EcCount)
+{
+    const uint32_t PollCount = 10;
+    struct {
+        TestEventQ EventQ;
+    } Ecs[EcCount];
+    QUIC_EVENTQ* EventQs[EcCount];
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        Ec.EventQ.QuicEventQ = epoll_create1(EPOLL_CLOEXEC);
+        TEST_TRUE(Ec.EventQ.QuicEventQ >= 0);
+        EventQs[i] = &Ec.EventQ.QuicEventQ;
+    }
+
+    {
+        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+    }
+
+    {
+        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+    }
+
+    {
+        MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+
+        {
+            MsQuicRegistration Registration;
+            TEST_TRUE(Registration.IsValid());
+
+            for (uint32_t i = 0; i < PollCount; i++) {
+                for (uint32_t j = 0; j < EcCount; j++) {
+                    MsQuic->ExecutionPoll(Execution[j]);
+                    QuicTestProcessEventQ(EventQs[j], 0);
+                }
+            }
+        }
+
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+    }
+}
+
+void
+QuicTestValidateExecutionContext()
+{
+    QuicTestValidateExecutionContext(1);
+    QuicTestValidateExecutionContext(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
+    QuicTestValidateExecutionContext(CxPlatProcCount());
+}
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 void
