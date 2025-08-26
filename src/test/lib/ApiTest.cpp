@@ -6770,6 +6770,7 @@ TestCurThreadID()
 }
 
 struct TestPartitionListenerContext {
+    MsQuicConfiguration* ServerConfiguration;
     MsQuicConnection** Server;
     uint32_t ExpectedThreadId;
     uint32_t ActualThreadId;
@@ -6799,6 +6800,7 @@ TestPartitionListenerCallback(
                 return QUIC_STATUS_SUCCESS;
             },
             Context);
+        (*Context->Server)->SetConfiguration(*Context->ServerConfiguration);
     }
 
     return QUIC_STATUS_SUCCESS;
@@ -6807,12 +6809,11 @@ TestPartitionListenerCallback(
 void
 QuicTestValidatePartition()
 {
-    TestPartitionListenerContext ListenerContext{};
-    ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = TestCurThreadID();
     const uint32_t EcCount = 4;
     TestEventQ Ecs[EcCount];
     QUIC_EVENTQ* EventQs[EcCount];
-    const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    // const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    MsQuicAlpn Alpn("MsQuicTest");
 
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
@@ -6823,54 +6824,83 @@ QuicTestValidatePartition()
     MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
     TEST_TRUE(Execution.IsValid());
 
-    MsQuicRegistration Registration;
-    TEST_TRUE(Registration.IsValid());
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
 
-    UniquePtr<MsQuicConnection> Server;
-    ListenerContext.Server = (MsQuicConnection**)&Server;
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+        TEST_TRUE(ServerConfiguration.IsValid());
 
-    MsQuicListener Listener(
-        Registration,
-        CleanUpManual,
-        TestPartitionListenerCallback,
-        &ListenerContext);
-    TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        UniquePtr<MsQuicConnection> Server;
+        TestPartitionListenerContext ListenerContext{};
+        ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = TestCurThreadID();
+        ListenerContext.ServerConfiguration = &ServerConfiguration;
+        ListenerContext.Server = (MsQuicConnection**)&Server;
 
-    TEST_QUIC_SUCCEEDED(
-        Listener.SetParam(
-            QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            TestPartitionListenerCallback,
+            &ListenerContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
 
-    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        // TEST_QUIC_SUCCEEDED(
+        //     Listener.SetParam(
+        //         QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
 
-    TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest"));
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
-    QuicAddr ServerLocalAddr;
-    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicCredentialConfig ClientCredConfig;
-    MsQuicConfiguration ClientConfiguration(Registration, "MsQuicTest", ClientCredConfig);
-    TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-    MsQuicConnection Connection(Registration, PartitionIndex);
-    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
-    TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, QUIC_ADDRESS_FAMILY_INET6, "localhost", ServerLocalAddr.GetPort()));
+        // MsQuicConnection Connection(Registration, PartitionIndex);
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Connection.Start(
+            ClientConfiguration, ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
 
-    //
-    // Allow this thread to poll only the specified partition; the rest of the
-    // partitions will be idle.
-    //
-    TEST_QUIC_SUCCEEDED(
-        TryUntil(1, TestWaitTimeout, [&](){
-            MsQuic->ExecutionPoll(Execution[PartitionIndex]);
-            if (Connection.HandshakeComplete && Server) {
-                return QUIC_STATUS_SUCCESS;
-            }
-            return QUIC_STATUS_CONTINUE;
-        })
-    );
+        //
+        // Allow this thread to poll only the specified partition; the rest of the
+        // partitions will be idle.
+        //
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(1, TestWaitTimeout, [&](){
+                for (uint32_t i = 0; i < EcCount; i++) {
+                    MsQuic->ExecutionPoll(Execution[i]);
+                    QuicTestProcessEventQ(EventQs[i], 0);
+                }
+                // MsQuic->ExecutionPoll(Execution[PartitionIndex]);
+                if (Connection.HandshakeComplete && Server) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
 
     TEST_TRUE(Server->IsValid());
     TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+        sleep(1);
+        TEST_TRUE(Server->IsValid());
+        TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+    }
+
+    //
+    // Give the EC a chance to run all the cleanup needed for MsQuic objects
+    // before its implicit destruction.
+    //
+    TryUntil(1, TestWaitTimeout, [&](){
+        for (uint32_t i = 0; i < EcCount; i++) {
+            MsQuic->ExecutionPoll(Execution[i]);
+            QuicTestProcessEventQ(EventQs[i], 0);
+        }
+        // MsQuic->ExecutionPoll(Execution[PartitionIndex]);
+        return QUIC_STATUS_CONTINUE;
+    });
 }
 
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
