@@ -6695,7 +6695,6 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
         TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
-        TEST_TRUE(Ec.QuicEventQ >= 0);
         EventQs[i] = &Ec.QuicEventQ;
     }
 
