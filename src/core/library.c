@@ -596,8 +596,9 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
-MsQuicLibraryLazyUninitialize(
+MsQuicLibraryUninitialize(
     void
     )
 {
@@ -648,6 +649,11 @@ MsQuicLibraryLazyUninitialize(
         MsQuicLib.Datapath = NULL;
     }
 
+    if (MsQuicLib.Storage != NULL) {
+        CxPlatStorageClose(MsQuicLib.Storage);
+        MsQuicLib.Storage = NULL;
+    }
+
 #if DEBUG
     //
     // If you hit this assert, MsQuic API is trying to be unloaded without
@@ -679,26 +685,6 @@ MsQuicLibraryLazyUninitialize(
 
     MsQuicLibraryFreePartitions();
 
-    MsQuicLib.LazyInitComplete = FALSE;
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-MsQuicLibraryUninitialize(
-    void
-    )
-{
-    QuicTraceEvent(
-        LibraryUninitialized,
-        "[ lib] Uninitialized");
-
-    MsQuicLibraryLazyUninitialize();
-
-    if (MsQuicLib.Storage != NULL) {
-        CxPlatStorageClose(MsQuicLib.Storage);
-        MsQuicLib.Storage = NULL;
-    }
-
     QuicSettingsCleanup(&MsQuicLib.Settings);
 
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
@@ -710,6 +696,12 @@ MsQuicLibraryUninitialize(
         CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
         MsQuicLib.ExecutionConfig = NULL;
     }
+
+    MsQuicLib.LazyInitComplete = FALSE;
+
+    QuicTraceEvent(
+        LibraryUninitialized,
+        "[ lib] Uninitialized");
 
 #ifndef _KERNEL_MODE
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
@@ -2698,18 +2690,8 @@ MsQuicExecutionDelete(
 
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
-
-    //
-    // To allow all references to the execution context to be released, clean
-    // up implicitly allocated internal resources.
-    //
-    if (MsQuicLib.LazyInitComplete) {
-        MsQuicLibraryLazyUninitialize();
-    }
-
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool = NULL;
-    MsQuicLib.CustomExecutions = FALSE;
 
     QuicTraceEvent(
         ApiExit,
