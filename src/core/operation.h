@@ -31,6 +31,7 @@ typedef enum QUIC_OPERATION_TYPE {
     QUIC_OPER_TYPE_TIMER_EXPIRED,       // A timer expired.
     QUIC_OPER_TYPE_TRACE_RUNDOWN,       // A trace rundown was triggered.
     QUIC_OPER_TYPE_ROUTE_COMPLETION,    // Process route completion event.
+    QUIC_OPER_TYPE_COMPLETE_CONNECTION_START, // Complete the connection start process for connected underlying transports.
 
     //
     // All stateless operations follow.
@@ -248,6 +249,10 @@ typedef struct QUIC_OPERATION {
             uint8_t PathId;
             BOOLEAN Succeeded;
         } ROUTE;
+        struct {
+            // TODO guhetier: Do we even need the Configuration here or should it be stored in the connection already?
+            QUIC_CONFIGURATION* Configuration;
+        } COMPLETE_CONNECTION_START;
     };
 
 } QUIC_OPERATION;

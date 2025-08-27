@@ -1759,6 +1759,14 @@ QuicConnOnQuicVersionSet(
     }
 }
 
+// TODO guhetier: Move to better spot
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnStartComplete(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration
+    );
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicConnStart(
@@ -1891,17 +1899,74 @@ QuicConnStart(
     if (Connection->Settings.RioEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
     }
+    // TODO guhetier: A configuration option is needed
+    if (/*Connection->Settings.TcpEnabled*/ TRUE) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_TCP;
+    }
+
+    //
+    // Save the server name.
+    //
+    Connection->RemoteServerName = ServerName;
+    ServerName = NULL;
 
     //
     // Get the binding for the current local & remote addresses.
     //
+    UdpConfig.CallbackContext = Connection;
+
+    // TODO guhetier: Make sure that setting the configuration here is not an issue for existing paths
+    // TODO guhetier: Consider if more settings could / should be applied heree
+    QuicConfigurationAddRef(Configuration);
+    Connection->Configuration = Configuration;
+
     Status =
         QuicLibraryGetBinding(
             &UdpConfig,
             &Path->Binding);
+    if (Status == QUIC_STATUS_PENDING) {
+        // QuicConnStartComplete will be called asynchronously
+        goto Exit;
+    } else if (QUIC_FAILED(Status)) {
+        goto Exit;
+    }
+
+    // TODO guhetier: Maybe instead of this pattern, keep proceeding, letting everything be queued
+    // on the incomplete binding? And let things resolve when the binding is accepted?
+    // But what about the info the connection fetch from the binding?
+    Status = QuicConnStartComplete(Connection, Configuration);
     if (QUIC_FAILED(Status)) {
         goto Exit;
     }
+
+Exit:
+
+    if (ServerName != NULL) {
+        CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
+    }
+
+    if (QUIC_FAILED(Status)) {
+        QuicConnCloseLocally(
+            Connection,
+            StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
+                QUIC_CLOSE_SILENT | QUIC_CLOSE_QUIC_STATUS :
+                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            (uint64_t)Status,
+            NULL);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicConnStartComplete(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_CONFIGURATION* Configuration
+    )
+{
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_PATH* Path = &Connection->Paths[0];
 
     //
     // Clients only need to generate a non-zero length source CID if it
@@ -1948,12 +2013,6 @@ QuicConnStart(
         Connection,
         CASTED_CLOG_BYTEARRAY(sizeof(Path->Route.LocalAddress), &Path->Route.LocalAddress));
 
-    //
-    // Save the server name.
-    //
-    Connection->RemoteServerName = ServerName;
-    ServerName = NULL;
-
     Status = QuicCryptoInitialize(&Connection->Crypto);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -1969,16 +2028,10 @@ QuicConnStart(
 
 Exit:
 
-    if (ServerName != NULL) {
-        CXPLAT_FREE(ServerName, QUIC_POOL_SERVERNAME);
-    }
-
     if (QUIC_FAILED(Status)) {
         QuicConnCloseLocally(
             Connection,
-            StartFlags & QUIC_CONN_START_FLAG_FAIL_SILENTLY ?
-                QUIC_CLOSE_SILENT | QUIC_CLOSE_QUIC_STATUS :
-                QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
+            QUIC_CLOSE_INTERNAL_SILENT | QUIC_CLOSE_QUIC_STATUS,
             (uint64_t)Status,
             NULL);
     }
@@ -2457,14 +2510,18 @@ QuicConnSetConfiguration(
     _In_ QUIC_CONFIGURATION* Configuration
     )
 {
-    if (Connection->Configuration != NULL || QuicConnIsClosed(Connection)) {
+    // TODO guhetier: Consider having a wrapper for this, that does the parameter settings / validation only
+    if ((Connection->Configuration != NULL &&
+         Connection->Configuration != Configuration) ||
+        QuicConnIsClosed(Connection)) {
         return QUIC_STATUS_INVALID_STATE;
     }
 
     QUIC_STATUS Status;
     QUIC_TRANSPORT_PARAMETERS LocalTP = { 0 };
 
-    CXPLAT_TEL_ASSERT(Connection->Configuration == NULL);
+    // TODO guhetier: Temporarily not true because used to plumb the config
+    // CXPLAT_TEL_ASSERT(Connection->Configuration == NULL);
     CXPLAT_TEL_ASSERT(Configuration != NULL);
     CXPLAT_TEL_ASSERT(Configuration->SecurityConfig != NULL);
 
@@ -2474,9 +2531,12 @@ QuicConnSetConfiguration(
         "Configuration set, %p",
         Configuration);
 
-    QuicConfigurationAddRef(Configuration);
+    if (Connection->Configuration == NULL) {
+        QuicConfigurationAddRef(Configuration);
+        Connection->Configuration = Configuration;
+    }
+
     QuicConfigurationAttachSilo(Configuration);
-    Connection->Configuration = Configuration;
 
     if (QuicConnIsServer(Connection)) {
         QuicConnApplyNewSettings(
@@ -6306,6 +6366,7 @@ QuicConnParamSet(
                     &UdpConfig,
                     &Connection->Paths[0].Binding);
             if (QUIC_FAILED(Status)) {
+                // TODO guhetier: What happens here if the binding is created async? Is it possible
                 Connection->Paths[0].Binding = OldBinding;
                 break;
             }
@@ -7882,6 +7943,14 @@ QuicConnDrainOperations(
             }
             QuicConnProcessRouteCompletion(
                 Connection, Oper->ROUTE.PhysicalAddress, Oper->ROUTE.PathId, Oper->ROUTE.Succeeded);
+            break;
+
+        case QUIC_OPER_TYPE_COMPLETE_CONNECTION_START:
+            QUIC_STATUS Status = QuicConnStartComplete(
+                Connection, Oper->COMPLETE_CONNECTION_START.Configuration);
+            if (QUIC_FAILED(Status)) {
+                // TODO guhetier: Send connection shutdown to app
+            }
             break;
 
         default:

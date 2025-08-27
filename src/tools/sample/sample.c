@@ -325,7 +325,7 @@ WriteSslKeyLogFile(
 // Allocates and sends some data over a QUIC stream.
 //
 void
-ServerSend(
+ServerStartSend(
     _In_ HQUIC Stream
     )
 {
@@ -391,7 +391,7 @@ ServerStreamCallback(
         // The peer gracefully shut down its send direction of the stream.
         //
         printf("[strm][%p] Peer shut down\n", Stream);
-        ServerSend(Stream);
+        ServerStartSend(Stream);
         break;
     case QUIC_STREAM_EVENT_PEER_SEND_ABORTED:
         //
@@ -736,7 +736,7 @@ ClientStreamCallback(
 }
 
 void
-ClientSend(
+ClientStartSend(
     _In_ HQUIC Connection
     )
 {
@@ -827,7 +827,7 @@ ClientConnectionCallback(
         // The handshake has completed for the connection.
         //
         printf("[conn][%p] Connected\n", Connection);
-        ClientSend(Connection);
+        ClientStartSend(Connection);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //

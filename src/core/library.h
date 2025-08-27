@@ -495,6 +495,17 @@ QuicLibraryGetBinding(
     );
 
 //
+// Insert a new binding in the library list
+// TODO guhetier: Fix SAL
+//
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryInsertBinding(
+    _Inout_ QUIC_BINDING** NewBinding,
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig
+    );
+
+//
 // Tries to acquire a ref on the binding. Fails if already starting the clean up
 // process.
 //

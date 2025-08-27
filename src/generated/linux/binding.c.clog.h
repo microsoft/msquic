@@ -22,6 +22,10 @@
 #define _clog_MACRO_QuicTraceLogVerbose  1
 #define QuicTraceLogVerbose(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
 #endif
+#ifndef _clog_MACRO_QuicTraceLogError
+#define _clog_MACRO_QuicTraceLogError  1
+#define QuicTraceLogError(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
+#endif
 #ifndef _clog_MACRO_QuicTraceEvent
 #define _clog_MACRO_QuicTraceEvent  1
 #define QuicTraceEvent(a, ...) _clog_CAT(_clog_ARGN_SELECTOR(__VA_ARGS__), _clog_CAT(_,a(#a, __VA_ARGS__)))
@@ -133,6 +137,26 @@ tracepoint(CLOG_BINDING_C, BindingSendTestDrop , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for BindingTcpAcceptFailed
+// [bind][%p] Failed to initialize accept binding, status=0x%x
+// QuicTraceLogError(
+            BindingTcpAcceptFailed,
+            "[bind][%p] Failed to initialize accept binding, status=0x%x",
+            ListenerBinding,
+            Status);
+// arg2 = arg2 = ListenerBinding = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_BindingTcpAcceptFailed
+#define _clog_4_ARGS_TRACE_BindingTcpAcceptFailed(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_BINDING_C, BindingTcpAcceptFailed , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -192,6 +216,26 @@ tracepoint(CLOG_BINDING_C, BindingErrorStatus , arg2, arg3, arg4);\
 #ifndef _clog_8_ARGS_TRACE_BindingCreated
 #define _clog_8_ARGS_TRACE_BindingCreated(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len)\
 tracepoint(CLOG_BINDING_C, BindingCreated , arg2, arg3, arg4_len, arg4, arg5_len, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for BindingError
+// [bind][%p] ERROR, %s.
+// QuicTraceEvent(
+            BindingError,
+            "[bind][%p] ERROR, %s.",
+            Binding,
+            "Listener binding no longer exists when accepting a binding");
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = "Listener binding no longer exists when accepting a binding" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_BindingError
+#define _clog_4_ARGS_TRACE_BindingError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_BINDING_C, BindingError , arg2, arg3);\
 
 #endif
 
@@ -350,6 +394,30 @@ tracepoint(CLOG_BINDING_C, BindingExecOper , arg2, arg3);\
 #ifndef _clog_3_ARGS_TRACE_PacketReceive
 #define _clog_3_ARGS_TRACE_PacketReceive(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_BINDING_C, PacketReceive , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for BindingConnected
+// [bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
+// QuicTraceEvent(
+        BindingConnected,
+        "[bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+        Binding,
+        Binding->Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddress), &RemoteAddress));
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Binding->Socket = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddress), &RemoteAddress) = arg5
+----------------------------------------------------------*/
+#ifndef _clog_8_ARGS_TRACE_BindingConnected
+#define _clog_8_ARGS_TRACE_BindingConnected(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len, arg5, arg5_len)\
+tracepoint(CLOG_BINDING_C, BindingConnected , arg2, arg3, arg4_len, arg4, arg5_len, arg5);\
 
 #endif
 

@@ -191,8 +191,10 @@ typedef struct QUIC_BINDING {
     CXPLAT_LIST_ENTRY Link;
 
     //
-    // Indicates whether the binding is exclusively owned already. Defaults
-    // to TRUE.
+    // Indicates whether the binding is exclusively owned by a connection already.
+    // When a binding is exclusively owned, all packets sent and received over the binding
+    // are necessarily from/for that connection, allowing a zero-lenght CID.
+    // Defaults to TRUE.
     //
     BOOLEAN Exclusive : 1;
 
@@ -207,6 +209,8 @@ typedef struct QUIC_BINDING {
     //
     // Indicates that the binding is also explicitly connected to a remote
     // address, effectively fixing the 4-tuple of the binding.
+    // - A server-side binding is not connected
+    // - A client-side binding is generally connnected, unless it isn't exclusive (?)
     //
     BOOLEAN Connected : 1;
 
@@ -242,6 +246,18 @@ typedef struct QUIC_BINDING {
     //
     CXPLAT_LIST_ENTRY Listeners;
 
+    // TODO guhetier: Consider if restricting to a unique listener is simpler. Make it a union with
+    // the ListenersList.
+    //
+    // For connection oriented underlying transports, if the binding result from an
+    // "accept" callback, this is the binding for the listener that received the connection.
+    // Null otherwise (client connections, datagram based underlying transports...).
+    //
+    QUIC_BINDING* ListenerBinding;
+
+    // TODO guhetier: Need a better way to track the connection that cause the creation of the binding
+    QUIC_CONNECTION* RequestorConnection;
+
     //
     // Lookup tables for connection IDs.
     //
@@ -271,6 +287,14 @@ typedef struct QUIC_BINDING {
 //
 CXPLAT_DATAPATH_RECEIVE_CALLBACK QuicBindingReceive;
 CXPLAT_DATAPATH_UNREACHABLE_CALLBACK QuicBindingUnreachable;
+
+//
+// Global callbacks for all QUIC TCP bindings.
+//
+CXPLAT_DATAPATH_CONNECT_CALLBACK QuicBindingTcpConnect;
+CXPLAT_DATAPATH_ACCEPT_CALLBACK QuicBindingTcpAccept;
+CXPLAT_DATAPATH_RECEIVE_CALLBACK QuicBindingTcpReceive;
+CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK QuicBindingTcpSendComplete;
 
 //
 // Initializes a new binding.

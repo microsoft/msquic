@@ -119,6 +119,29 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingSendTestDrop,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for BindingTcpAcceptFailed
+// [bind][%p] Failed to initialize accept binding, status=0x%x
+// QuicTraceLogError(
+            BindingTcpAcceptFailed,
+            "[bind][%p] Failed to initialize accept binding, status=0x%x",
+            ListenerBinding,
+            Status);
+// arg2 = arg2 = ListenerBinding = arg2
+// arg3 = arg3 = Status = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_BINDING_C, BindingTcpAcceptFailed,
+    TP_ARGS(
+        const void *, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
@@ -198,6 +221,29 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, BindingCreated,
         ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
         ctf_integer(unsigned int, arg5_len, arg5_len)
         ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for BindingError
+// [bind][%p] ERROR, %s.
+// QuicTraceEvent(
+            BindingError,
+            "[bind][%p] ERROR, %s.",
+            Binding,
+            "Listener binding no longer exists when accepting a binding");
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = "Listener binding no longer exists when accepting a binding" = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_BINDING_C, BindingError,
+    TP_ARGS(
+        const void *, arg2,
+        const char *, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_string(arg3, arg3)
     )
 )
 
@@ -386,5 +432,40 @@ TRACEPOINT_EVENT(CLOG_BINDING_C, PacketReceive,
         unsigned long long, arg2), 
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for BindingConnected
+// [bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!
+// QuicTraceEvent(
+        BindingConnected,
+        "[bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+        Binding,
+        Binding->Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress),
+        CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddress), &RemoteAddress));
+// arg2 = arg2 = Binding = arg2
+// arg3 = arg3 = Binding->Socket = arg3
+// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress) = arg4
+// arg5 = arg5 = CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddress), &RemoteAddress) = arg5
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_BINDING_C, BindingConnected,
+    TP_ARGS(
+        const void *, arg2,
+        const void *, arg3,
+        unsigned int, arg4_len,
+        const void *, arg4,
+        unsigned int, arg5_len,
+        const void *, arg5), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
+        ctf_integer_hex(uint64_t, arg3, (uint64_t)arg3)
+        ctf_integer(unsigned int, arg4_len, arg4_len)
+        ctf_sequence(char, arg4, arg4, unsigned int, arg4_len)
+        ctf_integer(unsigned int, arg5_len, arg5_len)
+        ctf_sequence(char, arg5, arg5, unsigned int, arg5_len)
     )
 )

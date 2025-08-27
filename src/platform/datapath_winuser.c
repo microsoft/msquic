@@ -3784,8 +3784,10 @@ CxPlatDataPathTcpRecvComplete(
 {
     BOOLEAN NeedReceive = TRUE;
 
+    // TODO guhetier: The local / remote address are not populated here, are they supposed to be set earlier (since they are known for the connection?)
     PSOCKADDR_INET RemoteAddr = &IoBlock->Route.RemoteAddress;
     PSOCKADDR_INET LocalAddr = &IoBlock->Route.LocalAddress;
+    IoBlock->Route.Queue = (CXPLAT_QUEUE*)SocketProc;
 
     if (IoResult == WSAENOTSOCK ||
         IoResult == WSA_OPERATION_ABORTED ||

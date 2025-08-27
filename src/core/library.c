@@ -788,6 +788,13 @@ QuicLibraryLazyInitialize(
         QuicBindingUnreachable,
     };
 
+    const CXPLAT_TCP_DATAPATH_CALLBACKS DatapathTcpCallbacks = {
+        QuicBindingTcpAccept,
+        QuicBindingTcpConnect,
+        QuicBindingTcpReceive,
+        QuicBindingTcpSendComplete
+    };
+
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN CreatedWorkerPool = FALSE;
 
@@ -819,11 +826,12 @@ QuicLibraryLazyInitialize(
     }
 #endif
 
+    // TODO guhetier: Add parameters to intialize only the relevant datapaths
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
-            NULL,                   // TcpCallbacks
+            &DatapathTcpCallbacks,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
@@ -2081,6 +2089,8 @@ QuicLibraryLookupBinding(
     _In_opt_ const QUIC_ADDR* RemoteAddress
     )
 {
+    // TODO guhetier: For TCP, needs to match the remote address too, since the local address/port will
+    // be the same for the accepted and the listener binding
     for (CXPLAT_LIST_ENTRY* Link = MsQuicLib.Bindings.Flink;
         Link != &MsQuicLib.Bindings;
         Link = Link->Flink) {
@@ -2097,7 +2107,7 @@ QuicLibraryLookupBinding(
         QUIC_ADDR BindingLocalAddr;
         QuicBindingGetLocalAddress(Binding, &BindingLocalAddr);
 
-        if (Binding->Connected) {
+        if (Binding->Connected || TRUE/* TODO guhetier: Binding is a TCP listener */) {
             //
             // For client/connected bindings we need to match on both local and
             // remote addresses/ports.
@@ -2131,116 +2141,25 @@ QuicLibraryLookupBinding(
     return NULL;
 }
 
+//
+// Insert a newly created binding in the library list, validating for uniqueness first.
+// If a matching binding already exists in the list, the new binding is deleted and the existing one
+// is returned to the caller.
+//
+// TODO guhetier: Currently, this function un-initialize the binding on failure, but this should probably be the caller responsibility
+// TODO guhetier: Needs to handle binding swap if race on insertion + ensure there is no swap possible on acceptd socket path
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicLibraryGetBinding(
-    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Outptr_ QUIC_BINDING** NewBinding
+QuicLibraryInsertBinding(
+    _Inout_ QUIC_BINDING** NewBinding,
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig
     )
 {
-    QUIC_STATUS Status;
-    QUIC_BINDING* Binding;
-    QUIC_ADDR NewLocalAddress;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    QUIC_BINDING* Binding = NULL;
     const BOOLEAN PortUnspecified =
         UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
-    const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
-    const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
-
-#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
-    //
-    // To work around the Linux bug where the stack sometimes gives us a "new"
-    // empheral port that matches an existing one, we retry, starting from that
-    // port and incrementing the number until we get one that works.
-    //
-    BOOLEAN SharedEphemeralWorkAround = FALSE;
-SharedEphemeralRetry:
-#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
-
-    //
-    // First check to see if a binding already exists that matches the
-    // requested addresses.
-    //
-#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
-    if (PortUnspecified && !SharedEphemeralWorkAround) {
-#else
-    if (PortUnspecified) {
-#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
-        //
-        // No specified local port, so we always create a new binding, and let
-        // the networking stack assign us a new ephemeral port. We can skip the
-        // lookup because the stack **should** always give us something new.
-        //
-        goto NewBinding;
-    }
-
-    Status = QUIC_STATUS_NOT_FOUND;
-    CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
-
-    Binding =
-        QuicLibraryLookupBinding(
-#ifdef QUIC_COMPARTMENT_ID
-            UdpConfig->CompartmentId,
-#endif
-            UdpConfig->LocalAddress,
-            UdpConfig->RemoteAddress);
-    if (Binding != NULL) {
-        if (!ShareBinding || Binding->Exclusive ||
-            (ServerOwned != Binding->ServerOwned)) {
-            //
-            // The binding does already exist, but cannot be shared with the
-            // requested configuration.
-            //
-            QuicTraceEvent(
-                BindingError,
-                "[bind][%p] ERROR, %s.",
-                Binding,
-                "Binding already in use");
-            Status = QUIC_STATUS_ADDRESS_IN_USE;
-        } else {
-            //
-            // Match found and can be shared.
-            //
-            CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
-            Binding->RefCount++;
-            *NewBinding = Binding;
-            Status = QUIC_STATUS_SUCCESS;
-        }
-    }
-
-    CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
-
-    if (Status != QUIC_STATUS_NOT_FOUND) {
-#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
-        if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
-            goto SharedEphemeralRetry;
-        }
-#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
-        goto Exit;
-    }
-
-NewBinding:
-
-    //
-    // Create a new binding since there wasn't a match.
-    //
-
-    Status =
-        QuicBindingInitialize(
-            UdpConfig,
-            NewBinding);
-    if (QUIC_FAILED(Status)) {
-#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
-        if (SharedEphemeralWorkAround) {
-            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
-            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
-            goto SharedEphemeralRetry;
-        }
-#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
-        goto Exit;
-    }
-
+    QUIC_ADDR NewLocalAddress = {0};
     QuicBindingGetLocalAddress(*NewBinding, &NewLocalAddress);
 
     CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
@@ -2304,6 +2223,9 @@ NewBinding:
 
     CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
 
+    //
+    // Another thread beat us creating this binding, uninitialize it.
+    //
     if (Binding != NULL) {
         if (PortUnspecified) {
             //
@@ -2314,7 +2236,7 @@ NewBinding:
             QuicTraceEvent(
                 BindingError,
                 "[bind][%p] ERROR, %s.",
-                *NewBinding,
+                NewBinding,
                 "Binding ephemeral port reuse encountered");
             QuicBindingUninitialize(*NewBinding);
             *NewBinding = NULL;
@@ -2324,6 +2246,7 @@ NewBinding:
             // Use the invalid address as a starting point to search for a new
             // one.
             //
+            // TODO guhetier: Current refactoring is breaking this workaround, need to refactor better.
             SharedEphemeralWorkAround = TRUE;
             ((CXPLAT_UDP_CONFIG*)UdpConfig)->LocalAddress = &NewLocalAddress;
             QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
@@ -2354,6 +2277,132 @@ NewBinding:
             *NewBinding = Binding;
             Status = QUIC_STATUS_SUCCESS;
         }
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibraryGetBinding(
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
+    _Outptr_ QUIC_BINDING** NewBinding
+    )
+{
+    QUIC_STATUS Status;
+    QUIC_BINDING* Binding;
+    const BOOLEAN PortUnspecified =
+        UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
+    const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    //
+    // To work around the Linux bug where the stack sometimes gives us a "new"
+    // empheral port that matches an existing one, we retry, starting from that
+    // port and incrementing the number until we get one that works.
+    //
+    BOOLEAN SharedEphemeralWorkAround = FALSE;
+SharedEphemeralRetry:
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+
+    //
+    // First check to see if a binding already exists that matches the
+    // requested addresses.
+    //
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+    if (PortUnspecified && !SharedEphemeralWorkAround) {
+#else
+    if (PortUnspecified) {
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+        //
+        // No specified local port, so we always create a new binding, and let
+        // the networking stack assign us a new ephemeral port. We can skip the
+        // lookup because the stack **should** always give us something new.
+        //
+        goto NewBinding;
+    }
+
+    Status = QUIC_STATUS_NOT_FOUND;
+    CxPlatDispatchLockAcquire(&MsQuicLib.DatapathLock);
+
+    // TODO guhetier: Do we also need to match on the underlying transport here?
+    // TODO guhetier: How are RDMA addresses interacting with UDP/IP addresses?
+    Binding =
+        QuicLibraryLookupBinding(
+#ifdef QUIC_COMPARTMENT_ID
+            UdpConfig->CompartmentId,
+#endif
+            UdpConfig->LocalAddress,
+            UdpConfig->RemoteAddress);
+    if (Binding != NULL) {
+        if (!ShareBinding || Binding->Exclusive ||
+            (ServerOwned != Binding->ServerOwned)) {
+            //
+            // The binding does already exist, but cannot be shared with the
+            // requested configuration.
+            //
+            QuicTraceEvent(
+                BindingError,
+                "[bind][%p] ERROR, %s.",
+                Binding,
+                "Binding already in use");
+            Status = QUIC_STATUS_ADDRESS_IN_USE;
+        } else {
+            //
+            // Match found and can be shared.
+            //
+            CXPLAT_DBG_ASSERT(Binding->RefCount > 0);
+            Binding->RefCount++;
+            *NewBinding = Binding;
+            Status = QUIC_STATUS_SUCCESS;
+        }
+    }
+
+    CxPlatDispatchLockRelease(&MsQuicLib.DatapathLock);
+
+    if (Status != QUIC_STATUS_NOT_FOUND) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (QUIC_FAILED(Status) && SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+        goto Exit;
+    }
+
+NewBinding:
+
+    //
+    // Create a new binding since there wasn't a match.
+    //
+
+    Status =
+        QuicBindingInitialize(
+            UdpConfig,
+            NewBinding);
+    if (Status == QUIC_STATUS_PENDING) {
+        // TODO guhetier: Add assert
+        // CXPLAT_DBG_ASSERT(not a listener binding) / only for connected transports?
+        goto Exit;
+    } else if (QUIC_FAILED(Status)) {
+#ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
+        if (SharedEphemeralWorkAround) {
+            CXPLAT_DBG_ASSERT(UdpConfig->LocalAddress);
+            QuicAddrSetPort((QUIC_ADDR*)UdpConfig->LocalAddress, QuicAddrGetPort(UdpConfig->LocalAddress) + 1);
+            goto SharedEphemeralRetry;
+        }
+#endif // QUIC_SHARED_EPHEMERAL_WORKAROUND
+        goto Exit;
+    }
+
+    //
+    // The binding initialization completed synchronously, insert it in the the library list.
+    //
+    Status = QuicLibraryInsertBinding(NewBinding, UdpConfig);
+    if (QUIC_FAILED(Status)) {
+        goto Exit;
     }
 
 Exit:

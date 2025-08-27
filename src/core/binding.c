@@ -35,16 +35,14 @@ CXPLAT_STATIC_ASSERT(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
-QuicBindingInitialize(
-    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
+QuicBindingInitializeInternal(
     _Outptr_ QUIC_BINDING** NewBinding
     )
 {
-    QUIC_STATUS Status;
-    QUIC_BINDING* Binding;
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     BOOLEAN HashTableInitialized = FALSE;
 
-    Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
+    QUIC_BINDING* Binding = CXPLAT_ALLOC_NONPAGED(sizeof(QUIC_BINDING), QUIC_POOL_BINDING);
     if (Binding == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -56,13 +54,14 @@ QuicBindingInitialize(
     }
 
     Binding->RefCount = 0; // No refs until it's added to the library's list
-    Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
-    Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
-    Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
+    Binding->Exclusive = FALSE;
+    Binding->ServerOwned = FALSE;
+    Binding->Connected = FALSE;
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
     CxPlatListInitializeHead(&Binding->Listeners);
+    Binding->ListenerBinding = NULL;
     QuicLookupInitialize(&Binding->Lookup);
     if (!CxPlatHashtableInitializeEx(&Binding->StatelessOperTable, CXPLAT_HASH_MIN_SIZE)) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
@@ -79,7 +78,42 @@ QuicBindingInitialize(
         (Binding->RandomReservedVersion & ~QUIC_VERSION_RESERVED_MASK) |
         QUIC_VERSION_RESERVED;
 
+    *NewBinding = Binding;
+
+Error:
+
+    if (QUIC_FAILED(Status) && Binding != NULL) {
+        QuicLookupUninitialize(&Binding->Lookup);
+        if (HashTableInitialized) {
+            CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
+        }
+        CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
+        CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
+        CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
+    }
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicBindingInitialize(
+    _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
+    _Outptr_ QUIC_BINDING** NewBinding
+    )
+{
+    QUIC_BINDING* Binding = NULL;
+    QUIC_STATUS Status = QuicBindingInitializeInternal(&Binding);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
+    Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
+
 #ifdef QUIC_COMPARTMENT_ID
+    // TODO guhetier: What is needed about compartment IDs for accepted bindings?
     Binding->CompartmentId = UdpConfig->CompartmentId;
 
     BOOLEAN RevertCompartmentId = FALSE;
@@ -124,18 +158,55 @@ QuicBindingInitialize(
                 MsQuicLib.Datapath,
                 &HookUdpConfig,
                 &Binding->Socket);
-    } else {
+    } else
 #endif
+    {
+        // TODO guhetier: That's terrible, but deal with it later
+        Binding->RequestorConnection = UdpConfig->CallbackContext;
         ((CXPLAT_UDP_CONFIG*)UdpConfig)->CallbackContext = Binding;
 
-        Status =
-            CxPlatSocketCreateUdp(
-                MsQuicLib.Datapath,
-                UdpConfig,
-                &Binding->Socket);
-#if QUIC_TEST_DATAPATH_HOOKS_ENABLED
+        if (UdpConfig->Flags & CXPLAT_SOCKET_FLAG_TCP) {
+            // TODO guhetier: Make a config struct for TCP
+            // TODO guhetier: Need a better way to know when to create a TCP listener vs
+            // a server connection vs a client connection?
+
+            if (UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED) {
+                Status =
+                    CxPlatSocketCreateTcpListener(
+                        MsQuicLib.Datapath,
+                        UdpConfig->LocalAddress,
+                        Binding,
+                        &Binding->Socket);
+            } else {
+                CXPLAT_DBG_ASSERT(UdpConfig->RemoteAddress != NULL);
+                Status =
+                    CxPlatSocketCreateTcp(
+                        MsQuicLib.Datapath,
+                        UdpConfig->LocalAddress,
+                        UdpConfig->RemoteAddress,
+                        Binding,
+                        &Binding->Socket);
+                if (Status == QUIC_STATUS_SUCCESS) {
+                    Status = QUIC_STATUS_PENDING;
+                }
+            }
+
+            if (Status == QUIC_STATUS_PENDING) {
+                //
+                // Once the socket is created, the rest of the binding initialization will take place
+                // TODO guhetier: Refactor the rest of the binding init?
+                //
+                *NewBinding = Binding;
+                return Status;
+            }
+        } else {
+            Status =
+                CxPlatSocketCreateUdp(
+                    MsQuicLib.Datapath,
+                    UdpConfig,
+                    &Binding->Socket);
+        }
     }
-#endif
 
 #ifdef QUIC_COMPARTMENT_ID
     if (RevertCompartmentId) {
@@ -169,17 +240,77 @@ QuicBindingInitialize(
 
 Error:
 
-    if (QUIC_FAILED(Status)) {
-        if (Binding != NULL) {
-            QuicLookupUninitialize(&Binding->Lookup);
-            if (HashTableInitialized) {
-                CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
-            }
-            CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
-            CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
-            CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
-        }
+    if (QUIC_FAILED(Status) && Binding != NULL) {
+        QuicLookupUninitialize(&Binding->Lookup);
+        CxPlatHashtableUninitialize(&Binding->StatelessOperTable);
+        CxPlatDispatchLockUninitialize(&Binding->StatelessOperLock);
+        CxPlatDispatchRwLockUninitialize(&Binding->RwLock);
+        CXPLAT_FREE(Binding, QUIC_POOL_BINDING);
     }
+
+    return Status;
+}
+
+QUIC_STATUS
+QuicBindingInitializeOnAccept(
+    _In_ QUIC_BINDING* ListenerBinding,
+    _In_ CXPLAT_SOCKET* AcceptedSocket,
+    _Outptr_ QUIC_BINDING** AcceptedBinding
+    )
+{
+    QUIC_BINDING* Binding = NULL;
+    QUIC_STATUS Status = QuicBindingInitializeInternal(&Binding);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    // TODO guhetier: On the UDP path, this is done when a listener is registered on the binding.
+    // Consider moving it to the binding initialization as soon as this is a server binding.
+    if (!QuicLookupMaximizePartitioning(&Binding->Lookup)) {
+        QuicBindingUninitialize(Binding);
+        return QUIC_STATUS_OUT_OF_MEMORY;
+    }
+
+    // TODO guhetier: Confirm the socket lifetime management
+    Binding->Socket = AcceptedSocket;
+
+    Binding->ListenerBinding = ListenerBinding;
+    // TODO guhetier: This takes the global library lock, may need to be optimized?
+    if (!QuicLibraryTryAddRefBinding(ListenerBinding)) {
+        QuicTraceEvent(
+            BindingError,
+            "[bind][%p] ERROR, %s.",
+            Binding,
+            "Listener binding no longer exists when accepting a binding");
+        QuicBindingUninitialize(Binding);
+        return QUIC_STATUS_INVALID_STATE;
+    }
+
+    // TODO guhetier: Should accepted bindings be shared? Need to understand sharing more.
+    // TODO guhetier: For an incomming QUIC connection, the packet is droped on exclusive binding.
+    //     Consider whether accepted bindings should be exclusive or not.
+    Binding->Exclusive = FALSE;
+    Binding->ServerOwned = TRUE;
+    Binding->Connected = TRUE;
+
+#ifdef QUIC_COMPARTMENT_ID
+    // TODO guhetier: Is there anything to do about the compartment?
+    Binding->CompartmentId = ListenerBinding->CompartmentId;
+#endif
+
+    QUIC_ADDR DatapathLocalAddr = {0};
+    QuicBindingGetLocalAddress(Binding, &DatapathLocalAddr);
+    QUIC_ADDR DatapathRemoteAddr = {0};
+    QuicBindingGetRemoteAddress(Binding, &DatapathRemoteAddr);
+    QuicTraceEvent(
+        BindingCreated,
+        "[bind][%p] Accepted, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+        Binding,
+        Binding->Socket,
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathLocalAddr), &DatapathLocalAddr),
+        CASTED_CLOG_BYTEARRAY(sizeof(DatapathRemoteAddr), &DatapathRemoteAddr));
+
+    *AcceptedBinding = Binding;
 
     return Status;
 }
@@ -203,6 +334,15 @@ QuicBindingUninitialize(
     // upcalls have completed.
     //
     CxPlatSocketDelete(Binding->Socket);
+
+    //
+    // Release the listener socket if one is present (connection oriented underlying transport)
+    //
+    if (Binding->ListenerBinding != NULL) {
+        // TODO guhetier: This takes a global lock, should it be optimized?
+        QuicLibraryReleaseBinding(Binding->ListenerBinding);
+        Binding->ListenerBinding = NULL;
+    }
 
     //
     // Clean up any leftover stateless operations being tracked.
@@ -501,7 +641,14 @@ QuicBindingAcceptConnection(
     // Find a listener that matches the incoming connection request, by IP, port
     // and ALPN.
     //
-    QUIC_LISTENER* Listener = QuicBindingGetListener(Binding, Connection, Info);
+    // TODO guhetier: Improve this
+    QUIC_LISTENER* Listener;
+    if (Binding->ListenerBinding == NULL) {
+        Listener = QuicBindingGetListener(Binding, Connection, Info);
+    } else {
+        Listener = QuicBindingGetListener(Binding->ListenerBinding, Connection, Info);
+    }
+
     if (Listener == NULL) {
         QuicTraceEvent(
             ConnError,
@@ -1479,6 +1626,7 @@ QuicBindingDeliverPackets(
             return FALSE;
         }
 
+        // TODO guhetier: Reconsider this - for accepted bindings, exclusive might be reasonnable + server is always shared.
         if (Binding->Exclusive) {
             QuicPacketLogDrop(Binding, Packets, "No connection on exclusive binding");
             return FALSE;
@@ -1553,7 +1701,14 @@ QuicBindingDeliverPackets(
 
         CXPLAT_DBG_ASSERT(Token != NULL);
 
-        if (!QuicBindingHasListenerRegistered(Binding)) {
+        // TODO guhetier: Consider making that a part of QuicBindingHasListenerRegistered.
+        // TODO guhetier: Add a check for the type of binding?
+        const BOOL HasListenersRegistered =
+            QuicBindingHasListenerRegistered(Binding) ||
+                (Binding->ListenerBinding != NULL &&
+                    QuicBindingHasListenerRegistered(Binding->ListenerBinding));
+
+        if (!HasListenersRegistered) {
             QuicPacketLogDrop(Binding, Packets, "No listeners registered to accept new connection.");
             return FALSE;
         }
@@ -1843,4 +1998,174 @@ QuicBindingHandleDosModeStateChange(
         QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled);
     }
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
+}
+
+//
+// Dummy TCP Datapath Callbacks
+//
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_CONNECT_CALLBACK)
+void
+QuicBindingTcpConnect(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ BOOLEAN Connected
+    )
+{
+    // TODO guhetier: This callback needs to call a "Binding creation completion function"
+    // that will complete the work of creating a binding after the call to the datapath returns pending.
+    // It also needs to handle disconnection.
+    // 
+    // Which worker should this happen on?
+
+    QUIC_BINDING* Binding = (QUIC_BINDING*)Context;
+
+    if (!Connected) {
+        // TODO guhetier: Handle connection failure / disconnection
+        return;
+    }
+
+    // TODO guhetier: Need to reference the socket?
+    Binding->Socket = Socket;
+
+    QUIC_ADDR LocalAddress;
+    QUIC_ADDR RemoteAddress;
+    QuicBindingGetLocalAddress(Binding, &LocalAddress);
+    QuicBindingGetRemoteAddress(Binding, &RemoteAddress);
+    // TODO guhetier: Make this a proper event
+    // QuicTraceEvent(
+    //     BindingConnected,
+    //     "[bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+    //     Binding,
+    //     Binding->Socket,
+    //     CASTED_CLOG_BYTEARRAY(sizeof(LocalAddress), &LocalAddress),
+    //     CASTED_CLOG_BYTEARRAY(sizeof(RemoteAddress), &RemoteAddress));
+
+    //
+    // The binding initialization completed synchronously, insert it in the the library list.
+    //
+    CXPLAT_UDP_CONFIG UdpConfig = {
+        .LocalAddress = &LocalAddress,
+        .RemoteAddress = &RemoteAddress,
+        .CompartmentId = Binding->CompartmentId
+    };
+    QUIC_STATUS Status = QuicLibraryInsertBinding(&Binding, &UdpConfig);
+    if (QUIC_FAILED(Status)) {
+        // TODO guhetier: Handle error, cleanup + notify app (QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT / QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_PEER)
+    }
+
+    // TODO guhetier: Get the connection that caused the creation of this binding, and schedule the completion of connection start on it
+    QUIC_CONNECTION* Connection = Binding->RequestorConnection;
+    if (Connection != NULL) {
+        QUIC_OPERATION* ConnOper =
+            QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_COMPLETE_CONNECTION_START);
+        if (ConnOper != NULL) {
+            ConnOper->COMPLETE_CONNECTION_START.Configuration = Connection->Configuration;
+            QuicConnQueueOper(Connection, ConnOper);
+        } else {
+            // TODO guhetier: Handle error scenario
+        }
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_ACCEPT_CALLBACK)
+QUIC_STATUS
+QuicBindingTcpAccept(
+    _In_ CXPLAT_SOCKET* ListenerSocket,
+    _In_ void* ListenerContext,
+    _In_ CXPLAT_SOCKET* AcceptSocket,
+    _Out_ void** AcceptClientContext
+    )
+{
+    UNREFERENCED_PARAMETER(ListenerSocket);
+    *AcceptClientContext = NULL;
+
+    // TODO guhetier: Which worker should this happen on? Synchronization needs?
+    QUIC_BINDING* AcceptBinding = NULL;
+    QUIC_BINDING* ListenerBinding = (QUIC_BINDING*)ListenerContext;
+    QUIC_STATUS Status =
+        QuicBindingInitializeOnAccept(
+            ListenerBinding,
+            AcceptSocket,
+            &AcceptBinding);
+
+    if (QUIC_FAILED(Status)) {
+        QuicTraceLogError(
+            BindingTcpAcceptFailed,
+            "[bind][%p] Failed to initialize accept binding, status=0x%x",
+            ListenerBinding,
+            Status);
+        return Status;
+    }
+
+    // TODO guhetier: Need to insert the binding in the library.
+    // Code can likely be shared with the completion of an async binding creation.
+    QUIC_ADDR LocalAddress = {0};
+    QUIC_ADDR RemoteAddress = {0};
+    QuicBindingGetLocalAddress(AcceptBinding, &LocalAddress);
+    QuicBindingGetRemoteAddress(AcceptBinding, &RemoteAddress);
+
+    CXPLAT_UDP_CONFIG UdpConfig = {
+        .LocalAddress = &LocalAddress,
+        .RemoteAddress = &RemoteAddress,
+        .CompartmentId = AcceptBinding->CompartmentId
+    };
+    // TODO guhetier: For this path, needs to ensure the inserted binding not replaced
+    Status = QuicLibraryInsertBinding(&AcceptBinding, &UdpConfig);
+    if (QUIC_FAILED(Status)) {
+        // TODO guhetier: Need to undo the binding initialization
+        // (done by QuicLibraryInsertBinding for now)
+        QuicTraceLogError(
+            BindingTcpAcceptFailed,
+            "[bind][%p] Failed to insert accept binding, status=0x%x",
+            ListenerBinding,
+            Status);
+        return Status;
+    }
+
+    *AcceptClientContext = AcceptBinding;
+
+    return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_RECEIVE_CALLBACK)
+void
+QuicBindingTcpReceive(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ CXPLAT_RECV_DATA* RecvDataChain
+    )
+{
+
+    // TODO guhetier: This callback is probably not needed, QuicBindingReceive could be provided
+    // directly, but useful for debugging for now
+
+    // TODO guhetier: Temporary hack to set the local / remote address since it is not done by the datapath
+    QUIC_BINDING* Binding = (QUIC_BINDING*)Context;
+    QuicBindingGetLocalAddress(Binding, &RecvDataChain->Route->LocalAddress);
+    QuicBindingGetRemoteAddress(Binding, &RecvDataChain->Route->RemoteAddress);
+
+    QuicBindingReceive(Socket, Context, RecvDataChain);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Function_class_(CXPLAT_DATAPATH_SEND_COMPLETE_CALLBACK)
+void
+QuicBindingTcpSendComplete(
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ void* Context,
+    _In_ QUIC_STATUS Status,
+    _In_ uint32_t ByteCount
+    )
+{
+    //
+    // Dummy TCP send complete callback
+    //
+    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Context);
+    UNREFERENCED_PARAMETER(Status);
+    UNREFERENCED_PARAMETER(ByteCount);
 }

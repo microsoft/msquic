@@ -255,6 +255,30 @@
       ],
       "macroName": "QuicTraceEvent"
     },
+    "BindingConnected": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
+      "UniqueId": "BindingConnected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "!ADDR!",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "BindingCreated": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
@@ -462,6 +486,22 @@
         }
       ],
       "macroName": "QuicTraceLogVerbose"
+    },
+    "BindingTcpAcceptFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[bind][%p] Failed to initialize accept binding, status=0x%x",
+      "UniqueId": "BindingTcpAcceptFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
     },
     "CertCapiFormattedChain": {
       "ModuleProperites": {},
@@ -14188,6 +14228,11 @@
         "EncodingString": "[bind][%p] Cleaning up"
       },
       {
+        "UniquenessHash": "c1085261-c6e9-5637-3982-3a19cfe49037",
+        "TraceID": "BindingConnected",
+        "EncodingString": "[bind][%p] Connected, Socket=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
+      },
+      {
         "UniquenessHash": "de67327e-34fe-e36e-e687-09f38be7e043",
         "TraceID": "BindingCreated",
         "EncodingString": "[bind][%p] Created, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
@@ -14241,6 +14286,11 @@
         "UniquenessHash": "8419ad0b-e226-53e3-837c-4eebd4cc6619",
         "TraceID": "BindingSendTestDrop",
         "EncodingString": "[bind][%p] Test dropped packet"
+      },
+      {
+        "UniquenessHash": "f97791dd-ff07-e072-29cc-32e54dd12c76",
+        "TraceID": "BindingTcpAcceptFailed",
+        "EncodingString": "[bind][%p] Failed to initialize accept binding, status=0x%x"
       },
       {
         "UniquenessHash": "bc118133-e7f5-68c2-fd22-5dba9202e2eb",

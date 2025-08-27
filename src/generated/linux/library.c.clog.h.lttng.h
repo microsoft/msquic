@@ -574,10 +574,10 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryError,
 // QuicTraceEvent(
                 BindingError,
                 "[bind][%p] ERROR, %s.",
-                Binding,
-                "Binding already in use");
-// arg2 = arg2 = Binding = arg2
-// arg3 = arg3 = "Binding already in use" = arg3
+                NewBinding,
+                "Binding ephemeral port reuse encountered");
+// arg2 = arg2 = NewBinding = arg2
+// arg3 = arg3 = "Binding ephemeral port reuse encountered" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_LIBRARY_C, BindingError,
     TP_ARGS(

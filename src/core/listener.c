@@ -339,6 +339,9 @@ MsQuicListenerStart(
     if (MsQuicLib.Settings.RioEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_RIO;
     }
+    if (/*MsQuicLib.Settings.TcpEnabled*/ TRUE) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_TCP;
+    }
 
     CXPLAT_TEL_ASSERT(Listener->Binding == NULL);
     Status =
@@ -354,6 +357,9 @@ MsQuicListenerStart(
             "Get binding");
         goto Error;
     }
+
+    // TODO guhetier: Handle the fact the call above could be asynchronous?
+    // TODO guhetier: Is it guaranteed to be synchronous when creating a listener?
 
     Listener->Stopped = FALSE;
     CxPlatEventReset(Listener->StopEvent);
