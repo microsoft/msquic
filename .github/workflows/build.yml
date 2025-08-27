@@ -28,7 +28,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [windows, uwp] # TODO: Support gamecore_console
-        os: ['windows-2022']
+        os: ['windows-2022', 'windows-2025']
         arch: [x86, x64, arm64]
         tls: [schannel, quictls, openssl]
         static: ['', '-Static']
@@ -61,11 +61,12 @@ jobs:
       fail-fast: false
       matrix:
         config: ['Debug', 'Release']
+        os: ['windows-2022', 'windows-2025']
     uses: ./.github/workflows/build-reuse-win.yml
     with:
       config: ${{ matrix.config }}
       plat: 'windows'
-      os: 'windows-2022'
+      os: ${{ matrix.os }}
       arch: 'x64'
       tls: 'schannel'
       official: '-ForceOfficialRelease'
