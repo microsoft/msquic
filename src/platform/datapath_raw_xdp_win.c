@@ -1452,6 +1452,7 @@ CxPlatDpRawPlumbRulesOnSocket(
 
             memcpy(Rules[0].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
             memcpy(Rules[1].Pattern.QuicFlow.CidData, Socket->CibirId, Socket->CibirIdLength);
+            RulesSize = 2;
 
             if (Socket->ReserveAuxTcpSock) {
                 Rules[2].Match = XDP_MATCH_TCP_QUIC_FLOW_SRC_CID;
@@ -1479,8 +1480,6 @@ CxPlatDpRawPlumbRulesOnSocket(
                 Rules[4].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
                 Rules[4].Redirect.Target = NULL;
                 RulesSize = 5;
-            } else {
-                RulesSize = 2;
             }
             CXPLAT_DBG_ASSERT(RulesSize <= RTL_NUMBER_OF(Rules));
         } else {
@@ -1489,6 +1488,7 @@ CxPlatDpRawPlumbRulesOnSocket(
             Rules[0].Action = XDP_PROGRAM_ACTION_REDIRECT;
             Rules[0].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
             Rules[0].Redirect.Target = NULL;
+            RulesSize = 1;
 
             if (Socket->ReserveAuxTcpSock) {
                 Rules[1].Match = XDP_MATCH_TCP_DST;
@@ -1497,8 +1497,6 @@ CxPlatDpRawPlumbRulesOnSocket(
                 Rules[1].Redirect.TargetType = XDP_REDIRECT_TARGET_TYPE_XSK;
                 Rules[1].Redirect.Target = NULL;
                 RulesSize = 2;
-            } else {
-                RulesSize = 1;
             }
         }
         CXPLAT_LIST_ENTRY* Entry;
