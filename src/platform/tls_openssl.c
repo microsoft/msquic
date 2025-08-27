@@ -2859,7 +2859,7 @@ static int SplitAddRecord(RECORD_ENTRY *Entry, size_t *Consumed)
 
     while (total_message_size < Entry->RecLen) {
         message_type = *idx;
-        message_size = *((uint32_t *)idx);
+        memcpy(&message_size, idx, sizeof(message_size));
 
         //
         //message size is just the lower 3 bytes of the TLS record
