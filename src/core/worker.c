@@ -176,12 +176,8 @@ QuicWorkerUninitialize(
     //
     Worker->Enabled = FALSE;
     if (Worker->ExecutionContext.Context) {
-        if (MsQuicLib.CustomExecutions) {
-            QuicWorkerLoopCleanup(Worker);
-        } else {
-            QuicWorkerThreadWake(Worker);
-            CxPlatEventWaitForever(Worker->Done);
-        }
+        QuicWorkerThreadWake(Worker);
+        CxPlatEventWaitForever(Worker->Done);
     }
     CxPlatEventUninitialize(Worker->Done);
 

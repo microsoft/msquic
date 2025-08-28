@@ -596,6 +596,17 @@ struct MsQuicRegistration {
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    void CloseAsync(
+        _In_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+        _In_opt_ void* Context
+        ) noexcept {
+        if (Handle != nullptr) {
+            MsQuic->RegistrationClose2(Handle, Handler, Context);
+            Handle = nullptr;
+        }
+    }
+#endif
 };
 
 class MsQuicAlpn {

@@ -30,6 +30,8 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
+CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context);
+
 CXPLAT_DATAPATH_FEATURES
 QuicLibraryGetDatapathFeatures(
     void
@@ -521,6 +523,24 @@ MsQuicLibraryInitialize(
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
+    CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+    CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
+    MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
+    CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        0,
+        0,
+        "RegistrationCleanupWorker",
+        RegistrationCleanupWorker,
+        NULL,
+    };
+
+    Status = CxPlatThreadCreate(&ThreadConfig, &MsQuicLib.RegistrationCloseCleanupWorker);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
     uint32_t CompatibilityListByteLength = 0;
     QuicVersionNegotiationExtGenerateCompatibleVersionsList(
         QUIC_VERSION_LATEST,
@@ -579,6 +599,15 @@ MsQuicLibraryInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        if (MsQuicLib.RegistrationCloseCleanupWorker) {
+            MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
+            CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+            CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
+            CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
+            MsQuicLib.RegistrationCloseCleanupWorker = 0;
+        }
+        CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+        CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
         if (MsQuicLib.Storage != NULL) {
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
@@ -596,6 +625,7 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
 void
 MsQuicLibraryLazyUninitialize(
     void
@@ -706,6 +736,17 @@ MsQuicLibraryUninitialize(
 
     CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
 
+    if (MsQuicLib.RegistrationCloseCleanupWorker) {
+        MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
+        CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+        CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
+        CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
+        MsQuicLib.RegistrationCloseCleanupWorker = 0;
+    }
+
+    CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+    CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+
     if (MsQuicLib.ExecutionConfig != NULL) {
         CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
         MsQuicLib.ExecutionConfig = NULL;
@@ -716,6 +757,33 @@ MsQuicLibraryUninitialize(
     MsQuicLib.WorkerPool = NULL;
 #endif
     CxPlatUninitialize();
+}
+
+CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
+{
+    UNREFERENCED_PARAMETER(Context);
+
+    while (!MsQuicLib.RegistrationCloseCleanupShutdown) {
+        CxPlatEventWaitForever(MsQuicLib.RegistrationCloseCleanupEvent);
+
+        CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
+        while (!CxPlatListIsEmpty(&MsQuicLib.RegistrationCloseCleanupList)) {
+            CXPLAT_LIST_ENTRY* Entry =
+                CxPlatListRemoveHead(&MsQuicLib.RegistrationCloseCleanupList);
+            QUIC_REGISTRATION* Registration =
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_REGISTRATION, CloseCleanupEntry);
+            CxPlatLockRelease(&MsQuicLib.RegistrationCloseCleanupLock);
+
+            CxPlatThreadWait(&Registration->CloseThread);
+            CxPlatThreadDelete(&Registration->CloseThread);
+            CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+
+            CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
+        }
+        CxPlatLockRelease(&MsQuicLib.RegistrationCloseCleanupLock);
+    }
+
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -2040,6 +2108,8 @@ MsQuicOpenVersion(
     Api->ExecutionPoll = MsQuicExecutionPoll;
 #endif
 
+    Api->RegistrationClose2 = MsQuicRegistrationClose2;
+
     Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
     *QuicApi = Api;
@@ -2701,14 +2771,6 @@ MsQuicExecutionDelete(
 
     UNREFERENCED_PARAMETER(Count);
     UNREFERENCED_PARAMETER(Executions);
-
-    //
-    // To allow all references to the execution context to be released, clean
-    // up implicitly allocated internal resources.
-    //
-    if (MsQuicLib.LazyInitComplete) {
-        MsQuicLibraryLazyUninitialize();
-    }
 
     CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
     MsQuicLib.WorkerPool = NULL;

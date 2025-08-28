@@ -1131,6 +1131,34 @@ void
         HQUIC Registration
     );
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+typedef
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+(QUIC_API QUIC_REGISTRATION_CLOSE_CALLBACK)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_REGISTRATION_CLOSE_CALLBACK *QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER;
+
+//
+// Closes the registration. This function synchronizes the cleanup of all child
+// objects. The callback handler is invoked once all those child objects have
+// been closed by the application.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_REGISTRATION_CLOSE2_FN)(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Registration,
+    _In_ _Pre_defensive_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 //
 // Calls shutdown for all connections in this registration. Don't call on a
 // MsQuic callback thread or it might deadlock.
@@ -1852,6 +1880,7 @@ typedef struct QUIC_API_TABLE {
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
+    QUIC_REGISTRATION_CLOSE2_FN         RegistrationClose2; // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;
