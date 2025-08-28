@@ -6723,11 +6723,17 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
         EventQs[i] = &Ec.QuicEventQ;
     }
 
+    //
+    // Verify an EC can be created and deleted without any other actions.
+    //
     {
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
     }
 
+    //
+    // Verify an EC can be polled.
+    //
     {
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
@@ -6740,6 +6746,10 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
         }
     }
 
+    //
+    // Verify EC interaction with registrations: registrations can be opened and
+    // closed while running in EC mode.
+    //
     {
         MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
         TEST_TRUE(Execution.IsValid());
@@ -6761,8 +6771,31 @@ QuicTestValidateExecutionContext(const uint32_t EcCount)
                     QuicTestProcessEventQ(EventQs[j], 0);
                 }
             }
+
+            RegistrationCloseContext CloseContext;
+            Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+
+            //
+            // The EC is required to continue polling MsQuic and the event queue
+            // while the registration is being closed.
+            //
+            TEST_QUIC_SUCCEEDED(
+                TryUntil(1, TestWaitTimeout, [&](){
+                    for (uint32_t i = 0; i < EcCount; i++) {
+                        MsQuic->ExecutionPoll(Execution[i]);
+                        QuicTestProcessEventQ(EventQs[i], 0);
+                    }
+                    if (CloseContext.Event.WaitTimeout(0)) {
+                        return QUIC_STATUS_SUCCESS;
+                    }
+                    return QUIC_STATUS_CONTINUE;
+                })
+            );
         }
 
+        //
+        // The EC can be polled even after all registrations are torn down.
+        //
         for (uint32_t i = 0; i < PollCount; i++) {
             for (uint32_t j = 0; j < EcCount; j++) {
                 MsQuic->ExecutionPoll(Execution[j]);
@@ -6847,10 +6880,10 @@ QuicTestValidatePartition()
     MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
     TEST_TRUE(Execution.IsValid());
 
-    {
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
 
+    {
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
         TEST_TRUE(ServerConfiguration.IsValid());
 
@@ -6905,25 +6938,24 @@ QuicTestValidatePartition()
             })
         );
 
-    TEST_TRUE(Server->IsValid());
-    TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
-        sleep(1);
         TEST_TRUE(Server->IsValid());
         TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
     }
 
-    //
-    // Give the EC a chance to run all the cleanup needed for MsQuic objects
-    // before its implicit destruction.
-    //
-    TryUntil(1, TestWaitTimeout, [&](){
-        for (uint32_t i = 0; i < EcCount; i++) {
-            MsQuic->ExecutionPoll(Execution[i]);
-            QuicTestProcessEventQ(EventQs[i], 0);
-        }
-        // MsQuic->ExecutionPoll(Execution[PartitionIndex]);
-        return QUIC_STATUS_CONTINUE;
-    });
+    RegistrationCloseContext CloseContext;
+    Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+    TEST_QUIC_SUCCEEDED(
+        TryUntil(1, TestWaitTimeout, [&](){
+            for (uint32_t i = 0; i < EcCount; i++) {
+                MsQuic->ExecutionPoll(Execution[i]);
+                QuicTestProcessEventQ(EventQs[i], 0);
+            }
+            if (CloseContext.Event.WaitTimeout(0)) {
+                return QUIC_STATUS_SUCCESS;
+            }
+            return QUIC_STATUS_CONTINUE;
+        })
+    );
 }
 
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)

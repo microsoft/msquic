@@ -516,6 +516,7 @@ struct MsQuicExecution {
     ~MsQuicExecution() noexcept {
         if (Executions != nullptr) {
             MsQuic->ExecutionDelete(Count, Executions);
+            delete[] Executions;
             Executions = nullptr;
             Count = 0;
         }
