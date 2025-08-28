@@ -35,8 +35,8 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
-      - "/.docker/ubuntu-20.04"
       - "/.docker/ubuntu-22.04"
+      - "/.docker/ubuntu-24.04"
     schedule:
       interval: "weekly"
       day: "saturday"
