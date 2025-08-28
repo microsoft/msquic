@@ -25,9 +25,12 @@ QuicListenerIsOnWorker(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    uint32_t WorkerIndex = Listener->Registration->NoPartitioning ? 0 : Listener->PartitionIndex;
-    CXPLAT_DBG_ASSERT(WorkerIndex < Listener->Registration->WorkerPool->WorkerCount);
-    return QuicWorkerPoolIsThisThread(&Listener->Registration->WorkerPool->Workers[WorkerIndex]);
+    if (Listener->Partitioned) {
+        return QuicWorkerPoolIsInPartition(
+            Listener->Registration->WorkerPool, Listener->PartitionIndex);
+    } else {
+        return TRUE;
+    }
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

@@ -943,7 +943,6 @@ CXPLAT_THREAD_CALLBACK(QuicWorkerThread, Context)
     CXPLAT_EXECUTION_STATE State = {
         0, 0, 0, UINT32_MAX, 0, CxPlatCurThreadID()
     };
-    EC->ThreadId = State.ThreadID;
 
     QuicTraceEvent(
         WorkerStart,
@@ -1099,9 +1098,16 @@ QuicWorkerPoolGetLeastLoadedWorker(
 }
 
 BOOLEAN
-QuicWorkerPoolIsThisThread(
-    _In_ QUIC_WORKER* Worker
+QuicWorkerPoolIsInPartition(
+    _In_ QUIC_WORKER_POOL* WorkerPool,
+    _In_ uint16_t PartitionIndex
     )
 {
-    return Worker->ExecutionContext.ThreadId == CxPlatCurThreadID();
+    QUIC_WORKER* Worker = &WorkerPool->Workers[PartitionIndex];
+    CXPLAT_DBG_ASSERT(PartitionIndex < WorkerPool->WorkerCount);
+    if (Worker->IsExternal) {
+        return CxPlatWorkerIsThisThread(&Worker->ExecutionContext);
+    } else {
+        return Worker->Partition->Index == PartitionIndex;
+    }
 }

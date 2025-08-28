@@ -513,6 +513,22 @@ CxPlatWakeExecutionContext(
     }
 }
 
+BOOLEAN
+CxPlatWorkerIsThisThread(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    )
+{
+#ifdef _KERNEL_MODE
+    //
+    // Not supported on kernel mode.
+    //
+    return FALSE;
+#else
+    CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
+    return Worker->State.ThreadID == CxPlatCurThreadID();
+#endif
+}
+
 void
 CxPlatUpdateExecutionContexts(
     _In_ CXPLAT_WORKER* Worker
@@ -532,21 +548,6 @@ CxPlatUpdateExecutionContexts(
         *Tail = Worker->ExecutionContexts;
         Worker->ExecutionContexts = Head;
     }
-}
-
-BOOLEAN
-CxPlatInvokeExecutionContext(
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context,
-    _Inout_ CXPLAT_EXECUTION_STATE* State
-    )
-{
-    BOOLEAN Result;
-
-    Context->ThreadId = State->ThreadID;
-    Result = Context->Callback(Context->Context, State);
-    Context->ThreadId = UINT32_MAX;
-
-    return Result;
 }
 
 void
@@ -574,7 +575,7 @@ CxPlatRunExecutionContexts(
             ++Worker->EcRunCount;
 #endif
             CXPLAT_SLIST_ENTRY* Next = Context->Entry.Next;
-            if (!CxPlatInvokeExecutionContext(Context, &Worker->State)) {
+            if (!Context->Callback(Context->Context, &Worker->State)) {
                 *EC = Next; // Remove Context from the list.
                 continue;
             }

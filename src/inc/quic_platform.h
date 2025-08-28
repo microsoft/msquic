@@ -522,12 +522,6 @@ CxPlatWorkerPoolGetEventQ(
     _In_ uint16_t Index // Into the worker pool
     );
 
-BOOLEAN
-CxPlatWorkerPoolIsOnPartition(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_ uint16_t Index // Into the worker pool
-    );
-
 void
 CxPlatWorkerPoolAddExecutionContext(
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
@@ -575,13 +569,6 @@ BOOLEAN
     _Inout_ CXPLAT_EXECUTION_STATE* State
     );
 
-typedef
-_IRQL_requires_max_(PASSIVE_LEVEL)
-BOOLEAN
-(*CXPLAT_EXECUTION_WAKE_FN)(
-    _Inout_ CXPLAT_EXECUTION_CONTEXT* Context
-    );
-
 typedef struct CXPLAT_EXECUTION_CONTEXT {
 
     CXPLAT_SLIST_ENTRY Entry;
@@ -590,7 +577,6 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
     CXPLAT_EXECUTION_FN Callback;
     uint64_t NextTimeUs;
     volatile BOOLEAN Ready;
-    volatile CXPLAT_THREAD_ID ThreadId;
 
 } CXPLAT_EXECUTION_CONTEXT;
 
@@ -602,6 +588,11 @@ CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
 #endif
+
+BOOLEAN
+CxPlatWorkerIsThisThread(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
 
 //
 // Test Interface for loading a self-signed certificate.

@@ -219,6 +219,7 @@ QuicWorkerQueueOperation(
     );
 
 BOOLEAN
-QuicWorkerPoolIsThisThread(
-    _In_ QUIC_WORKER* Worker
+QuicWorkerPoolIsInPartition(
+    _In_ QUIC_WORKER_POOL* WorkerPool,
+    _In_ uint16_t PartitionIndex
     );

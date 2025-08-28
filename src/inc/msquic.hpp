@@ -1010,9 +1010,7 @@ struct MsQuicListener {
     }
 
     ~MsQuicListener() noexcept {
-        if (Handle) {
-            MsQuic->ListenerClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1021,6 +1019,15 @@ struct MsQuicListener {
         _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
+    }
+
+    void
+    Close()
+    {
+        if (Handle) {
+            MsQuic->ListenerClose(Handle);
+            Handle = nullptr;
+        }
     }
 
     QUIC_STATUS
