@@ -55,6 +55,7 @@ Notes:
 // Initializes the state required for a Toeplitz hash computation. We
 // maintain per-nibble lookup tables, and we initialize them here.
 //
+QUIC_NO_SANITIZE("unsigned-integer-overflow")
 void
 CxPlatToeplitzHashInitialize(
     _Inout_ CXPLAT_TOEPLITZ_HASH* Toeplitz

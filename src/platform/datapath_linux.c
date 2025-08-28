@@ -202,13 +202,13 @@ CxPlatSocketConfigureRss(
     int Result = 0;
 
     struct sock_filter BpfCode[] = {
-        {BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU}, // Load CPU number
+        {(uint32_t)(BPF_LD | BPF_W | BPF_ABS, 0, 0, SKF_AD_OFF | SKF_AD_CPU)}, // Load CPU number
         {BPF_ALU | BPF_MOD, 0, 0, SocketCount}, // MOD by SocketCount
         {BPF_RET | BPF_A, 0, 0, 0} // Return
     };
 
     struct sock_fprog BpfConfig = {0};
-	BpfConfig.len = ARRAYSIZE(BpfCode);
+    BpfConfig.len = ARRAYSIZE(BpfCode);
     BpfConfig.filter = BpfCode;
 
     Result =
