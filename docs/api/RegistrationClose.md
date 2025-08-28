@@ -28,3 +28,4 @@ The application **must** close/delete all child configurations and connection ob
 # See Also
 
 [RegistrationOpen](RegistrationOpen.md)<br>
+(Preview) [RegistrationClose2](RegistrationClose2.md)<br>
