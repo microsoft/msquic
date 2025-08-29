@@ -229,6 +229,7 @@ public:
     }
     void Wait() noexcept {
         if (Initialized) {
+            WaitOnDelete = false;
             CxPlatThreadWait(&Thread);
         }
     }
@@ -513,6 +514,14 @@ struct MsQuicExecution {
             delete [] Configs;
         }
     }
+    ~MsQuicExecution() noexcept {
+        if (Executions != nullptr) {
+            MsQuic->ExecutionDelete(Count, Executions);
+            delete[] Executions;
+            Executions = nullptr;
+            Count = 0;
+        }
+    }
     MsQuicExecution(const MsQuicExecution&) = delete;
     MsQuicExecution& operator=(const MsQuicExecution&) = delete;
     MsQuicExecution(MsQuicExecution&&) = delete;
@@ -589,6 +598,17 @@ struct MsQuicRegistration {
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    void CloseAsync(
+        _In_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+        _In_opt_ void* Context
+        ) noexcept {
+        if (Handle != nullptr) {
+            MsQuic->RegistrationClose2(Handle, Handler, Context);
+            Handle = nullptr;
+        }
+    }
+#endif
 };
 
 class MsQuicAlpn {
@@ -991,9 +1011,7 @@ struct MsQuicListener {
     }
 
     ~MsQuicListener() noexcept {
-        if (Handle) {
-            MsQuic->ListenerClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1002,6 +1020,19 @@ struct MsQuicListener {
         _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
+    }
+
+    void
+    Stop() noexcept {
+        MsQuic->ListenerStop(Handle);
+    }
+    void
+    Close()
+    {
+        if (Handle) {
+            MsQuic->ListenerClose(Handle);
+            Handle = nullptr;
+        }
     }
 
     QUIC_STATUS
@@ -1045,6 +1076,17 @@ struct MsQuicListener {
                 QUIC_PARAM_LISTENER_CIBIR_ID,
                 Length,
                 Value);
+    }
+
+    QUIC_STATUS
+    SetPartitionId(
+        _In_ const uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(Value),
+                &Value);
     }
 #endif
 

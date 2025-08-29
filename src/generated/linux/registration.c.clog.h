@@ -44,6 +44,24 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationVerifierEnabled , arg2);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for RegistrationCleanup
+// [ reg][%p] Cleaning up
+// QuicTraceEvent(
+        RegistrationCleanup,
+        "[ reg][%p] Cleaning up",
+        Registration);
+// arg2 = arg2 = Registration = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_RegistrationCleanup
+#define _clog_3_ARGS_TRACE_RegistrationCleanup(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_REGISTRATION_C, RegistrationCleanup , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ApiEnter
 // [ api] Enter %u (%p).
 // QuicTraceEvent(
@@ -117,24 +135,6 @@ tracepoint(CLOG_REGISTRATION_C, RegistrationCreatedV2 , arg2, arg3, arg4);\
 #ifndef _clog_3_ARGS_TRACE_ApiExitStatus
 #define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
 tracepoint(CLOG_REGISTRATION_C, ApiExitStatus , arg2);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for RegistrationCleanup
-// [ reg][%p] Cleaning up
-// QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up",
-            Registration);
-// arg2 = arg2 = Registration = arg2
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_RegistrationCleanup
-#define _clog_3_ARGS_TRACE_RegistrationCleanup(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_REGISTRATION_C, RegistrationCleanup , arg2);\
 
 #endif
 

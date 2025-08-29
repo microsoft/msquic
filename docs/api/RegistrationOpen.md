@@ -39,3 +39,4 @@ A caveat to this independence is that until a packet or connection can be determ
 # See Also
 
 [RegistrationClose](RegistrationClose.md)<br>
+(Preview) [RegistrationClose2](RegistrationClose2.md)<br>

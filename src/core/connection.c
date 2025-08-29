@@ -1870,7 +1870,7 @@ QuicConnStart(
     UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
     UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
-    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0; // NOLINT(google-readability-casting)
     UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
@@ -1887,6 +1887,9 @@ QuicConnStart(
     }
     if (Connection->Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+    }
+    if (Connection->State.Partitioned) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
     }
 
     //
@@ -5594,7 +5597,8 @@ QuicConnRecvDatagramBatch(
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
-                Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
+                !Connection->State.Partitioned && Path->IsActive && !Path->PartitionUpdated &&
+                Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;

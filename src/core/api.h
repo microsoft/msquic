@@ -55,6 +55,16 @@ MsQuicRegistrationClose(
         HQUIC Handle
     );
 
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicRegistrationClose2(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QUIC_API
