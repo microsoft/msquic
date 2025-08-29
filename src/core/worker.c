@@ -1115,7 +1115,7 @@ QuicWorkerPoolIsInPartition(
         // case for now rather than maintaining unambiguous state.
         //
 #ifndef DEBUG
-        CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.")
+        CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.");
 #endif
         return TRUE;
     }
