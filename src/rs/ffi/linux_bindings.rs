@@ -4969,6 +4969,16 @@ pub type QUIC_REGISTRATION_OPEN_FN = ::std::option::Option<
 >;
 pub type QUIC_REGISTRATION_CLOSE_FN =
     ::std::option::Option<unsafe extern "C" fn(Registration: HQUIC)>;
+pub type QUIC_REGISTRATION_CLOSE_CALLBACK =
+    ::std::option::Option<unsafe extern "C" fn(Context: *mut ::std::os::raw::c_void)>;
+pub type QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER = QUIC_REGISTRATION_CLOSE_CALLBACK;
+pub type QUIC_REGISTRATION_CLOSE2_FN = ::std::option::Option<
+    unsafe extern "C" fn(
+        Registration: HQUIC,
+        Handler: QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER,
+        Context: *mut ::std::os::raw::c_void,
+    ),
+>;
 pub type QUIC_REGISTRATION_SHUTDOWN_FN = ::std::option::Option<
     unsafe extern "C" fn(
         Registration: HQUIC,
@@ -6643,10 +6653,11 @@ pub struct QUIC_API_TABLE {
     pub ExecutionCreate: QUIC_EXECUTION_CREATE_FN,
     pub ExecutionDelete: QUIC_EXECUTION_DELETE_FN,
     pub ExecutionPoll: QUIC_EXECUTION_POLL_FN,
+    pub RegistrationClose2: QUIC_REGISTRATION_CLOSE2_FN,
 }
 #[allow(clippy::unnecessary_operation, clippy::identity_op)]
 const _: () = {
-    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 296usize];
+    ["Size of QUIC_API_TABLE"][::std::mem::size_of::<QUIC_API_TABLE>() - 304usize];
     ["Alignment of QUIC_API_TABLE"][::std::mem::align_of::<QUIC_API_TABLE>() - 8usize];
     ["Offset of field: QUIC_API_TABLE::SetContext"]
         [::std::mem::offset_of!(QUIC_API_TABLE, SetContext) - 0usize];
@@ -6726,6 +6737,8 @@ const _: () = {
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionDelete) - 280usize];
     ["Offset of field: QUIC_API_TABLE::ExecutionPoll"]
         [::std::mem::offset_of!(QUIC_API_TABLE, ExecutionPoll) - 288usize];
+    ["Offset of field: QUIC_API_TABLE::RegistrationClose2"]
+        [::std::mem::offset_of!(QUIC_API_TABLE, RegistrationClose2) - 296usize];
 };
 pub const QUIC_STATUS_SUCCESS: QUIC_STATUS = 0;
 pub const QUIC_STATUS_PENDING: QUIC_STATUS = 4294967294;
