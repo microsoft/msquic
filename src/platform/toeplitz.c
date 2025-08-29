@@ -101,13 +101,13 @@ CxPlatToeplitzHashInitialize(
         // the result if the LSB of the nibble is 1. Similarly, for
         // the other Signature values.
         //
-        uint32_t Signature1 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
+        uint32_t Signature1 = (uint32_t)((uint64_t)Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
         BaseShift ++;
-        uint32_t Signature2 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
+        uint32_t Signature2 = (uint32_t)((uint64_t)Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
         BaseShift ++;
-        uint32_t Signature3 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
+        uint32_t Signature3 = (uint32_t)((uint64_t)Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
         BaseShift ++;
-        uint32_t Signature4 = (Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
+        uint32_t Signature4 = (uint32_t)((uint64_t)Word1 << BaseShift) | (Word2 >> (8 * sizeof(uint8_t) - BaseShift));
 
         for (uint32_t j = 0; j < CXPLAT_TOEPLITZ_LOOKUP_TABLE_SIZE; j++) {
 
