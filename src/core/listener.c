@@ -83,6 +83,7 @@ MsQuicListenerOpen(
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
+    CxPlatRefInitialize(&Listener->InternalRefCount);
 
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServerSilo();
@@ -370,7 +371,6 @@ MsQuicListenerStart(
     Listener->Stopped = FALSE;
     CxPlatEventReset(Listener->StopEvent);
     CxPlatRefInitialize(&Listener->RefCount);
-    CxPlatRefInitialize(&Listener->InternalRefCount);
 
     Status = QuicBindingRegisterListener(Listener->Binding, Listener);
     if (QUIC_FAILED(Status)) {
