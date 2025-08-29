@@ -7098,6 +7098,8 @@ QuicTestValidatePartition()
     QuicTestValidatePartition(CxPlatProcCount());
 }
 
+#else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+void QuicTestValidatePartition() {}
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
