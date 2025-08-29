@@ -35,8 +35,20 @@ updates:
 
   - package-ecosystem: "docker"
     directories:
-      - "/.docker/*"
+      - "/.docker/ubuntu-22.04"
     schedule:
       interval: "weekly"
       day: "saturday"
+    ignore:
+      - dependency-name: "ubuntu"
+        versions: ["24.x", ">= 24.0.0"]
 
+  - package-ecosystem: "docker"
+    directories:
+      - "/.docker/ubuntu-24.04"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    ignore:
+      - dependency-name: "ubuntu"
+        versions: ["25.x", ">= 25.0.0"]
