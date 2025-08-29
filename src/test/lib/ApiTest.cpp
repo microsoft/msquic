@@ -75,9 +75,11 @@ void QuicTestValidateRegistration()
         MsQuicRegistration Registration;
         TEST_TRUE(Registration.IsValid());
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
         RegistrationCloseContext CloseContext;
         Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
         TEST_TRUE(CloseContext.Event.WaitTimeout(TestWaitTimeout));
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     }
 }
 
@@ -7034,7 +7036,6 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
         TEST_TRUE(Ec.Ready.WaitTimeout(TestWaitTimeout));
     }
 
-
     {
         MsQuicRegistration Registration;
         TEST_TRUE(Registration.IsValid());
@@ -7097,8 +7098,6 @@ QuicTestValidatePartition()
     QuicTestValidatePartition(CxPlatProcCount());
 }
 
-#else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
-void QuicTestValidatePartition() {}
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
