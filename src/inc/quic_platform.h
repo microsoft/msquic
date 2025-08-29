@@ -580,19 +580,24 @@ typedef struct CXPLAT_EXECUTION_CONTEXT {
 
 } CXPLAT_EXECUTION_CONTEXT;
 
-BOOLEAN
-CxPlatWorkerIsThisThread(
-    _In_ CXPLAT_EXECUTION_CONTEXT* Context
-    );
-
 #ifdef _KERNEL_MODE // Not supported on kernel mode
 #define CxPlatWakeExecutionContext(Context) CXPLAT_FRE_ASSERT(FALSE)
+#if DEBUG
+#define CxPlatWorkerIsThisThread(Context) TRUE
 #else
+#define CxPlatWorkerIsThisThread(Context) CXPLAT_FRE_ASSERT(FALSE)
+#endif
+#else // _KERNEL_MODE
 void
 CxPlatWakeExecutionContext(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     );
-#endif
+
+BOOLEAN
+CxPlatWorkerIsThisThread(
+    _In_ CXPLAT_EXECUTION_CONTEXT* Context
+    );
+#endif // _KERNEL_MODE
 
 //
 // Test Interface for loading a self-signed certificate.

@@ -518,15 +518,8 @@ CxPlatWorkerIsThisThread(
     _In_ CXPLAT_EXECUTION_CONTEXT* Context
     )
 {
-#ifdef _KERNEL_MODE
-    //
-    // Not supported on kernel mode.
-    //
-    return FALSE;
-#else
     CXPLAT_WORKER* Worker = (CXPLAT_WORKER*)Context->CxPlatContext;
     return Worker->State.ThreadID == CxPlatCurThreadID();
-#endif
 }
 
 void
