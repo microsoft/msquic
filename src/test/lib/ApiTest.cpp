@@ -6868,12 +6868,13 @@ TestPartitionListenerCallback(
 }
 
 void
-QuicTestValidatePartition()
+QuicTestValidatePartitionInline(const uint32_t EcCount)
 {
-    const uint32_t EcCount = 4;
-    TestEventQ Ecs[EcCount];
-    QUIC_EVENTQ* EventQs[EcCount];
     const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
     MsQuicAlpn Alpn("MsQuicTest");
 
     for (uint32_t i = 0; i < EcCount; i++) {
@@ -6882,7 +6883,7 @@ QuicTestValidatePartition()
         EventQs[i] = &Ec.QuicEventQ;
     }
 
-    MsQuicExecution Execution(EventQs, EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+    MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
     TEST_TRUE(Execution.IsValid());
 
     MsQuicRegistration Registration;
@@ -6964,6 +6965,14 @@ QuicTestValidatePartition()
     );
 
     TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+}
+
+void
+QuicTestValidatePartition()
+{
+    QuicTestValidatePartitionInline(1);
+    QuicTestValidatePartitionInline(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
+    QuicTestValidatePartitionInline(CxPlatProcCount());
 }
 
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
