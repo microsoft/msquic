@@ -3556,6 +3556,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION*, uint> ExecutionPoll;
+
+        [NativeTypeName("QUIC_REGISTRATION_CLOSE2_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, void> RegistrationClose2;
     }
 
     internal static unsafe partial class MsQuic
