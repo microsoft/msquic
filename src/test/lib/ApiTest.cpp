@@ -6919,8 +6919,7 @@ QuicTestValidatePartition()
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
         TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-        //Client = UniquePtr<MsQuicConnection>(new MsQuicConnection(Registration, PartitionIndex));
-        Client = UniquePtr<MsQuicConnection>(new MsQuicConnection(Registration));
+        Client = UniquePtr<MsQuicConnection>(new MsQuicConnection(Registration, PartitionIndex));
         TEST_QUIC_SUCCEEDED(Client->GetInitStatus());
         TEST_QUIC_SUCCEEDED(Client->Start(
             ClientConfiguration, ServerLocalAddr.GetFamily(),
@@ -6932,11 +6931,8 @@ QuicTestValidatePartition()
         //
         TEST_QUIC_SUCCEEDED(
             TryUntil(1, TestWaitTimeout, [&](){
-                for (uint32_t i = 0; i < EcCount; i++) {
-                    MsQuic->ExecutionPoll(Execution[i]);
-                    QuicTestProcessEventQ(EventQs[i], 0);
-                }
-                // MsQuic->ExecutionPoll(Execution[PartitionIndex]);
+                MsQuic->ExecutionPoll(Execution[PartitionIndex]);
+                QuicTestProcessEventQ(EventQs[PartitionIndex], 0);
                 if (Client->HandshakeComplete && Server) {
                     return QUIC_STATUS_SUCCESS;
                 }
@@ -6953,6 +6949,9 @@ QuicTestValidatePartition()
     Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
     TEST_QUIC_SUCCEEDED(
         TryUntil(1, TestWaitTimeout, [&](){
+            //
+            // To clean up, we do need to poll all the contexts.
+            //
             for (uint32_t i = 0; i < EcCount; i++) {
                 MsQuic->ExecutionPoll(Execution[i]);
                 QuicTestProcessEventQ(EventQs[i], 0);
