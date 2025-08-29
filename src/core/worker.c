@@ -1105,18 +1105,19 @@ QuicWorkerPoolIsInPartition(
 {
     QUIC_WORKER* Worker = &WorkerPool->Workers[PartitionIndex];
     CXPLAT_DBG_ASSERT(PartitionIndex < WorkerPool->WorkerCount);
+
     if (Worker->IsExternal) {
         return CxPlatWorkerIsThisThread(&Worker->ExecutionContext);
-    } else {
-        //
-        // For "internal" workers that spawn their own threads, we lack a
-        // function to resolve the effective worker of the current thread.
-        // Since this function is only used for assertions, simply ignore this
-        // case for now rather than maintaining unambiguous state.
-        //
-#ifndef DEBUG
-        CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.");
-#endif
-        return TRUE;
     }
+
+    //
+    // For "internal" workers that spawn their own threads, we lack a
+    // function to resolve the effective worker of the current thread.
+    // Since this function is only used for assertions, simply ignore this
+    // case for now rather than maintaining unambiguous state.
+    //
+#ifndef DEBUG
+    CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.");
+#endif
+    return TRUE;
 }

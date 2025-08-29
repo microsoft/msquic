@@ -518,7 +518,6 @@ MsQuicLibraryInitialize(
             "[ lib] Failed to open global settings, 0x%x",
             Status);
         // Non-fatal, as the process may not have access
-        Status = QUIC_STATUS_SUCCESS;
     }
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.

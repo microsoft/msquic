@@ -28,9 +28,9 @@ QuicListenerIsOnWorker(
     if (Listener->Partitioned) {
         return QuicWorkerPoolIsInPartition(
             Listener->Registration->WorkerPool, Listener->PartitionIndex);
-    } else {
-        return TRUE;
     }
+
+    return TRUE;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
