@@ -6877,6 +6877,12 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
     TEST_NOT_EQUAL(nullptr, EventQs);
     MsQuicAlpn Alpn("MsQuicTest");
 
+    //
+    // This test verifies MsQuic APIs can be used within the same threads that
+    // are responsible for processing the execution contexts; every API must not
+    // block on the execution context itself, else a deadlock will occur.
+    //
+
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
         TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
@@ -6942,6 +6948,12 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
         );
     }
 
+    //
+    // Initiate asynchronous teardown of each of the objects; each will receive
+    // a completion event on their callbacks. Those callbacks are guaranteed to
+    // have finished executing by the time the registration is closed, so we do
+    // not wait on them specifically.
+    //
     Server->Close();
     Client->Close();
     Listener.Stop();
@@ -6967,12 +6979,122 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
     TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
 }
 
+struct QuicTestPartitionWorkerContext {
+    volatile BOOLEAN Stop;
+    TestEventQ EventQ;
+    CxPlatThread Thread;
+    QUIC_EXECUTION* QuicEc;
+    CXPLAT_THREAD_ID ThreadId;
+    CxPlatEvent Ready;
+};
+
+CXPLAT_THREAD_CALLBACK(QuicTestPartitionWorker, Context)
+{
+    QuicTestPartitionWorkerContext* Worker = (QuicTestPartitionWorkerContext*)Context;
+
+    Worker->ThreadId = TestCurThreadID();
+    Worker->Ready.Set();
+
+    while (!Worker->Stop) {
+        MsQuic->ExecutionPoll(Worker->QuicEc);
+        QuicTestProcessEventQ(&Worker->EventQ.QuicEventQ, 0);
+    }
+
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+
+void
+QuicTestValidatePartitionWorker(const uint32_t EcCount)
+{
+    const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    UniquePtrArray<QuicTestPartitionWorkerContext> Ecs(new (std::nothrow) QuicTestPartitionWorkerContext[EcCount]{});
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
+    TestPartitionListenerContext ListenerContext{};
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.EventQ.QuicEventQ));
+        EventQs[i] = &Ec.EventQ.QuicEventQ;
+    }
+
+    MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+    TEST_TRUE(Execution.IsValid());
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        Ec.QuicEc = Execution[i];
+        CXPLAT_THREAD_CONFIG Config{};
+        Config.Name = "QuicTestPartitionWorker";
+        Config.Callback = QuicTestPartitionWorker;
+        Config.Context = &Ec;
+        TEST_QUIC_SUCCEEDED(Ec.Thread.Create(&Config));
+        TEST_TRUE(Ec.Ready.WaitTimeout(TestWaitTimeout));
+    }
+
+
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            TestPartitionListenerCallback,
+            &ListenerContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
+
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+        TEST_TRUE(ServerConfiguration.IsValid());
+        UniquePtr<MsQuicConnection> Server;
+
+        ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = Ecs[PartitionIndex].ThreadId;
+        ListenerContext.ServerConfiguration = &ServerConfiguration;
+        ListenerContext.Server = (MsQuicConnection**)&Server;
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        MsQuicConnection Client(Registration, PartitionIndex);
+        TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Client.Start(
+            ClientConfiguration, ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+    }
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        Ec.Stop = TRUE;
+        Ec.Thread.Wait();
+    }
+
+    TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+}
+
+void
+QuicTestValidatePartition(const uint32_t EcCount)
+{
+    QuicTestValidatePartitionInline(EcCount);
+    QuicTestValidatePartitionWorker(EcCount);
+}
+
 void
 QuicTestValidatePartition()
 {
-    QuicTestValidatePartitionInline(1);
-    QuicTestValidatePartitionInline(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
-    QuicTestValidatePartitionInline(CxPlatProcCount());
+    QuicTestValidatePartition(1);
+    QuicTestValidatePartition(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
+    QuicTestValidatePartition(CxPlatProcCount());
 }
 
 #endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)

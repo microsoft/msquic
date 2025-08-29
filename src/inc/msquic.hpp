@@ -229,6 +229,7 @@ public:
     }
     void Wait() noexcept {
         if (Initialized) {
+            WaitOnDelete = false;
             CxPlatThreadWait(&Thread);
         }
     }
