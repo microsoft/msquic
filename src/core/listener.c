@@ -154,6 +154,7 @@ QuicListenerFree(
     }
     CxPlatDispatchLockRelease(&Listener->Registration->ConnectionLock);
 
+    CxPlatRefUninitialize(&Listener->InternalRefCount);
     CxPlatRefUninitialize(&Listener->RefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
@@ -186,14 +187,11 @@ MsQuicListenerClose(
     QUIC_LIB_VERIFY(!Listener->AppClosed);
     Listener->AppClosed = TRUE;
 
-    if (Listener->StopCompleteThreadID == CxPlatCurThreadID()) {
-        //
-        // We're currently in the stop complete event, so we can't free the
-        // listener until that callback unwinds.
-        //
-        Listener->NeedsCleanup = TRUE;
-
-    } else {
+    //
+    // If we're currently in the stop complete event, there's no need to
+    // implicitly perform the stop.
+    //
+    if (Listener->StopCompleteThreadID != CxPlatCurThreadID()) {
         //
         // Make sure the listener has unregistered from the binding, all other
         // references have been released, and the stop complete event has been
@@ -201,9 +199,9 @@ MsQuicListenerClose(
         //
         QuicListenerStopAsync(Listener);
         CxPlatEventWaitForever(Listener->StopEvent);
-
-        QuicListenerFree(Listener);
     }
+
+    QuicListenerInternalRelease(Listener);
 
     QuicTraceEvent(
         ApiExit,
@@ -372,6 +370,7 @@ MsQuicListenerStart(
     Listener->Stopped = FALSE;
     CxPlatEventReset(Listener->StopEvent);
     CxPlatRefInitialize(&Listener->RefCount);
+    CxPlatRefInitialize(&Listener->InternalRefCount);
 
     Status = QuicBindingRegisterListener(Listener->Binding, Listener);
     if (QUIC_FAILED(Status)) {
@@ -468,6 +467,12 @@ QuicListenerIndicateStopCompleteEvent(
     Event.Type = QUIC_LISTENER_EVENT_STOP_COMPLETE;
     Event.STOP_COMPLETE.AppCloseInProgress = Listener->AppClosed;
 
+    //
+    // Take an internal cleanup reference to prevent an inline ListenerClose
+    // freeing the listener from under us.
+    //
+    QuicListenerInternalReference(Listener);
+
     QuicListenerAttachSilo(Listener);
 
     QuicTraceLogVerbose(
@@ -480,6 +485,15 @@ QuicListenerIndicateStopCompleteEvent(
     Listener->StopCompleteThreadID = 0;
 
     QuicListenerDetachSilo();
+
+    //
+    // If !Listener->NeedsCleanup, then another thread is waiting on this event
+    // and may immediately free the listener after setting the stop event.
+    //
+    Listener->Stopped = TRUE;
+    CxPlatEventSet(Listener->StopEvent);
+
+    QuicListenerInternalRelease(Listener);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -507,19 +521,6 @@ QuicListenerStopComplete(
             QuicListenerIndicateStopCompleteEvent(Listener);
         }
     }
-
-    const BOOLEAN CleanupOnExit = Listener->NeedsCleanup;
-
-    //
-    // If !Listener->NeedsCleanup, then another thread is waiting on this event
-    // and may immediately free the listener after setting the stop event.
-    //
-    Listener->Stopped = TRUE;
-    CxPlatEventSet(Listener->StopEvent);
-
-    if (CleanupOnExit) {
-        QuicListenerFree(Listener);
-    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -540,6 +541,26 @@ QuicListenerRelease(
 {
     if (CxPlatRefDecrement(&Listener->RefCount)) {
         QuicListenerStopComplete(Listener, IndicateEvent);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerInternalReference(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CxPlatRefIncrement(&Listener->InternalRefCount);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerInternalRelease(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    if (CxPlatRefDecrement(&Listener->InternalRefCount)) {
+        QuicListenerFree(Listener);
     }
 }
 
@@ -699,7 +720,9 @@ QuicListenerClaimConnection(
         Connection->State.Partitioned = TRUE;
         //
         // The connection should not have already migrated partitions within a
-        // partitioned listener above a a partitioned binding.
+        // partitioned listener above a a partitioned binding. The current
+        // thread should also be within the partition by the same virtue, and is
+        // asserted in QuicListenerIndicateEvent.
         //
         CXPLAT_DBG_ASSERT(Connection->Partition->Index == Listener->PartitionIndex);
     }
@@ -1034,12 +1057,14 @@ QuicListenerHandleDosModeStateChange(
             QuicListenerDetachSilo();
         } else {
             //
-            // Best effort synchronization: the non-partitioned case is also
-            // racy.
+            // Best effort mode synchronization: the non-partitioned case is
+            // also racy.
             //
             Listener->DosModeEnabled = DosModeEnabled;
-            Listener->NeedsDosModeModeEvent = TRUE;
-            QuicWorkerQueueListener(Listener->Worker, Listener);
+            if (!InterlockedFetchAndSetBoolean(&Listener->NeedsDosModeModeEvent)) {
+                QuicListenerReference(Listener);
+                QuicWorkerQueueListener(Listener->Worker, Listener);
+            }
         }
     }
 }
@@ -1054,15 +1079,17 @@ QuicListenerDrainOperations(
 
     if (Listener->NeedsDosModeModeEvent) {
         BOOLEAN DosModeEnabled;
-
+        CXPLAT_FRE_ASSERT(InterlockedFetchAndClearBoolean(&Listener->NeedsDosModeModeEvent));
         DosModeEnabled = Listener->DosModeEnabled;
-        Listener->NeedsDosModeModeEvent = FALSE;
-
         QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled, TRUE);
+        QuicListenerRelease(Listener, TRUE);
     }
 
     if (Listener->NeedsStopCompleteEvent) {
         Listener->NeedsStopCompleteEvent = FALSE;
+        //
+        // This must be the final event indication.
+        //
         QuicListenerIndicateStopCompleteEvent(Listener);
     }
 

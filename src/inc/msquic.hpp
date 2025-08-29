@@ -1022,6 +1022,10 @@ struct MsQuicListener {
     }
 
     void
+    Stop() noexcept {
+        MsQuic->ListenerStop(Handle);
+    }
+    void
     Close()
     {
         if (Handle) {

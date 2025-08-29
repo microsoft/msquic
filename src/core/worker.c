@@ -388,7 +388,7 @@ QuicWorkerQueueListener(
             "[list][%p] Scheduling: %u",
             Listener,
             QUIC_SCHEDULE_QUEUED);
-        QuicListenerReference(Listener);
+        QuicListenerInternalReference(Listener);
         CxPlatListInsertTail(&Worker->Listeners, &Listener->WorkerLink);
         ListenerQueued = TRUE;
     }
@@ -765,7 +765,7 @@ QuicWorkerProcessListener(
         // This worker is no longer managing the listener, so we can
         // release its reference.
         //
-        QuicListenerRelease(Listener, TRUE);
+        QuicListenerInternalRelease(Listener);
     }
 }
 
@@ -811,7 +811,7 @@ QuicWorkerLoopCleanup(
         QUIC_LISTENER* Listener =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Worker->Listeners), QUIC_LISTENER, WorkerLink);
-        QuicListenerRelease(Listener, TRUE);
+        QuicListenerInternalRelease(Listener);
         --Dequeue;
     }
     QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH, Dequeue);
@@ -1108,6 +1108,15 @@ QuicWorkerPoolIsInPartition(
     if (Worker->IsExternal) {
         return CxPlatWorkerIsThisThread(&Worker->ExecutionContext);
     } else {
-        return Worker->Partition->Index == PartitionIndex;
+        //
+        // For "internal" workers that spawn their own threads, we lack a
+        // function to resolve the effective worker of the current thread.
+        // Since this function is only used for assertions, simply ignore this
+        // case for now rather than maintaining unambiguous state.
+        //
+#ifndef DEBUG
+        CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.")
+#endif
+        return TRUE;
     }
 }

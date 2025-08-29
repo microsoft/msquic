@@ -317,7 +317,7 @@ else()
             set(QUIC_LOGGING_TYPE "lttng")
             message(STATUS "Choosing lttng as default logging type for platform")
         endif()
-        
+
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$")
             set(QUIC_LINUX_XDP_ENABLED OFF CACHE BOOL "XDP not supported on ARM architectures" FORCE)
         endif()
@@ -714,7 +714,7 @@ else() #!WIN32
     if (QUIC_SANITIZER_ACTIVE)
         message(STATUS "Configuring sanitizers: ASAN:${QUIC_ENABLE_ASAN} LSAN:${QUIC_ENABLE_LSAN} UBSAN:${QUIC_ENABLE_UBSAN} EXTRA:${QUIC_ENABLE_EXTRA_SANITIZERS}")
         # Append common flags for all sanitizer options
-        list(APPEND QUIC_COMMON_FLAGS -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 
         # Clang/LLVM doesn't support this flag, but GCC does.
         check_c_compiler_flag(-fno-var-tracking-assignments HAS_NO_VAR_TRACKING)

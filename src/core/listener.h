@@ -32,11 +32,6 @@ typedef struct QUIC_LISTENER {
     BOOLEAN Stopped;
 
     //
-    // Indicates the listener was closed by the app in the stop complete event.
-    //
-    BOOLEAN NeedsCleanup;
-
-    //
     // Indicates the listener needs its stop complete event.
     //
     BOOLEAN NeedsStopCompleteEvent;
@@ -107,9 +102,14 @@ typedef struct QUIC_LISTENER {
 #endif
 
     //
-    // Active reference count on the listener.
+    // Active reference count on the listener preventing a stop completion.
     //
     CXPLAT_REF_COUNT RefCount;
+
+    //
+    // Internal reference count on the listener preventing cleanup.
+    //
+    CXPLAT_REF_COUNT InternalRefCount;
 
     //
     // Event to signal when the listener is stopped.
@@ -200,6 +200,18 @@ void
 QuicListenerRelease(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN IndicateEvent
+    );
+
+    _IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerInternalReference(
+    _In_ QUIC_LISTENER* Listener
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerInternalRelease(
+    _In_ QUIC_LISTENER* Listener
     );
 
 //
