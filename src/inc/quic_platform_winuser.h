@@ -1001,11 +1001,8 @@ CxPlatTimeDiff32(
     _In_ uint32_t T2      // Second time measured
     )
 {
-    if (T2 > T1) {
-        return T2 - T1;
-    } else { // Wrap around case.
-        return T2 + (0xFFFFFFFF - T1) + 1;
-    }
+    // Subtraction handles wraparound automatically in the ring 2^32
+    return T2 - T1;
 }
 
 //
