@@ -910,7 +910,7 @@ QuicListenerParamSet(
             !Listener->Stopped) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
-#if defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
         Listener->PartitionIndex = PartitionIndex;
         Listener->Partitioned = TRUE;
         QuicWorkerAssignListener(

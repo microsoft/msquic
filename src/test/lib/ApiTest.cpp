@@ -6819,7 +6819,7 @@ QuicTestValidateExecutionContext()
 void QuicTestValidateExecutionContext() {}
 #endif // QUIC_API_EXECUTION_CONTEXT
 
-#if defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
 
 uint32_t
 TestCurThreadID()
@@ -7098,9 +7098,9 @@ QuicTestValidatePartition()
     QuicTestValidatePartition(CxPlatProcCount());
 }
 
-#else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+#else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
 void QuicTestValidatePartition() {}
-#endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(QUIC_LINUX_XDP_ENABLED)
+#endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
 
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
