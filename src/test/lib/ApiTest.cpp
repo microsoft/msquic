@@ -6824,6 +6824,8 @@ struct TestPartitionListenerContext {
     bool CloseInStop;
 };
 
+void WrongThread() {}
+
 QUIC_STATUS
 TestPartitionListenerCallback(
     _In_ MsQuicListener* Listener,
@@ -6834,6 +6836,7 @@ TestPartitionListenerCallback(
 
     if (TestCurThreadID() != Context->ExpectedThreadId) {
         Context->ActualThreadId = TestCurThreadID();
+WrongThread();
     }
 
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
@@ -6844,6 +6847,7 @@ TestPartitionListenerCallback(
                 TestPartitionListenerContext* Context = (TestPartitionListenerContext*)ConnContext;
                 if (TestCurThreadID() != Context->ExpectedThreadId) {
                     Context->ActualThreadId = TestCurThreadID();
+WrongThread();
                 }
                 return QUIC_STATUS_SUCCESS;
             },
@@ -7061,6 +7065,18 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
         TEST_QUIC_SUCCEEDED(Client.Start(
             ClientConfiguration, ServerLocalAddr.GetFamily(),
             QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        //
+        // Wait until the connections are established.
+        //
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(1, TestWaitTimeout, [&](){
+                if (Client.HandshakeComplete && Server) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
     }
 
     for (uint32_t i = 0; i < EcCount; i++) {
