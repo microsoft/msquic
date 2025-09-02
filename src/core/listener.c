@@ -517,6 +517,11 @@ QuicListenerBeginStopComplete(
         "[list][%p] Stopped",
         Listener);
 
+    //
+    // Ensure the listener is not freed while processing this function.
+    //
+    QuicListenerInternalReference(Listener);
+
     if (Listener->AlpnList != NULL) {
         CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
         Listener->AlpnList = NULL;
@@ -535,6 +540,8 @@ QuicListenerBeginStopComplete(
     if (EndStopComplete) {
         QuicListenerEndStopComplete(Listener);
     }
+
+    QuicListenerInternalRelease(Listener);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
