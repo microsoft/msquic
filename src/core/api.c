@@ -33,31 +33,12 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicConnectionOpen(
-    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
-    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
-    _In_opt_ void* Context,
-    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC *NewConnection
-    )
-{
-    return
-        MsQuicConnectionOpenInPartition(
-            RegistrationHandle,
-            QuicLibraryGetCurrentPartition()->Index,
-            Handler,
-            Context,
-            NewConnection);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicConnectionOpenInPartition(
+QuicConnectionOpenInPartition(
     _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
+    _In_ BOOLEAN Partitioned,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *NewConnection
     )
@@ -98,7 +79,7 @@ MsQuicConnectionOpenInPartition(
         goto Error;
     }
 
-    Connection->State.Partitioned = TRUE;
+    Connection->State.Partitioned = Partitioned;
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
@@ -113,6 +94,49 @@ Error:
         Status);
 
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpen(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionOpenInPartition(
+            RegistrationHandle,
+            QuicLibraryGetCurrentPartition()->Index,
+            Handler,
+            Context,
+            FALSE,
+            NewConnection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionOpenInPartition(
+            RegistrationHandle,
+            PartitionIndex,
+            Handler,
+            Context,
+            TRUE,
+            NewConnection);
 }
 
 #pragma warning(push)
