@@ -459,7 +459,21 @@ QuicListenerIndicateDispatchEvent(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicListenerIndicateStopCompleteEvent(
+QuicListenerEndStopComplete(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    //
+    // If !Listener->NeedsCleanup, then another thread is waiting on this event
+    // and may immediately free the listener after setting the stop event.
+    //
+    Listener->Stopped = TRUE;
+    CxPlatEventSet(Listener->StopEvent);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerIndicateStopComplete(
     _In_ QUIC_LISTENER* Listener
     )
 {
@@ -486,23 +500,18 @@ QuicListenerIndicateStopCompleteEvent(
 
     QuicListenerDetachSilo();
 
-    //
-    // If !Listener->NeedsCleanup, then another thread is waiting on this event
-    // and may immediately free the listener after setting the stop event.
-    //
-    Listener->Stopped = TRUE;
-    CxPlatEventSet(Listener->StopEvent);
-
     QuicListenerInternalRelease(Listener);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicListenerStopComplete(
+QuicListenerBeginStopComplete(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN IndicateEvent
     )
 {
+    BOOLEAN EndStopComplete = TRUE;
+
     QuicTraceEvent(
         ListenerStopped,
         "[list][%p] Stopped",
@@ -515,11 +524,16 @@ QuicListenerStopComplete(
 
     if (IndicateEvent) {
         if (Listener->Partitioned) {
+            EndStopComplete = FALSE;
             Listener->NeedsStopCompleteEvent = TRUE;
             QuicWorkerQueueListener(Listener->Worker, Listener);
         } else {
-            QuicListenerIndicateStopCompleteEvent(Listener);
+            QuicListenerIndicateStopComplete(Listener);
         }
+    }
+
+    if (EndStopComplete) {
+        QuicListenerEndStopComplete(Listener);
     }
 }
 
@@ -540,7 +554,7 @@ QuicListenerRelease(
     )
 {
     if (CxPlatRefDecrement(&Listener->RefCount)) {
-        QuicListenerStopComplete(Listener, IndicateEvent);
+        QuicListenerBeginStopComplete(Listener, IndicateEvent);
     }
 }
 
@@ -1090,7 +1104,8 @@ QuicListenerDrainOperations(
         //
         // This must be the final event indication.
         //
-        QuicListenerIndicateStopCompleteEvent(Listener);
+        QuicListenerIndicateStopComplete(Listener);
+        QuicListenerEndStopComplete(Listener);
     }
 
     return FALSE;
