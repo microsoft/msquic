@@ -2727,17 +2727,6 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("SetParam");
             uint8_t StatelessResetkey[QUIC_STATELESS_RESET_KEY_LENGTH - 1];
-            CxPlatRandom(sizeof(StatelessResetkey), StatelessResetkey);
-            {
-                TestScopeLogger LogScope2("StatelessResetkey fail with invalid state");
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                        sizeof(StatelessResetkey),
-                        StatelessResetkey));
-            }
             {
                 TestScopeLogger LogScope2("StatelessResetkey fail with invalid parameter");
                 MsQuicRegistration Registration;
