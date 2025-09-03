@@ -6986,6 +6986,8 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
 
     //
     // Initiate asynchronous teardown of the rest of the objects.
+    // The registration close will not complete until each of these objects is
+    // cleaned up, so we do not need to wait for each of these explicitly.
     //
     Server->Close();
     Client->Close();
