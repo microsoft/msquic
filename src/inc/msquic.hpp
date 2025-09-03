@@ -1149,7 +1149,7 @@ struct MsQuicConnection {
     QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
-    bool Started {false};
+    bool AsyncClose {false};
     uint32_t ResumptionTicketLength {0};
     uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
@@ -1217,7 +1217,7 @@ struct MsQuicConnection {
     ~MsQuicConnection() noexcept {
         Close();
 #ifdef CX_PLATFORM_TYPE
-        if (IsValid()) {
+        if (AsyncClose) {
             ShutdownCompleteEvent.WaitForever();
         }
 #endif // CX_PLATFORM_TYPE
@@ -1263,11 +1263,7 @@ struct MsQuicConnection {
             const char* ServerName,
         _In_ uint16_t ServerPort // Host byte order
         ) noexcept {
-        QUIC_STATUS Status = MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
-        if (QUIC_SUCCEEDED(Status)) {
-            Started = true;
-        }
-        return Status;
+        return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
     }
 
     QUIC_STATUS

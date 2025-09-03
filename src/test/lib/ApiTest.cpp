@@ -6989,7 +6989,9 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
     // The registration close will not complete until each of these objects is
     // cleaned up, so we do not need to wait for each of these explicitly.
     //
+    Server->AsyncClose = TRUE;
     Server->Close();
+    Server->AsyncClose = TRUE;
     Client->Close();
     Listener.Stop();
 
@@ -7124,6 +7126,13 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
                 return QUIC_STATUS_CONTINUE;
             })
         );
+
+        //
+        // Ensure the connections wait for the final shutdown callback before
+        // finishing destruction.
+        //
+        Server->AsyncClose = TRUE;
+        Client.AsyncClose = TRUE;
     }
 
     for (uint32_t i = 0; i < EcCount; i++) {

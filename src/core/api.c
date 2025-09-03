@@ -217,6 +217,7 @@ MsQuicConnectionClose(
         if (MsQuicLib.CustomExecutions) {
             //
             // For custom executions, ConnectionClose completes asynchronously.
+            // Review: should this be opt-in behavior?
             //
             Connection->CloseApiContext.Completed = NULL;
             WaitForCompletion = FALSE;
