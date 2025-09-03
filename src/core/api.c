@@ -203,7 +203,7 @@ MsQuicConnectionClose(
 
     } else {
 
-        CXPLAT_EVENT CompletionEvent;
+        CXPLAT_EVENT CompletionEvent = {0};
 
         Connection->CloseOper.Type = QUIC_OPER_TYPE_API_CALL;
         Connection->CloseOper.FreeAfterProcess = FALSE;
