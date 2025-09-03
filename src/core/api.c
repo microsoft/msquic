@@ -79,7 +79,12 @@ QuicConnectionOpenInPartition(
         goto Error;
     }
 
+    //
+    // Hard partitioning is only supported on a subset of platforms.
+    //
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
     Connection->State.Partitioned = Partitioned;
+#endif
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
@@ -150,6 +155,7 @@ MsQuicConnectionClose(
     )
 {
     QUIC_CONNECTION* Connection;
+    BOOLEAN WaitForCompletion = TRUE;
 
     CXPLAT_PASSIVE_CODE();
 
@@ -182,7 +188,7 @@ MsQuicConnectionClose(
 
     CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
 
-    if (MsQuicLib.CustomExecutions || IsWorkerThread) {
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -198,39 +204,51 @@ MsQuicConnectionClose(
     } else {
 
         CXPLAT_EVENT CompletionEvent;
-        QUIC_OPERATION Oper = { 0 };
-        QUIC_API_CONTEXT ApiCtx;
 
-        Oper.Type = QUIC_OPER_TYPE_API_CALL;
-        Oper.FreeAfterProcess = FALSE;
-        Oper.API_CALL.Context = &ApiCtx;
+        Connection->CloseOper.Type = QUIC_OPER_TYPE_API_CALL;
+        Connection->CloseOper.FreeAfterProcess = FALSE;
+        Connection->CloseOper.API_CALL.Context = &Connection->CloseApiContext;
 
-        ApiCtx.Type = QUIC_API_TYPE_CONN_CLOSE;
-        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
-        ApiCtx.Completed = &CompletionEvent;
-        ApiCtx.Status = NULL;
+        Connection->CloseApiContext.Type = QUIC_API_TYPE_CONN_CLOSE;
+        Connection->CloseApiContext.Status = NULL;
+
+        if (MsQuicLib.CustomExecutions) {
+            //
+            // For custom executions, ConnectionClose completes asynchronously.
+            //
+            Connection->CloseApiContext.Completed = NULL;
+            WaitForCompletion = FALSE;
+        } else {
+            CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+            Connection->CloseApiContext.Completed = &CompletionEvent;
+        }
 
         //
         // Queue the operation and wait for it to be processed.
         //
-        QuicConnQueueOper(Connection, &Oper);
-        QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
-        CxPlatEventWaitForever(CompletionEvent);
-        CxPlatEventUninitialize(CompletionEvent);
+        QuicConnQueueOper(Connection, &Connection->CloseOper);
+
+        if (WaitForCompletion) {
+            QuicTraceEvent(
+                ApiWaitOperation,
+                "[ api] Waiting on operation");
+            CxPlatEventWaitForever(CompletionEvent);
+            CxPlatEventUninitialize(CompletionEvent);
+        }
     }
 
     //
     // Connection can only be released by the application after the released
     // flag was set, in response to the CONN_CLOSE operation was processed.
     //
-    CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
+    if (WaitForCompletion) {
+        CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
 
-    //
-    // Release the reference to the Connection.
-    //
-    QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        //
+        // Release the reference to the Connection.
+        //
+        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+    }
 
 Error:
 

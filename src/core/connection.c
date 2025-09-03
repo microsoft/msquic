@@ -5597,8 +5597,8 @@ QuicConnRecvDatagramBatch(
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
-                !Connection->State.Partitioned && Path->IsActive && !Path->PartitionUpdated &&
-                Packet->CompletelyValid &&
+                !Path->Binding->Partitioned && !Connection->State.Partitioned && Path->IsActive &&
+                !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
@@ -7579,6 +7579,14 @@ QuicConnProcessApiOperation(
 
     case QUIC_API_TYPE_CONN_CLOSE:
         QuicConnCloseHandle(Connection);
+        if (MsQuicLib.CustomExecutions && Connection->State.ExternalOwner) {
+            CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
+            //
+            // Release the external reference to the connection for async
+            // completion.
+            //
+            QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        }
         break;
 
     case QUIC_API_TYPE_CONN_SHUTDOWN:

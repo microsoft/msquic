@@ -559,6 +559,8 @@ typedef struct QUIC_CONNECTION {
     QUIC_OPERATION BackUpOper;
     QUIC_API_CONTEXT BackupApiContext;
     uint16_t BackUpOperUsed;
+    QUIC_OPERATION CloseOper;
+    QUIC_API_CONTEXT CloseApiContext;
 
     //
     // The status code used for indicating transport closed notifications.

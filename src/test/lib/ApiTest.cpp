@@ -6816,7 +6816,7 @@ TestCurThreadID()
     return (uint32_t)gettid();
 }
 
-struct TestPartitionListenerContext {
+struct TestPartitionCallbackContext {
     MsQuicConfiguration* ServerConfiguration;
     MsQuicConnection** Server;
     uint32_t ExpectedThreadId;
@@ -6824,7 +6824,23 @@ struct TestPartitionListenerContext {
     bool CloseInStop;
 };
 
+// TODO: remove
 void WrongThread() {}
+
+void
+TestPartitionVerifyCallback(TestPartitionCallbackContext* Context)
+{
+    if (TestCurThreadID() != Context->ExpectedThreadId) {
+        Context->ActualThreadId = TestCurThreadID();
+        WrongThread();
+    }
+}
+
+void
+TestPartitionVerifyCallbackContext(TestPartitionCallbackContext* Context)
+{
+    TEST_EQUAL(Context->ExpectedThreadId, Context->ActualThreadId);
+}
 
 QUIC_STATUS
 TestPartitionListenerCallback(
@@ -6832,23 +6848,17 @@ TestPartitionListenerCallback(
     _In_opt_ void* ListenerContext,
     _Inout_ QUIC_LISTENER_EVENT* Event)
 {
-    TestPartitionListenerContext* Context = (TestPartitionListenerContext*)ListenerContext;
+    TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ListenerContext;
 
-    if (TestCurThreadID() != Context->ExpectedThreadId) {
-        Context->ActualThreadId = TestCurThreadID();
-WrongThread();
-    }
+    TestPartitionVerifyCallback(Context);
 
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         *Context->Server = new(std::nothrow) MsQuicConnection(
             Event->NEW_CONNECTION.Connection,
             CleanUpManual,
             [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
-                TestPartitionListenerContext* Context = (TestPartitionListenerContext*)ConnContext;
-                if (TestCurThreadID() != Context->ExpectedThreadId) {
-                    Context->ActualThreadId = TestCurThreadID();
-WrongThread();
-                }
+                TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                TestPartitionVerifyCallback(Context);
                 return QUIC_STATUS_SUCCESS;
             },
             Context);
@@ -6860,6 +6870,13 @@ WrongThread();
     }
 
     return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestInvokeEc(QUIC_EVENTQ* EventQ, QUIC_EXECUTION* QuicEc, TestPartitionCallbackContext*)
+{
+    MsQuic->ExecutionPoll(QuicEc);
+    QuicTestProcessEventQ(EventQ, 0);
 }
 
 void
@@ -6892,12 +6909,12 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
 
     UniquePtr<MsQuicConnection> Client;
     UniquePtr<MsQuicConnection> Server;
-    TestPartitionListenerContext ListenerContext{};
+    TestPartitionCallbackContext CallbackContext{};
         MsQuicListener Listener(
             Registration,
             CleanUpManual,
             TestPartitionListenerCallback,
-            &ListenerContext);
+            &CallbackContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
     TEST_QUIC_SUCCEEDED(
         Listener.SetParam(
@@ -6907,10 +6924,10 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
         MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
         TEST_TRUE(ServerConfiguration.IsValid());
 
-        ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = TestCurThreadID();
-        ListenerContext.ServerConfiguration = &ServerConfiguration;
-        ListenerContext.Server = (MsQuicConnection**)&Server;
-        ListenerContext.CloseInStop = TRUE;
+        CallbackContext.ActualThreadId = CallbackContext.ExpectedThreadId = TestCurThreadID();
+        CallbackContext.ServerConfiguration = &ServerConfiguration;
+        CallbackContext.Server = (MsQuicConnection**)&Server;
+        CallbackContext.CloseInStop = TRUE;
 
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
@@ -6921,7 +6938,14 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
         TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-        Client = UniquePtr<MsQuicConnection>(new MsQuicConnection(Registration, PartitionIndex));
+        Client = UniquePtr<MsQuicConnection>(
+            new MsQuicConnection(Registration, PartitionIndex, CleanUpManual,
+                [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                    TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                    TestPartitionVerifyCallback(Context);
+                    return QUIC_STATUS_SUCCESS;
+                },
+                &CallbackContext));
         TEST_QUIC_SUCCEEDED(Client->GetInitStatus());
         TEST_QUIC_SUCCEEDED(Client->Start(
             ClientConfiguration, ServerLocalAddr.GetFamily(),
@@ -6933,8 +6957,8 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
         //
         TEST_QUIC_SUCCEEDED(
             TryUntil(1, TestWaitTimeout, [&](){
-                MsQuic->ExecutionPoll(Execution[PartitionIndex]);
-                QuicTestProcessEventQ(EventQs[PartitionIndex], 0);
+                QuicTestInvokeEc(
+                    EventQs[PartitionIndex], Execution[PartitionIndex], &CallbackContext);
                 if (Client->HandshakeComplete && Server) {
                     return QUIC_STATUS_SUCCESS;
                 }
@@ -6944,10 +6968,24 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
     }
 
     //
-    // Initiate asynchronous teardown of each of the objects; each will receive
-    // a completion event on their callbacks. Those callbacks are guaranteed to
-    // have finished executing by the time the registration is closed, so we do
-    // not wait on them specifically.
+    // Initiate asynchronous teardown of each of the connections; each will receive
+    // a completion event on their callbacks.
+    //
+    Server->Shutdown(QUIC_TEST_NO_ERROR);
+    Client->Shutdown(QUIC_TEST_NO_ERROR);
+    TEST_QUIC_SUCCEEDED(
+        TryUntil(1, TestWaitTimeout, [&](){
+            QuicTestInvokeEc(EventQs[PartitionIndex], Execution[PartitionIndex], &CallbackContext);
+            if (Server->ShutdownCompleteEvent.WaitTimeout(0) &&
+                Client->ShutdownCompleteEvent.WaitTimeout(0)) {
+                return QUIC_STATUS_SUCCESS;
+            }
+            return QUIC_STATUS_CONTINUE;
+        })
+    );
+
+    //
+    // Initiate asynchronous teardown of the rest of the objects.
     //
     Server->Close();
     Client->Close();
@@ -6961,8 +6999,7 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
             // To clean up, we do need to poll all the contexts.
             //
             for (uint32_t i = 0; i < EcCount; i++) {
-                MsQuic->ExecutionPoll(Execution[i]);
-                QuicTestProcessEventQ(EventQs[i], 0);
+                QuicTestInvokeEc(EventQs[i], Execution[i], &CallbackContext);
             }
             if (CloseContext.Event.WaitTimeout(0)) {
                 return QUIC_STATUS_SUCCESS;
@@ -6971,7 +7008,7 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
         })
     );
 
-    TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+    TestPartitionVerifyCallbackContext(&CallbackContext);
 }
 
 struct QuicTestPartitionWorkerContext {
@@ -6981,6 +7018,7 @@ struct QuicTestPartitionWorkerContext {
     QUIC_EXECUTION* QuicEc;
     CXPLAT_THREAD_ID ThreadId;
     CxPlatEvent Ready;
+    TestPartitionCallbackContext* CallbackContext;
 };
 
 CXPLAT_THREAD_CALLBACK(QuicTestPartitionWorker, Context)
@@ -6991,8 +7029,7 @@ CXPLAT_THREAD_CALLBACK(QuicTestPartitionWorker, Context)
     Worker->Ready.Set();
 
     while (!Worker->Stop) {
-        MsQuic->ExecutionPoll(Worker->QuicEc);
-        QuicTestProcessEventQ(&Worker->EventQ.QuicEventQ, 0);
+        QuicTestInvokeEc(&Worker->EventQ.QuicEventQ, Worker->QuicEc, Worker->CallbackContext);
     }
 
     CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
@@ -7006,12 +7043,13 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
     UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
     TEST_NOT_EQUAL(nullptr, Ecs);
     TEST_NOT_EQUAL(nullptr, EventQs);
-    TestPartitionListenerContext ListenerContext{};
+    TestPartitionCallbackContext CallbackContext{};
     MsQuicAlpn Alpn("MsQuicTest");
 
     for (uint32_t i = 0; i < EcCount; i++) {
         auto &Ec = Ecs[i];
         TEST_TRUE(CxPlatEventQInitialize(&Ec.EventQ.QuicEventQ));
+        Ec.CallbackContext = &CallbackContext;
         EventQs[i] = &Ec.EventQ.QuicEventQ;
     }
 
@@ -7037,7 +7075,7 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
             Registration,
             CleanUpManual,
             TestPartitionListenerCallback,
-            &ListenerContext);
+            &CallbackContext);
         TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
         TEST_QUIC_SUCCEEDED(
             Listener.SetParam(
@@ -7047,9 +7085,9 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
         TEST_TRUE(ServerConfiguration.IsValid());
         UniquePtr<MsQuicConnection> Server;
 
-        ListenerContext.ActualThreadId = ListenerContext.ExpectedThreadId = Ecs[PartitionIndex].ThreadId;
-        ListenerContext.ServerConfiguration = &ServerConfiguration;
-        ListenerContext.Server = (MsQuicConnection**)&Server;
+        CallbackContext.ActualThreadId = CallbackContext.ExpectedThreadId = Ecs[PartitionIndex].ThreadId;
+        CallbackContext.ServerConfiguration = &ServerConfiguration;
+        CallbackContext.Server = (MsQuicConnection**)&Server;
 
         TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
 
@@ -7060,7 +7098,14 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
         MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
         TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
 
-        MsQuicConnection Client(Registration, PartitionIndex);
+        MsQuicConnection Client(
+            Registration, PartitionIndex, CleanUpManual,
+            [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                TestPartitionVerifyCallback(Context);
+                return QUIC_STATUS_SUCCESS;
+            },
+            &CallbackContext);
         TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
         TEST_QUIC_SUCCEEDED(Client.Start(
             ClientConfiguration, ServerLocalAddr.GetFamily(),
@@ -7085,7 +7130,7 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
         Ec.Thread.Wait();
     }
 
-    TEST_EQUAL(ListenerContext.ExpectedThreadId, ListenerContext.ActualThreadId);
+    TestPartitionVerifyCallbackContext(&CallbackContext);
 }
 
 void

@@ -1149,11 +1149,13 @@ struct MsQuicConnection {
     QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
+    bool Started {false};
     uint32_t ResumptionTicketLength {0};
     uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
     CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent ResumptionTicketReceivedEvent;
+    CxPlatEvent ShutdownCompleteEvent {true};
 #endif // CX_PLATFORM_TYPE
 
     MsQuicConnection(
@@ -1161,7 +1163,8 @@ struct MsQuicConnection {
         _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
         _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
-        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context)
+        {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -1213,6 +1216,11 @@ struct MsQuicConnection {
 
     ~MsQuicConnection() noexcept {
         Close();
+#ifdef CX_PLATFORM_TYPE
+        if (IsValid()) {
+            ShutdownCompleteEvent.WaitForever();
+        }
+#endif // CX_PLATFORM_TYPE
         delete[] ResumptionTicket;
     }
 
@@ -1255,7 +1263,11 @@ struct MsQuicConnection {
             const char* ServerName,
         _In_ uint16_t ServerPort // Host byte order
         ) noexcept {
-        return MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
+        QUIC_STATUS Status = MsQuic->ConnectionStart(Handle, Config, Family, ServerName, ServerPort);
+        if (QUIC_SUCCEEDED(Status)) {
+            Started = true;
+        }
+        return Status;
     }
 
     QUIC_STATUS
@@ -1485,6 +1497,9 @@ private:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) noexcept {
         CXPLAT_DBG_ASSERT(pThis);
+        auto DeleteOnExit =
+            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             pThis->HandshakeComplete = true;
             pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
@@ -1516,10 +1531,10 @@ private:
 #endif // CX_PLATFORM_TYPE
             }
         }
-        auto DeleteOnExit =
-            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
-            pThis->CleanUpMode == CleanUpAutoDelete;
         auto Status = pThis->Callback(pThis, pThis->Context, Event);
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            pThis->ShutdownCompleteEvent.Set();
+        }
         if (DeleteOnExit) {
             delete pThis;
         }
