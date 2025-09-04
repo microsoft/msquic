@@ -6864,15 +6864,11 @@ struct TestPartitionCallbackContext {
     bool CloseInStop;
 };
 
-// TODO: remove
-void WrongThread() {}
-
 void
 TestPartitionVerifyCallback(TestPartitionCallbackContext* Context)
 {
     if (TestCurThreadID() != Context->ExpectedThreadId) {
         Context->ActualThreadId = TestCurThreadID();
-        WrongThread();
     }
 }
 
