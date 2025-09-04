@@ -1040,6 +1040,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct QUIC_NETWORK_STATISTICS
+#define QUIC_PARAM_CONN_CLOSE_ASYNC                     0x0500001A  // uint8_t
 #endif
 
 //

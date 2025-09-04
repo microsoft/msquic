@@ -1475,6 +1475,26 @@ tracepoint(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for CloseAsyncUpdated
+// [conn][%p] Updated CloseAsync to %hhu
+// QuicTraceLogConnVerbose(
+            CloseAsyncUpdated,
+            Connection,
+            "Updated CloseAsync to %hhu",
+            Connection->State.CloseAsync);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.CloseAsync = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_CloseAsyncUpdated
+#define _clog_4_ARGS_TRACE_CloseAsyncUpdated(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CONNECTION_C, CloseAsyncUpdated , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ForceKeyUpdate
 // [conn][%p] Forcing key update
 // QuicTraceLogConnVerbose(

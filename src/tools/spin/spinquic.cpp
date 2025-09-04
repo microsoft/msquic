@@ -824,6 +824,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
         break; // Get Only
     case QUIC_PARAM_CONN_STATISTICS_V2_PLAT:                        // QUIC_STATISTICS_V2
         break; // Get Only
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:                               // uint8_t (BOOLEAN)
+        // Do not set: this test does not implement async close waiting.
+        break;
     default:
         break;
     }

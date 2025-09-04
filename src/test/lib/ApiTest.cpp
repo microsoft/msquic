@@ -4965,6 +4965,46 @@ void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registratio
     UNREFERENCED_PARAMETER(Registration);
 }
 
+void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
+{
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_ASYNC");
+    MsQuicConnection Connection(Registration);
+    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+    {
+        TestScopeLogger LogScope1("GetParam default");
+        BOOLEAN Flag = FALSE;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(BOOLEAN), &Flag);
+    }
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t CloseAsync = true;
+        uint8_t GetValue = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_CLOSE_ASYNC,
+                sizeof(CloseAsync),
+                &CloseAsync));
+        Connection.CloseAsync = TRUE;
+        uint32_t BufferSize = sizeof(GetValue);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_CLOSE_ASYNC,
+                &BufferSize,
+                &GetValue));
+        TEST_EQUAL(BufferSize, sizeof(GetValue));
+        TEST_EQUAL(GetValue, CloseAsync);
+    }
+#else
+    UNREFERENCED_PARAMETER(Registration);
+    UNREFERENCED_PARAMETER(ClientConfiguration);
+#endif
+}
+
 void QuicTestConnectionParam()
 {
     MsQuicAlpn Alpn("MsQuicTest");
@@ -5000,6 +5040,7 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
     QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(Registration);
+    QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(Registration);
 }
 
 //
@@ -6989,9 +7030,12 @@ QuicTestValidatePartitionInline(const uint32_t EcCount)
     // The registration close will not complete until each of these objects is
     // cleaned up, so we do not need to wait for each of these explicitly.
     //
-    Server->AsyncClose = TRUE;
+    BOOLEAN CloseAsync = TRUE;
+    TEST_QUIC_SUCCEEDED(Server->SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+    Server->CloseAsync = TRUE;
     Server->Close();
-    Server->AsyncClose = TRUE;
+    TEST_QUIC_SUCCEEDED(Client->SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+    Client->CloseAsync = TRUE;
     Client->Close();
     Listener.Stop();
 
@@ -7126,13 +7170,6 @@ QuicTestValidatePartitionWorker(const uint32_t EcCount)
                 return QUIC_STATUS_CONTINUE;
             })
         );
-
-        //
-        // Ensure the connections wait for the final shutdown callback before
-        // finishing destruction.
-        //
-        Server->AsyncClose = TRUE;
-        Client.AsyncClose = TRUE;
     }
 
     for (uint32_t i = 0; i < EcCount; i++) {

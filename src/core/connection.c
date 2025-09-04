@@ -6724,6 +6724,28 @@ QuicConnParamSet(
         break;
     }
 
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.HandleClosed) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.CloseAsync = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            CloseAsyncUpdated,
+            Connection,
+            "Updated CloseAsync to %hhu",
+            Connection->State.CloseAsync);
+
+        break;
+
     //
     // Private
     //
@@ -7394,6 +7416,25 @@ QuicConnParamGet(
             QuicConnGetNetworkStatistics(Connection, BufferLength, (QUIC_NETWORK_STATISTICS *)Buffer);
         break;
 
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.CloseAsync;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -7579,7 +7620,7 @@ QuicConnProcessApiOperation(
 
     case QUIC_API_TYPE_CONN_CLOSE:
         QuicConnCloseHandle(Connection);
-        if (MsQuicLib.CustomExecutions && Connection->State.ExternalOwner) {
+        if (Connection->State.CloseAsync) {
             CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
             //
             // Release the external reference to the connection for async

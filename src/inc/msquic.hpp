@@ -1149,7 +1149,7 @@ struct MsQuicConnection {
     QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
-    bool AsyncClose {false};
+    bool CloseAsync {false};
     uint32_t ResumptionTicketLength {0};
     uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
@@ -1217,7 +1217,7 @@ struct MsQuicConnection {
     ~MsQuicConnection() noexcept {
         Close();
 #ifdef CX_PLATFORM_TYPE
-        if (AsyncClose) {
+        if (CloseAsync) {
             ShutdownCompleteEvent.WaitForever();
         }
 #endif // CX_PLATFORM_TYPE
