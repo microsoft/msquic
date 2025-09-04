@@ -42,17 +42,19 @@ typedef struct QUIC_LISTENER {
     BOOLEAN DosModeEventsEnabled;
 
     //
-    // Indicates a DoS Mode event indication is required.
+    // Indicates a DoS Mode event indication is required; cannot share a
+    // bitfield due to atomic update.
     //
     BOOLEAN NeedsDosModeModeEvent;
 
     //
-    // Tracks the most recent DoS Mode event state.
+    // Tracks the most recent DoS Mode event state. Uses best-effort
+    // synchronization.
     //
     BOOLEAN DosModeEnabled;
 
     //
-    // Indicates the listener is using a specific partition.
+    // Indicates the listener is constrained to a specific partition.
     //
     BOOLEAN Partitioned : 1;
 

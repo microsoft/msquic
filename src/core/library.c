@@ -735,13 +735,11 @@ MsQuicLibraryUninitialize(
 
     CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
 
-    if (MsQuicLib.RegistrationCloseCleanupWorker) {
-        MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
-        CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
-        CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
-        CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
-        MsQuicLib.RegistrationCloseCleanupWorker = 0;
-    }
+    MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
+    CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+    CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
+    CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
+    MsQuicLib.RegistrationCloseCleanupWorker = 0;
 
     CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
     CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);

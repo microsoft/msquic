@@ -463,10 +463,6 @@ QuicListenerEndStopComplete(
     _In_ QUIC_LISTENER* Listener
     )
 {
-    //
-    // If !Listener->NeedsCleanup, then another thread is waiting on this event
-    // and may immediately free the listener after setting the stop event.
-    //
     Listener->Stopped = TRUE;
     CxPlatEventSet(Listener->StopEvent);
 }
