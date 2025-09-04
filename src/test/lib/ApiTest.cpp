@@ -4969,10 +4969,10 @@ void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
 {
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_ASYNC");
-    MsQuicConnection Connection(Registration);
-    TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
     {
         TestScopeLogger LogScope1("GetParam default");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
         BOOLEAN Flag = FALSE;
         SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(BOOLEAN), &Flag);
     }
