@@ -308,7 +308,7 @@ jobs:
       shell: pwsh
     - name: Interop
       shell: pwsh
-      run: scripts/interop.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -GenerateXmlResults
+      run: scripts/interop.ps1 -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -GHA -GenerateXmlResults -LogProfile ${{ !inputs.log_level && 'Full.Light' || inputs.log_level }}
     - name: Upload results
       uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
       if: failure() || cancelled()
