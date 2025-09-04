@@ -33,31 +33,12 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QUIC_API
-MsQuicConnectionOpen(
-    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
-    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
-    _In_opt_ void* Context,
-    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
-        HQUIC *NewConnection
-    )
-{
-    return
-        MsQuicConnectionOpenInPartition(
-            RegistrationHandle,
-            QuicLibraryGetCurrentPartition()->Index,
-            Handler,
-            Context,
-            NewConnection);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-QUIC_STATUS
-QUIC_API
-MsQuicConnectionOpenInPartition(
+QuicConnectionOpenInPartition(
     _In_ _Pre_defensive_ HQUIC RegistrationHandle,
     _In_ uint16_t PartitionIndex,
     _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
     _In_opt_ void* Context,
+    _In_ BOOLEAN Partitioned,
     _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
         HQUIC *NewConnection
     )
@@ -98,6 +79,14 @@ MsQuicConnectionOpenInPartition(
         goto Error;
     }
 
+    //
+    // Hard partitioning is only supported on a subset of platforms.
+    //
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+    Connection->State.Partitioned = Partitioned;
+#else
+    UNREFERENCED_PARAMETER(Partitioned);
+#endif
     Connection->ClientCallbackHandler = Handler;
     Connection->ClientContext = Context;
 
@@ -114,6 +103,49 @@ Error:
     return Status;
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpen(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionOpenInPartition(
+            RegistrationHandle,
+            QuicLibraryGetCurrentPartition()->Index,
+            Handler,
+            Context,
+            FALSE,
+            NewConnection);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicConnectionOpenInPartition(
+    _In_ _Pre_defensive_ HQUIC RegistrationHandle,
+    _In_ uint16_t PartitionIndex,
+    _In_ _Pre_defensive_ QUIC_CONNECTION_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context,
+    _Outptr_ _At_(*NewConnection, __drv_allocatesMem(Mem)) _Pre_defensive_
+        HQUIC *NewConnection
+    )
+{
+    return
+        QuicConnectionOpenInPartition(
+            RegistrationHandle,
+            PartitionIndex,
+            Handler,
+            Context,
+            TRUE,
+            NewConnection);
+}
+
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand the free happens on the worker
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -125,6 +157,7 @@ MsQuicConnectionClose(
     )
 {
     QUIC_CONNECTION* Connection;
+    BOOLEAN WaitForCompletion = TRUE;
 
     CXPLAT_PASSIVE_CODE();
 
@@ -157,7 +190,7 @@ MsQuicConnectionClose(
 
     CXPLAT_TEL_ASSERT(!Connection->State.HandleClosed);
 
-    if (MsQuicLib.CustomExecutions || IsWorkerThread) {
+    if (IsWorkerThread) {
         //
         // Execute this blocking API call inline if called on the worker thread.
         //
@@ -172,40 +205,49 @@ MsQuicConnectionClose(
 
     } else {
 
-        CXPLAT_EVENT CompletionEvent;
-        QUIC_OPERATION Oper = { 0 };
-        QUIC_API_CONTEXT ApiCtx;
+        CXPLAT_EVENT CompletionEvent = {0};
 
-        Oper.Type = QUIC_OPER_TYPE_API_CALL;
-        Oper.FreeAfterProcess = FALSE;
-        Oper.API_CALL.Context = &ApiCtx;
+        Connection->CloseOper.Type = QUIC_OPER_TYPE_API_CALL;
+        Connection->CloseOper.FreeAfterProcess = FALSE;
+        Connection->CloseOper.API_CALL.Context = &Connection->CloseApiContext;
 
-        ApiCtx.Type = QUIC_API_TYPE_CONN_CLOSE;
-        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
-        ApiCtx.Completed = &CompletionEvent;
-        ApiCtx.Status = NULL;
+        Connection->CloseApiContext.Type = QUIC_API_TYPE_CONN_CLOSE;
+        Connection->CloseApiContext.Status = NULL;
+
+        if (Connection->State.CloseAsync) {
+            Connection->CloseApiContext.Completed = NULL;
+            WaitForCompletion = FALSE;
+        } else {
+            CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+            Connection->CloseApiContext.Completed = &CompletionEvent;
+        }
 
         //
         // Queue the operation and wait for it to be processed.
         //
-        QuicConnQueueOper(Connection, &Oper);
-        QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
-        CxPlatEventWaitForever(CompletionEvent);
-        CxPlatEventUninitialize(CompletionEvent);
+        QuicConnQueueOper(Connection, &Connection->CloseOper);
+
+        if (WaitForCompletion) {
+            QuicTraceEvent(
+                ApiWaitOperation,
+                "[ api] Waiting on operation");
+            CxPlatEventWaitForever(CompletionEvent);
+            CxPlatEventUninitialize(CompletionEvent);
+        }
     }
 
     //
     // Connection can only be released by the application after the released
     // flag was set, in response to the CONN_CLOSE operation was processed.
     //
-    CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
+    if (WaitForCompletion) {
+        CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
 
-    //
-    // Release the reference to the Connection.
-    //
-    QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        //
+        // Release the reference to the Connection.
+        //
+        QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+    }
 
 Error:
 

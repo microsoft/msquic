@@ -1870,7 +1870,7 @@ QuicConnStart(
     UdpConfig.LocalAddress = Connection->State.LocalAddressSet ? &Path->Route.LocalAddress : NULL;
     UdpConfig.RemoteAddress = &Path->Route.RemoteAddress;
     UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
-    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0, // NOLINT(google-readability-casting)
+    UdpConfig.InterfaceIndex = Connection->State.LocalInterfaceSet ? (uint32_t)Path->Route.LocalAddress.Ipv6.sin6_scope_id : 0; // NOLINT(google-readability-casting)
     UdpConfig.PartitionIndex = QuicPartitionIdGetIndex(Connection->PartitionID);
 #ifdef QUIC_COMPARTMENT_ID
     UdpConfig.CompartmentId = Configuration->CompartmentId;
@@ -1887,6 +1887,9 @@ QuicConnStart(
     }
     if (Connection->Settings.QTIPEnabled) {
         UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_QTIP;
+    }
+    if (Connection->State.Partitioned) {
+        UdpConfig.Flags |= CXPLAT_SOCKET_FLAG_PARTITIONED;
     }
 
     //
@@ -5594,7 +5597,8 @@ QuicConnRecvDatagramBatch(
             RecvState->ResetIdleTimeout |= Packet->CompletelyValid;
 
             if (Connection->Registration != NULL && !Connection->Registration->NoPartitioning &&
-                Path->IsActive && !Path->PartitionUpdated && Packet->CompletelyValid &&
+                !Path->Binding->Partitioned && !Connection->State.Partitioned && Path->IsActive &&
+                !Path->PartitionUpdated && Packet->CompletelyValid &&
                 (Packets[i]->PartitionIndex % MsQuicLib.PartitionCount) != RecvState->PartitionIndex) {
                 RecvState->PartitionIndex = Packets[i]->PartitionIndex % MsQuicLib.PartitionCount;
                 RecvState->UpdatePartitionId = TRUE;
@@ -6720,6 +6724,28 @@ QuicConnParamSet(
         break;
     }
 
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Connection->State.HandleClosed) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        Connection->State.CloseAsync = *(BOOLEAN*)Buffer;
+        Status = QUIC_STATUS_SUCCESS;
+
+        QuicTraceLogConnVerbose(
+            CloseAsyncUpdated,
+            Connection,
+            "Updated CloseAsync to %hhu",
+            Connection->State.CloseAsync);
+
+        break;
+
     //
     // Private
     //
@@ -7390,6 +7416,25 @@ QuicConnParamGet(
             QuicConnGetNetworkStatistics(Connection, BufferLength, (QUIC_NETWORK_STATISTICS *)Buffer);
         break;
 
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Connection->State.CloseAsync;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
         break;
@@ -7575,6 +7620,14 @@ QuicConnProcessApiOperation(
 
     case QUIC_API_TYPE_CONN_CLOSE:
         QuicConnCloseHandle(Connection);
+        if (Connection->State.CloseAsync) {
+            CXPLAT_TEL_ASSERT(Connection->State.HandleClosed);
+            //
+            // Release the external reference to the connection for async
+            // completion.
+            //
+            QuicConnRelease(Connection, QUIC_CONN_REF_HANDLE_OWNER);
+        }
         break;
 
     case QUIC_API_TYPE_CONN_SHUTDOWN:

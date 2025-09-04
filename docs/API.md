@@ -90,7 +90,7 @@ Please note, there is no explicit start/stop API for this library. Each API func
 
 Generally, each app only needs a single registration. The registration represents the execution context where all logic for the app's connections run. The library will create a number of worker threads for each registration, shared for all the connections. This execution context is not shared between different registrations.
 
-A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md).
+A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md) or (Preview) [RegistrationClose2](api/RegistrationClose2.md).
 
 ## Configuration
 

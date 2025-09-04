@@ -211,6 +211,14 @@ typedef struct QUIC_BINDING {
     BOOLEAN Connected : 1;
 
     //
+    // Indicates that the binding is constrained to a single partition. If
+    // partitioned, the binding must indicate all events within the partition,
+    // use the event queue belonging to the partition for IO, and perform its
+    // own processing within the partition's execution context.
+    //
+    BOOLEAN Partitioned : 1;
+
+    //
     // Number of (connection and listener) references to the binding.
     //
     uint32_t RefCount;
@@ -226,6 +234,11 @@ typedef struct QUIC_BINDING {
     //
     QUIC_COMPARTMENT_ID CompartmentId;
 #endif
+
+    //
+    // The partition index, if partitioned.
+    //
+    uint16_t PartitionIndex;
 
     //
     // The datapath binding.

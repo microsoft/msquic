@@ -63,8 +63,8 @@ tracepoint(CLOG_API_C, ApiExitStatus , arg2);\
 // Decoder Ring for ApiWaitOperation
 // [ api] Waiting on operation
 // QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
+                ApiWaitOperation,
+                "[ api] Waiting on operation");
 ----------------------------------------------------------*/
 #ifndef _clog_2_ARGS_TRACE_ApiWaitOperation
 #define _clog_2_ARGS_TRACE_ApiWaitOperation(uniqueId, encoded_arg_string)\

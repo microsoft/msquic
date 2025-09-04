@@ -993,6 +993,7 @@ namespace Microsoft.Quic
         SEND_STATELESS_RESET,
         SEND_STATELESS_RETRY,
         CONN_LOAD_REJECT,
+        LISTEN_QUEUE_DEPTH,
         MAX,
     }
 
@@ -3555,6 +3556,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("QUIC_EXECUTION_POLL_FN")]
         internal delegate* unmanaged[Cdecl]<QUIC_EXECUTION*, uint> ExecutionPoll;
+
+        [NativeTypeName("QUIC_REGISTRATION_CLOSE2_FN")]
+        internal delegate* unmanaged[Cdecl]<QUIC_HANDLE*, delegate* unmanaged[Cdecl]<void*, void>, void*, void> RegistrationClose2;
     }
 
     internal static unsafe partial class MsQuic
@@ -3677,6 +3681,9 @@ namespace Microsoft.Quic
         [NativeTypeName("#define QUIC_PARAM_LISTENER_CIBIR_ID 0x04000002")]
         internal const uint QUIC_PARAM_LISTENER_CIBIR_ID = 0x04000002;
 
+        [NativeTypeName("#define QUIC_PARAM_LISTENER_PARTITION_INDEX 0x04000005")]
+        internal const uint QUIC_PARAM_LISTENER_PARTITION_INDEX = 0x04000005;
+
         [NativeTypeName("#define QUIC_PARAM_DOS_MODE_EVENTS 0x04000004")]
         internal const uint QUIC_PARAM_DOS_MODE_EVENTS = 0x04000004;
 
@@ -3760,6 +3767,9 @@ namespace Microsoft.Quic
 
         [NativeTypeName("#define QUIC_PARAM_CONN_NETWORK_STATISTICS 0x05000020")]
         internal const uint QUIC_PARAM_CONN_NETWORK_STATISTICS = 0x05000020;
+
+        [NativeTypeName("#define QUIC_PARAM_CONN_CLOSE_ASYNC 0x0500001A")]
+        internal const uint QUIC_PARAM_CONN_CLOSE_ASYNC = 0x0500001A;
 
         [NativeTypeName("#define QUIC_PARAM_TLS_HANDSHAKE_INFO 0x06000000")]
         internal const uint QUIC_PARAM_TLS_HANDSHAKE_INFO = 0x06000000;

@@ -23,8 +23,9 @@ A registration handle from a previous call to [RegistrationOpen](RegistrationOpe
 
 # Remarks
 
-The application **must** close/delete all child configurations and connection objects before closing the registration. This call **will block** on those outstanding objects being cleaned up. Do no call it on any MsQuic event callback, or it will deadlock.
+The application **must** close/delete all child configurations and connection objects before closing the registration. This call **will block** on those outstanding objects being cleaned up. Do not call it on any MsQuic event callback or a thread that would otherwise be running an external execution context, or it will deadlock.
 
 # See Also
 
 [RegistrationOpen](RegistrationOpen.md)<br>
+(Preview) [RegistrationClose2](RegistrationClose2.md)<br>

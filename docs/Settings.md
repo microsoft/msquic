@@ -171,6 +171,7 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_LISTENER_STATS`<br> 1         | QUIC_LISTENER_STATISTICS  | Get-only  | Get statistics specific to this Listener instance.        |
 | `QUIC_PARAM_LISTENER_CIBIR_ID`<br> 2      | uint8_t[]                 | Both      | The CIBIR well-known idenfitier.                          |
 | `QUIC_PARAM_DOS_MODE_EVENTS`<br> 2        | BOOLEAN                   | Both      | The Listener opted in for DoS Mode event.                 |
+| `QUIC_PARAM_LISTENER_PARTITION_INDEX`<br> (preview) | uint16_t           | Both      | The partition to use for listener callback events and incoming connections. |
 
 ## Connection Parameters
 
@@ -204,7 +205,8 @@ These parameters are accessed by calling [GetParam](./api/GetParam.md) or [SetPa
 | `QUIC_PARAM_CONN_STATISTICS_V2_PLAT`<br> 23       | QUIC_STATISTICS_V2            | Get-only  | Connection-level statistics with platform-specific time format, version 2.                |
 | `QUIC_PARAM_CONN_ORIG_DEST_CID` <br> 24           | uint8_t[]                     | Get-only  | The original destination connection ID used by the client to connect to the server.       |
 | `QUIC_PARAM_CONN_SEND_DSCP` <br> 25               | uint8_t                       | Both      | The DiffServ Code Point put in the DiffServ field (formerly TypeOfService/TrafficClass) on packets sent from this connection. |
-| `QUIC_PARAM_CONN_NETWORK_STATISTICS` <br> 20      | QUIC_NETWORK_STATISTICS       | Get-only  | Returns Connection level network statistics |
+| `QUIC_PARAM_CONN_NETWORK_STATISTICS` <br> 32      | QUIC_NETWORK_STATISTICS       | Get-only  | Returns Connection level network statistics |
+| `QUIC_PARAM_CONN_CLOSE_ASYNC` <br> 26      | uint8_t (BOOLEAN)      | Both  | The desired connection close behavior. Defaults to false (synchronous). |
 
 ### QUIC_PARAM_CONN_STATISTICS_V2
 
