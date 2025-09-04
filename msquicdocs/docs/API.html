@@ -184,7 +184,7 @@
 <p>Please note, there is no explicit start/stop API for this library. Each API function table has a reference on the QUIC library: the library is initialized when the first call to <a href="api/MsQuicOpenVersion.html">MsQuicOpenVersion</a> succeeds and uninitialized when the last call to <a href="api/MsQuicClose.html">MsQuicClose</a> completes. An app should therefore beware of repeatedly calling <a href="api/MsQuicOpenVersion.html">MsQuicOpenVersion</a> and <a href="api/MsQuicClose.html">MsQuicClose</a>, as library setup/cleanup can be expensive.</p>
 <h2 id="registration">Registration</h2>
 <p>Generally, each app only needs a single registration. The registration represents the execution context where all logic for the app's connections run. The library will create a number of worker threads for each registration, shared for all the connections. This execution context is not shared between different registrations.</p>
-<p>A registration is created by calling <a href="api/RegistrationOpen.html">RegistrationOpen</a> and deleted by calling <a href="api/RegistrationClose.html">RegistrationClose</a>.</p>
+<p>A registration is created by calling <a href="api/RegistrationOpen.html">RegistrationOpen</a> and deleted by calling <a href="api/RegistrationClose.html">RegistrationClose</a> or (Preview) <a href="api/RegistrationClose2.html">RegistrationClose2</a>.</p>
 <h2 id="configuration">Configuration</h2>
 <p>TODO</p>
 <p>A configuration is created by calling <a href="api/ConfigurationOpen.html">ConfigurationOpen</a> and deleted by calling <a href="api/ConfigurationClose.html">ConfigurationClose</a>.</p>

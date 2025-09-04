@@ -2,9 +2,9 @@
 <html>
   <head>
     <meta charset="utf-8">
-      <title>RegistrationClose function </title>
+      <title>RegistrationClose2 function </title>
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <meta name="title" content="RegistrationClose function ">
+      <meta name="title" content="RegistrationClose2 function ">
       
       
       <link rel="icon" href="../../favicon.ico">
@@ -16,7 +16,7 @@
       <meta name="docfx:rel" content="../../">
       
       
-      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/RegistrationClose.md/#L1">
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/api/RegistrationClose2.md/#L1">
       <meta name="loc:inThisArticle" content="In this article">
       <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
       <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
@@ -85,31 +85,52 @@
         </div>
 
         <article data-uid="">
-<h1 id="registrationclose-function">RegistrationClose function</h1>
+<h1 id="registrationclose2-function">RegistrationClose2 function</h1>
 
-<p>Closes an existing registration.</p>
+<blockquote>
+<p><strong>Preview</strong>
+This routine is in preview and is subject to breaking changes.</p>
+</blockquote>
+<p>Closes an existing registration asynchronously.</p>
 <h1 id="syntax">Syntax</h1>
 <pre><code class="lang-C">typedef
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+(QUIC_API QUIC_REGISTRATION_CLOSE_CALLBACK)(
+    _In_opt_ void* Context
+    );
+typedef QUIC_REGISTRATION_CLOSE_CALLBACK *QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER;
+
+typedef
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-(QUIC_API * QUIC_REGISTRATION_CLOSE_FN)(
+(QUIC_API * QUIC_REGISTRATION_CLOSE2_FN)(
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
-        HQUIC Registration
+        HQUIC Registration,
+    _In_ _Pre_defensive_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context
     );
 </code></pre>
 <h1 id="parameters">Parameters</h1>
 <p><code>Registration</code></p>
 <p>A registration handle from a previous call to <a href="RegistrationOpen.html">RegistrationOpen</a>.</p>
+<p><code>Handler</code></p>
+<p>A registration close completion handler. It will be invoked exactly once upon completion of the registration close request.</p>
+<p><code>Context</code></p>
+<p>The context to provide to the close completion handler.</p>
 <h1 id="remarks">Remarks</h1>
-<p>The application <strong>must</strong> close/delete all child configurations and connection objects before closing the registration. This call <strong>will block</strong> on those outstanding objects being cleaned up. Do not call it on any MsQuic event callback or a thread that would otherwise be running an external execution context, or it will deadlock.</p>
+<blockquote>
+<p><strong>Preview</strong>
+This routine is in preview and is subject to breaking changes.</p>
+</blockquote>
+<p>The application should close/delete all child configurations and connection objects before closing the registration. This request <strong>will not complete</strong> until those outstanding objects are cleaned up.</p>
 <h1 id="see-also">See Also</h1>
-<p><a href="RegistrationOpen.html">RegistrationOpen</a><br>
-(Preview) <a href="RegistrationClose2.html">RegistrationClose2</a><br></p>
+<p><a href="RegistrationOpen.html">RegistrationOpen</a><br></p>
 
 </article>
 
         <div class="contribution d-print-none">
-          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/RegistrationClose.md/#L1" class="edit-link">Edit this page</a>
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/api/RegistrationClose2.md/#L1" class="edit-link">Edit this page</a>
         </div>
 
         <div class="next-article d-print-none border-top" id="nextArticle"></div>
