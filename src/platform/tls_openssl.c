@@ -35,11 +35,11 @@ Abstract:
  //
  // @struct CXPLAT_SEC_CONFIG
  // @brief Represents the security configuration used for TLS.
- // 
+ //
  // This structure encapsulates all the necessary information for
  // configuring TLS security settings, including SSL context,
  // ticket keying, and callback functions.
- // 
+ //
 typedef struct CXPLAT_SEC_CONFIG {
 
     //
@@ -202,7 +202,7 @@ typedef struct SECRET_SET {
 //
 typedef struct AUX_DATA {
     //
-    // @brief transport params for our endpoint 
+    // @brief transport params for our endpoint
     //
     const uint8_t *Tp;
 
@@ -345,7 +345,7 @@ static int QuicTlsSend(SSL *s, const unsigned char *Buf,
         //
         // Double the allocated Buffer length until there's enough room for the
         // new data.
-        // 
+        //
         uint16_t NewBufferAllocLength = TlsState->BufferAllocLength;
         while (BufLen + TlsState->BufferLength > (size_t)NewBufferAllocLength) {
             NewBufferAllocLength <<= 1;
@@ -545,7 +545,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
     if (AData->SecretSet[ProtLevel][Dir].Secret != NULL) {
         return 1;
     }
-    
+
     AData->SecretSet[ProtLevel][Dir].Secret = CXPLAT_ALLOC_NONPAGED(sizeof(struct AUX_DATA), QUIC_POOL_TLS_AUX_DATA);
     if (AData->SecretSet[ProtLevel][Dir].Secret == NULL) {
         return -1;
@@ -613,14 +613,14 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
         }
 
         if (TlsContext->IsServer && KeyType == QUIC_PACKET_KEY_1_RTT) {
-            // The 1-RTT read keys aren't actually allowed to be used until the 
+            // The 1-RTT read keys aren't actually allowed to be used until the
             // handshake completes.
-            // 
-        } else { 
+            //
+        } else {
             TlsState->ReadKey = KeyType;
             TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_READ_KEY_UPDATED;
             AData->SecretSet[ProtLevel][DIR_READ].installed = 1;
-        }       
+        }
     }
     if (AData->SecretSet[ProtLevel][DIR_READ].installed == 1 && AData->SecretSet[ProtLevel][DIR_WRITE].installed == 1) {
         AData->Level = ProtLevel;
@@ -655,7 +655,7 @@ static int QuicTlsYieldSecret(SSL *S, uint32_t ProtLevel,
                     memcpy(TlsContext->TlsSecrets->ClientHandshakeTrafficSecret,
                            AData->SecretSet[ProtLevel][DIR_WRITE].Secret, AData->SecretSet[ProtLevel][DIR_WRITE].SecretLen);
                     TlsContext->TlsSecrets->IsSet.ClientHandshakeTrafficSecret = TRUE;
-                } 
+                }
                 if (AData->SecretSet[ProtLevel][DIR_READ].Secret != NULL) {
                     memcpy(TlsContext->TlsSecrets->ServerHandshakeTrafficSecret,
                            AData->SecretSet[ProtLevel][DIR_READ].Secret, AData->SecretSet[ProtLevel][DIR_READ].SecretLen);
@@ -763,7 +763,7 @@ static int QuicTlsGotTp(SSL *S, const unsigned char *Params,
             }
         }
     }
-               
+
     return 1;
 }
 
@@ -796,7 +796,7 @@ static int QuicTlsAlert(SSL *S,
         "Send alert = %u (Level = %u)",
         AlertCode,
         (uint32_t)AData->Level);
-    
+
     TlsContext->State->AlertCode = (uint16_t)AlertCode;
     TlsContext->ResultFlags |= CXPLAT_TLS_RESULT_ERROR;
 
@@ -931,10 +931,10 @@ CxPlatTlsAlpnSelectCallback(
 
     CXPLAT_TLS* TlsContext = SSL_get_app_data(Ssl);
 
-    // 
+    //
     // QUIC already parsed and picked the ALPN to use and set it in the
     // NegotiatedAlpn variable.
-    // 
+    //
 
     CXPLAT_DBG_ASSERT(TlsContext->State->NegotiatedAlpn != NULL);
     *OutLen = TlsContext->State->NegotiatedAlpn[0];
@@ -1280,7 +1280,7 @@ CxPlatTlsOnClientSessionTicketReceived(
     //
     // We always return a "fail" response so that the session gets freed again
     // because we haven't used the reference.
-    // 
+    //
     return 0;
 }
 
@@ -2553,18 +2553,6 @@ CxPlatTlsInitialize(
         goto Exit;
     }
 
-    //
-    // Both the fuzzer and the HandshakeSpecificLossPattern tests have some
-    // issues with larger key shares as introduced by ML-KEM support in openssl
-    // The former doesn't expect Client/Server hellos to span multiple udp datagrams
-    // and hits a buffer space assertion failure, while the latter times out on loss
-    // recovery.  So for now mimic the key shares that schannel offers to work around
-    // that
-    //
-    // TODO: Remove this when the above tests are tolerant of addition of ML-KEM keyshares
-    //
-    SSL_set1_groups_list(TlsContext->Ssl, "secp256r1:x25519");
-
     if (!SSL_set_quic_tls_cbs(TlsContext->Ssl, OpenSslQuicDispatch, NULL)) {
         QuicTraceEvent(
             TlsError,
@@ -2598,7 +2586,7 @@ CxPlatTlsInitialize(
             "[ lib] ERROR, %s.",
             "Unable to allocate BIO");
         Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit; 
+        goto Exit;
     }
     BIO_set_app_data(ossl_bio, AData);
     BIO_set_callback_ex(ossl_bio, FreeBioAuxData);
