@@ -388,7 +388,7 @@ QuicWorkerQueueListener(
             "[list][%p] Scheduling: %u",
             Listener,
             QUIC_SCHEDULE_QUEUED);
-        QuicListenerInternalReference(Listener);
+        QuicListenerReference(Listener);
         CxPlatListInsertTail(&Worker->Listeners, &Listener->WorkerLink);
         ListenerQueued = TRUE;
     }
@@ -765,7 +765,7 @@ QuicWorkerProcessListener(
         // This worker is no longer managing the listener, so we can
         // release its reference.
         //
-        QuicListenerInternalRelease(Listener);
+        QuicListenerRelease(Listener);
     }
 }
 
@@ -811,7 +811,7 @@ QuicWorkerLoopCleanup(
         QUIC_LISTENER* Listener =
             CXPLAT_CONTAINING_RECORD(
                 CxPlatListRemoveHead(&Worker->Listeners), QUIC_LISTENER, WorkerLink);
-        QuicListenerInternalRelease(Listener);
+        QuicListenerRelease(Listener);
         --Dequeue;
     }
     QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH, Dequeue);

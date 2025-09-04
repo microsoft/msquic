@@ -104,12 +104,12 @@ typedef struct QUIC_LISTENER {
     //
     // Active reference count on the listener preventing a stop completion.
     //
-    CXPLAT_REF_COUNT RefCount;
+    CXPLAT_REF_COUNT StartRefCount;
 
     //
     // Internal reference count on the listener preventing cleanup.
     //
-    CXPLAT_REF_COUNT InternalRefCount;
+    CXPLAT_REF_COUNT RefCount;
 
     //
     // Event to signal when the listener is stopped.
@@ -188,7 +188,7 @@ QuicListenerTraceRundown(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicListenerReference(
+QuicListenerStartReference(
     _In_ QUIC_LISTENER* Listener
     );
 
@@ -197,20 +197,20 @@ QuicListenerReference(
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicListenerRelease(
+QuicListenerStartRelease(
     _In_ QUIC_LISTENER* Listener,
     _In_ BOOLEAN IndicateEvent
     );
 
     _IRQL_requires_max_(DISPATCH_LEVEL)
 void
-QuicListenerInternalReference(
+QuicListenerReference(
     _In_ QUIC_LISTENER* Listener
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-QuicListenerInternalRelease(
+QuicListenerRelease(
     _In_ QUIC_LISTENER* Listener
     );
 

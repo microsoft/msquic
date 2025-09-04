@@ -83,7 +83,7 @@ MsQuicListenerOpen(
     Listener->Stopped = TRUE;
     Listener->DosModeEventsEnabled = FALSE;
     CxPlatEventInitialize(&Listener->StopEvent, TRUE, TRUE);
-    CxPlatRefInitialize(&Listener->InternalRefCount);
+    CxPlatRefInitialize(&Listener->RefCount);
 
 #ifdef QUIC_SILO
     Listener->Silo = QuicSiloGetCurrentServerSilo();
@@ -155,8 +155,8 @@ QuicListenerFree(
     }
     CxPlatDispatchLockRelease(&Listener->Registration->ConnectionLock);
 
-    CxPlatRefUninitialize(&Listener->InternalRefCount);
     CxPlatRefUninitialize(&Listener->RefCount);
+    CxPlatRefUninitialize(&Listener->StartRefCount);
     CxPlatEventUninitialize(Listener->StopEvent);
     CXPLAT_DBG_ASSERT(Listener->AlpnList == NULL);
     CXPLAT_FREE(Listener, QUIC_POOL_LISTENER);
@@ -202,7 +202,7 @@ MsQuicListenerClose(
         CxPlatEventWaitForever(Listener->StopEvent);
     }
 
-    QuicListenerInternalRelease(Listener);
+    QuicListenerRelease(Listener);
 
     QuicTraceEvent(
         ApiExit,
@@ -370,7 +370,7 @@ MsQuicListenerStart(
 
     Listener->Stopped = FALSE;
     CxPlatEventReset(Listener->StopEvent);
-    CxPlatRefInitialize(&Listener->RefCount);
+    CxPlatRefInitialize(&Listener->StartRefCount);
 
     Status = QuicBindingRegisterListener(Listener->Binding, Listener);
     if (QUIC_FAILED(Status)) {
@@ -380,7 +380,7 @@ MsQuicListenerStart(
             Listener,
             Status,
             "Register with binding");
-        QuicListenerRelease(Listener, FALSE);
+        QuicListenerStartRelease(Listener, FALSE);
         goto Error;
     }
 
@@ -485,7 +485,7 @@ QuicListenerIndicateStopComplete(
     // Take an internal cleanup reference to prevent an inline ListenerClose
     // freeing the listener from under us.
     //
-    QuicListenerInternalReference(Listener);
+    QuicListenerReference(Listener);
 
     QuicListenerAttachSilo(Listener);
 
@@ -500,7 +500,7 @@ QuicListenerIndicateStopComplete(
 
     QuicListenerDetachSilo();
 
-    QuicListenerInternalRelease(Listener);
+    QuicListenerRelease(Listener);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -520,7 +520,7 @@ QuicListenerBeginStopComplete(
     //
     // Ensure the listener is not freed while processing this function.
     //
-    QuicListenerInternalReference(Listener);
+    QuicListenerReference(Listener);
 
     if (Listener->AlpnList != NULL) {
         CXPLAT_FREE(Listener->AlpnList, QUIC_POOL_ALPN);
@@ -541,7 +541,28 @@ QuicListenerBeginStopComplete(
         QuicListenerEndStopComplete(Listener);
     }
 
-    QuicListenerInternalRelease(Listener);
+    QuicListenerRelease(Listener);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicListenerStartReference(
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CxPlatRefIncrement(&Listener->StartRefCount);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicListenerStartRelease(
+    _In_ QUIC_LISTENER* Listener,
+    _In_ BOOLEAN IndicateEvent
+    )
+{
+    if (CxPlatRefDecrement(&Listener->StartRefCount)) {
+        QuicListenerBeginStopComplete(Listener, IndicateEvent);
+    }
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -556,31 +577,10 @@ QuicListenerReference(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicListenerRelease(
-    _In_ QUIC_LISTENER* Listener,
-    _In_ BOOLEAN IndicateEvent
+    _In_ QUIC_LISTENER* Listener
     )
 {
     if (CxPlatRefDecrement(&Listener->RefCount)) {
-        QuicListenerBeginStopComplete(Listener, IndicateEvent);
-    }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-void
-QuicListenerInternalReference(
-    _In_ QUIC_LISTENER* Listener
-    )
-{
-    CxPlatRefIncrement(&Listener->InternalRefCount);
-}
-
-_IRQL_requires_max_(PASSIVE_LEVEL)
-void
-QuicListenerInternalRelease(
-    _In_ QUIC_LISTENER* Listener
-    )
-{
-    if (CxPlatRefDecrement(&Listener->InternalRefCount)) {
         QuicListenerFree(Listener);
     }
 }
@@ -596,7 +596,7 @@ QuicListenerStopAsync(
         QuicLibraryReleaseBinding(Listener->Binding);
         Listener->Binding = NULL;
 
-        QuicListenerRelease(Listener, TRUE);
+        QuicListenerStartRelease(Listener, TRUE);
     }
 }
 
@@ -1083,7 +1083,7 @@ QuicListenerHandleDosModeStateChange(
             //
             Listener->DosModeEnabled = DosModeEnabled;
             if (!InterlockedFetchAndSetBoolean(&Listener->NeedsDosModeModeEvent)) {
-                QuicListenerReference(Listener);
+                QuicListenerStartReference(Listener);
                 QuicWorkerQueueListener(Listener->Worker, Listener);
             }
         }
@@ -1103,7 +1103,7 @@ QuicListenerDrainOperations(
         CXPLAT_FRE_ASSERT(InterlockedFetchAndClearBoolean(&Listener->NeedsDosModeModeEvent));
         DosModeEnabled = Listener->DosModeEnabled;
         QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled, TRUE);
-        QuicListenerRelease(Listener, TRUE);
+        QuicListenerStartRelease(Listener, TRUE);
     }
 
     if (Listener->NeedsStopCompleteEvent) {

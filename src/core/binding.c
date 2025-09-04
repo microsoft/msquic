@@ -450,7 +450,7 @@ QuicBindingGetListener(
         FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
-            if (CxPlatRefIncrementNonZero(&ExistingListener->RefCount, 1)) {
+            if (CxPlatRefIncrementNonZero(&ExistingListener->StartRefCount, 1)) {
                 Listener = ExistingListener;
             }
             goto Done;
@@ -554,7 +554,7 @@ QuicBindingAcceptConnection(
 
 Error:
 
-    QuicListenerRelease(Listener, TRUE);
+    QuicListenerStartRelease(Listener, TRUE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
