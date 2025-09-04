@@ -1,0 +1,22 @@
+name: Kernel BVT Crashdumps
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+        type: string
+        description: MsQuic commit to checkout
+
+permissions: write-all
+
+jobs:
+  reset-checkpoint:
+    name:
+    runs-on:
+    steps:
+
+  run-kernel-bvt:
+
+  collect-crash-dumps:
+
