@@ -538,9 +538,8 @@ if ($IsLinux) {
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
         # Try to install babeltrace2 first, then fallback to babeltrace
-        try {
-            sudo apt-get install -y babeltrace2 2>&1 | Out-Null
-        } catch {
+        sudo apt-get install -y babeltrace2 2>&1 | Out-Null
+        if ($LASTEXITCODE -ne 0) {
             sudo apt-get install -y babeltrace
         }
         sudo apt-get install -y libssl-dev
