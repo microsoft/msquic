@@ -5001,7 +5001,6 @@ void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
     }
 #else
     UNREFERENCED_PARAMETER(Registration);
-    UNREFERENCED_PARAMETER(ClientConfiguration);
 #endif
 }
 
