@@ -24,6 +24,89 @@ Abstract:
 #include "registration.c.clog.h"
 #endif
 
+void
+QuicRegistrationClose(
+    _Inout_ QUIC_REGISTRATION* Registration
+    )
+{
+    QuicTraceEvent(
+        RegistrationCleanup,
+        "[ reg][%p] Cleaning up",
+        Registration);
+
+    if (Registration->CloseCompleteHandler == NULL) {
+        CxPlatEventSet(Registration->CloseEvent);
+        CxPlatThreadWait(&Registration->CloseThread);
+        CxPlatThreadDelete(&Registration->CloseThread);
+    }
+
+    if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        CxPlatListEntryRemove(&Registration->Link);
+        CxPlatLockRelease(&MsQuicLib.Lock);
+    }
+
+    CxPlatRundownReleaseAndWait(&Registration->Rundown);
+
+    QuicWorkerPoolUninitialize(Registration->WorkerPool);
+    CxPlatRundownUninitialize(&Registration->Rundown);
+    CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
+    CxPlatLockUninitialize(&Registration->ConfigLock);
+    CxPlatEventUninitialize(Registration->CloseEvent);
+
+    if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
+        CxPlatLockAcquire(&MsQuicLib.Lock);
+        if (MsQuicLib.CustomExecutions && CxPlatListIsEmpty(&MsQuicLib.Registrations)) {
+            //
+            // To allow all references to the execution context to be released,
+            // clean up implicitly allocated internal resources when the final
+            // registration is closed.
+            //
+            // Alternatively, MsQuic could expose an explicit ExecutionShutdown
+            // API that completes asynchronously and requires the exeuction
+            // contexts to continue executing for the duration. This is slightly
+            // awkward to impose upon apps, though, because these resources were
+            // implicitly created.
+            //
+            MsQuicLibraryLazyUninitialize();
+
+        }
+        CxPlatLockRelease(&MsQuicLib.Lock);
+    }
+}
+
+CXPLAT_THREAD_CALLBACK(RegistrationCloseWorker, Context)
+{
+    QUIC_REGISTRATION* Registration = Context;
+
+    CxPlatEventWaitForever(Registration->CloseEvent);
+
+    if (Registration->CloseCompleteHandler != NULL) {
+        BOOLEAN WakeCleanupWorker;
+
+        QuicRegistrationClose(Registration);
+
+        Registration->CloseCompleteHandler(Registration->CloseCompleteContext);
+
+        //
+        // Hand the registration off to the global cleanup worker so MsQuic can
+        // wait for this thread to exit before allowing the library to
+        // uninitialize and possibly unload code.
+        //
+        CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
+        WakeCleanupWorker = CxPlatListIsEmpty(&MsQuicLib.RegistrationCloseCleanupList);
+        CxPlatListInsertTail(
+            &MsQuicLib.RegistrationCloseCleanupList, &Registration->CloseCleanupEntry);
+        CxPlatLockRelease(&MsQuicLib.RegistrationCloseCleanupLock);
+
+        if (WakeCleanupWorker) {
+            CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+        }
+    }
+
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QUIC_API
@@ -84,6 +167,7 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Connections);
     CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
+    CxPlatEventInitialize(&Registration->CloseEvent, TRUE, FALSE);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
     if (AppNameLength != 0) {
         CxPlatCopyMemory(Registration->AppName, Config->AppName, AppNameLength + 1);
@@ -92,6 +176,25 @@ MsQuicRegistrationOpen(
     Status =
         QuicWorkerPoolInitialize(
             Registration, Registration->ExecProfile, &Registration->WorkerPool);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        0,
+        0,
+        "RegistrationCloseWorker",
+        RegistrationCloseWorker,
+        Registration,
+    };
+
+    //
+    // Create a dedicated thread to implement asynchronous registration close,
+    // which may block for an arbitrary amount of time. Ideally the registration
+    // close operation can be refactored to avoid blocking waits, i.e., be made
+    // intrinsically asynchronous.
+    //
+    Status = CxPlatThreadCreate(&ThreadConfig, &Registration->CloseThread);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
@@ -129,6 +232,8 @@ MsQuicRegistrationOpen(
 Error:
 
     if (Registration != NULL) {
+        CXPLAT_DBG_ASSERT(!Registration->CloseThread);
+        CxPlatEventUninitialize(Registration->CloseEvent);
         CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
@@ -161,25 +266,38 @@ MsQuicRegistrationClose(
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
         QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
 
-        QuicTraceEvent(
-            RegistrationCleanup,
-            "[ reg][%p] Cleaning up",
-            Registration);
-
-        if (Registration->ExecProfile != QUIC_EXECUTION_PROFILE_TYPE_INTERNAL) {
-            CxPlatLockAcquire(&MsQuicLib.Lock);
-            CxPlatListEntryRemove(&Registration->Link);
-            CxPlatLockRelease(&MsQuicLib.Lock);
-        }
-
-        CxPlatRundownReleaseAndWait(&Registration->Rundown);
-
-        QuicWorkerPoolUninitialize(Registration->WorkerPool);
-        CxPlatRundownUninitialize(&Registration->Rundown);
-        CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
-        CxPlatLockUninitialize(&Registration->ConfigLock);
-
+        QuicRegistrationClose(Registration);
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+
+        QuicTraceEvent(
+            ApiExit,
+            "[ api] Exit");
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicRegistrationClose2(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Handle,
+    _In_ _Pre_defensive_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context
+    )
+{
+    if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_REGISTRATION) {
+        QuicTraceEvent(
+            ApiEnter,
+            "[ api] Enter %u (%p).",
+            QUIC_TRACE_API_REGISTRATION_CLOSE2,
+            Handle);
+
+#pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
+        QUIC_REGISTRATION* Registration = (QUIC_REGISTRATION*)Handle;
+
+        Registration->CloseCompleteHandler = Handler;
+        Registration->CloseCompleteContext = Context;
+        CxPlatEventSet(Registration->CloseEvent);
 
         QuicTraceEvent(
             ApiExit,

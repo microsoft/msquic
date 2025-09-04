@@ -533,6 +533,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
     0,
     0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1532,6 +1534,15 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
         QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
         break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT:
+        QuicTestCtlRun(QuicTestValidateExecutionContext());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_PARTITION:
+        QuicTestCtlRun(QuicTestValidatePartition());
+        break;
+
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:

@@ -735,6 +735,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "CloseAsyncUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated CloseAsync to %hhu",
+      "UniqueId": "CloseAsyncUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "CloseComplete": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Connection close complete",
@@ -6662,6 +6678,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerPartitionIndexSet": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] PartitionIndex set (index %hu)",
+      "UniqueId": "ListenerPartitionIndexSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -13365,6 +13397,11 @@
         "EncodingString": "[conn][%p] Compatible version upgrade! Old: 0x%x, New: 0x%x"
       },
       {
+        "UniquenessHash": "a07c3ee9-1b99-2c5f-bad8-bd515d90038d",
+        "TraceID": "CloseAsyncUpdated",
+        "EncodingString": "[conn][%p] Updated CloseAsync to %hhu"
+      },
+      {
         "UniquenessHash": "e6969fd7-4bfa-f16b-fd2d-f366f94dce7c",
         "TraceID": "CloseComplete",
         "EncodingString": "[conn][%p] Connection close complete"
@@ -15103,6 +15140,11 @@
         "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
         "TraceID": "ListenerIndicateStopComplete",
         "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
+      },
+      {
+        "UniquenessHash": "81f937b4-2c2a-b818-6b6f-ad498e684df0",
+        "TraceID": "ListenerPartitionIndexSet",
+        "EncodingString": "[list][%p] PartitionIndex set (index %hu)"
       },
       {
         "UniquenessHash": "516f74f8-8802-7cdb-d034-3fa2e41d42c0",

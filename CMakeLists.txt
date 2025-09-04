@@ -317,7 +317,7 @@ else()
             set(QUIC_LOGGING_TYPE "lttng")
             message(STATUS "Choosing lttng as default logging type for platform")
         endif()
-        
+
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$")
             set(QUIC_LINUX_XDP_ENABLED OFF CACHE BOOL "XDP not supported on ARM architectures" FORCE)
         endif()
@@ -773,6 +773,10 @@ endif()
 
 if (QUIC_USE_SYSTEM_LIBCRYPTO)
     list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
+endif()
+
+if (QUIC_LINUX_XDP_ENABLED)
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_LINUX_XDP_ENABLED)
 endif()
 
 if (QUIC_LINUX_IOURING_ENABLED)

@@ -83,6 +83,7 @@ QuicWorkerInitialize(
     CxPlatEventInitialize(&Worker->Ready, FALSE, FALSE);
     CxPlatListInitializeHead(&Worker->Connections);
     Worker->PriorityConnectionsTail = &Worker->Connections.Flink;
+    CxPlatListInitializeHead(&Worker->Listeners);
     CxPlatListInitializeHead(&Worker->Operations);
 
     QUIC_STATUS Status = QuicTimerWheelInitialize(&Worker->TimerWheel);
@@ -175,12 +176,8 @@ QuicWorkerUninitialize(
     //
     Worker->Enabled = FALSE;
     if (Worker->ExecutionContext.Context) {
-        if (MsQuicLib.CustomExecutions) {
-            QuicWorkerLoopCleanup(Worker);
-        } else {
-            QuicWorkerThreadWake(Worker);
-            CxPlatEventWaitForever(Worker->Done);
-        }
+        QuicWorkerThreadWake(Worker);
+        CxPlatEventWaitForever(Worker->Done);
     }
     CxPlatEventUninitialize(Worker->Done);
 
@@ -198,6 +195,7 @@ QuicWorkerUninitialize(
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Connections));
     Worker->PriorityConnectionsTail = NULL;
     CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Operations));
+    CXPLAT_TEL_ASSERT(CxPlatListIsEmpty(&Worker->Listeners));
 
     CxPlatDispatchLockUninitialize(&Worker->Lock);
     QuicTimerWheelUninitialize(&Worker->TimerWheel);
@@ -225,6 +223,22 @@ QuicWorkerAssignConnection(
         Worker);
 }
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicWorkerAssignListener(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CXPLAT_DBG_ASSERT(Listener->Worker != Worker);
+    Listener->Worker = Worker;
+    QuicTraceEvent(
+        ConnAssignWorker,
+        "[list][%p] Assigned worker: %p",
+        Listener,
+        Worker);
+}
+
 BOOLEAN
 QuicWorkerIsIdle(
     _In_ const QUIC_WORKER* Worker
@@ -232,6 +246,7 @@ QuicWorkerIsIdle(
 {
     return
         CxPlatListIsEmpty(&Worker->Connections) &&
+        CxPlatListIsEmpty(&Worker->Listeners) &&
         CxPlatListIsEmpty(&Worker->Operations);
 }
 
@@ -355,6 +370,43 @@ QuicWorkerMoveConnection(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
+QuicWorkerQueueListener(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    CXPLAT_DBG_ASSERT(Listener->Worker != NULL);
+    BOOLEAN ListenerQueued = FALSE;
+    BOOLEAN WakeWorkerThread = FALSE;
+
+    CxPlatDispatchLockAcquire(&Worker->Lock);
+
+    if (!Listener->WorkerProcessing && !Listener->HasQueuedWork) {
+        WakeWorkerThread = QuicWorkerIsIdle(Worker);
+        QuicTraceEvent(
+            ConnScheduleState,
+            "[list][%p] Scheduling: %u",
+            Listener,
+            QUIC_SCHEDULE_QUEUED);
+        QuicListenerReference(Listener);
+        CxPlatListInsertTail(&Worker->Listeners, &Listener->WorkerLink);
+        ListenerQueued = TRUE;
+    }
+
+    Listener->HasQueuedWork = TRUE;
+
+    CxPlatDispatchLockRelease(&Worker->Lock);
+
+    if (ListenerQueued) {
+        if (WakeWorkerThread) {
+            QuicWorkerThreadWake(Worker);
+        }
+        QuicPerfCounterIncrement(Worker->Partition, QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
 QuicWorkerQueueOperation(
     _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Operation
@@ -447,6 +499,33 @@ QuicWorkerGetNextConnection(
     }
 
     return Connection;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_LISTENER*
+QuicWorkerGetNextListener(
+    _In_ QUIC_WORKER* Worker
+    )
+{
+    QUIC_LISTENER* Listener = NULL;
+
+    if (Worker->Enabled &&
+        !CxPlatListIsEmptyNoFence(&Worker->Listeners)) {
+        CxPlatDispatchLockAcquire(&Worker->Lock);
+        if (!CxPlatListIsEmpty(&Worker->Listeners)) {
+            Listener =
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&Worker->Listeners), QUIC_LISTENER, WorkerLink);
+            CXPLAT_DBG_ASSERT(!Listener->WorkerProcessing);
+            CXPLAT_DBG_ASSERT(Listener->HasQueuedWork);
+            Listener->HasQueuedWork = FALSE;
+            Listener->WorkerProcessing = TRUE;
+            QuicPerfCounterDecrement(Worker->Partition, QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH);
+        }
+        CxPlatDispatchLockRelease(&Worker->Lock);
+    }
+
+    return Listener;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -640,6 +719,58 @@ QuicWorkerProcessConnection(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicWorkerProcessListener(
+    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_LISTENER* Listener
+    )
+{
+    QuicTraceEvent(
+        ConnScheduleState,
+        "[list][%p] Scheduling: %u",
+        Listener,
+        QUIC_SCHEDULE_PROCESSING);
+
+    //
+    // Process some operations.
+    //
+    BOOLEAN StillHasWorkToDo = QuicListenerDrainOperations(Listener);
+
+    //
+    // Determine whether the listener needs to be requeued.
+    //
+    CxPlatDispatchLockAcquire(&Worker->Lock);
+    Listener->WorkerProcessing = FALSE;
+    Listener->HasQueuedWork |= StillHasWorkToDo;
+
+    BOOLEAN DoneWithListener = TRUE;
+    if (Listener->HasQueuedWork) {
+        CxPlatListInsertTail(&Worker->Listeners, &Listener->WorkerLink);
+        QuicTraceEvent(
+            ConnScheduleState,
+            "[list][%p] Scheduling: %u",
+            Listener,
+            QUIC_SCHEDULE_QUEUED);
+        DoneWithListener = FALSE;
+    } else {
+        QuicTraceEvent(
+            ConnScheduleState,
+            "[list][%p] Scheduling: %u",
+            Listener,
+            QUIC_SCHEDULE_IDLE);
+    }
+    CxPlatDispatchLockRelease(&Worker->Lock);
+
+    if (DoneWithListener) {
+        //
+        // This worker is no longer managing the listener, so we can
+        // release its reference.
+        //
+        QuicListenerRelease(Listener);
+    }
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 QuicWorkerLoopCleanup(
     _In_ QUIC_WORKER* Worker
     )
@@ -674,6 +805,16 @@ QuicWorkerLoopCleanup(
         --Dequeue;
     }
     QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_CONN_QUEUE_DEPTH, Dequeue);
+
+    Dequeue = 0;
+    while (!CxPlatListIsEmpty(&Worker->Listeners)) {
+        QUIC_LISTENER* Listener =
+            CXPLAT_CONTAINING_RECORD(
+                CxPlatListRemoveHead(&Worker->Listeners), QUIC_LISTENER, WorkerLink);
+        QuicListenerRelease(Listener);
+        --Dequeue;
+    }
+    QuicPerfCounterAdd(Worker->Partition, QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH, Dequeue);
 
     Dequeue = 0;
     while (!CxPlatListIsEmpty(&Worker->Operations)) {
@@ -738,6 +879,13 @@ QuicWorkerLoop(
     QUIC_CONNECTION* Connection = QuicWorkerGetNextConnection(Worker);
     if (Connection != NULL) {
         QuicWorkerProcessConnection(Worker, Connection, State->ThreadID, &State->TimeNow);
+        Worker->ExecutionContext.Ready = TRUE;
+        State->NoWorkCount = 0;
+    }
+
+    QUIC_LISTENER* Listener = QuicWorkerGetNextListener(Worker);
+    if (Listener != NULL) {
+        QuicWorkerProcessListener(Worker, Listener);
         Worker->ExecutionContext.Ready = TRUE;
         State->NoWorkCount = 0;
     }
@@ -947,4 +1095,29 @@ QuicWorkerPoolGetLeastLoadedWorker(
 
     WorkerPool->LastWorker = MinQueueDelayWorker;
     return MinQueueDelayWorker;
+}
+
+BOOLEAN
+QuicWorkerPoolIsInPartition(
+    _In_ QUIC_WORKER_POOL* WorkerPool,
+    _In_ uint16_t PartitionIndex
+    )
+{
+    QUIC_WORKER* Worker = &WorkerPool->Workers[PartitionIndex];
+    CXPLAT_DBG_ASSERT(PartitionIndex < WorkerPool->WorkerCount);
+
+    if (Worker->IsExternal) {
+        return CxPlatWorkerIsThisThread(&Worker->ExecutionContext);
+    }
+
+    //
+    // For "internal" workers that spawn their own threads, we lack a
+    // function to resolve the effective worker of the current thread.
+    // Since this function is only used for assertions, simply ignore this
+    // case for now rather than maintaining unambiguous state.
+    //
+#ifndef DEBUG
+    CXPLAT_FRE_ASSERTMSG(FALSE, "QuicWorkerPoolIsInPartition may return false positives.");
+#endif
+    return TRUE;
 }

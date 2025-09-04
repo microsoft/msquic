@@ -702,6 +702,7 @@ typedef enum QUIC_PERFORMANCE_COUNTERS {
     QUIC_PERF_COUNTER_SEND_STATELESS_RESET, // Total stateless reset packets sent ever.
     QUIC_PERF_COUNTER_SEND_STATELESS_RETRY, // Total stateless retry packets sent ever.
     QUIC_PERF_COUNTER_CONN_LOAD_REJECT,     // Total connections rejected due to worker load.
+    QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH,   // Current listeners queued for processing.
     QUIC_PERF_COUNTER_MAX,
 } QUIC_PERFORMANCE_COUNTERS;
 
@@ -1000,6 +1001,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_LISTENER_STATS                       0x04000001  // QUIC_LISTENER_STATISTICS
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_LISTENER_CIBIR_ID                    0x04000002  // uint8_t[] {offset, id[]}
+#define QUIC_PARAM_LISTENER_PARTITION_INDEX             0x04000005  // uint16_t
 #endif
 #define QUIC_PARAM_DOS_MODE_EVENTS                      0x04000004  // BOOLEAN
 
@@ -1038,6 +1040,7 @@ typedef struct QUIC_SCHANNEL_CREDENTIAL_ATTRIBUTE_W {
 #define QUIC_PARAM_CONN_SEND_DSCP                       0x05000019  // uint8_t
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 #define QUIC_PARAM_CONN_NETWORK_STATISTICS              0x05000020  // struct QUIC_NETWORK_STATISTICS
+#define QUIC_PARAM_CONN_CLOSE_ASYNC                     0x0500001A  // uint8_t
 #endif
 
 //
@@ -1128,6 +1131,34 @@ void
     _In_ _Pre_defensive_ __drv_freesMem(Mem)
         HQUIC Registration
     );
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+typedef
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+(QUIC_API QUIC_REGISTRATION_CLOSE_CALLBACK)(
+    _In_opt_ void* Context
+    );
+
+typedef QUIC_REGISTRATION_CLOSE_CALLBACK *QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER;
+
+//
+// Closes the registration. This function synchronizes the cleanup of all child
+// objects. The callback handler is invoked once all those child objects have
+// been closed by the application.
+//
+typedef
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+(QUIC_API * QUIC_REGISTRATION_CLOSE2_FN)(
+    _In_ _Pre_defensive_ __drv_freesMem(Mem)
+        HQUIC Registration,
+    _In_ _Pre_defensive_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+    _In_opt_ void* Context
+    );
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 //
 // Calls shutdown for all connections in this registration. Don't call on a
@@ -1845,10 +1876,12 @@ typedef struct QUIC_API_TABLE {
     QUIC_CONN_POOL_CREATE_FN            ConnectionPoolCreate;        // Available from v2.5
 
 #ifndef _KERNEL_MODE
+#define QUIC_API_EXECUTION_CONTEXT
     QUIC_EXECUTION_CREATE_FN            ExecutionCreate;    // Available from v2.5
     QUIC_EXECUTION_DELETE_FN            ExecutionDelete;    // Available from v2.5
     QUIC_EXECUTION_POLL_FN              ExecutionPoll;      // Available from v2.5
 #endif // _KERNEL_MODE
+    QUIC_REGISTRATION_CLOSE2_FN         RegistrationClose2; // Available from v2.6
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 } QUIC_API_TABLE;

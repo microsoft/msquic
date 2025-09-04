@@ -198,6 +198,31 @@ typedef struct QUIC_LIBRARY {
     QUIC_REGISTRATION* StatelessRegistration;
 
     //
+    // Protects all registration close completion fields.
+    CXPLAT_LOCK RegistrationCloseCleanupLock;
+
+    //
+    // Event set when the registration worker needs to wake.
+    //
+    CXPLAT_EVENT RegistrationCloseCleanupEvent;
+
+    //
+    // Set to true to shut down the worker thread.
+    //
+    BOOLEAN RegistrationCloseCleanupShutdown;
+
+    //
+    // A dedicated worker thread to clean up async registration close.
+    //
+    CXPLAT_THREAD RegistrationCloseCleanupWorker;
+
+    //
+    // List of registrations needing asynchronous close completion indications.
+    //
+    CXPLAT_LIST_ENTRY RegistrationCloseCleanupList;
+
+
+    //
     // Per-partition storage. Count of `PartitionCount`.
     //
     _Field_size_(PartitionCount)
@@ -444,6 +469,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryLazyInitialize(
     BOOLEAN AcquireLock
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicLibraryLazyUninitialize(
+    void
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
