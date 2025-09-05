@@ -1209,6 +1209,7 @@ SocketCreateUdp(
 {
     QUIC_STATUS Status;
     const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
+    const BOOLEAN UsingXdp = (Config->Flags & CXPLAT_SOCKET_FLAG_XDP ? TRUE : FALSE) && Datapath->RawDataPath != NULL;
     const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
     const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
     INET_PORT_RESERVATION_INSTANCE PortReservation;
@@ -1244,6 +1245,11 @@ SocketCreateUdp(
     Socket->HasFixedRemoteAddress = (Config->RemoteAddress != NULL);
     Socket->Type = CXPLAT_SOCKET_UDP;
     Socket->ReserveAuxTcpSock = Config->Flags & CXPLAT_SOCKET_FLAG_QTIP ? TRUE : FALSE;
+
+    //
+    // Make sure that: if (usingQTIP) { ASSERT_TRUE (usingXdp) }
+    //
+    CXPLAT_DBG_ASSERT(!Socket->ReserveAuxTcpSock || UsingXdp);
 
     if (Config->LocalAddress) {
         CxPlatConvertToMappedV6(Config->LocalAddress, &Socket->LocalAddress);
@@ -1831,7 +1837,7 @@ Skip:
     //
     *NewSocket = Socket;
 
-    if (!Socket->ReserveAuxTcpSock) {
+    if (!Socket->ReserveAuxTcpSock && !UsingXdp) {
         for (uint16_t i = 0; i < SocketCount; i++) {
             CxPlatDataPathStartReceiveAsync(&Socket->PerProcSockets[i]);
             Socket->PerProcSockets[i].IoStarted = TRUE;
