@@ -25,18 +25,6 @@ fi
 #lttng enable-event --userspace CLOG_*
 #lttng add-context --userspace --type=vpid --type=vtid
 #lttng start
-# Try babeltrace2 first, then fallback to babeltrace
-#if command -v babeltrace2 > /dev/null 2>&1; then
-#    babeltrace2 -i lttng-live net://localhost
-#    babeltrace2 --names all -i lttng-live net://localhost/host/`hostname`/msquiclive \
-#        | stdbuf -i0 -o0 clog2text_lttng -s clog.sidecar --t --c > /logs/quic.log &
-#elif command -v babeltrace > /dev/null 2>&1; then
-#    babeltrace -i lttng-live net://localhost
-#    babeltrace --names all -i lttng-live net://localhost/host/`hostname`/msquiclive \
-#        | stdbuf -i0 -o0 clog2text_lttng -s clog.sidecar --t --c > /logs/quic.log &
-#else
-#    echo "Error: Neither babeltrace2 nor babeltrace is available"
-#fi
 
 if [ "$ROLE" == "client" ]; then
     # Wait for the simulator to start up.

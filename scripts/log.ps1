@@ -327,22 +327,22 @@ function Log-Stop {
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
         $LTTNGTarFile = $OutputPath + ".tgz"
-        $BableTraceFile = $OutputPath + ".babel.txt"
+        $BabelTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
             try {
-                Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+                Write-Debug "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
                 $BabeltraceCmd = Get-BabeltraceCommand
                 if ($BabeltraceCmd -eq "babeltrace2") {
-                    & $BabeltraceCmd convert --names all $TempLTTngDir/* > $BableTraceFile
+                    & $BabeltraceCmd convert --names all $TempLTTngDir/* > $BabelTraceFile
                 } else {
-                    & $BabeltraceCmd --names all $TempLTTngDir/* > $BableTraceFile
+                    & $BabeltraceCmd --names all $TempLTTngDir/* > $BabelTraceFile
                 }
                 Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-                $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+                $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
                 Write-Host $Command
                 Invoke-Expression $Command | Write-Debug
             } catch {
@@ -373,7 +373,7 @@ function Log-Decode {
 
         $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
         $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
-        $BableTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
+        $BabelTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
 
         mkdir $WorkingDirectory
         mkdir $DecompressedLogs
@@ -382,15 +382,15 @@ function Log-Decode {
         tar xvfz $Logfile -C $DecompressedLogs
 
         try {
-            Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
+            Write-Host "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
             $BabeltraceCmd = Get-BabeltraceCommand
             if ($BabeltraceCmd -eq "babeltrace2") {
-                & $BabeltraceCmd convert --names all $DecompressedLogs/* > $BableTraceFile
+                & $BabeltraceCmd convert --names all $DecompressedLogs/* > $BabelTraceFile
             } else {
-                & $BabeltraceCmd --names all $DecompressedLogs/* > $BableTraceFile
+                & $BabeltraceCmd --names all $DecompressedLogs/* > $BabelTraceFile
             }
             Write-Host "Decoding Babeltrace into human text using CLOG"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile"
             Write-Host $Command
             Invoke-Expression $Command
         } catch {
