@@ -144,7 +144,7 @@ RawSocketCreateUdp(
             //       need to set Socket->LocalAddress to IPv6 if we're using QTIP?
             //
             Socket->RemoteAddress = *Config->RemoteAddress;
-            if (Socket->LocalAddress != NULL) {
+            if (Config->LocalAddress != NULL) {
                 CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->LocalAddress));
                 Socket->LocalAddress = *Config->LocalAddress;
             } else {
