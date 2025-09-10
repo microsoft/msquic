@@ -146,7 +146,7 @@ RawSocketCreateUdp(
         if (Socket->ReserveAuxTcpSock) {
             Socket->LocalAddress = *Config->LocalAddress;
         }
-        if (!QuicAddrIsWildCard(Socket->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
+        if (!QuicAddrIsWildCard(Config->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
         }
