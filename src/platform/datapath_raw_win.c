@@ -123,29 +123,15 @@ RawSocketCreateUdp(
         memcpy(Socket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
 
-    //
-    // Key assumptions by MsQuic core code:
-    //      - A non-NULL remote address specified by the config means this Cxplat socket MUST be part of a client connection.
-    //      - A remote address MUST not be a wildcard address.
-    //      - A client connection either passes down a NULL local address, or a SPECIFIC ip/port local address.
-    //      - A server listener MUST specify a wildcard local address AND a NULL remote address.
-    //
-
     if (Config->RemoteAddress) {
         //
         // This CxPlatSocket is part of a client connection.
         //
-        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // For clients, no wildcard remote addresses allowed.
+        CXPLAT_FRE_ASSERT(Config->LocalAddress == NULL || !QuicAddrIsWildCard(Config->LocalAddress)); // For clients no wildcard local addresses allowed.
         if (Socket->ReserveAuxTcpSock) {
-            //
-            // TODO: Not sure what's special about QTIP. We always set Socket->RemoteAddress in SocketCreateUdp()
-            //       earlier and why don't we always set Socket->LocalAddress if LocalAddress is specified
-            //       regardless of if we're using QTIP or not? Also if LocalAddress was not specified why do we
-            //       need to set Socket->LocalAddress to IPv6 if we're using QTIP?
-            //
             Socket->RemoteAddress = *Config->RemoteAddress;
             if (Config->LocalAddress != NULL) {
-                CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->LocalAddress));
                 Socket->LocalAddress = *Config->LocalAddress;
             } else {
                 QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
@@ -157,7 +143,10 @@ RawSocketCreateUdp(
         // This CxPlatSocket is part of a server listener.
         //
         CXPLAT_FRE_ASSERT(Config->LocalAddress != NULL);
-        if (!QuicAddrIsWildCard(Config->LocalAddress)) {
+        if (Socket->ReserveAuxTcpSock) {
+            Socket->LocalAddress = *Config->LocalAddress;
+        }
+        if (!QuicAddrIsWildCard(Socket->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
         }

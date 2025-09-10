@@ -132,7 +132,15 @@ CxPlatSocketCreateUdp(
     // sockets the same as client sockets, in that they bind to some random free UDP port.
     // However, what's free in UDP may not be free in TCP. So we loop until we find a free port.
     //
+
     for (uint32_t TryCount = 0; TryCount < 1000; TryCount++) {
+        //
+        // When examining datapath code here that parses CXPLAT_UDP_CONFIG, keep in mind the assumptions made by MsQuic core code:
+        //      - A non-NULL remote address specified by the config means this Cxplat socket MUST be part of a client connection.
+        //      - A remote address MUST not be a wildcard address.
+        //      - A client connection either passes down a NULL local address, or a SPECIFIC ip/port local address.
+        //      - A server listener MUST specify a wildcard local address AND a NULL remote address.
+        //
         Status =
             SocketCreateUdp(
                 Datapath,
