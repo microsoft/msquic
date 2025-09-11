@@ -127,8 +127,7 @@ RawSocketCreateUdp(
         //
         // This CxPlatSocket is part of a client connection.
         //
-        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // For clients, no wildcard remote addresses allowed.
-        CXPLAT_FRE_ASSERT(Config->LocalAddress == NULL || !QuicAddrIsWildCard(Config->LocalAddress)); // For clients no wildcard local addresses allowed.
+        CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
         if (Socket->ReserveAuxTcpSock) {
             Socket->RemoteAddress = *Config->RemoteAddress;
             if (Config->LocalAddress != NULL) {
@@ -152,6 +151,11 @@ RawSocketCreateUdp(
         }
         Socket->Wildcard = TRUE;
     }
+
+    //
+    // Note here that the socket COULD have local address be a wildcard AND Socket->Wildcard == FALSE.
+    // Socket->Wildcard is TRUE if and only if the socket is part of a server listener (which implies it has a wildcard local address).
+    //
 
     CXPLAT_FRE_ASSERT(Socket->Wildcard ^ Socket->Connected); // Assumes either a pure wildcard listener or a
                                                                          // connected socket; not both.
