@@ -60,15 +60,13 @@ Where:
 
 ### Example 1 - AES-GCM 256
 
-`Secret` is the following value: 0x3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83.
-
-`SecretLength` is 32.
-
-`RotationMs` is 30000.
-
-`Algorithm` is **QUIC_AEAD_ALGORITHM_AES_256_GCM**.
-
-The UNIX epoch timestamp is 1752112221.
+Variable | Value
+---------|-------
+`Secret` | 0x3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83
+`SecretLength` | 32
+`RotationMs` | 30000
+`Algorithm` | **QUIC_AEAD_ALGORITHM_AES_256_GCM**
+The UNIX epoch timestamp | 1752112221 
 
 Therefore, *Context* = timestamp / `RotationMs` = `1752112221 / 30000` = 58403.
 
@@ -76,15 +74,13 @@ The generated key should be the following value : 0x8135A3ACD2FB4B2B6D7CDD9C36AC
 
 ### Example 2 - AES-GCM 128
 
-`Secret` is the following value: 0x5ddd79f7b33f1f4a6dd57c34a8eec42e.
-
-`SecretLength` is 16.
-
-`RotationMs` is 30000.
-
-`Algorithm` is **QUIC_AEAD_ALGORITHM_AES_128_GCM**.
-
-The UNIX epoch timestamp is 1752112221.
+Variable | Value
+---------|-------
+`Secret` | 0x5ddd79f7b33f1f4a6dd57c34a8eec42e
+`SecretLength` | 16
+`RotationMs` | 30000
+`Algorithm` | **QUIC_AEAD_ALGORITHM_AES_128_GCM**
+The UNIX epoch timestamp | 1752112221
 
 Therefore, *Context* = timestamp / `RotationMs` = `1752112221 / 30000` = 58403.
 
