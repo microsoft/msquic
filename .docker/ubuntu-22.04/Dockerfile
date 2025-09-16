@@ -1,7 +1,7 @@
 # Stage 1: Base image
 FROM ubuntu:22.04@sha256:59ccd419c0dc0edf9e3bff1a3b2b073ea15a2ce4bc45ce7c989278b225b09af3 AS base
 
-LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
