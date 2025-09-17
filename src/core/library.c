@@ -526,6 +526,7 @@ MsQuicLibraryInitialize(
     CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
     MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
     CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
+    CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
@@ -605,6 +606,7 @@ Error:
             CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
             MsQuicLib.RegistrationCloseCleanupWorker = 0;
         }
+        CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
         CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
         CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
         if (MsQuicLib.Storage != NULL) {
@@ -735,6 +737,7 @@ MsQuicLibraryUninitialize(
 
     CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
 
+    CxPlatRundownReleaseAndWait(&MsQuicLib.RegistrationCloseCleanupRundown);
     MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
     CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
     CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
@@ -774,6 +777,7 @@ CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
             CxPlatThreadWait(&Registration->CloseThread);
             CxPlatThreadDelete(&Registration->CloseThread);
             CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+            CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
 
             CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
         }
