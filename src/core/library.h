@@ -221,6 +221,10 @@ typedef struct QUIC_LIBRARY {
     //
     CXPLAT_LIST_ENTRY RegistrationCloseCleanupList;
 
+    //
+    // Rundown protection for the registration close cleanup worker.
+    //
+    CXPLAT_RUNDOWN_REF RegistrationCloseCleanupRundown;
 
     //
     // Per-partition storage. Count of `PartitionCount`.
