@@ -84,6 +84,10 @@ CXPLAT_THREAD_CALLBACK(RegistrationCloseWorker, Context)
     if (Registration->CloseCompleteHandler != NULL) {
         BOOLEAN WakeCleanupWorker;
 
+        CXPLAT_FRE_ASSERTMSG(
+            CxPlatRundownAcquire(&MsQuicLib.RegistrationCloseCleanupRundown),
+            "The library is being unloaded while a registration is not fully closed!");
+
         QuicRegistrationClose(Registration);
 
         Registration->CloseCompleteHandler(Registration->CloseCompleteContext);
