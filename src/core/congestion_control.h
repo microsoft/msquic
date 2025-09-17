@@ -96,7 +96,7 @@ typedef struct QUIC_CONGESTION_CONTROL {
         _In_ BOOLEAN FullReset
         );
 
-    uint32_t (*QuicCongestionControlGetSendAllowance)(
+    uint64_t (*QuicCongestionControlGetSendAllowance)(
         _In_ struct QUIC_CONGESTION_CONTROL* Cc,
         _In_ uint64_t TimeSinceLastSend,
         _In_ BOOLEAN TimeSinceLastSendValid
@@ -257,7 +257,7 @@ QuicCongestionControlReset(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
-uint32_t
+uint64_t
 QuicCongestionControlGetSendAllowance(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ uint64_t TimeSinceLastSend, // microsec
