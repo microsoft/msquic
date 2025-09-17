@@ -703,10 +703,11 @@ function GetTestCases {
     if ($Filter -ne "") {
         $Arguments = " --gtest_filter=$Filter --gtest_list_tests"
     }
+    Write-Host "pwd: $(Get-Location)"
     $stdout = Invoke-Expression ($Path + $Arguments)
-
     $Tests = New-Object System.Collections.ArrayList
     if ($null -ne $stdout) {
+        Write-Host $stdout
         $Lines = ($stdout.Split([Environment]::NewLine)) | Where-Object { $_.Length -ne 0 }
         $CurTestGroup = $null
         for ($i = 0; $i -lt $Lines.Length; $i++) {
@@ -716,6 +717,8 @@ function GetTestCases {
                 $Tests.Add($CurTestGroup + $Lines[$i].Split("#")[0].Trim()) | Out-Null
             }
         }
+    } else {
+        Write-Host "stdout is null"
     }
     $Tests.ToArray()
 }
