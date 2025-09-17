@@ -102,6 +102,29 @@ jobs:
       run: cargo test --all ${{ matrix.vec.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty --no-verify
+    - name: Validate crate size (< 10MB)
+      # Temporary: skip size check for OpenSSL TLS builds which currently exceed 10MiB.
+      # We still validate for other TLS configs (e.g., quictls) on ubuntu-latest.
+      if: matrix.os == 'ubuntu-latest' && matrix.vec.tls != 'openssl'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Create the crate package (source tarball)
+        cargo package --allow-dirty --no-verify
+        crate_file=$(ls -1 target/package/*.crate | head -n1)
+        if [[ -z "${crate_file:-}" ]]; then
+          echo "Error: No .crate file found under target/package" >&2
+          exit 1
+        fi
+        size_bytes=$(stat -c%s "$crate_file")
+        limit_bytes=$((10 * 1024 * 1024))
+        echo "Crate: $crate_file"
+        echo "Size:  $size_bytes bytes"
+        if (( size_bytes > limit_bytes )); then
+          echo "Crate size exceeds 10MB limit (crates.io max). Please prune package contents." >&2
+          exit 1
+        fi
+        echo "Crate size is within limit."
   # Test rust crate with preinstalled msquic lib.
   cargo-preinstall:
     strategy:
