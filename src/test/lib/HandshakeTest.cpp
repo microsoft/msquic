@@ -918,48 +918,6 @@ NoOpStreamShutdownCallback(
     UNREFERENCED_PARAMETER(Stream);
 }
 
-static QUIC_STATUS
-ConnectionPoolServerConnectionCallback(
-    _In_ MsQuicConnection* /* Connection */,
-    _In_opt_ void* /* Context */,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    )
-{
-    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-        auto Stream =
-            new(std::nothrow) MsQuicStream(
-                Event->PEER_STREAM_STARTED.Stream,
-                CleanUpAutoDelete,
-                [](MsQuicStream* Stream, void*, QUIC_STREAM_EVENT* Event){
-                    if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
-                        auto* SendBuffer = new (std::nothrow) QUIC_BUFFER[Event->RECEIVE.BufferCount + 1];
-                        // The first QUIC_BUFFER is a dummy to store the total buffer length
-                        SendBuffer[0].Buffer = nullptr;
-                        SendBuffer[0].Length = (uint32_t)Event->RECEIVE.TotalBufferLength;
-                        for (uint32_t i = 1; i < Event->RECEIVE.BufferCount; i++) {
-                            SendBuffer[i] = Event->RECEIVE.Buffers[i];
-                        }
-                        auto Status= Stream->Send(&SendBuffer[1], Event->RECEIVE.BufferCount, QUIC_SEND_FLAG_FIN, SendBuffer);
-                        if (QUIC_FAILED(Status)) {
-                            TEST_FAILURE("Return Send Failed with 0x%x", Status);
-                            Stream->Shutdown(Status);
-                            return QUIC_STATUS_SUCCESS;
-                        }
-                        Event->RECEIVE.TotalBufferLength = 0;
-                        return QUIC_STATUS_PENDING;
-                    } else if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
-                        auto SendBuffer = (QUIC_BUFFER*) Event->SEND_COMPLETE.ClientContext;
-                        uint64_t TotalBufferLength = SendBuffer[0].Length;
-                        Stream->ReceiveComplete(TotalBufferLength);
-                        delete[] SendBuffer;
-                    }
-                    return QUIC_STATUS_SUCCESS;
-                });
-        UNREFERENCED_PARAMETER(Stream); // This stream will clean itself up so it's not leaked here.
-    }
-    return QUIC_STATUS_SUCCESS;
-}
-
 void
 NewStreamCallbackTestFail(
     _In_ TestConnection* Connection,
@@ -4140,6 +4098,48 @@ QuicTestHandshakeSpecificLossPatterns(
         TEST_TRUE(Connection.HandshakeComplete);
         Listener.LastConnection->Shutdown(0, QUIC_CONNECTION_SHUTDOWN_FLAG_SILENT);
     }
+}
+
+static QUIC_STATUS
+ConnectionPoolServerConnectionCallback(
+    _In_ MsQuicConnection* /* Connection */,
+    _In_opt_ void* /* Context */,
+    _Inout_ QUIC_CONNECTION_EVENT* Event
+    )
+{
+    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+        auto Stream =
+            new(std::nothrow) MsQuicStream(
+                Event->PEER_STREAM_STARTED.Stream,
+                CleanUpAutoDelete,
+                [](MsQuicStream* Stream, void*, QUIC_STREAM_EVENT* Event){
+                    if (Event->Type == QUIC_STREAM_EVENT_RECEIVE) {
+                        auto SendBuffer = new (std::nothrow) QUIC_BUFFER[Event->RECEIVE.BufferCount + 1];
+                        // The first QUIC_BUFFER is a dummy to store the total buffer length
+                        SendBuffer[0].Buffer = nullptr;
+                        SendBuffer[0].Length = (uint32_t)Event->RECEIVE.TotalBufferLength;
+                        for (uint32_t i = 0; i < Event->RECEIVE.BufferCount; i++) {
+                            SendBuffer[i + 1] = Event->RECEIVE.Buffers[i];
+                        }
+                        auto Status= Stream->Send(&SendBuffer[1], Event->RECEIVE.BufferCount, QUIC_SEND_FLAG_FIN, SendBuffer);
+                        if (QUIC_FAILED(Status)) {
+                            TEST_FAILURE("Return Send Failed with 0x%x", Status);
+                            Stream->Shutdown(Status);
+                            return QUIC_STATUS_SUCCESS;
+                        }
+                        Event->RECEIVE.TotalBufferLength = 0;
+                        return QUIC_STATUS_PENDING;
+                    } else if (Event->Type == QUIC_STREAM_EVENT_SEND_COMPLETE) {
+                        auto SendBuffer = (QUIC_BUFFER*) Event->SEND_COMPLETE.ClientContext;
+                        uint64_t TotalBufferLength = SendBuffer[0].Length;
+                        Stream->ReceiveComplete(TotalBufferLength);
+                        delete[] SendBuffer;
+                    }
+                    return QUIC_STATUS_SUCCESS;
+                });
+        UNREFERENCED_PARAMETER(Stream); // This stream will clean itself up so it's not leaked here.
+    }
+    return QUIC_STATUS_SUCCESS;
 }
 
 struct ConnectionPoolConnectionContext {
