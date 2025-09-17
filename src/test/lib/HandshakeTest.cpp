@@ -4100,7 +4100,7 @@ QuicTestHandshakeSpecificLossPatterns(
     }
 }
 
-static QUIC_STATUS
+QUIC_STATUS
 ConnectionPoolServerConnectionCallback(
     _In_ MsQuicConnection* /* Connection */,
     _In_opt_ void* /* Context */,
