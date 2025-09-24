@@ -592,60 +592,63 @@ CxPlatDataPathQuerySockoptSupport(
 
     } while (FALSE);
 
-    do {
-        DWORD TypeOfService = CXPLAT_DSCP_LE << 2;
+    // TODO: Uncomment this when Windows supports DSCP on the UDP fast indication path.
+    // do {
+    //     DWORD TypeOfService = CXPLAT_DSCP_LE << 2;
 
-        IoReuseIrp(Irp, STATUS_SUCCESS);
-        IoSetCompletionRoutine(
-            Irp,
-            CxPlatDataPathIoCompletion,
-            &CompletionEvent,
-            TRUE,
-            TRUE,
-            TRUE);
-        CxPlatEventReset(CompletionEvent);
+    //     IoReuseIrp(Irp, STATUS_SUCCESS);
+    //     IoSetCompletionRoutine(
+    //         Irp,
+    //         CxPlatDataPathIoCompletion,
+    //         &CompletionEvent,
+    //         TRUE,
+    //         TRUE,
+    //         TRUE);
+    //     CxPlatEventReset(CompletionEvent);
 
-        Status =
-            Dispatch->WskControlSocket(
-                UdpSocket,
-                WskSetOption,
-                IPV6_TCLASS,
-                IPPROTO_IPV6,
-                sizeof(TypeOfService),
-                &TypeOfService,
-                0,
-                NULL,
-                &OutputSizeReturned,
-                Irp);
-        if (Status == STATUS_PENDING) {
-            CxPlatEventWaitForever(CompletionEvent);
-        } else if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                DatapathTestSetIpv6TrafficClassFailed,
-                "[data] Test setting IPV6_TCLASS failed, 0x%x",
-                Status);
-            break;
-        }
+    //     Status =
+    //         Dispatch->WskControlSocket(
+    //             UdpSocket,
+    //             WskSetOption,
+    //             IPV6_TCLASS,
+    //             IPPROTO_IPV6,
+    //             sizeof(TypeOfService),
+    //             &TypeOfService,
+    //             0,
+    //             NULL,
+    //             &OutputSizeReturned,
+    //             Irp);
+    //     if (Status == STATUS_PENDING) {
+    //         CxPlatEventWaitForever(CompletionEvent);
+    //     } else if (QUIC_FAILED(Status)) {
+    //         QuicTraceLogWarning(
+    //             DatapathTestSetIpv6TrafficClassFailed,
+    //             "[data] Test setting IPV6_TCLASS failed, 0x%x",
+    //             Status);
+    //         break;
+    //     }
 
-        Status = Irp->IoStatus.Status;
-        if (QUIC_FAILED(Status)) {
-            QuicTraceLogWarning(
-                DatapathTestSetIpv6TrafficClassFailedAsync,
-                "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
-                Status);
-            break;
-        }
+    //     Status = Irp->IoStatus.Status;
+    //     if (QUIC_FAILED(Status)) {
+    //         QuicTraceLogWarning(
+    //             DatapathTestSetIpv6TrafficClassFailedAsync,
+    //             "[data] Test setting IPV6_TCLASS failed (async), 0x%x",
+    //             Status);
+    //         break;
+    //     }
 
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
+    //     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
 
-    } while (FALSE);
+    // } while (FALSE);
 
     //
     // Some USO/URO bug blocks TTL/Recv DSCP feature support on Windows Server 2022.
     //
+
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        // TODO: Uncomment this when Windows Optimization for DSCP fast UDP indication path is added.
+        // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
     }
 
 Error:
