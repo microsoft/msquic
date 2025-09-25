@@ -14,4 +14,4 @@ Action workflow name: `Kernel BVT Crashdumps` (manual workflow dispatch only)
 Note that the Windows image version used for the self-hosted runner mirrors a version used previously in our WinPrerelease Azure 1ES pool.
 Specific version information: 29439.1000.rs_prerelease.250829-1439
 
-Details on the machine can be found in /Netperf.
+Details on the machine can be found in Netperf.
