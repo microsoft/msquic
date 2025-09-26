@@ -188,7 +188,7 @@ Error:
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING;
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_SEND_DSCP;
-    Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+    // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
 }
 
 QUIC_STATUS
