@@ -330,7 +330,7 @@ jobs:
 
   Create-Or-Update-Issue:
     needs: [Complete]
-    if: ${{ needs.Complete.outputs.all-green != 'true' }}
+    if: failure()
     runs-on: ubuntu-latest
     steps:
     - name: Download BVT Failures
@@ -350,6 +350,12 @@ jobs:
           const root = 'artifacts'
           const potential_issues = [];
 
+          // If root does not exist, exit silently
+          if (!fs.existsSync(root)) {
+              console.log('No artifacts found');
+              process.exit(0);
+          }
+
           class Issue {
               constructor(title, description) {
                   this.title = title;
@@ -359,52 +365,42 @@ jobs:
 
           let run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
 
-          for (const env of fs.readdirSync(root)) {
-            // If env is not a directory, skip it.
-            if (!fs.statSync(path.join(root, env)).isDirectory()) {
-                continue;
-            }
-            for (const log of fs.readdirSync(path.join(root, env, 'logs', 'msquictest'))) {
-              // If log is not a directory, skip it.
-              if (!fs.statSync(path.join(root, env, 'logs', 'msquictest', log)).isDirectory()) {
-                continue;
+          function find_issues(env, directory) {
+              if (!fs.existsSync(path.join(root, env, 'logs', directory))) {
+                  return;
               }
-              for (const testcase of fs.readdirSync(path.join(root, env, 'logs', 'msquictest', log))) {
-                let title = `[CI - FAILURE]: ${env} / ${testcase} (msquictest)`
-                let new_issue = new Issue(title, run_url);
-                potential_issues.push(new_issue);
+              for (const log of fs.readdirSync(path.join(root, env, 'logs', directory))) {
+                  // If log is not a directory, skip it.
+                  if (!fs.statSync(path.join(root, env, 'logs', directory, log)).isDirectory()) {
+                      continue;
+                  }
+                  for (const testcase of fs.readdirSync(path.join(root, env, 'logs', directory, log))) {
+                      let title = `[CI - FAILURE]: ${env} / ${testcase} (${directory})`
+                      let new_issue = new Issue(title, run_url);
+                      potential_issues.push(new_issue);
+                  }
               }
-            }
-            for (const log of fs.readdirSync(path.join(root, env, 'logs', 'msquicplatformtest'))) {
-              // If log is not a directory, skip it.
-              if (!fs.statSync(path.join(root, env, 'logs', 'msquicplatformtest', log)).isDirectory()) {
-                continue;
-              }
-              for (const testcase of fs.readdirSync(path.join(root, env, 'logs', 'msquicplatformtest', log))) {
-                let title = `[CI - FAILURE]: ${env} / ${testcase} (msquicplatformtest)`
-                let new_issue = new Issue(title, run_url);
-                potential_issues.push(new_issue);
-              }
-            }
-            for (const log of fs.readdirSync(path.join(root, env, 'logs', 'msquiccoretest'))) {
-              // If log is not a directory, skip it.
-              if (!fs.statSync(path.join(root, env, 'logs', 'msquiccoretest', log)).isDirectory()) {
-                continue;
-              }
-              for (const testcase of fs.readdirSync(path.join(root, env, 'logs', 'msquiccoretest', log))) {
-                let title = `[CI - FAILURE]: ${env} / ${testcase} (msquiccoretest)`
-                let new_issue = new Issue(title, run_url);
-                potential_issues.push(new_issue);
-              }
-            }
           }
+
+          for (const env of fs.readdirSync(root)) {
+              // If env is not a directory, skip it.
+              if (!fs.statSync(path.join(root, env)).isDirectory()) {
+                  continue;
+              }
+              find_issues(env, 'msquictest');
+              find_issues(env, 'msquicplatformtest');
+              find_issues(env, 'msquiccoretest');
+          }
+
           for (let Issue of potential_issues) {
               console.log(Issue.title);
               console.log(Issue.description);
           }
 
-
           // --- Prepare to File Issues ---
+          let owner = context.repo.owner;
+          let repo = context.repo.repo;
+
           const dedup = new Map();
           for (const it of potential_issues) {
             if (!dedup.has(it.title)) dedup.set(it.title, it);
@@ -445,5 +441,5 @@ jobs:
           core.summary
             .addHeading('BVT Failure Issues')
             .addList(issuesToFile.map(i => i.title))
-            .addLink('Workflow run', runUrl)
+            .addLink('Workflow run', run_url)
             .write();
