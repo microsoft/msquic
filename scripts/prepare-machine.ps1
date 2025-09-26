@@ -538,7 +538,7 @@ if ($IsLinux) {
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
         # Try to install babeltrace2 first, then fallback to babeltrace
-        sudo apt-get install -y babeltrace2 2>&1 | Out-Null
+        sudo apt-get install -y babeltrace2
         if ($LASTEXITCODE -ne 0) {
             sudo apt-get install -y babeltrace
         }
