@@ -2,6 +2,22 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for SchannelTlsInitWarning
+// [ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform
+// QuicTraceLogWarning(
+                SchannelTlsInitWarning,
+                "[ tls] Explicit resumption ticket management enabled, but the feature is not supported on this platform");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTlsInitWarning,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for SchannelAchAsync
 // [ tls] Calling SspiAcquireCredentialsHandleAsyncW
 // QuicTraceLogVerbose(
@@ -9,6 +25,22 @@
         "[ tls] Calling SspiAcquireCredentialsHandleAsyncW");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelAchAsync,
+    TP_ARGS(
+), 
+    TP_FIELDS(
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SchannelTlsInitVerbose
+// [ tls] Explicit resumption ticket management enabled
+// QuicTraceLogVerbose(
+                SchannelTlsInitVerbose,
+                "[ tls] Explicit resumption ticket management enabled");
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTlsInitVerbose,
     TP_ARGS(
 ), 
     TP_FIELDS(
@@ -267,18 +299,18 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelMissingData,
 // Decoder Ring for SchannelTransParamsBufferTooSmall
 // [conn][%p] Peer TP too large for available buffer (%u vs. %u)
 // QuicTraceLogConnInfo(
-                        SchannelTransParamsBufferTooSmall,
-                        TlsContext->Connection,
-                        "Peer TP too large for available buffer (%u vs. %u)",
-                        OutSecBufferDesc.pBuffers[i].cbBuffer,
-                        (TlsContext->PeerTransportParams != NULL) ?
-                            TlsContext->PeerTransportParamsLength :
-                            *InBufferLength);
+                    SchannelTransParamsBufferTooSmall,
+                    TlsContext->Connection,
+                    "Peer TP too large for available buffer (%u vs. %u)",
+                    OutSecBufferDesc.pBuffers[i].cbBuffer,
+                    (TlsContext->PeerTransportParams != NULL) ?
+                        TlsContext->PeerTransportParamsLength :
+                        *InBufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = OutSecBufferDesc.pBuffers[i].cbBuffer = arg3
 // arg4 = arg4 = (TlsContext->PeerTransportParams != NULL) ?
-                            TlsContext->PeerTransportParamsLength :
-                            *InBufferLength = arg4
+                        TlsContext->PeerTransportParamsLength :
+                        *InBufferLength = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall,
     TP_ARGS(
@@ -289,6 +321,52 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTransParamsBufferTooSmall,
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SchannelServerIgnoringTicket
+// [conn][%p] Server app resumption state rejected. Proceeding with the connection. State size: %u bytes
+// QuicTraceLogConnInfo(
+                    SchannelServerIgnoringTicket,
+                    TlsContext->Connection,
+                    "Server app resumption state rejected. Proceeding with the connection. State size: %u bytes",
+                    TlsContext->RxAppSessionState->AppSessionStateSize);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsContext->RxAppSessionState->AppSessionStateSize = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelServerIgnoringTicket,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SchannelClientIgnoringTicket
+// [conn][%p] Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes
+// QuicTraceLogConnInfo(
+                    SchannelClientIgnoringTicket,
+                    TlsContext->Connection,
+                    "Client app rejected session ticket. Proceeding with the connection. Ticket size: %u bytes",
+                    TlsContext->RxSessionTicket->SessionTicketSize);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsContext->RxSessionTicket->SessionTicketSize = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelClientIgnoringTicket,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -364,17 +442,17 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelKeyReady,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SchannelIgnoringTicket
-// [conn][%p] Ignoring %u ticket bytes
+// Decoder Ring for SchannelServerTxTicket
+// [conn][%p] Sending managed resumption ticket data, %u bytes
 // QuicTraceLogConnVerbose(
-            SchannelIgnoringTicket,
-            TlsContext->Connection,
-            "Ignoring %u ticket bytes",
-            *BufferLength);
+                SchannelServerTxTicket,
+                TlsContext->Connection,
+                "Sending managed resumption ticket data, %u bytes",
+                *BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket,
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelServerTxTicket,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -387,17 +465,63 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelIgnoringTicket,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for SchannelProcessingData
-// [conn][%p] Processing %u received bytes
+// Decoder Ring for SchannelTlsProcessingData
+// [conn][%p] Processing %u TX or RX bytes
 // QuicTraceLogConnVerbose(
-        SchannelProcessingData,
+        SchannelTlsProcessingData,
         TlsContext->Connection,
-        "Processing %u received bytes",
+        "Processing %u TX or RX bytes",
         *BufferLength);
 // arg1 = arg1 = TlsContext->Connection = arg1
 // arg3 = arg3 = *BufferLength = arg3
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelProcessingData,
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelTlsProcessingData,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SchannelServerRxTicket
+// [conn][%p] Server app resumption state delivered. State size: %u bytes
+// QuicTraceLogConnVerbose(
+                    SchannelServerRxTicket,
+                    TlsContext->Connection,
+                    "Server app resumption state delivered. State size: %u bytes",
+                    TlsContext->RxAppSessionState->AppSessionStateSize);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsContext->RxAppSessionState->AppSessionStateSize = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelServerRxTicket,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for SchannelClientRxTicket
+// [conn][%p] Resumption session ticket delivered. Ticket size: %u bytes
+// QuicTraceLogConnVerbose(
+                    SchannelClientRxTicket,
+                    TlsContext->Connection,
+                    "Resumption session ticket delivered. Ticket size: %u bytes",
+                    TlsContext->RxSessionTicket->SessionTicketSize);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = TlsContext->RxSessionTicket->SessionTicketSize = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, SchannelClientRxTicket,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3), 
@@ -501,11 +625,11 @@ TRACEPOINT_EVENT(CLOG_TLS_SCHANNEL_C, TlsError,
 // Decoder Ring for TlsErrorStatus
 // [ tls][%p] ERROR, %u, %s.
 // QuicTraceEvent(
-                    TlsErrorStatus,
-                    "[ tls][%p] ERROR, %u, %s.",
-                    TlsContext->Connection,
-                    Status,
-                    "Convert SNI to unicode");
+                        TlsErrorStatus,
+                        "[ tls][%p] ERROR, %u, %s.",
+                        TlsContext->Connection,
+                        Status,
+                        "Convert SNI to unicode");
 // arg2 = arg2 = TlsContext->Connection = arg2
 // arg3 = arg3 = Status = arg3
 // arg4 = arg4 = "Convert SNI to unicode" = arg4
