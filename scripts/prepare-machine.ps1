@@ -545,7 +545,11 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
-        sudo apt-get install -y babeltrace
+        # Try to install babeltrace2 first, then fallback to babeltrace
+        sudo apt-get install -y babeltrace2
+        if ($LASTEXITCODE -ne 0) {
+            sudo apt-get install -y babeltrace
+        }
         sudo apt-get install -y libssl-dev
         sudo apt-get install -y libnuma-dev
         sudo apt-get install -y liburing-dev
