@@ -536,14 +536,6 @@ CxPlatGetAllocFailDenominator(
     );
 #endif
 
-void
-CxPlatSetDscpEnabled(
-    );
-
-BOOLEAN
-CxPlatGetDscpEnabled(
-    );
-
 QUIC_INLINE
 void
 CxPlatPoolInitialize(
