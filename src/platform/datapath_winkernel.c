@@ -645,7 +645,6 @@ CxPlatDataPathQuerySockoptSupport(
     //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-        // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
     }
 
 Error:
@@ -1475,83 +1474,45 @@ SocketCreateUdp(
         goto Error;
     }
 
-    if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_DSCP) {
-        Option = TRUE;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IPV6_RECVTCLASS,
-                IPPROTO_IPV6,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IPV6_RECVTCLASS");
-            goto Error;
-        }
 
-        Option = TRUE;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IP_RECVTOS,
-                IPPROTO_IP,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IP_RECVTOS");
-            goto Error;
-        }
-    } else {
-        Option = TRUE;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IPV6_ECN,
-                IPPROTO_IPV6,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IPV6_ECN");
-            goto Error;
-        }
-
-        Option = TRUE;
-        Status =
-            CxPlatDataPathSetControlSocket(
-                Binding,
-                WskSetOption,
-                IP_ECN,
-                IPPROTO_IP,
-                sizeof(Option),
-                &Option);
-        if (QUIC_FAILED(Status)) {
-            QuicTraceEvent(
-                DatapathErrorStatus,
-                "[data][%p] ERROR, %u, %s.",
-                Binding,
-                Status,
-                "Set IP_ECN");
-            goto Error;
-        }
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
+            IPV6_ECN,
+            IPPROTO_IPV6,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IPV6_ECN");
+        goto Error;
     }
+
+    Option = TRUE;
+    Status =
+        CxPlatDataPathSetControlSocket(
+            Binding,
+            WskSetOption,
+            IP_ECN,
+            IPPROTO_IP,
+            sizeof(Option),
+            &Option);
+    if (QUIC_FAILED(Status)) {
+        QuicTraceEvent(
+            DatapathErrorStatus,
+            "[data][%p] ERROR, %u, %s.",
+            Binding,
+            Status,
+            "Set IP_ECN");
+        goto Error;
+    }
+
 
     Option = TRUE;
     Status =

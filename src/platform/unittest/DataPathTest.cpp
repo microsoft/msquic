@@ -497,8 +497,7 @@ struct CxPlatDataPath {
     bool
     IsDscpSupported() const noexcept {
         return
-            IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP) &&
-            IsSupported(CXPLAT_DATAPATH_FEATURE_RECV_DSCP);
+            IsSupported(CXPLAT_DATAPATH_FEATURE_SEND_DSCP);
     }
 };
 

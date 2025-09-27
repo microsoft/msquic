@@ -580,7 +580,6 @@ CxPlatDataPathQuerySockoptSupport(
     //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-        // Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
@@ -1434,87 +1433,47 @@ SocketCreateUdp(
             goto Error;
         }
 
-        if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_RECV_DSCP) {
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_RECVTCLASS,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_RECVTCLASS");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
 
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_RECVTOS,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IP_RECVTOS");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-        } else {
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IPV6,
-                    IPV6_ECN,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IPV6_ECN");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
-
-            Option = TRUE;
-            Result =
-                setsockopt(
-                    SocketProc->Socket,
-                    IPPROTO_IP,
-                    IP_ECN,
-                    (char*)&Option,
-                    sizeof(Option));
-            if (Result == SOCKET_ERROR) {
-                int WsaError = WSAGetLastError();
-                QuicTraceEvent(
-                    DatapathErrorStatus,
-                    "[data][%p] ERROR, %u, %s.",
-                    Socket,
-                    WsaError,
-                    "Set IP_ECN");
-                Status = HRESULT_FROM_WIN32(WsaError);
-                goto Error;
-            }
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IPV6,
+                IPV6_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IPV6_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
         }
+
+        Option = TRUE;
+        Result =
+            setsockopt(
+                SocketProc->Socket,
+                IPPROTO_IP,
+                IP_ECN,
+                (char*)&Option,
+                sizeof(Option));
+        if (Result == SOCKET_ERROR) {
+            int WsaError = WSAGetLastError();
+            QuicTraceEvent(
+                DatapathErrorStatus,
+                "[data][%p] ERROR, %u, %s.",
+                Socket,
+                WsaError,
+                "Set IP_ECN");
+            Status = HRESULT_FROM_WIN32(WsaError);
+            goto Error;
+        }
+
 
         if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
             Option = TRUE;
