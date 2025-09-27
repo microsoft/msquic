@@ -1337,6 +1337,12 @@ QuicLibrarySetGlobalParam(
     }
 #endif
 
+    case QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED: {
+        CxPlatSetDscpEnabled();
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
         if (Buffer == NULL ||
