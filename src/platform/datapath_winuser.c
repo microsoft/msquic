@@ -580,7 +580,9 @@ CxPlatDataPathQuerySockoptSupport(
     //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        if (CxPlatGetDscpEnabled()) {
+            Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        }
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;

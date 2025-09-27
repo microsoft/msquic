@@ -627,6 +627,20 @@ CxPlatGetAllocFailDenominator(
 }
 #endif
 
+void
+CxPlatSetDscpEnabled(
+    )
+{
+    CxPlatform.RecvDscpEnabled = TRUE;
+}
+
+BOOLEAN
+CxPlatGetDscpEnabled(
+    )
+{
+    return CxPlatform.RecvDscpEnabled;
+}
+
 QUIC_STATUS
 CxPlatThreadCreate(
     _In_ CXPLAT_THREAD_CONFIG* Config,

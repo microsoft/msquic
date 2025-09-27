@@ -325,6 +325,11 @@ typedef struct CX_PLATFORM {
     //
     DWORD dwBuildNumber;
 
+    //
+    // Enabled whether the datapath supports RECV_DSCP.
+    //
+    BOOLEAN RecvDscpEnabled;
+
 #ifdef DEBUG
     //
     // 1/Denominator of allocations to fail.
