@@ -67,16 +67,11 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
-        MsQuic->SetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
-            0,
-            nullptr);
-
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
             const char* DependentDriverNames;
+            CxPlatSetDscpEnabled();
             QUIC_RUN_CERTIFICATE_PARAMS CertParams;
             CxPlatZeroMemory(&CertParams, sizeof(CertParams));
             CxPlatCopyMemory(
@@ -126,6 +121,11 @@ public:
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
 #endif
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                0,
+                nullptr)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
