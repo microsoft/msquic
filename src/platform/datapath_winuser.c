@@ -1474,7 +1474,6 @@ SocketCreateUdp(
             goto Error;
         }
 
-
         if (Datapath->Features & CXPLAT_DATAPATH_FEATURE_TTL) {
             Option = TRUE;
             Result =

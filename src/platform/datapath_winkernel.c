@@ -1513,7 +1513,6 @@ SocketCreateUdp(
         goto Error;
     }
 
-
     Option = TRUE;
     Status =
         CxPlatDataPathSetControlSocket(
