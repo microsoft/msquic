@@ -896,13 +896,17 @@ QuicLibraryLazyInitialize(
     }
 #endif
 
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
+
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
-            &MsQuicLib.Datapath);
+            &MsQuicLib.Datapath,
+            &InitConfig);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             DataPathInitialized,
@@ -1338,7 +1342,14 @@ QuicLibrarySetGlobalParam(
 #endif
 
     case QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED: {
-        CxPlatSetDscpEnabled();
+        if (MsQuicLib.LazyInitComplete) {
+            //
+            // Not allowed to change the DSCP config after we've already started running the library.
+            //
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+        MsQuicLib.EnableDscpOnRecv = TRUE;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }

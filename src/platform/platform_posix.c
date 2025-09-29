@@ -605,20 +605,6 @@ CxPlatGetAllocFailDenominator(
 }
 #endif
 
-void
-CxPlatSetDscpEnabled(
-    )
-{
-    CxPlatform.RecvDscpEnabled = TRUE;
-}
-
-BOOLEAN
-CxPlatGetDscpEnabled(
-    )
-{
-    return CxPlatform.RecvDscpEnabled;
-}
-
 #if defined(CX_PLATFORM_LINUX)
 
 QUIC_STATUS

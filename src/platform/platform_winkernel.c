@@ -267,20 +267,6 @@ CxPlatGetAllocFailDenominator(
 
 #endif
 
-void
-CxPlatSetDscpEnabled(
-    )
-{
-    CxPlatform.RecvDscpEnabled = TRUE;
-}
-
-BOOLEAN
-CxPlatGetDscpEnabled(
-    )
-{
-    return CxPlatform.RecvDscpEnabled;
-}
-
 #ifdef QUIC_EVENTS_MANIFEST_ETW
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

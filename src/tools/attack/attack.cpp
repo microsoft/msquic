@@ -438,12 +438,14 @@ main(
         CxPlatSystemLoad();
         CxPlatInitialize();
         CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
             WorkerPool,
-            &Datapath);
+            &Datapath,
+            &InitConfig);
 
         TryGetValue(argc, argv, "ip", &IpAddress);
         TryGetValue(argc, argv, "alpn", &Alpn);

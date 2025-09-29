@@ -65,6 +65,12 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN CustomPartitions : 1;
 
+    //
+    // This datapath will be initialized with support for DSCP on receive.
+    // Enabling this option seriously MsQuic regresses performance.
+    //
+    BOOLEAN EnableDscpOnRecv : 1;
+
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.

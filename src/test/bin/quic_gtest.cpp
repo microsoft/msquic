@@ -71,7 +71,6 @@ public:
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
             const char* DependentDriverNames;
-            CxPlatSetDscpEnabled();
             QUIC_RUN_CERTIFICATE_PARAMS CertParams;
             CxPlatZeroMemory(&CertParams, sizeof(CertParams));
             CxPlatCopyMemory(

@@ -142,13 +142,15 @@ struct DrillSender {
             DrillUdpRecvCallback,
             DrillUdpUnreachCallback,
         };
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         QUIC_STATUS Status =
             CxPlatDataPathInitialize(
                 0,
                 &DatapathCallbacks,
                 NULL,
                 WorkerPool,
-                &Datapath);
+                &Datapath,
+                &InitConfig);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
             return Status;

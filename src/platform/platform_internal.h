@@ -148,11 +148,6 @@ typedef struct CX_PLATFORM {
     //
     DWORD dwBuildNumber;
 
-    //
-    // Enabled whether the datapath supports RECV_DSCP.
-    //
-    BOOLEAN RecvDscpEnabled;
-
 #ifdef DEBUG
     //
     // 1/Denominator of allocations to fail.
@@ -329,11 +324,6 @@ typedef struct CX_PLATFORM {
     // Current Windows build number
     //
     DWORD dwBuildNumber;
-
-    //
-    // Enabled whether the datapath supports RECV_DSCP.
-    //
-    BOOLEAN RecvDscpEnabled;
 
 #ifdef DEBUG
     //
@@ -617,11 +607,6 @@ typedef struct CXPLAT_SOCKET {
 typedef struct CX_PLATFORM {
 
     void* Reserved; // Nothing right now.
-
-    //
-    // Enabled whether the datapath supports RECV_DSCP.
-    //
-    BOOLEAN RecvDscpEnabled;
 
 #ifdef DEBUG
     //
@@ -1083,7 +1068,8 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH** NewDatapath
+    _Out_ CXPLAT_DATAPATH** NewDatapath,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

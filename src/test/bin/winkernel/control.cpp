@@ -706,7 +706,14 @@ QuicTestCtlEvtIoDeviceControl(
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
         // TODO - XDP stuff, if/when supported
 #endif
-
+        //
+        // Our func test CI needs to enable recv dscp datapath features. This will regress performance.
+        //
+        MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                0,
+                nullptr);
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:

@@ -444,14 +444,6 @@ CxPlatGetAllocFailDenominator(
     );
 #endif
 
-void
-CxPlatSetDscpEnabled(
-    );
-
-BOOLEAN
-CxPlatGetDscpEnabled(
-    );
-
 #ifdef DEBUG
 #define CxPlatIsRandomMemoryFailureEnabled() (CxPlatGetAllocFailDenominator() != 0)
 #else
