@@ -1040,8 +1040,8 @@ void SetupAndFuzz() {
             &DatapathCallbacks,
             NULL,
             WorkerPool,
-            &Datapath,
-            &InitConfig));
+            &InitConfig,
+            &Datapath));
     QUIC_ADDRESS_FAMILY Family =
         GetRandom<uint8_t>(2) == 0 ?
             QUIC_ADDRESS_FAMILY_INET6 : QUIC_ADDRESS_FAMILY_INET;

@@ -470,10 +470,6 @@ typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
 
 typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
-    //
-    // Whether the datapath will be initialized with support for DSCP on receive.
-    // Enablement will seriously regress perf.
-    //
     BOOLEAN EnableDscpOnRecv;
 } CXPLAT_DATAPATH_INIT_CONFIG;
 
@@ -487,8 +483,8 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH** NewDatapath,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
 //

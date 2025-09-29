@@ -22,8 +22,8 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH** NewDataPath,
-    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
+    _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
@@ -38,8 +38,8 @@ CxPlatDataPathInitialize(
             UdpCallbacks,
             TcpCallbacks,
             WorkerPool,
-            NewDataPath,
-            InitConfig);
+            InitConfig,
+            NewDataPath);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogVerbose(
             DatapathInitFail,

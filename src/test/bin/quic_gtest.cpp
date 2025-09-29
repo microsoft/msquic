@@ -120,11 +120,12 @@ public:
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
 #endif
+            BOOLEAN Option = TRUE;
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
-                0,
-                nullptr)));
+                sizeof(BOOLEAN),
+                &Option)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=

@@ -67,7 +67,7 @@ typedef struct QUIC_LIBRARY {
 
     //
     // This datapath will be initialized with support for DSCP on receive.
-    // Enabling this option seriously MsQuic regresses performance.
+    // Enabling this option seriously regresses MsQuic Windows performance.
     //
     BOOLEAN EnableDscpOnRecv : 1;
 

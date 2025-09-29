@@ -1349,7 +1349,18 @@ QuicLibrarySetGlobalParam(
             Status = QUIC_STATUS_INVALID_STATE;
             break;
         }
-        MsQuicLib.EnableDscpOnRecv = TRUE;
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        MsQuicLib.EnableDscpOnRecv = *(BOOLEAN*)Buffer;
         Status = QUIC_STATUS_SUCCESS;
         break;
     }

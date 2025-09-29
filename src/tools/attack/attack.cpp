@@ -444,8 +444,8 @@ main(
             &DatapathCallbacks,
             NULL,
             WorkerPool,
-            &Datapath,
-            &InitConfig);
+            &InitConfig,
+            &Datapath);
 
         TryGetValue(argc, argv, "ip", &IpAddress);
         TryGetValue(argc, argv, "alpn", &Alpn);

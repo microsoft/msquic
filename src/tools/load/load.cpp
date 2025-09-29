@@ -20,7 +20,7 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
     CXPLAT_DATAPATH* Datapath = nullptr;
     //QuicAddrSetFamily(&ServerAddress, AF_INET);
     CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
-    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,WorkerPool,&Datapath, &InitConfig)) ||
+    if (QUIC_FAILED(CxPlatDataPathInitialize(0,nullptr,nullptr,WorkerPool,&InitConfig,&Datapath)) ||
         QUIC_FAILED(CxPlatDataPathResolveAddress(Datapath,ServerName,&ServerAddress))) {
         printf("Failed to resolve IP address!\n");
         exit(1);

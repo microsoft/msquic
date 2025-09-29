@@ -121,11 +121,11 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 
 //
 // Set this global parameter to TURN ON DSCP on the receive path.
-// IMPORTANT: this will regress MsQuic performance, which is why this field
+// IMPORTANT: this will regress Windows MsQuic performance, which is why this field
 // is in the private header file. Apps should NOT set this option. Only for
 // testing purposes does this field exist.
 //
-#define QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED    0x81000007
+#define QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED    0x81000007 // BOOLEAN
 
 //
 // The different private parameters for Configuration.

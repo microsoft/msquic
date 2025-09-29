@@ -61,14 +61,15 @@ struct QuicAddr
         CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         CXPLAT_DATAPATH* Datapath = nullptr;
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+        InitConfig.EnableDscpOnRecv = TRUE;
         if (QUIC_FAILED(
             CxPlatDataPathInitialize(
                 0,
                 NULL,
                 NULL,
                 WorkerPool,
-                &Datapath,
-                &InitConfig))) {
+                &InitConfig,
+                &Datapath))) {
             GTEST_FATAL_FAILURE_(" QuicDataPathInitialize failed.");
         }
         QuicAddrSetFamily(&SockAddr, af);
@@ -471,8 +472,8 @@ struct CxPlatDataPath {
                 UdpCallbacks,
                 TcpCallbacks,
                 WorkerPool,
-                &Datapath,
-                &InitConfig);
+                &InitConfig,
+                &Datapath);
     }
     ~CxPlatDataPath() noexcept {
         if (Datapath) {
