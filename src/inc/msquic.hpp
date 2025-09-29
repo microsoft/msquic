@@ -1528,9 +1528,11 @@ private:
             }
         }
         auto Status = pThis->Callback(pThis, pThis->Context, Event);
+#ifdef CX_PLATFORM_TYPE
         if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
             pThis->ShutdownCompleteEvent.Set();
         }
+#endif // CX_PLATFORM_TYPE
         if (DeleteOnExit) {
             delete pThis;
         }
