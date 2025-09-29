@@ -905,8 +905,8 @@ QuicLibraryLazyInitialize(
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
-            &MsQuicLib.Datapath,
-            &InitConfig);
+            &InitConfig,
+            &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             DataPathInitialized,
