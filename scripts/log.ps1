@@ -134,6 +134,7 @@ $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 $TempDir = $null
 $TempLTTngDir = $null
 $TempPerfDir = $null
+
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs"
@@ -155,6 +156,19 @@ if ($IsLinux) {
         sudo chmod +x /usr/bin/stackcollapse-perf.pl
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         sudo chmod +x /usr/bin/flamegraph.pl
+    }
+}
+
+# Helper function to get the appropriate babeltrace command
+function Get-BabeltraceCommand {
+    # BabelTrace / BabelTrace2 is not installed in all CI runner, so select the one available.
+    # BabelTrace2 "convert" sub-command is the default and backward compatible with BabelTrace.
+    if (Get-Command babeltrace2 -ErrorAction SilentlyContinue) {
+        return "babeltrace2"
+    } elseif (Get-Command babeltrace -ErrorAction SilentlyContinue) {
+        return "babeltrace"
+    } else {
+        throw "Neither babeltrace2 nor babeltrace is available"
     }
 }
 
@@ -246,10 +260,13 @@ function Log-Start {
 
             if ($Stream) {
                 lttng list | Write-Debug
-                babeltrace -i lttng-live net://localhost | Write-Debug
                 $myHostName = hostname
+                
+                $BabeltraceCmd = Get-BabeltraceCommand
+                & $BabeltraceCmd -i lttng-live net://localhost | Write-Debug
+                
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
-                $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                $args = "$BabeltraceCmd --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
                 Write-Host $args
                 Invoke-Expression $args
             }
@@ -307,17 +324,19 @@ function Log-Stop {
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
         $LTTNGTarFile = $OutputPath + ".tgz"
-        $BableTraceFile = $OutputPath + ".babel.txt"
+        $BabelTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
             try {
-                Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-                babeltrace --names all $TempLTTngDir/* > $BableTraceFile
+                Write-Debug "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
+                $BabeltraceCmd = Get-BabeltraceCommand
+                & $BabeltraceCmd --names all $TempLTTngDir/* > $BabelTraceFile
+
                 Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-                $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+                $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
                 Write-Host $Command
                 Invoke-Expression $Command | Write-Debug
             } catch {
@@ -348,7 +367,7 @@ function Log-Decode {
 
         $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
         $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
-        $BableTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
+        $BabelTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
 
         mkdir $WorkingDirectory
         mkdir $DecompressedLogs
@@ -357,10 +376,12 @@ function Log-Decode {
         tar xvfz $Logfile -C $DecompressedLogs
 
         try {
-            Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-            babeltrace --names all $DecompressedLogs/* > $BableTraceFile
+            Write-Host "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
+            $BabeltraceCmd = Get-BabeltraceCommand
+            & $BabeltraceCmd --names all $DecompressedLogs/* > $BabelTraceFile
+            
             Write-Host "Decoding Babeltrace into human text using CLOG"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile"
             Write-Host $Command
             Invoke-Expression $Command
         } catch {
