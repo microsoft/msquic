@@ -3256,7 +3256,11 @@ QuicConnQueueRecvPackets(
         QUIC_OPERATION* ConnOper =
             QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_FLUSH_RECV);
         if (ConnOper != NULL) {
-            QuicConnQueueOper(Connection, ConnOper);
+            if (!Connection->State.HandshakeConfirmed) {
+                QuicConnQueuePriorityOper(Connection, ConnOper);
+            } else {
+                QuicConnQueueOper(Connection, ConnOper);
+            }
         } else {
             QuicTraceEvent(
                 AllocFailure,
