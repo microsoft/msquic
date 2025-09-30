@@ -122,7 +122,6 @@ public:
 #endif
             //
             // Enable DSCP on the receive path. This is needed to test DSCP Send path.
-            // This will regress performance on Windows.
             //
             BOOLEAN Option = TRUE;
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(

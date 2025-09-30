@@ -708,11 +708,14 @@ QuicTestCtlEvtIoDeviceControl(
 #endif
         {
             //
-            //
-            // Our functional CI tests needs to enable recv dscp datapath features. This will regress windows performance.
+            // We don't want to hinge the result of 'Status = ' on this setparam call because
+            // this SetParam will only succeed the first time, before the datapath initializes.
+            // User mode tests already ensure at most 1 setparam call. But in Kernel mode, this IOCTL
+            // can be invoked many times.
+            // If the datapath is already initialized, this setparam call should fail silently.
             //
             BOOLEAN EnableDscpRecvOption = TRUE;
-            Status = MsQuic->SetParam(
+            MsQuic->SetParam(
                     nullptr,
                     QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
                     sizeof(BOOLEAN),

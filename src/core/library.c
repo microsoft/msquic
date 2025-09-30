@@ -1342,13 +1342,6 @@ QuicLibrarySetGlobalParam(
 #endif
 
     case QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED: {
-        if (MsQuicLib.LazyInitComplete) {
-            //
-            // Not allowed to change the DSCP config after we've already started running the library.
-            //
-            Status = QUIC_STATUS_INVALID_STATE;
-            break;
-        }
 
         if (BufferLength != sizeof(BOOLEAN)) {
             Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -1360,7 +1353,20 @@ QuicLibrarySetGlobalParam(
             break;
         }
 
+        if (MsQuicLib.LazyInitComplete) {
+            //
+            // Not allowed to change the DSCP config after we've already started running the library.
+            //
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
         MsQuicLib.EnableDscpOnRecv = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %d", MsQuicLib.EnableDscpOnRecv);
+
         Status = QUIC_STATUS_SUCCESS;
         break;
     }
