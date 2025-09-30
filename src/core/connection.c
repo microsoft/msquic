@@ -826,7 +826,7 @@ QuicConnUpdateRtt(
         Path->SmoothedRtt = (7 * Path->SmoothedRtt + LatestRtt) / 8;
     }
 
-    if (Connection->Settings.OneWayDelayEnabled && OurSendTimestamp != UINT64_MAX) {
+    if (PeerSendTimestamp != UINT64_MAX && PeerSendTimestamp != 0) {
         if (Connection->Stats.Timing.PhaseShift == 0 || NewMinRtt) {
             Connection->Stats.Timing.PhaseShift =
                 (int64_t)PeerSendTimestamp - (int64_t)OurSendTimestamp - (int64_t)LatestRtt / 2;
