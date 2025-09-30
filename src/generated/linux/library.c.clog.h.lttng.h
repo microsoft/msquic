@@ -177,6 +177,24 @@ TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryExecutionConfigSet,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDscpRecvEnabledSet
+// [ lib] Setting Dscp on recv = %d
+// QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %d", MsQuicLib.EnableDscpOnRecv);
+// arg2 = arg2 = MsQuicLib.EnableDscpOnRecv = arg2
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_LIBRARY_C, LibraryDscpRecvEnabledSet,
+    TP_ARGS(
+        int, arg2), 
+    TP_FIELDS(
+        ctf_integer(int, arg2, arg2)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(

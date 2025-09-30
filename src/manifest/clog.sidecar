@@ -6282,6 +6282,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryDscpRecvEnabledSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting Dscp on recv = %d",
+      "UniqueId": "LibraryDscpRecvEnabledSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -14960,6 +14972,11 @@
         "UniquenessHash": "4574d3aa-0d58-420f-fa75-4b57a79d3fa8",
         "TraceID": "LibraryCidLengthSet",
         "EncodingString": "[ lib] CID Length = %hhu"
+      },
+      {
+        "UniquenessHash": "4ee2132f-243f-586f-f776-403103dc21a7",
+        "TraceID": "LibraryDscpRecvEnabledSet",
+        "EncodingString": "[ lib] Setting Dscp on recv = %d"
       },
       {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
