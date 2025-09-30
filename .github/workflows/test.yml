@@ -330,7 +330,7 @@ jobs:
 
   Create-Or-Update-Issue:
     needs: [Complete]
-    if: failure()
+    if: ${{ failure() && github.event_name == 'push' }}
     runs-on: ubuntu-latest
     steps:
     - name: Download BVT Failures
@@ -406,6 +406,16 @@ jobs:
             if (!dedup.has(it.title)) dedup.set(it.title, it);
           }
           const issuesToFile = [...dedup.values()];
+
+          if (issuesToFile.length > 5) {
+            await github.rest.issues.create({
+              owner, repo,
+              title: "Too Many CI Failures...",
+              body: run_url,
+              labels: ['bvt', 'ci-failure'] // tweak/remove labels as you wish
+            });
+            process.exit(0);
+          }
 
           // --- Fetch all open issues once (pagination safe) ---
           const openIssues = await github.paginate(
