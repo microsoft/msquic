@@ -709,12 +709,12 @@ QuicTestCtlEvtIoDeviceControl(
         //
         // Our functional CI tests needs to enable recv dscp datapath features. This will regress windows performance.
         //
-        BOOLEAN Option = TRUE;
-        MsQuic->SetParam(
+        BOOLEAN EnableDscpRecvOption = TRUE;
+        Status = MsQuic->SetParam(
                 nullptr,
                 QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
                 sizeof(BOOLEAN),
-                &Option);
+                &EnableDscpRecvOption);
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
