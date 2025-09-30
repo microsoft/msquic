@@ -466,6 +466,7 @@ struct CxPlatDataPath {
         WorkerPool =
             CxPlatWorkerPoolCreate(Config ? Config : &DefaultExecutionConfig);
         CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+        InitConfig.EnableDscpOnRecv = TRUE;
         InitStatus =
             CxPlatDataPathInitialize(
                 ClientRecvContextLength,

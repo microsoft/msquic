@@ -66,8 +66,9 @@ typedef struct QUIC_LIBRARY {
     BOOLEAN CustomPartitions : 1;
 
     //
-    // This datapath will be initialized with support for DSCP on receive.
-    // Enabling this option seriously regresses MsQuic Windows performance.
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packet to fall out of
+    // the Windows fast path causing a large performance regression.
     //
     BOOLEAN EnableDscpOnRecv : 1;
 
