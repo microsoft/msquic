@@ -3256,6 +3256,12 @@ QuicConnQueueRecvPackets(
         QUIC_OPERATION* ConnOper =
             QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_FLUSH_RECV);
         if (ConnOper != NULL) {
+            
+            //
+            // Connections still waiting for handshake confirmation should be prioritized no matter what,
+            // because the handshake confirmation packet can be deferred and lost if the deferred
+            // packet buffer is full during worker interruption and rescheduling.
+            //
             if (!Connection->State.HandshakeConfirmed) {
                 QuicConnQueuePriorityOper(Connection, ConnOper);
             } else {
