@@ -356,7 +356,10 @@ pub const PARAM_STREAM_IDEAL_SEND_BUFFER_SIZE: u32 = 0x08000002;
 pub const PARAM_STREAM_PRIORITY: u32 = 0x08000003;
 
 #[cfg_attr(not(feature = "static"), link(name = "msquic", kind = "dylib"))]
-#[cfg_attr(feature = "static", link(name = "msquic", kind = "static", modifiers = "-bundle"))]
+#[cfg_attr(
+    feature = "static",
+    link(name = "msquic", kind = "static", modifiers = "-bundle")
+)]
 unsafe extern "C" {
     unsafe fn MsQuicOpenVersion(version: u32, api: *mut *const QUIC_API_TABLE) -> u32;
     unsafe fn MsQuicClose(api: *const QUIC_API_TABLE);
