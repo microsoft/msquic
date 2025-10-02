@@ -388,7 +388,8 @@ Error:
 
 QUIC_STATUS
 CxPlatDataPathQuerySockoptSupport(
-    _Inout_ CXPLAT_DATAPATH* Datapath
+    _Inout_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig
     )
 {
     int Result;
@@ -580,7 +581,9 @@ CxPlatDataPathQuerySockoptSupport(
     //
     if (CxPlatform.dwBuildNumber != 20348) {
         Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TTL;
-        Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        if (InitConfig->EnableDscpOnRecv) {
+            Datapath->Features |= CXPLAT_DATAPATH_FEATURE_RECV_DSCP;
+        }
     }
 
     Datapath->Features |= CXPLAT_DATAPATH_FEATURE_TCP;
@@ -601,6 +604,7 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
@@ -667,7 +671,7 @@ DataPathInitialize(
     CxPlatRefInitializeEx(&Datapath->RefCount, Datapath->PartitionCount);
 
     CxPlatDataPathQueryRssScalabilityInfo(Datapath);
-    Status = CxPlatDataPathQuerySockoptSupport(Datapath);
+    Status = CxPlatDataPathQuerySockoptSupport(Datapath, InitConfig);
     if (QUIC_FAILED(Status)) {
         goto Error;
     }
