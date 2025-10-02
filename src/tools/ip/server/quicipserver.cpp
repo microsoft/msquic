@@ -81,11 +81,13 @@ ServerSendIp(
 
     if (QUIC_FAILED(Status = MsQuic->StreamOpen(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, ServerStreamCallback, nullptr, &Stream))) {
         printf("StreamOpen failed, 0x%x!\n", Status);
+        CXPLAT_FREE(SendBufferRaw, QUIC_POOL_TOOL);
         return;
     }
 
     if (QUIC_FAILED(Status = MsQuic->StreamStart(Stream, QUIC_STREAM_START_FLAG_NONE))) {
         printf("StreamStart failed, 0x%x!\n", Status);
+        CXPLAT_FREE(SendBufferRaw, QUIC_POOL_TOOL);
         MsQuic->StreamClose(Stream);
         return;
     }
