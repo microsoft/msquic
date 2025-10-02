@@ -684,6 +684,7 @@ DataPathInitialize(
     _Out_ CXPLAT_DATAPATH** NewDataPath
     )
 {
+    ASSERT(FALSE);
     QUIC_STATUS Status;
     WSK_CLIENT_NPI WskClientNpi = { NULL, &WskAppDispatch };
     uint32_t DatapathLength;
