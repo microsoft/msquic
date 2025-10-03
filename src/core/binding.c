@@ -1137,6 +1137,12 @@ QuicBindingPreprocessPacket(
         sizeof(QUIC_RX_PACKET) - offsetof(QUIC_RX_PACKET, PacketNumber));
     Packet->AvailBuffer = Packet->Buffer;
     Packet->AvailBufferLength = Packet->BufferLength;
+    ///
+    /// Since zero could be a valid timestamp value, we use UINT64_MAX to indicate
+    /// the field `SendTimestamp` is uninitialized. Uninitialized `SendTimestamp` will
+    /// help skip some processing steps(e.g. One-Way-Delay calculation) in later stages.
+    ///
+    Packet->SendTimestamp = UINT64_MAX;
 
     *ReleaseDatagram = TRUE;
 
@@ -1638,18 +1644,6 @@ QuicBindingReceive(
         QUIC_RX_PACKET* Packet = (QUIC_RX_PACKET*)Datagram;
         Packet->PacketId =
             PartitionShifted | InterlockedIncrement64((int64_t*)&Partition->ReceivePacketId);
-        Packet->PacketNumber = 0;
-        Packet->SendTimestamp = UINT64_MAX;
-        Packet->AvailBuffer = Datagram->Buffer;
-        Packet->DestCid = NULL;
-        Packet->SourceCid = NULL;
-        Packet->AvailBufferLength = Datagram->BufferLength;
-        Packet->HeaderLength = 0;
-        Packet->PayloadLength = 0;
-        Packet->DestCidLen = 0;
-        Packet->SourceCidLen = 0;
-        Packet->KeyType = QUIC_PACKET_KEY_INITIAL;
-        Packet->Flags = 0;
 
         CXPLAT_DBG_ASSERT(Packet->PacketId != 0);
         QuicTraceEvent(
