@@ -83,7 +83,7 @@ jobs:
       if: |
         !github.event.pull_request.head.repo.fork &&
         steps.bindings_diff.outputs.diff-found == 'true'
-      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.number }}
