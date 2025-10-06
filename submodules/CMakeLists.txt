@@ -238,7 +238,6 @@ else()
             endif()
         endif()
     elseif(CX_PLATFORM STREQUAL "darwin")
-        # need to build with Apple's compiler
         if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
             set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure darwin64-arm64-cc)
         elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
@@ -247,12 +246,29 @@ else()
             message(ERROR "WTF ${CX_PLATFORM} ${CMAKE_TARGET_ARCHITECTURE}")
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/config)
         endif()
+        
+        if(NOT CMAKE_OSX_SYSROOT)
+            execute_process(
+                COMMAND xcrun --sdk macosx --show-sdk-path
+                OUTPUT_VARIABLE MACOS_SDK_PATH
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            if(MACOS_SDK_PATH)
+                set(CMAKE_OSX_SYSROOT "${MACOS_SDK_PATH}")
+                message(STATUS "Setting macOS SDK path for OpenSSL: ${CMAKE_OSX_SYSROOT}")
+            endif()
+        endif()
+        
         list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
+        
         if(SDK_NAME)
             list(APPEND OPENSSL_CONFIG_FLAGS "-m${SDK_NAME}-version-min=${DEPLOYMENT_TARGET}")
         elseif(CMAKE_OSX_DEPLOYMENT_TARGET)
+            string(REPLACE "." "" DEPLOYMENT_TARGET_CLEAN "${CMAKE_OSX_DEPLOYMENT_TARGET}")
             list(APPEND OPENSSL_CONFIG_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+            message(STATUS "OpenSSL deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
         endif()
+        
         if (ENABLE_BITCODE)
             list(APPEND OPENSSL_CONFIG_FLAGS -fembed-bitcode)
         endif()
