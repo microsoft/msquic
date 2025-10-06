@@ -234,7 +234,7 @@ QuicConnAlloc(
         Connection->Type = QUIC_HANDLE_TYPE_CONNECTION_CLIENT;
         Connection->State.ExternalOwner = TRUE;
         Path->IsPeerValidated = TRUE;
-        Path->Allowance = UINT32_MAX;
+        Path->Allowance = UINT64_MAX;
 
         Path->DestCid = QuicCidNewRandomDestination();
         if (Path->DestCid == NULL) {
