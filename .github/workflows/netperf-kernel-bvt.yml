@@ -17,10 +17,10 @@ permissions: read-all
 
 jobs:
   run:
-    name: Run Perf
+    name: Run Kernel BVT on Netperf
     runs-on: windows-latest
     steps:
-    - name: Run NetPerf Workflow
+    - name: Run Kernel BVT on Netperf
       timeout-minutes: 120
       shell: pwsh
       run: |
@@ -29,4 +29,5 @@ jobs:
             Write-Host "Not able to run because no secrets are available!"
             return
         }
-        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic-kernel-bvt 'N/A' ${{ inputs.ref }} 'N/A'"
+        # Params: token, type, sha, ref, pr, run_id, logs, filter
+        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic-kernel-bvt 'N/A' ${{ inputs.ref }} 'N/A' 'N/A' 'N/A' ${{ inputs.filter }}"
