@@ -8,7 +8,6 @@ on:
         description: 'Git Ref'
         type: string
       filter:
-ProjectsByJackHe marked this conversation as resolved.
         required: false
         description: 'Custom Test Filter'
         default: '-*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*'
@@ -32,4 +31,3 @@ jobs:
         }
         # Params: token, type, sha, ref, pr, run_id, logs, filter
         iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic-kernel-bvt 'N/A' ${{ inputs.ref }} 'N/A' 'N/A' 'N/A' ${{ inputs.filter }}"
-        
