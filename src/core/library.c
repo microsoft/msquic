@@ -526,6 +526,7 @@ MsQuicLibraryInitialize(
     CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
     MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
     CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
+    CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
 
     CXPLAT_THREAD_CONFIG ThreadConfig = {
         0,
@@ -605,6 +606,7 @@ Error:
             CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
             MsQuicLib.RegistrationCloseCleanupWorker = 0;
         }
+        CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
         CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
         CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
         if (MsQuicLib.Storage != NULL) {
@@ -735,6 +737,7 @@ MsQuicLibraryUninitialize(
 
     CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
 
+    CxPlatRundownReleaseAndWait(&MsQuicLib.RegistrationCloseCleanupRundown);
     MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
     CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
     CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
@@ -774,6 +777,7 @@ CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
             CxPlatThreadWait(&Registration->CloseThread);
             CxPlatThreadDelete(&Registration->CloseThread);
             CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+            CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
 
             CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
         }
@@ -892,12 +896,16 @@ QuicLibraryLazyInitialize(
     }
 #endif
 
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
+
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
             MsQuicLib.WorkerPool,
+            &InitConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
@@ -1332,6 +1340,36 @@ QuicLibrarySetGlobalParam(
         break;
     }
 #endif
+
+    case QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED: {
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.LazyInitComplete) {
+            //
+            // Not allowed to change the DSCP config after we've already started running the library.
+            //
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.EnableDscpOnRecv = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %d", MsQuicLib.EnableDscpOnRecv);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
 
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 

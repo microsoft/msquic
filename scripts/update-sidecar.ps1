@@ -44,7 +44,7 @@ New-Item -Path $OutputDir -ItemType Directory -Force | Out-Null
 New-Item -Path (Join-Path $OutputDir linux) -ItemType Directory -Force | Out-Null
 
 # Build CLOG, placing results into the CLOG directory under our build directory
-dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net6.0
+dotnet publish ../submodules/clog/src/clog -o ${ClogDir} -f net8.0
 
 #
 # You may be tempted to delete the sidecar - DO NOT DO THIS - the sidecare

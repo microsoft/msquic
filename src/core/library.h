@@ -65,6 +65,13 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN CustomPartitions : 1;
 
+    //
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+    // the Windows fast path causing a large performance regression.
+    //
+    BOOLEAN EnableDscpOnRecv : 1;
+
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
@@ -221,6 +228,10 @@ typedef struct QUIC_LIBRARY {
     //
     CXPLAT_LIST_ENTRY RegistrationCloseCleanupList;
 
+    //
+    // Rundown protection for the registration close cleanup worker.
+    //
+    CXPLAT_RUNDOWN_REF RegistrationCloseCleanupRundown;
 
     //
     // Per-partition storage. Count of `PartitionCount`.

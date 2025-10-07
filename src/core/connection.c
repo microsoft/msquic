@@ -1526,6 +1526,7 @@ QuicConnTryClose(
         if (!SilentClose) {
             //
             // Enter 'draining period' to flush out any leftover packets.
+            // During that time, no packet should be sent.
             //
             QuicConnTimerSet(
                 Connection,
@@ -1546,7 +1547,8 @@ QuicConnTryClose(
         if (!SilentClose) {
             //
             // Enter 'closing period' to wait for a (optional) connection close
-            // response.
+            // response. During that time, the connection close will be re-transmitted
+            // when packets are received.
             //
             uint64_t Pto =
                 QuicLossDetectionComputeProbeTimeout(
@@ -4438,14 +4440,17 @@ QuicConnRecvFrames(
     BOOLEAN UpdatedFlowControl = FALSE;
     QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
     BOOLEAN Closed = Connection->State.ClosedLocally || Connection->State.ClosedRemotely;
+    const BOOLEAN ClosingState = Connection->State.ClosedLocally && !Connection->State.ClosedRemotely;
     const uint8_t* Payload = Packet->AvailBuffer + Packet->HeaderLength;
     uint16_t PayloadLength = Packet->PayloadLength;
     uint64_t RecvTime = CxPlatTimeUs64();
 
     //
     // In closing state, respond to any packet with a new close frame (rate-limited).
+    // Note this excludes the draining state (i.e., ClosedRemotely == TRUE)
+    // in which we should be silent.
     //
-    if (Closed && !Connection->State.ShutdownComplete) {
+    if (ClosingState && !Connection->State.ShutdownComplete) {
         if (RecvTime - Connection->LastCloseResponseTimeUs >= QUIC_CLOSING_RESPONSE_MIN_INTERVAL) {
             QuicSendSetSendFlag(
                 &Connection->Send,

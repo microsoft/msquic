@@ -239,8 +239,11 @@ endif()
 set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
-    SET_TARGET_PROPERTIES(msquic
-        PROPERTIES LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
+    set(MSQUIC_LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
+    if(QUIC_CI)
+        string(APPEND MSQUIC_LINK_FLAGS " /PROFILE")
+    endif()
+    SET_TARGET_PROPERTIES(msquic PROPERTIES LINK_FLAGS "${MSQUIC_LINK_FLAGS}")
 elseif (CX_PLATFORM STREQUAL "linux")
     SET_TARGET_PROPERTIES(msquic
         PROPERTIES LINK_FLAGS "-Wl,--version-script=\"${CMAKE_CURRENT_SOURCE_DIR}/linux/exports.txt\"")
