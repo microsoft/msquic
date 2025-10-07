@@ -361,10 +361,12 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(InitConfig);
 
     if (NewDatapath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;

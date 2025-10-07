@@ -118,6 +118,14 @@ typedef struct QUIC_PRIVATE_TRANSPORT_PARAMETER {
 #define QUIC_PARAM_GLOBAL_DATAPATH_FEATURES             0x81000005  // uint32_t
 #define QUIC_PARAM_GLOBAL_PLATFORM_WORKER_POOL          0x81000006  // CXPLAT_WORKER_POOL*
 
+
+//
+// Sets whether the datapath will be initialized with support for DSCP on receive.
+// As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+// the Windows fast path causing a large performance regression.
+//
+#define QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED    0x81000007 // BOOLEAN
+
 //
 // The different private parameters for Configuration.
 //

@@ -1025,12 +1025,14 @@ void SetupAndFuzz() {
         UdpUnreachCallback,
     };
     CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     MUST_SUCCEED(
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
             WorkerPool,
+            &InitConfig,
             &Datapath));
     QUIC_ADDRESS_FAMILY Family =
         GetRandom<uint8_t>(2) == 0 ?
