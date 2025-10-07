@@ -6,8 +6,7 @@ updates:
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "monthly"
 
   - package-ecosystem: "gitsubmodule"
     directory: "/"
@@ -37,8 +36,7 @@ updates:
     directories:
       - "/.docker/ubuntu-22.04"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "monthly"
     ignore:
       - dependency-name: "ubuntu"
         versions: ["24.x", ">= 23.0.0", "23.x"]
@@ -47,8 +45,7 @@ updates:
     directories:
       - "/.docker/ubuntu-24.04"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "monthly"
     ignore:
       - dependency-name: "ubuntu"
         versions: ["25.x", ">= 25.0.0"]
