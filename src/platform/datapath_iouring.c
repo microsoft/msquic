@@ -206,6 +206,7 @@ CxPlatSocketIoStart(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
+    CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
     SocketContext->IoCount++;
 }
 
