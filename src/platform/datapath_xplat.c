@@ -134,7 +134,6 @@ CxPlatSocketCreateUdp(
     // sockets the same as client sockets, in that they bind to some random free UDP port.
     // However, what's free in UDP may not be free in TCP. So we loop until we find a free port.
     //
-
     for (uint32_t TryCount = 0; TryCount < 1000; TryCount++) {
         Status =
             SocketCreateUdp(
