@@ -10,7 +10,7 @@
             "name": "win-base",
             "description": "Base settings for all windows builds",
             "hidden": true,
-            "generator": "Ninja",
+            "generator": "Visual Studio 17 2022",
             "binaryDir": "${sourceDir}/build/windows",
             "cacheVariables": {
                 "QUIC_ENABLE_LOGGING": "on",
@@ -31,7 +31,7 @@
             "name": "lin-base",
             "description": "Base settings for all Linux builds",
             "hidden": true,
-            "generator": "Ninja",
+            "generator": "Unix Makefiles",
             "binaryDir": "${sourceDir}/build/linux",
             "cacheVariables": {
                 "QUIC_LOGGING_TYPE": "lttng",
