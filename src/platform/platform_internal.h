@@ -805,18 +805,20 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     BOOLEAN IoStarted : 1;
 
 #ifdef CXPLAT_USE_IO_URING
-    //
-    // Indicates if the socket has started shutting down.
-    //
-    BOOLEAN Shutdown : 1;
+    struct {
+        //
+        // Indicates if the socket has started shutting down.
+        //
+        BOOLEAN Shutdown : 1;
 
 #if DEBUG
-    //
-    // Indicates if the socket socket has a multi recv outstanding.
-    //
-    BOOLEAN MultiRecvStarted : 1;
-#endif
-#endif
+        //
+        // Indicates if the socket socket has a multi recv outstanding.
+        //
+        BOOLEAN MultiRecvStarted : 1;
+#endif // DEBUG
+    } LockedFlags;
+#endif // CXPLAT_USE_IO_URING
 
 #if DEBUG
     uint8_t Uninitialized : 1;
