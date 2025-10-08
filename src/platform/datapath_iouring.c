@@ -203,10 +203,12 @@ const uint32_t RecvBufCount = 1024;
 
 void
 CxPlatSocketIoStart(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_SOCKET_IO_TAG Tag
     )
 {
     CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(InterlockedIncrement64(&SocketContext->IoCountTags[Tag]) > 0);
     SocketContext->IoCount++;
 }
 
@@ -553,7 +555,7 @@ CxPlatSocketContextSqeInitialize(
         goto Exit;
     }
     ShutdownSqeInitialized = TRUE;
-    CxPlatSocketIoStart(SocketContext);
+    CxPlatSocketIoStart(SocketContext, IoTagShutdown);
 
     if (!CxPlatBatchSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -1103,10 +1105,13 @@ CxPlatSocketContextUninitializeComplete(
 
 void
 CxPlatSocketIoComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_SOCKET_IO_TAG Tag
     )
 {
     CXPLAT_DBG_ASSERT(SocketContext->IoCount > 0);
+    CXPLAT_DBG_ASSERT(InterlockedDecrement64(&SocketContext->IoCountTags[Tag]) >= 0);
+
     if (--SocketContext->IoCount == 0) {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     }
@@ -1122,7 +1127,7 @@ CxPlatSocketContextUninitializeEventComplete(
     CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
 
     CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->MultiRecvStarted);
-    CxPlatSocketIoComplete(SocketContext);
+    CxPlatSocketIoComplete(SocketContext, IoTagShutdown);
 }
 
 void
@@ -1208,7 +1213,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     io_uring_submit(&EventQ->Ring);
 
     CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = TRUE);
-    CxPlatSocketIoStart(SocketContext);
+    CxPlatSocketIoStart(SocketContext, IoTagRecv);
 }
 
 void
@@ -1698,7 +1703,7 @@ Exit:
             CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
         }
 
-        CxPlatSocketIoComplete(SocketContext);
+        CxPlatSocketIoComplete(SocketContext, IoTagRecv);
     }
 }
 
@@ -2033,7 +2038,7 @@ CxPlatSendDataSendSegmented(
     CxPlatBatchSqeInitialize(
         DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe);
     SendData->Sqe.Context = (void*)DatapathContextSend; // NOLINT performance-no-int-to-ptr
-    CxPlatSocketIoStart(SocketContext);
+    CxPlatSocketIoStart(SocketContext, IoTagSend);
 
 Exit:
 
@@ -2179,7 +2184,7 @@ CxPlatSocketContextSendComplete(
 
 Exit:
 
-    CxPlatSocketIoComplete(SocketContext);
+    CxPlatSocketIoComplete(SocketContext, IoTagSend);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)

@@ -739,6 +739,17 @@ typedef struct CXPLAT_SOCKET_SQE {
 #endif
 } CXPLAT_SOCKET_SQE;
 
+#ifdef CXPLAT_USE_IO_URING
+
+typedef enum CXPLAT_SOCKET_IO_TAG {
+    IoTagShutdown,
+    IoTagRecv,
+    IoTagSend,
+    IoTagMax
+} CXPLAT_SOCKET_IO_TAG;
+
+#endif // CXPLAT_USE_IO_URING
+
 //
 // Socket context.
 //
@@ -793,6 +804,10 @@ typedef struct QUIC_CACHEALIGN CXPLAT_SOCKET_CONTEXT {
     // The number of active IOs.
     //
     uint32_t IoCount;
+
+#if defined(CXPLAT_USE_IO_URING) && defined(DEBUG)
+    int64_t IoCountTags[IoTagMax];
+#endif // defined(CXPLAT_USE_IO_URING) && defined(DEBUG)
 
     //
     // Inidicates the SQEs have been initialized.
