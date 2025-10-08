@@ -158,7 +158,7 @@ RawSocketCreateUdp(
     //
 
     CXPLAT_FRE_ASSERT(Socket->Wildcard ^ Socket->Connected); // Assumes either a pure wildcard listener or a
-                                                                         // connected socket; not both.
+                                                             // connected socket; not both.
 
     Status = CxPlatTryAddSocket(&Raw->SocketPool, Socket);
     if (QUIC_FAILED(Status)) {

@@ -136,13 +136,6 @@ CxPlatSocketCreateUdp(
     //
 
     for (uint32_t TryCount = 0; TryCount < 1000; TryCount++) {
-        //
-        // When examining datapath code that parses CXPLAT_UDP_CONFIG, keep in mind the assumptions made by MsQuic core code about the config:
-        //      - A non-NULL remote address specified by the config means this CxPlat socket MUST be part of a client connection.
-        //      - A non-NULL remote address MUST not be a wildcard address.
-        //      - A client connection can either specify a NULL local address, or any <ip/port> tuple local address (including wildcard!).
-        //      - A server listener MUST specify a wildcard local address AND a NULL remote address.
-        //
         Status =
             SocketCreateUdp(
                 Datapath,
