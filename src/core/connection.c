@@ -3716,7 +3716,11 @@ QuicConnGetKeyOrDeferDatagram(
         } else {
             QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
             QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-            if (Packets->DeferredPacketsCount == QUIC_MAX_PENDING_DATAGRAMS) {
+            uint32_t MaxPendingDatagrams = (
+                Connection->Settings.IsSet.InitialWindowPackets
+                    ? Connection->Settings.InitialWindowPackets
+                    : QUIC_INITIAL_WINDOW_PACKETS) + 5;
+            if (Packets->DeferredPacketsCount == MaxPendingDatagrams) {
                 //
                 // We already have too many packets queued up. Just drop this
                 // one.
