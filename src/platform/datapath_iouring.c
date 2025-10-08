@@ -206,7 +206,7 @@ CxPlatSocketIoStart(
     _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
     )
 {
-    CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.Shutdown);
     SocketContext->IoCount++;
 }
 
@@ -1119,9 +1119,9 @@ CxPlatSocketContextUninitializeEventComplete(
 {
     CXPLAT_SOCKET_CONTEXT* SocketContext =
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
-    CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(SocketContext->LockedFlags.Shutdown);
 
-    CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->MultiRecvStarted);
+    CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->LockedFlags.MultiRecvStarted);
     CxPlatSocketIoComplete(SocketContext);
 }
 
@@ -1168,7 +1168,7 @@ CxPlatSocketContextUninitialize(
         io_uring_prep_cancel(Sqe, &SocketContext->IoSqe.Sqe, IORING_ASYNC_CANCEL_ALL);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
         io_uring_submit(&DatapathPartition->EventQ->Ring);
-        SocketContext->Shutdown = TRUE;
+        SocketContext->LockedFlags.Shutdown = TRUE;
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
 }
@@ -1180,8 +1180,8 @@ CxPlatSocketContextStartMultiRecvUnderLock(
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
 
-    CXPLAT_DBG_ASSERT(!SocketContext->MultiRecvStarted);
-    CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.MultiRecvStarted);
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.Shutdown);
 
     struct io_uring_sqe* Sqe = CxPlatSocketAllocSqe(SocketContext);
     if (Sqe == NULL) {
@@ -1207,7 +1207,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe.Sqe);
     io_uring_submit(&EventQ->Ring);
 
-    CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = TRUE);
+    CXPLAT_DBG_ONLY(SocketContext->LockedFlags.MultiRecvStarted = TRUE);
     CxPlatSocketIoStart(SocketContext);
 }
 
@@ -1691,10 +1691,10 @@ CxPlatSocketReceiveComplete(
 Exit:
 
     if (!(Cqe->flags & IORING_CQE_F_MORE)) {
-        CXPLAT_DBG_ASSERT(SocketContext->MultiRecvStarted);
-        CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = FALSE);
+        CXPLAT_DBG_ASSERT(SocketContext->LockedFlags.MultiRecvStarted);
+        CXPLAT_DBG_ONLY(SocketContext->LockedFlags.MultiRecvStarted = FALSE);
 
-        if (!SocketContext->Shutdown) {
+        if (!SocketContext->LockedFlags.Shutdown) {
             CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
         }
 
@@ -2143,7 +2143,7 @@ CxPlatSocketContextSendComplete(
     CxPlatSendDataFree(SendData);
     SendData = NULL;
 
-    if (SocketContext->Shutdown) {
+    if (SocketContext->LockedFlags.Shutdown) {
         goto Exit;
     }
 
