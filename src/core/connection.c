@@ -3716,7 +3716,7 @@ QuicConnGetKeyOrDeferDatagram(
         } else {
             QUIC_ENCRYPT_LEVEL EncryptLevel = QuicKeyTypeToEncryptLevel(Packet->KeyType);
             QUIC_PACKET_SPACE* Packets = Connection->Packets[EncryptLevel];
-            uint32_t MaxPendingDatagrams = (
+            const uint32_t MaxPendingDatagrams = (
                 Connection->Settings.IsSet.InitialWindowPackets
                     ? Connection->Settings.InitialWindowPackets
                     : QUIC_INITIAL_WINDOW_PACKETS) + 5;
