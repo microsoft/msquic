@@ -34,41 +34,10 @@ jobs:
         run: exit 1
         shell: pwsh
 
-  test-job-pass:
-    runs-on: windows-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        vec: [
-          { env: "lab",   os: "2022", arch: "x64" },
-          { env: "azure",   os: "2022", arch: "x64" },
-        ]
-    steps:
-      - name: Create dummy file/folders
-        run: |
-          mkdir artifacts
-          mkdir artifacts/logs
-          mkdir artifacts/logs/msquiccoretest
-          mkdir artifacts/logs/msquictest
-          mkdir artifacts/logs/msquicplatformtest
-        shell: pwsh
-
-  Complete_1:
-    name: Complete_1
+  Complete:
+    name: Complete
     if: always()
     needs: [test-job-fail]
-    runs-on: ubuntu-latest
-    permissions: {} # No need for any permissions.
-    steps:
-    - name: Decide whether the needed jobs succeeded or failed
-      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
-      with:
-        jobs: ${{ toJSON(needs) }}
-
-    Complete:
-    name: BVT Complete
-    if: always()
-    needs: [bvt, bvt-kernel, interop]
     runs-on: ubuntu-latest
     permissions: {} # No need for any permissions.
     steps:
