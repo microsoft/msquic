@@ -594,6 +594,15 @@ CxPlatDataPathGetGatewayAddresses(
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
+
+//
+// When using CXPLAT_UDP_CONFIG, keep in mind the assumptions made by MsQuic core/datapath code about the config:
+//      - A server listener MUST specify a NULL remote address AND a wildcard local address.
+//      - A client connection MUST specify a non-NULL remote address.
+//      - A remote address MUST NOT be a wildcard address.
+//      - A client connection can specify anything for the local address: NULL, wildcard, any <ip/port tupple>.
+//        If NULL, the datapath will assume an IPv6 socket local address.
+//
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
     const QUIC_ADDR* RemoteAddress;     // optional
