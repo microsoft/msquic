@@ -27,7 +27,7 @@ jobs:
       matrix:
         vec: [
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
         ]
@@ -49,14 +49,15 @@ jobs:
       matrix:
         vec: [
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeThread", build: "-Test" }, # Build only, for now.
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", iouring: "-UseIoUring" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test", iouring: "-UseIoUring" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test", iouring: "-UseIoUring" },
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", build: "-Test", xdp: "-UseXdp" },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", build: "-Test", iouring: "-UseIoUring" },
         ]
@@ -81,19 +82,19 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", xdp: "-UseXdp"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", build: "-Test", iouring: "-UseIoUring"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-Sanitize", build: "-Test", iouring: "-UseIoUring"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", sanitize: "-SanitizeAddress", build: "-Test", iouring: "-UseIoUring"  },
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "quictls", build: "-Test" },
-          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
-          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-Sanitize", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
+          { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", sanitize: "-SanitizeAddress", build: "-Test"  },
           { config: "Debug", plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", build: "-Test", xdp: "-UseXdp"  },
           { config: "Debug", plat: "macos", os: "macos-13", arch: "x64", tls: "openssl", build: "-Test" },
 
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "WinServerPrerelease", arch: "x64", tls: "schannel", build: "-Test" },
@@ -154,8 +155,8 @@ jobs:
       fail-fast: false
       matrix:
         vec: [
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-Sanitize", build: "-Test" },
-          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-Sanitize", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", sanitize: "-SanitizeAddress", build: "-Test" },
+          { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "schannel", xdp: "-UseXdp", sanitize: "-SanitizeAddress", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "quictls", xdp: "-UseXdp", build: "-Test" },
           { config: "Debug", plat: "windows", os: "windows-2022", arch: "x64", tls: "openssl", build: "-Test" },
