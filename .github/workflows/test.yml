@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Download artifact
         run: |
-          Invoke-WebRequest -Uri ${{ inputs.sas_url }} -OutFile artifacts.zip
+          Invoke-WebRequest -Uri '${{ inputs.sas_url }}' -OutFile artifacts.zip
           Expand-Archive -Path artifacts.zip -DestinationPath artifacts
           ls artifacts
         shell: pwsh
