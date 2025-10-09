@@ -240,6 +240,16 @@ set_property(TARGET msquic PROPERTY FOLDER "${QUIC_FOLDER_PREFIX}libraries")
 
 if(WIN32)
     set(MSQUIC_LINK_FLAGS "/DEF:\"${CMAKE_CURRENT_BINARY_DIR}/msquic.def\"")
+
+    # Indicate CET Shadow Stack support for supported architectures
+    if (${SYSTEM_PROCESSOR} STREQUAL "x64" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "AMD64" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "x86" OR
+        ${SYSTEM_PROCESSOR} STREQUAL "win32")
+
+        string(APPEND MSQUIC_LINK_FLAGS " /CETCOMPAT")
+    endif()
+
     if(QUIC_CI)
         string(APPEND MSQUIC_LINK_FLAGS " /PROFILE")
     endif()
