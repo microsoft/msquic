@@ -234,14 +234,14 @@ PingConnectionShutdown(
     auto ConnState = (PingConnState*)Connection->Context;
     auto ExpectedSuccess =
         ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS;
+
+    ConnState->OnConnectionComplete();
     delete ConnState;
 
     if (ExpectedSuccess) {
         TEST_FALSE(Connection->GetTransportClosed());
         TEST_FALSE(Connection->GetPeerClosed());
     }
-
-    ConnState->OnConnectionComplete();
 }
 
 _Function_class_(NEW_STREAM_CALLBACK)
