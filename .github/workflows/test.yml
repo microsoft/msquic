@@ -97,10 +97,18 @@ jobs:
                   }
               }
           }
+
+          find_issues('', 'msquictest');
+          find_issues('', 'msquicplatformtest');
+          find_issues('', 'msquiccoretest');
+          find_issues('', 'msquictest.exe');
+          find_issues('', 'msquicplatformtest.exe');
+          find_issues('', 'msquiccoretest.exe');
+          
           for (const env of fs.readdirSync(root)) {
               // If env is not a directory, skip it.
               if (!fs.statSync(path.join(root, env)).isDirectory()) {
-                  console.log(`${env} is not a directory`);
+                  console.log(`ENV: ${env} is not a directory`);
                   continue;
               }
               find_issues(env, 'msquictest');
