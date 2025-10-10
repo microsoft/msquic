@@ -56,7 +56,8 @@ struct PingStats
     volatile long ConnectionsComplete;
     volatile long SecretsIndex;
 
-    CXPLAT_EVENT CompletionEvent;
+    CXPLAT_EVENT StreamCompletionEvent;
+    CXPLAT_EVENT ConnectionCompletionEvent;
 
     QUIC_BUFFER* ResumptionTicket {nullptr};
 
@@ -87,12 +88,15 @@ struct PingStats
         ConnectionsComplete(0),
         SecretsIndex(0)
     {
-        CxPlatEventInitialize(&CompletionEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&StreamCompletionEvent, FALSE, FALSE);
+        CxPlatEventInitialize(&ConnectionCompletionEvent, FALSE, FALSE);
     }
 
     ~PingStats() {
-        CxPlatEventUninitialize(CompletionEvent);
-        CxPlatZeroMemory(&CompletionEvent, sizeof(CompletionEvent));
+        CxPlatEventUninitialize(StreamCompletionEvent);
+        CxPlatZeroMemory(&StreamCompletionEvent, sizeof(StreamCompletionEvent));
+        CxPlatEventUninitialize(ConnectionCompletionEvent);
+        CxPlatZeroMemory(&ConnectionCompletionEvent, sizeof(ConnectionCompletionEvent));
         if (ResumptionTicket) {
             CXPLAT_FREE(ResumptionTicket, QUIC_POOL_TEST);
         }
@@ -117,10 +121,15 @@ struct PingConnState
     { }
 
     void OnStreamComplete() {
-        if ((uint32_t)InterlockedIncrement(&StreamsComplete) == Stats->StreamCount) {
-            if ((uint32_t)InterlockedIncrement(&Stats->ConnectionsComplete) == Stats->ConnectionCount) {
-                CxPlatEventSet(Stats->CompletionEvent);
-            }
+        const uint32_t TotalStreamCount = Stats->ConnectionCount * Stats->StreamCount;
+        if ((uint32_t)InterlockedIncrement(&StreamsComplete) == TotalStreamCount) {
+            CxPlatEventSet(Stats->StreamCompletionEvent);
+        }
+    }
+
+    void OnConnectionComplete() {
+        if ((uint32_t)InterlockedIncrement(&Stats->ConnectionsComplete) == Stats->ConnectionCount) {
+            CxPlatEventSet(Stats->ConnectionCompletionEvent);
         }
     }
 };
@@ -225,6 +234,8 @@ PingConnectionShutdown(
     auto ConnState = (PingConnState*)Connection->Context;
     auto ExpectedSuccess =
         ConnState->GetPingStats()->ExpectedCloseStatus == QUIC_STATUS_SUCCESS;
+
+    ConnState->OnConnectionComplete();
     delete ConnState;
 
     if (ExpectedSuccess) {
@@ -590,49 +601,67 @@ QuicTestConnectAndPing(
             }
         }
 
-        if (!CxPlatEventWaitWithTimeout(ClientStats.CompletionEvent, TimeoutMs)) {
-            TEST_FAILURE("Wait for clients to complete timed out after %u ms.", TimeoutMs);
+        if (!CxPlatEventWaitWithTimeout(ClientStats.StreamCompletionEvent, TimeoutMs)) {
+            TEST_FAILURE("Wait for clients streams to complete timed out after %u ms.", TimeoutMs);
             return;
         }
 
-        if (!CxPlatEventWaitWithTimeout(ServerStats.CompletionEvent, TimeoutMs)) {
-            TEST_FAILURE("Wait for server to complete timed out after %u ms.", TimeoutMs);
+        if (!CxPlatEventWaitWithTimeout(ServerStats.StreamCompletionEvent, TimeoutMs)) {
+            TEST_FAILURE("Wait for server streams to complete timed out after %u ms.", TimeoutMs);
             return;
         }
 
-        if (ClientSecrets) {
-            for (auto i = 0u; i < ConnectionCount; i++) {
-                auto ServerSecret = &ServerSecrets[i];
-                bool Match = false;
-                for (auto j = 0u; j < ConnectionCount; j++) {
-                    auto ClientSecret = &ClientSecrets[j];
-                    if (!memcmp(
-                            ServerSecret->ClientRandom,
-                            ClientSecret->ClientRandom,
-                            sizeof(ClientSecret->ClientRandom))) {
-                        if (Match) {
-                            TEST_FAILURE("Multiple clients with the same ClientRandom?!");
-                            return;
-                        }
+        // Shutdown all client connections (they are set with auto-close)
+        for (uint32_t i = 0; i < ConnectionCount; ++i) {
+            Connections.get()[i]->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+        }
+    }
 
-                        TEST_EQUAL(
-                            ClientSecret->IsSet.ClientEarlyTrafficSecret,
-                            ServerSecret->IsSet.ClientEarlyTrafficSecret);
-                        TEST_EQUAL(
-                            ClientSecret->SecretLength,
-                            ServerSecret->SecretLength);
-                        TEST_TRUE(
-                            !memcmp(
-                                ClientSecret->ClientEarlyTrafficSecret,
-                                ServerSecret->ClientEarlyTrafficSecret,
-                                ClientSecret->SecretLength));
-                        Match = true;
+    // Wait for the connections to be fully shutdown.
+    // It is important to wait to ensure all server connections are closed by the client (and not
+    // by the registration close call), to avoid an unexpected "SHUTDOWN_BY_PEER".
+    if (!CxPlatEventWaitWithTimeout(ClientStats.ConnectionCompletionEvent, TimeoutMs)) {
+        TEST_FAILURE("Wait for clients connections to complete timed out after %u ms.", TimeoutMs);
+        return;
+    }
+
+    if (!CxPlatEventWaitWithTimeout(ServerStats.ConnectionCompletionEvent, TimeoutMs)) {
+        TEST_FAILURE("Wait for server connections to complete timed out after %u ms.", TimeoutMs);
+        return;
+    }
+
+    if (ClientSecrets) {
+        for (auto i = 0u; i < ConnectionCount; i++) {
+            auto ServerSecret = &ServerSecrets[i];
+            bool Match = false;
+            for (auto j = 0u; j < ConnectionCount; j++) {
+                auto ClientSecret = &ClientSecrets[j];
+                if (!memcmp(
+                        ServerSecret->ClientRandom,
+                        ClientSecret->ClientRandom,
+                        sizeof(ClientSecret->ClientRandom))) {
+                    if (Match) {
+                        TEST_FAILURE("Multiple clients with the same ClientRandom?!");
+                        return;
                     }
+
+                    TEST_EQUAL(
+                        ClientSecret->IsSet.ClientEarlyTrafficSecret,
+                        ServerSecret->IsSet.ClientEarlyTrafficSecret);
+                    TEST_EQUAL(
+                        ClientSecret->SecretLength,
+                        ServerSecret->SecretLength);
+                    TEST_TRUE(
+                        !memcmp(
+                            ClientSecret->ClientEarlyTrafficSecret,
+                            ServerSecret->ClientEarlyTrafficSecret,
+                            ClientSecret->SecretLength));
+                    Match = true;
                 }
-                if (!Match) {
-                    TEST_FAILURE("Failed to match Server Secrets to any Client Secrets!");
-                    return;
-                }
+            }
+            if (!Match) {
+                TEST_FAILURE("Failed to match Server Secrets to any Client Secrets!");
+                return;
             }
         }
     }
