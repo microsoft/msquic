@@ -61,12 +61,11 @@ jobs:
       fail-fast: false
       matrix:
         config: ['Debug', 'Release']
-        os: ['windows-2022', 'windows-2025']
     uses: ./.github/workflows/build-reuse-win.yml
     with:
       config: ${{ matrix.config }}
       plat: 'windows'
-      os: ${{ matrix.os }}
+      os: 'windows-2022'
       arch: 'x64'
       tls: 'schannel'
       official: '-ForceOfficialRelease'
@@ -80,7 +79,7 @@ jobs:
       matrix:
         config: ['Debug', 'Release']
         plat: [winkernel]
-        os: ['windows-2022']
+        os: ['windows-2022', 'windows-2025']
         arch: [x64, arm64]
         tls: [schannel]
     uses: ./.github/workflows/build-reuse-winkernel.yml
