@@ -610,11 +610,16 @@ QuicTestConnectAndPing(
             TEST_FAILURE("Wait for server streams to complete timed out after %u ms.", TimeoutMs);
             return;
         }
-    } // All client connections are closed at the end of this scope
 
-    // Wait for the connections to be fully completed
+        // Shutdown all client connections (they are set with auto-close)
+        for (uint32_t i = 0; i < ConnectionCount; ++i) {
+            Connections.get()[i]->Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
+        }
+    }
+
+    // Wait for the connections to be fully shutdown.
     // It is important to wait to ensure all server connections are closed by the client (and not
-    // by the registration close call), since we validate the connection shutdown reason code.
+    // by the registration close call), to avoid an unexpected "SHUTDOWN_BY_PEER".
     if (!CxPlatEventWaitWithTimeout(ClientStats.ConnectionCompletionEvent, TimeoutMs)) {
         TEST_FAILURE("Wait for clients connections to complete timed out after %u ms.", TimeoutMs);
         return;
