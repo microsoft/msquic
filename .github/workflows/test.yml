@@ -106,6 +106,9 @@ jobs:
               find_issues(env, 'msquictest');
               find_issues(env, 'msquicplatformtest');
               find_issues(env, 'msquiccoretest');
+              find_issues(env, 'msquictest.exe');
+              find_issues(env, 'msquicplatformtest.exe');
+              find_issues(env, 'msquiccoretest.exe');
           }
           for (let Issue of potential_issues) {
               console.log(Issue.title);
