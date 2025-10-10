@@ -104,7 +104,7 @@ jobs:
           find_issues('', 'msquictest.exe');
           find_issues('', 'msquicplatformtest.exe');
           find_issues('', 'msquiccoretest.exe');
-          
+
           for (const env of fs.readdirSync(root)) {
               // If env is not a directory, skip it.
               if (!fs.statSync(path.join(root, env)).isDirectory()) {
@@ -122,6 +122,7 @@ jobs:
               console.log(Issue.title);
               console.log(Issue.description);
           }
+
           // --- Prepare to File Issues ---
           let owner = context.repo.owner;
           let repo = context.repo.repo;
@@ -130,7 +131,8 @@ jobs:
             if (!dedup.has(it.title)) dedup.set(it.title, it);
           }
           const issuesToFile = [...dedup.values()];
-          if (issuesToFile.length > 8) {
+
+          if (issuesToFile.length > 10) {
             console.log('Too Many CI Failures...');
             await github.rest.issues.create({
               owner, repo,
@@ -138,8 +140,8 @@ jobs:
               body: run_url,
               labels: ['bvt', 'ci-failure'] // tweak/remove labels as you wish
             });
-            process.exit(0);
           }
+
           // --- Fetch all open issues once (pagination safe) ---
           const openIssues = await github.paginate(
             github.rest.issues.listForRepo,
@@ -148,7 +150,13 @@ jobs:
           // Build a quick lookup by title
           const openByTitle = new Map(openIssues.map(i => [i.title, i]));
           // --- Upsert: comment on existing (open) or create a new issue ---
+
+          let issuesFiled = 0;
           for (const it of issuesToFile) {
+            if (issuesFiled >= 10) {
+              break;
+            }
+            issuesFiled++;
             const existing = openByTitle.get(it.title);
             if (existing) {
               await github.rest.issues.createComment({
@@ -167,9 +175,3 @@ jobs:
               core.notice(`Created issue #${created.data.number}: ${it.title}`);
             }
           }
-          // Optional: log what we processed
-          core.summary
-            .addHeading('BVT Failure Issues')
-            .addList(issuesToFile.map(i => i.title))
-            .addLink('Workflow run', run_url)
-            .write();
