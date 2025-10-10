@@ -17,7 +17,7 @@ permissions: read-all
 jobs:
   build_dbgext:
     name: Build WinDbg Extension
-    runs-on: windows-2025
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:
@@ -42,7 +42,7 @@ jobs:
   build_quictrace:
     name: Build QuicTrace
     needs: []
-    runs-on: windows-2025
+    runs-on: windows-latest
     strategy:
       fail-fast: false
       matrix:

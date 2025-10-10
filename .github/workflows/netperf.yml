@@ -50,7 +50,7 @@ permissions: read-all
 jobs:
   run:
     name: Run Perf
-    runs-on: windows-2025
+    runs-on: windows-latest
     steps:
     - name: Run NetPerf Workflow
       timeout-minutes: 120
