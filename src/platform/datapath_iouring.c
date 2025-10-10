@@ -79,6 +79,19 @@ typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) DATAPATH_RX_PAC
 
 } DATAPATH_RX_PACKET;
 
+#if DEBUG
+
+typedef enum CXPLAT_SEND_DATA_STATE {
+    SendStateAllocated,
+    SendStateQueued,
+    SendStateSending,
+    SendStateSendComplete,
+    SendStateFreed,
+    SendStateMax
+} CXPLAT_SEND_DATA_STATE;
+
+#endif // DEBUG
+
 //
 // Send context.
 //
@@ -176,6 +189,10 @@ typedef struct CXPLAT_SEND_DATA {
     // The total number of bytes buffer sent (only used for TCP).
     //
     uint32_t TotalBytesSent;
+
+#if DEBUG
+    CXPLAT_SEND_DATA_STATE State;
+#endif
 
     //
     // IO vectors used for sends on the socket.
@@ -1742,6 +1759,19 @@ RecvDataReturn(
 // Send Path
 //
 
+#if DEBUG
+
+CXPLAT_SEND_DATA_STATE
+SendDataUpdateState(
+    _Inout_ CXPLAT_SEND_DATA* SendData,
+    _In_ CXPLAT_SEND_DATA_STATE NewState
+    )
+{
+    return (CXPLAT_SEND_DATA_STATE)InterlockedExchange32((int32_t*)&SendData->State, (int32_t)NewState);
+}
+
+#endif // DEBUG
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
@@ -1782,6 +1812,7 @@ SendDataAlloc(
         SendData->Iovs[0].iov_len = 0;
         SendData->Iovs[0].iov_base = SendData->Buffer;
         SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
+        CXPLAT_DBG_ONLY(SendDataUpdateState(SendData, SendStateAllocated));
     }
 
     return SendData;
@@ -1793,6 +1824,7 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateFreed) != SendStateFreed);
     CxPlatPoolFree(SendData);
 }
 
@@ -1851,6 +1883,7 @@ SendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
         SendData->BufferCount < SendData->SocketContext->DatapathPartition->Datapath->SendIoVecCount);
+    CXPLAT_DBG_ASSERT(SendData->State == SendStateAllocated);
     UNREFERENCED_PARAMETER(MaxBufferLength);
     if (SendData->ClientBuffer.Buffer == NULL) {
         return NULL;
@@ -1870,6 +1903,7 @@ SendDataFreeBuffer(
     // This must be the final send buffer; intermediate Iovs cannot be freed.
     //
     CXPLAT_DBG_ASSERT(Buffer == &SendData->ClientBuffer);
+    CXPLAT_DBG_ASSERT(SendData->State == SendStateAllocated);
     Buffer->Length = 0;
     UNREFERENCED_PARAMETER(SendData);
 }
@@ -2008,6 +2042,8 @@ CxPlatSendDataSendSegmented(
     if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
         if (!AlreadyQueued) {
             CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+            CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateQueued) ==
+                SendStateAllocated);
         }
         Status = QUIC_STATUS_PENDING;
         goto Exit;
@@ -2017,6 +2053,8 @@ CxPlatSendDataSendSegmented(
     if (Sqe == NULL) {
         if (!AlreadyQueued) {
             CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+            CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateQueued) ==
+                SendStateAllocated);
         }
         Status = QUIC_STATUS_PENDING;
         goto Exit;
@@ -2041,6 +2079,8 @@ CxPlatSendDataSendSegmented(
         DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe);
     SendData->Sqe.Context = (void*)DatapathContextSend; // NOLINT performance-no-int-to-ptr
     CxPlatSocketIoStart(SocketContext, IoTagSend);
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateSending) ==
+        (AlreadyQueued ? SendStateQueued : SendStateAllocated));
 
 Exit:
 
@@ -2147,6 +2187,7 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqe);
     CXPLAT_SEND_DATA* SendData = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
 
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateSendComplete) == SendStateSending);
     CxPlatSendDataFree(SendData);
     SendData = NULL;
 
