@@ -67,6 +67,7 @@ jobs:
           const root = 'artifacts'
           const potential_issues = [];
           // If root does not exist, exit silently
+          console.log("Let's start filing issues if any");
           if (!fs.existsSync(root)) {
               console.log('No artifacts found');
               process.exit(0);
@@ -80,11 +81,13 @@ jobs:
           let run_url = `https://github.com/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`
           function find_issues(env, directory) {
               if (!fs.existsSync(path.join(root, env, 'logs', directory))) {
+                  console.log(`${env} / ${directory} does not exist`);
                   return;
               }
               for (const log of fs.readdirSync(path.join(root, env, 'logs', directory))) {
                   // If log is not a directory, skip it.
                   if (!fs.statSync(path.join(root, env, 'logs', directory, log)).isDirectory()) {
+                      console.log(`${log} is not a directory`);
                       continue;
                   }
                   for (const testcase of fs.readdirSync(path.join(root, env, 'logs', directory, log))) {
@@ -97,6 +100,7 @@ jobs:
           for (const env of fs.readdirSync(root)) {
               // If env is not a directory, skip it.
               if (!fs.statSync(path.join(root, env)).isDirectory()) {
+                  console.log(`${env} is not a directory`);
                   continue;
               }
               find_issues(env, 'msquictest');
@@ -115,7 +119,8 @@ jobs:
             if (!dedup.has(it.title)) dedup.set(it.title, it);
           }
           const issuesToFile = [...dedup.values()];
-          if (issuesToFile.length > 5) {
+          if (issuesToFile.length > 8) {
+            console.log('Too Many CI Failures...');
             await github.rest.issues.create({
               owner, repo,
               title: "Too Many CI Failures...",
