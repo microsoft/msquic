@@ -156,6 +156,16 @@ InterlockedOr64(
 }
 
 QUIC_INLINE
+int32_t
+InterlockedExchange32(
+    _Inout_ _Interlocked_operand_ int32_t volatile *Target,
+    _In_ int32_t Value
+    )
+{
+    return __sync_lock_test_and_set(Target, Value);
+}
+
+QUIC_INLINE
 int64_t
 InterlockedExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Target,
