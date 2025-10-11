@@ -207,13 +207,6 @@ typedef struct QUIC_RX_PACKET QUIC_RX_PACKET;
 #define QUIC_MAX_RECEIVE_FLUSH_COUNT            100
 
 //
-// The maximum number of pending datagrams we will hold on to, per connection,
-// per packet number space. We base our max on the expected initial window size
-// of the peer with a little bit of extra.
-//
-#define QUIC_MAX_PENDING_DATAGRAMS              (QUIC_INITIAL_WINDOW_PACKETS + 5)
-
-//
 // The maximum crypto FC window we will use/allow for client buffers.
 //
 #define QUIC_MAX_TLS_CLIENT_SEND_BUFFER         (4 * 1024)
