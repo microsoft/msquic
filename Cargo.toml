@@ -29,7 +29,7 @@ include = [
     "/submodules/quictls/exporters",
     "/submodules/quictls/external",
     "/submodules/quictls/fuzz/*.c",
-    "/submodules/quictls/fuzz/*.h", 
+    "/submodules/quictls/fuzz/*.h",
     "/submodules/quictls/fuzz/*.py",
     "/submodules/quictls/fuzz/*.pl",
     "/submodules/quictls/fuzz/build.info",
@@ -95,6 +95,8 @@ static = []
 preview-api = []
 # Overwrite generated binding by reruning the bindgen
 overwrite = [ "dep:bindgen" ]
+# Enable verbose logging (defaults to QUIC_LOGGING_TYPE=stdout on linux)
+logging = []
 
 [build-dependencies]
 cmake = { version = "0.1", optional = true }
