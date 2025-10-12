@@ -47,6 +47,10 @@ fn cmake_build() {
         config.define("QUIC_LOGGING_TYPE", "stdout");
     }
 
+    if cfg!(unix) && !cfg!(feature = "numa") {
+        config.define("QUIC_LINUX_NUMA_ENABLED", "OFF");
+    }
+
     // Disable parallel builds on Windows, as they seems to break manifest builds.
     if cfg!(windows) {
         // cmake-rs uses this cargo env var to pass "--parallel" arg to cmake
@@ -87,7 +91,7 @@ fn cmake_build() {
     let lib_path = Path::join(Path::new(&dst), Path::new(path_extra));
     println!("cargo:rustc-link-search=native={}", lib_path.display());
     if cfg!(feature = "static") {
-        if cfg!(target_os = "linux") {
+        if cfg!(target_os = "linux") && cfg!(feature = "numa") {
             let numa_lib_path = match target.as_str() {
                 "x86_64-unknown-linux-gnu" => "/usr/lib/x86_64-linux-gnu",
                 "aarch64-unknown-linux-gnu" => "/usr/lib/aarch64-linux-gnu",
