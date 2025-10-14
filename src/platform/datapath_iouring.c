@@ -236,10 +236,10 @@ CxPlatSocketAllocSqe(
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
-    struct io_uring_sqe* io_sqe = io_uring_get_sqe(&EventQ->Ring);
+    struct io_uring_sqe* io_sqe = CxPlatEventGetSqe(EventQ);
     if (io_sqe == NULL) {
-        io_uring_submit(&EventQ->Ring);
-        io_sqe = io_uring_get_sqe(&EventQ->Ring);
+        CxPlatEventQSubmit(EventQ);
+        io_sqe = CxPlatEventGetSqe(EventQ);
     }
     return io_sqe;
 }
@@ -1191,7 +1191,7 @@ CxPlatSocketContextUninitialize(
         CXPLAT_FRE_ASSERT(Sqe != NULL);
         io_uring_prep_cancel(Sqe, &SocketContext->IoSqe.Sqe, IORING_ASYNC_CANCEL_ALL);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
-        io_uring_submit(&DatapathPartition->EventQ->Ring);
+        CxPlatEventQSubmit(DatapathPartition->EventQ);
         SocketContext->LockedFlags.Shutdown = TRUE;
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
@@ -1229,7 +1229,7 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     Sqe->flags |= IOSQE_BUFFER_SELECT;
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe.Sqe);
-    io_uring_submit(&EventQ->Ring);
+    CxPlatEventQSubmit(EventQ);
 
     CXPLAT_DBG_ONLY(SocketContext->LockedFlags.MultiRecvStarted = TRUE);
     CxPlatSocketIoStart(SocketContext, IoTagRecv);
@@ -2096,7 +2096,7 @@ Exit:
         if (DatapathPartition->OwningThreadID == CxPlatCurThreadID()) {
             DatapathPartition->EventQ->NeedsSubmit = TRUE;
         } else {
-            io_uring_submit(&DatapathPartition->EventQ->Ring);
+            CxPlatEventQSubmit(DatapathPartition->EventQ);
         }
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
@@ -2312,7 +2312,7 @@ CxPlatSocketContextIoEventComplete(
         SocketContext = GetSocketContextFromSqe(Sqe);
     }
 
-    io_uring_submit(&EventQ->Ring);
+    CxPlatEventQSubmit(EventQ);
 
     CxPlatLockRelease(&EventQ->Lock);
 }
