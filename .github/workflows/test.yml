@@ -415,13 +415,18 @@ jobs:
           const issuesToFile = [...dedup.values()];
 
           if (issuesToFile.length > 10) {
-            console.log('Too Many CI Failures...');
+            console.log('Too many CI failures: ' + issuesToFile.length);
+            let body = run_url;
+            for (const it of issuesToFile) {
+              body += it.title + ", "
+            }
             await github.rest.issues.create({
               owner, repo,
-              title: "Too Many CI Failures...",
-              body: run_url,
+              title: 'Too many CI failures: ' + issuesToFile.length,
+              body: body,
               labels: ['bvt', 'ci-failure'] // tweak/remove labels as you wish
             });
+            process.exit(0);
           }
 
           // --- Fetch all open issues once (pagination safe) ---
@@ -433,12 +438,7 @@ jobs:
           const openByTitle = new Map(openIssues.map(i => [i.title, i]));
           // --- Upsert: comment on existing (open) or create a new issue ---
 
-          let issuesFiled = 0;
           for (const it of issuesToFile) {
-            if (issuesFiled >= 10) {
-              break;
-            }
-            issuesFiled++;
             const existing = openByTitle.get(it.title);
             if (existing) {
               await github.rest.issues.createComment({
