@@ -299,11 +299,11 @@ QuicSendSetSendFlag(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
-    BOOLEAN IsCloseFrame =
+    const BOOLEAN IsCloseFrame =
         !!(SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE));
 
-    BOOLEAN CanSetFlag =
-        !QuicConnIsClosed(Connection) || IsCloseFrame;
+    const BOOLEAN CanSetFlag =
+        !QuicConnIsClosed(Connection) || (!Connection->State.ClosedSilently && IsCloseFrame);
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
@@ -314,9 +314,10 @@ QuicSendSetSendFlag(
         QuicTraceLogConnVerbose(
             ScheduleSendFlags,
             Connection,
-            "Scheduling flags 0x%x to 0x%x",
+            "Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
             SendFlags,
-            Send->SendFlags);
+            Send->SendFlags,
+            Send->SendFlags | SendFlags);
         Send->SendFlags |= SendFlags;
         QuicSendQueueFlush(Send, REASON_CONNECTION_FLAGS);
     }

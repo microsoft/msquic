@@ -35,6 +35,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Connected       : 1;    // Handshake completed.
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
+        BOOLEAN ClosedSilently  : 1;    // Closed with the QUIC_CLOSE_SILENT flag - go directly to draining state.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
