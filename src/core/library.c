@@ -1288,7 +1288,7 @@ QuicLibrarySetGlobalParam(
 
         QuicTraceLogInfo(
             LibraryDscpRecvEnabledSet,
-            "[ lib] Setting Dscp on recv = %d", MsQuicLib.EnableDscpOnRecv);
+            "[ lib] Setting Dscp on recv = %u", MsQuicLib.EnableDscpOnRecv);
 
         Status = QUIC_STATUS_SUCCESS;
         break;
