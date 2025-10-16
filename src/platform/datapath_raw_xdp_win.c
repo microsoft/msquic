@@ -21,6 +21,7 @@ Abstract:
 #include <afxdp_helper.h>
 #include <xdpapi.h>
 #include <xdpapi_experimental.h>
+#include <xdp/offload.h>
 #include <stdio.h>
 
 #ifdef QUIC_CLOG
