@@ -6284,11 +6284,11 @@
     },
     "LibraryDscpRecvEnabledSet": {
       "ModuleProperites": {},
-      "TraceString": "[ lib] Setting Dscp on recv = %d",
+      "TraceString": "[ lib] Setting Dscp on recv = %u",
       "UniqueId": "LibraryDscpRecvEnabledSet",
       "splitArgs": [
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
         }
       ],
@@ -14974,9 +14974,9 @@
         "EncodingString": "[ lib] CID Length = %hhu"
       },
       {
-        "UniquenessHash": "4ee2132f-243f-586f-f776-403103dc21a7",
+        "UniquenessHash": "bce1fded-91be-da6e-29d8-3f52455fa16a",
         "TraceID": "LibraryDscpRecvEnabledSet",
-        "EncodingString": "[ lib] Setting Dscp on recv = %d"
+        "EncodingString": "[ lib] Setting Dscp on recv = %u"
       },
       {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
