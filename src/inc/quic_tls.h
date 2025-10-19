@@ -529,6 +529,15 @@ QuicTlsPopulateOffloadKeys(
     _Inout_ CXPLAT_QEO_CONNECTION* Offload
     );
 
+BOOLEAN
+CxPlatSupportsTicketManagement();
+
+BOOLEAN
+CxPlatSupportsInline1RTTAppStateValidation();
+
+BOOLEAN
+CxPlatNeedsExplicitAppStateResumptionConfig();
+
 #if defined(__cplusplus)
 }
 #endif
