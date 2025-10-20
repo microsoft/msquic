@@ -2667,6 +2667,18 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
+    "DatapathQueryRioDispatchFailed": {
+      "ModuleProperites": {},
+      "TraceString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
+      "UniqueId": "DatapathQueryRioDispatchFailed",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogWarning"
+    },
     "DatapathQueryRssProcessorInfoFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
@@ -10747,6 +10759,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingRioEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] RioEnabled             = %hhu",
+      "UniqueId": "SettingRioEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingsInvalidAcceptableVersion": {
       "ModuleProperites": {},
       "TraceString": "Invalid AcceptableVersion supplied to settings! 0x%x at position %d",
@@ -13828,6 +13852,11 @@
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x"
       },
       {
+        "UniquenessHash": "004490dd-4f9c-e6fd-1826-2a88b4faf32e",
+        "TraceID": "DatapathQueryRioDispatchFailed",
+        "EncodingString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x"
+      },
+      {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
         "TraceID": "DatapathQueryRssProcessorInfoFailed",
         "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x"
@@ -16326,6 +16355,11 @@
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
+      },
+      {
+        "UniquenessHash": "aa851418-62e3-4895-b4a2-bedcbcf06d0d",
+        "TraceID": "SettingRioEnabled",
+        "EncodingString": "[sett] RioEnabled             = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
