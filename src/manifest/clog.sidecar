@@ -2707,18 +2707,6 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathQueryRioDispatchFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
-      "UniqueId": "DatapathQueryRioDispatchFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
     "DatapathQueryRssProcessorInfoFailed": {
       "ModuleProperites": {},
       "TraceString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x",
@@ -9785,7 +9773,7 @@
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
+      "TraceString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
       "UniqueId": "ScheduleSendFlags",
       "splitArgs": [
         {
@@ -9799,6 +9787,10 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -10847,18 +10839,6 @@
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
       "UniqueId": "SettingReliableResetEnabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingRioEnabled": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] RioEnabled             = %hhu",
-      "UniqueId": "SettingRioEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13974,11 +13954,6 @@
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x"
       },
       {
-        "UniquenessHash": "004490dd-4f9c-e6fd-1826-2a88b4faf32e",
-        "TraceID": "DatapathQueryRioDispatchFailed",
-        "EncodingString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x"
-      },
-      {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
         "TraceID": "DatapathQueryRssProcessorInfoFailed",
         "EncodingString": "[data] Query for SIO_QUERY_RSS_SCALABILITY_INFO failed, 0x%x"
@@ -16124,9 +16099,9 @@
         "EncodingString": "[conn][%p] probe round %hu"
       },
       {
-        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "UniquenessHash": "746a4e23-1021-bda2-7be8-ba33a1221656",
         "TraceID": "ScheduleSendFlags",
-        "EncodingString": "[conn][%p] Scheduling flags 0x%x to 0x%x"
+        "EncodingString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -16497,11 +16472,6 @@
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
-      },
-      {
-        "UniquenessHash": "aa851418-62e3-4895-b4a2-bedcbcf06d0d",
-        "TraceID": "SettingRioEnabled",
-        "EncodingString": "[sett] RioEnabled             = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",
