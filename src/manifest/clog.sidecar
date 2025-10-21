@@ -9685,7 +9685,7 @@
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
+      "TraceString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
       "UniqueId": "ScheduleSendFlags",
       "splitArgs": [
         {
@@ -9699,6 +9699,10 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -15978,9 +15982,9 @@
         "EncodingString": "[conn][%p] probe round %hu"
       },
       {
-        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "UniquenessHash": "746a4e23-1021-bda2-7be8-ba33a1221656",
         "TraceID": "ScheduleSendFlags",
-        "EncodingString": "[conn][%p] Scheduling flags 0x%x to 0x%x"
+        "EncodingString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",

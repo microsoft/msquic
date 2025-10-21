@@ -1471,6 +1471,10 @@ QuicConnTryClose(
     BOOLEAN ClosedRemotely = !!(Flags & QUIC_CLOSE_REMOTE);
     BOOLEAN SilentClose = !!(Flags & QUIC_CLOSE_SILENT);
 
+    CXPLAT_DBG_ASSERT(!(ClosedRemotely && SilentClose));
+
+    Connection->State.ClosedSilently = SilentClose;
+
     if ((ClosedRemotely && Connection->State.ClosedRemotely) ||
         (!ClosedRemotely && Connection->State.ClosedLocally)) {
         //
