@@ -120,6 +120,15 @@ public:
                 ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
 #endif
+            //
+            // Enable DSCP on the receive path. This is needed to test DSCP Send path.
+            //
+            BOOLEAN Option = TRUE;
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                sizeof(BOOLEAN),
+                &Option)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -367,7 +376,24 @@ TEST(ParameterValidation, ValidateConnectionPoolCreate) {
         QuicTestValidateConnectionPoolCreate();
     }
 }
-#endif
+
+TEST(ParameterValidation, ValidateExecutionContext) {
+    TestLogger Logger("QuicTestValidateExecutionContext");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT));
+    } else {
+        QuicTestValidateExecutionContext();
+    }
+}
+TEST(ParameterValidation, ValidatePartition) {
+    TestLogger Logger("QuicTestValidatePartition");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_PARTITION));
+    } else {
+        QuicTestValidatePartition();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");

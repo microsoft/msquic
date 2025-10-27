@@ -35,10 +35,13 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN Connected       : 1;    // Handshake completed.
         BOOLEAN ClosedLocally   : 1;    // Locally closed.
         BOOLEAN ClosedRemotely  : 1;    // Remotely closed.
+        BOOLEAN ClosedSilently  : 1;    // Closed with the QUIC_CLOSE_SILENT flag.
         BOOLEAN AppClosed       : 1;    // Application (not transport) closed connection.
         BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
+        BOOLEAN Partitioned     : 1;    // The connection cannot move across partitions.
+        BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
         // Indicates whether packet number encryption is enabled or not for the
@@ -558,6 +561,8 @@ typedef struct QUIC_CONNECTION {
     QUIC_OPERATION BackUpOper;
     QUIC_API_CONTEXT BackupApiContext;
     uint16_t BackUpOperUsed;
+    QUIC_OPERATION CloseOper;
+    QUIC_API_CONTEXT CloseApiContext;
 
     //
     // The status code used for indicating transport closed notifications.

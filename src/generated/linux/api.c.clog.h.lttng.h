@@ -47,8 +47,8 @@ TRACEPOINT_EVENT(CLOG_API_C, ApiExitStatus,
 // Decoder Ring for ApiWaitOperation
 // [ api] Waiting on operation
 // QuicTraceEvent(
-            ApiWaitOperation,
-            "[ api] Waiting on operation");
+                ApiWaitOperation,
+                "[ api] Waiting on operation");
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_API_C, ApiWaitOperation,
     TP_ARGS(

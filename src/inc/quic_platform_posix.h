@@ -156,6 +156,16 @@ InterlockedOr64(
 }
 
 QUIC_INLINE
+int32_t
+InterlockedExchange32(
+    _Inout_ _Interlocked_operand_ int32_t volatile *Target,
+    _In_ int32_t Value
+    )
+{
+    return __sync_lock_test_and_set(Target, Value);
+}
+
+QUIC_INLINE
 int64_t
 InterlockedExchange64(
     _Inout_ _Interlocked_operand_ int64_t volatile *Target,
@@ -302,7 +312,7 @@ CxPlatLogAssert(
     _In_z_ const char* Expr
     );
 
-#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X, Y);
+#define CXPLAT_STATIC_ASSERT(X,Y) static_assert(X, #Y);
 #define CXPLAT_ANALYSIS_ASSERT(X)
 #define CXPLAT_ANALYSIS_ASSUME(X)
 #define CXPLAT_FRE_ASSERT(exp) ((exp) ? (void)0 : (CxPlatLogAssert(__FILE__, __LINE__, #exp), quic_bugcheck(__FILE__, __LINE__, #exp)));
@@ -745,11 +755,8 @@ CxPlatTimeDiff32(
     _In_ uint32_t T2      // Second time measured
     )
 {
-    if (T2 > T1) {
-        return T2 - T1;
-    } else { // Wrap around case.
-        return T2 + (0xFFFFFFFF - T1) + 1;
-    }
+    // Subtraction handles wraparound automatically in the ring 2^32
+    return T2 - T1;
 }
 
 QUIC_INLINE
@@ -1013,7 +1020,8 @@ typedef struct CXPLAT_EVENTQ {
     //
     CXPLAT_LOCK Lock;
 #if DEBUG
-    uint32_t ContentionCount;
+    uint32_t CqContentionCount;
+    uint32_t SqContentionCount;
 #endif
     BOOLEAN NeedsSubmit;
 } CXPLAT_EVENTQ;
@@ -1081,6 +1089,46 @@ CxPlatEventQCleanup(
 }
 
 QUIC_INLINE
+struct io_uring_sqe*
+CxPlatEventGetSqe(
+    _In_ CXPLAT_EVENTQ* Queue
+    )
+{
+    struct io_uring_sqe* io_sqe;
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->SqContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    io_sqe = io_uring_get_sqe(&Queue->Ring);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    return io_sqe;
+}
+
+QUIC_INLINE
+void
+CxPlatEventQSubmit(
+    _In_ CXPLAT_EVENTQ* Queue
+    )
+{
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(Queue->SqContentionCount++ == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+    io_uring_submit(&Queue->Ring);
+#if DEBUG
+    CxPlatLockAcquire(&Queue->Lock);
+    CXPLAT_DBG_ASSERT(--Queue->SqContentionCount == 0);
+    CxPlatLockRelease(&Queue->Lock);
+#endif
+}
+
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* Queue,
@@ -1090,13 +1138,13 @@ CxPlatEventQEnqueue(
     BOOLEAN Enqueued = FALSE;
     CXPLAT_DBG_ASSERT(Sqe->Signature == CXPLAT_SQE_SIGNATURE_INITIALIZED);
     CxPlatLockAcquire(&Queue->Lock);
-    struct io_uring_sqe* io_sqe = io_uring_get_sqe(&Queue->Ring);
+    struct io_uring_sqe* io_sqe = CxPlatEventGetSqe(Queue);
     if (io_sqe == NULL) {
         goto Exit; // OOM
     }
     io_uring_prep_nop(io_sqe);
     io_uring_sqe_set_data(io_sqe, Sqe);
-    io_uring_submit(&Queue->Ring); // TODO - Extract to separate function?
+    CxPlatEventQSubmit(Queue);
     Enqueued = TRUE;
 Exit:
     CxPlatLockRelease(&Queue->Lock);
@@ -1114,15 +1162,17 @@ CxPlatEventQDequeue(
 {
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
-    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CXPLAT_DBG_ASSERT(Queue->CqContentionCount++ == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
     if (Queue->NeedsSubmit) {
         //
-        // Review: can be batched with waits below.
+        // Review: can be batched with waits below if fully partitioned.
         //
-        io_uring_submit(&Queue->Ring);
+        CxPlatLockAcquire(&Queue->Lock);
+        CxPlatEventQSubmit(Queue);
         Queue->NeedsSubmit = FALSE;
+        CxPlatLockRelease(&Queue->Lock);
     }
     int result = io_uring_peek_batch_cqe(&Queue->Ring, Events, Count);
     if (result > 0 || WaitTime == 0) goto Exit;
@@ -1130,6 +1180,10 @@ CxPlatEventQDequeue(
         struct __kernel_timespec timeout;
         timeout.tv_sec = (WaitTime / 1000);
         timeout.tv_nsec = ((WaitTime % 1000) * 1000000);
+        // If io_uring_wait_cqe_timeout is called without IORING_FEAT_EXT_ARG,
+        // the function internally queues an SQE and requires special
+        // synchronization.
+        CXPLAT_DBG_ASSERT(Queue->Ring.features & IORING_FEAT_EXT_ARG);
         (void)io_uring_wait_cqe_timeout(&Queue->Ring, Events, &timeout);
     } else {
         (void)io_uring_wait_cqe(&Queue->Ring, Events);
@@ -1141,7 +1195,7 @@ CxPlatEventQDequeue(
 Exit:
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
-    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CXPLAT_DBG_ASSERT(--Queue->CqContentionCount == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
     return result;
@@ -1156,13 +1210,13 @@ CxPlatEventQReturn(
 {
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
-    CXPLAT_DBG_ASSERT(Queue->ContentionCount++ == 0);
+    CXPLAT_DBG_ASSERT(Queue->CqContentionCount++ == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
     io_uring_cq_advance(&Queue->Ring, Count);
 #if DEBUG
     CxPlatLockAcquire(&Queue->Lock);
-    CXPLAT_DBG_ASSERT(--Queue->ContentionCount == 0);
+    CXPLAT_DBG_ASSERT(--Queue->CqContentionCount == 0);
     CxPlatLockRelease(&Queue->Lock);
 #endif
 }

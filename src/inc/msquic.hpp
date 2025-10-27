@@ -229,6 +229,7 @@ public:
     }
     void Wait() noexcept {
         if (Initialized) {
+            WaitOnDelete = false;
             CxPlatThreadWait(&Thread);
         }
     }
@@ -513,6 +514,14 @@ struct MsQuicExecution {
             delete [] Configs;
         }
     }
+    ~MsQuicExecution() noexcept {
+        if (Executions != nullptr) {
+            MsQuic->ExecutionDelete(Count, Executions);
+            delete[] Executions;
+            Executions = nullptr;
+            Count = 0;
+        }
+    }
     MsQuicExecution(const MsQuicExecution&) = delete;
     MsQuicExecution& operator=(const MsQuicExecution&) = delete;
     MsQuicExecution(MsQuicExecution&&) = delete;
@@ -589,6 +598,17 @@ struct MsQuicRegistration {
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    void CloseAsync(
+        _In_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+        _In_opt_ void* Context
+        ) noexcept {
+        if (Handle != nullptr) {
+            MsQuic->RegistrationClose2(Handle, Handler, Context);
+            Handle = nullptr;
+        }
+    }
+#endif
 };
 
 class MsQuicAlpn {
@@ -991,9 +1011,7 @@ struct MsQuicListener {
     }
 
     ~MsQuicListener() noexcept {
-        if (Handle) {
-            MsQuic->ListenerClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -1002,6 +1020,19 @@ struct MsQuicListener {
         _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
+    }
+
+    void
+    Stop() noexcept {
+        MsQuic->ListenerStop(Handle);
+    }
+    void
+    Close()
+    {
+        if (Handle) {
+            MsQuic->ListenerClose(Handle);
+            Handle = nullptr;
+        }
     }
 
     QUIC_STATUS
@@ -1045,6 +1076,17 @@ struct MsQuicListener {
                 QUIC_PARAM_LISTENER_CIBIR_ID,
                 Length,
                 Value);
+    }
+
+    QUIC_STATUS
+    SetPartitionId(
+        _In_ const uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(Value),
+                &Value);
     }
 #endif
 
@@ -1107,11 +1149,13 @@ struct MsQuicConnection {
     QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
+    bool CloseAsync {false};
     uint32_t ResumptionTicketLength {0};
     uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
     CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent ResumptionTicketReceivedEvent;
+    CxPlatEvent ShutdownCompleteEvent {true};
 #endif // CX_PLATFORM_TYPE
 
     MsQuicConnection(
@@ -1119,7 +1163,8 @@ struct MsQuicConnection {
         _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
         _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
-        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context) {
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context)
+        {
         if (!Registration.IsValid()) {
             InitStatus = Registration.GetInitStatus();
             return;
@@ -1171,6 +1216,11 @@ struct MsQuicConnection {
 
     ~MsQuicConnection() noexcept {
         Close();
+#ifdef CX_PLATFORM_TYPE
+        if (CloseAsync) {
+            ShutdownCompleteEvent.WaitForever();
+        }
+#endif // CX_PLATFORM_TYPE
         delete[] ResumptionTicket;
     }
 
@@ -1443,6 +1493,9 @@ private:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) noexcept {
         CXPLAT_DBG_ASSERT(pThis);
+        auto DeleteOnExit =
+            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             pThis->HandshakeComplete = true;
             pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
@@ -1474,10 +1527,12 @@ private:
 #endif // CX_PLATFORM_TYPE
             }
         }
-        auto DeleteOnExit =
-            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
-            pThis->CleanUpMode == CleanUpAutoDelete;
         auto Status = pThis->Callback(pThis, pThis->Context, Event);
+#ifdef CX_PLATFORM_TYPE
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            pThis->ShutdownCompleteEvent.Set();
+        }
+#endif // CX_PLATFORM_TYPE
         if (DeleteOnExit) {
             delete pThis;
         }

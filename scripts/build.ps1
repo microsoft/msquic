@@ -27,6 +27,9 @@ This script provides helpers for building msquic.
 .PARAMETER SanitizeAddress
     Enables address sanitizer.
 
+.PARAMETER SanitizeThread
+    Enables thread sanitizer.
+
 .PARAMETER CodeCheck
     Enables static code checkers.
 
@@ -146,6 +149,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SanitizeThread = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCheck = $false,
@@ -449,6 +455,9 @@ function CMake-Generate {
     if ($SanitizeAddress) {
         $Arguments += " -DQUIC_ENABLE_ALL_SANITIZERS=on"
     }
+    if ($SanitizeThread) {
+        $Arguments += " -DQUIC_ENABLE_TSAN=on"
+    }
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
     }
@@ -567,7 +576,7 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
-        if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
+        if ($SanitizeAddress -or $SanitizeThread -or ($PGO -and $Config -eq "Release")) {
             $CacheFile = Join-Path $BuildDir "CMakeCache.txt"
             $LinkerMatches = Select-String -Path $CacheFile -Pattern "CMAKE_LINKER:FILEPATH=(.+)"
             if ($LinkerMatches.Matches.Length -eq 1 -and $LinkerMatches.Matches[0].Groups.Count -eq 2) {
@@ -580,7 +589,7 @@ function CMake-Build {
                     Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
                 }
-                if ($SanitizeAddress) {
+                if ($SanitizeAddress -or $SanitizeThread) {
                     Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dbg_dynamic-x86_64.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dynamic-x86_64.dll") $ArtifactsDir
                 }

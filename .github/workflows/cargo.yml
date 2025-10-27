@@ -34,7 +34,7 @@ jobs:
     name: Cargo
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForBuild -InstallTestCertificates
       shell: pwsh
@@ -83,7 +83,7 @@ jobs:
       if: |
         !github.event.pull_request.head.repo.fork &&
         steps.bindings_diff.outputs.diff-found == 'true'
-      uses: peter-evans/create-or-update-comment@71345be0265236311c031f5c7866368bd1eff043
+      uses: peter-evans/create-or-update-comment@e8674b075228eee787fea43ef493e45ece1004c9
       with:
         token: ${{ secrets.GITHUB_TOKEN }}
         issue-number: ${{ github.event.number }}
@@ -102,6 +102,29 @@ jobs:
       run: cargo test --all ${{ matrix.vec.features }}
     - name: Cargo Publish (dry run)
       run: cargo publish --dry-run --allow-dirty --no-verify
+    - name: Validate crate size (< 10MB)
+      # Temporary: skip size check for OpenSSL TLS builds which currently exceed 10MiB.
+      # We still validate for other TLS configs (e.g., quictls) on ubuntu-latest.
+      if: matrix.os == 'ubuntu-latest' && matrix.vec.tls != 'openssl'
+      shell: bash
+      run: |
+        set -euo pipefail
+        # Create the crate package (source tarball)
+        cargo package --allow-dirty --no-verify
+        crate_file=$(ls -1 target/package/*.crate | head -n1)
+        if [[ -z "${crate_file:-}" ]]; then
+          echo "Error: No .crate file found under target/package" >&2
+          exit 1
+        fi
+        size_bytes=$(stat -c%s "$crate_file")
+        limit_bytes=$((10 * 1024 * 1024))
+        echo "Crate: $crate_file"
+        echo "Size:  $size_bytes bytes"
+        if (( size_bytes > limit_bytes )); then
+          echo "Crate size exceeds 10MB limit (crates.io max). Please prune package contents." >&2
+          exit 1
+        fi
+        echo "Crate size is within limit."
   # Test rust crate with preinstalled msquic lib.
   cargo-preinstall:
     strategy:
@@ -113,7 +136,7 @@ jobs:
     name: Cargo-Preinstall
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
     - name: Install Rust
       uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9
       with:

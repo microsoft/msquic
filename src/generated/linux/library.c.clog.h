@@ -208,6 +208,23 @@ tracepoint(CLOG_LIBRARY_C, LibraryExecutionConfigSet );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDscpRecvEnabledSet
+// [ lib] Setting Dscp on recv = %u
+// QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %u", MsQuicLib.EnableDscpOnRecv);
+// arg2 = arg2 = MsQuicLib.EnableDscpOnRecv = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryDscpRecvEnabledSet
+#define _clog_3_ARGS_TRACE_LibraryDscpRecvEnabledSet(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryDscpRecvEnabledSet , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(

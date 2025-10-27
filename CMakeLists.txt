@@ -90,6 +90,7 @@ option(QUIC_ENABLE_ALL_SANITIZERS "Enables all sanitizers" OFF)
 option(QUIC_ENABLE_ASAN "Enables only Address Sanitizer" OFF)
 option(QUIC_ENABLE_LSAN "Enables only Leak Sanitizer" OFF)
 option(QUIC_ENABLE_UBSAN "Enables only Undefined Behavior Sanitizer" OFF)
+option(QUIC_ENABLE_TSAN "Enables only Thread Sanitizer" OFF)
 option(QUIC_ENABLE_EXTRA_SANITIZERS "Enables only extra sanitizers" OFF)
 option(QUIC_SKIP_SANITIZE_SUBMODULES "Skip passing sanitizer settings to submodule build" OFF)
 option(QUIC_ENABLE_POOL_ALLOC "Enables pool allocations" ON)
@@ -131,6 +132,8 @@ elseif (QUIC_ENABLE_ASAN)
 elseif (QUIC_ENABLE_LSAN)
     set(QUIC_SANITIZER_ACTIVE ON)
 elseif (QUIC_ENABLE_UBSAN)
+    set(QUIC_SANITIZER_ACTIVE ON)
+elseif (QUIC_ENABLE_TSAN)
     set(QUIC_SANITIZER_ACTIVE ON)
 elseif (QUIC_ENABLE_EXTRA_SANITIZERS)
     set(QUIC_SANITIZER_ACTIVE ON)
@@ -317,7 +320,7 @@ else()
             set(QUIC_LOGGING_TYPE "lttng")
             message(STATUS "Choosing lttng as default logging type for platform")
         endif()
-        
+
         if(CMAKE_SYSTEM_PROCESSOR MATCHES "^(arm|aarch64)$")
             set(QUIC_LINUX_XDP_ENABLED OFF CACHE BOOL "XDP not supported on ARM architectures" FORCE)
         endif()
@@ -712,9 +715,9 @@ else() #!WIN32
     endif()
 
     if (QUIC_SANITIZER_ACTIVE)
-        message(STATUS "Configuring sanitizers: ASAN:${QUIC_ENABLE_ASAN} LSAN:${QUIC_ENABLE_LSAN} UBSAN:${QUIC_ENABLE_UBSAN} EXTRA:${QUIC_ENABLE_EXTRA_SANITIZERS}")
+        message(STATUS "Configuring sanitizers: ASAN:${QUIC_ENABLE_ASAN} LSAN:${QUIC_ENABLE_LSAN} UBSAN:${QUIC_ENABLE_UBSAN} TSAN:${QUIC_ENABLE_TSAN} EXTRA:${QUIC_ENABLE_EXTRA_SANITIZERS}")
         # Append common flags for all sanitizer options
-        list(APPEND QUIC_COMMON_FLAGS -Og -fno-omit-frame-pointer -fno-optimize-sibling-calls)
+        list(APPEND QUIC_COMMON_FLAGS -O0 -fno-omit-frame-pointer -fno-optimize-sibling-calls)
 
         # Clang/LLVM doesn't support this flag, but GCC does.
         check_c_compiler_flag(-fno-var-tracking-assignments HAS_NO_VAR_TRACKING)
@@ -738,6 +741,11 @@ else() #!WIN32
 
         if (QUIC_ENABLE_UBSAN)
             list(APPEND QUIC_COMMON_FLAGS -fsanitize=undefined)
+        endif()
+
+        if (QUIC_ENABLE_TSAN)
+            list(APPEND QUIC_COMMON_FLAGS -fsanitize=thread)
+            set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -fsanitize=thread")
         endif()
 
         if (QUIC_ENABLE_EXTRA_SANITIZERS)
@@ -773,6 +781,10 @@ endif()
 
 if (QUIC_USE_SYSTEM_LIBCRYPTO)
     list(APPEND QUIC_COMMON_DEFINES CXPLAT_SYSTEM_CRYPTO)
+endif()
+
+if (QUIC_LINUX_XDP_ENABLED)
+    list(APPEND QUIC_COMMON_DEFINES CXPLAT_LINUX_XDP_ENABLED)
 endif()
 
 if (QUIC_LINUX_IOURING_ENABLED)

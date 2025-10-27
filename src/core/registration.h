@@ -106,6 +106,31 @@ typedef struct QUIC_REGISTRATION {
     uint64_t ShutdownErrorCode;
 
     //
+    // Close request event, to support async close.
+    //
+    CXPLAT_EVENT CloseEvent;
+
+    //
+    // Close thread, to support async close.
+    //
+    CXPLAT_THREAD CloseThread;
+
+    //
+    // Entry in the registration close cleanup list, to support async close.
+    //
+    CXPLAT_LIST_ENTRY CloseCleanupEntry;
+
+    //
+    // The app's close complete handler, if async close is used.
+    //
+    QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER CloseCompleteHandler;
+
+    //
+    // The app's close complete handler context, if async close is used.
+    //
+    void* CloseCompleteContext;
+
+    //
     // Name of the application layer.
     //
     uint8_t AppNameLength;

@@ -441,12 +441,13 @@ typedef enum CXPLAT_DATAPATH_FEATURES {
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)
 
 typedef enum CXPLAT_SOCKET_FLAGS {
-    CXPLAT_SOCKET_FLAG_NONE     = 0x00000000,
-    CXPLAT_SOCKET_FLAG_PCP      = 0x00000001, // Socket is used for internal PCP support
-    CXPLAT_SOCKET_FLAG_SHARE    = 0x00000002, // Forces sharing of the address and port
-    CXPLAT_SOCKET_SERVER_OWNED  = 0x00000004, // Indicates socket is a listener socket
-    CXPLAT_SOCKET_FLAG_XDP      = 0x00000008, // Socket will use XDP
-    CXPLAT_SOCKET_FLAG_QTIP     = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_NONE         = 0x00000000,
+    CXPLAT_SOCKET_FLAG_PCP          = 0x00000001, // Socket is used for internal PCP support
+    CXPLAT_SOCKET_FLAG_SHARE        = 0x00000002, // Forces sharing of the address and port
+    CXPLAT_SOCKET_SERVER_OWNED      = 0x00000004, // Indicates socket is a listener socket
+    CXPLAT_SOCKET_FLAG_XDP          = 0x00000008, // Socket will use XDP
+    CXPLAT_SOCKET_FLAG_QTIP         = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_PARTITIONED  = 0x00000020, // Socket is partitioned
 } CXPLAT_SOCKET_FLAGS;
 
 DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_SOCKET_FLAGS)
@@ -467,6 +468,16 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+
+typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
+    //
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+    // the Windows fast path causing a large performance regression.
+    //
+    BOOLEAN EnableDscpOnRecv;
+} CXPLAT_DATAPATH_INIT_CONFIG;
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -477,6 +488,7 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -582,12 +594,21 @@ CxPlatDataPathGetGatewayAddresses(
 //
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
+
+//
+// When using CXPLAT_UDP_CONFIG, keep in mind the assumptions made by MsQuic core/datapath code about the config:
+//      - A server listener MUST specify a NULL remote address AND a wildcard local address.
+//      - A client connection MUST specify a non-NULL remote address.
+//      - A remote address MUST NOT be a wildcard address.
+//      - A client connection can specify anything for the local address: NULL, wildcard, any <ip/port tupple>.
+//        If NULL, the datapath will assume an IPv6 socket local address.
+//
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
     const QUIC_ADDR* RemoteAddress;     // optional
     CXPLAT_SOCKET_FLAGS Flags;
     uint32_t InterfaceIndex;            // 0 means any/all
-    uint16_t PartitionIndex;            // Client-only
+    uint16_t PartitionIndex;            // optional
     void* CallbackContext;              // optional
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional

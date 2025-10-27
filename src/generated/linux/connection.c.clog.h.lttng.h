@@ -1631,6 +1631,29 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, Disable1RttEncrytionUpdated,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for CloseAsyncUpdated
+// [conn][%p] Updated CloseAsync to %hhu
+// QuicTraceLogConnVerbose(
+            CloseAsyncUpdated,
+            Connection,
+            "Updated CloseAsync to %hhu",
+            Connection->State.CloseAsync);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Connection->State.CloseAsync = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, CloseAsyncUpdated,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ForceKeyUpdate
 // [conn][%p] Forcing key update
 // QuicTraceLogConnVerbose(

@@ -65,6 +65,13 @@ typedef struct QUIC_LIBRARY {
     //
     BOOLEAN CustomPartitions : 1;
 
+    //
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+    // the Windows fast path causing a large performance regression.
+    //
+    BOOLEAN EnableDscpOnRecv : 1;
+
 #ifdef CxPlatVerifierEnabled
     //
     // The app or driver verifier is globally enabled.
@@ -196,6 +203,35 @@ typedef struct QUIC_LIBRARY {
     // Contains all (server) connections currently not in an app's registration.
     //
     QUIC_REGISTRATION* StatelessRegistration;
+
+    //
+    // Protects all registration close completion fields.
+    CXPLAT_LOCK RegistrationCloseCleanupLock;
+
+    //
+    // Event set when the registration worker needs to wake.
+    //
+    CXPLAT_EVENT RegistrationCloseCleanupEvent;
+
+    //
+    // Set to true to shut down the worker thread.
+    //
+    BOOLEAN RegistrationCloseCleanupShutdown;
+
+    //
+    // A dedicated worker thread to clean up async registration close.
+    //
+    CXPLAT_THREAD RegistrationCloseCleanupWorker;
+
+    //
+    // List of registrations needing asynchronous close completion indications.
+    //
+    CXPLAT_LIST_ENTRY RegistrationCloseCleanupList;
+
+    //
+    // Rundown protection for the registration close cleanup worker.
+    //
+    CXPLAT_RUNDOWN_REF RegistrationCloseCleanupRundown;
 
     //
     // Per-partition storage. Count of `PartitionCount`.
@@ -444,6 +480,12 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryLazyInitialize(
     BOOLEAN AcquireLock
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicLibraryLazyUninitialize(
+    void
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)

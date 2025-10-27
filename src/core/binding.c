@@ -59,6 +59,10 @@ QuicBindingInitialize(
     Binding->Exclusive = !(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     Binding->ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
     Binding->Connected = UdpConfig->RemoteAddress == NULL ? FALSE : TRUE;
+    Binding->Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
+    if (Binding->Partitioned) {
+        Binding->PartitionIndex = UdpConfig->PartitionIndex;
+    }
     Binding->StatelessOperCount = 0;
     CxPlatDispatchRwLockInitialize(&Binding->RwLock);
     CxPlatDispatchLockInitialize(&Binding->StatelessOperLock);
@@ -446,7 +450,7 @@ QuicBindingGetListener(
         FailedAddrMatch = FALSE;
 
         if (QuicListenerMatchesAlpn(ExistingListener, Info)) {
-            if (CxPlatRefIncrementNonZero(&ExistingListener->RefCount, 1)) {
+            if (CxPlatRefIncrementNonZero(&ExistingListener->StartRefCount, 1)) {
                 Listener = ExistingListener;
             }
             goto Done;
@@ -550,7 +554,7 @@ QuicBindingAcceptConnection(
 
 Error:
 
-    QuicListenerRelease(Listener, TRUE);
+    QuicListenerStartRelease(Listener, TRUE);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -1840,7 +1844,7 @@ QuicBindingHandleDosModeStateChange(
             ListenerLink = ListenerLink->Flink) {
 
         QUIC_LISTENER* Listener = CXPLAT_CONTAINING_RECORD(ListenerLink, QUIC_LISTENER, Link);
-        QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled);
+        QuicListenerHandleDosModeStateChange(Listener, DosModeEnabled, FALSE);
     }
     CxPlatDispatchRwLockReleaseShared(&Binding->RwLock, PrevIrql);
 }

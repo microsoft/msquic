@@ -193,10 +193,12 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(InitConfig);
 
     if (NewDatapath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -1064,8 +1066,9 @@ SocketCreateUdp(
     )
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
-    const BOOLEAN IsServerSocket = Config->RemoteAddress == NULL;
-    const BOOLEAN NumPerProcessorSockets = IsServerSocket && Datapath->PartitionCount > 1;
+    const BOOLEAN IsPartitioned =
+        Config->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED || Config->RemoteAddress != NULL;
+    const BOOLEAN NumPerProcessorSockets = !IsPartitioned && Datapath->PartitionCount > 1;
     const uint16_t SocketCount = NumPerProcessorSockets ? (uint16_t)CxPlatProcCount() : 1;
 
     CXPLAT_DBG_ASSERT(Datapath->UdpHandlers.Receive != NULL || Config->Flags & CXPLAT_SOCKET_FLAG_PCP);
@@ -1122,14 +1125,14 @@ SocketCreateUdp(
             CxPlatSocketContextInitialize(
                 &Binding->SocketContexts[i],
                 Config,
-                Config->RemoteAddress ? Config->PartitionIndex : (i % Datapath->PartitionCount),
+                IsPartitioned ? Config->PartitionIndex : (i % Datapath->PartitionCount),
                 Binding->Type);
         if (QUIC_FAILED(Status)) {
             goto Exit;
         }
     }
 
-    if (IsServerSocket) {
+    if (!IsPartitioned) {
         //
         // The return value is being ignored here, as if a system does not support
         // bpf we still want the server to work. If this happens, the sockets will

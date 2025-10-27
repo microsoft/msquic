@@ -533,6 +533,8 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
     0,
     0,
+    0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -704,7 +706,21 @@ QuicTestCtlEvtIoDeviceControl(
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
         // TODO - XDP stuff, if/when supported
 #endif
-
+        {
+            //
+            // We don't want to hinge the result of 'Status = ' on this setparam call because
+            // this SetParam will only succeed the first time, before the datapath initializes.
+            // User mode tests already ensure at most 1 setparam call. But in Kernel mode, this IOCTL
+            // can be invoked many times.
+            // If the datapath is already initialized, this setparam call should fail silently.
+            //
+            BOOLEAN EnableDscpRecvOption = TRUE;
+            MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                    sizeof(BOOLEAN),
+                    &EnableDscpRecvOption);
+        }
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
@@ -1532,6 +1548,15 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
         QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
         break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT:
+        QuicTestCtlRun(QuicTestValidateExecutionContext());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_PARTITION:
+        QuicTestCtlRun(QuicTestValidatePartition());
+        break;
+
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:

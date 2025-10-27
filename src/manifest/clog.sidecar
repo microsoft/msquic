@@ -735,6 +735,22 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
+    "CloseAsyncUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Updated CloseAsync to %hhu",
+      "UniqueId": "CloseAsyncUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
+    },
     "CloseComplete": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Connection close complete",
@@ -2683,18 +2699,6 @@
       "ModuleProperites": {},
       "TraceString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x",
       "UniqueId": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
-    "DatapathQueryRioDispatchFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x",
-      "UniqueId": "DatapathQueryRioDispatchFailed",
       "splitArgs": [
         {
           "DefinationEncoding": "x",
@@ -6266,6 +6270,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryDscpRecvEnabledSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting Dscp on recv = %u",
+      "UniqueId": "LibraryDscpRecvEnabledSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -6662,6 +6678,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerPartitionIndexSet": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] PartitionIndex set (index %hu)",
+      "UniqueId": "ListenerPartitionIndexSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -9741,7 +9773,7 @@
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
+      "TraceString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
       "UniqueId": "ScheduleSendFlags",
       "splitArgs": [
         {
@@ -9755,6 +9787,10 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -10803,18 +10839,6 @@
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
       "UniqueId": "SettingReliableResetEnabled",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "SettingRioEnabled": {
-      "ModuleProperites": {},
-      "TraceString": "[sett] RioEnabled             = %hhu",
-      "UniqueId": "SettingRioEnabled",
       "splitArgs": [
         {
           "DefinationEncoding": "hhu",
@@ -13365,6 +13389,11 @@
         "EncodingString": "[conn][%p] Compatible version upgrade! Old: 0x%x, New: 0x%x"
       },
       {
+        "UniquenessHash": "a07c3ee9-1b99-2c5f-bad8-bd515d90038d",
+        "TraceID": "CloseAsyncUpdated",
+        "EncodingString": "[conn][%p] Updated CloseAsync to %hhu"
+      },
+      {
         "UniquenessHash": "e6969fd7-4bfa-f16b-fd2d-f366f94dce7c",
         "TraceID": "CloseComplete",
         "EncodingString": "[conn][%p] Connection close complete"
@@ -13923,11 +13952,6 @@
         "UniquenessHash": "5af86e1e-9f51-cd58-2506-9b88ac659923",
         "TraceID": "DatapathQueryRecvMaxCoalescedSizeFailedAsync",
         "EncodingString": "[data] Query for UDP_RECV_MAX_COALESCED_SIZE failed (async), 0x%x"
-      },
-      {
-        "UniquenessHash": "004490dd-4f9c-e6fd-1826-2a88b4faf32e",
-        "TraceID": "DatapathQueryRioDispatchFailed",
-        "EncodingString": "[data] Query for SIO_GET_MULTIPLE_EXTENSION_FUNCTION_POINTER failed, 0x%x"
       },
       {
         "UniquenessHash": "86f0cb85-ebae-d293-4103-fb695920b86c",
@@ -14925,6 +14949,11 @@
         "EncodingString": "[ lib] CID Length = %hhu"
       },
       {
+        "UniquenessHash": "bce1fded-91be-da6e-29d8-3f52455fa16a",
+        "TraceID": "LibraryDscpRecvEnabledSet",
+        "EncodingString": "[ lib] Setting Dscp on recv = %u"
+      },
+      {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
         "TraceID": "LibraryError",
         "EncodingString": "[ lib] ERROR, %s."
@@ -15103,6 +15132,11 @@
         "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
         "TraceID": "ListenerIndicateStopComplete",
         "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
+      },
+      {
+        "UniquenessHash": "81f937b4-2c2a-b818-6b6f-ad498e684df0",
+        "TraceID": "ListenerPartitionIndexSet",
+        "EncodingString": "[list][%p] PartitionIndex set (index %hu)"
       },
       {
         "UniquenessHash": "516f74f8-8802-7cdb-d034-3fa2e41d42c0",
@@ -16065,9 +16099,9 @@
         "EncodingString": "[conn][%p] probe round %hu"
       },
       {
-        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "UniquenessHash": "746a4e23-1021-bda2-7be8-ba33a1221656",
         "TraceID": "ScheduleSendFlags",
-        "EncodingString": "[conn][%p] Scheduling flags 0x%x to 0x%x"
+        "EncodingString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -16438,11 +16472,6 @@
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
-      },
-      {
-        "UniquenessHash": "aa851418-62e3-4895-b4a2-bedcbcf06d0d",
-        "TraceID": "SettingRioEnabled",
-        "EncodingString": "[sett] RioEnabled             = %hhu"
       },
       {
         "UniquenessHash": "e7d29156-fb54-8f96-f3e2-1aa999886c12",

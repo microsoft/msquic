@@ -542,7 +542,7 @@ void WriteCryptoFrame(
     };
 
     //
-    // TODO: The code in the recvfuzzer assumes that all data produced in 
+    // TODO: The code in the recvfuzzer assumes that all data produced in
     // a single pass through CxPlatTlsProcessData will fit in a udp datagram
     // which is not the case with openssl when ML-KEM keyshares are offered.
     // We should update this code to allow for the splitting of CRYPTO frames
@@ -1033,12 +1033,14 @@ void SetupAndFuzz() {
         UdpUnreachCallback,
     };
     CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
     MUST_SUCCEED(
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
             WorkerPool,
+            &InitConfig,
             &Datapath));
     QUIC_ADDRESS_FAMILY Family =
         GetRandom<uint8_t>(2) == 0 ?

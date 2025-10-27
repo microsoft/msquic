@@ -79,6 +79,19 @@ typedef struct __attribute__((aligned(CXPLAT_MEMORY_ALIGNMENT))) DATAPATH_RX_PAC
 
 } DATAPATH_RX_PACKET;
 
+#if DEBUG
+
+typedef enum CXPLAT_SEND_DATA_STATE {
+    SendStateAllocated,
+    SendStateQueued,
+    SendStateSending,
+    SendStateSendComplete,
+    SendStateFreed,
+    SendStateMax
+} CXPLAT_SEND_DATA_STATE;
+
+#endif // DEBUG
+
 //
 // Send context.
 //
@@ -177,6 +190,10 @@ typedef struct CXPLAT_SEND_DATA {
     //
     uint32_t TotalBytesSent;
 
+#if DEBUG
+    CXPLAT_SEND_DATA_STATE State;
+#endif
+
     //
     // IO vectors used for sends on the socket.
     //
@@ -203,9 +220,13 @@ const uint32_t RecvBufCount = 1024;
 
 void
 CxPlatSocketIoStart(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_SOCKET_IO_TAG Tag
     )
 {
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.Shutdown);
+    CXPLAT_DBG_ASSERT(InterlockedIncrement64(&SocketContext->IoCountTags[Tag]) > 0);
+    UNREFERENCED_PARAMETER(Tag);
     SocketContext->IoCount++;
 }
 
@@ -215,10 +236,10 @@ CxPlatSocketAllocSqe(
     )
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
-    struct io_uring_sqe* io_sqe = io_uring_get_sqe(&EventQ->Ring);
+    struct io_uring_sqe* io_sqe = CxPlatEventGetSqe(EventQ);
     if (io_sqe == NULL) {
-        io_uring_submit(&EventQ->Ring);
-        io_sqe = io_uring_get_sqe(&EventQ->Ring);
+        CxPlatEventQSubmit(EventQ);
+        io_sqe = CxPlatEventGetSqe(EventQ);
     }
     return io_sqe;
 }
@@ -374,10 +395,12 @@ DataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     )
 {
     UNREFERENCED_PARAMETER(TcpCallbacks);
+    UNREFERENCED_PARAMETER(InitConfig);
 
     if (NewDatapath == NULL) {
         return QUIC_STATUS_INVALID_PARAMETER;
@@ -550,7 +573,7 @@ CxPlatSocketContextSqeInitialize(
         goto Exit;
     }
     ShutdownSqeInitialized = TRUE;
-    CxPlatSocketIoStart(SocketContext);
+    CxPlatSocketIoStart(SocketContext, IoTagShutdown);
 
     if (!CxPlatBatchSqeInitialize(
             SocketContext->DatapathPartition->EventQ,
@@ -1100,10 +1123,14 @@ CxPlatSocketContextUninitializeComplete(
 
 void
 CxPlatSocketIoComplete(
-    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext
+    _In_ CXPLAT_SOCKET_CONTEXT* SocketContext,
+    _In_ CXPLAT_SOCKET_IO_TAG Tag
     )
 {
     CXPLAT_DBG_ASSERT(SocketContext->IoCount > 0);
+    CXPLAT_DBG_ASSERT(InterlockedDecrement64(&SocketContext->IoCountTags[Tag]) >= 0);
+    UNREFERENCED_PARAMETER(Tag);
+
     if (--SocketContext->IoCount == 0) {
         CxPlatSocketContextUninitializeComplete(SocketContext);
     }
@@ -1116,10 +1143,10 @@ CxPlatSocketContextUninitializeEventComplete(
 {
     CXPLAT_SOCKET_CONTEXT* SocketContext =
         CXPLAT_CONTAINING_RECORD(CxPlatCqeGetSqe(Cqe), CXPLAT_SOCKET_CONTEXT, ShutdownSqe);
-    CXPLAT_DBG_ASSERT(SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(SocketContext->LockedFlags.Shutdown);
 
-    CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->MultiRecvStarted);
-    CxPlatSocketIoComplete(SocketContext);
+    CXPLAT_DBG_ASSERT((*Cqe)->res == 1 || !SocketContext->LockedFlags.MultiRecvStarted);
+    CxPlatSocketIoComplete(SocketContext, IoTagShutdown);
 }
 
 void
@@ -1164,8 +1191,8 @@ CxPlatSocketContextUninitialize(
         CXPLAT_FRE_ASSERT(Sqe != NULL);
         io_uring_prep_cancel(Sqe, &SocketContext->IoSqe.Sqe, IORING_ASYNC_CANCEL_ALL);
         io_uring_sqe_set_data(Sqe, &SocketContext->ShutdownSqe);
-        io_uring_submit(&DatapathPartition->EventQ->Ring);
-        SocketContext->Shutdown = TRUE;
+        CxPlatEventQSubmit(DatapathPartition->EventQ);
+        SocketContext->LockedFlags.Shutdown = TRUE;
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
 }
@@ -1177,8 +1204,8 @@ CxPlatSocketContextStartMultiRecvUnderLock(
 {
     CXPLAT_EVENTQ* EventQ = SocketContext->DatapathPartition->EventQ;
 
-    CXPLAT_DBG_ASSERT(!SocketContext->MultiRecvStarted);
-    CXPLAT_DBG_ASSERT(!SocketContext->Shutdown);
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.MultiRecvStarted);
+    CXPLAT_DBG_ASSERT(!SocketContext->LockedFlags.Shutdown);
 
     struct io_uring_sqe* Sqe = CxPlatSocketAllocSqe(SocketContext);
     if (Sqe == NULL) {
@@ -1202,10 +1229,10 @@ CxPlatSocketContextStartMultiRecvUnderLock(
     Sqe->flags |= IOSQE_BUFFER_SELECT;
     Sqe->buf_group = CxPlatIoRingBufGroupRecv;
     io_uring_sqe_set_data(Sqe, &SocketContext->IoSqe.Sqe);
-    io_uring_submit(&EventQ->Ring);
+    CxPlatEventQSubmit(EventQ);
 
-    CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = TRUE);
-    CxPlatSocketIoStart(SocketContext);
+    CXPLAT_DBG_ONLY(SocketContext->LockedFlags.MultiRecvStarted = TRUE);
+    CxPlatSocketIoStart(SocketContext, IoTagRecv);
 }
 
 void
@@ -1688,14 +1715,14 @@ CxPlatSocketReceiveComplete(
 Exit:
 
     if (!(Cqe->flags & IORING_CQE_F_MORE)) {
-        CXPLAT_DBG_ASSERT(SocketContext->MultiRecvStarted);
-        CXPLAT_DBG_ONLY(SocketContext->MultiRecvStarted = FALSE);
+        CXPLAT_DBG_ASSERT(SocketContext->LockedFlags.MultiRecvStarted);
+        CXPLAT_DBG_ONLY(SocketContext->LockedFlags.MultiRecvStarted = FALSE);
 
-        if (!SocketContext->Shutdown) {
+        if (!SocketContext->LockedFlags.Shutdown) {
             CxPlatSocketContextStartMultiRecvUnderLock(SocketContext);
         }
 
-        CxPlatSocketIoComplete(SocketContext);
+        CxPlatSocketIoComplete(SocketContext, IoTagRecv);
     }
 }
 
@@ -1731,6 +1758,19 @@ RecvDataReturn(
 //
 // Send Path
 //
+
+#if DEBUG
+
+CXPLAT_SEND_DATA_STATE
+SendDataUpdateState(
+    _Inout_ CXPLAT_SEND_DATA* SendData,
+    _In_ CXPLAT_SEND_DATA_STATE NewState
+    )
+{
+    return (CXPLAT_SEND_DATA_STATE)InterlockedExchange32((int32_t*)&SendData->State, (int32_t)NewState);
+}
+
+#endif // DEBUG
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
@@ -1772,6 +1812,7 @@ SendDataAlloc(
         SendData->Iovs[0].iov_len = 0;
         SendData->Iovs[0].iov_base = SendData->Buffer;
         SendData->DatapathType = Config->Route->DatapathType = CXPLAT_DATAPATH_TYPE_NORMAL;
+        CXPLAT_DBG_ONLY(SendDataUpdateState(SendData, SendStateAllocated));
     }
 
     return SendData;
@@ -1783,6 +1824,7 @@ SendDataFree(
     _In_ CXPLAT_SEND_DATA* SendData
     )
 {
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateFreed) != SendStateFreed);
     CxPlatPoolFree(SendData);
 }
 
@@ -1841,6 +1883,7 @@ SendDataAllocBuffer(
     CXPLAT_DBG_ASSERT(
         SendData->SegmentationSupported ||
         SendData->BufferCount < SendData->SocketContext->DatapathPartition->Datapath->SendIoVecCount);
+    CXPLAT_DBG_ASSERT(SendData->State == SendStateAllocated);
     UNREFERENCED_PARAMETER(MaxBufferLength);
     if (SendData->ClientBuffer.Buffer == NULL) {
         return NULL;
@@ -1860,6 +1903,7 @@ SendDataFreeBuffer(
     // This must be the final send buffer; intermediate Iovs cannot be freed.
     //
     CXPLAT_DBG_ASSERT(Buffer == &SendData->ClientBuffer);
+    CXPLAT_DBG_ASSERT(SendData->State == SendStateAllocated);
     Buffer->Length = 0;
     UNREFERENCED_PARAMETER(SendData);
 }
@@ -1998,6 +2042,8 @@ CxPlatSendDataSendSegmented(
     if (!CxPlatListIsEmpty(&SocketContext->TxQueue)) {
         if (!AlreadyQueued) {
             CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+            CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateQueued) ==
+                SendStateAllocated);
         }
         Status = QUIC_STATUS_PENDING;
         goto Exit;
@@ -2007,6 +2053,8 @@ CxPlatSendDataSendSegmented(
     if (Sqe == NULL) {
         if (!AlreadyQueued) {
             CxPlatListInsertTail(&SocketContext->TxQueue, &SendData->TxEntry);
+            CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateQueued) ==
+                SendStateAllocated);
         }
         Status = QUIC_STATUS_PENDING;
         goto Exit;
@@ -2030,7 +2078,9 @@ CxPlatSendDataSendSegmented(
     CxPlatBatchSqeInitialize(
         DatapathPartition->EventQ, CxPlatSocketContextIoEventComplete, &SendData->Sqe.Sqe);
     SendData->Sqe.Context = (void*)DatapathContextSend; // NOLINT performance-no-int-to-ptr
-    CxPlatSocketIoStart(SocketContext);
+    CxPlatSocketIoStart(SocketContext, IoTagSend);
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateSending) ==
+        (AlreadyQueued ? SendStateQueued : SendStateAllocated));
 
 Exit:
 
@@ -2046,7 +2096,7 @@ Exit:
         if (DatapathPartition->OwningThreadID == CxPlatCurThreadID()) {
             DatapathPartition->EventQ->NeedsSubmit = TRUE;
         } else {
-            io_uring_submit(&DatapathPartition->EventQ->Ring);
+            CxPlatEventQSubmit(DatapathPartition->EventQ);
         }
         CxPlatLockRelease(&DatapathPartition->EventQ->Lock);
     }
@@ -2137,10 +2187,11 @@ CxPlatSocketContextSendComplete(
     CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(&Cqe);
     CXPLAT_SEND_DATA* SendData = CXPLAT_CONTAINING_RECORD(Sqe, CXPLAT_SEND_DATA, Sqe);
 
+    CXPLAT_DBG_ASSERT(SendDataUpdateState(SendData, SendStateSendComplete) == SendStateSending);
     CxPlatSendDataFree(SendData);
     SendData = NULL;
 
-    if (SocketContext->Shutdown) {
+    if (SocketContext->LockedFlags.Shutdown) {
         goto Exit;
     }
 
@@ -2176,7 +2227,7 @@ CxPlatSocketContextSendComplete(
 
 Exit:
 
-    CxPlatSocketIoComplete(SocketContext);
+    CxPlatSocketIoComplete(SocketContext, IoTagSend);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2261,7 +2312,7 @@ CxPlatSocketContextIoEventComplete(
         SocketContext = GetSocketContextFromSqe(Sqe);
     }
 
-    io_uring_submit(&EventQ->Ring);
+    CxPlatEventQSubmit(EventQ);
 
     CxPlatLockRelease(&EventQ->Lock);
 }
