@@ -12,7 +12,7 @@
 #endif
 
 #ifndef VER_PATCH
-#define VER_PATCH 5
+#define VER_PATCH 6
 #endif
 
 #ifndef VER_BUILD_ID
