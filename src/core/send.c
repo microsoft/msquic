@@ -1317,7 +1317,7 @@ QuicSendFlush(
         if (Connection->Crypto.TlsState.WriteKey < QUIC_PACKET_KEY_1_RTT) {
             SendFlags &= QUIC_CONN_SEND_FLAG_ALLOWED_HANDSHAKE;
         }
-        if (Path->Allowance != UINT32_MAX) {
+        if (Path->Allowance != UINT64_MAX) {
             //
             // Don't try to send datagrams until the peer's source address has
             // been validated because they might not fit in the limited space.
