@@ -16,7 +16,7 @@ For this reason, each app controls the number of streams that the peer is allowe
 
 The protocol for synchronizing the maximum stream count is complicated, but MsQuic simplifies it by requiring the app to specify a number of simultaneous streams to allow the peer to open at any time. MsQuic then takes care of updating the maximum stream count for the peer as old streams get shut down.
 
-The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must call [SetParam](api/SetParam.md) for `QUIC_PARAM_CONN_PEER_BIDI_STREAM_COUNT` and/or `QUIC_PARAM_CONN_PEER_UNIDI_STREAM_COUNT`. MsQuic currently restricts this count to a maximum of 2 ^ 16.
+The app can configure the unidirectional and bidirectional limits separately. **The default value for these is 0.** If the app wants to allow the peer to open any streams, it must set a value. To set the limit on a connection, the app must configure the `PeerBidiStreamCount` and/or `PeerUnidiStreamCount` fields in [QUIC_SETTINGS](api/QUIC_SETTINGS.md) and apply them using [SetParam](api/SetParam.md) with `QUIC_PARAM_CONN_SETTINGS`, or provide them to [ConfigurationOpen](api/ConfigurationOpen.md). MsQuic currently restricts this count to a maximum of 2 ^ 16 (65,536).
 
 # Opening and Starting Streams
 
