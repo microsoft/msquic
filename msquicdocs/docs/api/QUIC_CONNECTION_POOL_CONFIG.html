@@ -163,11 +163,24 @@ If this number is greater than the number of RSS CPUs configured on the system, 
 <p><code>CibirIdLength</code></p>
 <p>The number of bytes in each CIBIR ID. Not allowed to be zero if <code>CibirIds</code> is non-NULL.</p>
 <p><code>Flags</code></p>
-<p>Flags which affect settings on the connections or how the pool is created.
-| Flag | Effect |
-|------|--------|
-| QUIC_CONNECTION_POOL_FLAG_NONE | Nothing |
-| QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE | Tells the API to close all <em>started</em> connections in the pool if an error occurrs while creating the pool. <strong>Note:</strong> The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned from <code>ConnectionPoolCreate</code>. |</p>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>QUIC_CONNECTION_POOL_FLAG_NONE</td>
+<td>Nothing</td>
+</tr>
+<tr>
+<td>QUIC_CONNECTION_POOL_FLAG_CLOSE_CONNECTIONS_ON_FAILURE</td>
+<td>Tells the API to close all <em>started</em> connections in the pool if an error occurrs while creating the pool. <strong>Note:</strong> The application must be able to handle having connections suddenly closed. Without this flag, the application is expected to clean up non-NULL connections when an error is returned from <code>ConnectionPoolCreate</code>.</td>
+</tr>
+</tbody>
+</table>
 <h1 id="see-also">See Also</h1>
 <p><a href="ConnectionPoolCreate.html">ConnectionPoolCreate</a><br>
 <a href="ConnectionOpen.html">ConnectionOpen</a><br>
