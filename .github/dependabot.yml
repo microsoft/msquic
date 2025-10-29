@@ -40,6 +40,7 @@ updates:
     ignore:
       - dependency-name: "ubuntu"
         versions: ["24.x", ">= 23.0.0", "23.x"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "docker"
     directories:
