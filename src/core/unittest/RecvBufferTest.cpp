@@ -2157,3 +2157,117 @@ INSTANTIATE_TEST_SUITE_P(
     WithMode,
     ::testing::Values(QUIC_RECV_BUF_MODE_SINGLE, QUIC_RECV_BUF_MODE_CIRCULAR, QUIC_RECV_BUF_MODE_MULTIPLE, QUIC_RECV_BUF_MODE_APP_OWNED),
     testing::PrintToStringParamName());
+
+/*
+Unit test for QuicRecvBufferResetRead – happy-path verification.
+
+This test exercises the normal control-flow path of
+QuicRecvBufferResetRead where:
+1. The receive buffer is in SINGLE-chunk mode.
+2. The internal chunk list is non-empty.
+3. A read operation has been performed so that
+    – The first chunk's `ExternalReference` flag is TRUE, and
+    – `ReadPendingLength` is non-zero.
+
+After invoking QuicRecvBufferResetRead we expect:
+    • The first chunk's ExternalReference flag is cleared (FALSE).
+    • ReadPendingLength is reset to 0.
+    • The buffer once again reports unread data (because the previous read is now considered complete).
+    • Another read can be issued and will return the same data that was previously read, proving that 
+      the reset correctly rewound the read bookkeeping.
+*/
+TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
+{
+    // 1. Set up a receive buffer operating in SINGLE-chunk mode.
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
+
+    // 2. Write 16 bytes at offset 0 so the buffer is ready for reading.
+    uint64_t FlowControl = DEF_TEST_BUFFER_LENGTH; // large enough quota
+    BOOLEAN  NewDataReady = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(0 /*Offset*/, 16 /*Length*/, &FlowControl, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // 3. Read once to create a pending read and mark the first chunk as having
+    //    an external reference.
+    uint64_t ReadOffset = 0;
+    QUIC_BUFFER Buffers[3] = {};
+    uint32_t BufferCount = ARRAYSIZE(Buffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+
+    // Sanity – we should have read exactly the 16 bytes we wrote.
+    ASSERT_EQ(1u, BufferCount);
+    ASSERT_EQ(16u, Buffers[0].Length);
+    ASSERT_EQ(0ull, ReadOffset);
+
+    // After the read, ReadPendingLength must be non-zero and the first chunk
+    // must indicate an external reference.
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+    QUIC_RECV_CHUNK* FirstChunk = CXPLAT_CONTAINING_RECORD(
+        RecvBuf.RecvBuf.Chunks.Flink, QUIC_RECV_CHUNK, Link);
+    ASSERT_NE(nullptr, FirstChunk);
+    EXPECT_TRUE(FirstChunk->ExternalReference);
+
+    // At this point the buffer reports no unread data (everything is pending).
+    EXPECT_FALSE(RecvBuf.HasUnreadData());
+
+    // 4. Call the function under test – should reset read bookkeeping.
+    QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
+
+    // 5. Validate state was restored.
+    EXPECT_EQ(0ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_FALSE(FirstChunk->ExternalReference);
+    EXPECT_TRUE(RecvBuf.HasUnreadData()); // Data is readable again.
+
+    // 6. Perform a second read; it should succeed and return the same 16 bytes.
+    ReadOffset = 0;
+    BufferCount = ARRAYSIZE(Buffers);
+    memset(Buffers, 0, sizeof(Buffers));
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+    ASSERT_EQ(1u, BufferCount);
+    ASSERT_EQ(16u, Buffers[0].Length);
+    ASSERT_EQ(0ull, ReadOffset);
+
+    // After this read, pending length should be 16 again (sanity).
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+}
+
+
+// This test is only meaningful on platforms where an access violation (AV)
+// results in abnormal process termination that `EXPECT_DEATH` can detect.
+// On Windows, the gtest death-test framework creates a separate process to
+// run the statement and observes its exit code, so the rest of the test
+// suite remains unaffected.
+TEST(RecvBufferResetReadTest, ResetReadWithCorruptFlinkPointer)
+{
+    // EXPECT_DEATH must observe the process exiting due to an access
+    // violation. The exact message is platform dependent, therefore we use
+    // a wildcard regex (".*").
+    EXPECT_DEATH({
+        // 1. Set up a valid receive buffer in SINGLE mode.
+        RecvBuffer RecvBuf;
+        if (RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE) != QUIC_STATUS_SUCCESS) {
+            // If initialization failed (which should never happen here), exit
+            // gracefully so the death test does not falsely fail.
+            _exit(1);
+        }
+
+        // 2. Corrupt the list: mark it as non-empty but make `Flink` a bogus
+        //    (non-dereferenceable) pointer. The value `0x1` is in a guard
+        //    page on all supported Windows architectures and is guaranteed
+        //    to AV when accessed.
+        RecvBuf.RecvBuf.Chunks.Flink = reinterpret_cast<CXPLAT_LIST_ENTRY*>(0x1);
+
+        // 3. Invoke the API under test. Attempting to touch the first chunk
+        //    through the corrupted pointer should crash.
+        QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
+
+        // If the function unexpectedly returns, ensure the sub-process exits
+        // with success so the parent process treats the death test as
+        // failed (because it did _not_ die).
+        _exit(0);
+    },
+    ".*"); // Accept any stderr output.
+}
