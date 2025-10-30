@@ -121,7 +121,7 @@ jobs:
       shell: pwsh
       run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.static }} ${{ inputs.clang }} ${{ inputs.systemcrypto }} ${{ inputs.codecheck }} ${{ inputs.sanitize }} ${{ inputs.xdp }} ${{ inputs.iouring }} -OneBranch
     - name: Upload build artifacts
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.static }}${{ inputs.clang }}${{ inputs.systemcrypto }}${{ inputs.codecheck }}${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.iouring }}${{ inputs.build }}
         path: artifacts
