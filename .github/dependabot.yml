@@ -35,17 +35,9 @@ updates:
   - package-ecosystem: "docker"
     directories:
       - "/.docker/ubuntu-22.04"
-    schedule:
-      interval: "monthly"
-    ignore:
-      - dependency-name: "ubuntu"
-        versions: ["24.x", ">= 23.0.0", "23.x"]
-
-  - package-ecosystem: "docker"
-    directories:
       - "/.docker/ubuntu-24.04"
     schedule:
       interval: "monthly"
     ignore:
       - dependency-name: "ubuntu"
-        versions: ["25.x", ">= 25.0.0"]
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

@@ -1,5 +1,5 @@
 # Stage 1: Base image
-FROM ubuntu:22.04@sha256:59ccd419c0dc0edf9e3bff1a3b2b073ea15a2ce4bc45ce7c989278b225b09af3 AS base
+FROM ubuntu:22.04@sha256:09506232a8004baa32c47d68f1e5c307d648fdd59f5e7eaa42aaf87914100db3 AS base
 
 LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
@@ -40,7 +40,7 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
-RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+RUN wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
     sudo dpkg -i packages-microsoft-prod.deb && \
     sudo add-apt-repository universe && \
     sudo apt-get update -y && \
@@ -55,7 +55,7 @@ RUN git config --global safe.directory '*'
 FROM base AS xdp-build
 
 RUN apt-get update -y && apt-get install -y \
-    && echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
+    && echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
     && apt-get update -y && apt-get install --no-install-recommends -y -t noble \
     libnl-3-dev \
     libnl-genl-3-dev \
