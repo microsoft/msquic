@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+      <title>MsQuic Task management </title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <meta name="title" content="MsQuic Task management ">
+      
+      
+      <link rel="icon" href="../favicon.ico">
+      <link rel="stylesheet" href="../public/docfx.min.css">
+      <link rel="stylesheet" href="../public/main.css">
+      <meta name="docfx:navrel" content="../toc.html">
+      <meta name="docfx:tocrel" content="toc.html">
+      
+      <meta name="docfx:rel" content="../">
+      
+      
+      <meta name="docfx:docurl" content="https://github.com/microsoft/msquic/blob/main/docs/TaskManagement.md/#L1">
+      <meta name="loc:inThisArticle" content="In this article">
+      <meta name="loc:searchResultsCount" content="{count} results for &quot;{query}&quot;">
+      <meta name="loc:searchNoResults" content="No results for &quot;{query}&quot;">
+      <meta name="loc:tocFilter" content="Filter by title">
+      <meta name="loc:nextArticle" content="Next">
+      <meta name="loc:prevArticle" content="Previous">
+      <meta name="loc:themeLight" content="Light">
+      <meta name="loc:themeDark" content="Dark">
+      <meta name="loc:themeAuto" content="Auto">
+      <meta name="loc:changeTheme" content="Change theme">
+      <meta name="loc:copy" content="Copy">
+      <meta name="loc:downloadPdf" content="Download PDF">
+
+      <script type="module" src="./../public/docfx.min.js"></script>
+
+      <script>
+        const theme = localStorage.getItem('theme') || 'auto'
+        document.documentElement.setAttribute('data-bs-theme', theme === 'auto' ? (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light') : theme)
+      </script>
+
+  </head>
+
+  <body class="tex2jax_ignore" data-layout="" data-yaml-mime="">
+    <header class="bg-body border-bottom">
+      <nav id="autocollapse" class="navbar navbar-expand-md" role="navigation">
+        <div class="container-xxl flex-nowrap">
+          <a class="navbar-brand" href="../index.html">
+            <img id="logo" class="svg" src="../logo.svg" alt="">
+            
+          </a>
+          <button class="btn btn-lg d-md-none border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navpanel" aria-controls="navpanel" aria-expanded="false" aria-label="Toggle navigation">
+            <i class="bi bi-three-dots"></i>
+          </button>
+          <div class="collapse navbar-collapse" id="navpanel">
+            <div id="navbar">
+              <form class="search" role="search" id="search">
+                <i class="bi bi-search"></i>
+                <input class="form-control" id="search-query" type="search" disabled placeholder="Search" autocomplete="off" aria-label="Search">
+              </form>
+            </div>
+          </div>
+        </div>
+      </nav>
+    </header>
+
+    <main class="container-xxl">
+      <div class="toc-offcanvas">
+        <div class="offcanvas-md offcanvas-start" tabindex="-1" id="tocOffcanvas" aria-labelledby="tocOffcanvasLabel">
+          <div class="offcanvas-header">
+            <h5 class="offcanvas-title" id="tocOffcanvasLabel">Table of Contents</h5>
+            <button type="button" class="btn-close" data-bs-dismiss="offcanvas" data-bs-target="#tocOffcanvas" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body">
+            <nav class="toc" id="toc"></nav>
+          </div>
+        </div>
+      </div>
+
+      <div class="content">
+        <div class="actionbar">
+          <button class="btn btn-lg border-0 d-md-none" type="button" data-bs-toggle="offcanvas" data-bs-target="#tocOffcanvas" aria-controls="tocOffcanvas" aria-expanded="false" aria-label="Show table of contents">
+            <i class="bi bi-list"></i>
+          </button>
+
+          <nav id="breadcrumb"></nav>
+        </div>
+
+        <article data-uid="">
+<h1 id="msquic-task-management">MsQuic Task management</h1>
+
+<h2 id="work-item-states">Work item states</h2>
+<table>
+<thead>
+<tr>
+<th>State</th>
+<th>Mark</th>
+<th>Other Details</th>
+<th>Query Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Triage Needed</strong></td>
+<td>Not in any other state</td>
+<td></td>
+<td><a href="https://github.com/microsoft/msquic/issues?q=is%3Aissue%20state%3Aopen%20no%3Aproject%20-label%3A%22help%20wanted%22"><code>is:issue state:open no:project -label:&quot;help wanted&quot;</code></a></td>
+</tr>
+<tr>
+<td><strong>Non-prioritized Work</strong></td>
+<td>Not in DPT project, <code>help wanted</code></td>
+<td>Type, Area</td>
+<td><a href="https://github.com/microsoft/msquic/issues?q=is%3Aissue%20state%3Aopen%20label%3A%22help%20wanted%22"><code>is:issue state:open label:&quot;help wanted&quot;</code></a></td>
+</tr>
+<tr>
+<td><strong>Backlog</strong></td>
+<td>In DPT project, no status</td>
+<td>Type, Area, Priority, T-Shirt size</td>
+<td><a href="https://github.com/orgs/microsoft/projects/1617/views/6">Backlog - DPT Iteration Tracker</a></td>
+</tr>
+<tr>
+<td><strong>Current Work</strong></td>
+<td>In DPT project, Planned/In Progress</td>
+<td>Type, Area, Priority, T-Shirt size, Iteration, Assignee</td>
+<td><a href="https://github.com/orgs/microsoft/projects/1617/views/1">Breakdown - DPT Iteration Tracker</a></td>
+</tr>
+<tr>
+<td><strong>Closed</strong></td>
+<td>Closed</td>
+<td>Reason label if not completed (e.g., Cut: NotRepro)</td>
+<td></td>
+</tr>
+</tbody>
+</table>
+<h3 id="triage-needed">Triage Needed</h3>
+<p>Every newly created work items must be triaged to evaluate whether it should be worked on and with which priority.
+A work item is in the “Triage needed” state by default until it is assigned to another state.</p>
+<p>Work items are triaged in a regular team triage meeting:</p>
+<ul>
+<li>the work item is moved to one of the category below</li>
+<li>common metadata is added: Type (Bug / Task / Feature), Area label (<code>Area: *</code>), Priority (P0 to P3), T-Shirt size (XS to XL)...</li>
+</ul>
+<h3 id="help-wanted">Help wanted</h3>
+<p>Some work items, while interesting, are not aligned with our priorities.
+These work items are labeled with <code>help wanted</code> and are not added in the &quot;DPT Iteration Tracker&quot; project nor prioritized.
+If there is interest about addressing these work items, a contribution would be welcome.</p>
+<p>During triage, these work item should be labeled with <code>help wanted</code>, and receive a type and area labels (<code>Area: *</code>).</p>
+<h3 id="backlog">Backlog</h3>
+<p>The work items the team plans to work on in the future, prioritized and roughly sized.</p>
+<p>During triage, these work items should be added to the “DPT Iteration tracker” project without a status, and get a type, a priority (P0 to P3), a T-Shirt size (XS to XL), and an area label (<code>Area: *</code>). If relevant, a partner label (<code>Partner: *</code>) should also be added.</p>
+<h3 id="current-work">Current work</h3>
+<p>Work items that have been picked up by the team to be worked on during a specific iteration.</p>
+<p>During triage/planning, they should get the “Planned” status, an iteration and be assigned to a dev, in addition to what is set to backlog items.
+When working on the item, the assignee should change the state to “In Progress”, then “Done” to reflect progress.</p>
+<h3 id="closed">Closed</h3>
+<p>Work items that don’t require additional work are closed. They can be completed or cut.
+If the work item was not completed, it should be labeled with <code>Cut: *</code> (NotRepro / WontFix/ Duplicate...).</p>
+
+</article>
+
+        <div class="contribution d-print-none">
+          <a href="https://github.com/microsoft/msquic/blob/main/docs/TaskManagement.md/#L1" class="edit-link">Edit this page</a>
+        </div>
+
+        <div class="next-article d-print-none border-top" id="nextArticle"></div>
+
+      </div>
+
+      <div class="affix">
+        <nav id="affix"></nav>
+      </div>
+    </main>
+
+    <div class="container-xxl search-results" id="search-results"></div>
+
+    <footer class="border-top text-secondary">
+      <div class="container-xxl">
+        <div class="flex-fill">
+          <span>Made with <a href="https://dotnet.github.io/docfx">docfx</a></span>
+        </div>
+      </div>
+    </footer>
+  </body>
+</html>

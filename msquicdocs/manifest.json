@@ -242,10 +242,10 @@
     },
     {
       "type": "Conceptual",
-      "source_relative_path": "docs/TSG.md",
+      "source_relative_path": "docs/TaskManagement.md",
       "output": {
         ".html": {
-          "relative_path": "docs/TSG.html"
+          "relative_path": "docs/TaskManagement.html"
         }
       },
       "version": ""
@@ -256,6 +256,16 @@
       "output": {
         ".html": {
           "relative_path": "docs/ThreatModel.html"
+        }
+      },
+      "version": ""
+    },
+    {
+      "type": "Conceptual",
+      "source_relative_path": "docs/TroubleshootingGuide.md",
+      "output": {
+        ".html": {
+          "relative_path": "docs/TroubleshootingGuide.html"
         }
       },
       "version": ""
