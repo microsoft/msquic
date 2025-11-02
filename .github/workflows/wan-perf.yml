@@ -42,7 +42,7 @@ jobs:
     - name: Prepare Machine
       shell: pwsh
       run: scripts/build.ps1 -Config Release -DisableTest -DisableTools
-    - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+    - uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: bin
         path: |
@@ -87,7 +87,7 @@ jobs:
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForTest -InstallDuoNic
-    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
         name: bin
         path: artifacts/bin
@@ -100,12 +100,12 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -Debug -Protocol ('QUIC','TCPTLS') -LogProfile Performance.Light -NoDateLogDir -NumIterations ${{ env.iterations }} -DurationMs ${{ env.duration }} -Pacing ${{ env.pacing }} -BottleneckMbps ${{ matrix.rate }} -RttMs ${{ matrix.rtt }} -BottleneckQueueRatio ${{ matrix.queueRatio }} -RandomLossDenominator ${{ env.loss }} -RandomReorderDenominator ${{ env.reorder }} -ReorderDelayDeltaMs ${{ env.delay }} -BaseRandomSeed ${{ env.seed }} -CongestionControl ${{ env.congestionControl }}
     - name: Upload Results
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN/*.json
     - name: Upload Logs
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: ${{ format('logs.{0}mbps.{1}ms', matrix.rate, matrix.rtt) }}
         path: artifacts/logs/wanperf/*.etl
@@ -119,7 +119,7 @@ jobs:
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
       with:
         fetch-depth: 0
-    - uses: actions/download-artifact@634f93cb2916e3fdff6788551b99b062d0335ce0
+    - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
         name: data
         path: artifacts/PerfDataResults/windows/x64_Release_schannel/WAN
@@ -127,7 +127,7 @@ jobs:
       shell: pwsh
       run: scripts/emulated-performance.ps1 -MergeDataFiles
     - name: Upload CSV
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: csv
         path: artifacts\PerfDataResults\windows\x64_Release_schannel\WAN\wan_data.csv

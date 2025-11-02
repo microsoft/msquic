@@ -40,7 +40,7 @@ jobs:
       shell: pwsh
     - name: Install Perl
       if: runner.os == 'Windows'
-      uses: shogo82148/actions-setup-perl@5796a908661aa68fc0a5b8f55c6791af2376d72e
+      uses: shogo82148/actions-setup-perl@f9f0bf89e0d19ddbabb2f40d43db2e944bce7d2f
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -75,7 +75,7 @@ jobs:
     - name: Upload the patch file
       if: steps.bindings_diff.outputs.diff-found == 'true'
       id: upload_patch
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: cargo_binding_update_${{ matrix.os }}
         path: cargo_binding_update.patch

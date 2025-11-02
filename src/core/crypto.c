@@ -143,10 +143,6 @@ QuicCryptoInitialize(
         goto Exit;
     }
 
-    QuicRangeInitialize(
-        QUIC_MAX_RANGE_ALLOC_SIZE,
-        &Crypto->SparseAckRanges);
-
     Status =
         QuicRecvBufferInitialize(
             &Crypto->RecvBuffer,
