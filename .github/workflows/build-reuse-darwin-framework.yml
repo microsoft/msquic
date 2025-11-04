@@ -24,7 +24,7 @@ on:
         type: string
         # options:
         #   - quictls
-        #   - openssl 
+        #   - openssl
       static:
         required: false
         default: ''
@@ -46,7 +46,7 @@ jobs:
       ref: ${{ inputs.ref }}
       config: ${{ inputs.config }}
       plat: ${{ matrix.plat }}
-      os: macos-13
+      os: macos-15
       arch: ${{ matrix.arch }}
       tls: ${{ inputs.tls }}
       static: ${{ inputs.static }}
@@ -55,7 +55,7 @@ jobs:
   build-darwin-universal:
     name: Build Universal Binaries
     needs: [build-darwin]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -65,12 +65,12 @@ jobs:
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-macos-macos-13-x64-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-macos-macos-13-arm64-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Build Package
       shell: pwsh
@@ -78,7 +78,7 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: ${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
 
   build-darwin-framework:
@@ -92,7 +92,7 @@ jobs:
           { plat: "ios", arch: "arm64" },
           { plat: "macos", arch: "universal" },
         ]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -102,7 +102,7 @@ jobs:
     - name: Download Build Artifacts (x64)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-15-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Build Framework
       shell: pwsh
@@ -110,13 +110,13 @@ jobs:
     - name: Upload build artifacts
       uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
+        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-15-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
 
   build-darwin-xcframework:
     name: Build Darwin XCFramework
     needs: [build-darwin-framework]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
       uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
@@ -126,17 +126,17 @@ jobs:
     - name: Download Build Artifacts (iOS x64)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-${{ inputs.tls }}
+        name: Framework-${{ inputs.config }}-ios-macos-15-x64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-${{ inputs.tls }}
+        name: Framework-${{ inputs.config }}-ios-macos-15-arm64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}
+        name: Framework-${{ inputs.config }}-macos-macos-15-universal-${{ inputs.tls }}
         path: artifacts
     - name: Build XCFramework
       shell: pwsh

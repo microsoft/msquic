@@ -84,8 +84,8 @@ jobs:
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "quictls", xdp: "-UseXdp" },
           { plat: "linux", os: "ubuntu-22.04", arch: "x64", tls: "openssl" },
           { plat: "linux", os: "ubuntu-24.04", arch: "x64", tls: "openssl", xdp: "-UseXdp" },
-          { plat: "macos", os: "macos-13", arch: "universal", tls: "quictls" },
-          { plat: "macos", os: "macos-13", arch: "universal", tls: "openssl" },
+          { plat: "macos", os: "macos-15", arch: "universal", tls: "quictls" },
+          { plat: "macos", os: "macos-15", arch: "universal", tls: "openssl" },
         ]
     runs-on: ${{ matrix.vec.os }}
     steps:
