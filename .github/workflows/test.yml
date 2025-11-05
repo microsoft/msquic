@@ -45,7 +45,9 @@ concurrency:
   group: bvt-${{ github.event.pull_request.number || github.sha }}
   cancel-in-progress: true
 
-permissions: read-all
+permissions:
+  contents: read
+  issues: write
 
 jobs:
   build-windows-kernel:
