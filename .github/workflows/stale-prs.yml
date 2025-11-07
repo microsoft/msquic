@@ -1,0 +1,134 @@
+---
+name: "Close Stale PRs"
+
+on:
+  schedule:
+    # Run daily at 00:00 UTC
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  pull-requests: write
+
+jobs:
+  stale:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Warn and close stale PRs
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const daysUntilStale = 46;  // First warning: 2 weeks before 60-day deadline
+            const daysUntilSecondWarning = 53;  // Second warning: 1 week before 60-day deadline
+            const daysUntilClose = 60;  // Close PRs after 60 days of inactivity
+            
+            const exemptLabels = ['pinned', 'security', 'dependencies'];
+            const staleLabel = 'stale';
+            const secondWarningLabel = 'stale-final-warning';
+            
+            const now = new Date();
+            
+            // Get all open pull requests
+            const pulls = await github.paginate(github.rest.pulls.list, {
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              per_page: 100
+            });
+            
+            console.log(`Found ${pulls.length} open pull requests`);
+            
+            for (const pr of pulls) {
+              console.log(`\nProcessing PR #${pr.number}: ${pr.title}`);
+              
+              // Get PR labels
+              const labels = pr.labels.map(l => l.name);
+              
+              // Skip if PR has exempt labels
+              if (labels.some(label => exemptLabels.includes(label))) {
+                console.log(`  Skipping: has exempt label`);
+                continue;
+              }
+              
+              // Calculate days since last update
+              const updatedAt = new Date(pr.updated_at);
+              const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
+              console.log(`  Days since update: ${daysSinceUpdate}`);
+              
+              // Close PR if it's been 60+ days
+              if (daysSinceUpdate >= daysUntilClose) {
+                console.log(`  Closing PR (${daysSinceUpdate} days inactive)`);
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `This pull request has been closed due to inactivity (60 days with no updates). If you would like to continue this work, please feel free to reopen the PR or create a new one. Thank you for your contribution!`
+                });
+                
+                await github.rest.pulls.update({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  pull_number: pr.number,
+                  state: 'closed'
+                });
+              }
+              // Add final warning label and comment if 53+ days (1 week before close)
+              else if (daysSinceUpdate >= daysUntilSecondWarning && !labels.includes(secondWarningLabel)) {
+                console.log(`  Adding final warning (${daysSinceUpdate} days inactive)`);
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `⚠️ **Final Warning**: This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
+                });
+                
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: [secondWarningLabel]
+                });
+              }
+              // Add stale label and comment if 46+ days (2 weeks before close)
+              else if (daysSinceUpdate >= daysUntilStale && !labels.includes(staleLabel)) {
+                console.log(`  Marking as stale (${daysSinceUpdate} days inactive)`);
+                
+                await github.rest.issues.createComment({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  body: `This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
+                });
+                
+                await github.rest.issues.addLabels({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  issue_number: pr.number,
+                  labels: [staleLabel]
+                });
+              }
+              // Remove stale labels if PR was updated
+              else if (daysSinceUpdate < daysUntilStale && (labels.includes(staleLabel) || labels.includes(secondWarningLabel))) {
+                console.log(`  Removing stale labels (PR was updated)`);
+                
+                if (labels.includes(staleLabel)) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: staleLabel
+                  }).catch(() => {});
+                }
+                
+                if (labels.includes(secondWarningLabel)) {
+                  await github.rest.issues.removeLabel({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    name: secondWarningLabel
+                  }).catch(() => {});
+                }
+              }
+            }
