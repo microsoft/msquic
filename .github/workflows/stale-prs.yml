@@ -119,7 +119,9 @@ jobs:
                     repo: context.repo.repo,
                     issue_number: pr.number,
                     name: staleLabel
-                  }).catch(() => {});
+                  }).catch((error) => {
+                    console.log(`    Warning: Could not remove '${staleLabel}' label: ${error.message}`);
+                  });
                 }
                 
                 if (labels.includes(secondWarningLabel)) {
@@ -128,7 +130,9 @@ jobs:
                     repo: context.repo.repo,
                     issue_number: pr.number,
                     name: secondWarningLabel
-                  }).catch(() => {});
+                  }).catch((error) => {
+                    console.log(`    Warning: Could not remove '${secondWarningLabel}' label: ${error.message}`);
+                  });
                 }
               }
             }
