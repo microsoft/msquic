@@ -59,55 +59,67 @@ jobs:
               if (daysSinceUpdate >= daysUntilClose) {
                 console.log(`  Closing PR (${daysSinceUpdate} days inactive)`);
                 
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: `This pull request has been closed due to inactivity (60 days with no updates). If you would like to continue this work, please feel free to reopen the PR or create a new one. Thank you for your contribution!`
-                });
-                
-                await github.rest.pulls.update({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  pull_number: pr.number,
-                  state: 'closed'
-                });
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `This pull request has been closed due to inactivity (60 days with no updates). If you would like to continue this work, please feel free to reopen the PR or create a new one. Thank you for your contribution!`
+                  });
+                  
+                  await github.rest.pulls.update({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    pull_number: pr.number,
+                    state: 'closed'
+                  });
+                } catch (error) {
+                  console.log(`    Error closing PR: ${error.message}`);
+                }
               }
               // Add final warning label and comment if 53+ days (1 week before close)
               else if (daysSinceUpdate >= daysUntilSecondWarning && !labels.includes(secondWarningLabel)) {
                 console.log(`  Adding final warning (${daysSinceUpdate} days inactive)`);
                 
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: `⚠️ **Final Warning**: This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
-                });
-                
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  labels: [secondWarningLabel]
-                });
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `⚠️ **Final Warning**: This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
+                  });
+                  
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    labels: [secondWarningLabel]
+                  });
+                } catch (error) {
+                  console.log(`    Error adding final warning: ${error.message}`);
+                }
               }
               // Add stale label and comment if 46+ days (2 weeks before close)
               else if (daysSinceUpdate >= daysUntilStale && !labels.includes(staleLabel)) {
                 console.log(`  Marking as stale (${daysSinceUpdate} days inactive)`);
                 
-                await github.rest.issues.createComment({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  body: `This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
-                });
-                
-                await github.rest.issues.addLabels({
-                  owner: context.repo.owner,
-                  repo: context.repo.repo,
-                  issue_number: pr.number,
-                  labels: [staleLabel]
-                });
+                try {
+                  await github.rest.issues.createComment({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    body: `This pull request has been inactive for ${daysSinceUpdate} days and will be closed in approximately ${daysUntilClose - daysSinceUpdate} days if no further activity occurs. If you plan to continue working on this PR, please leave a comment or push new changes to keep it active.`
+                  });
+                  
+                  await github.rest.issues.addLabels({
+                    owner: context.repo.owner,
+                    repo: context.repo.repo,
+                    issue_number: pr.number,
+                    labels: [staleLabel]
+                  });
+                } catch (error) {
+                  console.log(`    Error marking as stale: ${error.message}`);
+                }
               }
               // Remove stale labels if PR was updated
               else if (daysSinceUpdate < daysUntilStale && (labels.includes(staleLabel) || labels.includes(secondWarningLabel))) {
