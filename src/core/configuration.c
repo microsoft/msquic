@@ -84,6 +84,9 @@ MsQuicConfigurationOpen(
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
     CxPlatRefInitialize(&Configuration->RefCount);
+#if DEBUG
+    Configuration->RefTypeCount[QUIC_CONF_REF_HANDLE] = 1;
+#endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -282,7 +285,7 @@ MsQuicConfigurationClose(
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle);
+        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle, QUIC_CONF_REF_HANDLE);
     }
 
     QuicTraceEvent(
@@ -319,7 +322,7 @@ MsQuicConfigurationLoadCredentialComplete(
             (HQUIC)Configuration,
             Configuration->ClientContext,
             Status);
-        QuicConfigurationRelease(Configuration);
+        QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
     }
 }
 
@@ -351,7 +354,7 @@ MsQuicConfigurationLoadCredential(
             TlsCredFlags |= CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION;
         }
 
-        QuicConfigurationAddRef(Configuration);
+        QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_LOAD_CRED);
 
         Status =
             CxPlatTlsSecConfigCreate(
@@ -365,7 +368,7 @@ MsQuicConfigurationLoadCredential(
             //
             // Release ref for synchronous calls or asynchronous failures.
             //
-            QuicConfigurationRelease(Configuration);
+            QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
         }
     }
 

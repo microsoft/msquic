@@ -5,6 +5,16 @@
 
 --*/
 
+typedef enum QUIC_CONFIGURATION_REF {
+
+    QUIC_CONF_REF_HANDLE,       // The handle provided to the app.
+    QUIC_CONF_REF_CONNECTION,   // Per connection using this Configuration.
+    QUIC_CONF_REF_LOAD_CRED,    // During async credential loading.
+    QUIC_CONF_REF_OPERATION,    // Per queued operation.
+
+    QUIC_CONF_REF_COUNT
+} QUIC_CONFIGURATION_REF;
+
 //
 // Represents a set of TLS and QUIC configurations and settings.
 //
@@ -30,6 +40,13 @@ typedef struct QUIC_CONFIGURATION {
     // Reference count for tracking lifetime.
     //
     CXPLAT_REF_COUNT RefCount;
+
+#if DEBUG
+    //
+    // Detailed Reference count.
+    //
+    uint16_t RefTypeCount[QUIC_CONF_REF_COUNT];
+#endif
 
     //
     // The TLS security configurations.
@@ -106,9 +123,15 @@ QuicConfigurationUninitialize(
 QUIC_INLINE
 void
 QuicConfigurationAddRef(
-    _In_ QUIC_CONFIGURATION* Configuration
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_CONFIGURATION_REF Ref
     )
 {
+#if DEBUG
+    InterlockedIncrement16((volatile short*)&Configuration->RefTypeCount[Ref]);
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
     CxPlatRefIncrement(&Configuration->RefCount);
 }
 
@@ -118,9 +141,17 @@ QuicConfigurationAddRef(
 QUIC_INLINE
 void
 QuicConfigurationRelease(
-    _In_ QUIC_CONFIGURATION* Configuration
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_CONFIGURATION_REF Ref
     )
 {
+#if DEBUG
+    CXPLAT_TEL_ASSERT(Configuration->RefTypeCount[Ref] > 0);
+    uint16_t Result = (uint16_t)InterlockedDecrement16((volatile short*)&Configuration->RefTypeCount[Ref]);
+    CXPLAT_TEL_ASSERT(Result != 0xFFFF);
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
     if (CxPlatRefDecrement(&Configuration->RefCount)) {
         QuicConfigurationUninitialize(Configuration);
     }
