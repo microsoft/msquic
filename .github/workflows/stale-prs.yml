@@ -9,6 +9,7 @@ on:
 
 permissions:
   pull-requests: write
+  issues: write
 
 jobs:
   stale:
@@ -125,26 +126,26 @@ jobs:
               else if (daysSinceUpdate < daysUntilStale && (labels.includes(staleLabel) || labels.includes(secondWarningLabel))) {
                 console.log(`  Removing stale labels (PR was updated)`);
                 
-                if (labels.includes(staleLabel)) {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: pr.number,
-                    name: staleLabel
-                  }).catch((error) => {
-                    console.log(`    Warning: Could not remove '${staleLabel}' label: ${error.message}`);
-                  });
-                }
-                
-                if (labels.includes(secondWarningLabel)) {
-                  await github.rest.issues.removeLabel({
-                    owner: context.repo.owner,
-                    repo: context.repo.repo,
-                    issue_number: pr.number,
-                    name: secondWarningLabel
-                  }).catch((error) => {
-                    console.log(`    Warning: Could not remove '${secondWarningLabel}' label: ${error.message}`);
-                  });
+                try {
+                  if (labels.includes(staleLabel)) {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: pr.number,
+                      name: staleLabel
+                    });
+                  }
+                  
+                  if (labels.includes(secondWarningLabel)) {
+                    await github.rest.issues.removeLabel({
+                      owner: context.repo.owner,
+                      repo: context.repo.repo,
+                      issue_number: pr.number,
+                      name: secondWarningLabel
+                    });
+                  }
+                } catch (error) {
+                  console.log(`    Error removing stale labels: ${error.message}`);
                 }
               }
             }
