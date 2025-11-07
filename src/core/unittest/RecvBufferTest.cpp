@@ -2157,3 +2157,51 @@ INSTANTIATE_TEST_SUITE_P(
     WithMode,
     ::testing::Values(QUIC_RECV_BUF_MODE_SINGLE, QUIC_RECV_BUF_MODE_CIRCULAR, QUIC_RECV_BUF_MODE_MULTIPLE, QUIC_RECV_BUF_MODE_APP_OWNED),
     testing::PrintToStringParamName());
+
+
+TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
+{
+    // 1. Set up a receive buffer operating in SINGLE-chunk mode.
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
+
+    // 2. Write 16 bytes at offset 0 so the buffer is ready for reading.
+    uint64_t FlowControl = DEF_TEST_BUFFER_LENGTH; // large enough quota
+    BOOLEAN  NewDataReady = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(0 /*Offset*/, 16 /*Length*/, &FlowControl, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // 3. Read once to create a pending read and mark the first chunk as having
+    //    an external reference.
+    uint64_t ReadOffset = 0;
+    QUIC_BUFFER Buffers[3] = {};
+    uint32_t BufferCount = ARRAYSIZE(Buffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+
+    // After the read, ReadPendingLength must be non-zero and the first chunk
+    // Must indicate an external reference.
+    // At this point the buffer reports no unread data (everything is pending).
+    QUIC_RECV_CHUNK* FirstChunk = CXPLAT_CONTAINING_RECORD(
+        RecvBuf.RecvBuf.Chunks.Flink, QUIC_RECV_CHUNK, Link);
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_TRUE(FirstChunk->ExternalReference);
+    EXPECT_FALSE(RecvBuf.HasUnreadData());
+
+    // 4. Call the function under test – should reset read bookkeeping.
+    QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
+
+    // 5. Validate state was restored.
+    EXPECT_EQ(0ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_FALSE(FirstChunk->ExternalReference);
+    EXPECT_TRUE(RecvBuf.HasUnreadData()); // Data is readable again.
+
+    // 6. Perform a second read; it should succeed and return the same 16 bytes.
+    ReadOffset = 0;
+    BufferCount = ARRAYSIZE(Buffers);
+    memset(Buffers, 0, sizeof(Buffers));
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+    // After this read, pending length should be 16 again (sanity).
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+}
