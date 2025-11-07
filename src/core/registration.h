@@ -172,7 +172,7 @@ typedef struct QUIC_REGISTRATION {
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
 BOOLEAN
-QuicRegistrationAddRef(
+QuicRegistrationRundownAcquire(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_REGISTRATION_REF Ref
     )
@@ -198,7 +198,7 @@ QuicRegistrationAddRef(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
 void
-QuicRegistrationRelease(
+QuicRegistrationRundownRelease(
     _In_ QUIC_REGISTRATION* Registration,
     _In_ QUIC_REGISTRATION_REF Ref
     )
