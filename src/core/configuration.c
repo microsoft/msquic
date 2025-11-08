@@ -85,7 +85,7 @@ MsQuicConfigurationOpen(
     Configuration->Registration = Registration;
     CxPlatRefInitialize(&Configuration->RefCount);
 #if DEBUG
-    Configuration->RefTypeCount[QUIC_CONF_REF_HANDLE] = 1;
+    CxPlatRefInitialize(&Configuration->RefTypeCount[QUIC_CONF_REF_HANDLE]);
 #endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
