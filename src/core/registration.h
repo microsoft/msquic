@@ -23,12 +23,12 @@ typedef enum QUIC_CONNECTION_ACCEPT_RESULT {
 
 typedef enum QUIC_REGISTRATION_REF {
 
-    QUIC_REGI_REF_HANDLE_OWNER,         // Application or Core.
-    QUIC_REGI_REF_CONFIGURATION,        // Per Configuration.
-    QUIC_REGI_REF_CONNECTION,           // Per Connection.
-    QUIC_REGI_REF_LISTENER,             // Per Listener.
+    QUIC_REG_REF_HANDLE_OWNER,
+    QUIC_REG_REF_CONFIGURATION,
+    QUIC_REG_REF_CONNECTION,
+    QUIC_REG_REF_LISTENER,
 
-    QUIC_REGI_REF_COUNT
+    QUIC_REG_REF_COUNT
 
 } QUIC_REGISTRATION_REF;
 
@@ -115,7 +115,7 @@ typedef struct QUIC_REGISTRATION {
     //
     // Detailed ref counts. The actual reference count is in the Rundown.
     //
-    short RefTypeCount[QUIC_REGI_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeCount[QUIC_REG_REF_COUNT];
 #endif
 
     //
@@ -167,7 +167,7 @@ typedef struct QUIC_REGISTRATION {
 #endif
 
 //
-// Adds a reference to the Registration.
+// Adds a rundown reference to the Registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
@@ -183,7 +183,7 @@ QuicRegistrationRundownAcquire(
         //
         // Only increment the detailed ref count if the Rundown acquire succeeded.
         //
-        InterlockedIncrement16((volatile short*)&Registration->RefTypeCount[Ref]);
+        CxPlatRefIncrement(&Registration->RefTypeCount[Ref]);
     }
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -193,7 +193,7 @@ QuicRegistrationRundownAcquire(
 }
 
 //
-// Releases a references on the Registration.
+// Releases a rundown reference on the Registration.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_INLINE
@@ -203,11 +203,8 @@ QuicRegistrationRundownRelease(
     _In_ QUIC_REGISTRATION_REF Ref
     )
 {
-
 #if DEBUG
-    CXPLAT_TEL_ASSERT(Registration->RefTypeCount[Ref] > 0);
-    uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Registration->RefTypeCount[Ref]);
-    CXPLAT_TEL_ASSERT(result != 0xFFFF);
+    CxPlatRefDecrement(&Registration->RefTypeCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif

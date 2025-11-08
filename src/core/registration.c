@@ -49,10 +49,7 @@ QuicRegistrationClose(
     CxPlatRundownReleaseAndWait(&Registration->Rundown);
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
-#if DEBUG
-    InterlockedDecrement16((volatile short*)&Registration->RefTypeCount[QUIC_REGI_REF_HANDLE_OWNER]);
-    CXPLAT_DBG_ASSERT(Registration->RefTypeCount[QUIC_REGI_REF_HANDLE_OWNER] == 0);
-#endif
+    CXPLAT_DBG_ASSERT(CxPlatRefDecrement(&Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER]));
     CxPlatRundownUninitialize(&Registration->Rundown);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
     CxPlatLockUninitialize(&Registration->ConfigLock);
@@ -176,7 +173,7 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
 #if DEBUG
-    Registration->RefTypeCount[QUIC_REGI_REF_HANDLE_OWNER] = 1;
+    Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER] = 1;
 #endif
     CxPlatEventInitialize(&Registration->CloseEvent, TRUE, FALSE);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
@@ -245,10 +242,10 @@ Error:
     if (Registration != NULL) {
         CXPLAT_DBG_ASSERT(!Registration->CloseThread);
         CxPlatEventUninitialize(Registration->CloseEvent);
-        CxPlatRundownUninitialize(&Registration->Rundown);
 #if DEBUG
-        Registration->RefTypeCount[QUIC_REGI_REF_HANDLE_OWNER] = 0;
+        Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER] = 0;
 #endif
+        CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
         CxPlatLockUninitialize(&Registration->ConfigLock);
         CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
