@@ -183,7 +183,7 @@ QuicRegistrationRundownAcquire(
         //
         // Only increment the detailed ref count if the Rundown acquire succeeded.
         //
-        InterlockedIncrement64(&Registration->RefTypeCount[Ref]);
+        QuicIncrementLongPtrNoFence(&Registration->RefTypeCount[Ref]);
     }
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -204,7 +204,7 @@ QuicRegistrationRundownRelease(
     )
 {
 #if DEBUG
-    InterlockedDecrement64(&Registration->RefTypeCount[Ref]);
+    QuicDecrementLongPtrRelease(&Registration->RefTypeCount[Ref]);
     CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Registration->RefTypeCount[Ref]) >= 0);
 #else
     UNREFERENCED_PARAMETER(Ref);
