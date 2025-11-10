@@ -114,8 +114,10 @@ typedef struct QUIC_REGISTRATION {
 #if DEBUG
     //
     // Detailed ref counts. The actual reference count is in the Rundown.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
     //
-    CXPLAT_REF_COUNT RefTypeCount[QUIC_REG_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_REG_REF_COUNT];
 #endif
 
     //
@@ -183,7 +185,7 @@ QuicRegistrationRundownAcquire(
         //
         // Only increment the detailed ref count if the Rundown acquire succeeded.
         //
-        QuicIncrementLongPtrNoFence(&Registration->RefTypeCount[Ref]);
+        CxPlatRefIncrement(&Registration->RefTypeBiasedCount[Ref]);
     }
 #else
     UNREFERENCED_PARAMETER(Ref);
@@ -204,8 +206,7 @@ QuicRegistrationRundownRelease(
     )
 {
 #if DEBUG
-    QuicDecrementLongPtrRelease(&Registration->RefTypeCount[Ref]);
-    CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Registration->RefTypeCount[Ref]) >= 0);
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Registration->RefTypeBiasedCount[Ref]));
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif

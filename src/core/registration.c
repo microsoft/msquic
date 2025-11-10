@@ -46,11 +46,21 @@ QuicRegistrationClose(
         CxPlatLockRelease(&MsQuicLib.Lock);
     }
 
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER]));
+#endif
+
     CxPlatRundownReleaseAndWait(&Registration->Rundown);
 
     QuicWorkerPoolUninitialize(Registration->WorkerPool);
 #if DEBUG
-    CXPLAT_DBG_ASSERT(CxPlatRefDecrement(&Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER]));
+    for (uint32_t i = 0; i < QUIC_REG_REF_COUNT; i++) {
+        //
+        // Since this is after CxPlatRundownReleaseAndWait returns,
+        // no thread should be modifying these counters.
+        //
+        CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Registration->RefTypeBiasedCount[i]) == 1);
+    }
 #endif
     CxPlatRundownUninitialize(&Registration->Rundown);
     CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);
@@ -175,7 +185,8 @@ MsQuicRegistrationOpen(
     CxPlatListInitializeHead(&Registration->Listeners);
     CxPlatRundownInitialize(&Registration->Rundown);
 #if DEBUG
-    CxPlatRefInitialize(&Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER]);
+    CxPlatRefInitializeMultiple(Registration->RefTypeBiasedCount, QUIC_REG_REF_COUNT);
+    CxPlatRefInitializeEx(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER], 2);
 #endif
     CxPlatEventInitialize(&Registration->CloseEvent, TRUE, FALSE);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
@@ -245,7 +256,7 @@ Error:
         CXPLAT_DBG_ASSERT(!Registration->CloseThread);
         CxPlatEventUninitialize(Registration->CloseEvent);
 #if DEBUG
-        Registration->RefTypeCount[QUIC_REG_REF_HANDLE_OWNER] = 0;
+        CxPlatRefDecrement(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER]);
 #endif
         CxPlatRundownUninitialize(&Registration->Rundown);
         CxPlatDispatchLockUninitialize(&Registration->ConnectionLock);

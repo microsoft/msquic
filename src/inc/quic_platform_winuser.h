@@ -604,6 +604,18 @@ CxPlatRefInitializeEx(
     *RefCount = (LONG_PTR)Initial;
 }
 
+QUIC_INLINE
+void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        CxPlatRefInitialize(&RefCounts[i]);
+    }
+}
+
 #define CxPlatRefUninitialize(RefCount)
 
 QUIC_INLINE
