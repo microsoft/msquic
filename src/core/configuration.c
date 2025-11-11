@@ -196,7 +196,7 @@ MsQuicConfigurationOpen(
 
     QuicConfigurationSettingsChanged(Configuration);
 
-    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
+    BOOLEAN Result = QuicRegistrationRundownAcquire(Registration, QUIC_REG_REF_CONFIGURATION);
     CXPLAT_FRE_ASSERT(Result);
 
     CxPlatLockAcquire(&Registration->ConfigLock);
@@ -257,7 +257,7 @@ QuicConfigurationUninitialize(
 
     QuicSettingsCleanup(&Configuration->Settings);
 
-    CxPlatRundownRelease(&Configuration->Registration->Rundown);
+    QuicRegistrationRundownRelease(Configuration->Registration, QUIC_REG_REF_CONFIGURATION);
 
     QuicTraceEvent(
         ConfigurationDestroyed,

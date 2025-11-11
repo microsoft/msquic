@@ -291,7 +291,9 @@ InterlockedDecrement64(
     return __sync_sub_and_fetch(Addend, (int64_t)1);
 }
 
-#define QuicReadPtrNoFence(p) ((void*)(*p)) // TODO
+#define QuicReadPtrNoFence(p) __atomic_load_n((p), __ATOMIC_RELAXED)
+
+#define QuicReadLongPtrNoFence(p) __atomic_load_n((p), __ATOMIC_RELAXED)
 
 //
 // Assertion interfaces.
@@ -669,6 +671,12 @@ void
 CxPlatRefInitializeEx(
     _Inout_ CXPLAT_REF_COUNT* RefCount,
     _In_ uint32_t Initial
+    );
+
+void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
     );
 
 void

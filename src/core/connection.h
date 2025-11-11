@@ -1108,7 +1108,7 @@ QuicConnRelease(
 #if DEBUG
     CXPLAT_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
     uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
-    CXPLAT_TEL_ASSERT(result != 0xFFFF);
+    CXPLAT_TEL_ASSERT(result != UINT16_MAX);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
