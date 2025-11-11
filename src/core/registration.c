@@ -186,7 +186,7 @@ MsQuicRegistrationOpen(
     CxPlatRundownInitialize(&Registration->Rundown);
 #if DEBUG
     CxPlatRefInitializeMultiple(Registration->RefTypeBiasedCount, QUIC_REG_REF_COUNT);
-    CxPlatRefInitializeEx(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER], 2);
+    CxPlatRefIncrement(&Registration->RefTypeBiasedCount[QUIC_REG_REF_HANDLE_OWNER]);
 #endif
     CxPlatEventInitialize(&Registration->CloseEvent, TRUE, FALSE);
     Registration->AppNameLength = (uint8_t)(AppNameLength + 1);
