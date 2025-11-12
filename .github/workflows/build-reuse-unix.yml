@@ -86,7 +86,8 @@ on:
         default: '' # Empty string means build all
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-unix-reuse:
