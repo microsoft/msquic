@@ -49,6 +49,7 @@ permissions:
   actions: read,
   attestations: read
   checks: read
+  contents: read
   deployments: read
   discussions: read
   models: read
