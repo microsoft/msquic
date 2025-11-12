@@ -225,7 +225,7 @@ typedef struct QUIC_STREAM {
     // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
     // error for them to ever be zero.
     //
-    CXPLAT_REF_COUNT RefTypeBiasCount[QUIC_STREAM_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_STREAM_REF_COUNT];
 #endif
 
     //
@@ -712,7 +712,7 @@ QuicStreamAddRef(
     CXPLAT_DBG_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
-    CxPlatRefIncrement(&Stream->RefTypeBiasCount[Ref]);
+    CxPlatRefIncrement(&Stream->RefTypeBiasedCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -737,7 +737,7 @@ QuicStreamRelease(
     CXPLAT_TEL_ASSERT(Stream->RefCount > 0);
 
 #if DEBUG
-    CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasCount[Ref]));
+    CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[Ref]));
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -745,7 +745,7 @@ QuicStreamRelease(
     if (CxPlatRefDecrement(&Stream->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_STREAM_REF_COUNT; i++) {
-            CXPLAT_TEL_ASSERT(Stream->RefTypeBiasCount[i] == 1);
+            CXPLAT_TEL_ASSERT(Stream->RefTypeBiasedCount[i] == 1);
         }
 #endif
         QuicStreamFree(Stream);
