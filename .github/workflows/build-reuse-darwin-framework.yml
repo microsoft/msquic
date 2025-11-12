@@ -30,7 +30,8 @@ on:
         default: ''
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-darwin:

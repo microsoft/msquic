@@ -46,20 +46,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  actions: read,
-  attestations: read
-  checks: read
   contents: read
-  deployments: read
-  discussions: read
-  models: read
-  packages: read
-  pages: read
-  pull-requests: read
-  repository-projects: read
-  statuses: read
-  security-events: read
-  id-token: read
   issues: write
 
 jobs:

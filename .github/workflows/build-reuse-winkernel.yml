@@ -46,14 +46,15 @@ on:
         type: string
         # options:
         #   - quictls
-        #   - openssl 
+        #   - openssl
         #   - schannel
       build:
         required: false
         default: '' # Empty string means build all
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-windows-kernel-reuse:
