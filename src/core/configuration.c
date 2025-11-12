@@ -85,7 +85,8 @@ MsQuicConfigurationOpen(
     Configuration->Registration = Registration;
     CxPlatRefInitialize(&Configuration->RefCount);
 #if DEBUG
-    CxPlatRefInitialize(&Configuration->RefTypeCount[QUIC_CONF_REF_HANDLE]);
+    CxPlatRefInitializeMultiple(Configuration->RefTypeBiasCount, QUIC_CONF_REF_COUNT);
+    CxPlatRefIncrement(&Configuration->RefTypeBiasCount[QUIC_CONF_REF_HANDLE]);
 #endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
@@ -211,6 +212,9 @@ MsQuicConfigurationOpen(
 Error:
 
     if (QUIC_FAILED(Status) && Configuration != NULL) {
+#if DEBUG
+        CxPlatRefDecrement(&Configuration->RefTypeBiasCount[QUIC_CONF_REF_HANDLE]);
+#endif
         CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
         CxPlatStorageClose(Configuration->Storage);
@@ -261,6 +265,12 @@ QuicConfigurationUninitialize(
     QuicSettingsCleanup(&Configuration->Settings);
 
     QuicRegistrationRundownRelease(Configuration->Registration, QUIC_REG_REF_CONFIGURATION);
+
+#if DEBUG
+    for (uint32_t i = 0; i < QUIC_CONF_REF_COUNT; i++) {
+        CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Configuration->RefTypeBiasCount[i]) == 1);
+    }
+#endif
 
     QuicTraceEvent(
         ConfigurationDestroyed,

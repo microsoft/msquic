@@ -47,9 +47,11 @@ typedef struct QUIC_CONFIGURATION {
 
 #if DEBUG
     //
-    // Detailed Reference count.
+    // Detailed ref counts.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
     //
-    CXPLAT_REF_COUNT RefTypeCount[QUIC_CONF_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeBiasCount[QUIC_CONF_REF_COUNT];
 #endif
 
     //
@@ -133,7 +135,7 @@ QuicConfigurationAddRef(
 {
     CxPlatRefIncrement(&Configuration->RefCount);
 #if DEBUG
-    CxPlatRefIncrement(&Configuration->RefTypeCount[Ref]);
+    CxPlatRefIncrement(&Configuration->RefTypeBiasCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
@@ -150,7 +152,7 @@ QuicConfigurationRelease(
     )
 {
 #if DEBUG
-    CxPlatRefDecrement(&Configuration->RefTypeCount[Ref]);
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Configuration->RefTypeBiasCount[Ref]));
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
