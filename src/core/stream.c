@@ -89,7 +89,8 @@ QuicStreamInitialize(
     Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
     Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
 #if DEBUG
-    Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
+    CxPlatRefInitializeMultiple(Stream->RefTypeBiasCount, QUIC_STREAM_REF_COUNT);
+    CxPlatRefIncrement(&Stream->RefTypeBiasCount[QUIC_STREAM_REF_APP]);
 #endif
 
     if (Stream->Flags.Unidirectional) {
@@ -173,6 +174,7 @@ Exit:
 
     if (Stream) {
 #if DEBUG
+        CxPlatRefDecrement(&Stream->RefTypeBiasCount[QUIC_STREAM_REF_APP]);
         CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
