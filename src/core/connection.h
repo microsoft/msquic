@@ -369,13 +369,15 @@ typedef struct QUIC_CONNECTION {
     //
     // Number of references to the handle.
     //
-    long RefCount;
+    CXPLAT_REF_COUNT RefCount;
 
 #if DEBUG
     //
     // Detailed ref counts
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
     //
-    short RefTypeCount[QUIC_CONN_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_CONN_REF_COUNT];
 #endif
 
     //
@@ -1081,12 +1083,12 @@ QuicConnAddRef(
     QuicConnValidate(Connection);
 
 #if DEBUG
-    InterlockedIncrement16((volatile short*)&Connection->RefTypeCount[Ref]);
+    CxPlatRefIncrement(&Connection->RefTypeBiasedCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    InterlockedIncrement((volatile long*)&Connection->RefCount);
+    CxPlatRefIncrement(&Connection->RefCount);
 }
 
 //
@@ -1106,21 +1108,24 @@ QuicConnRelease(
     QuicConnValidate(Connection);
 
 #if DEBUG
-    CXPLAT_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
-    uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
-    CXPLAT_TEL_ASSERT(result != UINT16_MAX);
+    CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Connection->RefTypeBiasedCount[Ref]));
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
     CXPLAT_DBG_ASSERT(Connection->RefCount > 0);
-    if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
+    if (CxPlatRefDecrement(&Connection->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
-            CXPLAT_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
+            CXPLAT_TEL_ASSERT(Connection->RefTypeBiasedCount[i] == 1);
         }
 #endif
         if (Ref == QUIC_CONN_REF_LOOKUP_RESULT) {
+            //
+            // The ref count has hit zero and we need to reset to 1 to avoid
+            // hitting an assert when the next reference is taken.
+            //
+            CxPlatRefInitialize(&Connection->RefCount);
             //
             // Lookup results cannot be the last ref, as they can result in the
             // datapath binding being deleted on a callback. Instead, queue the
