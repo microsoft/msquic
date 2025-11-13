@@ -74,7 +74,7 @@ QuicStreamInitialize(
         Connection->Settings.StreamMultiReceiveEnabled &&
         !Stream->Flags.UseAppOwnedRecvBuffers;
     Stream->RecvMaxLength = UINT64_MAX;
-    Stream->RefCount = 1;
+    CxPlatRefInitialize(&Stream->RefCount);
     Stream->SendRequestsTail = &Stream->SendRequests;
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
@@ -89,7 +89,8 @@ QuicStreamInitialize(
     Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
     Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
 #if DEBUG
-    Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
+    CxPlatRefInitializeMultiple(Stream->RefTypeBiasedCount, QUIC_STREAM_REF_COUNT);
+    CxPlatRefIncrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]);
 #endif
 
     if (Stream->Flags.Unidirectional) {
@@ -173,6 +174,7 @@ Exit:
 
     if (Stream) {
 #if DEBUG
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]));
         CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
