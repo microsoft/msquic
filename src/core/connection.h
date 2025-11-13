@@ -44,6 +44,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
+        // The connection's ref count has hit zero, but needs to be cleaned up on a worker.
+        //
+        BOOLEAN CleanupStarted  : 1;
+
+        //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
@@ -1088,7 +1093,15 @@ QuicConnAddRef(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    CxPlatRefIncrement(&Connection->RefCount);
+    if (!Connection->State.CleanupStarted) {
+        CxPlatRefIncrement(&Connection->RefCount);
+    } else {
+        //
+        // When the connection is in the cleanup state, the only caller allowed
+        // to touch it is a worker thread.
+        //
+        CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
+    }
 }
 
 //
@@ -1113,8 +1126,7 @@ QuicConnRelease(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    CXPLAT_DBG_ASSERT(Connection->RefCount > 0);
-    if (CxPlatRefDecrement(&Connection->RefCount)) {
+    if (Connection->State.CleanupStarted || CxPlatRefDecrement(&Connection->RefCount)) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
             CXPLAT_TEL_ASSERT(Connection->RefTypeBiasedCount[i] == 1);
@@ -1122,15 +1134,11 @@ QuicConnRelease(
 #endif
         if (Ref == QUIC_CONN_REF_LOOKUP_RESULT) {
             //
-            // The ref count has hit zero and we need to reset to 1 to avoid
-            // hitting an assert when the next reference is taken.
-            //
-            CxPlatRefInitialize(&Connection->RefCount);
-            //
             // Lookup results cannot be the last ref, as they can result in the
             // datapath binding being deleted on a callback. Instead, queue the
             // connection to be released by the worker.
             //
+            Connection->State.CleanupStarted = TRUE;
             CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
