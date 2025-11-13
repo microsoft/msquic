@@ -1093,15 +1093,7 @@ QuicConnAddRef(
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    if (!Connection->State.CleanupStarted) {
-        CxPlatRefIncrement(&Connection->RefCount);
-    } else {
-        //
-        // When the connection is in the cleanup state, the only caller allowed
-        // to touch it is a worker thread.
-        //
-        CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
-    }
+    CxPlatRefIncrement(&Connection->RefCount);
 }
 
 //
@@ -1142,6 +1134,13 @@ QuicConnRelease(
             CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
+            if (Connection->State.CleanupStarted) {
+                //
+                // When the connection is in the cleanup state, the only caller
+                // allowed to free it is a worker thread.
+                //
+                CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
+            }
             QuicConnFree(Connection);
         }
     }
