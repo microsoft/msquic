@@ -97,6 +97,12 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
         BOOLEAN Partitioned     : 1;    // The connection cannot move across partitions.
+        BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
+
+        //
+        // The connection's ref count has hit zero, but needs to be cleaned up on a worker.
+        //
+        BOOLEAN CleanupStarted  : 1;
 
         //
         // Indicates whether packet number encryption is enabled or not for the
