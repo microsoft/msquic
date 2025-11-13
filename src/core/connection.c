@@ -383,7 +383,7 @@ QuicConnFree(
         Silo = Connection->Configuration->Silo;
         QuicSiloAddRef(Silo);
 #endif
-        QuicConfigurationRelease(Connection->Configuration);
+        QuicConfigurationRelease(Connection->Configuration, QUIC_CONF_REF_CONNECTION);
         Connection->Configuration = NULL;
     }
     if (Connection->RemoteServerName != NULL) {
@@ -2480,7 +2480,7 @@ QuicConnSetConfiguration(
         "Configuration set, %p",
         Configuration);
 
-    QuicConfigurationAddRef(Configuration);
+    QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_CONNECTION);
     QuicConfigurationAttachSilo(Configuration);
     Connection->Configuration = Configuration;
 

@@ -6,6 +6,20 @@
 --*/
 
 //
+// The different kinds of references on a Configuration.
+//
+typedef enum QUIC_CONFIGURATION_REF {
+
+    QUIC_CONF_REF_HANDLE,
+    QUIC_CONF_REF_CONNECTION,
+    QUIC_CONF_REF_LOAD_CRED,
+    QUIC_CONF_REF_CONN_START_OP,
+    QUIC_CONF_REF_CONN_SET_OP,
+
+    QUIC_CONF_REF_COUNT
+} QUIC_CONFIGURATION_REF;
+
+//
 // Represents a set of TLS and QUIC configurations and settings.
 //
 typedef struct QUIC_CONFIGURATION {
@@ -30,6 +44,15 @@ typedef struct QUIC_CONFIGURATION {
     // Reference count for tracking lifetime.
     //
     CXPLAT_REF_COUNT RefCount;
+
+#if DEBUG
+    //
+    // Detailed ref counts.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
+    //
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_CONF_REF_COUNT];
+#endif
 
     //
     // The TLS security configurations.
@@ -106,10 +129,16 @@ QuicConfigurationUninitialize(
 QUIC_INLINE
 void
 QuicConfigurationAddRef(
-    _In_ QUIC_CONFIGURATION* Configuration
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_CONFIGURATION_REF Ref
     )
 {
     CxPlatRefIncrement(&Configuration->RefCount);
+#if DEBUG
+    CxPlatRefIncrement(&Configuration->RefTypeBiasedCount[Ref]);
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
 }
 
 //
@@ -118,9 +147,15 @@ QuicConfigurationAddRef(
 QUIC_INLINE
 void
 QuicConfigurationRelease(
-    _In_ QUIC_CONFIGURATION* Configuration
+    _In_ QUIC_CONFIGURATION* Configuration,
+    _In_ QUIC_CONFIGURATION_REF Ref
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Configuration->RefTypeBiasedCount[Ref]));
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
     if (CxPlatRefDecrement(&Configuration->RefCount)) {
         QuicConfigurationUninitialize(Configuration);
     }

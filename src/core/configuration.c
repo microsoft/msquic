@@ -84,6 +84,10 @@ MsQuicConfigurationOpen(
     Configuration->ClientContext = Context;
     Configuration->Registration = Registration;
     CxPlatRefInitialize(&Configuration->RefCount);
+#if DEBUG
+    CxPlatRefInitializeMultiple(Configuration->RefTypeBiasedCount, QUIC_CONF_REF_COUNT);
+    CxPlatRefIncrement(&Configuration->RefTypeBiasedCount[QUIC_CONF_REF_HANDLE]);
+#endif
 
     Configuration->AlpnListLength = (uint16_t)AlpnListLength;
     AlpnList = Configuration->AlpnList;
@@ -208,6 +212,9 @@ MsQuicConfigurationOpen(
 Error:
 
     if (QUIC_FAILED(Status) && Configuration != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Configuration->RefTypeBiasedCount[QUIC_CONF_REF_HANDLE]));
+#endif
         CxPlatStorageClose(Configuration->AppSpecificStorage);
 #ifdef QUIC_SILO
         CxPlatStorageClose(Configuration->Storage);
@@ -259,6 +266,12 @@ QuicConfigurationUninitialize(
 
     QuicRegistrationRundownRelease(Configuration->Registration, QUIC_REG_REF_CONFIGURATION);
 
+#if DEBUG
+    for (uint32_t i = 0; i < QUIC_CONF_REF_COUNT; i++) {
+        CXPLAT_DBG_ASSERT(QuicReadLongPtrNoFence(&Configuration->RefTypeBiasedCount[i]) == 1);
+    }
+#endif
+
     QuicTraceEvent(
         ConfigurationDestroyed,
         "[cnfg][%p] Destroyed",
@@ -282,7 +295,7 @@ MsQuicConfigurationClose(
 
     if (Handle != NULL && Handle->Type == QUIC_HANDLE_TYPE_CONFIGURATION) {
 #pragma prefast(suppress: __WARNING_25024, "Pointer cast already validated.")
-        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle);
+        QuicConfigurationRelease((QUIC_CONFIGURATION*)Handle, QUIC_CONF_REF_HANDLE);
     }
 
     QuicTraceEvent(
@@ -319,7 +332,7 @@ MsQuicConfigurationLoadCredentialComplete(
             (HQUIC)Configuration,
             Configuration->ClientContext,
             Status);
-        QuicConfigurationRelease(Configuration);
+        QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
     }
 }
 
@@ -351,7 +364,7 @@ MsQuicConfigurationLoadCredential(
             TlsCredFlags |= CXPLAT_TLS_CREDENTIAL_FLAG_DISABLE_RESUMPTION;
         }
 
-        QuicConfigurationAddRef(Configuration);
+        QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_LOAD_CRED);
 
         Status =
             CxPlatTlsSecConfigCreate(
@@ -365,7 +378,7 @@ MsQuicConfigurationLoadCredential(
             //
             // Release ref for synchronous calls or asynchronous failures.
             //
-            QuicConfigurationRelease(Configuration);
+            QuicConfigurationRelease(Configuration, QUIC_CONF_REF_LOAD_CRED);
         }
     }
 

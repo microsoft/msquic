@@ -444,7 +444,7 @@ MsQuicConnectionStart(
         goto Error;
     }
 
-    QuicConfigurationAddRef(Configuration);
+    QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_CONN_START_OP);
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_START;
     Oper->API_CALL.Context->CONN_START.Configuration = Configuration;
     Oper->API_CALL.Context->CONN_START.ServerName = ServerNameCopy;
@@ -543,7 +543,7 @@ MsQuicConnectionSetConfiguration(
         goto Error;
     }
 
-    QuicConfigurationAddRef(Configuration);
+    QuicConfigurationAddRef(Configuration, QUIC_CONF_REF_CONN_SET_OP);
     Oper->API_CALL.Context->Type = QUIC_API_TYPE_CONN_SET_CONFIGURATION;
     Oper->API_CALL.Context->CONN_SET_CONFIGURATION.Configuration = Configuration;
 

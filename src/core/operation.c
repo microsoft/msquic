@@ -95,12 +95,12 @@ QuicOperationFree(
     if (Oper->Type == QUIC_OPER_TYPE_API_CALL) {
         QUIC_API_CONTEXT* ApiCtx = Oper->API_CALL.Context;
         if (ApiCtx->Type == QUIC_API_TYPE_CONN_START) {
-            QuicConfigurationRelease(ApiCtx->CONN_START.Configuration);
+            QuicConfigurationRelease(ApiCtx->CONN_START.Configuration, QUIC_CONF_REF_CONN_START_OP);
             if (ApiCtx->CONN_START.ServerName != NULL) {
                 CXPLAT_FREE(ApiCtx->CONN_START.ServerName, QUIC_POOL_SERVERNAME);
             }
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SET_CONFIGURATION) {
-            QuicConfigurationRelease(ApiCtx->CONN_SET_CONFIGURATION.Configuration);
+            QuicConfigurationRelease(ApiCtx->CONN_SET_CONFIGURATION.Configuration, QUIC_CONF_REF_CONN_SET_OP);
         } else if (ApiCtx->Type == QUIC_API_TYPE_CONN_SEND_RESUMPTION_TICKET) {
             if (ApiCtx->CONN_SEND_RESUMPTION_TICKET.ResumptionAppData != NULL) {
                 CXPLAT_DBG_ASSERT(ApiCtx->CONN_SEND_RESUMPTION_TICKET.AppDataLength != 0);
