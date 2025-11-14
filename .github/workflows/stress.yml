@@ -203,3 +203,15 @@ jobs:
       with:
         name: recvfuzz-${{ matrix.vec.config }}-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}${{ matrix.vec.sanitize }}
         path: artifacts
+
+  Complete:
+    name: Stress Complete
+    if: always()
+    needs: [stress, recvfuzz]
+    runs-on: ubuntu-latest
+    permissions: {} # No need for any permissions.
+    steps:
+    - name: Decide whether the needed jobs succeeded or failed
+      uses: re-actors/alls-green@05ac9388f0aebcb5727afa17fcccfecd6f8ec5fe
+      with:
+        jobs: ${{ toJSON(needs) }}
