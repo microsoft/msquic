@@ -1112,13 +1112,28 @@ QuicConnRelease(
 {
     QuicConnValidate(Connection);
 
-#if DEBUG
-    CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Connection->RefTypeBiasedCount[Ref]));
-#else
-    UNREFERENCED_PARAMETER(Ref);
-#endif
+    BOOLEAN LastRef = FALSE;
+    QUIC_CONNECTION_STATE State = {0};
+    State.Flags = CxPlatReadNoFence64((volatile const int64_t*)&Connection->State.Flags);
 
-    if (Connection->State.CleanupStarted || CxPlatRefDecrement(&Connection->RefCount)) {
+    if (!State.CleanupStarted) {
+        LastRef = CxPlatRefDecrement(&Connection->RefCount);
+#if DEBUG
+        CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Connection->RefTypeBiasedCount[Ref]));
+#else
+        UNREFERENCED_PARAMETER(Ref);
+#endif
+    } else {
+        //
+        // When the connection is in the cleanup state, the only caller
+        // allowed to free it is a worker thread.
+        //
+        CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
+        QuicConnFree(Connection);
+        return;
+    }
+
+    if (LastRef) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
             CXPLAT_TEL_ASSERT(Connection->RefTypeBiasedCount[i] == 1);
@@ -1130,17 +1145,11 @@ QuicConnRelease(
             // datapath binding being deleted on a callback. Instead, queue the
             // connection to be released by the worker.
             //
-            Connection->State.CleanupStarted = TRUE;
+            State.CleanupStarted = TRUE;
+            CxPlatWriteNoFence64((volatile int64_t*)&Connection->State.Flags, State.Flags);
             CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
-            if (Connection->State.CleanupStarted) {
-                //
-                // When the connection is in the cleanup state, the only caller
-                // allowed to free it is a worker thread.
-                //
-                CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
-            }
             QuicConnFree(Connection);
         }
     }
