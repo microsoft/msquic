@@ -121,7 +121,7 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <Link>
-      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd</AdditionalOptions>
+      <AdditionalOptions>%(AdditionalOptions) /FORCE:PGOREPRO /USEPROFILE:PGD=$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\msquic.pgd /hotpatchcompatible /profile /incremental:no /FUNCTIONPADMIN:6</AdditionalOptions>
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
