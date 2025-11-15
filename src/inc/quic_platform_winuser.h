@@ -559,8 +559,12 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #ifdef QUIC_RESTRICTED_BUILD
 #define QuicReadLongPtrNoFence(p) ((LONG64)(*p))
+#define CxPlatReadNoFence64(p) ((uint64_t)(*p))
+#define CxPlatWriteNoFence64(p, v) (*(p) = (v))
 #else
 #define QuicReadLongPtrNoFence ReadNoFence64
+#define CxPlatReadNoFence64 ReadNoFence64
+#define CxPlatWriteNoFence64 WriteNoFence64
 #endif
 
 #else
@@ -571,8 +575,12 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 #ifdef QUIC_RESTRICTED_BUILD
 #define QuicReadLongPtrNoFence(p) ((LONG)(*p))
+#define CxPlatReadNoFence64(p) ((uint64_t)(*p))
+#define CxPlatWriteNoFence64(p, v) (*(p) = (v))
 #else
 #define QuicReadLongPtrNoFence ReadNoFence
+#define CxPlatReadNoFence64 ReadNoFence64
+#define CxPlatWriteNoFence64 WriteNoFence64
 #endif
 
 #endif

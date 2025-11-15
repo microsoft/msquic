@@ -271,17 +271,12 @@ QuicWorkerQueueConnection(
             "[conn][%p] Scheduling: %u",
             Connection,
             QUIC_SCHEDULE_QUEUED);
-        if (Connection->State.CleanupStarted) {
-#if DEBUG
-            //
-            // If the Connection is in the CleanupStarted state, its ref count
-            // is zero and it is queued here for freeing.
-            // Only increment the detailed ref count in debug builds.
-            // Just don't increment the main ref count in this state.
-            //
-            CxPlatRefIncrement(&Connection->RefTypeBiasedCount[QUIC_CONN_REF_WORKER]);
-#endif
-        } else {
+        //
+        // If the Connection is in the CleanupStarted state, its ref count
+        // is zero and it is queued for freeing.
+        // Only increment the ref count when NOT in cleanup.
+        //
+        if (!Connection->State.CleanupStarted) {
             QuicConnAddRef(Connection, QUIC_CONN_REF_WORKER);
         }
         CxPlatListInsertTail(&Worker->Connections, &Connection->WorkerLink);

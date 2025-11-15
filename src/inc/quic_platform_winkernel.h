@@ -382,11 +382,15 @@ typedef EX_SPIN_LOCK CXPLAT_DISPATCH_RW_LOCK;
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease64
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence64
 #define QuicReadLongPtrNoFence ReadNoFence64
+#define CxPlatReadNoFence64 ReadNoFence64
+#define CxPlatWriteNoFence64 WriteNoFence64
 #else
 #define QuicIncrementLongPtrNoFence InterlockedIncrementNoFence
 #define QuicDecrementLongPtrRelease InterlockedDecrementRelease
 #define QuicCompareExchangeLongPtrNoFence InterlockedCompareExchangeNoFence
 #define QuicReadLongPtrNoFence ReadNoFence
+#define CxPlatReadNoFence64 ReadNoFence64
+#define CxPlatWriteNoFence64 WriteNoFence64
 #endif
 #define QuicReadPtrNoFence ReadPointerNoFence
 
