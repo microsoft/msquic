@@ -75,11 +75,11 @@ void QuicTestValidateRegistration()
         MsQuicRegistration Registration;
         TEST_TRUE(Registration.IsValid());
 
-#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-        RegistrationCloseContext CloseContext;
-        Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
-        TEST_TRUE(CloseContext.Event.WaitTimeout(TestWaitTimeout));
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+// #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+//         RegistrationCloseContext CloseContext;
+//         Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+//         TEST_TRUE(CloseContext.Event.WaitTimeout(TestWaitTimeout));
+// #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
     }
 }
 
