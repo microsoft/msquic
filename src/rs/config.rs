@@ -41,18 +41,13 @@ impl RegistrationConfig {
 }
 
 /// Configures how to process a registration's workload.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum ExecutionProfile {
+    #[default]
     LowLatency,
     MaxThroughput,
     Scavenger,
     RealTime,
-}
-
-impl Default for ExecutionProfile {
-    fn default() -> Self {
-        Self::LowLatency
-    }
 }
 
 impl From<ExecutionProfile> for crate::ffi::QUIC_EXECUTION_PROFILE {
@@ -341,8 +336,9 @@ impl CertificatePkcs12 {
 }
 
 /// Type of credentials used for a connection.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Credential {
+    #[default]
     None,
     /// windows schannel only
     CertificateHash(CertificateHash),
@@ -356,12 +352,6 @@ pub enum Credential {
     CertificateFileProtected(CertificateFileProtected),
     /// quictls only
     CertificatePkcs12(CertificatePkcs12),
-}
-
-impl Default for Credential {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 bitflags::bitflags! {
