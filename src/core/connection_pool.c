@@ -248,13 +248,14 @@ QuicConnPoolQueueConnectionClose(
     _In_ const BOOLEAN WaitForCompletion
     )
 {
+    CXPLAT_EVENT CompletionEvent = {0};
+
     Connection->CloseOper.Type = QUIC_OPER_TYPE_API_CALL;
     Connection->CloseOper.FreeAfterProcess = FALSE;
     Connection->CloseOper.API_CALL.Context = &Connection->CloseApiContext;
     Connection->CloseApiContext.Type = QUIC_API_TYPE_CONN_CLOSE;
     Connection->CloseApiContext.Status = NULL;
 
-    CXPLAT_EVENT CompletionEvent = {0};
     if (WaitForCompletion) {
         CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
         Connection->CloseApiContext.Completed = &CompletionEvent;
