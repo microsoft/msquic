@@ -295,10 +295,6 @@ InterlockedDecrement64(
 
 #define QuicReadLongPtrNoFence(p) __atomic_load_n((p), __ATOMIC_RELAXED)
 
-#define CxPlatReadNoFence64(p) __atomic_load_n((p), __ATOMIC_RELAXED)
-
-#define CxPlatWriteNoFence64(p, v) __atomic_store_n((p), (v), __ATOMIC_RELAXED)
-
 //
 // Assertion interfaces.
 //
