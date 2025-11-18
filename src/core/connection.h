@@ -1113,10 +1113,8 @@ QuicConnRelease(
     QuicConnValidate(Connection);
 
     BOOLEAN LastRef = FALSE;
-    QUIC_CONNECTION_STATE State = {0};
-    State.Flags = CxPlatReadNoFence64((volatile const int64_t*)&Connection->State.Flags);
 
-    if (!State.CleanupStarted) {
+    if (!Connection->State.CleanupStarted) {
         LastRef = CxPlatRefDecrement(&Connection->RefCount);
 #if DEBUG
         CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Connection->RefTypeBiasedCount[Ref]));
@@ -1145,8 +1143,7 @@ QuicConnRelease(
             // datapath binding being deleted on a callback. Instead, queue the
             // connection to be released by the worker.
             //
-            State.CleanupStarted = TRUE;
-            CxPlatWriteNoFence64((volatile int64_t*)&Connection->State.Flags, State.Flags);
+            Connection->State.CleanupStarted = TRUE;
             CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
