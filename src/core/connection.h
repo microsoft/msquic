@@ -44,6 +44,11 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
+        // The connection's ref count has hit zero, but needs to be cleaned up on a worker.
+        //
+        BOOLEAN CleanupStarted  : 1;
+
+        //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
@@ -369,13 +374,15 @@ typedef struct QUIC_CONNECTION {
     //
     // Number of references to the handle.
     //
-    long RefCount;
+    CXPLAT_REF_COUNT RefCount;
 
 #if DEBUG
     //
     // Detailed ref counts
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
     //
-    short RefTypeCount[QUIC_CONN_REF_COUNT];
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_CONN_REF_COUNT];
 #endif
 
     //
@@ -1081,12 +1088,12 @@ QuicConnAddRef(
     QuicConnValidate(Connection);
 
 #if DEBUG
-    InterlockedIncrement16((volatile short*)&Connection->RefTypeCount[Ref]);
+    CxPlatRefIncrement(&Connection->RefTypeBiasedCount[Ref]);
 #else
     UNREFERENCED_PARAMETER(Ref);
 #endif
 
-    InterlockedIncrement((volatile long*)&Connection->RefCount);
+    CxPlatRefIncrement(&Connection->RefCount);
 }
 
 //
@@ -1105,19 +1112,29 @@ QuicConnRelease(
 {
     QuicConnValidate(Connection);
 
-#if DEBUG
-    CXPLAT_TEL_ASSERT(Connection->RefTypeCount[Ref] > 0);
-    uint16_t result = (uint16_t)InterlockedDecrement16((volatile short*)&Connection->RefTypeCount[Ref]);
-    CXPLAT_TEL_ASSERT(result != UINT16_MAX);
-#else
-    UNREFERENCED_PARAMETER(Ref);
-#endif
+    BOOLEAN LastRef = FALSE;
 
-    CXPLAT_DBG_ASSERT(Connection->RefCount > 0);
-    if (InterlockedDecrement((volatile long*)&Connection->RefCount) == 0) {
+    if (!Connection->State.CleanupStarted) {
+        LastRef = CxPlatRefDecrement(&Connection->RefCount);
+#if DEBUG
+        CXPLAT_TEL_ASSERT(!CxPlatRefDecrement(&Connection->RefTypeBiasedCount[Ref]));
+#else
+        UNREFERENCED_PARAMETER(Ref);
+#endif
+    } else {
+        //
+        // When the connection is in the cleanup state, the only caller
+        // allowed to free it is a worker thread.
+        //
+        CXPLAT_DBG_ASSERT(Ref == QUIC_CONN_REF_WORKER);
+        QuicConnFree(Connection);
+        return;
+    }
+
+    if (LastRef) {
 #if DEBUG
         for (uint32_t i = 0; i < QUIC_CONN_REF_COUNT; i++) {
-            CXPLAT_TEL_ASSERT(Connection->RefTypeCount[i] == 0);
+            CXPLAT_TEL_ASSERT(Connection->RefTypeBiasedCount[i] == 1);
         }
 #endif
         if (Ref == QUIC_CONN_REF_LOOKUP_RESULT) {
@@ -1126,6 +1143,7 @@ QuicConnRelease(
             // datapath binding being deleted on a callback. Instead, queue the
             // connection to be released by the worker.
             //
+            Connection->State.CleanupStarted = TRUE;
             CXPLAT_DBG_ASSERT(Connection->Worker != NULL);
             QuicWorkerQueueConnection(Connection->Worker, Connection);
         } else {
