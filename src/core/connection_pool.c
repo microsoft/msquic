@@ -714,8 +714,8 @@ CleanUpConnections:
         //
         // Close every connection that was created.
         // The application will receive the shutdown notification.
-        // Wait for the task to be complete so that when this function returns to the app,
-        // all connections are closed (since the shutdown notification is visible).
+        // Wait for the task to complete so that when this function returns to the app,
+        // all connections are already closed (since the shutdown notification is visible).
         //
         for (uint32_t i = 0; i < CreatedConnections; i++) {
             QuicConnPoolQueueConnectionClose(Connections[i], TRUE);
