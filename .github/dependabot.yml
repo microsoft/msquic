@@ -38,6 +38,7 @@ updates:
       - "/.docker/ubuntu-24.04"
     schedule:
       interval: "weekly"
+      day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
