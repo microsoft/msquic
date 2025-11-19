@@ -37,7 +37,7 @@ updates:
       - "/.docker/ubuntu-22.04"
       - "/.docker/ubuntu-24.04"
     schedule:
-      interval: "monthly"
+      interval: "weekly"
     ignore:
       - dependency-name: "ubuntu"
         update-types: ["version-update:semver-major", "version-update:semver-minor"]
