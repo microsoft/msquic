@@ -2564,17 +2564,20 @@ QuicTestKeyUpdate(
 
             //
             // Send some data to perform the key update.
+            // Updating the stream count causes a frame to be sent.
             // TODO: Update this to send stream data, like QuicConnectAndPing does.
             //
-            uint16_t PeerCount, Expected = 101+i, Tries = 0;
-            TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
-            TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
+            {
+                const uint16_t Expected = 101 + i;
+                TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
+                TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
 
-            do {
-                CxPlatSleep(100);
-                PeerCount =  Server->GetLocalBidiStreamCount();
-            } while (PeerCount != Expected && Tries++ < 10);
-            TEST_EQUAL(Expected, PeerCount);
+                TEST_QUIC_SUCCEEDED(TryUntil(100, 1000,
+                    [&]() -> bool {
+                        const uint16_t PeerCount =  Server->GetLocalBidiStreamCount();
+                        return PeerCount == Expected ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                    }));
+            }
 
             //
             // Force a client key update to occur again to check for double update
@@ -2584,16 +2587,17 @@ QuicTestKeyUpdate(
                 TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
             }
 
-            Expected = 100+i;
-            TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
-            TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
+            {
+                const uint16_t Expected = 100 + i;
+                TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
+                TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
 
-            Tries = 0;
-            do {
-                CxPlatSleep(100);
-                PeerCount =  Client.GetLocalBidiStreamCount();
-            } while (PeerCount != Expected && Tries++ < 10);
-            TEST_EQUAL(Expected, PeerCount);
+                TEST_QUIC_SUCCEEDED(TryUntil(100, 1000,
+                    [&]() -> bool {
+                        const uint16_t PeerCount =  Server->GetLocalBidiStreamCount();
+                        return PeerCount == Expected ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+                    }));
+            }
         }
 
         CxPlatSleep(100);
