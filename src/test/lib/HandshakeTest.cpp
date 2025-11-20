@@ -2489,6 +2489,28 @@ QuicTestKeyUpdateRandomLoss(
     }
 }
 
+bool
+SendFrame(
+    TestConnection& Sender,
+    TestConnection& Receiver
+    )
+{
+    //
+    // Force a frame to be sent and wait for its reception.
+    // Stream count updates are used as a simple way to force an ack eliciting frame.
+    //
+    const uint16_t NewStreamCount = Sender.GetPeerBidiStreamCount() + 1;
+    const auto Status = Sender.SetPeerBidiStreamCount(NewStreamCount);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    return TryUntil(100, 1000, [&]() -> bool {
+        const auto PeerCount = Receiver.GetLocalBidiStreamCount();
+        return PeerCount == NewStreamCount ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+    });
+}
+
 void
 QuicTestKeyUpdate(
     _In_ int Family,
@@ -2556,47 +2578,32 @@ QuicTestKeyUpdate(
 
             if (ClientKeyUpdate) {
                 TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
+
+                //
+                // Ensure the client send a frame acknowledging the new server key phase.
+                //
+                TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
             }
 
             if (ServerKeyUpdate) {
                 TEST_QUIC_SUCCEEDED(Server->ForceKeyUpdate());
+
+                //
+                // Ensure the server send a frame acknowledging the new server key phase.
+                //
+                TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
             }
 
             //
-            // Send some data to perform the key update.
-            // Updating the stream count causes a frame to be sent.
-            // TODO: Update this to send stream data, like QuicConnectAndPing does.
-            //
-            {
-                const uint16_t Expected = 101 + i;
-                TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
-                TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
-
-                TEST_QUIC_SUCCEEDED(TryUntil(100, 1000,
-                    [&]() -> bool {
-                        const uint16_t PeerCount =  Server->GetLocalBidiStreamCount();
-                        return PeerCount == Expected ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
-                    }));
-            }
-
-            //
-            // Force a client key update to occur again to check for double update
-            // while server is still waiting for key response.
+            // Force a client key update to occur again.
             //
             if (ClientKeyUpdate) {
                 TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
-            }
 
-            {
-                const uint16_t Expected = 100 + i;
-                TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
-                TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
-
-                TEST_QUIC_SUCCEEDED(TryUntil(100, 1000,
-                    [&]() -> bool {
-                        const uint16_t PeerCount =  Server->GetLocalBidiStreamCount();
-                        return PeerCount == Expected ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
-                    }));
+                //
+                // Ensure the server send a frame acknowledging the new server key phase.
+                //
+                TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
             }
         }
 
