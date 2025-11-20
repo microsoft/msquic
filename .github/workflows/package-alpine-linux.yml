@@ -32,7 +32,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
     - name: Set up QEMU
       uses: docker/setup-qemu-action@29109295f81e9208d7d86ff1c6c12d2833863392
     - name: Generate APKBUILD
@@ -64,7 +64,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout Repository
-      uses: actions/checkout@08c6903cd8c0fde910a37f88322edcfb5dd907a8
+      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
     - name: Download Package
       uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
