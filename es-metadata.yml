@@ -1,8 +1,0 @@
-schemaVersion: 0.0.1
-isProduction: true
-accountableOwners:
-  service: b7b51c2f-738e-43e4-8f76-05d9a8e5f6d7
-routing:
-  defaultAreaPath:
-    org: microsoft
-    path: OS\Core\IO Fabrics\Transports Security and SDN\DPT-Data Path and Transports\QUIC
