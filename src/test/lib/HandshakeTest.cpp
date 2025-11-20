@@ -2489,7 +2489,7 @@ QuicTestKeyUpdateRandomLoss(
     }
 }
 
-bool
+QUIC_STATUS
 SendFrame(
     TestConnection& Sender,
     TestConnection& Receiver
@@ -2505,7 +2505,7 @@ SendFrame(
         return Status;
     }
 
-    return TryUntil(100, 1000, [&]() -> bool {
+    return TryUntil(100, 1000, [&]() {
         const auto PeerCount = Receiver.GetLocalBidiStreamCount();
         return PeerCount == NewStreamCount ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
     });
