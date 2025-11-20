@@ -32,6 +32,9 @@ updates:
       - "dependencies"
       - "Language: Rust"
 
+# The docker entries are split out so they can update separately.
+# When combined, dependabot seems to only update when both meet the criteria,
+# which is impossible, since they're different versions.
   - package-ecosystem: "docker"
     directories:
       - "/.docker/ubuntu-22.04"
