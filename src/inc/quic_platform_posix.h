@@ -850,8 +850,10 @@ CxPlatEventInitialize(
     Result = pthread_condattr_init(&Attr);
     CXPLAT_FRE_ASSERT(Result == 0);
 #if defined(CX_PLATFORM_LINUX)
+#if defined(HAS_PTHREAD_SET_CLOCK)
     Result = pthread_condattr_setclock(&Attr, CLOCK_MONOTONIC);
     CXPLAT_FRE_ASSERT(Result == 0);
+#endif // HAS_PTHREAD_SET_CLOCK
 #endif // CX_PLATFORM_LINUX
     Result = pthread_cond_init(&Event->Cond, &Attr);
     CXPLAT_FRE_ASSERT(Result == 0);
@@ -1321,7 +1323,11 @@ CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
     )
 {
+#ifdef HAS_EPOLL_CREATE1
     return (*queue = epoll_create1(EPOLL_CLOEXEC)) != -1;
+#else
+    return (*queue = epoll_create(32000)) != -1;
+#endif
 }
 
 QUIC_INLINE
