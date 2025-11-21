@@ -877,18 +877,17 @@ extern "C" fn raw_conn_callback(
     let cleanup_ctx =
         event_ref.Type == ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
 
-    let status = {
-        let f = unsafe {
-            (context as *mut Box<ConnectionCallback>)
-                .as_mut() // allow mutation
-                .expect("cannot get ConnectionCallback from ctx")
-        };
-        let event = ConnectionEvent::from(event_ref);
-        let conn = unsafe { ConnectionRef::from_raw(connection) };
-        match f(conn, event) {
-            Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
-            Err(e) => e.0,
+    let status = match unsafe { (context as *mut Box<ConnectionCallback>).as_mut() } {
+        Some(f) => {
+            let event = ConnectionEvent::from(event_ref);
+            let conn = unsafe { ConnectionRef::from_raw(connection) };
+            match f(conn, event) {
+                Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+                Err(e) => e.0,
+            }
         }
+        // Context already cleaned (e.g. after ShutdownComplete). Nothing to do.
+        None => StatusCode::QUIC_STATUS_SUCCESS.into(),
     };
 
     if cleanup_ctx {
