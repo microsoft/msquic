@@ -697,21 +697,33 @@ macro_rules! define_quic_handle_ctx_fn {
             // This is used by Connection and Stream, but not Listener.
             #[allow(dead_code)]
             fn consume_callback_ctx(&self) {
-                let res = unsafe { self.get_callback_ctx() };
-                if res.is_some() {
-                    unsafe { self.set_context(std::ptr::null_mut()) };
+                if let Some(ctx) = unsafe { self.take_callback_ctx() } {
+                    std::mem::drop(ctx);
                 }
             }
 
             /// # Safety
             /// Caller is responsible for clearing the context if needed.
             /// This does not clear the ctx.
+            #[allow(dead_code)]
             unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 let ctx = self.get_context();
                 if !ctx.is_null() {
                     Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
                 } else {
                     None
+                }
+            }
+
+            /// # Safety
+            /// Removes the callback context from the handle and returns it.
+            unsafe fn take_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
+                let ctx = self.get_context();
+                if ctx.is_null() {
+                    None
+                } else {
+                    unsafe { self.set_context(std::ptr::null_mut()) };
+                    Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
                 }
             }
         }
@@ -861,17 +873,30 @@ extern "C" fn raw_conn_callback(
     context: *mut c_void,
     event: *mut ffi::QUIC_CONNECTION_EVENT,
 ) -> QUIC_STATUS {
-    let conn = unsafe { ConnectionRef::from_raw(connection) };
-    let f = unsafe {
-        (context as *mut Box<ConnectionCallback>)
-            .as_mut() // allow mutation
-            .expect("cannot get ConnectionCallback from ctx")
+    let event_ref = unsafe { event.as_ref().expect("cannot get connection event") };
+    let cleanup_ctx =
+        event_ref.Type == ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
+
+    let status = {
+        let f = unsafe {
+            (context as *mut Box<ConnectionCallback>)
+                .as_mut() // allow mutation
+                .expect("cannot get ConnectionCallback from ctx")
+        };
+        let event = ConnectionEvent::from(event_ref);
+        let conn = unsafe { ConnectionRef::from_raw(connection) };
+        match f(conn, event) {
+            Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+            Err(e) => e.0,
+        }
     };
-    let event = ConnectionEvent::from(unsafe { event.as_ref().unwrap() });
-    match f(conn, event) {
-        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
-        Err(e) => e.0,
+
+    if cleanup_ctx {
+        let conn = unsafe { ConnectionRef::from_raw(connection) };
+        conn.consume_callback_ctx();
     }
+
+    status
 }
 
 impl Connection {
@@ -920,7 +945,7 @@ impl Connection {
     fn close_inner(&self) {
         if !self.handle.is_null() {
             // get the context and drop it after handle close.
-            let ctx = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.take_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
             }
@@ -1102,7 +1127,7 @@ impl Listener {
     fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let ctx = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.take_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
             }
@@ -1179,7 +1204,7 @@ impl Stream {
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
             // consume the context and drop it after handle close.
-            let ctx = unsafe { self.get_callback_ctx() };
+            let ctx = unsafe { self.take_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
             }
