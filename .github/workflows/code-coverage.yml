@@ -54,7 +54,7 @@ jobs:
      - "1ES.Pool=1es-msquic-pool"
      - "1ES.ImageOverride=WinServerPrerelease-LatestPwsh"
     steps:
-    - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+    - uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         fetch-depth: 0
     - name: Download Build Artifacts
@@ -105,7 +105,7 @@ jobs:
       pr-allocfail: 100
     steps:
     - name: Checkout repository
-      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
@@ -151,7 +151,7 @@ jobs:
       pr-timeout: 600000
     steps:
     - name: Checkout repository
-      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         fetch-depth: 0
     - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
@@ -185,7 +185,7 @@ jobs:
     runs-on: windows-2022
     steps:
     - name: Checkout repository
-      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         fetch-depth: 0
     - name: Prepare Machine
@@ -234,7 +234,7 @@ jobs:
     runs-on: ubuntu-22.04
     steps:
     - name: Checkout repository
-      uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
     - uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       name: Download Merged Coverage Report
       with:
