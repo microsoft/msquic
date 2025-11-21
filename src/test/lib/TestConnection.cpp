@@ -249,7 +249,7 @@ TestConnection::ForceKeyUpdate()
     // the call fails with QUIC_STATUS_INVALID_STATE.
     // Allow for a couple retries.
     //
-    return TryUntil(100, 20000, [&]() {
+    return TryUntil(100, 2000, [&]() {
         const auto Status =
             MsQuic->SetParam(QuicConnection, QUIC_PARAM_CONN_FORCE_KEY_UPDATE, 0, nullptr);
         return Status == QUIC_STATUS_INVALID_STATE ? QUIC_STATUS_CONTINUE : Status;

@@ -2086,26 +2086,21 @@ TEST(Misc, StatelessResetKey) {
     }
 }
 
-TEST_P(WithKeyUpdateArgs1, KeyUpdate) {
+TEST_P(WithFamilyArgs, ForcedKeyUpdate) {
+    TestLoggerT<ParamType> Logger("QuicTestForceKeyUpdate", GetParam());
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_FORCE_KEY_UPDATE, GetParam().Family));
+    } else {
+        QuicTestForceKeyUpdate(GetParam().Family);
+    }
+}
+
+TEST_P(WithFamilyArgs, KeyUpdate) {
     TestLoggerT<ParamType> Logger("QuicTestKeyUpdate", GetParam());
     if (TestingKernelMode) {
-        QUIC_RUN_KEY_UPDATE_PARAMS Params = {
-            GetParam().Family,
-            (uint16_t)(GetParam().KeyUpdate == 0 ? 5 : 1),  // Iterations
-            0,                                              // KeyUpdateBytes
-            (uint8_t)(GetParam().KeyUpdate == 0),           // UseKeyUpdateBytes
-            (uint8_t)(GetParam().KeyUpdate & 1),            // ClientKeyUpdate
-            (uint8_t)(GetParam().KeyUpdate & 2)             // ServerKeyUpdate
-        };
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, Params));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_KEY_UPDATE, GetParam().Family));
     } else {
-        QuicTestKeyUpdate(
-            GetParam().Family,
-            GetParam().KeyUpdate == 0 ? 5 : 1,  // Iterations
-            0,                                  // KeyUpdateBytes
-            GetParam().KeyUpdate == 0,          // UseKeyUpdateBytes
-            GetParam().KeyUpdate & 1,           // ClientKeyUpdate
-            GetParam().KeyUpdate & 2);          // ServerKeyUpdate
+        QuicTestKeyUpdate(GetParam().Family);
     }
 }
 
@@ -2709,11 +2704,6 @@ INSTANTIATE_TEST_SUITE_P(
     testing::ValuesIn(Send0RttArgs2::Generate()));
 
 #endif
-
-INSTANTIATE_TEST_SUITE_P(
-    Misc,
-    WithKeyUpdateArgs1,
-    testing::ValuesIn(KeyUpdateArgs1::Generate()));
 
 #if QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

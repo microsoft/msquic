@@ -462,13 +462,13 @@ QuicTestStatelessResetKey(
     );
 
 void
+QuicTestForceKeyUpdate(
+    _In_ int Family
+    );
+
+void
 QuicTestKeyUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations,
-    _In_ uint16_t KeyUpdateBytes,
-    _In_ bool UseKeyUpdateBytes,
-    _In_ bool ClientKeyUpdate,
-    _In_ bool ServerKeyUpdate
+    _In_ int Family
     );
 
 void
@@ -1415,4 +1415,7 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_VALIDATE_PARTITION \
     QUIC_CTL_CODE(136, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 136
+#define IOCTL_QUIC_RUN_FORCE_KEY_UPDATE \
+    QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 137

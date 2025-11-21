@@ -535,6 +535,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    sizeof(INT32),
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -879,16 +880,14 @@ QuicTestCtlEvtIoDeviceControl(
         break;
 #endif
 
+    case IOCTL_QUIC_RUN_FORCE_KEY_UPDATE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(QuicTestForceKeyUpdate(Params->Family));
+        break;
+
     case IOCTL_QUIC_RUN_KEY_UPDATE:
         CXPLAT_FRE_ASSERT(Params != nullptr);
-        QuicTestCtlRun(
-            QuicTestKeyUpdate(
-                Params->Params3.Family,
-                Params->Params3.Iterations,
-                Params->Params3.KeyUpdateBytes,
-                Params->Params3.UseKeyUpdateBytes != 0,
-                Params->Params3.ClientKeyUpdate != 0,
-                Params->Params3.ServerKeyUpdate != 0));
+        QuicTestCtlRun(QuicTestKeyUpdate(Params->Family));
         break;
 
     case IOCTL_QUIC_RUN_VALIDATE_API:
