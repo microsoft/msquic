@@ -898,23 +898,9 @@ typedef struct {
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#pragma pack(push)
-#pragma pack(1)
-
-typedef struct {
-    int Family;
-    uint16_t Iterations;
-    uint16_t KeyUpdateBytes;
-    uint8_t UseKeyUpdateBytes;
-    uint8_t ClientKeyUpdate;
-    uint8_t ServerKeyUpdate;
-} QUIC_RUN_KEY_UPDATE_PARAMS;
-
-#pragma pack(pop)
-
 #define IOCTL_QUIC_RUN_KEY_UPDATE \
     QUIC_CTL_CODE(28, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_RUN_KEY_UPDATE_PARAMS
+    // int - Family
 
 #define IOCTL_QUIC_RUN_VALIDATE_API \
     QUIC_CTL_CODE(29, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -1417,5 +1403,6 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 
 #define IOCTL_QUIC_RUN_FORCE_KEY_UPDATE \
     QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
 
 #define QUIC_MAX_IOCTL_FUNC_CODE 137

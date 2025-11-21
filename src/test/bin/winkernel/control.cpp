@@ -426,7 +426,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     sizeof(uint32_t),
     sizeof(uint32_t),
     sizeof(INT32),
-    sizeof(QUIC_RUN_KEY_UPDATE_PARAMS),
+    sizeof(INT32),
     0,
     sizeof(INT32),
     sizeof(QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS),
@@ -550,7 +550,6 @@ typedef union {
     INT32 Family;
     QUIC_RUN_CONNECT_PARAMS Params1;
     QUIC_RUN_CONNECT_AND_PING_PARAMS Params2;
-    QUIC_RUN_KEY_UPDATE_PARAMS Params3;
     QUIC_RUN_ABORTIVE_SHUTDOWN_PARAMS Params4;
     QUIC_RUN_CID_UPDATE_PARAMS Params5;
     QUIC_RUN_RECEIVE_RESUME_PARAMS Params6;
