@@ -135,6 +135,11 @@ public:
 
     ~TestConnection();
 
+    TestConnection(const TestConnection&) = delete;
+    TestConnection& operator=(const TestConnection&) = delete;
+    TestConnection(TestConnection&&) = delete;
+    TestConnection& operator=(TestConnection&&) = delete;
+
     bool IsValid() const { return QuicConnection != nullptr; }
 
     void SetAutoDelete() { AutoDelete = true; }

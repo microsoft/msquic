@@ -243,29 +243,17 @@ TestConnection::WaitForPeerClose()
 QUIC_STATUS
 TestConnection::ForceKeyUpdate()
 {
-    QUIC_STATUS Status;
-    uint32_t Try = 0;
-
-    do {
-        //
-        // Forcing a key update is only allowed when the handshake is confirmed.
-        // So, even if the caller waits for connection complete, it's possible
-        // the call can fail with QUIC_STATUS_INVALID_STATE. To get around this
-        // we allow for a couple retries (with some sleeps).
-        //
-        if (Try != 0) {
-            CxPlatSleep(100);
-        }
-        Status =
-            MsQuic->SetParam(
-                QuicConnection,
-                QUIC_PARAM_CONN_FORCE_KEY_UPDATE,
-                0,
-                nullptr);
-
-    } while (Status == QUIC_STATUS_INVALID_STATE && ++Try <= 20);
-
-    return Status;
+    //
+    // Forcing a key update is only allowed when the handshake is confirmed.
+    // So, even if the caller waits for connection complete, it's possible
+    // the call fails with QUIC_STATUS_INVALID_STATE.
+    // Allow for a couple retries.
+    //
+    return TryUntil(100, 2000, [&]() {
+        const auto Status =
+            MsQuic->SetParam(QuicConnection, QUIC_PARAM_CONN_FORCE_KEY_UPDATE, 0, nullptr);
+        return Status == QUIC_STATUS_INVALID_STATE ? QUIC_STATUS_CONTINUE : Status;
+    });
 }
 
 QUIC_STATUS
