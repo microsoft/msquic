@@ -328,28 +328,23 @@ fn connection_ref_callback_cleanup() {
         let drop_counter = drop_counter.clone();
         let server_handle_tx = server_handle_tx.clone();
         move |_, ev| {
-            match ev {
-                crate::ListenerEvent::NewConnection { connection, .. } => {
-                    let callback_guard = DropGuard {
-                        counter: drop_counter.clone(),
+            if let crate::ListenerEvent::NewConnection { connection, .. } = ev {
+                let callback_guard = DropGuard {
+                    counter: drop_counter.clone(),
+                };
+                let server_handle_tx = server_handle_tx.clone();
+                connection.set_callback_handler(move |conn: ConnectionRef, ev: ConnectionEvent| {
+                    let _guard_ref = &callback_guard;
+                    match ev {
+                        ConnectionEvent::Connected { .. } => {}
+                        ConnectionEvent::ShutdownComplete { .. } => {
+                            let _ = server_handle_tx.send(unsafe { conn.as_raw() });
+                        }
+                        _ => {}
                     };
-                    let server_handle_tx = server_handle_tx.clone();
-                    connection.set_callback_handler(
-                        move |conn: ConnectionRef, ev: ConnectionEvent| {
-                            let _guard_ref = &callback_guard;
-                            match ev {
-                                ConnectionEvent::Connected { .. } => {}
-                                ConnectionEvent::ShutdownComplete { .. } => {
-                                    let _ = server_handle_tx.send(unsafe { conn.as_raw() });
-                                }
-                                _ => {}
-                            };
-                            Ok(())
-                        },
-                    );
-                    connection.set_configuration(&server_config)?;
-                }
-                _ => {}
+                    Ok(())
+                });
+                connection.set_configuration(&server_config)?;
             }
             Ok(())
         }
