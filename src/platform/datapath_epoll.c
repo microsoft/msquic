@@ -1042,7 +1042,7 @@ CxPlatSocketContextUninitialize(
         CXPLAT_FRE_ASSERT(
             CxPlatEventQEnqueue(
                 SocketContext->DatapathPartition->EventQ,
-                &SocketContext->ShutdownSqe));
+                &SocketContext->ShutdownSqe))
     }
 }
 
@@ -2201,10 +2201,20 @@ SocketSend(
     CxPlatLockRelease(&SocketContext->TxQueueLock);
     if (SendPending) {
         if (FlushTxQueue) {
-            CXPLAT_FRE_ASSERT(
-                CxPlatEventQEnqueue(
+            if (!CxPlatEventQEnqueue(
                     SocketContext->DatapathPartition->EventQ,
-                    &SocketContext->FlushTxSqe));
+                    &SocketContext->FlushTxSqe)) {
+                int Errno = errno;
+                QuicTraceEvent(
+                    DatapathErrorStatus,
+                    "[data][%p] ERROR, %u, %s.",
+                    SocketContext->Binding,
+                    Errno,
+                    "CxPlatEventQEnqueue failed (FlushTx)");
+
+                // Run the completion inline to keep draining sends.
+                CxPlatSocketContextFlushTxEventComplete(&SocketContext->FlushTxSqe.Cqe);
+            }
         }
         return;
     }

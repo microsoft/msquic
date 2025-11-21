@@ -93,6 +93,7 @@ typedef struct QUIC_CACHEALIGN CXPLAT_WORKER {
     BOOLEAN StoppingThread : 1;
     BOOLEAN StoppedThread : 1;
     BOOLEAN DestroyedThread : 1;
+    BOOLEAN EventQClosed : 1;
 #if DEBUG // Debug flags - Must not be in the bitfield.
     BOOLEAN ThreadStarted;
     BOOLEAN ThreadFinished;
@@ -230,6 +231,33 @@ CxPlatWorkerPoolInitWorker(
     }
 
     return TRUE;
+}
+
+void
+CxPlatWorkerCleanupEventQueue(
+    _In_ CXPLAT_WORKER* Worker
+    )
+{
+    if (!Worker->InitializedEventQ) {
+        return;
+    }
+
+    if (Worker->InitializedUpdatePollSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->UpdatePollSqe);
+        Worker->InitializedUpdatePollSqe = FALSE;
+    }
+    if (Worker->InitializedWakeSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->WakeSqe);
+        Worker->InitializedWakeSqe = FALSE;
+    }
+    if (Worker->InitializedShutdownSqe) {
+        CxPlatSqeCleanup(&Worker->EventQ, &Worker->ShutdownSqe);
+        Worker->InitializedShutdownSqe = FALSE;
+    }
+
+    Worker->EventQClosed = TRUE;
+    CxPlatEventQCleanup(&Worker->EventQ);
+    Worker->InitializedEventQ = FALSE;
 }
 
 void
@@ -773,6 +801,27 @@ CxPlatProcessEvents(
             Cqes,
             ARRAYSIZE(Cqes),
             Worker->State.WaitTime);
+
+    if (CqeCount == 0) {
+        if (Worker->EventQClosed) {
+            Worker->StoppedThread = TRUE;
+            return;
+        }
+    }
+#if _WIN32
+        DWORD Err = GetLastError();
+        if (Err == ERROR_ABANDONED_WAIT_0 || Err == ERROR_INVALID_HANDLE) {
+            Worker->EventQClosed = TRUE;
+            Worker->StoppedThread = TRUE;
+            return;
+        }
+#elif defined(CX_PLATFORM_LINUX) || defined(CX_PLATFORM_DARWIN)
+        if (errno == EBADF || errno == EINVAL) {
+            Worker->EventQClosed = TRUE;
+            Worker->StoppedThread = TRUE;
+            return;
+        }
+#endif
     uint32_t CurrentCqeCount = CqeCount;
     CXPLAT_CQE* CurrentCqe = Cqes;
 
@@ -845,6 +894,10 @@ CXPLAT_THREAD_CALLBACK(CxPlatWorkerThread, Context)
         }
 
         CxPlatProcessEvents(Worker);
+
+        if (Worker->EventQClosed && Worker->StoppedThread) {
+            break;
+        }
 
         if (Worker->State.NoWorkCount == 0) {
             Worker->State.LastWorkTime = Worker->State.TimeNow;
