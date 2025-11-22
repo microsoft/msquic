@@ -695,28 +695,17 @@ macro_rules! define_quic_handle_ctx_fn {
             /// Consume ctx by dropping it.
             /// Set msquic ctx to null.
             // This is used by Connection and Stream, but not Listener.
-            #[allow(dead_code)]
             fn consume_callback_ctx(&self) {
                 if let Some(ctx) = unsafe { self.take_callback_ctx() } {
                     std::mem::drop(ctx);
                 }
             }
 
-            /// # Safety
-            /// Caller is responsible for clearing the context if needed.
-            /// This does not clear the ctx.
-            #[allow(dead_code)]
-            unsafe fn get_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
-                let ctx = self.get_context();
-                if !ctx.is_null() {
-                    Some(unsafe { Box::from_raw(ctx as *mut Box<$callback_type>) })
-                } else {
-                    None
-                }
-            }
-
-            /// # Safety
             /// Removes the callback context from the handle and returns it.
+            ///
+            /// # Safety
+            /// Caller must ensure the handle is valid and that the stored context
+            /// was set using our boxing convention so reclaiming it is sound.
             unsafe fn take_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 let ctx = self.get_context();
                 if ctx.is_null() {
