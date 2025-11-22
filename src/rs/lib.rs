@@ -707,6 +707,9 @@ macro_rules! define_quic_handle_ctx_fn {
             /// # Safety
             /// Caller must ensure the handle is valid and that the stored context
             /// was set using our boxing convention so reclaiming it is sound.
+            /// Do not call after the handle has been closed or with a foreign
+            /// context pointer, otherwise this can double free or touch
+            /// invalid memory.
             unsafe fn take_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 let ctx = self.get_context();
                 if ctx.is_null() {
