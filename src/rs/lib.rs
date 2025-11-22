@@ -695,6 +695,7 @@ macro_rules! define_quic_handle_ctx_fn {
             /// Consume ctx by dropping it.
             /// Set msquic ctx to null.
             // This is used by Connection and Stream, but not Listener.
+            #[allow(dead_code)]
             fn consume_callback_ctx(&self) {
                 if let Some(ctx) = unsafe { self.take_callback_ctx() } {
                     std::mem::drop(ctx);
