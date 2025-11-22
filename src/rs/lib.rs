@@ -867,9 +867,6 @@ extern "C" fn raw_conn_callback(
     event: *mut ffi::QUIC_CONNECTION_EVENT,
 ) -> QUIC_STATUS {
     let event_ref = unsafe { event.as_ref().expect("cannot get connection event") };
-    let cleanup_ctx =
-        event_ref.Type == ffi::QUIC_CONNECTION_EVENT_TYPE_QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE;
-
     let status = match unsafe { (context as *mut Box<ConnectionCallback>).as_mut() } {
         Some(f) => {
             let event = ConnectionEvent::from(event_ref);
@@ -882,11 +879,6 @@ extern "C" fn raw_conn_callback(
         // Context already cleaned (e.g. after ShutdownComplete). Nothing to do.
         None => StatusCode::QUIC_STATUS_SUCCESS.into(),
     };
-
-    if cleanup_ctx {
-        let conn = unsafe { ConnectionRef::from_raw(connection) };
-        conn.consume_callback_ctx();
-    }
 
     status
 }
@@ -1058,14 +1050,12 @@ extern "C" fn raw_listener_callback(
 ) -> QUIC_STATUS {
     let listner_ref = unsafe { ListenerRef::from_raw(listener) };
     let event = ListenerEvent::from(unsafe { event.as_ref().expect("fail to get listener event") });
-    let f = unsafe {
-        (context as *mut Box<ListenerCallback>)
-            .as_ref() // allow mutation
-            .expect("cannot get ListenerCallback from ctx")
-    };
-    match f(listner_ref, event) {
-        Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
-        Err(e) => e.0,
+    match unsafe { (context as *mut Box<ListenerCallback>).as_ref() } {
+        Some(f) => match f(listner_ref, event) {
+            Ok(_) => StatusCode::QUIC_STATUS_SUCCESS.into(),
+            Err(e) => e.0,
+        },
+        None => StatusCode::QUIC_STATUS_SUCCESS.into(),
     }
 }
 

@@ -180,6 +180,8 @@ fn test_server_client() {
             } => {
                 connection.set_callback_handler(conn_handler.clone());
                 connection.set_configuration(&config_cp)?;
+                // Keep the connection alive; will be closed on ShutdownComplete.
+                let _ = unsafe { connection.into_raw() };
             }
             crate::ListenerEvent::StopComplete {
                 app_close_in_progress: _,
@@ -345,6 +347,8 @@ fn connection_ref_callback_cleanup() {
                     Ok(())
                 });
                 connection.set_configuration(&server_config)?;
+                // Keep connection alive until ShutdownComplete closes it.
+                let _ = unsafe { connection.into_raw() };
             }
             Ok(())
         }
@@ -391,6 +395,8 @@ fn connection_ref_callback_cleanup() {
     let raw_conn = server_handle_rx
         .recv_timeout(Duration::from_secs(5))
         .expect("Server did not receive shutdown event");
+    // Close now to drop the server-side callback context.
+    unsafe { Connection::from_raw(raw_conn) };
     client_done_rx
         .recv_timeout(Duration::from_secs(5))
         .expect("Client did not complete shutdown");
@@ -405,7 +411,5 @@ fn connection_ref_callback_cleanup() {
         1,
         "ConnectionRef callback context was not cleaned up"
     );
-
-    unsafe { Connection::from_raw(raw_conn) };
     listener.stop();
 }
