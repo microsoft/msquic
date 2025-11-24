@@ -2364,6 +2364,28 @@ QuicTestConnectServerRejected(
     }
 }
 
+QUIC_STATUS
+SendFrame(
+    TestConnection& Sender,
+    TestConnection& Receiver
+    )
+{
+    //
+    // Force a frame to be sent and wait for its reception.
+    // Stream count updates are used as a simple way to force an ack eliciting frame.
+    //
+    const uint16_t NewStreamCount = Sender.GetPeerBidiStreamCount() + 1;
+    const auto Status = Sender.SetPeerBidiStreamCount(NewStreamCount);
+    if (QUIC_FAILED(Status)) {
+        return Status;
+    }
+
+    return TryUntil(100, 1000, [&]() {
+        const auto PeerCount = Receiver.GetLocalBidiStreamCount();
+        return PeerCount == NewStreamCount ? QUIC_STATUS_SUCCESS : QUIC_STATUS_CONTINUE;
+    });
+}
+
 void
 QuicTestKeyUpdateRandomLoss(
     _In_ int Family,
@@ -2385,118 +2407,248 @@ QuicTestKeyUpdateRandomLoss(
 
     const int Iterations = 10;
 
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+    Listener.SetHasRandomLoss(true);
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
+    Client.SetHasRandomLoss(true);
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
+
+    if (!Client.WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Client.GetIsConnected());
+
+    TEST_NOT_EQUAL(nullptr, Server);
+    if (!Server->WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Server->GetIsConnected());
+
+    //
+    // Inject some losses in the datapath
+    //
+    RandomLossHelper LossHelper(RandomLossPercentage);
+
+    CxPlatSleep(100);
+
+    for (uint16_t i = 0; i < Iterations; ++i) {
+
+        //
+        // We don't care if this call succeeds, we just want to trigger it every time
+        //
+        Client.ForceKeyUpdate();
+        Server->ForceKeyUpdate();
+
+        //
+        // Ensures both peer send an ACK eliciting frame,
+        // so the key update is complete on both sides
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
+
+        //
+        // Force a client key update to occur again to check for double update
+        // while server is still waiting for key response.
+        //
+        Client.ForceKeyUpdate();
+
+        TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
+
+        CxPlatSleep(50);
+    }
+
+    const auto ClientStats = Client.GetStatistics();
+    TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
+
+    if (ClientStats.KeyUpdateCount < 1) {
+        TEST_FAILURE("%u Key updates occured. Expected at least 1", ClientStats.KeyUpdateCount);
+        return;
+    }
+
+    const auto ServerStats = Server->GetStatistics();
+    TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
+
+    if (ServerStats.KeyUpdateCount < 1) {
+        TEST_FAILURE("%u Key updates occured. Expected at least 1", ServerStats.KeyUpdateCount);
+        return;
+    }
+}
+
+void
+QuicTestForceKeyUpdate(
+    _In_ int Family
+    )
+{
+    MsQuicRegistration Registration{};
+    TEST_TRUE(Registration.IsValid());
+
+    MsQuicAlpn Alpn{"MsQuicTest"};
+    MsQuicSettings Settings{};
+    MsQuicConfiguration ServerConfiguration{Registration, Alpn, Settings, ServerSelfSignedCredConfig};
+    TEST_TRUE(ServerConfiguration.IsValid());
+
+    MsQuicCredentialConfig ClientCredConfig{};
+    MsQuicConfiguration ClientConfiguration{Registration, Alpn, Settings, ClientCredConfig};
+    TEST_TRUE(ClientConfiguration.IsValid());
+
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
+
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr{QuicAddrFamily};
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+    UniquePtr<TestConnection> Server{};
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
+
+    TestConnection Client{Registration};
+    TEST_TRUE(Client.IsValid());
+
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
+
+    if (!Client.WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Client.GetIsConnected());
+
+    TEST_NOT_EQUAL(nullptr, Server);
+    if (!Server->WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Server->GetIsConnected());
+
+    //
+    // We are connected and ready to start testing the key update.
+    // Give the connection a little bit of time to limit the number packet exchanged (PDMTU...).
+    //
+    CxPlatSleep(100);
+
+    //
+    // Client initiated key update
+    //
     {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
-        Listener.SetHasRandomLoss(true);
+        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+        //
+        // Ensures both peer send an ACK eliciting frame,
+        // so the key update is complete on both sides
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
+        TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+        const auto ClientStats = Client.GetStatistics();
+        const auto ServerStats = Server->GetStatistics();
+        TEST_EQUAL(ClientStats.KeyUpdateCount, 1);
+        TEST_EQUAL(ServerStats.KeyUpdateCount, 1);
+        TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
+        TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
+    }
 
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
-                Client.SetHasRandomLoss(true);
+    //
+    // Server initiated key update
+    //
+    {
+        TEST_QUIC_SUCCEEDED(Server->ForceKeyUpdate());
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
+        //
+        // Ensures both peer send an ACK eliciting frame,
+        // so the key update is complete on both sides
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
 
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
+        const auto ClientStats = Client.GetStatistics();
+        const auto ServerStats = Server->GetStatistics();
+        TEST_EQUAL(ClientStats.KeyUpdateCount, 2);
+        TEST_EQUAL(ServerStats.KeyUpdateCount, 2);
+        TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
+        TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
+    }
 
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
+    //
+    // Simultaneous key update.
+    // This is a best effort: we can't fully control if a packet is sent with the updated keys
+    // from one peer before we trigger the key update on the other peer - which can prevent us
+    // from doing so.
+    //
+    {
+        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
+        Server->ForceKeyUpdate();
 
-                {
-                    RandomLossHelper LossHelper(RandomLossPercentage);
+        //
+        // Ensures both peer send an ACK eliciting frame,
+        // so the key update is complete on both sides
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
+        TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
 
-                    CxPlatSleep(100);
+        const auto ClientStats = Client.GetStatistics();
+        const auto ServerStats = Server->GetStatistics();
+        TEST_EQUAL(ClientStats.KeyUpdateCount, 3);
+        TEST_EQUAL(ServerStats.KeyUpdateCount, 3);
+        TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
+        TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
+    }
 
-                    for (uint16_t i = 0; i < Iterations; ++i) {
+    //
+    // Second client key update before server key update completion.
+    // This is a best effort: we can't fully control if a packet is sent from the client
+    // between after the server ack the key update and before the next key update.
+    //
+    {
+        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
 
-                        //
-                        // We don't care if this call succeeds, we just want to trigger it every time
-                        //
-                        Client.ForceKeyUpdate();
-                        Server->ForceKeyUpdate();
+        //
+        // Send an ACK eliciting frame from the client to complete the key udpate.
+        // The server should generally not receive a confirmation of its own update.
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
 
-                        //
-                        // Send some data to perform the key update.
-                        // TODO: Update this to send stream data, like QuicConnectAndPing does.
-                        //
-                        TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount((uint16_t)(101 + i)));
-                        TEST_EQUAL((uint16_t)(101 + i), Client.GetPeerBidiStreamCount());
-                        CxPlatSleep(50);
+        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
 
-                        //
-                        // Force a client key update to occur again to check for double update
-                        // while server is still waiting for key response.
-                        //
-                        Client.ForceKeyUpdate();
+        //
+        // Ensure both peer send an ACK eliciting frame,
+        // so the key update is complete on both sides
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
+        TEST_QUIC_SUCCEEDED(SendFrame(*Server, Client));
 
-                        TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount((uint16_t)(100 + i)));
-                        TEST_EQUAL((uint16_t)(100 + i), Server->GetPeerBidiStreamCount());
-                        CxPlatSleep(50);
-                    }
-
-                    CxPlatSleep(100);
-                }
-
-                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
-                if (Stats.RecvDecryptionFailures) {
-                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
-                    return;
-                }
-
-                if (Stats.KeyUpdateCount < 1) {
-                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.KeyUpdateCount);
-                    return;
-                }
-
-                Stats = Server->GetStatistics();
-                if (Stats.RecvDecryptionFailures) {
-                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.RecvDecryptionFailures);
-                    return;
-                }
-
-                if (Stats.KeyUpdateCount < 1) {
-                    TEST_FAILURE("%u Key updates occured. Expected at least 1", Stats.KeyUpdateCount);
-                    return;
-                }
-
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
-            }
-        }
+        const auto ClientStats = Client.GetStatistics();
+        const auto ServerStats = Server->GetStatistics();
+        TEST_EQUAL(ClientStats.KeyUpdateCount, 5);
+        TEST_EQUAL(ServerStats.KeyUpdateCount, 5);
+        TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
+        TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
     }
 }
 
 void
 QuicTestKeyUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations,
-    _In_ uint16_t KeyUpdateBytes,
-    _In_ bool UseKeyUpdateBytes,
-    _In_ bool ClientKeyUpdate,
-    _In_ bool ServerKeyUpdate
+    _In_ int Family
     )
 {
     MsQuicRegistration Registration;
@@ -2504,10 +2656,12 @@ QuicTestKeyUpdate(
 
     MsQuicAlpn Alpn("MsQuicTest");
 
+    //
+    // Set the number of bytes per key to 0: a key update is triggered with each packet.
+    //
+    const uint32_t KeyUpdateBytes = 0;
     MsQuicSettings Settings;
-    if (UseKeyUpdateBytes) {
-        Settings.SetMaxBytesPerKey(KeyUpdateBytes);
-    }
+    Settings.SetMaxBytesPerKey(KeyUpdateBytes);
 
     MsQuicConfiguration ServerConfiguration(Registration, Alpn, Settings, ServerSelfSignedCredConfig);
     TEST_TRUE(ServerConfiguration.IsValid());
@@ -2516,128 +2670,70 @@ QuicTestKeyUpdate(
     MsQuicConfiguration ClientConfiguration(Registration, Alpn, Settings, ClientCredConfig);
     TEST_TRUE(ClientConfiguration.IsValid());
 
-    {
-        TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
-        TEST_TRUE(Listener.IsValid());
+    TestListener Listener(Registration, ListenerAcceptConnection, ServerConfiguration);
+    TEST_TRUE(Listener.IsValid());
 
-        QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
-        QuicAddr ServerLocalAddr(QuicAddrFamily);
-        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
-        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+    QUIC_ADDRESS_FAMILY QuicAddrFamily = (Family == 4) ? QUIC_ADDRESS_FAMILY_INET : QUIC_ADDRESS_FAMILY_INET6;
+    QuicAddr ServerLocalAddr(QuicAddrFamily);
+    TEST_QUIC_SUCCEEDED(Listener.Start(Alpn, &ServerLocalAddr.SockAddr));
+    TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-        {
-            UniquePtr<TestConnection> Server;
-            ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
-            Listener.Context = &ServerAcceptCtx;
+    UniquePtr<TestConnection> Server;
+    ServerAcceptContext ServerAcceptCtx((TestConnection**)&Server);
+    Listener.Context = &ServerAcceptCtx;
 
-            {
-                TestConnection Client(Registration);
-                TEST_TRUE(Client.IsValid());
+    TestConnection Client(Registration);
+    TEST_TRUE(Client.IsValid());
 
-                TEST_QUIC_SUCCEEDED(
-                    Client.Start(
-                        ClientConfiguration,
-                        QuicAddrFamily,
-                        QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
-                        ServerLocalAddr.GetPort()));
+    TEST_QUIC_SUCCEEDED(
+        Client.Start(
+            ClientConfiguration,
+            QuicAddrFamily,
+            QUIC_TEST_LOOPBACK_FOR_AF(QuicAddrFamily),
+            ServerLocalAddr.GetPort()));
 
-                if (!Client.WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Client.GetIsConnected());
+    if (!Client.WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Client.GetIsConnected());
 
-                TEST_NOT_EQUAL(nullptr, Server);
-                if (!Server->WaitForConnectionComplete()) {
-                    return;
-                }
-                TEST_TRUE(Server->GetIsConnected());
+    TEST_NOT_EQUAL(nullptr, Server);
+    if (!Server->WaitForConnectionComplete()) {
+        return;
+    }
+    TEST_TRUE(Server->GetIsConnected());
 
-                for (uint16_t i = 0; i < Iterations; ++i) {
+    const uint32_t Iterations = 5;
+    for (uint16_t i = 0; i < Iterations; ++i) {
 
-                    CxPlatSleep(100);
+        CxPlatSleep(100);
 
-                    if (ClientKeyUpdate) {
-                        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
-                    }
+        //
+        // Send an ACK eliciting frame:
+        // - it will trigger a key update because we set the number of bytes per keys to 0
+        // - it will ensure the peer acknowledge the key update
+        //
+        TEST_QUIC_SUCCEEDED(SendFrame(Client, *Server));
 
-                    if (ServerKeyUpdate) {
-                        TEST_QUIC_SUCCEEDED(Server->ForceKeyUpdate());
-                    }
+    }
 
-                    //
-                    // Send some data to perform the key update.
-                    // TODO: Update this to send stream data, like QuicConnectAndPing does.
-                    //
-                    uint16_t PeerCount, Expected = 101+i, Tries = 0;
-                    TEST_QUIC_SUCCEEDED(Client.SetPeerBidiStreamCount(Expected));
-                    TEST_EQUAL(Expected, Client.GetPeerBidiStreamCount());
+    CxPlatSleep(100);
 
-                    do {
-                        CxPlatSleep(100);
-                        PeerCount =  Server->GetLocalBidiStreamCount();
-                    } while (PeerCount != Expected && Tries++ < 10);
-                    TEST_EQUAL(Expected, PeerCount);
+    const uint16_t ExpectedUpdates = Iterations;
+    const auto ClientStats = Client.GetStatistics();
+    TEST_EQUAL(ClientStats.RecvDecryptionFailures, 0);
 
-                    //
-                    // Force a client key update to occur again to check for double update
-                    // while server is still waiting for key response.
-                    //
-                    if (ClientKeyUpdate) {
-                        TEST_QUIC_SUCCEEDED(Client.ForceKeyUpdate());
-                    }
+    if (ClientStats.KeyUpdateCount < ExpectedUpdates) {
+        TEST_FAILURE("%u Key updates occured. Expected %d", ClientStats.KeyUpdateCount, ExpectedUpdates);
+        return;
+    }
 
-                    Expected = 100+i;
-                    TEST_QUIC_SUCCEEDED(Server->SetPeerBidiStreamCount(Expected));
-                    TEST_EQUAL(Expected, Server->GetPeerBidiStreamCount());
+    const auto ServerStats = Server->GetStatistics();
+    TEST_EQUAL(ServerStats.RecvDecryptionFailures, 0);
 
-                    Tries = 0;
-                    do {
-                        CxPlatSleep(100);
-                        PeerCount =  Client.GetLocalBidiStreamCount();
-                    } while (PeerCount != Expected && Tries++ < 10);
-                    TEST_EQUAL(Expected, PeerCount);
-                }
-
-                CxPlatSleep(100);
-
-                QUIC_STATISTICS_V2 Stats = Client.GetStatistics();
-                if (Stats.RecvDecryptionFailures) {
-                    TEST_FAILURE("%llu server packets failed to decrypt!", Stats.RecvDecryptionFailures);
-                    return;
-                }
-
-                uint16_t ExpectedUpdates = Iterations - (UseKeyUpdateBytes ? 1u : 0u);
-
-                if (Stats.KeyUpdateCount < ExpectedUpdates) {
-                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.KeyUpdateCount, ExpectedUpdates);
-                    return;
-                }
-
-                Stats = Server->GetStatistics();
-                if (Stats.RecvDecryptionFailures) {
-                    TEST_FAILURE("%llu client packets failed to decrypt!", Stats.RecvDecryptionFailures);
-                    return;
-                }
-
-                if (Stats.KeyUpdateCount < ExpectedUpdates) {
-                    TEST_FAILURE("%u Key updates occured. Expected %d", Stats.KeyUpdateCount, ExpectedUpdates);
-                    return;
-                }
-
-                Client.Shutdown(QUIC_CONNECTION_SHUTDOWN_FLAG_NONE, QUIC_TEST_NO_ERROR);
-                if (!Client.WaitForShutdownComplete()) {
-                    return;
-                }
-
-                TEST_FALSE(Client.GetPeerClosed());
-                TEST_FALSE(Client.GetTransportClosed());
-            }
-
-#if !QUIC_SEND_FAKE_LOSS
-            TEST_TRUE(Server->GetPeerClosed());
-            TEST_EQUAL(Server->GetPeerCloseErrorCode(), QUIC_TEST_NO_ERROR);
-#endif
-        }
+    if (ServerStats.KeyUpdateCount < ExpectedUpdates) {
+        TEST_FAILURE("%u Key updates occured. Expected %d", ServerStats.KeyUpdateCount, ExpectedUpdates);
+        return;
     }
 }
 
