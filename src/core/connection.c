@@ -99,7 +99,7 @@ QuicConnAlloc(
         IsServer,
         Connection->Stats.CorrelationId);
 
-    CxPlatRefInitialize(&Connection->RefCount);
+    Connection->RefCount = 1;
 #if DEBUG
     CxPlatRefInitializeMultiple(Connection->RefTypeBiasedCount, QUIC_CONN_REF_COUNT);
     CxPlatRefIncrement(&Connection->RefTypeBiasedCount[QUIC_CONN_REF_HANDLE_OWNER]);

@@ -100,11 +100,6 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN CloseAsync      : 1;    // The connection will close without waiting for callbacks.
 
         //
-        // The connection's ref count has hit zero, but needs to be cleaned up on a worker.
-        //
-        BOOLEAN CleanupStarted  : 1;
-
-        //
         // Indicates whether packet number encryption is enabled or not for the
         // connection.
         //
