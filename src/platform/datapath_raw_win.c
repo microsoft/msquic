@@ -123,28 +123,39 @@ RawSocketCreateUdp(
         memcpy(Socket->CibirId, Config->CibirId, Config->CibirIdLength);
     }
 
+    //
+    // The socket local port and familly have already been set when
+    // creating the UDP socket this raw socket is extending.
+    //
+    CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
+    CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET6);
+
     if (Config->RemoteAddress) {
         //
         // This CxPlatSocket is part of a client connection.
         //
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
-        if (Socket->ReserveAuxTcpSock) {
-            Socket->RemoteAddress = *Config->RemoteAddress;
-            if (Config->LocalAddress != NULL) {
-                Socket->LocalAddress = *Config->LocalAddress;
-            } else {
-                QuicAddrSetFamily(&Socket->LocalAddress, QUIC_ADDRESS_FAMILY_INET6);
-            }
-        }
+
+        //
+        // The socket remote adddress and family have already been set when creating UDP socket this raw
+        // socket is extending.
+        //
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->RemoteAddress) == QUIC_ADDRESS_FAMILY_INET6);
+        CXPLAT_DBG_ASSERT(
+            QuicAddrGetPort(&Socket->RemoteAddress) == QuicAddrGetPort(Config->RemoteAddress));
+
         Socket->Connected = TRUE;
     } else {
         //
         // This CxPlatSocket is part of a server listener.
         //
         CXPLAT_FRE_ASSERT(Config->LocalAddress != NULL);
-        if (Socket->ReserveAuxTcpSock) {
-            Socket->LocalAddress = *Config->LocalAddress;
-        }
+
+        //
+        // The socket remote address is not set.
+        //
+        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->RemoteAddress) == QUIC_ADDRESS_FAMILY_UNSPEC);
+
         if (!QuicAddrIsWildCard(Config->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
             Status = QUIC_STATUS_INVALID_STATE;
             goto Error;
