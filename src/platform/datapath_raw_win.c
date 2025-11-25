@@ -124,10 +124,9 @@ RawSocketCreateUdp(
     }
 
     //
-    // The socket local port and familly have already been set when
-    // creating the UDP socket this raw socket is extending.
+    // The socket family has already been set when creating
+    // the CXPLAT_SOCKET socket this raw socket is extending.
     //
-    CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
     CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET6);
 
     if (Config->RemoteAddress) {
@@ -152,9 +151,10 @@ RawSocketCreateUdp(
         CXPLAT_FRE_ASSERT(Config->LocalAddress != NULL);
 
         //
-        // The socket remote address is not set.
+        // The socket remote address is not set. The local port was already set or assigned.
         //
         CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->RemoteAddress) == QUIC_ADDRESS_FAMILY_UNSPEC);
+        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
 
         if (!QuicAddrIsWildCard(Config->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
             Status = QUIC_STATUS_INVALID_STATE;
