@@ -40,9 +40,9 @@ updates:
     schedule:
       interval: "weekly"
       day: "saturday"
-    ignore:
+    allow:
       - dependency-name: "ubuntu"
-        versions: [">=22.10"]
+        dependency-type: "direct"
 
   - package-ecosystem: "docker"
     directory: "/.docker/ubuntu-24.04"
