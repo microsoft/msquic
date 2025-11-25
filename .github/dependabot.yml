@@ -42,7 +42,7 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+        versions: ["> 22.04"]
 
   - package-ecosystem: "docker"
     directory: "/.docker/ubuntu-24.04"
@@ -51,4 +51,4 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+        versions: ["> 24.04"]
