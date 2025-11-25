@@ -42,7 +42,7 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        versions: ["> 22.04"]
+        versions: [">= 22.10"]
 
   - package-ecosystem: "docker"
     directory: "/.docker/ubuntu-24.04"
@@ -51,4 +51,4 @@ updates:
       day: "saturday"
     ignore:
       - dependency-name: "ubuntu"
-        versions: ["> 24.04"]
+        versions: [">= 24.10"]
