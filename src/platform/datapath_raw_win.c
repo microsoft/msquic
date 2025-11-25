@@ -124,10 +124,18 @@ RawSocketCreateUdp(
     }
 
     //
-    // The socket family has already been set when creating
-    // the CXPLAT_SOCKET socket this raw socket is extending.
+    // The socket addresses have been set in the SocketCreateUdp call earlier,
+    // either form the config or assigned by the OS (for unspecified ports).
+    // Do no override them from the config here: we need to keep the same OS assigned ports if the
+    // config doesn't specify them.
     //
-    CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->LocalAddress) == QUIC_ADDRESS_FAMILY_INET6);
+    CXPLAT_DBG_ASSERT(
+        Config->RemoteAddress == NULL ||
+        QuicAddrCompare(&Socket->RemoteAddress, Config->RemoteAddress));
+    CXPLAT_DBG_ASSERT(
+        QuicAddrGetPort(Config->LocalAddress) == 0 ||
+        QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(Config->LocalAddress));
+    CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
 
     if (Config->RemoteAddress) {
         //
@@ -135,26 +143,12 @@ RawSocketCreateUdp(
         //
         CXPLAT_FRE_ASSERT(!QuicAddrIsWildCard(Config->RemoteAddress));  // No wildcard remote addresses allowed.
 
-        //
-        // The socket remote adddress and family have already been set when creating UDP socket this raw
-        // socket is extending.
-        //
-        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->RemoteAddress) == QUIC_ADDRESS_FAMILY_INET6);
-        CXPLAT_DBG_ASSERT(
-            QuicAddrGetPort(&Socket->RemoteAddress) == QuicAddrGetPort(Config->RemoteAddress));
-
         Socket->Connected = TRUE;
     } else {
         //
         // This CxPlatSocket is part of a server listener.
         //
         CXPLAT_FRE_ASSERT(Config->LocalAddress != NULL);
-
-        //
-        // The socket remote address is not set. The local port was already set or assigned.
-        //
-        CXPLAT_DBG_ASSERT(QuicAddrGetFamily(&Socket->RemoteAddress) == QUIC_ADDRESS_FAMILY_UNSPEC);
-        CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
 
         if (!QuicAddrIsWildCard(Config->LocalAddress)) { // For server listeners, the local address MUST be a wildcard address.
             Status = QUIC_STATUS_INVALID_STATE;
