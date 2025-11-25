@@ -535,6 +535,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
+    0,
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -1557,6 +1558,9 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestValidatePartition());
         break;
 
+    case IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE:
+        QuicTestCtlRun(QuicTestRegistrationOpenClose());
+        break;
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
