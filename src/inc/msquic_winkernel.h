@@ -25,6 +25,7 @@ Environment:
 #include <ntstatus.h>
 #include <basetsd.h>
 #include <netioddk.h>
+#include <ntintsafe.h>
 
 #define QUIC_INLINE inline
 
@@ -38,7 +39,6 @@ typedef UINT16 uint16_t;
 typedef UINT32 uint32_t;
 typedef UINT64 uint64_t;
 
-#define INT32_MAX   0x7fffffffi32
 #define UINT8_MAX   0xffui8
 #define UINT16_MAX  0xffffui16
 #define UINT32_MAX  0xffffffffui32
