@@ -49,6 +49,6 @@ updates:
     schedule:
       interval: "weekly"
       day: "saturday"
-    ignore:
+    allow:
       - dependency-name: "ubuntu"
-        versions: [">=24.10"]
+        dependency-type: "direct"
