@@ -43,6 +43,7 @@ updates:
     allow:
       - dependency-name: "ubuntu"
         dependency-type: "direct"
+        update-types: ["version-update:semver-digest"]
 
   - package-ecosystem: "docker"
     directory: "/.docker/ubuntu-24.04"
@@ -52,3 +53,4 @@ updates:
     allow:
       - dependency-name: "ubuntu"
         dependency-type: "direct"
+        update-types: ["version-update:semver-digest"]
