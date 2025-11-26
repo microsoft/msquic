@@ -42,8 +42,10 @@ updates:
       day: "saturday"
     allow:
       - dependency-name: "ubuntu"
-        dependency-type: "direct"
         update-types: ["version-update:semver-digest"]
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
 
   - package-ecosystem: "docker"
     directory: "/.docker/ubuntu-24.04"
@@ -52,5 +54,7 @@ updates:
       day: "saturday"
     allow:
       - dependency-name: "ubuntu"
-        dependency-type: "direct"
         update-types: ["version-update:semver-digest"]
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
