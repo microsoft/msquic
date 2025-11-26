@@ -867,7 +867,9 @@ extern "C" fn raw_conn_callback(
     event: *mut ffi::QUIC_CONNECTION_EVENT,
 ) -> QUIC_STATUS {
     let event_ref = unsafe { event.as_ref().expect("cannot get connection event") };
-    let status = match unsafe { (context as *mut Box<ConnectionCallback>).as_mut() } {
+    // Context may be null if ConnectionClose triggers ShutdownComplete synchronously
+    // after we've already taken the context in close_inner(). This is expected.
+    match unsafe { (context as *mut Box<ConnectionCallback>).as_mut() } {
         Some(f) => {
             let event = ConnectionEvent::from(event_ref);
             let conn = unsafe { ConnectionRef::from_raw(connection) };
@@ -876,11 +878,8 @@ extern "C" fn raw_conn_callback(
                 Err(e) => e.0,
             }
         }
-        // Context already cleaned (e.g. after ShutdownComplete). Nothing to do.
         None => StatusCode::QUIC_STATUS_SUCCESS.into(),
-    };
-
-    status
+    }
 }
 
 impl Connection {

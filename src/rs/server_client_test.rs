@@ -323,32 +323,28 @@ fn connection_ref_callback_cleanup() {
     let server_config = Arc::new(server_config);
 
     let drop_counter = Arc::new(AtomicUsize::new(0));
-    let (server_handle_tx, server_handle_rx) = mpsc::channel::<crate::ffi::HQUIC>();
 
+    let (conn_tx, conn_rx) = mpsc::channel::<Connection>();
     let listener = Listener::open(&reg, {
         let server_config = server_config.clone();
         let drop_counter = drop_counter.clone();
-        let server_handle_tx = server_handle_tx.clone();
+        let conn_tx = conn_tx.clone();
         move |_, ev| {
             if let crate::ListenerEvent::NewConnection { connection, .. } = ev {
                 let callback_guard = DropGuard {
                     counter: drop_counter.clone(),
                 };
-                let server_handle_tx = server_handle_tx.clone();
-                connection.set_callback_handler(move |conn: ConnectionRef, ev: ConnectionEvent| {
-                    let _guard_ref = &callback_guard;
-                    match ev {
-                        ConnectionEvent::Connected { .. } => {}
-                        ConnectionEvent::ShutdownComplete { .. } => {
-                            let _ = server_handle_tx.send(unsafe { conn.as_raw() });
-                        }
-                        _ => {}
-                    };
-                    Ok(())
-                });
+                let conn_tx = conn_tx.clone();
+                connection.set_callback_handler(
+                    move |_conn: ConnectionRef, _ev: ConnectionEvent| {
+                        // Reference the guard so it lives as long as the callback.
+                        let _guard_ref = &callback_guard;
+                        Ok(())
+                    },
+                );
                 connection.set_configuration(&server_config)?;
-                // Keep connection alive until ShutdownComplete closes it.
-                let _ = unsafe { connection.into_raw() };
+                // Transfer ownership to the test so it can close the connection.
+                let _ = conn_tx.send(connection);
             }
             Ok(())
         }
@@ -392,14 +388,16 @@ fn connection_ref_callback_cleanup() {
         .start(&client_config, "127.0.0.1", port)
         .unwrap();
 
-    let raw_conn = server_handle_rx
+    // Receive the owned connection from the listener callback.
+    let server_conn = conn_rx
         .recv_timeout(Duration::from_secs(5))
-        .expect("Server did not receive shutdown event");
-    // Close now to drop the server-side callback context.
-    unsafe { Connection::from_raw(raw_conn) };
+        .expect("Server did not receive connection");
     client_done_rx
         .recv_timeout(Duration::from_secs(5))
         .expect("Client did not complete shutdown");
+
+    // Drop the server connection to trigger cleanup of the callback context.
+    drop(server_conn);
 
     let mut retries = 50;
     while drop_counter.load(Ordering::SeqCst) == 0 && retries > 0 {
