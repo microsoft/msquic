@@ -129,6 +129,79 @@
 Changing <code>RotationMs</code>, <code>Algorithm</code>, or <code>Secret</code> will invalidate all retry tokens issued prior to the change.
 All servers deployed in a cluster and sharing the secret must have their clocks synchronized within <code>RotationMs</code> of UTC.
 A server whose clock is ahead of UTC may produce a retry token that other servers in that deployment are unable to validate.</p>
+<h2 id="stateless-retry-key-generation-algorithm">Stateless Retry key Generation Algorithm</h2>
+<p>The stateless retry key is generated from the above configuration parameters using the <a href="https://csrc.nist.gov/pubs/sp/800/108/r1/upd1/final">SP800-108 rev. 1 CTR-HMAC KDF</a> algorithm with SHA256.
+Where:</p>
+<p><em>K_in</em> is the <code>Secret</code> provided above.</p>
+<p><em>Label</em> is the string &quot;QUIC Stateless Retry Key&quot; without the terminating NULL character.</p>
+<p><em>Context</em> is the UNIX epoch timestamp in milliseconds, as an 8-byte signed integer in little-endian format, divided by <code>RotationMs</code>, rounded down.</p>
+<p><em>L</em> is the same as the key length for the <code>Algorithm</code>.</p>
+<h3 id="example-1---aes-gcm-256">Example 1 - AES-GCM 256</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Secret</code></td>
+<td>0x3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83</td>
+</tr>
+<tr>
+<td><code>SecretLength</code></td>
+<td>32</td>
+</tr>
+<tr>
+<td><code>RotationMs</code></td>
+<td>30000</td>
+</tr>
+<tr>
+<td><code>Algorithm</code></td>
+<td><strong>QUIC_AEAD_ALGORITHM_AES_256_GCM</strong></td>
+</tr>
+<tr>
+<td>The UNIX epoch timestamp</td>
+<td>1752112221</td>
+</tr>
+</tbody>
+</table>
+<p>Therefore, <em>Context</em> = timestamp / <code>RotationMs</code> = <code>1752112221 / 30000</code> = 58403.</p>
+<p>The generated key should be the following value : 0x8135A3ACD2FB4B2B6D7CDD9C36ACB0A182F725F52C641F4A1F21AB53CD63F9B1.</p>
+<h3 id="example-2---aes-gcm-128">Example 2 - AES-GCM 128</h3>
+<table>
+<thead>
+<tr>
+<th>Variable</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Secret</code></td>
+<td>0x5ddd79f7b33f1f4a6dd57c34a8eec42e</td>
+</tr>
+<tr>
+<td><code>SecretLength</code></td>
+<td>16</td>
+</tr>
+<tr>
+<td><code>RotationMs</code></td>
+<td>30000</td>
+</tr>
+<tr>
+<td><code>Algorithm</code></td>
+<td><strong>QUIC_AEAD_ALGORITHM_AES_128_GCM</strong></td>
+</tr>
+<tr>
+<td>The UNIX epoch timestamp</td>
+<td>1752112221</td>
+</tr>
+</tbody>
+</table>
+<p>Therefore, <em>Context</em> = timestamp / <code>RotationMs</code> = <code>1752112221 / 30000</code> = 58403.</p>
+<p>The generated key should be the following value: 0x44B08A21DC20D6297328C6B356354502</p>
 <h1 id="see-also">See Also</h1>
 <p><a href="../Settings.html">Settings</a><br></p>
 
