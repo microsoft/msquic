@@ -133,6 +133,7 @@ RawSocketCreateUdp(
         Config->RemoteAddress == NULL ||
         QuicAddrCompare(&Socket->RemoteAddress, Config->RemoteAddress));
     CXPLAT_DBG_ASSERT(
+        Config->LocalAddress == NULL ||
         QuicAddrGetPort(Config->LocalAddress) == 0 ||
         QuicAddrGetPort(&Socket->LocalAddress) == QuicAddrGetPort(Config->LocalAddress));
     CXPLAT_DBG_ASSERT(QuicAddrGetPort(&Socket->LocalAddress) != 0);
