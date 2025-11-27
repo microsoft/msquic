@@ -101,7 +101,8 @@ QuicConnAlloc(
 
     Connection->RefCount = 1;
 #if DEBUG
-    Connection->RefTypeCount[QUIC_CONN_REF_HANDLE_OWNER] = 1;
+    CxPlatRefInitializeMultiple(Connection->RefTypeBiasedCount, QUIC_CONN_REF_COUNT);
+    CxPlatRefIncrement(&Connection->RefTypeBiasedCount[QUIC_CONN_REF_HANDLE_OWNER]);
 #endif
     Connection->PartitionID = PartitionId;
     Connection->State.Allocated = TRUE;
