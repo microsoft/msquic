@@ -24,6 +24,9 @@ Environment:
 #error "Incorrectly including Windows Kernel Platform Header"
 #endif
 
+#undef NTDDI_VERSION
+#define NTDDI_VERSION 0x0A00000A // NTDDI_WIN10_FE
+
 #pragma warning(push) // Don't care about OACR warnings in publics
 #pragma warning(disable:26036)
 #pragma warning(disable:26061)
@@ -103,7 +106,7 @@ ZwQueryInformationThread (
 // Wrapper functions
 //
 
-inline
+QUIC_INLINE
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
@@ -112,7 +115,7 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndClearBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -121,7 +124,7 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndSetBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -254,7 +257,23 @@ extern uint64_t CxPlatTotalMemory;
 #define CXPLAT_ALLOC_NONPAGED(Size, Tag) ExAllocatePool2(POOL_FLAG_NON_PAGED | POOL_FLAG_UNINITIALIZED, Size, Tag)
 #define CXPLAT_FREE(Mem, Tag) ExFreePoolWithTag((void*)Mem, Tag)
 
+//
+// If the following assert fails, then something broke and we're no longer
+// calling the inline version of ExAllocateFromLookasideListEx, and instead
+// trying to dynamically link to the more recent version of this function,
+// which doesn't exist down level.
+//
+// This value should be set via the projects _NT_TARGET_VERSION xml property.
+//
+CXPLAT_STATIC_ASSERT(
+    NTDDI_VERSION == NTDDI_WIN10_FE, // 0x0A00000A
+    "Incorrect version breaks down-level builds");
+
 typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
+
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
+    CXPLAT_POOL* Owner;
+} CXPLAT_POOL_HEADER;
 
 #define CxPlatPoolInitialize(IsPaged, Size, Tag, Pool) \
     ExInitializeLookasideListEx( \
@@ -263,14 +282,35 @@ typedef LOOKASIDE_LIST_EX CXPLAT_POOL;
         NULL, \
         (IsPaged) ? PagedPool : NonPagedPoolNx, \
         0, \
-        Size, \
+        (Size) + sizeof(CXPLAT_POOL_HEADER), \
         Tag, \
         1024)
 
 #define CxPlatPoolUninitialize(Pool) ExDeleteLookasideListEx(Pool)
-#define CxPlatPoolAlloc(Pool) ExAllocateFromLookasideListEx(Pool)
-#define CxPlatPoolFree(Pool, Entry) ExFreeToLookasideListEx(Pool, Entry)
-
+QUIC_INLINE
+void*
+CxPlatPoolAlloc(
+    _Inout_ CXPLAT_POOL* Pool
+    )
+{
+    CXPLAT_POOL_HEADER* Header =
+        (CXPLAT_POOL_HEADER*)ExAllocateFromLookasideListEx(Pool);
+    if (Header == NULL) {
+        return NULL;
+    }
+    Header->Owner = Pool;
+    return (void*)(Header + 1);
+}
+QUIC_INLINE
+void
+CxPlatPoolFree(
+    _In_ void* Memory
+    )
+{
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
+    ExFreeToLookasideListEx(Pool, Header);
+}
 #define CxPlatZeroMemory RtlZeroMemory
 #define CxPlatCopyMemory RtlCopyMemory
 #define CxPlatMoveMemory RtlMoveMemory
@@ -352,7 +392,7 @@ typedef EX_SPIN_LOCK CXPLAT_DISPATCH_RW_LOCK;
 
 typedef LONG_PTR CXPLAT_REF_COUNT;
 
-inline
+QUIC_INLINE
 void
 CxPlatRefInitialize(
     _Out_ CXPLAT_REF_COUNT* RefCount
@@ -361,9 +401,21 @@ CxPlatRefInitialize(
     *RefCount = 1;
 }
 
+QUIC_INLINE
+void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        CxPlatRefInitialize(&RefCounts[i]);
+    }
+}
+
 #define CxPlatRefUninitialize(RefCount)
 
-inline
+QUIC_INLINE
 void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -376,7 +428,7 @@ CxPlatRefIncrement(
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefIncrementNonZero(
     _Inout_ volatile CXPLAT_REF_COUNT *RefCount,
@@ -410,7 +462,7 @@ CxPlatRefIncrementNonZero(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefDecrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -454,7 +506,7 @@ typedef KEVENT CXPLAT_EVENT;
 #define CxPlatEventReset(Event) KeResetEvent(&(Event))
 #define CxPlatEventWaitForever(Event) \
     KeWaitForSingleObject(&(Event), Executive, KernelMode, FALSE, NULL)
-inline
+QUIC_INLINE
 NTSTATUS
 _CxPlatEventWaitWithTimeout(
     _In_ CXPLAT_EVENT* Event,
@@ -476,7 +528,7 @@ _CxPlatEventWaitWithTimeout(
 typedef KEVENT CXPLAT_EVENTQ; // Event queue
 typedef void* CXPLAT_CQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -486,7 +538,7 @@ CxPlatEventQInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -495,7 +547,7 @@ CxPlatEventQCleanup(
     UNREFERENCED_PARAMETER(queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 _CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue
@@ -507,7 +559,7 @@ _CxPlatEventQEnqueue(
 
 #define CxPlatEventQEnqueue(queue, sqe) _CxPlatEventQEnqueue(queue)
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -521,7 +573,7 @@ CxPlatEventQDequeue(
     return STATUS_SUCCESS == _CxPlatEventWaitWithTimeout(queue, wait_time) ? 1 : 0;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -532,7 +584,7 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-inline
+QUIC_INLINE
 void*
 CxPlatCqeUserData(
     _In_ const CXPLAT_CQE* cqe
@@ -548,7 +600,7 @@ CxPlatCqeUserData(
 //
 // Returns the worst-case system timer resolution (in us).
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatGetTimerResolution()
 {
@@ -565,7 +617,7 @@ extern uint64_t CxPlatPerfFreq;
 //
 // Returns the current time in platform specific time units.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlat(
     void
@@ -577,7 +629,7 @@ QuicTimePlat(
 //
 // Converts platform time to microseconds.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlatToUs64(
     uint64_t Count
@@ -600,7 +652,7 @@ QuicTimePlatToUs64(
 //
 // Converts microseconds to platform time.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
@@ -620,7 +672,7 @@ CxPlatTimeUs64ToPlat(
 
 #define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
 
-inline
+QUIC_INLINE
 int64_t
 CxPlatTimeEpochMs64(
     )
@@ -633,7 +685,7 @@ CxPlatTimeEpochMs64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeDiff64(
     _In_ uint64_t T1,     // First time measured
@@ -649,24 +701,21 @@ CxPlatTimeDiff64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint32_t
 CxPlatTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
     )
 {
-    if (T2 > T1) {
-        return T2 - T1;
-    } else { // Wrap around case.
-        return T2 + (0xFFFFFFFF - T1) + 1;
-    }
+    // Subtraction handles wraparound automatically in the ring 2^32
+    return T2 - T1;
 }
 
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
@@ -682,7 +731,7 @@ CxPlatTimeAtOrBefore64(
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
@@ -693,7 +742,7 @@ CxPlatTimeAtOrBefore32(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 CxPlatSleep(
     _In_ uint32_t DurationMs
@@ -736,7 +785,7 @@ typedef struct _ETHREAD *CXPLAT_THREAD;
 
 #define CXPLAT_THREAD_RETURN(Status) PsTerminateSystemThread(Status)
 
-inline
+QUIC_INLINE
 QUIC_STATUS
 CxPlatThreadCreate(
     _In_ CXPLAT_THREAD_CONFIG* Config,
@@ -930,7 +979,9 @@ CxPlatRandom(
 #define QUIC_SILO PESILO
 #define QUIC_SILO_INVALID ((PESILO)(void*)(LONG_PTR)-1)
 
-#define QuicSiloGetCurrentServer() PsGetCurrentServerSilo()
+#define QuicSiloGetHostSilo() PsGetHostSilo()
+#define QuicSiloIsServerSilo() PsIsCurrentThreadInServerSilo()
+#define QuicSiloGetCurrentServerSilo() PsGetCurrentServerSilo()
 #define QuicSiloAddRef(Silo) if (Silo != NULL) { ObReferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloRelease(Silo) if (Silo != NULL) { ObDereferenceObjectWithTag(Silo, QUIC_POOL_SILO); }
 #define QuicSiloAttach(Silo) PsAttachSiloToCurrentThread(Silo)

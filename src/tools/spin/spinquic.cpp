@@ -28,7 +28,7 @@
     } while (0)
 #define ASSERT_ON_NOT(x) CXPLAT_FRE_ASSERT(x)
 
-QUIC_EXECUTION_CONFIG* ExecConfig = nullptr;
+QUIC_GLOBAL_EXECUTION_CONFIG* ExecConfig = nullptr;
 uint32_t ExecConfigSize = 0;
 
 class FuzzingData {
@@ -824,6 +824,9 @@ void SpinQuicSetRandomConnectionParam(HQUIC Connection, uint16_t ThreadID)
         break; // Get Only
     case QUIC_PARAM_CONN_STATISTICS_V2_PLAT:                        // QUIC_STATISTICS_V2
         break; // Get Only
+    case QUIC_PARAM_CONN_CLOSE_ASYNC:                               // uint8_t (BOOLEAN)
+        // Do not set: this test does not implement async close waiting.
+        break;
     default:
         break;
     }
@@ -860,8 +863,8 @@ const uint32_t ParamCounts[] = {
     QUIC_PARAM_GLOBAL_LIBRARY_GIT_HASH + 1,
     0,
     QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W + 1,
-    QUIC_PARAM_LISTENER_CIBIR_ID + 1,
-    QUIC_PARAM_CONN_STATISTICS_V2_PLAT + 1,
+    QUIC_PARAM_LISTENER_PARTITION_INDEX + 1,
+    QUIC_PARAM_CONN_CLOSE_ASYNC + 1,
     QUIC_PARAM_TLS_NEGOTIATED_ALPN + 1,
 #ifdef WIN32 // Schannel specific TLS parameters
     QUIC_PARAM_TLS_SCHANNEL_SECURITY_CONTEXT_TOKEN + 1,
@@ -1557,13 +1560,8 @@ void start() {
                     1 :
                     1 + GetRandom(CxPlatProcCount() - 1);
             printf("Using %u partitions...\n", ProcCount);
-            ExecConfigSize = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
-            ExecConfig = (QUIC_EXECUTION_CONFIG*)malloc(ExecConfigSize);
-            if (strncmp(SpinSettings.ServerName, "192.168.1.11", 12) == 0) {
-                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-            } else {
-                ExecConfig->Flags = QUIC_EXECUTION_CONFIG_FLAG_NONE;
-            }
+            ExecConfigSize = QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t)*ProcCount;
+            ExecConfig = (QUIC_GLOBAL_EXECUTION_CONFIG*)malloc(ExecConfigSize);
             ExecConfig->PollingIdleTimeoutUs = 0; // TODO - Randomize?
             ExecConfig->ProcessorCount = ProcCount;
             for (uint32_t i = 0; i < ProcCount; ++i) {
@@ -1606,7 +1604,7 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     }
     FuzzData = new FuzzingData(data, size);
     if (!FuzzData->Initialize()) {
-        return 0;
+        goto cleanup;
     }
 
     SpinSettings.RunServer = true;
@@ -1623,6 +1621,8 @@ extern "C" int LLVMFuzzerTestOneInput(const uint8_t *data, size_t size)
     SpinSettings.RepeatCount = 1;
 
     start();
+
+cleanup:
     delete FuzzData;
     return 0;
 }

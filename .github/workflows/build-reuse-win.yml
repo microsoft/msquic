@@ -31,9 +31,8 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2019'
+        default: 'windows-2022'
         # options:
-        #   - windows-2019
         #   - windows-2022
         #   - windows-2025
       arch:
@@ -49,10 +48,14 @@ on:
         default: 'schannel'
         type: string
         # options:
+        #   - quictls
         #   - openssl
-        #   - openssl3
         #   - schannel
       static:
+        required: false
+        default: ''
+        type: string
+      official:
         required: false
         default: ''
         type: string
@@ -65,7 +68,8 @@ on:
         default: '' # Empty string means build all
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-windows-reuse:
@@ -74,12 +78,12 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Install Perl
-      uses: shogo82148/actions-setup-perl@49c14f24551d2de3bf56fb107a869c3760b1875e
+      uses: shogo82148/actions-setup-perl@f9f0bf89e0d19ddbabb2f40d43db2e944bce7d2f
       with:
         perl-version: '5.34'
     - name: Install NASM
@@ -105,7 +109,7 @@ jobs:
     - name: Build
       if: inputs.build == ''
       shell: pwsh
-      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }}
+      run: scripts/build.ps1 -Config ${{ inputs.config }} -Platform ${{ inputs.plat }} -Arch ${{ inputs.arch }} -Tls ${{ inputs.tls }} ${{ inputs.sanitize }} ${{ inputs.static }} ${{ inputs.official }}
     - name: Filter Build Artifacts
       shell: pwsh
       run: |
@@ -113,7 +117,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.build }}
+        name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.sanitize }}${{ inputs.static }}${{ inputs.official }}${{ inputs.build }}
         path: artifacts

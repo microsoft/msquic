@@ -8,5 +8,5 @@ extern "C" {
 }
 #endif
 #ifdef CLOG_INLINE_IMPLEMENTATION
-#include "quic.clog_inline.c.clog.h.c"
+#include "quic.clog_ToeplitzTest.cpp.clog.h.c"
 #endif

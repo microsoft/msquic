@@ -9,7 +9,7 @@ target_compile_options(inc INTERFACE ${QUIC_C_FLAGS})
 target_compile_options(inc INTERFACE $<$<COMPILE_LANGUAGE:CXX>:${QUIC_CXX_FLAGS}>)
 
 target_compile_definitions(inc INTERFACE ${QUIC_COMMON_DEFINES})
-target_include_directories(inc INTERFACE 
+target_include_directories(inc INTERFACE
     $<BUILD_INTERFACE:${QUIC_INCLUDE_DIR}>
     $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>)
 
@@ -23,8 +23,22 @@ if (HAS_GUARDCF)
     target_link_options(base_link INTERFACE /guard:cf /DYNAMICBASE)
 endif()
 
-if (NOT MSVC AND QUIC_ENABLE_SANITIZERS)
-    target_link_libraries(base_link INTERFACE -fsanitize=address,leak,undefined,alignment)
+if (NOT MSVC AND QUIC_SANITIZER_ACTIVE)
+    if (QUIC_ENABLE_ASAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=address)
+    endif()
+
+    if (QUIC_ENABLE_LSAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=leak)
+    endif()
+
+    if (QUIC_ENABLE_UBSAN)
+        target_link_libraries(base_link INTERFACE -fsanitize=undefined)
+    endif()
+
+    if (QUIC_ENABLE_EXTRA_SANITIZERS)
+        target_link_libraries(base_link INTERFACE -fsanitize=alignment)
+    endif()
 endif()
 
 set(THREADS_PREFER_PTHREAD_FLAG ON)
@@ -37,6 +51,10 @@ endif()
 
 if (NUMA)
     target_link_libraries(base_link INTERFACE ${NUMA})
+endif()
+
+if (LIBURING)
+    target_link_libraries(base_link INTERFACE ${LIBURING})
 endif()
 
 if(WIN32)

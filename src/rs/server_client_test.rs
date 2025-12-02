@@ -5,7 +5,7 @@ use std::{
 };
 
 use crate::{
-    config::{CertificateHash, Credential, CredentialFlags},
+    config::{Credential, CredentialFlags},
     Addr, BufferRef, Configuration, Connection, ConnectionEvent, ConnectionRef, CredentialConfig,
     Listener, Registration, RegistrationConfig, Settings, Status, Stream, StreamEvent, StreamRef,
 };
@@ -19,7 +19,9 @@ fn buffers_to_string(buffers: &[BufferRef]) -> String {
 }
 
 /// Use pwsh to get the test cert hash
-pub fn get_test_cert_hash() -> String {
+#[cfg(target_os = "windows")]
+pub fn get_test_cred() -> Credential {
+    use crate::CertificateHash;
     let output = std::process::Command::new("pwsh.exe")
         .args(["-Command", "Get-ChildItem Cert:\\CurrentUser\\My | Where-Object -Property FriendlyName -EQ -Value MsQuicTestServer | Select-Object -ExpandProperty Thumbprint -First 1"]).
         output().expect("Failed to execute command");
@@ -31,12 +33,58 @@ pub fn get_test_cert_hash() -> String {
             s.pop();
         }
     };
-    s
+    Credential::CertificateHash(CertificateHash::from_str(&s).unwrap())
+}
+
+/// Generate a test cert if not present using openssl cli.
+#[cfg(not(target_os = "windows"))]
+pub fn get_test_cred() -> Credential {
+    let cert_dir = std::env::temp_dir().join("msquic_test_rs");
+    let key = "key.pem";
+    let cert = "cert.pem";
+    let key_path = cert_dir.join(key);
+    let cert_path = cert_dir.join(cert);
+    if !key_path.exists() || !cert_path.exists() {
+        // remove the dir
+        let _ = std::fs::remove_dir_all(&cert_dir);
+        std::fs::create_dir_all(&cert_dir).expect("cannot create cert dir");
+        // generate test cert using openssl cli
+        let output = std::process::Command::new("openssl")
+            .args([
+                "req",
+                "-x509",
+                "-newkey",
+                "rsa:4096",
+                "-keyout",
+                "key.pem",
+                "-out",
+                "cert.pem",
+                "-sha256",
+                "-days",
+                "3650",
+                "-nodes",
+                "-subj",
+                "/CN=localhost",
+            ])
+            .current_dir(cert_dir)
+            .stderr(std::process::Stdio::inherit())
+            .stdout(std::process::Stdio::inherit())
+            .output()
+            .expect("cannot generate cert");
+        if !output.status.success() {
+            panic!("generate cert failed");
+        }
+    }
+    use crate::CertificateFile;
+    Credential::CertificateFile(CertificateFile::new(
+        key_path.display().to_string(),
+        cert_path.display().to_string(),
+    ))
 }
 
 #[test]
 fn test_server_client() {
-    let cert_hash = get_test_cert_hash();
+    let cred = get_test_cred();
 
     let reg = Registration::new(&RegistrationConfig::default()).unwrap();
     let alpn = [BufferRef::from("qtest")];
@@ -44,13 +92,11 @@ fn test_server_client() {
         .set_ServerResumptionLevel(crate::ServerResumptionLevel::ResumeAndZerortt)
         .set_PeerBidiStreamCount(1);
 
-    let config = Configuration::new(&reg, &alpn, Some(&settings)).unwrap();
+    let config = Configuration::open(&reg, &alpn, Some(&settings)).unwrap();
 
     let cred_config = CredentialConfig::new()
         .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION)
-        .set_credential(Credential::CertificateHash(
-            CertificateHash::from_str(&cert_hash).unwrap(),
-        ));
+        .set_credential(cred);
     config.load_credential(&cred_config).unwrap();
     let config = Arc::new(config);
     let config_cp = config.clone();
@@ -120,8 +166,7 @@ fn test_server_client() {
         Ok(())
     };
 
-    let mut l = Listener::new();
-    l.open(&reg, move |_, ev| {
+    let l = Listener::open(&reg, move |_, ev| {
         println!("Server listener event: {ev:?}");
         match ev {
             crate::ListenerEvent::NewConnection {
@@ -147,7 +192,7 @@ fn test_server_client() {
 
     // create client and send msg
     let client_settings = Settings::new().set_IdleTimeoutMs(1000);
-    let client_config = Configuration::new(&reg, &alpn, Some(&client_settings)).unwrap();
+    let client_config = Configuration::open(&reg, &alpn, Some(&client_settings)).unwrap();
     {
         let cred_config = CredentialConfig::new_client()
             .set_credential_flags(CredentialFlags::NO_CERTIFICATE_VALIDATION);
@@ -159,6 +204,9 @@ fn test_server_client() {
         let stream_handler = move |stream: StreamRef, ev: StreamEvent| {
             println!("Client stream event: {ev:?}");
             match ev {
+                StreamEvent::StartComplete { id, .. } => {
+                    assert_eq!(stream.get_stream_id().unwrap(), id);
+                }
                 StreamEvent::SendComplete {
                     cancelled: _,
                     client_context,
@@ -186,8 +234,11 @@ fn test_server_client() {
                 ConnectionEvent::Connected { .. } => {
                     // open stream and send
                     let f_send = || {
-                        let mut s = Stream::new();
-                        s.open(&conn, crate::StreamOpenFlags::NONE, stream_handler.clone())?;
+                        let s = Stream::open(
+                            &conn,
+                            crate::StreamOpenFlags::NONE,
+                            stream_handler.clone(),
+                        )?;
                         s.start(crate::StreamStartFlags::NONE)?;
                         // BufferRef needs to be heap allocated
                         let b = "hello from client".as_bytes().to_vec();
@@ -220,8 +271,7 @@ fn test_server_client() {
         };
 
         println!("open client connection");
-        let mut conn = Connection::new();
-        conn.open(&reg, conn_handler).unwrap();
+        let conn = Connection::open(&reg, conn_handler).unwrap();
 
         conn.start(&client_config, "127.0.0.1", 4567).unwrap();
 

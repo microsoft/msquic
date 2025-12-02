@@ -235,6 +235,11 @@ function Install-Xdp-Driver {
     Write-Host "Downloading XDP msi"
     $MsiPath = Join-Path $ArtifactsPath "xdp.msi"
     Invoke-WebRequest -Uri (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer -OutFile $MsiPath
+    Write-Host "Installing XDP driver certificate"
+    $CertFileName = Join-Path $ArtifactsPath 'xdp.cer'
+    Get-AuthenticodeSignature $MsiPath | Select-Object -ExpandProperty SignerCertificate | Export-Certificate -Type CERT -FilePath $CertFileName
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\root'
+    Import-Certificate -FilePath $CertFileName -CertStoreLocation 'cert:\localmachine\trustedpublisher'
     Write-Host "Installing XDP driver"
     msiexec.exe /i $MsiPath /quiet | Out-Null
 }
@@ -258,6 +263,11 @@ function Install-DuoNic {
         $DuoNicScript = (Join-Path $DuoNicPath duonic.ps1)
         if (!(Test-Path $DuoNicScript)) { Write-Error "Missing file: $DuoNicScript" }
         Invoke-Expression "cmd /c `"pushd $DuoNicPath && pwsh duonic.ps1 -Install`""
+        # For RSS to work on DuoNic, the RSS seed needs to be an identical 16-bit pattern
+        # on both adapters. This forces the hash to be the same for send and receive.
+        $RssSeedPath = (Join-Path $SetupPath tcprssseed.exe)
+        if (!(Test-Path $RssSeedPath)) { Write-Error "Missing file: $RssSeedPath" }
+        Invoke-Expression "$RssSeedPath set aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55aa55"
     } elseif ($IsLinux) {
         Write-Host "Creating DuoNic endpoints"
         $DuoNicScript = Join-Path $PSScriptRoot "duonic.sh"
@@ -373,7 +383,13 @@ function Install-TestCertificates {
         $RootCert = New-SelfSignedCertificate -Subject "CN=MsQuicTestRoot" -FriendlyName MsQuicTestRoot -KeyUsageProperty Sign -KeyUsage CertSign,DigitalSignature -CertStoreLocation cert:\CurrentUser\My -HashAlgorithm SHA256 -Provider "Microsoft Software Key Storage Provider" -KeyExportPolicy Exportable -KeyAlgorithm ECDSA_nistP521 -CurveExport CurveName -NotAfter(Get-Date).AddYears(5) -TextExtension @("2.5.29.19 = {text}ca=1&pathlength=0") -Type Custom
         $TempRootPath = Join-Path $Env:TEMP "MsQuicTestRoot.cer"
         Export-Certificate -Type CERT -Cert $RootCert -FilePath $TempRootPath
-        CertUtil.exe -addstore Root $TempRootPath 2>&1 | Out-Null
+        CertUtil.exe -addstore Root $TempRootPath 2>&1 | ForEach-Object {
+            if ($_ -is [System.Management.Automation.ErrorRecord]) {
+                Write-Error $_
+            } else {
+                Write-Host $_
+            }
+        }
         Remove-Item $TempRootPath
         $NewRoot = $true
         Write-Host "New MsQuicTestRoot certificate installed!"
@@ -474,8 +490,8 @@ function Install-Clog2Text {
 
 # We remove OpenSSL path for kernel builds because it's not needed.
 if ($ForKernel) {
+    git rm $RootDir/submodules/quictls
     git rm $RootDir/submodules/openssl
-    git rm $RootDir/submodules/openssl3
 }
 
 if ($ForBuild -or $ForContainerBuild) {
@@ -487,14 +503,14 @@ if ($ForBuild -or $ForContainerBuild) {
         git submodule init $RootDir/submodules/xdp-for-windows
     }
 
+    if ($Tls -eq "quictls") {
+        Write-Host "Initializing quictls submodule"
+        git submodule init $RootDir/submodules/quictls
+    }
+
     if ($Tls -eq "openssl") {
         Write-Host "Initializing openssl submodule"
         git submodule init $RootDir/submodules/openssl
-    }
-
-    if ($Tls -eq "openssl3") {
-        Write-Host "Initializing openssl3 submodule"
-        git submodule init $RootDir/submodules/openssl3
     }
 
     if (!$DisableTest) {
@@ -518,6 +534,8 @@ if ($InstallTestCertificates) { Install-TestCertificates }
 
 if ($IsLinux) {
     if ($InstallClog2Text) {
+        sudo apt-get update -y
+        sudo apt-get install -y dotnet-runtime-8.0
         Install-Clog2Text
     }
 
@@ -527,8 +545,14 @@ if ($IsLinux) {
         sudo apt-get install -y cmake
         sudo apt-get install -y build-essential
         sudo apt-get install -y liblttng-ust-dev
+        # Try to install babeltrace2 first, then fallback to babeltrace
+        sudo apt-get install -y babeltrace2
+        if ($LASTEXITCODE -ne 0) {
+            sudo apt-get install -y babeltrace
+        }
         sudo apt-get install -y libssl-dev
         sudo apt-get install -y libnuma-dev
+        sudo apt-get install -y liburing-dev
         if ($InstallArm64Toolchain) {
             sudo apt-get install -y gcc-aarch64-linux-gnu
             sudo apt-get install -y binutils-aarch64-linux-gnu
@@ -559,6 +583,7 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
         sudo apt-get install -y gdb
+        sudo apt-get install -y liburing2
         if ($UseXdp) {
             if (!$IsUbuntu2404) {
                 sudo apt-add-repository "deb http://mirrors.kernel.org/ubuntu noble main" -y

@@ -80,6 +80,10 @@ See [RegistrationOpen](RegistrationOpen.md)
 
 See [RegistrationClose](RegistrationClose.md)
 
+`RegistrationClose2`
+
+See (Preview) [RegistrationClose2](RegistrationClose2.md)
+
 `RegistrationShutdown`
 
 See [RegistrationShutdown](RegistrationShutdown.md)

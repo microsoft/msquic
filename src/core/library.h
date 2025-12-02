@@ -41,43 +41,6 @@ typedef struct QUIC_HANDLE {
 } QUIC_HANDLE;
 
 //
-// Per-processor storage for global library state.
-//
-typedef struct QUIC_CACHEALIGN QUIC_LIBRARY_PP {
-
-    //
-    // Pool for QUIC_CONNECTIONs.
-    //
-    CXPLAT_POOL ConnectionPool;
-
-    //
-    // Pool for QUIC_TRANSPORT_PARAMETERs.
-    //
-    CXPLAT_POOL TransportParamPool;
-
-    //
-    // Pool for QUIC_PACKET_SPACE.
-    //
-    CXPLAT_POOL PacketSpacePool;
-
-    //
-    // Used for generating stateless reset hashes.
-    //
-    CXPLAT_HASH* ResetTokenHash;
-    CXPLAT_LOCK ResetTokenLock;
-
-    uint64_t SendBatchId;
-    uint64_t SendPacketId;
-    uint64_t ReceivePacketId;
-
-    //
-    // Per-processor performance counters.
-    //
-    int64_t PerfCounters[QUIC_PERF_COUNTER_MAX];
-
-} QUIC_LIBRARY_PP;
-
-//
 // Represents the storage for global library state.
 //
 typedef struct QUIC_LIBRARY {
@@ -91,6 +54,23 @@ typedef struct QUIC_LIBRARY {
     // Tracks whether the library's lazy initialization has completed.
     //
     BOOLEAN LazyInitComplete : 1;
+
+    //
+    // Indicates the app has configured their own execution contexts.
+    //
+    BOOLEAN CustomExecutions : 1;
+
+    //
+    // Indicates the app has configured non-default (per-processor) partitioning.
+    //
+    BOOLEAN CustomPartitions : 1;
+
+    //
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+    // the Windows fast path causing a large performance regression.
+    //
+    BOOLEAN EnableDscpOnRecv : 1;
 
 #ifdef CxPlatVerifierEnabled
     //
@@ -110,11 +90,6 @@ typedef struct QUIC_LIBRARY {
     // Indicates if the stateless retry feature is currently enabled.
     //
     BOOLEAN SendRetryEnabled;
-
-    //
-    // Index for the current stateless retry token key.
-    //
-    BOOLEAN CurrentStatelessRetryKey;
 
     //
     // Current binary version.
@@ -150,12 +125,6 @@ typedef struct QUIC_LIBRARY {
     // Total outstanding references from calls to MsQuicOpenVersion.
     //
     uint16_t OpenRefCount;
-
-    //
-    // Number of processors currently being used.
-    //
-    _Field_range_(>, 0)
-    uint16_t ProcessorCount;
 
     //
     // Number of partitions currently being used.
@@ -213,7 +182,7 @@ typedef struct QUIC_LIBRARY {
     //
     // Configuration for execution of the library (optionally set by the app).
     //
-    QUIC_EXECUTION_CONFIG* ExecutionConfig;
+    QUIC_GLOBAL_EXECUTION_CONFIG* ExecutionConfig;
 
     //
     // Datapath instance for the library.
@@ -236,25 +205,67 @@ typedef struct QUIC_LIBRARY {
     QUIC_REGISTRATION* StatelessRegistration;
 
     //
-    // Per-processor storage. Count of `ProcessorCount`.
-    //
-    _Field_size_(ProcessorCount)
-    QUIC_LIBRARY_PP* PerProc;
+    // Protects all registration close completion fields.
+    CXPLAT_LOCK RegistrationCloseCleanupLock;
 
     //
-    // Controls access to the stateless retry keys when rotated.
+    // Event set when the registration worker needs to wake.
     //
-    CXPLAT_DISPATCH_LOCK StatelessRetryKeysLock;
+    CXPLAT_EVENT RegistrationCloseCleanupEvent;
 
     //
-    // Keys used for encryption of stateless retry tokens.
+    // Set to true to shut down the worker thread.
     //
-    CXPLAT_KEY* StatelessRetryKeys[2];
+    BOOLEAN RegistrationCloseCleanupShutdown;
 
     //
-    // Timestamp when the current stateless retry key expires.
+    // A dedicated worker thread to clean up async registration close.
     //
-    int64_t StatelessRetryKeysExpiration[2];
+    CXPLAT_THREAD RegistrationCloseCleanupWorker;
+
+    //
+    // List of registrations needing asynchronous close completion indications.
+    //
+    CXPLAT_LIST_ENTRY RegistrationCloseCleanupList;
+
+    //
+    // Rundown protection for the registration close cleanup worker.
+    //
+    CXPLAT_RUNDOWN_REF RegistrationCloseCleanupRundown;
+
+    //
+    // Per-partition storage. Count of `PartitionCount`.
+    //
+    _Field_size_(PartitionCount)
+    QUIC_PARTITION* Partitions;
+
+    struct {
+        //
+        // Lock protecting the stateless retry configuration.
+        //
+        CXPLAT_DISPATCH_RW_LOCK Lock;
+
+        //
+        // The base secret used to generate keys for the stateless retry token.
+        //
+        uint8_t BaseSecret[CXPLAT_AEAD_MAX_SIZE];
+
+        //
+        // Length of the secret stored in BaseSecret. Depents on the algorithm type.
+        //
+        uint32_t SecretLength;
+
+        //
+        // The AEAD algorithm to use for the retry key.
+        //
+        CXPLAT_AEAD_TYPE AeadAlgorithm;
+
+        //
+        // The number of milliseconds between key rotations.
+        //
+        uint32_t KeyRotationMs;
+
+    } StatelessRetry;
 
     //
     // The Toeplitz hash used for hashing received long header packets.
@@ -284,7 +295,7 @@ typedef struct QUIC_LIBRARY {
     //
     // The worker pool
     //
-    CXPLAT_WORKER_POOL WorkerPool;
+    CXPLAT_WORKER_POOL* WorkerPool;
 
 } QUIC_LIBRARY;
 
@@ -299,60 +310,52 @@ extern QUIC_LIBRARY MsQuicLib;
 #define QUIC_LIB_VERIFY(Expr)
 #endif
 
+QUIC_INLINE
+QUIC_PARTITION*
+QuicLibraryGetPartitionFromProcessorIndex(
+    uint32_t ProcessorIndex
+    )
+{
+    CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
+
+    if (MsQuicLib.CustomPartitions) {
+        //
+        // Try to find a partition close to the current processor. Walk the list
+        // of partitions to find the first one that is greater than or equal to
+        // the current processor.
+        //
+        for (uint32_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+            if (ProcessorIndex <= MsQuicLib.Partitions[i].Processor) {
+                return &MsQuicLib.Partitions[i];
+            }
+        }
+
+        //
+        // None found, return the last one.
+        //
+        return &MsQuicLib.Partitions[MsQuicLib.PartitionCount - 1];
+    }
+
+    //
+    // Not doing any custom partitioning, just use the current processor modulo
+    // the partition count.
+    //
+    return &MsQuicLib.Partitions[ProcessorIndex % MsQuicLib.PartitionCount];
+}
+
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-uint16_t
+QUIC_INLINE
+QUIC_PARTITION*
 QuicLibraryGetCurrentPartition(
     void
     )
 {
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
     const uint16_t CurrentProc = (uint16_t)CxPlatProcCurrentNumber();
-    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
-        CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
-        //
-        // Try to find a partition close to the current processor.
-        //
-        for (uint32_t i = 0; i < MsQuicLib.ExecutionConfig->ProcessorCount; ++i) {
-            if (CurrentProc <= MsQuicLib.ExecutionConfig->ProcessorList[i]) {
-                return (uint16_t)i;
-            }
-        }
-        return (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount - 1;
-    }
-    return CurrentProc % MsQuicLib.PartitionCount;
+    return QuicLibraryGetPartitionFromProcessorIndex(CurrentProc);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-uint16_t
-QuicLibraryGetPartitionProcessor(
-    uint16_t PartitionIndex
-    )
-{
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
-    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
-        CXPLAT_DBG_ASSERT(MsQuicLib.ExecutionConfig->ProcessorList);
-        return MsQuicLib.ExecutionConfig->ProcessorList[PartitionIndex];
-    }
-    return PartitionIndex;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-QUIC_LIBRARY_PP*
-QuicLibraryGetPerProc(
-    void
-    )
-{
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
-    const uint16_t CurrentProc =
-        ((uint16_t)CxPlatProcCurrentNumber()) % MsQuicLib.ProcessorCount;
-    return &MsQuicLib.PerProc[CurrentProc];
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint16_t
 QuicPartitionIdCreate(
     uint16_t BaseIndex
@@ -373,7 +376,7 @@ QuicPartitionIdCreate(
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 uint16_t
 QuicPartitionIdGetIndex(
     uint16_t PartitionId
@@ -381,37 +384,6 @@ QuicPartitionIdGetIndex(
 {
     return (PartitionId & MsQuicLib.PartitionMask) % MsQuicLib.PartitionCount;
 }
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-uint16_t
-QuicPartitionIndexDecrement(
-    uint16_t PartitionIndex,
-    uint16_t Decrement
-    )
-{
-    CXPLAT_DBG_ASSERT(Decrement < MsQuicLib.PartitionCount);
-    if (PartitionIndex >= Decrement) {
-        return PartitionIndex - Decrement;
-    } else {
-        return PartitionIndex + (MsQuicLib.PartitionCount - Decrement);
-    }
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-inline
-void
-QuicPerfCounterAdd(
-    _In_ QUIC_PERFORMANCE_COUNTERS Type,
-    _In_ int64_t Value
-    )
-{
-    CXPLAT_DBG_ASSERT(Type >= 0 && Type < QUIC_PERF_COUNTER_MAX);
-    InterlockedExchangeAdd64(&QuicLibraryGetPerProc()->PerfCounters[Type], Value);
-}
-
-#define QuicPerfCounterIncrement(Type) QuicPerfCounterAdd(Type, 1)
-#define QuicPerfCounterDecrement(Type) QuicPerfCounterAdd(Type, -1)
 
 #define QUIC_PERF_SAMPLE_INTERVAL_S    1 // 1 second
 
@@ -422,7 +394,7 @@ QuicPerfCounterSnapShot(
     );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPerfCounterTrySnapShot(
     _In_ uint64_t TimeNow
@@ -449,7 +421,7 @@ QuicPerfCounterTrySnapShot(
 // Creates a random, new source connection ID, that will be used on the receive
 // path.
 //
-inline
+QUIC_INLINE
 _Success_(return != NULL)
 QUIC_CID_SLIST_ENTRY*
 QuicCidNewRandomSource(
@@ -510,6 +482,12 @@ QuicLibraryLazyInitialize(
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicLibraryLazyUninitialize(
+    void
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibrarySetGlobalParam(
     _In_ uint32_t Param,
@@ -554,7 +532,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     );
 
 //
@@ -598,26 +576,6 @@ QuicLibraryGetWorker(
     );
 
 //
-// Returns the current stateless retry key.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetCurrentStatelessRetryKey(
-    void
-    );
-
-//
-// Returns the stateless retry key for that timestamp.
-//
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetStatelessRetryKeyForTimestamp(
-    _In_ int64_t Timestamp
-    );
-
-//
 // Called when a new (server) connection is added in the handshake state.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -641,10 +599,17 @@ QuicLibraryOnHandshakeConnectionRemoved(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGenerateStatelessResetToken(
+    _In_ QUIC_PARTITION* Partition,
     _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
         uint8_t* ResetToken
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetRetryKeyConfig(
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
     );
 
 #if defined(__cplusplus)

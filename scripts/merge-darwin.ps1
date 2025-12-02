@@ -20,8 +20,8 @@ param (
     [string]$Config = "Debug",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("openssl")]
-    [string]$Tls = "openssl",
+    [ValidateSet("quictls","openssl")]
+    [string]$Tls = "quictls",
 
     [Parameter(Mandatory = $false)]
     [string]$ExtraArtifactDir,

@@ -2,6 +2,28 @@
 
 
 /*----------------------------------------------------------
+// Decoder Ring for GetTxOffloadConfig
+// [ lib] %u, %u
+// QuicTraceLogInfo(
+        GetTxOffloadConfig,
+        "[ lib] %u, %u",
+        Queue->Interface->ActualIfIndex, *TxChecksumOffload);
+// arg2 = arg2 = Queue->Interface->ActualIfIndex = arg2
+// arg3 = arg3 = *TxChecksumOffload = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_DATAPATH_RAW_XDP_WIN_C, GetTxOffloadConfig,
+    TP_ARGS(
+        unsigned int, arg2,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer(unsigned int, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FoundVF
 // [ xdp][%p] Found NetSvc-VF interfaces. NetSvc IfIdx:%lu, VF IfIdx:%lu
 // QuicTraceLogInfo(

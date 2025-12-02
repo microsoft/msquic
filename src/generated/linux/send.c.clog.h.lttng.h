@@ -72,26 +72,30 @@ TRACEPOINT_EVENT(CLOG_SEND_C, EcnValidationUnknown,
 
 /*----------------------------------------------------------
 // Decoder Ring for ScheduleSendFlags
-// [conn][%p] Scheduling flags 0x%x to 0x%x
+// [conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)
 // QuicTraceLogConnVerbose(
             ScheduleSendFlags,
             Connection,
-            "Scheduling flags 0x%x to 0x%x",
+            "Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
             SendFlags,
-            Send->SendFlags);
+            Send->SendFlags,
+            Send->SendFlags | SendFlags);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = SendFlags = arg3
 // arg4 = arg4 = Send->SendFlags = arg4
+// arg5 = arg5 = Send->SendFlags | SendFlags = arg5
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_SEND_C, ScheduleSendFlags,
     TP_ARGS(
         const void *, arg1,
         unsigned int, arg3,
-        unsigned int, arg4), 
+        unsigned int, arg4,
+        unsigned int, arg5), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+        ctf_integer(unsigned int, arg5, arg5)
     )
 )
 

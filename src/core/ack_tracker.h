@@ -146,7 +146,7 @@ QuicAckTrackerOnAckFrameAcked(
 // queued up to be acknowledged in a new ACK frame.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicAckTrackerHasPacketsToAck(
     _In_ const QUIC_ACK_TRACKER* Tracker

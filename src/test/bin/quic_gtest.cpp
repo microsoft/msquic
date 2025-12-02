@@ -21,7 +21,7 @@
 bool TestingKernelMode = false;
 bool PrivateTestLibrary = false;
 bool UseDuoNic = false;
-CXPLAT_WORKER_POOL WorkerPool;
+CXPLAT_WORKER_POOL* WorkerPool;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 bool UseQTIP = false;
 #endif
@@ -33,8 +33,12 @@ QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfigClientAuth;
 QUIC_CREDENTIAL_CONFIG ClientCertCredConfig;
 QuicDriverClient DriverClient;
 
+//
+// These are explicitly passed in as the name of the GitHub/Azure runners.
+//
 bool IsWindows2019() { return OsRunner && strcmp(OsRunner, "windows-2019") == 0; }
 bool IsWindows2022() { return OsRunner && strcmp(OsRunner, "windows-2022") == 0; }
+bool IsWindows2025() { return OsRunner && strcmp(OsRunner, "windows-2025") == 0; }
 
 class QuicTestEnvironment : public ::testing::Environment {
     QuicDriverService DriverService;
@@ -45,7 +49,7 @@ public:
     void SetUp() override {
         CxPlatSystemLoad();
         ASSERT_TRUE(QUIC_SUCCEEDED(CxPlatInitialize()));
-        CxPlatWorkerPoolInit(&WorkerPool);
+        WorkerPool = CxPlatWorkerPoolCreate(nullptr);
         watchdog = new CxPlatWatchdog(Timeout);
         ASSERT_TRUE((SelfSignedCertParams =
             CxPlatGetSelfSignedCert(
@@ -63,7 +67,6 @@ public:
                 TRUE, NULL
                 )) != nullptr);
 
-        QUIC_EXECUTION_CONFIG Config = {QUIC_EXECUTION_CONFIG_FLAG_NONE, 0, 0, {0}};
         if (TestingKernelMode) {
             printf("Initializing for Kernel Mode tests\n");
             const char* DriverName;
@@ -89,14 +92,9 @@ public:
             ASSERT_TRUE(DriverService.Start());
             ASSERT_TRUE(DriverClient.Initialize(&CertParams, DriverName));
 
-#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseDuoNic) {
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_XDP;
-            }
-#endif
             QUIC_TEST_CONFIGURATION_PARAMS Params {
                 UseDuoNic,
-                Config,
+                0
             };
 
 #ifdef _WIN32
@@ -111,20 +109,26 @@ public:
             MsQuic = new(std::nothrow) MsQuicApi();
             ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->GetInitStatus()));
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-            if (UseQTIP) {
-                Config.PollingIdleTimeoutUs = 10000;
-                Config.Flags |= QUIC_EXECUTION_CONFIG_FLAG_QTIP;
+            if (UseDuoNic) {
+                MsQuicSettings Settings;
+                Settings.SetXdpEnabled(true);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
-            Config.Flags |= UseDuoNic ? QUIC_EXECUTION_CONFIG_FLAG_XDP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
-            if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
-                ASSERT_TRUE(QUIC_SUCCEEDED(
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                        sizeof(Config),
-                        &Config)));
+            if (UseQTIP) {
+                MsQuicSettings Settings;
+                Settings.SetQtipEnabled(true);
+                ASSERT_TRUE(QUIC_SUCCEEDED(Settings.SetGlobal()));
             }
 #endif
+            //
+            // Enable DSCP on the receive path. This is needed to test DSCP Send path.
+            //
+            BOOLEAN Option = TRUE;
+            ASSERT_TRUE(QUIC_SUCCEEDED(MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                sizeof(BOOLEAN),
+                &Option)));
             memcpy(&ServerSelfSignedCredConfig, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             memcpy(&ServerSelfSignedCredConfigClientAuth, SelfSignedCertParams, sizeof(QUIC_CREDENTIAL_CONFIG));
             ServerSelfSignedCredConfigClientAuth.Flags |=
@@ -153,7 +157,7 @@ public:
         CxPlatFreeSelfSignedCert(SelfSignedCertParams);
         CxPlatFreeSelfSignedCert(ClientCertParams);
 
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
         delete watchdog;
@@ -362,6 +366,34 @@ TEST(ParameterValidation, ValidateConnection) {
         QuicTestValidateConnection();
     }
 }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(ParameterValidation, ValidateConnectionPoolCreate) {
+    TestLogger Logger("QuicTestValidateConnectionPoolCreate");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE));
+    } else {
+        QuicTestValidateConnectionPoolCreate();
+    }
+}
+
+TEST(ParameterValidation, ValidateExecutionContext) {
+    TestLogger Logger("QuicTestValidateExecutionContext");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT));
+    } else {
+        QuicTestValidateExecutionContext();
+    }
+}
+TEST(ParameterValidation, ValidatePartition) {
+    TestLogger Logger("QuicTestValidatePartition");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_PARTITION));
+    } else {
+        QuicTestValidatePartition();
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST(OwnershipValidation, RegistrationShutdownBeforeConnOpen) {
     TestLogger Logger("RegistrationShutdownBeforeConnOpen");
@@ -1381,7 +1413,7 @@ TEST(CredValidation, ConnectExpiredClientCertificate) {
 
 TEST(CredValidation, ConnectValidClientCertificate) {
 #ifdef QUIC_TEST_SCHANNEL_FLAGS
-    if (IsWindows2022()) GTEST_SKIP(); // Not supported with Schannel on WS2022
+    if (IsWindows2022() || IsWindows2025()) GTEST_SKIP(); // Not supported with Schannel on WS2022
 #endif
     QUIC_RUN_CRED_VALIDATION Params;
     for (auto CredType : { QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH, QUIC_CREDENTIAL_TYPE_CERTIFICATE_HASH_STORE }) {
@@ -1787,6 +1819,27 @@ TEST_P(WithHandshakeArgs11, ShutdownDuringHandshake) {
     }
 }
 
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+TEST_P(WithHandshakeArgs12, ConnectionPoolCreate) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectionPoolCreate", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS Params = {
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE, Params));
+    } else {
+        QuicTestConnectionPoolCreate(
+            GetParam().Family,
+            GetParam().NumberOfConnections,
+            GetParam().XdpSupported,
+            GetParam().TestCibirSupport);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
 TEST_P(WithSendArgs1, Send) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
     if (TestingKernelMode) {
@@ -1804,7 +1857,8 @@ TEST_P(WithSendArgs1, Send) {
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
             (uint8_t)GetParam().ServerInitiatedStreams,
-            0   // FifoScheduling
+            0,   // FifoScheduling
+            0    // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1822,9 +1876,34 @@ TEST_P(WithSendArgs1, Send) {
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
             GetParam().ServerInitiatedStreams,
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+TEST_P(WithSendArgs1, SendQtip) {
+    TestLoggerT<ParamType> Logger("QuicTestConnectAndPingOverQtip", GetParam());
+    if (!TestingKernelMode && UseQTIP) {
+        QuicTestConnectAndPing(
+            GetParam().Family,
+            GetParam().Length,
+            GetParam().ConnectionCount,
+            GetParam().StreamCount,
+            1,      // StreamBurstCount
+            0,      // StreamBurstDelayMs
+            false,  // ServerStatelessRetry
+            false,  // ClientRebind
+            false,  // ClientZeroRtt
+            false,  // ServerRejectZeroRtt
+            GetParam().UseSendBuffer,
+            GetParam().UnidirectionalStreams,
+            GetParam().ServerInitiatedStreams,
+            false,  // FifoScheduling
+            true); // SendUdpToQtipListener
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
 
 TEST_P(WithSendArgs2, SendLarge) {
     TestLoggerT<ParamType> Logger("QuicTestConnectAndPing", GetParam());
@@ -1843,7 +1922,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            1   // FifoScheduling
+            1,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1861,7 +1941,8 @@ TEST_P(WithSendArgs2, SendLarge) {
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            true);  // FifoScheduling
+            true,   // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1882,7 +1963,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             (uint8_t)GetParam().UseSendBuffer,
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1900,7 +1982,8 @@ TEST_P(WithSendArgs3, SendIntermittently) {
             GetParam().UseSendBuffer,
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1933,7 +2016,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             (uint8_t)GetParam().UseSendBuffer,
             (uint8_t)GetParam().UnidirectionalStreams,
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1951,7 +2035,8 @@ TEST_P(WithSend0RttArgs1, Send0Rtt) {
             GetParam().UseSendBuffer,
             GetParam().UnidirectionalStreams,
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -1981,7 +2066,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             0,  // UseSendBuffer
             0,  // UnidirectionalStreams
             0,  // ServerInitiatedStreams
-            0   // FifoScheduling
+            0,  // FifoScheduling
+            0   // SendUdpToQtipListener
         };
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_CONNECT_AND_PING, Params));
     } else {
@@ -1999,7 +2085,8 @@ TEST_P(WithSend0RttArgs2, Reject0Rtt) {
             false,  // UseSendBuffer
             false,  // UnidirectionalStreams
             false,  // ServerInitiatedStreams
-            false); // FifoScheduling
+            false,  // FifoScheduling
+            false); // SendUdpToQtipListener
     }
 }
 
@@ -2329,12 +2416,12 @@ TEST(Misc, StreamAppProvidedBuffers) {
     }
 }
 
-TEST(Misc, StreamAppProvidedBuffersZeroWindow) {
-    TestLogger Logger("StreamAppProvidedBuffersZeroWindow");
+TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
+    TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW));
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE));
     } else {
-        QuicTestStreamAppProvidedBuffersZeroWindow();
+        QuicTestStreamAppProvidedBuffersOutOfSpace();
     }
 }
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
@@ -2493,7 +2580,23 @@ TEST(Basic, TestVersionStorage) {
         QuicTestVersionStorage();
     }
 }
-#endif
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+#ifdef DEBUG // This test needs a GetParam API that is only available in debug builds.
+TEST(ParameterValidation, RetryConfigSetting)
+{
+    if (!CanRunStorageTests) {
+        GTEST_SKIP();
+    }
+
+    TestLogger Logger("QuicTestRetryConfigSetting");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING));
+    } else {
+        QuicTestRetryConfigSetting();
+    }
+}
+#endif // DEBUG
 
 #endif // _WIN32
 
@@ -2633,6 +2736,13 @@ INSTANTIATE_TEST_SUITE_P(
     WithHandshakeArgs11,
     testing::ValuesIn(HandshakeArgs11::Generate()));
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+INSTANTIATE_TEST_SUITE_P(
+    Handshake,
+    WithHandshakeArgs12,
+    testing::ValuesIn(HandshakeArgs12::Generate()));
+#endif
+
 INSTANTIATE_TEST_SUITE_P(
     AppData,
     WithSendArgs1,
@@ -2729,7 +2839,7 @@ int main(int argc, char** argv) {
     DWORD Result =
         RegCreateKeyA(
             HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
+            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\MsQuicStorageTest",
             &Key);
     CanRunStorageTests = Result == NO_ERROR;
     RegCloseKey(Key);

@@ -29,11 +29,11 @@ on:
         #   - x64
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
-        #   - openssl
-        #   - openssl3
+        #   - quictls
+        #   - openssl 
       static:
         required: false
         default: ''
@@ -83,14 +83,14 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         fetch-depth: 0
     - name: Prepare Machine
       shell: pwsh
       run: scripts/prepare-machine.ps1 -ForBuild ${{ inputs.xdp }}
     - name: Download Build Artifacts
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
         name: ${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts
@@ -103,7 +103,7 @@ jobs:
       shell: pwsh
       run: scripts/package-distribution.ps1 ${{ inputs.time64 }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: Package-${{ inputs.config }}-linux-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}-UseSystemOpenSSLCrypto${{ inputs.sanitize }}${{ inputs.xdp }}${{ inputs.build }}
         path: artifacts/dist

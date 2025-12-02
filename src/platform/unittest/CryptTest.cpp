@@ -348,6 +348,47 @@ struct CryptTest : public ::testing::TestWithParam<int32_t>
 
         QuicPacketKeyFree(PacketKey);
     }
+
+    bool
+    TestKbKdfDerive(
+        _In_ QuicBuffer& Key,
+        _In_ const uint32_t OutputLength,
+        _In_ QuicBuffer& ExpectedOutput)
+    {
+        uint8_t Output[CXPLAT_AEAD_MAX_SIZE];
+        if (OutputLength > sizeof(Output)) {
+            //
+            // Ensure the test doesn't overrun the buffer.
+            //
+            GTEST_LOG_(ERROR) << "OutputLength is larger than buffer.";
+            return false;
+        }
+        CxPlatZeroMemory(Output, OutputLength);
+        uint64_t Context = 1752112221;
+        const char* Label = "test";
+        const uint32_t ContextLength = (uint32_t)sizeof(Context);
+
+        QUIC_STATUS Status =
+            CxPlatKbKdfDerive(
+                Key.Data,
+                Key.Length,
+                Label,
+                (uint8_t*)&Context,
+                ContextLength,
+                OutputLength,
+                Output);
+        if (QUIC_FAILED(Status)) {
+            GTEST_LOG_(ERROR) << "CxPlatKbKdfDerive failed with " << std::hex << Status;
+            return false;
+        }
+        
+        if (memcmp(ExpectedOutput.Data, Output, ExpectedOutput.Length) != 0) {
+            LogTestBuffer("Expected Output:     ", ExpectedOutput.Data, ExpectedOutput.Length);
+            LogTestBuffer("Calculated Output:   ", Output, ExpectedOutput.Length);
+            return false;
+        }
+        return true;
+    }
 };
 
 TEST_F(CryptTest, WellKnownClientInitialv1)
@@ -486,6 +527,44 @@ TEST_F(CryptTest, HpMaskAes128)
     }
 
     CxPlatHpKeyFree(HpKey);
+}
+
+TEST_F(CryptTest, KbKdfDerive)
+{
+    QuicBuffer Key256("3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83");
+
+    QuicBuffer ExpectedOutput256_Key256("B7BFF374C8928335AA41589D41084B64211876771C459C23B06BA4A2EA89B5AE");
+    if (!TestKbKdfDerive(
+        Key256,
+        ExpectedOutput256_Key256.Length,
+        ExpectedOutput256_Key256)) {
+        FAIL();
+    }
+
+    QuicBuffer ExpectedOutput128_Key256("2775BB8F82B3B5EB667C8CF548C2F06F");
+    if (!TestKbKdfDerive(
+        Key256,
+        ExpectedOutput128_Key256.Length,
+        ExpectedOutput128_Key256)) {
+        FAIL();
+    }
+
+    QuicBuffer Key128("5ddd79f7b33f1f4a6dd57c34a8eec42e");
+    QuicBuffer ExpectedOutput256_Key128("0D90AEEEA79D7068283FC33561277AD8B641F5D0F2C47A3360DE8BBCB2D1A6E6");
+    if (!TestKbKdfDerive(
+        Key128,
+        ExpectedOutput256_Key128.Length,
+        ExpectedOutput256_Key128)) {
+        FAIL();
+    }
+
+    QuicBuffer ExpectedOutput128_Key128("3D49CD6A27AC5CA5F0F51893A755D160");
+    if (!TestKbKdfDerive(
+        Key128,
+        ExpectedOutput128_Key128.Length,
+        ExpectedOutput128_Key128)) {
+        FAIL();
+    }
 }
 
 TEST_P(CryptTest, Encryption)

@@ -11,21 +11,18 @@ cmake_minimum_required(VERSION 3.16)
 project(OpenSSLQuic)
 
 set(QUIC_BUILD_DIR ${CMAKE_CURRENT_BINARY_DIR})
-option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if openssl TLS" OFF)
+option(QUIC_USE_SYSTEM_LIBCRYPTO "Use system libcrypto if quictls TLS" OFF)
 
-if(QUIC_TLS STREQUAL "openssl" OR QUIC_TLS STREQUAL "openssl3")
-    if(QUIC_TLS STREQUAL "openssl")
-        message(STATUS "Configuring for OpenSSL 1.1")
-        set(EXPECTED_OPENSSL_VERSION 1.1.1)
-        set(QUIC_OPENSSL openssl)
+if(QUIC_TLS_LIB STREQUAL "quictls" OR QUIC_TLS_LIB STREQUAL "openssl")
+    message(STATUS "Configuring for OpenSSL 3.x")
+    set(EXPECTED_OPENSSL_VERSION 3.0)
+    if(QUIC_TLS_LIB STREQUAL "quictls")
+        set(QUIC_OPENSSL quictls)
     else()
-        set(QUIC_USE_OPENSSL3 ON)
-        message(STATUS "Configuring for OpenSSL 3.x")
-        set(EXPECTED_OPENSSL_VERSION 3.0)
-        set(QUIC_OPENSSL openssl3)
+        set(QUIC_OPENSSL openssl)
     endif()
 else()
-    message(FATAL_ERROR "Unsupported QUIC_TLS ${QUIC_TLS}")
+    message(FATAL_ERROR "Unsupported QUIC_TLS_LIB ${QUIC_TLS_LIB}")
 endif()
 
 set(OPENSSL_DIR ${QUIC_BUILD_DIR}/${QUIC_OPENSSL})
@@ -38,11 +35,8 @@ set(OPENSSL_CONFIG_FLAGS
     no-tls1 no-tls1_1 no-tls1_2 no-dtls no-dtls1 no-dtls1_2 no-ssl
     no-ssl3-method no-tls1-method no-tls1_1-method no-tls1_2-method no-dtls1-method no-dtls1_2-method
     no-siphash no-whirlpool no-aria no-bf no-blake2 no-sm2 no-sm3 no-sm4 no-camellia no-cast no-md4 no-mdc2 no-ocb no-rc2 no-rmd160 no-scrypt no-seed
-    no-weak-ssl-ciphers no-shared no-tests)
-
-if (QUIC_USE_OPENSSL3)
-    list(APPEND OPENSSL_CONFIG_FLAGS no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
-endif()
+    no-weak-ssl-ciphers no-shared no-tests
+    no-uplink no-cmp no-fips no-padlockeng no-siv no-legacy no-dtls no-deprecated --libdir=lib)
 
 if (WIN32)
 
@@ -117,7 +111,7 @@ if (WIN32)
     # Create working and output directories as needed
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/debug/include)
     file(MAKE_DIRECTORY ${OPENSSL_DIR}/release/include)
-    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/${QUIC_OPENSSL}/openssl/debug)
+    file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/${QUIC_OPENSSL}/quictls/debug)
     file(MAKE_DIRECTORY ${QUIC_BUILD_DIR}/submodules/${QUIC_OPENSSL}/release)
 
     # Configure steps for debug and release variants
@@ -200,8 +194,16 @@ else()
 
     list(APPEND OPENSSL_CONFIG_FLAGS --prefix=${OPENSSL_DIR})
 
-    if (QUIC_ENABLE_SANITIZERS)
-        list(APPEND OPENSSL_CONFIG_FLAGS enable-asan enable-ubsan)
+    if (NOT QUIC_SKIP_SANITIZE_SUBMODULES)
+        if (QUIC_ENABLE_ASAN)
+            message(STATUS "Configuring ASAN for ${QUIC_OPENSSL}")
+            list(APPEND OPENSSL_CONFIG_FLAGS enable-asan)
+        endif()
+
+        if (QUIC_ENABLE_UBSAN)
+            message(STATUS "Configuring UBSAN for ${QUIC_OPENSSL}")
+            list(APPEND OPENSSL_CONFIG_FLAGS enable-ubsan)
+        endif()
     endif()
     if(ANDROID)
         message(STATUS "${ANDROID_ABI}")
@@ -232,6 +234,10 @@ else()
                     --cross-compile-prefix=${GNU_MACHINE}${FLOAT_ABI_SUFFIX}-)
                 else()
                     set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure linux-aarch64)
+                    check_c_compiler_flag(--target=aarch64-linux-gnu HAVE_AARCH64_TARGET)
+                    if (HAVE_AARCH64_TARGET)
+                        list(APPEND OPENSSL_CONFIG_FLAGS --target=aarch64-linux-gnu)
+                    endif()
                 endif()
                 list(APPEND OPENSSL_CONFIG_FLAGS -latomic)
             elseif (CMAKE_TARGET_ARCHITECTURE STREQUAL arm)
@@ -248,7 +254,6 @@ else()
             endif()
         endif()
     elseif(CX_PLATFORM STREQUAL "darwin")
-        # need to build with Apple's compiler
         if (CMAKE_OSX_ARCHITECTURES STREQUAL arm64)
             set(OPENSSL_CONFIG_CMD ARCHFLAGS="-arch arm64" ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/Configure darwin64-arm64-cc)
         elseif(CMAKE_OSX_ARCHITECTURES STREQUAL x86_64)
@@ -257,12 +262,29 @@ else()
             message(ERROR "WTF ${CX_PLATFORM} ${CMAKE_TARGET_ARCHITECTURE}")
             set(OPENSSL_CONFIG_CMD ${CMAKE_CURRENT_SOURCE_DIR}/${QUIC_OPENSSL}/config)
         endif()
+        
+        if(NOT CMAKE_OSX_SYSROOT)
+            execute_process(
+                COMMAND xcrun --sdk macosx --show-sdk-path
+                OUTPUT_VARIABLE MACOS_SDK_PATH
+                OUTPUT_STRIP_TRAILING_WHITESPACE
+            )
+            if(MACOS_SDK_PATH)
+                set(CMAKE_OSX_SYSROOT "${MACOS_SDK_PATH}")
+                message(STATUS "Setting macOS SDK path for OpenSSL: ${CMAKE_OSX_SYSROOT}")
+            endif()
+        endif()
+        
         list(APPEND OPENSSL_CONFIG_FLAGS -isysroot ${CMAKE_OSX_SYSROOT})
+        
         if(SDK_NAME)
             list(APPEND OPENSSL_CONFIG_FLAGS "-m${SDK_NAME}-version-min=${DEPLOYMENT_TARGET}")
         elseif(CMAKE_OSX_DEPLOYMENT_TARGET)
+            string(REPLACE "." "" DEPLOYMENT_TARGET_CLEAN "${CMAKE_OSX_DEPLOYMENT_TARGET}")
             list(APPEND OPENSSL_CONFIG_FLAGS "-mmacosx-version-min=${CMAKE_OSX_DEPLOYMENT_TARGET}")
+            message(STATUS "OpenSSL deployment target: ${CMAKE_OSX_DEPLOYMENT_TARGET}")
         endif()
+        
         if (ENABLE_BITCODE)
             list(APPEND OPENSSL_CONFIG_FLAGS -fembed-bitcode)
         endif()
@@ -298,10 +320,10 @@ else()
         COMMENT "OpenSSL build"
     )
 
-    if (QUIC_USE_OPENSSL3 AND QUIC_USE_SYSTEM_LIBCRYPTO)
+    if (QUIC_USE_SYSTEM_LIBCRYPTO)
         # OpenSSL 3 uses different sources for static and dynamic libraries.
         # That is ok if you use either one consistently but it fails to link when we use dynamic crypto with static ssl.
-        # To fix that we need little hackery - see openssl3/ssl/build.info
+        # To fix that we need little hackery - see quictls/ssl/build.info
         add_custom_command(
             OUTPUT ${LIBSSL_PATH}
             OUTPUT ${LIBCRYPTO_PATH}
@@ -347,7 +369,7 @@ else()
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJORMINOR)
             string(FIND ${OPENSSL_VERSION} "." VERSIONLEN)
             string(SUBSTRING ${OPENSSL_VERSION} 0 ${VERSIONLEN}  OPENSSL_MAJOR)
-            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR 
+            if (OPENSSL_VERSION VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR OPENSSL_MAJORMINOR VERSION_EQUAL EXPECTED_OPENSSL_VERSION OR
                 # 3.1 is compatible with 3.0, 3.2 and beyond maybe as well.
                 (EXPECTED_OPENSSL_VERSION VERSION_EQUAL "3.0" AND OPENSSL_MAJOR EQUAL "3"))
                 target_link_libraries(OpenSSLQuic INTERFACE OpenSSL::Crypto)

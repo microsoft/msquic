@@ -106,8 +106,17 @@ PerfServer::Init(
 
         ProcCount = (uint16_t)CxPlatProcCount();
         DelayWorkers = new (std::nothrow) DelayWorker[ProcCount];
+        if (!DelayWorkers) {
+            WriteOutput("Failed to allocate delay workers.\n");
+            return QUIC_STATUS_OUT_OF_MEMORY;
+        }
         for (uint16_t i = 0; i < ProcCount; ++i) {
             if (!DelayWorkers[i].Initialize(this, i)) {
+                for (uint16_t j = 0; j < i; ++j) {
+                    DelayWorkers[j].Shutdown();
+                }
+                delete[] DelayWorkers;
+                DelayWorkers = nullptr;
                 WriteOutput("Failed to init delay workers.\n");
                 return QUIC_STATUS_INTERNAL_ERROR;
             }
@@ -183,6 +192,13 @@ PerfServer::ListenerCallback(
     if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
         BOOLEAN value = TRUE;
         MsQuic->SetParam(Event->NEW_CONNECTION.Connection, QUIC_PARAM_CONN_DISABLE_1RTT_ENCRYPTION, sizeof(value), &value);
+        if (PerfDefaultDscpValue != 0) {
+            MsQuic->SetParam(
+                Event->NEW_CONNECTION.Connection,
+                QUIC_PARAM_CONN_SEND_DSCP,
+                sizeof(PerfDefaultDscpValue),
+                &PerfDefaultDscpValue);
+        }
         QUIC_CONNECTION_CALLBACK_HANDLER Handler =
             [](HQUIC Conn, void* Context, QUIC_CONNECTION_EVENT* Event) -> QUIC_STATUS {
                 return ((PerfServer*)Context)->ConnectionCallback(Conn, Event);

@@ -117,7 +117,7 @@ typedef struct QUIC_CRYPTO {
 
 } QUIC_CRYPTO;
 
-inline
+QUIC_INLINE
 BOOLEAN
 QuicCryptoHasPendingCryptoFrame(
     _In_ QUIC_CRYPTO* Crypto
@@ -363,6 +363,7 @@ QuicCryptoEncodeServerTicket(
     _In_reads_bytes_opt_(AppDataLength)
         const uint8_t* const AppResumptionData,
     _In_ const QUIC_TRANSPORT_PARAMETERS* HandshakeTP,
+    _In_opt_ const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
     _In_ uint8_t AlpnLength,
     _In_reads_bytes_(AlpnLength)
         const uint8_t* const NegotiatedAlpn,
@@ -388,6 +389,7 @@ QuicCryptoDecodeServerTicket(
     _In_ const uint8_t* AlpnList,
     _In_ uint16_t AlpnListLength,
     _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Out_opt_ QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
     _Outptr_result_buffer_maybenull_(*AppDataLength)
         const uint8_t** AppData,
     _Out_ uint32_t* AppDataLength

@@ -1,7 +1,7 @@
 # Stage 1: Base image
-FROM ubuntu:22.04@sha256:6042500cf4b44023ea1894effe7890666b0c5c7871ed83a97c36c76ae560bb9b AS base
+FROM ubuntu:22.04@sha256:104ae83764a5119017b8e8d6218fa0832b09df65aae7d5a6de29a85d813da2fb AS base
 
-LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -36,10 +36,11 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     liblttng-ust-dev \
     libssl-dev \
     libnuma-dev \
+    liburing-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
-RUN wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+RUN wget -q https://packages.microsoft.com/config/ubuntu/22.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
     sudo dpkg -i packages-microsoft-prod.deb && \
     sudo add-apt-repository universe && \
     sudo apt-get update -y && \
@@ -54,7 +55,7 @@ RUN git config --global safe.directory '*'
 FROM base AS xdp-build
 
 RUN apt-get update -y && apt-get install -y \
-    && echo "deb [arch=amd64] http://cz.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
+    && echo "deb [arch=amd64] http://us.archive.ubuntu.com/ubuntu noble main" > /etc/apt/sources.list.d/xdp.list \
     && apt-get update -y && apt-get install --no-install-recommends -y -t noble \
     libnl-3-dev \
     libnl-genl-3-dev \
@@ -103,4 +104,6 @@ RUN apt-get update \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    liburing-dev:arm64 \
+    liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*

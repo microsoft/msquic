@@ -24,10 +24,10 @@ typedef struct QUIC_RECV_CHUNK {
     CXPLAT_LIST_ENTRY Link;          // Link in the list of chunks.
     uint32_t AllocLength;            // Allocation size of Buffer
     uint8_t ExternalReference  : 1;  // Indicates the buffer is being used externally.
-    uint8_t AppOwnedBuffer     : 1;  // Indicates the buffer is managed by the app.
+    uint8_t AllocatedFromPool  : 1;  // Indicates the buffer is was allocated from a pool.
     uint8_t* Buffer;                 // Pointer to the buffer itself. Doesn't need to be freed independently:
                                      //  - for internally allocated buffers, points in the same allocation.
-                                     //  - for exteral buffers, the buffer isn't owned
+                                     //  - for app-owned buffers, the buffer isn't owned
 } QUIC_RECV_CHUNK;
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -36,7 +36,7 @@ QuicRecvChunkInitialize(
     _Inout_ QUIC_RECV_CHUNK* Chunk,
     _In_ uint32_t AllocLength,
     _Inout_updates_(AllocLength) uint8_t* Buffer,
-    _In_ BOOLEAN AppOwnedBuffer
+    _In_ BOOLEAN BufferAllocatedFromPool
     );
 
 typedef struct QUIC_RECV_BUFFER {
@@ -47,15 +47,9 @@ typedef struct QUIC_RECV_BUFFER {
     CXPLAT_LIST_ENTRY Chunks;
 
     //
-    // Pool for the chunks managing app provided buffers.
-    // See QUIC_RECV_CHUNK::AppOwnedBuffer
+    // Optional, retired chunk waiting to no longer be referenced.
     //
-    CXPLAT_POOL* AppBufferChunkPool;
-
-    //
-    // Optional, preallocated initial chunk.
-    //
-    QUIC_RECV_CHUNK* PreallocatedChunk;
+    QUIC_RECV_CHUNK* RetiredChunk;
 
     //
     // Ranges of stream offsets that have been written to the buffer,
@@ -111,8 +105,8 @@ typedef struct QUIC_RECV_BUFFER {
 //
 // Initialize a QUIC_RECV_BUFFER.
 // Can only fail if PreallocatedChunk == NULL && RecvMode != QUIC_RECV_BUF_MODE_APP_OWNED.
-// PreallocatedChunk is owned by the caller and must be freed afte the buffer is uninitialized.
-// AppBufferChunkPool is used to allocate and free the chunk managing app-provided buffers.
+// PreallocatedChunk ownership is given to the receive buffer.
+// PreallocatedChunk must be null if RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
@@ -121,7 +115,6 @@ QuicRecvBufferInitialize(
     _In_ uint32_t AllocBufferLength,
     _In_ uint32_t VirtualBufferLength,
     _In_ QUIC_RECV_BUF_MODE RecvMode,
-    _In_ CXPLAT_POOL* AppBufferChunkPool,
     _In_opt_ QUIC_RECV_CHUNK* PreallocatedChunk
     );
 
@@ -163,7 +156,6 @@ QuicRecvBufferIncreaseVirtualBufferLength(
 
 //
 // Provide app-owned buffers. At least one chunk must be provided.
-// Chunks must be allocated using `AppBufferChunkPool`.
 // Only valid for QUIC_RECV_BUF_MODE_APP_OWNED mode.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -187,8 +179,10 @@ QuicRecvBufferWrite(
     _In_ uint64_t WriteOffset,
     _In_ uint16_t WriteLength,
     _In_reads_bytes_(WriteLength) uint8_t const* WriteBuffer,
-    _Inout_ uint64_t* WriteLimit,
-    _Out_ BOOLEAN* NewDataReady
+    _In_ uint64_t WriteQuota,
+    _Out_ uint64_t* QuotaConsumed,
+    _Out_ BOOLEAN* NewDataReady,
+    _Out_ uint64_t* BufferSizeNeeded
     );
 
 //
@@ -214,7 +208,7 @@ QuicRecvBufferRead(
     _In_ QUIC_RECV_BUFFER* RecvBuffer,
     _Out_ uint64_t* BufferOffset,
     _Inout_ uint32_t* BufferCount,
-    _Out_writes_all_(*BufferCount)
+    _Out_writes_to_(*BufferCount, *BufferCount)
         QUIC_BUFFER* Buffers
     );
 

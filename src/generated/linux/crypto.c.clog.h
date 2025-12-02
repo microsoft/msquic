@@ -384,6 +384,44 @@ tracepoint(CLOG_CRYPTO_C, CryptoNotReady , arg1);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for EncodeCRStart
+// [conn][%p] Encoding Careful Resume State
+// QuicTraceLogConnVerbose(
+        EncodeCRStart,
+        Connection,
+        "Encoding Careful Resume State");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_EncodeCRStart
+#define _clog_3_ARGS_TRACE_EncodeCRStart(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CRYPTO_C, EncodeCRStart , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for DecodeCRStart
+// [conn][%p] Decoding Careful Resume State. BufLength:%hu
+// QuicTraceLogConnVerbose(
+        DecodeCRStart,
+        Connection,
+        "Decoding Careful Resume State. BufLength:%hu",
+        CRBufLength);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = CRBufLength = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_DecodeCRStart
+#define _clog_4_ARGS_TRACE_DecodeCRStart(uniqueId, arg1, encoded_arg_string, arg3)\
+tracepoint(CLOG_CRYPTO_C, DecodeCRStart , arg1, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(

@@ -313,11 +313,22 @@ CxPlatRefInitializeEx(
 }
 
 void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        CxPlatRefInitialize(&RefCounts[i]);
+    }
+}
+
+void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
     )
 {
-    if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST)) {
+    if (__atomic_add_fetch(RefCount, 1, __ATOMIC_SEQ_CST) > 1) {
         return;
     }
 

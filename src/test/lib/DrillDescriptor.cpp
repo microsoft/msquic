@@ -249,25 +249,6 @@ DrillInitialPacketDescriptor::writeEx(
     return PacketBuffer;
 }
 
-struct StrBuffer {
-    uint8_t* Data;
-    uint16_t Length;
-
-    StrBuffer(const char* HexBytes)
-    {
-        Length = (uint16_t)(strlen(HexBytes) / 2);
-        Data = new(std::nothrow) uint8_t[Length];
-
-        for (uint16_t i = 0; i < Length; ++i) {
-            Data[i] =
-                (DecodeHexChar(HexBytes[i * 2]) << 4) |
-                DecodeHexChar(HexBytes[i * 2 + 1]);
-        }
-    }
-
-    ~StrBuffer() { delete [] Data; }
-};
-
 void
 DrillInitialPacketDescriptor::encrypt(
     DrillBuffer& PacketBuffer,

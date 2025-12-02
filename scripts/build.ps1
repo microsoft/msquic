@@ -27,6 +27,9 @@ This script provides helpers for building msquic.
 .PARAMETER SanitizeAddress
     Enables address sanitizer.
 
+.PARAMETER SanitizeThread
+    Enables thread sanitizer.
+
 .PARAMETER CodeCheck
     Enables static code checkers.
 
@@ -59,6 +62,9 @@ This script provides helpers for building msquic.
 
 .PARAMETER UseXdp
     Enables XDP support (Linux-only).
+
+.PARAMETER UseIoUring
+    Enables io_uring support (Linux-only).
 
 .PARAMETER Generator
     Specifies a specific cmake generator (Only supported on unix)
@@ -132,7 +138,7 @@ param (
     [switch]$Static = $false,
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -143,6 +149,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$SanitizeAddress = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$SanitizeThread = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$CodeCheck = $false,
@@ -175,6 +184,9 @@ param (
     [switch]$UseXdp = $false,
 
     [Parameter(Mandatory = $false)]
+    [switch]$UseIoUring = $false,
+
+    [Parameter(Mandatory = $false)]
     [string]$Generator = "",
 
     [Parameter(Mandatory = $false)]
@@ -197,6 +209,9 @@ param (
 
     [Parameter(Mandatory = $false)]
     [switch]$OfficialRelease = $false,
+
+    [Parameter(Mandatory = $false)]
+    [switch]$ForceOfficialRelease = $false,
 
     [Parameter(Mandatory = $false)]
     [switch]$EnableTelemetryAsserts = $true,
@@ -268,8 +283,8 @@ if ($Arch -eq "arm64ec") {
     if (!$IsWindows) {
         Write-Error "Arm64EC is only supported on Windows"
     }
-    if ($Tls -eq "openssl" -Or $Tls -eq "openssl3") {
-        Write-Error "Arm64EC does not support openssl"
+    if ($Tls -eq "quictls" -Or $Tls -eq "openssl") {
+        Write-Error "Arm64EC does not support quictls/openssl"
     }
 }
 
@@ -299,6 +314,10 @@ if ($OfficialRelease) {
         }
     } catch { }
     $global:LASTEXITCODE = 0
+}
+
+if ($ForceOfficialRelease) {
+    $OfficialRelease = $true
 }
 
 # Root directory of the project.
@@ -331,7 +350,7 @@ if ($Clang) {
     $env:CXX = 'clang++'
 }
 
-# Workaround for perl openssl build warnings.
+# Workaround for perl quictls build warnings.
 $env:TERM='ansi'
 
 function Log($msg) {
@@ -424,12 +443,9 @@ function CMake-Generate {
     if($Static) {
         $Arguments += " -DQUIC_BUILD_SHARED=off"
     }
-    $Arguments += " -DQUIC_TLS=" + $Tls
+    $Arguments += " -DQUIC_TLS_LIB=" + $Tls
     $Arguments += " -DQUIC_OUTPUT_DIR=""$ArtifactsDir"""
 
-    if ($IsLinux) {
-        $Arguments += " -DQUIC_LINUX_LOG_ENCODER=lttng"
-    }
     if (!$DisableLogs) {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on"
     }
@@ -437,7 +453,10 @@ function CMake-Generate {
         $Arguments += " -DQUIC_ENABLE_LOGGING=on -DQUIC_LOGGING_TYPE=" + $LoggingType
     }
     if ($SanitizeAddress) {
-        $Arguments += " -DQUIC_ENABLE_SANITIZERS=on"
+        $Arguments += " -DQUIC_ENABLE_ALL_SANITIZERS=on"
+    }
+    if ($SanitizeThread) {
+        $Arguments += " -DQUIC_ENABLE_TSAN=on"
     }
     if ($CodeCheck) {
         $Arguments += " -DQUIC_CODE_CHECK=on"
@@ -473,6 +492,9 @@ function CMake-Generate {
     }
     if ($UseXdp) {
         $Arguments += " -DQUIC_LINUX_XDP_ENABLED=on"
+    }
+    if ($UseIoUring) {
+        $Arguments += " -DQUIC_LINUX_IOURING_ENABLED=on"
     }
     if ($Platform -eq "uwp") {
         $Arguments += " -DCMAKE_SYSTEM_NAME=WindowsStore -DCMAKE_SYSTEM_VERSION=10.0 -DQUIC_UWP_BUILD=on"
@@ -545,7 +567,7 @@ function CMake-Build {
     }
     if ($IsWindows) {
         $Arguments += " --config " + $Config
-    } else {
+    } elseif (@("", "Unix Makefiles") -contains $Generator) {
         $Arguments += " -- VERBOSE=1"
     }
 
@@ -554,7 +576,7 @@ function CMake-Build {
 
     if ($IsWindows) {
         Copy-Item (Join-Path $BuildDir "obj" $Config "$LibraryName.lib") $ArtifactsDir
-        if ($SanitizeAddress -or ($PGO -and $Config -eq "Release")) {
+        if ($SanitizeAddress -or $SanitizeThread -or ($PGO -and $Config -eq "Release")) {
             $CacheFile = Join-Path $BuildDir "CMakeCache.txt"
             $LinkerMatches = Select-String -Path $CacheFile -Pattern "CMAKE_LINKER:FILEPATH=(.+)"
             if ($LinkerMatches.Matches.Length -eq 1 -and $LinkerMatches.Matches[0].Groups.Count -eq 2) {
@@ -567,7 +589,7 @@ function CMake-Build {
                     Copy-Item (Join-Path $VCToolsPath "tbbmalloc.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "pgomgr.exe") $ArtifactsDir
                 }
-                if ($SanitizeAddress) {
+                if ($SanitizeAddress -or $SanitizeThread) {
                     Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dbg_dynamic-x86_64.dll") $ArtifactsDir
                     Copy-Item (Join-Path $VCToolsPath "clang_rt.asan_dynamic-x86_64.dll") $ArtifactsDir
                 }

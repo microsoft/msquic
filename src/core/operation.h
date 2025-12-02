@@ -56,7 +56,6 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_STRM_SEND,
     QUIC_API_TYPE_STRM_RECV_COMPLETE,
     QUIC_API_TYPE_STRM_RECV_SET_ENABLED,
-    QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS,
 
     QUIC_API_TYPE_SET_PARAM,
     QUIC_API_TYPE_GET_PARAM,
@@ -64,6 +63,7 @@ typedef enum QUIC_API_TYPE {
     QUIC_API_TYPE_DATAGRAM_SEND,
     QUIC_API_TYPE_CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION,
     QUIC_API_TYPE_CONN_COMPLETE_CERTIFICATE_VALIDATION,
+    QUIC_API_TYPE_STRM_PROVIDE_RECV_BUFFERS,
 
 } QUIC_API_TYPE;
 
@@ -252,7 +252,7 @@ typedef struct QUIC_OPERATION {
 
 } QUIC_OPERATION;
 
-inline
+QUIC_INLINE
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperLog(
@@ -329,7 +329,7 @@ QuicOperationQueueUninitialize(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationAlloc(
-    _In_ QUIC_WORKER* Worker,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION_TYPE Type
     );
 
@@ -339,7 +339,6 @@ QuicOperationAlloc(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicOperationFree(
-    _In_ QUIC_WORKER* Worker,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -347,7 +346,7 @@ QuicOperationFree(
 // Returns TRUE if the operation queue has priority operations queued.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicOperationHasPriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ
@@ -367,6 +366,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueue(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -379,6 +379,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueuePriority(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -390,6 +391,7 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
 QuicOperationEnqueueFront(
     _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition,
     _In_ QUIC_OPERATION* Oper
     );
 
@@ -399,7 +401,8 @@ QuicOperationEnqueueFront(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_OPERATION*
 QuicOperationDequeue(
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     );
 
 //
@@ -408,6 +411,6 @@ QuicOperationDequeue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 void
 QuicOperationQueueClear(
-    _In_ QUIC_WORKER* Worker,
-    _In_ QUIC_OPERATION_QUEUE* OperQ
+    _In_ QUIC_OPERATION_QUEUE* OperQ,
+    _In_ QUIC_PARTITION* Partition
     );

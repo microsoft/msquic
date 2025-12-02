@@ -54,7 +54,13 @@ void* __cdecl operator new[] (size_t Size, const std::nothrow_t&) throw(){
     return ExAllocatePool2(POOL_FLAG_NON_PAGED, Size, QUIC_POOL_TEST);
 }
 
-void __cdecl operator delete[] (/*_In_opt_*/ void* Mem) {
+void __cdecl operator delete[] (/*_In_opt_*/ void* Mem) noexcept {
+    if (Mem != nullptr) {
+        ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
+    }
+}
+
+void __cdecl operator delete[] (/*_In_opt_*/ void* Mem, size_t) noexcept {
     if (Mem != nullptr) {
         ExFreePoolWithTag(Mem, QUIC_POOL_TEST);
     }

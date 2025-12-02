@@ -65,7 +65,6 @@ typedef union QUIC_STREAM_FLAGS {
         BOOLEAN UseAppOwnedRecvBuffers  : 1;    // The stream is using app provided receive buffers.
         BOOLEAN ReceiveFlushQueued      : 1;    // The receive flush operation is queued.
         BOOLEAN ReceiveDataPending      : 1;    // Data (or FIN) is queued and ready for delivery.
-        BOOLEAN ReceiveCallActive       : 1;    // There is an active receive to the app.
         BOOLEAN SendDelayed             : 1;    // A delayed send is currently queued.
         BOOLEAN CancelOnLoss            : 1;    // Indicates that the stream is to be canceled
                                                 // if loss is detected.
@@ -97,6 +96,7 @@ typedef union QUIC_CONNECTION_STATE {
         BOOLEAN ShutdownComplete : 1;   // Shutdown callback delivered for handle.
         BOOLEAN HandleClosed    : 1;    // Handle closed by application layer.
         BOOLEAN Freed           : 1;    // Freed. Used for Debugging.
+        BOOLEAN Partitioned     : 1;    // The connection cannot move across partitions.
 
         //
         // Indicates whether packet number encryption is enabled or not for the
@@ -581,7 +581,7 @@ struct RecvBuffer : Struct {
 
     PSTR ModeStr() {
         const auto Mode = ReadType<QUIC_RECV_BUF_MODE>("RecvMode");
-            
+
         switch (Mode) {
         case QUIC_RECV_BUF_MODE_SINGLE:
             return "Single";

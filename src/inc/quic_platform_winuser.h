@@ -226,7 +226,7 @@ GetModuleHandleW(
 // Wrapper functions
 //
 
-inline
+QUIC_INLINE
 void*
 InterlockedFetchAndClearPointer(
     _Inout_ _Interlocked_operand_ void* volatile *Target
@@ -235,7 +235,7 @@ InterlockedFetchAndClearPointer(
     return InterlockedExchangePointer(Target, NULL);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndClearBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -244,7 +244,7 @@ InterlockedFetchAndClearBoolean(
     return (BOOLEAN)InterlockedAnd8((char*)Target, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 InterlockedFetchAndSetBoolean(
     _Inout_ _Interlocked_operand_ BOOLEAN volatile *Target
@@ -257,7 +257,7 @@ InterlockedFetchAndSetBoolean(
 // CloseHandle has an incorrect SAL annotation, so call through a wrapper.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
-inline
+QUIC_INLINE
 void
 CxPlatCloseHandle(_Pre_notnull_ HANDLE Handle) {
     CloseHandle(Handle);
@@ -290,8 +290,21 @@ CxPlatFree(
 
 typedef struct CXPLAT_POOL CXPLAT_POOL;
 
+typedef struct DECLSPEC_ALIGN(MEMORY_ALLOCATION_ALIGNMENT) CXPLAT_POOL_HEADER {
+    union {
+    CXPLAT_POOL* Owner;
+    CXPLAT_SLIST_ENTRY Entry;
+    };
+#if DEBUG
+    uint64_t SpecialFlag;
+#endif
+} CXPLAT_POOL_HEADER;
+
+#define CXPLAT_POOL_FREE_FLAG   0xAAAAAAAAAAAAAAAAui64
+#define CXPLAT_POOL_ALLOC_FLAG  0xE9E9E9E9E9E9E9E9ui64
+
 typedef
-void*
+CXPLAT_POOL_HEADER*
 (*CXPLAT_POOL_ALLOC_FN)(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -301,7 +314,7 @@ void*
 typedef
 void
 (*CXPLAT_POOL_FREE_FN)(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_HEADER* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     );
@@ -324,19 +337,13 @@ typedef struct CXPLAT_POOL {
 #endif
 
 #if DEBUG
-typedef struct CXPLAT_POOL_ENTRY {
-    SLIST_ENTRY ListHead;
-    uint64_t SpecialFlag;
-} CXPLAT_POOL_ENTRY;
-#define CXPLAT_POOL_SPECIAL_FLAG    0xAAAAAAAAAAAAAAAAui64
-
 int32_t
 CxPlatGetAllocFailDenominator(
     );
 #endif
 
-inline
-void*
+QUIC_INLINE
+CXPLAT_POOL_HEADER*
 CxPlatPoolGenericAlloc(
     _In_ uint32_t Size,
     _In_ uint32_t Tag,
@@ -344,13 +351,13 @@ CxPlatPoolGenericAlloc(
     )
 {
     UNREFERENCED_PARAMETER(Pool);
-    return CxPlatAlloc(Size, Tag);
+    return (CXPLAT_POOL_HEADER*)CxPlatAlloc(Size, Tag);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolGenericFree(
-    _In_ void* Entry,
+    _In_ CXPLAT_POOL_HEADER* Entry,
     _In_ uint32_t Tag,
     _Inout_ CXPLAT_POOL* Pool
     )
@@ -359,7 +366,7 @@ CxPlatPoolGenericFree(
     CxPlatFree(Entry, Tag);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolInitialize(
     _In_ BOOLEAN IsPaged,
@@ -368,10 +375,7 @@ CxPlatPoolInitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
-    Pool->Size = Size;
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the object header
     Pool->Tag = Tag;
     Pool->MaxDepth = CXPLAT_POOL_DEFAULT_MAX_DEPTH;
     Pool->Allocate = CxPlatPoolGenericAlloc;
@@ -380,7 +384,7 @@ CxPlatPoolInitialize(
     UNREFERENCED_PARAMETER(IsPaged);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolInitializeEx(
     _In_ BOOLEAN IsPaged,
@@ -392,10 +396,7 @@ CxPlatPoolInitializeEx(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-#if DEBUG
-    CXPLAT_DBG_ASSERT(Size >= sizeof(CXPLAT_POOL_ENTRY));
-#endif
-    Pool->Size = Size;
+    Pool->Size = Size + sizeof(CXPLAT_POOL_HEADER); // Add space for the object header
     Pool->Tag = Tag;
     Pool->Allocate = Allocate ? Allocate : CxPlatPoolGenericAlloc;
     Pool->Free = Free ? Free : CxPlatPoolGenericFree;
@@ -408,73 +409,85 @@ CxPlatPoolInitializeEx(
     }
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolUninitialize(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry;
-    while ((Entry = InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
+    CXPLAT_POOL_HEADER* Entry;
+    while ((Entry = (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead)) != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+#endif
         Pool->Free(Entry, Pool->Tag, Pool);
     }
 }
 
-inline
+QUIC_INLINE
 void*
 CxPlatPoolAlloc(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
+    CXPLAT_POOL_HEADER* Header =
 #if DEBUG
-    if (CxPlatGetAllocFailDenominator()) {
-        return Pool->Allocate(Pool->Size, Pool->Tag, Pool);
-    }
+        CxPlatGetAllocFailDenominator() ? NULL : // No pool when using simulated alloc failures
 #endif
-    void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
-    if (Entry == NULL) {
-        Entry = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
+    if (Header == NULL) {
+        Header = Pool->Allocate(Pool->Size, Pool->Tag, Pool);
+        if (Header == NULL) {
+            return NULL;
+        }
     }
 #if DEBUG
-    if (Entry != NULL) {
-        ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = 0;
+    else {
+        CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
     }
+    Header->SpecialFlag = CXPLAT_POOL_ALLOC_FLAG;
 #endif
-    return Entry;
+    Header->Owner = Pool;
+    return (void*)(Header + 1);
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatPoolFree(
-    _Inout_ CXPLAT_POOL* Pool,
-    _In_ void* Entry
+    _In_ void* Memory
     )
 {
+    CXPLAT_POOL_HEADER* Header = (CXPLAT_POOL_HEADER*)Memory - 1;
+    CXPLAT_POOL* Pool = Header->Owner;
 #if DEBUG
+    CXPLAT_DBG_ASSERT(Header->SpecialFlag == CXPLAT_POOL_ALLOC_FLAG);
     if (CxPlatGetAllocFailDenominator()) {
-        Pool->Free(Entry, Pool->Tag, Pool);
+        Pool->Free(Header, Pool->Tag, Pool);
         return;
     }
-    CXPLAT_DBG_ASSERT(((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag != CXPLAT_POOL_SPECIAL_FLAG);
-    ((CXPLAT_POOL_ENTRY*)Entry)->SpecialFlag = CXPLAT_POOL_SPECIAL_FLAG;
+    Header->SpecialFlag = CXPLAT_POOL_FREE_FLAG;
 #endif
     if (QueryDepthSList(&Pool->ListHead) >= Pool->MaxDepth) {
-        Pool->Free(Entry, Pool->Tag, Pool);
+        Pool->Free(Header, Pool->Tag, Pool);
     } else {
-        InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Entry);
+        InterlockedPushEntrySList(&Pool->ListHead, (PSLIST_ENTRY)Header);
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatPoolPrune(
     _Inout_ CXPLAT_POOL* Pool
     )
 {
-    void* Entry = InterlockedPopEntrySList(&Pool->ListHead);
+    CXPLAT_POOL_HEADER* Entry =
+        (CXPLAT_POOL_HEADER*)InterlockedPopEntrySList(&Pool->ListHead);
     if (Entry == NULL) {
         return FALSE;
     }
+#if DEBUG
+    CXPLAT_DBG_ASSERT(Entry->SpecialFlag == CXPLAT_POOL_FREE_FLAG);
+#endif
     Pool->Free(Entry, Pool->Tag, Pool);
     return TRUE;
 }
@@ -572,7 +585,7 @@ typedef SRWLOCK CXPLAT_DISPATCH_RW_LOCK;
 
 typedef LONG_PTR CXPLAT_REF_COUNT;
 
-inline
+QUIC_INLINE
 void
 CxPlatRefInitialize(
     _Out_ CXPLAT_REF_COUNT* RefCount
@@ -581,7 +594,7 @@ CxPlatRefInitialize(
     *RefCount = 1;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatRefInitializeEx(
     _Out_ CXPLAT_REF_COUNT* RefCount,
@@ -591,9 +604,21 @@ CxPlatRefInitializeEx(
     *RefCount = (LONG_PTR)Initial;
 }
 
+QUIC_INLINE
+void
+CxPlatRefInitializeMultiple(
+    _Out_writes_(Count) CXPLAT_REF_COUNT* RefCounts,
+    _In_ uint32_t Count
+    )
+{
+    for (uint32_t i = 0; i < Count; i++) {
+        CxPlatRefInitialize(&RefCounts[i]);
+    }
+}
+
 #define CxPlatRefUninitialize(RefCount)
 
-inline
+QUIC_INLINE
 void
 CxPlatRefIncrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -606,7 +631,7 @@ CxPlatRefIncrement(
     __fastfail(FAST_FAIL_INVALID_REFERENCE_COUNT);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefIncrementNonZero(
     _Inout_ volatile CXPLAT_REF_COUNT *RefCount,
@@ -640,7 +665,7 @@ CxPlatRefIncrementNonZero(
     }
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatRefDecrement(
     _Inout_ CXPLAT_REF_COUNT* RefCount
@@ -685,7 +710,7 @@ typedef HANDLE CXPLAT_EVENT;
 #define CxPlatEventSet(Event) SetEvent(Event)
 #define CxPlatEventReset(Event) ResetEvent(Event)
 #define CxPlatEventWaitForever(Event) WaitForSingleObject(Event, INFINITE)
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventWaitWithTimeout(
     _In_ CXPLAT_EVENT Event,
@@ -717,7 +742,7 @@ typedef struct CXPLAT_SQE {
 #endif
 } CXPLAT_SQE;
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQInitialize(
     _Out_ CXPLAT_EVENTQ* queue
@@ -726,7 +751,7 @@ CxPlatEventQInitialize(
     return (*queue = CreateIoCompletionPort(INVALID_HANDLE_VALUE, NULL, 0, 1)) != NULL;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQCleanup(
     _In_ CXPLAT_EVENTQ* queue
@@ -735,7 +760,7 @@ CxPlatEventQCleanup(
     CloseHandle(*queue);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQAssociateHandle(
     _In_ CXPLAT_EVENTQ* queue,
@@ -745,7 +770,7 @@ CxPlatEventQAssociateHandle(
     return *queue == CreateIoCompletionPort(fileHandle, *queue, 0, 0);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -760,7 +785,7 @@ CxPlatEventQEnqueue(
     return PostQueuedCompletionStatus(*queue, 0, 0, &sqe->Overlapped) != 0;
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatEventQEnqueueEx( // Windows specific extension
     _In_ CXPLAT_EVENTQ* queue,
@@ -776,7 +801,7 @@ CxPlatEventQEnqueueEx( // Windows specific extension
     return PostQueuedCompletionStatus(*queue, num_bytes, 0, &sqe->Overlapped) != 0;
 }
 
-inline
+QUIC_INLINE
 uint32_t
 CxPlatEventQDequeue(
     _In_ CXPLAT_EVENTQ* queue,
@@ -799,7 +824,7 @@ CxPlatEventQDequeue(
     return events[0].lpOverlapped == NULL ? 0 : (uint32_t)out_count;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatEventQReturn(
     _In_ CXPLAT_EVENTQ* queue,
@@ -810,7 +835,7 @@ CxPlatEventQReturn(
     UNREFERENCED_PARAMETER(count);
 }
 
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatSqeInitialize(
     _In_ CXPLAT_EVENTQ* queue,
@@ -824,7 +849,7 @@ CxPlatSqeInitialize(
     return TRUE;
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeInitializeEx(
     _In_ CXPLAT_EVENT_COMPLETION_HANDLER completion,
@@ -838,7 +863,7 @@ CxPlatSqeInitializeEx(
 #endif
 }
 
-inline
+QUIC_INLINE
 void
 CxPlatSqeCleanup(
     _In_ CXPLAT_EVENTQ* queue,
@@ -849,7 +874,7 @@ CxPlatSqeCleanup(
     UNREFERENCED_PARAMETER(sqe);
 }
 
-inline
+QUIC_INLINE
 CXPLAT_SQE*
 CxPlatCqeGetSqe(
     _In_ const CXPLAT_CQE* cqe
@@ -877,7 +902,7 @@ GetSystemTimeAdjustment(
 //
 // Returns the worst-case system timer resolution (in us).
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatGetTimerResolution()
 {
@@ -895,7 +920,7 @@ extern uint64_t CxPlatPerfFreq;
 //
 // Returns the current time in platform specific time units.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlat(
     void
@@ -909,7 +934,7 @@ QuicTimePlat(
 //
 // Converts platform time to microseconds.
 //
-inline
+QUIC_INLINE
 uint64_t
 QuicTimePlatToUs64(
     uint64_t Count
@@ -932,7 +957,7 @@ QuicTimePlatToUs64(
 //
 // Converts microseconds to platform time.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeUs64ToPlat(
     uint64_t TimeUs
@@ -952,7 +977,7 @@ CxPlatTimeUs64ToPlat(
 
 #define UNIX_EPOCH_AS_FILE_TIME 0x19db1ded53e8000ll
 
-inline
+QUIC_INLINE
 int64_t
 CxPlatTimeEpochMs64(
     )
@@ -965,7 +990,7 @@ CxPlatTimeEpochMs64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint64_t
 CxPlatTimeDiff64(
     _In_ uint64_t T1,     // First time measured
@@ -981,24 +1006,21 @@ CxPlatTimeDiff64(
 //
 // Returns the difference between two timestamps.
 //
-inline
+QUIC_INLINE
 uint32_t
 CxPlatTimeDiff32(
     _In_ uint32_t T1,     // First time measured
     _In_ uint32_t T2      // Second time measured
     )
 {
-    if (T2 > T1) {
-        return T2 - T1;
-    } else { // Wrap around case.
-        return T2 + (0xFFFFFFFF - T1) + 1;
-    }
+    // Subtraction handles wraparound automatically in the ring 2^32
+    return T2 - T1;
 }
 
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore64(
     _In_ uint64_t T1,
@@ -1014,7 +1036,7 @@ CxPlatTimeAtOrBefore64(
 //
 // Returns TRUE if T1 came before T2.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 CxPlatTimeAtOrBefore32(
     _In_ uint32_t T1,
@@ -1053,15 +1075,25 @@ extern uint32_t CxPlatProcessorCount;
 #define CxPlatProcCount() CxPlatProcessorCount
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
+uint32_t
+CxPlatProcNumberToIndex(
+    PROCESSOR_NUMBER* ProcNumber
+    )
+{
+    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber->Group];
+    return Group->Offset + (ProcNumber->Number % Group->Count);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
 uint32_t
 CxPlatProcCurrentNumber(
     void
     ) {
     PROCESSOR_NUMBER ProcNumber;
     GetCurrentProcessorNumberEx(&ProcNumber);
-    const CXPLAT_PROCESSOR_GROUP_INFO* Group = &CxPlatProcessorGroupInfo[ProcNumber.Group];
-    return Group->Offset + (ProcNumber.Number % Group->Count);
+    return CxPlatProcNumberToIndex(&ProcNumber);
 }
 
 

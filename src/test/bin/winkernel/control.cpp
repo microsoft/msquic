@@ -530,6 +530,11 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     sizeof(INT32),
     sizeof(INT32),
+    sizeof(QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS),
+    0,
+    0,
+    0,
+    0,
     sizeof(QUIC_RUN_PROBE_PATH_PARAMS),
     sizeof(QUIC_RUN_MIGRATION_PARAMS),
 };
@@ -575,6 +580,7 @@ typedef union {
     QUIC_HANDSHAKE_LOSS_PARAMS HandshakeLossParams;
     BOOLEAN ClientShutdown;
     BOOLEAN EnableResumption;
+    QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS ConnPoolCreateParams;
 } QUIC_IOCTL_PARAMS;
 
 #define QuicTestCtlRun(X) \
@@ -702,17 +708,23 @@ QuicTestCtlEvtIoDeviceControl(
                 STRSAFE_NULL_ON_FAILURE);
 
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
-        QUIC_EXECUTION_CONFIG Config = Params->TestConfigurationParams.Config;
-        if (Config.Flags != QUIC_EXECUTION_CONFIG_FLAG_NONE) {
-            Status =
-                MsQuic->SetParam(
-                    nullptr,
-                    QUIC_PARAM_GLOBAL_EXECUTION_CONFIG,
-                    sizeof(Config),
-                    &Config);
-        }
+        // TODO - XDP stuff, if/when supported
 #endif
-
+        {
+            //
+            // We don't want to hinge the result of 'Status = ' on this setparam call because
+            // this SetParam will only succeed the first time, before the datapath initializes.
+            // User mode tests already ensure at most 1 setparam call. But in Kernel mode, this IOCTL
+            // can be invoked many times.
+            // If the datapath is already initialized, this setparam call should fail silently.
+            //
+            BOOLEAN EnableDscpRecvOption = TRUE;
+            MsQuic->SetParam(
+                    nullptr,
+                    QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED,
+                    sizeof(BOOLEAN),
+                    &EnableDscpRecvOption);
+        }
         break;
 
     case IOCTL_QUIC_SET_CERT_PARAMS:
@@ -820,7 +832,8 @@ QuicTestCtlEvtIoDeviceControl(
                 Params->Params2.UseSendBuffer != 0,
                 Params->Params2.UnidirectionalStreams != 0,
                 Params->Params2.ServerInitiatedStreams != 0,
-                Params->Params2.FifoScheduling != 0
+                Params->Params2.FifoScheduling != 0,
+                Params->Params2.SendUdpToQtipListener != 0
                 ));
         break;
 
@@ -1541,9 +1554,32 @@ QuicTestCtlEvtIoDeviceControl(
         QuicTestCtlRun(QuicTestStreamAppProvidedBuffers());
         break;
 
-    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW:
-        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersZeroWindow());
+    case IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE:
+        QuicTestCtlRun(QuicTestStreamAppProvidedBuffersOutOfSpace());
         break;
+
+    case IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE:
+        CXPLAT_FRE_ASSERT(Params != nullptr);
+        QuicTestCtlRun(
+            QuicTestConnectionPoolCreate(
+                Params->ConnPoolCreateParams.Family,
+                Params->ConnPoolCreateParams.NumberOfConnections,
+                Params->ConnPoolCreateParams.XdpSupported,
+                Params->ConnPoolCreateParams.TestCibirSupport));
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE:
+        QuicTestCtlRun(QuicTestValidateConnectionPoolCreate());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT:
+        QuicTestCtlRun(QuicTestValidateExecutionContext());
+        break;
+
+    case IOCTL_QUIC_RUN_VALIDATE_PARTITION:
+        QuicTestCtlRun(QuicTestValidatePartition());
+        break;
+
 #endif
 
     case IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE:
@@ -1554,6 +1590,10 @@ QuicTestCtlEvtIoDeviceControl(
     case IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT:
         CXPLAT_FRE_ASSERT(Params != nullptr);
         QuicTestCtlRun(QuicTestRetryMemoryLimitConnect(Params->Family));
+        break;
+
+    case IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING:
+        QuicTestCtlRun(QuicTestRetryConfigSetting());
         break;
 
     default:

@@ -20,7 +20,6 @@ Abstract:
 
 bool Verbose = false;
 CXPLAT_DATAPATH* Datapath;
-CXPLAT_WORKER_POOL WorkerPool;
 struct LbInterface* PublicInterface;
 std::vector<QUIC_ADDR> PrivateAddrs;
 
@@ -33,7 +32,7 @@ struct LbInterface {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = nullptr;
-        UdpConfig.Flags = 0;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
         if (IsPublic) {
@@ -123,7 +122,8 @@ struct LbPublicInterface : public LbInterface {
     struct Hasher {
         CXPLAT_TOEPLITZ_HASH Toeplitz;
         Hasher() {
-            CxPlatRandom(CXPLAT_TOEPLITZ_KEY_SIZE, &Toeplitz.HashKey);
+            CxPlatRandom(CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC, &Toeplitz.HashKey);
+            Toeplitz.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
             CxPlatToeplitzHashInitialize(&Toeplitz);
         }
         size_t operator() (const std::pair<QUIC_ADDR, QUIC_ADDR> key) const {
@@ -213,10 +213,11 @@ main(int argc, char **argv)
 
     CxPlatSystemLoad();
     CxPlatInitialize();
-    CxPlatWorkerPoolInit(&WorkerPool);
+    CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
 
     CXPLAT_UDP_DATAPATH_CALLBACKS LbUdpCallbacks { LbReceive, NoOpUnreachable };
-    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, &WorkerPool, nullptr, &Datapath);
+    CXPLAT_DATAPATH_INIT_CONFIG DataPathInitConfig = {0};
+    CxPlatDataPathInitialize(0, &LbUdpCallbacks, nullptr, WorkerPool, &DataPathInitConfig, &Datapath);
     PublicInterface = new LbPublicInterface(&PublicAddr);
 
     printf("Press Enter to exit.\n\n");
@@ -224,7 +225,7 @@ main(int argc, char **argv)
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolUninit(&WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 

@@ -134,6 +134,7 @@ $Clog2Text_lttng = "$HOME/.dotnet/tools/clog2text_lttng"
 $TempDir = $null
 $TempLTTngDir = $null
 $TempPerfDir = $null
+
 if ($IsLinux) {
     $InstanceName = $InstanceName.Replace(".", "_")
     $TempDir = Join-Path $HOME "QUICLogs"
@@ -147,14 +148,27 @@ if ($IsLinux) {
         sudo apt-get install -y lttng-tools
         sudo apt-get install -y liblttng-ust-dev
     }
-    perf version 2>&1 | Out-Null
-    if (!$?) {
+    try { perf version | Out-Null }
+    catch {
         Write-Debug "Installing perf"
         sudo apt-get install -y linux-tools-$(uname -r)
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/stackcollapse-perf.pl -O /usr/bin/stackcollapse-perf.pl
         sudo chmod +x /usr/bin/stackcollapse-perf.pl
         sudo wget https://raw.githubusercontent.com/brendangregg/FlameGraph/master/flamegraph.pl -O /usr/bin/flamegraph.pl
         sudo chmod +x /usr/bin/flamegraph.pl
+    }
+}
+
+# Helper function to get the appropriate babeltrace command
+function Get-BabeltraceCommand {
+    # BabelTrace / BabelTrace2 is not installed in all CI runner, so select the one available.
+    # BabelTrace2 "convert" sub-command is the default and backward compatible with BabelTrace.
+    if (Get-Command babeltrace2 -ErrorAction SilentlyContinue) {
+        return "babeltrace2"
+    } elseif (Get-Command babeltrace -ErrorAction SilentlyContinue) {
+        return "babeltrace"
+    } else {
+        throw "Neither babeltrace2 nor babeltrace is available"
     }
 }
 
@@ -246,10 +260,13 @@ function Log-Start {
 
             if ($Stream) {
                 lttng list | Write-Debug
-                babeltrace -i lttng-live net://localhost | Write-Debug
                 $myHostName = hostname
+                
+                $BabeltraceCmd = Get-BabeltraceCommand
+                & $BabeltraceCmd -i lttng-live net://localhost | Write-Debug
+                
                 Write-Host "Now decoding LTTng events in realtime on host=$myHostName...`n"
-                $args = "babeltrace --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
+                $args = "$BabeltraceCmd --names all -i lttng-live net://localhost/host/$myHostName/msquiclive | $Clog2Text_lttng  -s $SideCar --showTimestamp --showCpuInfo"
                 Write-Host $args
                 Invoke-Expression $args
             }
@@ -307,25 +324,25 @@ function Log-Stop {
         Invoke-Expression "lttng stop $InstanceName" | Write-Debug
 
         $LTTNGTarFile = $OutputPath + ".tgz"
-        $BableTraceFile = $OutputPath + ".babel.txt"
+        $BabelTraceFile = $OutputPath + ".babel.txt"
 
         Write-Host "tar/gzip LTTng log files: $LTTNGTarFile"
         tar -cvzf $LTTNGTarFile -P $TempLTTngDir | Write-Debug
 
         if (!$RawLogOnly) {
-            Write-Debug "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-            babeltrace --names all $TempLTTngDir/* > $BableTraceFile
-            Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
-            $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
-            Write-Host $Command
-
             try {
+                Write-Debug "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
+                $BabeltraceCmd = Get-BabeltraceCommand
+                & $BabeltraceCmd --names all $TempLTTngDir/* > $BabelTraceFile
+
+                Write-Host "Decoding into human-readable text: $ClogOutputDecodeFile"
+                $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile --showTimestamp --showCpuInfo"
+                Write-Host $Command
                 Invoke-Expression $Command | Write-Debug
             } catch {
                 $err = $_
                 Write-Host "Failed to decode logs."
-                Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
-                $Command
+                Write-Host "Run `"prepare-machine.ps1 -InstallClog2Text`" and try again"
                 Write-Host $err
             }
         }
@@ -350,7 +367,7 @@ function Log-Decode {
 
         $DecompressedLogs = Join-Path $WorkingDirectory "DecompressedLogs"
         $ClogOutputDecodeFile = Join-Path $WorkingDirectory "clog_decode.txt"
-        $BableTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
+        $BabelTraceFile = Join-Path $WorkingDirectory "decoded_babeltrace.txt"
 
         mkdir $WorkingDirectory
         mkdir $DecompressedLogs
@@ -358,19 +375,19 @@ function Log-Decode {
         Write-Host "Decompressing $Logfile into $DecompressedLogs"
         tar xvfz $Logfile -C $DecompressedLogs
 
-        Write-Host "Decoding LTTng into BabelTrace format ($BableTraceFile)"
-        babeltrace --names all $DecompressedLogs/* > $BableTraceFile
-        Write-Host "Decoding Babeltrace into human text using CLOG"
-        $Command = "$Clog2Text_lttng -i $BableTraceFile -s $SideCar -o $ClogOutputDecodeFile"
-        Write-Host $Command
-
         try {
+            Write-Host "Decoding LTTng into BabelTrace format ($BabelTraceFile)"
+            $BabeltraceCmd = Get-BabeltraceCommand
+            & $BabeltraceCmd --names all $DecompressedLogs/* > $BabelTraceFile
+            
+            Write-Host "Decoding Babeltrace into human text using CLOG"
+            $Command = "$Clog2Text_lttng -i $BabelTraceFile -s $SideCar -o $ClogOutputDecodeFile"
+            Write-Host $Command
             Invoke-Expression $Command
         } catch {
             $err = $_
             Write-Host "Failed to decode logs."
-            Write-Host "Babeltrace ran. Run `"prepare-machine.ps1 -InstallClog2Text`" and run the following command"
-            $Command
+            Write-Host "Run `"prepare-machine.ps1 -InstallClog2Text`" and try again"
             Write-Host $err
         }
     }
@@ -380,9 +397,19 @@ function Log-Decode {
 #                     Main Execution                         #
 ##############################################################
 
-if ($Start)  { Log-Start }
-if ($Cancel) { Log-Cancel }
-if ($Stop)   { Log-Stop }
-if ($Decode) { Log-Decode }
-if ($PerfRun) { Perf-Run }
-if ($PerfGraph) { Perf-Graph }
+#
+# Allow the CLOG sidecar to run on newer .NET versions.
+#
+$OriginalDOTNET_ROLL_FORWARD = $env:DOTNET_ROLL_FORWARD
+
+try {
+    $env:DOTNET_ROLL_FORWARD = "Major"
+    if ($Start)  { Log-Start }
+    if ($Cancel) { Log-Cancel }
+    if ($Stop)   { Log-Stop }
+    if ($Decode) { Log-Decode }
+    if ($PerfRun) { Perf-Run }
+    if ($PerfGraph) { Perf-Graph }
+} finally {
+    $env:DOTNET_ROLL_FORWARD = $OriginalDOTNET_ROLL_FORWARD
+}

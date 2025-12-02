@@ -291,12 +291,23 @@ main(
     QUIC_CREDENTIAL_CONFIG* SelfSignedCredConfig = nullptr;
     uint8_t CipherSuite = 0;
 
+#ifdef QUIC_BUILD_STATIC
+    //
+    // We are statically linking to msquic. We cannot call CxPlatSystemLoad and
+    // CxPlatInitialize directly because they are touching the same set of global
+    // variables that are used inside msquic.
+    //
+    MsQuicApi MsQuic;
+    
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(MsQuic.GetInitStatus()));
+#else
     CxPlatSystemLoad();
     CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(CxPlatInitialize()));
+#endif
 
-    const char* DriverName = nullptr;
     bool PrivateTestLibrary = false;
-     if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
+    const char* DriverName = nullptr;
+    if (!TryGetValue(argc, argv, "driverName", &DriverName) &&
         TryGetValue(argc, argv, "driverNamePriv", &DriverName)) {
         PrivateTestLibrary = true;
     }
@@ -312,11 +323,11 @@ main(
             Status = QUIC_STATUS_INTERNAL_ERROR;
             goto Exit;
         }
-    }
 
-    if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
-        SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
-        SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        if (TryGetValue(argc, argv, "cipher", &CipherSuite)) {
+            SelfSignedCredConfig->Flags |= QUIC_CREDENTIAL_FLAG_SET_ALLOWED_CIPHER_SUITES;
+            SelfSignedCredConfig->AllowedCipherSuites = (QUIC_ALLOWED_CIPHER_SUITE_FLAGS)CipherSuite;
+        }
     }
 
     if (DriverName != nullptr) {
@@ -337,8 +348,10 @@ Exit:
         CxPlatFreeSelfSignedCert(SelfSignedCredConfig);
     }
 
+#ifndef QUIC_BUILD_STATIC
     CxPlatUninitialize();
     CxPlatSystemUnload();
+#endif
 
     return Status;
 }

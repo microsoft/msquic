@@ -34,6 +34,21 @@ QuicSendInitialize(
 {
     CxPlatListInitializeHead(&Send->SendStreams);
     Send->MaxData = Settings->ConnFlowControlWindow;
+    Send->SkippedPacketNumber = UINT64_MAX;
+
+    //
+    // Randomize initial packet number between 0 and 256 for improved security.
+    // This makes it harder for attackers to predict packet numbers.
+    //
+    uint8_t RandomValue = 0;
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
+    Send->NextPacketNumber = RandomValue;
+
+    //
+    // Randomly skip a packet number (from 0 to 256).
+    //
+    CxPlatRandom(sizeof(RandomValue), &RandomValue);
+    Send->NextSkippedPacketNumber = Send->NextPacketNumber + RandomValue;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -127,7 +142,7 @@ QuicSendQueueFlush(
 
     if (!Send->FlushOperationPending && QuicSendCanSendFlagsNow(Send)) {
         QUIC_OPERATION* Oper;
-        if ((Oper = QuicOperationAlloc(Connection->Worker, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
+        if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_FLUSH_SEND)) != NULL) {
             Send->FlushOperationPending = TRUE;
             QuicTraceEvent(
                 ConnQueueSendFlush,
@@ -284,11 +299,11 @@ QuicSendSetSendFlag(
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
 
-    BOOLEAN IsCloseFrame =
+    const BOOLEAN IsCloseFrame =
         !!(SendFlags & (QUIC_CONN_SEND_FLAG_CONNECTION_CLOSE | QUIC_CONN_SEND_FLAG_APPLICATION_CLOSE));
 
-    BOOLEAN CanSetFlag =
-        !QuicConnIsClosed(Connection) || IsCloseFrame;
+    const BOOLEAN CanSetFlag =
+        !QuicConnIsClosed(Connection) || (!Connection->State.ClosedSilently && IsCloseFrame);
 
     if (SendFlags & QUIC_CONN_SEND_FLAG_ACK && Send->DelayedAckTimerActive) {
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_ACK_DELAY);
@@ -299,14 +314,16 @@ QuicSendSetSendFlag(
         QuicTraceLogConnVerbose(
             ScheduleSendFlags,
             Connection,
-            "Scheduling flags 0x%x to 0x%x",
+            "Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
             SendFlags,
-            Send->SendFlags);
+            Send->SendFlags,
+            Send->SendFlags | SendFlags);
         Send->SendFlags |= SendFlags;
         QuicSendQueueFlush(Send, REASON_CONNECTION_FLAGS);
     }
 
     if (IsCloseFrame) {
+        Connection->LastCloseResponseTimeUs = CxPlatTimeUs64();
         QuicSendClear(Send);
     }
 
@@ -809,6 +826,7 @@ QuicSendWriteFrames(
                     SourceCid->CID.Length);
                 CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
                 QuicLibraryGenerateStatelessResetToken(
+                    Connection->Partition,
                     SourceCid->CID.Data,
                     Frame.Buffer + SourceCid->CID.Length);
 
@@ -1227,10 +1245,10 @@ QuicSendFlush(
         (void)QuicConnRetireCurrentDestCid(Connection, Path);
     }
 
-    QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
-    QUIC_STREAM* Stream = NULL;
-    uint32_t StreamPacketCount = 0;
-
+    //
+    // Send path challenges.
+    // `QuicSendPathChallenges` might re-queue a path challenge immediately.
+    //
     if (Send->SendFlags & QUIC_CONN_SEND_FLAG_PATH_CHALLENGE) {
         Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATH_CHALLENGE;
         QuicSendPathChallenges(Send);
@@ -1281,6 +1299,9 @@ QuicSendFlush(
     uint32_t PrevPrevSendFlags = UINT32_MAX;    // N-2
 #endif
 
+    QUIC_SEND_RESULT Result = QUIC_SEND_INCOMPLETE;
+    QUIC_STREAM* Stream = NULL;
+    uint32_t StreamPacketCount = 0;
     do {
 
         if (Path->Allowance < QUIC_MIN_SEND_ALLOWANCE) {
@@ -1343,7 +1364,10 @@ QuicSendFlush(
 
         BOOLEAN WrotePacketFrames;
         BOOLEAN FlushBatchedDatagrams = FALSE;
-        if ((SendFlags & ~QUIC_CONN_SEND_FLAG_DPLPMTUD) != 0) {
+        BOOLEAN SendConnectionControlData =
+            (SendFlags & ~(QUIC_CONN_SEND_FLAG_DPLPMTUD |
+                            QUIC_CONN_SEND_FLAG_PATH_CHALLENGE)) != 0;
+        if (SendConnectionControlData) {
             CXPLAT_DBG_ASSERT(QuicSendCanSendFlagsNow(Send));
             if (!QuicPacketBuilderPrepareForControlFrames(
                     &Builder,

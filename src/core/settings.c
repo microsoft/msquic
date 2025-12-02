@@ -159,6 +159,12 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.ReliableResetEnabled) {
         Settings->ReliableResetEnabled = QUIC_DEFAULT_RELIABLE_RESET_ENABLED;
     }
+    if (!Settings->IsSet.XdpEnabled) {
+        Settings->XdpEnabled = QUIC_DEFAULT_XDP_ENABLED;
+    }
+    if (!Settings->IsSet.QTIPEnabled) {
+        Settings->QTIPEnabled = QUIC_DEFAULT_QTIP_ENABLED;
+    }
     if (!Settings->IsSet.OneWayDelayEnabled) {
         Settings->OneWayDelayEnabled = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
     }
@@ -331,6 +337,12 @@ QuicSettingsCopy(
     }
     if (!Destination->IsSet.ReliableResetEnabled) {
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
+    }
+    if (!Destination->IsSet.XdpEnabled) {
+        Destination->XdpEnabled = Source->XdpEnabled;
+    }
+    if (!Destination->IsSet.QTIPEnabled) {
+        Destination->QTIPEnabled = Source->QTIPEnabled;
     }
     if (!Destination->IsSet.OneWayDelayEnabled) {
         Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
@@ -709,6 +721,17 @@ QuicSettingApply(
         Destination->ReliableResetEnabled = Source->ReliableResetEnabled;
         Destination->IsSet.ReliableResetEnabled = TRUE;
     }
+
+    if (Source->IsSet.XdpEnabled && (!Destination->IsSet.XdpEnabled || OverWrite)) {
+        Destination->XdpEnabled = Source->XdpEnabled;
+        Destination->IsSet.XdpEnabled = TRUE;
+    }
+
+    if (Source->IsSet.QTIPEnabled && (!Destination->IsSet.QTIPEnabled || OverWrite)) {
+        Destination->QTIPEnabled = Source->QTIPEnabled;
+        Destination->IsSet.QTIPEnabled = TRUE;
+    }
+
 
     if (Source->IsSet.OneWayDelayEnabled && (!Destination->IsSet.OneWayDelayEnabled || OverWrite)) {
         Destination->OneWayDelayEnabled = Source->OneWayDelayEnabled;
@@ -1369,6 +1392,26 @@ VersionSettingsFail:
             &ValueLen);
         Settings->ReliableResetEnabled = !!Value;
     }
+    if (!Settings->IsSet.XdpEnabled) {
+        Value = QUIC_DEFAULT_XDP_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_XDP_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->XdpEnabled = !!Value;
+    }
+    if (!Settings->IsSet.QTIPEnabled) {
+        Value = QUIC_DEFAULT_QTIP_ENABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_QTIP_ENABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->QTIPEnabled = !!Value;
+    }
     if (!Settings->IsSet.OneWayDelayEnabled) {
         Value = QUIC_DEFAULT_ONE_WAY_DELAY_ENABLED;
         ValueLen = sizeof(Value);
@@ -1477,6 +1520,8 @@ QuicSettingsDump(
     QuicTraceLogVerbose(SettingHyStartEnabled,              "[sett] HyStartEnabled         = %hhu", Settings->HyStartEnabled);
     QuicTraceLogVerbose(SettingEncryptionOffloadAllowed,    "[sett] EncryptionOffloadAllowed = %hhu", Settings->EncryptionOffloadAllowed);
     QuicTraceLogVerbose(SettingReliableResetEnabled,        "[sett] ReliableResetEnabled   = %hhu", Settings->ReliableResetEnabled);
+    QuicTraceLogVerbose(SettingXdpEnabled,                  "[sett] XdpEnabled             = %hhu", Settings->XdpEnabled);
+    QuicTraceLogVerbose(SettingQTIPEnabled,                 "[sett] QTIPEnabled            = %hhu", Settings->QTIPEnabled);
     QuicTraceLogVerbose(SettingOneWayDelayEnabled,          "[sett] OneWayDelayEnabled     = %hhu", Settings->OneWayDelayEnabled);
     QuicTraceLogVerbose(SettingNetStatsEventEnabled,        "[sett] NetStatsEventEnabled   = %hhu", Settings->NetStatsEventEnabled);
     QuicTraceLogVerbose(SettingsStreamMultiReceiveEnabled,  "[sett] StreamMultiReceiveEnabled= %hhu", Settings->StreamMultiReceiveEnabled);
@@ -1635,6 +1680,12 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.ReliableResetEnabled) {
         QuicTraceLogVerbose(SettingReliableResetEnabled,            "[sett] ReliableResetEnabled       = %hhu", Settings->ReliableResetEnabled);
     }
+    if (Settings->IsSet.XdpEnabled) {
+        QuicTraceLogVerbose(SettingXdpEnabled,                      "[sett] XdpEnabled                 = %hhu", Settings->XdpEnabled);
+    }
+    if (Settings->IsSet.QTIPEnabled) {
+        QuicTraceLogVerbose(SettingQTIPEnabled,                     "[sett] QTIPEnabled                = %hhu", Settings->QTIPEnabled);
+    }
     if (Settings->IsSet.OneWayDelayEnabled) {
         QuicTraceLogVerbose(SettingOneWayDelayEnabled,              "[sett] OneWayDelayEnabled         = %hhu", Settings->OneWayDelayEnabled);
     }
@@ -1651,24 +1702,18 @@ QuicSettingsDumpNew(
 #endif
 }
 
-#define SETTINGS_SIZE_THRU_FIELD(SettingsType, Field) \
-    (FIELD_OFFSET(SettingsType, Field) + sizeof(((SettingsType*)0)->Field))
-
-#define SETTING_HAS_FIELD(SettingsType, Size, Field) \
-    (Size >= SETTINGS_SIZE_THRU_FIELD(SettingsType, Field))
-
 #define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
     InternalSettings->IsSet.Field = Settings->IsSet.Field;          \
     InternalSettings->Field = Settings->Field;
 
 #define SETTING_COPY_TO_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings)   \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         InternalSettings->IsSet.Field = Settings->IsSet.Field;                                          \
         InternalSettings->Field = Settings->Field;                                                      \
     }
 
 #define SETTING_COPY_FLAG_TO_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)    \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
         InternalSettings->IsSet.Flag = !!Settings->IsSet.Flag;                                                          \
         InternalSettings->Flag = !!Settings->Flag;                                                                      \
     }
@@ -1682,7 +1727,7 @@ QuicSettingsGlobalSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!SETTING_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_GLOBAL_SETTINGS, SettingsSize, LoadBalancingMode)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1784,7 +1829,7 @@ QuicSettingsSettingsToInternal(
     _Out_ QUIC_SETTINGS_INTERNAL* InternalSettings
     )
 {
-    if (!SETTING_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
+    if (!CXPLAT_STRUCT_HAS_FIELD(QUIC_SETTINGS, SettingsSize, MtuDiscoveryMissingProbeCount)) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -1870,6 +1915,22 @@ QuicSettingsSettingsToInternal(
 
     SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
         Flags,
+        XdpEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
+        QTIPEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        SettingsSize,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_TO_INTERNAL_SIZED(
+        Flags,
         OneWayDelayEnabled,
         QUIC_SETTINGS,
         Settings,
@@ -1921,13 +1982,13 @@ QuicSettingsSettingsToInternal(
     Settings->Field = InternalSettings->Field;
 
 #define SETTING_COPY_FROM_INTERNAL_SIZED(Field, SettingsType, Settings, SettingsSize, InternalSettings) \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, Field)) {                                         \
         Settings->IsSet.Field = InternalSettings->IsSet.Field;                                          \
         Settings->Field = InternalSettings->Field;                                                      \
     }
 
 #define SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(FlagField, Flag, SettingsType, Settings, SettingsSize, InternalSettings)  \
-    if (SETTING_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
+    if (CXPLAT_STRUCT_HAS_FIELD(SettingsType, SettingsSize, FlagField)) {                                                     \
         Settings->IsSet.Flag = InternalSettings->IsSet.Flag;                                                            \
         Settings->Flag = InternalSettings->Flag;                                                                        \
     }
@@ -1941,7 +2002,7 @@ QuicSettingsGetSettings(
         QUIC_SETTINGS* Settings
     )
 {
-    uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
+    uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_SETTINGS, MtuDiscoveryMissingProbeCount);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_SETTINGS);
@@ -2039,6 +2100,22 @@ QuicSettingsGetSettings(
 
     SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
         Flags,
+        XdpEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
+        QTIPEnabled,
+        QUIC_SETTINGS,
+        Settings,
+        *SettingsLength,
+        InternalSettings);
+
+    SETTING_COPY_FLAG_FROM_INTERNAL_SIZED(
+        Flags,
         OneWayDelayEnabled,
         QUIC_SETTINGS,
         Settings,
@@ -2096,7 +2173,7 @@ QuicSettingsGetGlobalSettings(
         QUIC_GLOBAL_SETTINGS* Settings
     )
 {
-    const uint32_t MinimumSettingsSize = (uint32_t)SETTINGS_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
+    const uint32_t MinimumSettingsSize = (uint32_t)CXPLAT_STRUCT_SIZE_THRU_FIELD(QUIC_GLOBAL_SETTINGS, LoadBalancingMode);
 
     if (*SettingsLength == 0) {
         *SettingsLength = sizeof(QUIC_GLOBAL_SETTINGS);

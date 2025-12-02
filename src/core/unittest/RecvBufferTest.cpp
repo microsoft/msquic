@@ -22,18 +22,21 @@ Abstract:
 
 struct RecvBuffer {
     QUIC_RECV_BUFFER RecvBuf {0};
-    QUIC_RECV_CHUNK* PreallocChunk {nullptr};
     CXPLAT_POOL AppBufferChunkPool {};
     uint8_t* AppOwnedBuffer {nullptr};
+
+    RecvBuffer() = default;
+    RecvBuffer(const RecvBuffer&) = delete;
+    RecvBuffer(RecvBuffer&&) = delete;
+    RecvBuffer& operator=(const RecvBuffer&) = delete;
+    RecvBuffer& operator=(RecvBuffer&&) = delete;
+
     ~RecvBuffer() {
         if (RecvBuf.ReadPendingLength != 0) {
             Drain(RecvBuf.ReadPendingLength);
         }
         QuicRecvBufferUninitialize(&RecvBuf);
 
-        if (PreallocChunk) {
-            CXPLAT_FREE(PreallocChunk, QUIC_POOL_TEST);
-        }
         if (AppOwnedBuffer) {
             CXPLAT_FREE(AppOwnedBuffer, QUIC_POOL_TEST);
         }
@@ -46,17 +49,18 @@ struct RecvBuffer {
         _In_ uint32_t VirtualBufferLength = DEF_TEST_BUFFER_LENGTH
         ) {
         CxPlatPoolInitialize(FALSE, sizeof(QUIC_RECV_CHUNK), QUIC_POOL_TEST, &AppBufferChunkPool);
+
+        QUIC_RECV_CHUNK* PreallocChunk{nullptr};
         if (PreallocatedChunk) {
-            PreallocChunk =
-                (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
+                PreallocChunk = (QUIC_RECV_CHUNK*)CXPLAT_ALLOC_NONPAGED(
                     sizeof(QUIC_RECV_CHUNK) + AllocBufferLength,
-                    QUIC_POOL_TEST);
+                    QUIC_POOL_RECVBUF); // Use the recv buffer pool tag as this memory is moved to the recv buffer.
             QuicRecvChunkInitialize(PreallocChunk, AllocBufferLength, (uint8_t*)(PreallocChunk + 1), FALSE);
         }
         printf("Initializing: [mode=%u,vlen=%u,alen=%u]\n", RecvMode, VirtualBufferLength, AllocBufferLength);
 
         auto Result = QuicRecvBufferInitialize(
-            &RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, &AppBufferChunkPool, PreallocChunk);
+            &RecvBuf, AllocBufferLength, VirtualBufferLength, RecvMode, PreallocChunk);
         if (Result != QUIC_STATUS_SUCCESS) {
             return Result;
         }
@@ -122,8 +126,9 @@ struct RecvBuffer {
     QUIC_STATUS Write(
         _In_ uint64_t WriteOffset,
         _In_ uint16_t WriteLength,
-        _Inout_ uint64_t* WriteLimit,
-        _Out_ BOOLEAN* NewDataReady
+        _Inout_ uint64_t* WriteQuota,
+        _Out_ BOOLEAN* NewDataReady,
+        _Out_ uint64_t* BufferSizeNeeded = NULL
         ) {
         auto BufferToWrite = new (std::nothrow) uint8_t[WriteLength];
         memset(BufferToWrite, 0, WriteLength); // Zero out the buffer (for debugging purposes)
@@ -132,7 +137,24 @@ struct RecvBuffer {
             BufferToWrite[i] = (uint8_t)(WriteOffset + i);
         }
         printf("Write: Offset=%llu, Length=%u\n", (unsigned long long)WriteOffset, WriteLength);
-        auto Status = QuicRecvBufferWrite(&RecvBuf, WriteOffset, WriteLength, BufferToWrite, WriteLimit, NewDataReady);
+        uint64_t SizeNeeded = 0;
+        uint64_t QuotaConsumed = 0;
+        auto Status =
+            QuicRecvBufferWrite(
+                &RecvBuf,
+                WriteOffset,
+                WriteLength,
+                BufferToWrite,
+                *WriteQuota,
+                &QuotaConsumed,
+                NewDataReady,
+                &SizeNeeded);
+        if (QUIC_SUCCEEDED(Status)) {
+            *WriteQuota = QuotaConsumed;
+        }
+        if (BufferSizeNeeded != NULL) {
+            *BufferSizeNeeded = SizeNeeded;
+        }
         delete [] BufferToWrite;
         Dump();
         return Status;
@@ -287,8 +309,9 @@ struct RecvBuffer {
 
     void FreeChunkList(CXPLAT_LIST_ENTRY& ChunkList) {
         while (!CxPlatListIsEmpty(&ChunkList)) {
-            QUIC_RECV_CHUNK *Chunk = CXPLAT_CONTAINING_RECORD(CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link);
-            CxPlatPoolFree(&AppBufferChunkPool, Chunk);
+            CxPlatPoolFree(
+                CXPLAT_CONTAINING_RECORD(
+                    CxPlatListRemoveHead(&ChunkList), QUIC_RECV_CHUNK, Link));
         }
     }
 };
@@ -306,6 +329,11 @@ TEST_P(WithMode, Alloc)
 
 TEST_P(WithMode, AllocWithChunk)
 {
+    const auto Mode = GetParam();
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+        // App-owned mode doesn't support preallocated chunks
+        return;
+    }
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(GetParam(), true));
 }
@@ -551,6 +579,10 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_EQ(0ull, ReadOffset);
     ASSERT_EQ(1u, BufferCount);
     ASSERT_EQ(20u, ReadBuffers[0].Length);
+    for (uint32_t i = 0; i < ReadBuffers[0].Length; ++i) {
+        ASSERT_EQ(i, ReadBuffers[0].Buffer[i]); // Read data is as expected
+    }
+
     InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
     ASSERT_EQ(
         QUIC_STATUS_SUCCESS,
@@ -563,8 +595,73 @@ TEST_P(WithMode, WriteLargeWhilePendingRead)
     ASSERT_TRUE(RecvBuf.HasUnreadData());
     ASSERT_EQ(512ull, InOutWriteLength);
     ASSERT_EQ(532ull, RecvBuf.GetTotalLength());
+
+    for (uint32_t i = 0; i < ReadBuffers[0].Length; ++i) {
+        ASSERT_EQ(i, ReadBuffers[0].Buffer[i]); // Read data has not been overriden by the write
+    }
     ASSERT_FALSE(RecvBuf.Drain(20) && Mode != QUIC_RECV_BUF_MODE_MULTIPLE);
     ASSERT_TRUE(RecvBuf.HasUnreadData());
+}
+
+TEST_P(WithMode, WriteLargeWhilePendingReadWithPartialDrain)
+{
+    RecvBuffer RecvBuf;
+    auto Mode = GetParam();
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+    uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+    BOOLEAN NewDataReady = FALSE;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 20, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+
+    {
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        uint64_t ReadOffset{};
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_FALSE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(0ull, ReadOffset);
+        ASSERT_EQ(1u, BufferCount);
+        ASSERT_EQ(20u, ReadBuffers[0].Length);
+    }
+
+    //
+    // Write a large chunk while the read is pending
+    //
+    InOutWriteLength = LARGE_TEST_BUFFER_LENGTH;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(20, 512, &InOutWriteLength, &NewDataReady));
+    ASSERT_TRUE(NewDataReady); // Still ready to read
+    ASSERT_TRUE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(512ull, InOutWriteLength);
+    ASSERT_EQ(532ull, RecvBuf.GetTotalLength());
+
+    ASSERT_FALSE(RecvBuf.Drain(0)); // Complete the read without draining any data
+
+    //
+    // Read again and check the data from the first write is still intact
+    //
+    {
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        uint64_t ReadOffset{};
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_TRUE(BufferCount > 0u);
+        ASSERT_TRUE(ReadBuffers[0].Length >= 20);
+
+        for (uint32_t i = 0; i < 20; ++i) {
+            if (Mode == QUIC_RECV_BUF_MODE_MULTIPLE) {
+                //
+                // Multiple mode doesn't re-read the initial data
+                //
+                ASSERT_EQ(i + 20, ReadBuffers[0].Buffer[i]);
+            } else {
+                //
+                // Read data has not been overwritten by the write
+                //
+                ASSERT_EQ(i, ReadBuffers[0].Buffer[i]);
+            }
+        }
+    }
 }
 
 TEST_P(WithMode, WriteLarge)
@@ -622,6 +719,66 @@ TEST_P(WithMode, MultiWriteLarge)
         ASSERT_EQ(256u, ReadBuffers[0].Length);
     }
     ASSERT_TRUE(RecvBuf.Drain(256));
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+}
+
+TEST_P(WithMode, MultiWriteLargeWhileReadPending)
+{
+    auto Mode = GetParam();
+    RecvBuffer RecvBuf{};
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(Mode, false, DEF_TEST_BUFFER_LENGTH, LARGE_TEST_BUFFER_LENGTH));
+
+    //
+    // Write some data and read it so a read operation is pending
+    //
+    {
+        uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+        BOOLEAN DataReady = FALSE;
+        ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(0, 64, &InOutWriteLength, &DataReady));
+
+        uint64_t ReadOffset{};
+        QUIC_BUFFER ReadBuffers[3]{};
+        uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+        RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+        ASSERT_FALSE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(1u, BufferCount);
+        ASSERT_EQ(64u, ReadBuffers[0].Length);
+    }
+
+    //
+    // Write more data while the read is pending, forcing buffer re-allocations
+    //
+    for (uint32_t i = 1; i < 4; ++i) {
+        uint64_t InOutWriteLength = LARGE_TEST_BUFFER_LENGTH; // FC limit same as recv buffer size
+        BOOLEAN DataReady = FALSE;
+        ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Write(i * 64, 64, &InOutWriteLength, &DataReady));
+        ASSERT_TRUE(DataReady);
+        ASSERT_TRUE(RecvBuf.HasUnreadData());
+        ASSERT_EQ(64ull, InOutWriteLength);
+        ASSERT_EQ((i + 1) * 64ull, RecvBuf.GetTotalLength());
+    }
+
+    //
+    // Drain the data from the first read
+    //
+    ASSERT_FALSE(RecvBuf.Drain(64));
+
+    //
+    // Read all the remaining data
+    //
+    uint64_t ReadOffset{};
+    QUIC_BUFFER ReadBuffers[3]{};
+    uint32_t BufferCount = ARRAYSIZE(ReadBuffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, ReadBuffers);
+    ASSERT_FALSE(RecvBuf.HasUnreadData());
+    ASSERT_EQ(64ull, ReadOffset);
+    ASSERT_EQ(1u, BufferCount);
+    ASSERT_EQ(192u, ReadBuffers[0].Length);
+
+    //
+    // Drain all the data.
+    //
+    ASSERT_TRUE(RecvBuf.Drain(192));
     ASSERT_FALSE(RecvBuf.HasUnreadData());
 }
 
@@ -1002,14 +1159,24 @@ TEST_P(WithMode, IncreaseVirtualLength)
     constexpr auto WriteLength = 2 * DEF_TEST_BUFFER_LENGTH;
     uint64_t InOutWriteLength = WriteLength;
     BOOLEAN NewDataReady = FALSE;
+    uint64_t BufferSizeNeeded = 0;
 
-    ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady));
+    auto Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady, &BufferSizeNeeded);
+    ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, Status);
 
-    if (Mode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        RecvBuf.IncreaseVirtualBufferLength(WriteLength);
+    // The limitation was the control flow limit, not the buffer size
+    ASSERT_EQ(BufferSizeNeeded, 0);
 
-        auto Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady);
+    RecvBuf.IncreaseVirtualBufferLength(WriteLength);
+
+    Status = RecvBuf.Write(0, WriteLength, &InOutWriteLength, &NewDataReady, &BufferSizeNeeded);
+
+    if (Mode == QUIC_RECV_BUF_MODE_APP_OWNED) {
+        ASSERT_EQ(QUIC_STATUS_BUFFER_TOO_SMALL, Status);
+        ASSERT_EQ(BufferSizeNeeded, WriteLength - DEF_TEST_BUFFER_LENGTH);
+    } else {
         ASSERT_EQ(QUIC_STATUS_SUCCESS, Status);
+        ASSERT_EQ(BufferSizeNeeded, 0);
     }
 }
 
@@ -1102,11 +1269,11 @@ TEST(MultiRecvTest, PartialDrainGrow)
     LengthList[0] = 4;
     ExternalReferences[0] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 4, 1, ExternalReferences);
-    // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLengt:8, Ext:1
+    // |R, R, R, R, 4, 5, 6, 7] ReadStart:0, ReadLength:8, Ext:1
     RecvBuf.WriteAndCheck(4, 4, 0, 8, 1, ExternalReferences);
-    // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLengt:4, Ext:0
+    // |D, D, D, D, 4, 5, 6, 7] ReadStart:4, ReadLength:4, Ext:0
     RecvBuf.Drain(4);
-    // [4, 5, 6, 7, 8, 9,10,11,12,13,14,15, ...] ReadStart:0, ReadLengt:12, Ext:0
+    // [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, ...] ReadStart:0, ReadLengt:12, Ext:0
     ExternalReferences[0] = FALSE;
     RecvBuf.WriteAndCheck(8, 8, 0, 12, 1, ExternalReferences);
 
@@ -1661,19 +1828,27 @@ TEST(MultiRecvTest, Grow3rdChunk)
     RecvBuffer RecvBuf;
     ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_MULTIPLE, false, 8, LARGE_TEST_BUFFER_LENGTH));
     BOOLEAN ExternalReferences[] = {FALSE, FALSE, FALSE};
-    uint32_t LengthList[] = {8, 0, 0};
-    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences);
+    uint32_t LengthList[] = {0, 0, 0};
+
+    RecvBuf.WriteAndCheck(0, 8, 0, 8, 1, ExternalReferences); // append -> 8
+
+    LengthList[0] = 8;
     ExternalReferences[0] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 1, ExternalReferences);
-    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // append -> 32
+
+    RecvBuf.WriteAndCheck(8, 32, 0, 8, 2, ExternalReferences); // grow -> 8 + 64, append -> 32
+
     LengthList[0] = 32;
     ExternalReferences[1] = TRUE;
     RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 2, ExternalReferences);
-    RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // append -> 64
-    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128
+
+    RecvBuf.WriteAndCheck(40, 64, 0, 8, 3, ExternalReferences); // grow -> 8 + 64 + 128, append -> 104
+    RecvBuf.WriteAndCheck(104, 20, 0, 8, 3, ExternalReferences); // grow -> 128, append -> 124
+
     ExternalReferences[2] = TRUE;
-    LengthList[0] = 84;
-    RecvBuf.ReadAndCheck(1, LengthList, 0, 8, 3, ExternalReferences);
+    LengthList[0] = 32;
+    LengthList[1] = 52;
+    RecvBuf.ReadAndCheck(2, LengthList, 0, 8, 3, ExternalReferences);
     RecvBuf.Drain(124);
 }
 
@@ -1756,6 +1931,32 @@ TEST(AppOwnedBuffersTest, ProvideChunksOverflow)
     ASSERT_FALSE(CxPlatListIsEmpty(&ChunkList));
 
     RecvBuf.FreeChunkList(ChunkList);
+}
+
+TEST(AppOwnedBuffersTest, ProvideChunksVitualBufferLengthGrowth)
+{
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_APP_OWNED, false, 0, 0));
+    ASSERT_EQ(0, RecvBuf.RecvBuf.VirtualBufferLength);
+
+    // The virtual buffer length grow to match the provided memory size.
+    std::array<uint8_t, 16> Buffer{};
+    std::vector ChunkSizes{8u, 8u};
+    CXPLAT_LIST_ENTRY ChunkList;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes, Buffer.size(), Buffer.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
+
+    ASSERT_EQ(16, RecvBuf.RecvBuf.VirtualBufferLength);
+
+    // The virtual buffer length doesn't grow if it is already larger than the total memory size
+    RecvBuf.IncreaseVirtualBufferLength(42);
+
+    std::array<uint8_t, 16> Buffer2{};
+    std::vector ChunkSizes2{8u, 8u};
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.MakeAppOwnedChunks(ChunkSizes2, Buffer2.size(), Buffer2.data(), &ChunkList));
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.ProvideChunks(ChunkList));
+
+    ASSERT_EQ(42, RecvBuf.RecvBuf.VirtualBufferLength);
 }
 
 TEST(AppOwnedBuffersTest, PartialDrain)
@@ -1956,3 +2157,51 @@ INSTANTIATE_TEST_SUITE_P(
     WithMode,
     ::testing::Values(QUIC_RECV_BUF_MODE_SINGLE, QUIC_RECV_BUF_MODE_CIRCULAR, QUIC_RECV_BUF_MODE_MULTIPLE, QUIC_RECV_BUF_MODE_APP_OWNED),
     testing::PrintToStringParamName());
+
+
+TEST(RecvBufferResetReadTest, ResetClearsPendingAndExternalReference_SingleMode)
+{
+    // 1. Set up a receive buffer operating in SINGLE-chunk mode.
+    RecvBuffer RecvBuf;
+    ASSERT_EQ(QUIC_STATUS_SUCCESS, RecvBuf.Initialize(QUIC_RECV_BUF_MODE_SINGLE));
+
+    // 2. Write 16 bytes at offset 0 so the buffer is ready for reading.
+    uint64_t FlowControl = DEF_TEST_BUFFER_LENGTH; // large enough quota
+    BOOLEAN  NewDataReady = FALSE;
+    ASSERT_EQ(
+        QUIC_STATUS_SUCCESS,
+        RecvBuf.Write(0 /*Offset*/, 16 /*Length*/, &FlowControl, &NewDataReady));
+    ASSERT_TRUE(NewDataReady);
+
+    // 3. Read once to create a pending read and mark the first chunk as having
+    //    an external reference.
+    uint64_t ReadOffset = 0;
+    QUIC_BUFFER Buffers[3] = {};
+    uint32_t BufferCount = ARRAYSIZE(Buffers);
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+
+    // After the read, ReadPendingLength must be non-zero and the first chunk
+    // Must indicate an external reference.
+    // At this point the buffer reports no unread data (everything is pending).
+    QUIC_RECV_CHUNK* FirstChunk = CXPLAT_CONTAINING_RECORD(
+        RecvBuf.RecvBuf.Chunks.Flink, QUIC_RECV_CHUNK, Link);
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_TRUE(FirstChunk->ExternalReference);
+    EXPECT_FALSE(RecvBuf.HasUnreadData());
+
+    // 4. Call the function under test – should reset read bookkeeping.
+    QuicRecvBufferResetRead(&RecvBuf.RecvBuf);
+
+    // 5. Validate state was restored.
+    EXPECT_EQ(0ull, RecvBuf.RecvBuf.ReadPendingLength);
+    EXPECT_FALSE(FirstChunk->ExternalReference);
+    EXPECT_TRUE(RecvBuf.HasUnreadData()); // Data is readable again.
+
+    // 6. Perform a second read; it should succeed and return the same 16 bytes.
+    ReadOffset = 0;
+    BufferCount = ARRAYSIZE(Buffers);
+    memset(Buffers, 0, sizeof(Buffers));
+    RecvBuf.Read(&ReadOffset, &BufferCount, Buffers);
+    // After this read, pending length should be 16 again (sanity).
+    EXPECT_EQ(16ull, RecvBuf.RecvBuf.ReadPendingLength);
+}

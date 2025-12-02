@@ -157,18 +157,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "ApiError": {
-      "ModuleProperites": {},
-      "TraceString": "[ api] Error %u",
-      "UniqueId": "ApiError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ApiEventNoHandler": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Event silently discarded (no handler).",
@@ -218,6 +206,30 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "AttackDetected": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+      "UniqueId": "AttackDetected",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogConnError"
     },
     "BindingCleanup": {
       "ModuleProperites": {},
@@ -411,22 +423,6 @@
       ],
       "macroName": "QuicTraceEvent"
     },
-    "BindingSendFailed": {
-      "ModuleProperites": {},
-      "TraceString": "[bind][%p] Send failed, 0x%x",
-      "UniqueId": "BindingSendFailed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogWarning"
-    },
     "BindingSendTestDrop": {
       "ModuleProperites": {},
       "TraceString": "[bind][%p] Test dropped packet",
@@ -458,18 +454,6 @@
       "splitArgs": [
         {
           "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "CertCapiSign": {
-      "ModuleProperites": {},
-      "TraceString": "[cert] QuicCertSign alg=0x%4.4x",
-      "UniqueId": "CertCapiSign",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "4.4x",
           "MacroVariableName": "arg2"
         }
       ],
@@ -751,22 +735,26 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "CloseComplete": {
+    "CloseAsyncUpdated": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Connection close complete",
-      "UniqueId": "CloseComplete",
+      "TraceString": "[conn][%p] Updated CloseAsync to %hhu",
+      "UniqueId": "CloseAsyncUpdated",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
         }
       ],
-      "macroName": "QuicTraceLogConnInfo"
+      "macroName": "QuicTraceLogConnVerbose"
     },
-    "CloseUserCanceled": {
+    "CloseComplete": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Connection close using user canceled error",
-      "UniqueId": "CloseUserCanceled",
+      "TraceString": "[conn][%p] Connection close complete",
+      "UniqueId": "CloseComplete",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -1051,22 +1039,6 @@
         {
           "DefinationEncoding": "u",
           "MacroVariableName": "arg10"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "ConnCancelTimer": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Canceling %hhu",
-      "UniqueId": "ConnCancelTimer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -2185,7 +2157,7 @@
     },
     "ConnVersionSet": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] QUIC Version: %u",
+      "TraceString": "[conn][%p] QUIC Version: 0x%x",
       "UniqueId": "ConnVersionSet",
       "splitArgs": [
         {
@@ -2193,7 +2165,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "u",
+          "DefinationEncoding": "x",
           "MacroVariableName": "arg3"
         }
       ],
@@ -2627,18 +2599,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "DatapathInitialize": {
-      "ModuleProperites": {},
-      "TraceString": "[data][%p] Datapath initialize",
-      "UniqueId": "DatapathInitialize",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "DataPathInitialized": {
       "ModuleProperites": {},
       "TraceString": "[data] Initialized, DatapathFeatures=%u",
@@ -2847,34 +2807,6 @@
       ],
       "macroName": "QuicTraceLogWarning"
     },
-    "DatapathRecvXdp": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!",
-      "UniqueId": "DatapathRecvXdp",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg5"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "DatapathResolveHostNameFailed": {
       "ModuleProperites": {},
       "TraceString": "[%p] Couldn't resolve hostname '%s' to an IP address",
@@ -2987,30 +2919,6 @@
         {
           "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg6"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "DatapathSendXdp": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!",
-      "UniqueId": "DatapathSendXdp",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -3154,6 +3062,22 @@
         }
       ],
       "macroName": "QuicTraceLogWarning"
+    },
+    "DecodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu",
+      "UniqueId": "DecodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "DecodeTPAckDelayExponent": {
       "ModuleProperites": {},
@@ -3645,18 +3569,9 @@
     },
     "DoneSendTo": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][TX  ] Done sendto. len:%d, Umem addr:%lld",
+      "TraceString": "[ xdp][TX  ] Done sendto.",
       "UniqueId": "DoneSendTo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "lld",
-          "MacroVariableName": "arg3"
-        }
-      ],
+      "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
     "DrainCrypto": {
@@ -3686,6 +3601,18 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "EncodeCRStart": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Encoding Careful Resume State",
+      "UniqueId": "EncodeCRStart",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        }
+      ],
+      "macroName": "QuicTraceLogConnVerbose"
     },
     "EncodeMaxDatagramFrameSize": {
       "ModuleProperites": {},
@@ -4156,22 +4083,6 @@
       "TraceString": "[ xdp][rx  ] OOM for Rx",
       "UniqueId": "FailRxAlloc",
       "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "FailSendTo": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld",
-      "UniqueId": "FailSendTo",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "lld",
-          "MacroVariableName": "arg3"
-        }
-      ],
       "macroName": "QuicTraceLogVerbose"
     },
     "FailTxAlloc": {
@@ -5588,6 +5499,22 @@
       ],
       "macroName": "QuicTraceLogConnWarning"
     },
+    "GetTxOffloadConfig": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] %u, %u",
+      "UniqueId": "GetTxOffloadConfig",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "HandshakeConfirmedAck": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Handshake confirmed (ack)",
@@ -5688,22 +5615,6 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "IgnoreRecvFlushByReadPending": {
-      "ModuleProperites": {},
-      "TraceString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%lu)",
-      "UniqueId": "IgnoreRecvFlushByReadPending",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "lu",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
@@ -6220,42 +6131,10 @@
       ],
       "macroName": "QuicTraceLogStreamVerbose"
     },
-    "InsertSocket": {
-      "ModuleProperites": {},
-      "TraceString": "[sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-      "UniqueId": "InsertSocket",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "InterfaceFree": {
       "ModuleProperites": {},
       "TraceString": "[ xdp][%p] Freeing Interface",
       "UniqueId": "InterfaceFree",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "InterfaceInit": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Interface init done",
-      "UniqueId": "InterfaceInit",
       "splitArgs": [
         {
           "DefinationEncoding": "p",
@@ -6391,6 +6270,18 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
+    "LibraryDscpRecvEnabledSet": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Setting Dscp on recv = %u",
+      "UniqueId": "LibraryDscpRecvEnabledSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryError": {
       "ModuleProperites": {},
       "TraceString": "[ lib] ERROR, %s.",
@@ -6506,6 +6397,22 @@
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
     },
+    "LibraryRetryKeyUpdated": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+      "UniqueId": "LibraryRetryKeyUpdated",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogInfo"
+    },
     "LibraryRetryMemoryLimitSet": {
       "ModuleProperites": {},
       "TraceString": "[ lib] Updated retry memory limit = %hu",
@@ -6548,6 +6455,53 @@
       "UniqueId": "LibraryServerInit",
       "splitArgs": [],
       "macroName": "QuicTraceEvent"
+    },
+    "LibrarySetRetryKeyAlgorithmInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key algorithm: %d.",
+      "UniqueId": "LibrarySetRetryKeyAlgorithmInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeyRotationInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key rotation ms: %u.",
+      "UniqueId": "LibrarySetRetryKeyRotationInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeySecretLengthInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key secret length: %u. Expected %u.",
+      "UniqueId": "LibrarySetRetryKeySecretLengthInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogError"
+    },
+    "LibrarySetRetryKeySecretNull": {
+      "ModuleProperites": {},
+      "TraceString": "[ lib] Invalid retry key secret: NULL.",
+      "UniqueId": "LibrarySetRetryKeySecretNull",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogError"
     },
     "LibrarySetSettings": {
       "ModuleProperites": {},
@@ -6724,6 +6678,22 @@
         {
           "DefinationEncoding": "p",
           "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "ListenerPartitionIndexSet": {
+      "ModuleProperites": {},
+      "TraceString": "[list][%p] PartitionIndex set (index %hu)",
+      "UniqueId": "ListenerPartitionIndexSet",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -7908,6 +7878,29 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "PacketRxVersionNegotiation": {
+      "ModuleProperites": {},
+      "TraceString": "[C][RX][-] VN",
+      "UniqueId": "PacketRxVersionNegotiation",
+      "splitArgs": [],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "PacketRxVersionNegVer": {
+      "ModuleProperites": {},
+      "TraceString": "[C][RX][-]   Ver[%d]: 0x%x",
+      "UniqueId": "PacketRxVersionNegVer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "d",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "PacketTx0RttRejected": {
       "ModuleProperites": {},
       "TraceString": "[%c][TX][%llu] Rejected",
@@ -8513,27 +8506,6 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogInfo"
     },
-    "PerfRpsComplete": {
-      "ModuleProperites": {},
-      "TraceString": "[perf] RPS Client complete",
-      "UniqueId": "PerfRpsComplete",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "PerfRpsStart": {
-      "ModuleProperites": {},
-      "TraceString": "[perf] RPS Client start",
-      "UniqueId": "PerfRpsStart",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "PerfRpsTimeout": {
-      "ModuleProperites": {},
-      "TraceString": "[perf] RPS Client timeout",
-      "UniqueId": "PerfRpsTimeout",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "PerfTcpAppAccept": {
       "ModuleProperites": {},
       "TraceString": "[perf][tcp][%p] App Accept",
@@ -8898,30 +8870,6 @@
       ],
       "macroName": "QuicTraceLogInfo"
     },
-    "ProcessorInfoV2": {
-      "ModuleProperites": {},
-      "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu",
-      "UniqueId": "ProcessorInfoV2",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "hu",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        },
-        {
-          "DefinationEncoding": "hhu",
-          "MacroVariableName": "arg5"
-        }
-      ],
-      "macroName": "QuicTraceLogInfo"
-    },
     "ProcessorInfoV3": {
       "ModuleProperites": {},
       "TraceString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu",
@@ -9030,22 +8978,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "QueueInit": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Setting up Queue on Interface:%p",
-      "UniqueId": "QueueInit",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "QueueRecvFlush": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Queuing recv flush",
@@ -9057,58 +8989,6 @@
         }
       ],
       "macroName": "QuicTraceLogStreamVerbose"
-    },
-    "QuicConnRecvDatagrams": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
-      "UniqueId": "QuicConnRecvDatagrams",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "QuicConnRecvUdpDatagrams": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Recv %u UDP datagrams, %u bytes",
-      "UniqueId": "QuicConnRecvUdpDatagrams",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
-    "RawDatapathInitFail": {
-      "ModuleProperites": {},
-      "TraceString": "[ raw] Failed to initialize raw datapath, status:%d",
-      "UniqueId": "RawDatapathInitFail",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
     },
     "RawSockCreateFail": {
       "ModuleProperites": {},
@@ -9269,18 +9149,6 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
-    },
-    "RecvVerNeg": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p] Received Version Negotation:",
-      "UniqueId": "RecvVerNeg",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
     },
     "RecvVerNegCryptoError": {
       "ModuleProperites": {},
@@ -9470,26 +9338,6 @@
       ],
       "macroName": "QuicTraceLogConnVerbose"
     },
-    "RemoveSocket": {
-      "ModuleProperites": {},
-      "TraceString": "[sock][%p] RemoveSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-      "UniqueId": "RemoveSocket",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceEvent"
-    },
     "ResetEarly": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Tried to reset at earlier final size!",
@@ -9625,25 +9473,6 @@
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
-    },
-    "RxConsPeekFail": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][rx  ] Failed to peek from Rx queue",
-      "UniqueId": "RxConsPeekFail",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "RxConsPeekSucceed": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][rx  ] Succeed peek %d from Rx queue",
-      "UniqueId": "RxConsPeekSucceed",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
     },
     "RxConstructPacket": {
       "ModuleProperites": {},
@@ -9944,7 +9773,7 @@
     },
     "ScheduleSendFlags": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Scheduling flags 0x%x to 0x%x",
+      "TraceString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
       "UniqueId": "ScheduleSendFlags",
       "splitArgs": [
         {
@@ -9958,6 +9787,10 @@
         {
           "DefinationEncoding": "x",
           "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "x",
+          "MacroVariableName": "arg5"
         }
       ],
       "macroName": "QuicTraceLogConnVerbose"
@@ -11002,6 +10835,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingQTIPEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] QTIPEnabled            = %hhu",
+      "UniqueId": "SettingQTIPEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "SettingReliableResetEnabled": {
       "ModuleProperites": {},
       "TraceString": "[sett] ReliableResetEnabled   = %hhu",
@@ -11134,6 +10979,18 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "SettingXdpEnabled": {
+      "ModuleProperites": {},
+      "TraceString": "[sett] XdpEnabled             = %hhu",
+      "UniqueId": "SettingXdpEnabled",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg2"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "ShutdownImmediatePendingReliableReset": {
       "ModuleProperites": {},
       "TraceString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset).",
@@ -11145,6 +11002,22 @@
         }
       ],
       "macroName": "QuicTraceLogStreamWarning"
+    },
+    "SkipPacketNumber": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p] Skipped packet number %llu",
+      "UniqueId": "SkipPacketNumber",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogConnWarning"
     },
     "SockCreateFail": {
       "ModuleProperites": {},
@@ -11345,6 +11218,22 @@
         }
       ],
       "macroName": "QuicTraceEvent"
+    },
+    "StreamNotifyInsufficientRecvBuffer": {
+      "ModuleProperites": {},
+      "TraceString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+      "UniqueId": "StreamNotifyInsufficientRecvBuffer",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg1"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceLogStreamVerbose"
     },
     "StreamOutFlowBlocked": {
       "ModuleProperites": {},
@@ -12027,26 +11916,6 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
-    "VerNegItem": {
-      "ModuleProperites": {},
-      "TraceString": "[conn][%p]   Ver[%d]: 0x%x",
-      "UniqueId": "VerNegItem",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg1"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "x",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogConnVerbose"
-    },
     "VersionInfoChosenVersionZero": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Version Info Chosen Version is zero!",
@@ -12352,21 +12221,9 @@
       "splitArgs": [],
       "macroName": "QuicTraceLogVerbose"
     },
-    "XdpAttached": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] XDP program already attached to %s",
-      "UniqueId": "XdpAttached",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "XdpAttachFails": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp] Failed to attach XDP program to %s. error:%d",
+      "TraceString": "[ xdp] Failed to attach XDP program to %s. error:%s",
       "UniqueId": "XdpAttachFails",
       "splitArgs": [
         {
@@ -12374,7 +12231,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "d",
+          "DefinationEncoding": "s",
           "MacroVariableName": "arg3"
         }
       ],
@@ -12387,29 +12244,6 @@
       "splitArgs": [
         {
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpBypassMapError": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] Failed to open stack bypass map",
-      "UniqueId": "XdpBypassMapError",
-      "splitArgs": [],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpChainingBuffer": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] Done chaining buffer %d/%d",
-      "UniqueId": "XdpChainingBuffer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
           "MacroVariableName": "arg2"
         },
         {
@@ -12460,20 +12294,16 @@
     },
     "XdpEpollErrorStatus": {
       "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] ERROR, %u, %s.",
+      "TraceString": "[ xdp]ERROR, %u, %s.",
       "UniqueId": "XdpEpollErrorStatus",
       "splitArgs": [
         {
-          "DefinationEncoding": "p",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "u",
-          "MacroVariableName": "arg3"
-        },
-        {
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -12482,18 +12312,6 @@
       "ModuleProperites": {},
       "TraceString": "[ xdp] Failed to get RSS queue count for %s",
       "UniqueId": "XdpFailGettingRssQueueCount",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpFindProbramSectionError": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] ERROR, finding program section '%s'",
-      "UniqueId": "XdpFindProbramSectionError",
       "splitArgs": [
         {
           "DefinationEncoding": "s",
@@ -12550,26 +12368,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "XdpLoadBpfObjectError": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s].",
-      "UniqueId": "XdpLoadBpfObjectError",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg4"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "XdpLoadObject": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Successfully loaded xdp object of %s",
@@ -12578,38 +12376,6 @@
         {
           "DefinationEncoding": "s",
           "MacroVariableName": "arg2"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpModeDowngrade": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s",
-      "UniqueId": "XdpModeDowngrade",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpNotSupported": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Xdp is not supported on this interface:%s",
-      "UniqueId": "XdpNotSupported",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceLogVerbose"
@@ -12741,22 +12507,6 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
-    "XdpRxRelease": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp][%p] Release %d from Rx queue (TODO:Check necesity here)",
-      "UniqueId": "XdpRxRelease",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "p",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
     "XdpSetIfnameFails": {
       "ModuleProperites": {},
       "TraceString": "[ xdp] Failed to set ifname %s on %s",
@@ -12800,54 +12550,6 @@
         },
         {
           "DefinationEncoding": "s",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpSkipOrEndofBuffer": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] Skip or End of Buffer %d/%d",
-      "UniqueId": "XdpSkipOrEndofBuffer",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpSocketCreate": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d",
-      "UniqueId": "XdpSocketCreate",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "d",
-          "MacroVariableName": "arg3"
-        }
-      ],
-      "macroName": "QuicTraceLogVerbose"
-    },
-    "XdpSocketNotFound": {
-      "ModuleProperites": {},
-      "TraceString": "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!",
-      "UniqueId": "XdpSocketNotFound",
-      "splitArgs": [
-        {
-          "DefinationEncoding": "!ADDR!",
-          "MacroVariableName": "arg2"
-        },
-        {
-          "DefinationEncoding": "!ADDR!",
           "MacroVariableName": "arg3"
         }
       ],
@@ -13514,11 +13216,6 @@
         "EncodingString": "[ api] Enter %u (%p)."
       },
       {
-        "UniquenessHash": "dddba4c1-201c-11ae-51de-155523e40b7e",
-        "TraceID": "ApiError",
-        "EncodingString": "[ api] Error %u"
-      },
-      {
         "UniquenessHash": "c69c6d33-2838-013a-936c-7fbc085570b4",
         "TraceID": "ApiEventNoHandler",
         "EncodingString": "[conn][%p] Event silently discarded (no handler)."
@@ -13542,6 +13239,11 @@
         "UniquenessHash": "87c499a7-b21e-c2df-9d11-9176e9730676",
         "TraceID": "ApplySettings",
         "EncodingString": "[conn][%p] Applying new settings"
+      },
+      {
+        "UniquenessHash": "2577283e-0a65-186c-be40-d33b66b0062d",
+        "TraceID": "AttackDetected",
+        "EncodingString": "[conn][%p] Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]"
       },
       {
         "UniquenessHash": "5d83e63e-7ce5-0102-8dd2-cbcf5946da2e",
@@ -13594,11 +13296,6 @@
         "EncodingString": "[bind][%p] Rundown, Udp=%p LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
       },
       {
-        "UniquenessHash": "ed52dc79-5619-64e6-7bde-c177b24ff85d",
-        "TraceID": "BindingSendFailed",
-        "EncodingString": "[bind][%p] Send failed, 0x%x"
-      },
-      {
         "UniquenessHash": "8419ad0b-e226-53e3-837c-4eebd4cc6619",
         "TraceID": "BindingSendTestDrop",
         "EncodingString": "[bind][%p] Test dropped packet"
@@ -13612,11 +13309,6 @@
         "UniquenessHash": "2e3530fe-5082-ce8a-7275-87755eb70c41",
         "TraceID": "CertCapiParsedChain",
         "EncodingString": "[cert] Successfully parsed chain of %u certificate(s)"
-      },
-      {
-        "UniquenessHash": "827a6a52-50a7-a1f6-8caa-5f1aea644206",
-        "TraceID": "CertCapiSign",
-        "EncodingString": "[cert] QuicCertSign alg=0x%4.4x"
       },
       {
         "UniquenessHash": "6fb480dc-d71f-74f2-dc75-559a5591fe3d",
@@ -13709,14 +13401,14 @@
         "EncodingString": "[conn][%p] Compatible version upgrade! Old: 0x%x, New: 0x%x"
       },
       {
+        "UniquenessHash": "a07c3ee9-1b99-2c5f-bad8-bd515d90038d",
+        "TraceID": "CloseAsyncUpdated",
+        "EncodingString": "[conn][%p] Updated CloseAsync to %hhu"
+      },
+      {
         "UniquenessHash": "e6969fd7-4bfa-f16b-fd2d-f366f94dce7c",
         "TraceID": "CloseComplete",
         "EncodingString": "[conn][%p] Connection close complete"
-      },
-      {
-        "UniquenessHash": "b4f3dc8d-17c8-39c5-5345-952616752980",
-        "TraceID": "CloseUserCanceled",
-        "EncodingString": "[conn][%p] Connection close using user canceled error"
       },
       {
         "UniquenessHash": "f96b231c-aa1b-08a4-7036-a60927e3eadd",
@@ -13797,11 +13489,6 @@
         "UniquenessHash": "471ca3d0-42c2-3bea-6a0d-030e241233d6",
         "TraceID": "ConnBbr",
         "EncodingString": "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u"
-      },
-      {
-        "UniquenessHash": "3cb11d31-f785-9082-29ff-ca3a505762e4",
-        "TraceID": "ConnCancelTimer",
-        "EncodingString": "[conn][%p] Canceling %hhu"
       },
       {
         "UniquenessHash": "631f94ef-27ad-9be6-98cf-966dbce8bad9",
@@ -14094,9 +13781,9 @@
         "EncodingString": "[conn][%p] Unregistered from %p"
       },
       {
-        "UniquenessHash": "8fbe1b93-5e48-0738-c64d-8e60a387bc13",
+        "UniquenessHash": "4dba1f55-4a25-f194-dc19-c0d6beba3de7",
         "TraceID": "ConnVersionSet",
-        "EncodingString": "[conn][%p] QUIC Version: %u"
+        "EncodingString": "[conn][%p] QUIC Version: 0x%x"
       },
       {
         "UniquenessHash": "6a04dcf8-d84b-933c-ab7a-6f700e5111d2",
@@ -14234,11 +13921,6 @@
         "EncodingString": "[  dp] Failed to initialize datapath, status:%d"
       },
       {
-        "UniquenessHash": "b88fe9ef-f6ed-09b0-1711-28ec0fc2ab52",
-        "TraceID": "DatapathInitialize",
-        "EncodingString": "[data][%p] Datapath initialize"
-      },
-      {
         "UniquenessHash": "d68a3d43-333c-e62d-ec53-bb88a64aa2f4",
         "TraceID": "DataPathInitialized",
         "EncodingString": "[data] Initialized, DatapathFeatures=%u"
@@ -14319,11 +14001,6 @@
         "EncodingString": "[data][%p] Dropping datagram with empty payload."
       },
       {
-        "UniquenessHash": "60d31969-e1ac-0a1d-7419-9fe56e0f5404",
-        "TraceID": "DatapathRecvXdp",
-        "EncodingString": "[ xdp][%p] Recv %u bytes (segment=%hu) Src=%!ADDR! Dst=%!ADDR!"
-      },
-      {
         "UniquenessHash": "8c0dc882-517e-cd8f-df0b-0b892d83bb00",
         "TraceID": "DatapathResolveHostNameFailed",
         "EncodingString": "[%p] Couldn't resolve hostname '%s' to an IP address"
@@ -14347,11 +14024,6 @@
         "UniquenessHash": "798b4c99-cb62-f6d9-178d-daf707dc6c10",
         "TraceID": "DatapathSendTcpControl",
         "EncodingString": "[data][%p] Send %u bytes TCP control packet Flags=%hhu Dst=%!ADDR!, Src=%!ADDR!"
-      },
-      {
-        "UniquenessHash": "3bf92922-ac70-d758-6cbe-92b13f20cce6",
-        "TraceID": "DatapathSendXdp",
-        "EncodingString": "[ xdp][%p] Send %u bytes Dst=%!ADDR!, Src=%!ADDR!"
       },
       {
         "UniquenessHash": "4f1e0892-0852-480e-71db-5b9bb377aabc",
@@ -14402,6 +14074,11 @@
         "UniquenessHash": "fc873bff-2380-b7f7-a8be-4ff93b6d72d7",
         "TraceID": "DatapathUroPreallocExceeded",
         "EncodingString": "[data][%p] Exceeded URO preallocation capacity."
+      },
+      {
+        "UniquenessHash": "4f93225a-16ce-0454-82c8-a9a874bfead9",
+        "TraceID": "DecodeCRStart",
+        "EncodingString": "[conn][%p] Decoding Careful Resume State. BufLength:%hu"
       },
       {
         "UniquenessHash": "244561c5-e612-a194-99af-e39c0b17c234",
@@ -14574,6 +14251,11 @@
         "EncodingString": "[conn][%p] ECN unknown."
       },
       {
+        "UniquenessHash": "89d8241b-7af6-1a03-5c55-9b788a7d2924",
+        "TraceID": "EncodeCRStart",
+        "EncodingString": "[conn][%p] Encoding Careful Resume State"
+      },
+      {
         "UniquenessHash": "d276c997-5dfb-645e-b54a-7ec567967851",
         "TraceID": "EncodeMaxDatagramFrameSize",
         "EncodingString": "[conn][%p] TP: Max Datagram Frame Size (%llu bytes)"
@@ -14727,11 +14409,6 @@
         "UniquenessHash": "74414401-fe89-41bb-7a3b-4ab1df9e912c",
         "TraceID": "FailRxAlloc",
         "EncodingString": "[ xdp][rx  ] OOM for Rx"
-      },
-      {
-        "UniquenessHash": "eff0bf3a-6d97-e11d-d4a2-543e2e480bdb",
-        "TraceID": "FailSendTo",
-        "EncodingString": "[ xdp][tx  ] Faild sendto. errno:%d, Umem addr:%lld"
       },
       {
         "UniquenessHash": "f0f39cc3-a21d-f843-1018-5901295b6a1a",
@@ -15049,6 +14726,11 @@
         "EncodingString": "[conn][%p] Failed to get packet type for control frames, 0x%x"
       },
       {
+        "UniquenessHash": "72895611-1b21-d389-c78b-ab44b14b458f",
+        "TraceID": "GetTxOffloadConfig",
+        "EncodingString": "[ lib] %u, %u"
+      },
+      {
         "UniquenessHash": "eeb31991-927b-2f3c-bfb7-12b7dea50ead",
         "TraceID": "HandshakeConfirmedAck",
         "EncodingString": "[conn][%p] Handshake confirmed (ack)"
@@ -15087,11 +14769,6 @@
         "UniquenessHash": "b7d10598-79a4-31fa-8455-0d393b45c1e7",
         "TraceID": "IgnoreRecvFlush",
         "EncodingString": "[strm][%p] Ignoring recv flush (recv disabled)"
-      },
-      {
-        "UniquenessHash": "1537935d-ab2d-521e-a290-e59e29d2626d",
-        "TraceID": "IgnoreRecvFlushByReadPending",
-        "EncodingString": "[strm][%p] Ignoring recv flush (ReadPendingLenght=%llu)"
       },
       {
         "UniquenessHash": "1e752977-c5b3-6034-4b89-414f9c6ff50f",
@@ -15239,19 +14916,9 @@
         "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_SHUTDOWN_COMPLETE [Shutdown=%hhu, ShutdownByApp=%hhu, ClosedRemotely=%hhu, ErrorCode=0x%llx, CloseStatus=0x%x]"
       },
       {
-        "UniquenessHash": "5b61c178-ef08-2544-fe09-4192be82b795",
-        "TraceID": "InsertSocket",
-        "EncodingString": "[sock][%p] InsertSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
-      },
-      {
         "UniquenessHash": "a3160ae8-224d-49a6-5df1-cca3e643d016",
         "TraceID": "InterfaceFree",
         "EncodingString": "[ xdp][%p] Freeing Interface"
-      },
-      {
-        "UniquenessHash": "0acc6df5-0b99-f6ab-42de-fa7beb78db1c",
-        "TraceID": "InterfaceInit",
-        "EncodingString": "[ xdp][%p] Interface init done"
       },
       {
         "UniquenessHash": "e98e6411-dfab-d3a6-e7bd-d1782209846d",
@@ -15292,6 +14959,11 @@
         "UniquenessHash": "4574d3aa-0d58-420f-fa75-4b57a79d3fa8",
         "TraceID": "LibraryCidLengthSet",
         "EncodingString": "[ lib] CID Length = %hhu"
+      },
+      {
+        "UniquenessHash": "bce1fded-91be-da6e-29d8-3f52455fa16a",
+        "TraceID": "LibraryDscpRecvEnabledSet",
+        "EncodingString": "[ lib] Setting Dscp on recv = %u"
       },
       {
         "UniquenessHash": "2cbc406b-c1c0-ba4d-eee8-669f30330f4a",
@@ -15359,6 +15031,11 @@
         "EncodingString": "[ lib] Release"
       },
       {
+        "UniquenessHash": "7e60f269-ff18-fed5-550c-388521d4164d",
+        "TraceID": "LibraryRetryKeyUpdated",
+        "EncodingString": "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u"
+      },
+      {
         "UniquenessHash": "71c0b89c-7bb8-4a53-be34-dd9a4170850c",
         "TraceID": "LibraryRetryMemoryLimitSet",
         "EncodingString": "[ lib] Updated retry memory limit = %hu"
@@ -15377,6 +15054,26 @@
         "UniquenessHash": "58367e27-574f-14e0-4661-81f93cdb9e18",
         "TraceID": "LibraryServerInit",
         "EncodingString": "[ lib] Shared server state initializing"
+      },
+      {
+        "UniquenessHash": "486e116e-95bb-bdeb-5f27-de64f47dd51a",
+        "TraceID": "LibrarySetRetryKeyAlgorithmInvalid",
+        "EncodingString": "[ lib] Invalid retry key algorithm: %d."
+      },
+      {
+        "UniquenessHash": "44f860ad-7ed6-6b7d-281a-ebdbf5af5d78",
+        "TraceID": "LibrarySetRetryKeyRotationInvalid",
+        "EncodingString": "[ lib] Invalid retry key rotation ms: %u."
+      },
+      {
+        "UniquenessHash": "e3e48450-245f-f818-02d3-8e25aae09b6e",
+        "TraceID": "LibrarySetRetryKeySecretLengthInvalid",
+        "EncodingString": "[ lib] Invalid retry key secret length: %u. Expected %u."
+      },
+      {
+        "UniquenessHash": "58822e02-9fc2-7ca6-ca3e-ae4e399f16f8",
+        "TraceID": "LibrarySetRetryKeySecretNull",
+        "EncodingString": "[ lib] Invalid retry key secret: NULL."
       },
       {
         "UniquenessHash": "8b631421-6922-c7cf-8f9e-0b9ded090611",
@@ -15447,6 +15144,11 @@
         "UniquenessHash": "4687c526-98b4-7014-5ab2-6cf89e76f504",
         "TraceID": "ListenerIndicateStopComplete",
         "EncodingString": "[list][%p] Indicating STOP_COMPLETE"
+      },
+      {
+        "UniquenessHash": "81f937b4-2c2a-b818-6b6f-ad498e684df0",
+        "TraceID": "ListenerPartitionIndexSet",
+        "EncodingString": "[list][%p] PartitionIndex set (index %hu)"
       },
       {
         "UniquenessHash": "516f74f8-8802-7cdb-d034-3fa2e41d42c0",
@@ -15789,6 +15491,16 @@
         "EncodingString": "[S][RX][-] SR %s"
       },
       {
+        "UniquenessHash": "46f11126-1b95-7be6-d4b5-355e596c8e8e",
+        "TraceID": "PacketRxVersionNegotiation",
+        "EncodingString": "[C][RX][-] VN"
+      },
+      {
+        "UniquenessHash": "0026470e-9655-96a1-ef44-5e613a17a5dc",
+        "TraceID": "PacketRxVersionNegVer",
+        "EncodingString": "[C][RX][-]   Ver[%d]: 0x%x"
+      },
+      {
         "UniquenessHash": "9d72c640-7512-38fd-8823-f24b7e1ad94c",
         "TraceID": "PacketTx0RttRejected",
         "EncodingString": "[%c][TX][%llu] Rejected"
@@ -15989,21 +15701,6 @@
         "EncodingString": "[perf] Performance Stop Cancelled"
       },
       {
-        "UniquenessHash": "221a79fd-6347-1c39-b203-268190b2e183",
-        "TraceID": "PerfRpsComplete",
-        "EncodingString": "[perf] RPS Client complete"
-      },
-      {
-        "UniquenessHash": "d09461bb-6b09-2766-23bd-bc4734886134",
-        "TraceID": "PerfRpsStart",
-        "EncodingString": "[perf] RPS Client start"
-      },
-      {
-        "UniquenessHash": "93872e3e-e3be-2983-e205-d6e666f739f6",
-        "TraceID": "PerfRpsTimeout",
-        "EncodingString": "[perf] RPS Client timeout"
-      },
-      {
         "UniquenessHash": "8260f5a0-7930-0280-7f31-39c627e51e33",
         "TraceID": "PerfTcpAppAccept",
         "EncodingString": "[perf][tcp][%p] App Accept"
@@ -16134,11 +15831,6 @@
         "EncodingString": "[perf] Print Buffer %d %s\\n"
       },
       {
-        "UniquenessHash": "3379ba23-5dc4-936c-5dd0-224fcad9d9d5",
-        "TraceID": "ProcessorInfoV2",
-        "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%u] Active=%hhu"
-      },
-      {
         "UniquenessHash": "c224289c-70bc-0be5-bc16-ea902175e280",
         "TraceID": "ProcessorInfoV3",
         "EncodingString": "[ dll] Proc[%u] Group[%hu] Index[%hhu] Active=%hhu"
@@ -16164,29 +15856,9 @@
         "EncodingString": "[ xdp][%p] Freeing Queue on Interface:%p"
       },
       {
-        "UniquenessHash": "6e24a520-c712-e682-29a3-004d35d51ded",
-        "TraceID": "QueueInit",
-        "EncodingString": "[ xdp][%p] Setting up Queue on Interface:%p"
-      },
-      {
         "UniquenessHash": "80596bbb-20e9-07e5-07f3-ebc7078fa612",
         "TraceID": "QueueRecvFlush",
         "EncodingString": "[strm][%p] Queuing recv flush"
-      },
-      {
-        "UniquenessHash": "d61a4398-ba19-c65b-995e-e71c9582edb4",
-        "TraceID": "QuicConnRecvDatagrams",
-        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
-      },
-      {
-        "UniquenessHash": "6ac0022e-511b-ec8a-4ef3-15735ee7c35d",
-        "TraceID": "QuicConnRecvUdpDatagrams",
-        "EncodingString": "[conn][%p] Recv %u UDP datagrams, %u bytes"
-      },
-      {
-        "UniquenessHash": "f4ecfd1f-95a5-724a-b299-4f8f08ba6543",
-        "TraceID": "RawDatapathInitFail",
-        "EncodingString": "[ raw] Failed to initialize raw datapath, status:%d"
       },
       {
         "UniquenessHash": "4f370688-5822-225a-8c7e-ec4200d38f0a",
@@ -16237,11 +15909,6 @@
         "UniquenessHash": "1a6051bf-393a-b704-7237-8d9d0881efb3",
         "TraceID": "RecvStatelessReset",
         "EncodingString": "[conn][%p] Received stateless reset"
-      },
-      {
-        "UniquenessHash": "9727ad53-8a0f-e3b3-8def-c1fa820baaa9",
-        "TraceID": "RecvVerNeg",
-        "EncodingString": "[conn][%p] Received Version Negotation:"
       },
       {
         "UniquenessHash": "c13441c6-4ae4-4459-2078-3ac4175a374b",
@@ -16309,11 +15976,6 @@
         "EncodingString": "[conn][%p] Removing flags %x"
       },
       {
-        "UniquenessHash": "d01ebc42-ef1c-8e8f-878e-67fabbbaf89b",
-        "TraceID": "RemoveSocket",
-        "EncodingString": "[sock][%p] RemoveSocket: LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
-      },
-      {
         "UniquenessHash": "1f2558ac-412e-da8c-33d7-7c45995dbcf9",
         "TraceID": "ResetEarly",
         "EncodingString": "[strm][%p] Tried to reset at earlier final size!"
@@ -16342,16 +16004,6 @@
         "UniquenessHash": "ff41b02a-ac3e-3b07-30f1-3040e2416019",
         "TraceID": "RttUpdatedV2",
         "EncodingString": "[conn][%p] Updated Rtt=%u.%03u ms, Var=%u.%03u 1Way=%u.%03u ms"
-      },
-      {
-        "UniquenessHash": "e179b91c-9ba5-4a5d-24a6-0cbe7e3c5814",
-        "TraceID": "RxConsPeekFail",
-        "EncodingString": "[ xdp][rx  ] Failed to peek from Rx queue"
-      },
-      {
-        "UniquenessHash": "cbd9e457-c19c-dbd7-effe-4648f905fe33",
-        "TraceID": "RxConsPeekSucceed",
-        "EncodingString": "[ xdp][rx  ] Succeed peek %d from Rx queue"
       },
       {
         "UniquenessHash": "ea188c4d-44a9-c75a-c8cf-fae2224bd6ca",
@@ -16459,9 +16111,9 @@
         "EncodingString": "[conn][%p] probe round %hu"
       },
       {
-        "UniquenessHash": "67214142-6506-1bc9-8571-1db21b754ea7",
+        "UniquenessHash": "746a4e23-1021-bda2-7be8-ba33a1221656",
         "TraceID": "ScheduleSendFlags",
-        "EncodingString": "[conn][%p] Scheduling flags 0x%x to 0x%x"
+        "EncodingString": "[conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)"
       },
       {
         "UniquenessHash": "0d9cddd5-17e7-d796-fa49-7f3450287fa6",
@@ -16829,6 +16481,11 @@
         "EncodingString": "[sett] OneWayDelayEnabled     = %hhu"
       },
       {
+        "UniquenessHash": "4b7db079-533f-22a0-d0d1-a19436940ebb",
+        "TraceID": "SettingQTIPEnabled",
+        "EncodingString": "[sett] QTIPEnabled            = %hhu"
+      },
+      {
         "UniquenessHash": "f5c7d703-ecd1-8dd0-c16d-11857945bfcf",
         "TraceID": "SettingReliableResetEnabled",
         "EncodingString": "[sett] ReliableResetEnabled   = %hhu"
@@ -16874,9 +16531,19 @@
         "EncodingString": "[sett] StreamMultiReceiveEnabled  = %hhu"
       },
       {
+        "UniquenessHash": "3bdc4807-1d2f-01f2-3c8c-043542720899",
+        "TraceID": "SettingXdpEnabled",
+        "EncodingString": "[sett] XdpEnabled             = %hhu"
+      },
+      {
         "UniquenessHash": "f34a9d8e-7798-1d30-2104-37dac8a3c0e0",
         "TraceID": "ShutdownImmediatePendingReliableReset",
         "EncodingString": "[strm][%p] Invalid immediate shutdown request (pending reliable reset)."
+      },
+      {
+        "UniquenessHash": "2656ff28-78a8-28d2-b18f-0aa4ec664a0d",
+        "TraceID": "SkipPacketNumber",
+        "EncodingString": "[conn][%p] Skipped packet number %llu"
       },
       {
         "UniquenessHash": "7b00c1b9-3578-872f-c41f-75bb4f92de18",
@@ -16937,6 +16604,11 @@
         "UniquenessHash": "c3b546cc-e127-435d-8bf4-cf20ca3d2d5e",
         "TraceID": "StreamError",
         "EncodingString": "[strm][%p] ERROR, %s."
+      },
+      {
+        "UniquenessHash": "556a140f-9a69-1c56-aaee-8358e3ece719",
+        "TraceID": "StreamNotifyInsufficientRecvBuffer",
+        "EncodingString": "[strm][%p] Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]"
       },
       {
         "UniquenessHash": "638251a8-14f3-2929-34e2-e69cfdab2277",
@@ -17189,11 +16861,6 @@
         "EncodingString": "[conn][%p] Updated Stream Scheduling Scheme = %u"
       },
       {
-        "UniquenessHash": "62fa7337-1321-2cd0-f7cc-236d893ed747",
-        "TraceID": "VerNegItem",
-        "EncodingString": "[conn][%p]   Ver[%d]: 0x%x"
-      },
-      {
         "UniquenessHash": "0c7aa55b-0fac-8bf3-13f4-2a80e4a8b2ba",
         "TraceID": "VersionInfoChosenVersionZero",
         "EncodingString": "[conn][%p] Version Info Chosen Version is zero!"
@@ -17309,11 +16976,6 @@
         "EncodingString": "[ xdp] Failed to allocate umem"
       },
       {
-        "UniquenessHash": "d2086d2a-ac56-bbce-57f6-5c3823319f8f",
-        "TraceID": "XdpAttached",
-        "EncodingString": "[ xdp] XDP program already attached to %s"
-      },
-      {
         "UniquenessHash": "c124b808-c9ae-82fd-49fa-040aa1bc4796",
         "TraceID": "XdpAttachFails",
         "EncodingString": "[ xdp] Failed to attach XDP program to %s. error:%s"
@@ -17322,16 +16984,6 @@
         "UniquenessHash": "a4b84136-131d-0ec3-2ff5-23c3a752b330",
         "TraceID": "XdpAttachSucceeds",
         "EncodingString": "[ xdp] Successfully attach XDP program to %s by mode:%d"
-      },
-      {
-        "UniquenessHash": "d437d3dd-3834-5c47-d972-1a1d8c08ccd8",
-        "TraceID": "XdpBypassMapError",
-        "EncodingString": "[ xdp] Failed to open stack bypass map"
-      },
-      {
-        "UniquenessHash": "0376ea53-71bd-561b-8a1d-76beca2d2c12",
-        "TraceID": "XdpChainingBuffer",
-        "EncodingString": "[ xdp] Done chaining buffer %d/%d"
       },
       {
         "UniquenessHash": "bd03227b-bb34-4f00-287c-14b7b8948404",
@@ -17359,11 +17011,6 @@
         "EncodingString": "[ xdp] Failed to get RSS queue count for %s"
       },
       {
-        "UniquenessHash": "85daf4dc-93cf-8f55-f583-c708356db354",
-        "TraceID": "XdpFindProbramSectionError",
-        "EncodingString": "[ xdp] ERROR, finding program section '%s'"
-      },
-      {
         "UniquenessHash": "0a2db04c-0b5e-388d-18a0-2842ccb8d3ed",
         "TraceID": "XdpInitialize",
         "EncodingString": "[ xdp][%p] XDP initialized, %u procs"
@@ -17379,24 +17026,9 @@
         "EncodingString": "[ixdp][%p] Initializing %u queues on interface"
       },
       {
-        "UniquenessHash": "83b58d1d-bb4b-653f-d379-3631b103ed34",
-        "TraceID": "XdpLoadBpfObjectError",
-        "EncodingString": "[ xdp] ERROR:, loading BPF-OBJ file:%s, %d: [%s]."
-      },
-      {
         "UniquenessHash": "7783db85-e3da-a62a-9eaa-9430fc3b40c4",
         "TraceID": "XdpLoadObject",
         "EncodingString": "[ xdp] Successfully loaded xdp object of %s"
-      },
-      {
-        "UniquenessHash": "35b81be4-4ed1-ea3e-5c07-8f184e975d2f",
-        "TraceID": "XdpModeDowngrade",
-        "EncodingString": "[ xdp][%p] Downgrading from DRV mode to SKB mode for interface:%s"
-      },
-      {
-        "UniquenessHash": "6a5bfc6f-444f-4971-09f2-49a362ebac82",
-        "TraceID": "XdpNotSupported",
-        "EncodingString": "[ xdp][%p] Xdp is not supported on this interface:%s"
       },
       {
         "UniquenessHash": "d6fd6cf6-d65c-5e75-31f2-2a34a36c3255",
@@ -17449,11 +17081,6 @@
         "EncodingString": "[ xdp][%p] XDP release"
       },
       {
-        "UniquenessHash": "6ae15185-3a2c-6110-2cfa-0a53a094e7b5",
-        "TraceID": "XdpRxRelease",
-        "EncodingString": "[ xdp][%p] Release %d from Rx queue (TODO:Check necesity here)"
-      },
-      {
         "UniquenessHash": "02a4f582-b4ac-f506-b60f-2627183d2bde",
         "TraceID": "XdpSetIfnameFails",
         "EncodingString": "[ xdp] Failed to set ifname %s on %s"
@@ -17467,21 +17094,6 @@
         "UniquenessHash": "f209f7d4-9287-cfed-6abd-bfcd201e5ee7",
         "TraceID": "XdpSetPortFails",
         "EncodingString": "[ xdp] Failed to set port %d on %s"
-      },
-      {
-        "UniquenessHash": "2bcd0dff-21b9-c403-d43c-d997d9a6ec6d",
-        "TraceID": "XdpSkipOrEndofBuffer",
-        "EncodingString": "[ xdp] Skip or End of Buffer %d/%d"
-      },
-      {
-        "UniquenessHash": "603ba4f2-6ee1-96ee-fb08-ae3c1f0c446b",
-        "TraceID": "XdpSocketCreate",
-        "EncodingString": "[ xdp] Failed to create AF_XDP socket. ret:%d errno:%d"
-      },
-      {
-        "UniquenessHash": "51039a96-82fb-435b-957c-2af13dab2dc7",
-        "TraceID": "XdpSocketNotFound",
-        "EncodingString": "[ xdp] Socket not found LocalAddr=%!ADDR! RemoteAddr=%!ADDR!"
       },
       {
         "UniquenessHash": "e81e1b15-4470-f033-d0b6-6c03f9a19011",

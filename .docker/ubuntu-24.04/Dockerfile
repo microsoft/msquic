@@ -1,7 +1,7 @@
 # Stage 1: Base image
-FROM ubuntu:24.04@sha256:e3f92abc0967a6c19d0dfa2d55838833e947b9d74edbcb0113e48535ad4be12a AS base
+FROM ubuntu:24.04@sha256:590e57acc18d58cd25d00254d4ca989bbfcd7d929ca6b521892c9c904c391f50 AS base
 
-LABEL org.opencontainers.image.source https://github.com/microsoft/msquic
+LABEL org.opencontainers.image.source=https://github.com/microsoft/msquic
 
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -36,13 +36,14 @@ RUN apt-get update && apt-get install --no-install-recommends -y \
     liblttng-ust-dev \
     libssl-dev \
     libnuma-dev \
+    liburing-dev \
     && rm -rf /var/lib/apt/lists/*
 
 RUN gem install fpm
 RUN wget -q https://launchpad.net/ubuntu/+archive/primary/+files/libicu72_72.1-3ubuntu3_amd64.deb \
     && dpkg -i ./libicu72_72.1-3ubuntu3_amd64.deb \
     && rm ./libicu72_72.1-3ubuntu3_amd64.deb \
-    && wget -q https://packages.microsoft.com/config/ubuntu/18.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
+    && wget -q https://packages.microsoft.com/config/ubuntu/24.04/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
     sudo dpkg -i packages-microsoft-prod.deb && \
     sudo add-apt-repository universe && \
     sudo apt-get update -y && \
@@ -103,4 +104,6 @@ RUN apt-get update \
     libssl-dev:armhf \
     libnuma-dev:arm64 \
     libnuma-dev:armhf \
+    liburing-dev:arm64 \
+    liburing-dev:armhf \
     && rm -rf /var/lib/apt/lists/*

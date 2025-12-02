@@ -15,6 +15,10 @@ Abstract:
 
 #include "msquic.hpp"
 
+//
+// Enable tests for specific platforms/scenarios
+//
+
 //#define QUIC_COMPARTMENT_TESTS 1
 
 extern QUIC_CREDENTIAL_CONFIG ServerSelfSignedCredConfig;
@@ -57,6 +61,10 @@ void QuicTestGetPerfCounters();
 void QuicTestVersionSettings();
 void QuicTestValidateParamApi();
 void QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config);
+void QuicTestValidateConnectionPoolCreate();
+void QuicTestValidateExecutionContext();
+void QuicTestValidatePartition();
+void QuicTestRetryConfigSetting();
 
 //
 // Ownership tests
@@ -364,6 +372,14 @@ void
 QuicTestVNTPOtherVersionZero(
     _In_ bool TestServer
     );
+
+void
+QuicTestConnectionPoolCreate(
+    _In_ int Family,
+    _In_ uint16_t NumberOfConnections,
+    _In_ bool XdpSupported,
+    _In_ bool TestCibirSupport
+    );
 #endif
 
 //
@@ -441,7 +457,8 @@ QuicTestConnectAndPing(
     _In_ bool UseSendBuffer,
     _In_ bool UnidirectionalStreams,
     _In_ bool ServerInitiatedStreams,
-    _In_ bool FifoScheduling
+    _In_ bool FifoScheduling,
+    _In_ bool SendUdpToQtipListener
     );
 
 //
@@ -640,7 +657,7 @@ QuicTestEcn(
 void QuicTestStreamAppProvidedBuffers(
     );
 
-void QuicTestStreamAppProvidedBuffersZeroWindow(
+void QuicTestStreamAppProvidedBuffersOutOfSpace(
     );
 
 //
@@ -763,7 +780,6 @@ static const GUID QUIC_TEST_DEVICE_INSTANCE =
 
 typedef struct {
     BOOLEAN UseDuoNic;
-    QUIC_EXECUTION_CONFIG Config;
     char CurrentDirectory[MAX_PATH];
 } QUIC_TEST_CONFIGURATION_PARAMS;
 
@@ -865,6 +881,7 @@ typedef struct {
     uint8_t UnidirectionalStreams;
     uint8_t ServerInitiatedStreams;
     uint8_t FifoScheduling;
+    uint8_t SendUdpToQtipListener;
 } QUIC_RUN_CONNECT_AND_PING_PARAMS;
 
 #pragma pack(pop)
@@ -1393,16 +1410,39 @@ typedef struct {
 #define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS \
     QUIC_CTL_CODE(128, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_ZERO_WINDOW \
+#define IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE \
     QUIC_CTL_CODE(129, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 #define IOCTL_QUIC_RUN_TEST_KEY_UPDATE_DURING_HANDSHAKE \
     QUIC_CTL_CODE(130, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
-    
+
 #define IOCTL_QUIC_RUN_RETRY_MEMORY_LIMIT_CONNECT \
     QUIC_CTL_CODE(131, METHOD_BUFFERED, FILE_WRITE_DATA)
     //int - Family
+
+struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
+    int Family;
+    uint16_t NumberOfConnections;
+    bool XdpSupported;
+    bool TestCibirSupport;
+};
+
+#define IOCTL_QUIC_RUN_CONNECTION_POOL_CREATE \
+    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS
+
+#define IOCTL_QUIC_RUN_VALIDATE_CONNECTION_POOL_CREATE \
+    QUIC_CTL_CODE(133, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_RETRY_CONFIG_SETTING \
+    QUIC_CTL_CODE(134, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_EXECUTION_CONTEXT \
+    QUIC_CTL_CODE(135, METHOD_BUFFERED, FILE_WRITE_DATA)
+
+#define IOCTL_QUIC_RUN_VALIDATE_PARTITION \
+    QUIC_CTL_CODE(136, METHOD_BUFFERED, FILE_WRITE_DATA)
 
 typedef struct {
     int Family;
@@ -1412,7 +1452,7 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(132, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
@@ -1422,7 +1462,7 @@ typedef struct {
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(133, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_RUN_MIGRATION
+    QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // QUIC_RUN_MIGRATION_PARAMS
     
-#define QUIC_MAX_IOCTL_FUNC_CODE 133
+#define QUIC_MAX_IOCTL_FUNC_CODE 138

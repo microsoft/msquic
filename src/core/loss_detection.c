@@ -396,7 +396,8 @@ QuicLossDetectionOnPacketSent(
     //
     QUIC_SENT_PACKET_METADATA* SentPacket =
         QuicSentPacketPoolGetPacketMetadata(
-            &Connection->Worker->SentPacketPool, TempSentPacket->FrameCount);
+            &Connection->Partition->SentPacketPool,
+            TempSentPacket->FrameCount);
     if (SentPacket == NULL) {
         //
         // We can't allocate the memory to permanently track this packet so just
@@ -840,7 +841,8 @@ QuicLossDetectionRetransmitFrames(
                         Connection,
                         "Path[%hhu] validation timed out",
                         Path->ID);
-                    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PATH_FAILURE);
+                    QuicPerfCounterIncrement(
+                        Connection->Partition, QUIC_PERF_COUNTER_PATH_FAILURE);
                     CXPLAT_DBG_ASSERT(Connection->Paths[PathIndex].Binding != NULL);
                     QuicLibraryReleaseBinding(Connection->Paths[PathIndex].Binding);
                     Connection->Paths[PathIndex].Binding = NULL;
@@ -1027,7 +1029,8 @@ QuicLossDetectionDetectAndHandleLostPackets(
             }
 
             Connection->Stats.Send.SuspectedLostPackets++;
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+            QuicPerfCounterIncrement(
+                Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
             if (Packet->Flags.IsAckEliciting) {
                 LossDetection->PacketsInFlight--;
                 LostRetransmittableBytes += Packet->PacketLength;
@@ -1329,6 +1332,22 @@ QuicLossDetectionProcessAckBlocks(
     uint32_t i = 0;
     QUIC_SUBRANGE* AckBlock;
     while ((AckBlock = QuicRangeGetSafe(AckBlocks, i++)) != NULL) {
+        //
+        // ATTACK DETECTION: Check if the skipped packet number is in this ACK
+        // block. If so, this indicates a potential injection attack.
+        //
+        if (Connection->Send.SkippedPacketNumber >= AckBlock->Low &&
+            Connection->Send.SkippedPacketNumber <= QuicRangeGetHigh(AckBlock)) {
+            QuicTraceLogConnError(
+                AttackDetected,
+                Connection,
+                "Attack detected: Skipped packet number %llu ACKed in range [%llu, %llu]",
+                Connection->Send.SkippedPacketNumber,
+                AckBlock->Low,
+                QuicRangeGetHigh(AckBlock));
+            QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+            return;
+        }
 
         //
         // Check to see if any packets in the LostPackets list are acknowledged,
@@ -1354,7 +1373,8 @@ QuicLossDetectionProcessAckBlocks(
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
                 Connection->Stats.Send.SpuriousLostPackets++;
-                QuicPerfCounterDecrement(QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
+                QuicPerfCounterDecrement(
+                    Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
                 //
                 // NOTE: we don't increment AckedRetransmittableBytes here
                 // because we already told the congestion control module that

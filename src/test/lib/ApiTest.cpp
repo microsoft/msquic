@@ -49,6 +49,20 @@ void QuicTestValidateApi()
         QUIC_STATUS_INVALID_PARAMETER);
 }
 
+struct RegistrationCloseContext {
+    CxPlatEvent Event;
+};
+
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+QUIC_API RegistrationCloseCallback(
+    _In_opt_ void* Context
+    )
+{
+    RegistrationCloseContext* CloseContext = (RegistrationCloseContext*)Context;
+    CloseContext->Event.Set();
+}
+
 void QuicTestValidateRegistration()
 {
     TEST_QUIC_STATUS(
@@ -56,6 +70,17 @@ void QuicTestValidateRegistration()
         MsQuic->RegistrationOpen(nullptr, nullptr));
 
     MsQuic->RegistrationClose(nullptr);
+
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+        RegistrationCloseContext CloseContext;
+        Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+        TEST_TRUE(CloseContext.Event.WaitTimeout(TestWaitTimeout));
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+    }
 }
 
 void QuicTestValidateConfiguration()
@@ -687,6 +712,22 @@ void QuicTestValidateConnection()
             QUIC_STATUS_INVALID_PARAMETER,
             MsQuic->ConnectionOpen(
                 nullptr,
+                DummyConnectionCallback,
+                nullptr,
+                &Connection.Handle));
+    }
+
+    //
+    // Invalid partition index.
+    //
+    {
+        TestScopeLogger logScope("Invalid partition index");
+        ConnectionScope Connection;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionOpenInPartition(
+                Registration,
+                UINT16_MAX,
                 DummyConnectionCallback,
                 nullptr,
                 &Connection.Handle));
@@ -2580,13 +2621,13 @@ void QuicTestGlobalParam()
                         nullptr));
             }
 
-            uint8_t Data[QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
+            uint8_t Data[QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * 4] = {};
             uint32_t DataLength = sizeof(Data);
-            QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Data;
+            QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Data;
             Config->ProcessorCount = 4;
             if (CxPlatProcCount() < Config->ProcessorCount) {
                 Config->ProcessorCount = CxPlatProcCount();
-                DataLength = QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
+                DataLength = QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount;
             }
             for (uint16_t i = 0; i < (uint16_t)Config->ProcessorCount; ++i) {
                 Config->ProcessorList[i] = i;
@@ -2686,17 +2727,6 @@ void QuicTestGlobalParam()
         {
             TestScopeLogger LogScope1("SetParam");
             uint8_t StatelessResetkey[QUIC_STATELESS_RESET_KEY_LENGTH - 1];
-            CxPlatRandom(sizeof(StatelessResetkey), StatelessResetkey);
-            {
-                TestScopeLogger LogScope2("StatelessResetkey fail with invalid state");
-                TEST_QUIC_STATUS(
-                    QUIC_STATUS_INVALID_STATE,
-                    MsQuic->SetParam(
-                        nullptr,
-                        QUIC_PARAM_GLOBAL_STATELESS_RESET_KEY,
-                        sizeof(StatelessResetkey),
-                        StatelessResetkey));
-            }
             {
                 TestScopeLogger LogScope2("StatelessResetkey fail with invalid parameter");
                 MsQuicRegistration Registration;
@@ -2758,6 +2788,113 @@ void QuicTestGlobalParam()
 #endif
 
     //
+    // QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG");
+        const uint32_t SecretLength = 32;
+        uint8_t Buffer[SecretLength];
+        QUIC_STATELESS_RETRY_CONFIG Config;
+
+        Config.SecretLength = SecretLength;
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        Config.RotationMs = 60000;
+        Config.Secret = Buffer;
+        CxPlatRandom(sizeof(Buffer), Buffer);
+
+        // Null buffer
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                nullptr));
+
+        // Wrong size - smaller than QUIC_STATELESS_RETRY_CONFIG
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config) - 1,
+                &Config));
+
+        // Invalid algorithm
+        Config.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)1000;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+
+        // Invalid algorithm, negative number
+        Config.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)-2;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+
+        // zero length secret
+        Config.SecretLength = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.SecretLength = SecretLength;
+
+        // Null secret
+        Config.Secret = nullptr;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.Secret = Buffer;
+
+        // Incorrect length secret
+        Config.SecretLength = 10;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.SecretLength = SecretLength;
+
+        // Zero rotation
+        Config.RotationMs = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+        Config.RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->SetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                sizeof(Config),
+                &Config));
+    }
+
+    //
     // Invalid parameter
     //
     {
@@ -2769,6 +2906,102 @@ void QuicTestGlobalParam()
                 QUIC_PARAM_PREFIX_GLOBAL | 0x00234567,
                 0,
                 nullptr));
+    }
+
+    //
+    // QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES
+    //
+    {
+        TestScopeLogger LogScope0("QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES");
+        const uint32_t Expected[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
+
+        //
+        // Expect buffer too small
+        //
+        uint32_t Length = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+        TEST_TRUE(Length >= sizeof(Expected));
+
+        //
+        // NULL pointer output error case
+        //
+        Length = sizeof(uint32_t);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                nullptr));
+
+        //
+        // Retrieve the sizes
+        //
+        uint32_t Sizes[8] = {0};
+        Length = sizeof(Sizes);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_TRUE(Length % sizeof(uint32_t) == 0);
+        TEST_TRUE(Length >= sizeof(Expected));
+        for (uint32_t i = 0; i < ARRAYSIZE(Expected); ++i) {
+            TEST_EQUAL(Sizes[i], Expected[i]);
+        }
+
+        //
+        // Partial retrieve
+        //
+        uint32_t SingleSize = 0;
+        Length = sizeof(SingleSize);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                &SingleSize));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(SingleSize, QUIC_STATISTICS_V2_SIZE_1);
+
+        //
+        // Non-multiple of sizeof(uin32_t)
+        //
+        Length = sizeof(uint32_t) + 1;
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                Sizes));
+        TEST_EQUAL(Length, sizeof(uint32_t));
+        TEST_EQUAL(Sizes[0], QUIC_STATISTICS_V2_SIZE_1);
+
+        //
+        // Too Small Receive
+        //
+        uint8_t SmallSingleSize = 0;
+        Length = sizeof(SmallSingleSize);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES,
+                &Length,
+                &SmallSingleSize));
+        TEST_TRUE(Length >= sizeof(Expected));
     }
 
     QuicTestStatefulGlobalSetParam();
@@ -4705,6 +4938,72 @@ void QuicTest_QUIC_PARAM_CONN_SEND_DSCP(MsQuicRegistration& Registration)
     }
 }
 
+void QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(MsQuicRegistration& Registration)
+{
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_NETWORK_STATISTICS");
+    {
+        TestScopeLogger LogScope1("SetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint16_t Dummy = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_NETWORK_STATISTICS,
+                sizeof(Dummy),
+                &Dummy));
+    }
+
+    {
+        TestScopeLogger LogScope1("GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_NETWORK_STATISTICS, sizeof(QUIC_NETWORK_STATISTICS), nullptr, true);
+    }
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+    UNREFERENCED_PARAMETER(Registration);
+}
+
+void QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(MsQuicRegistration& Registration)
+{
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    TestScopeLogger LogScope0("QUIC_PARAM_CONN_CLOSE_ASYNC");
+    {
+        TestScopeLogger LogScope1("GetParam default");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        BOOLEAN Flag = FALSE;
+        SimpleGetParamTest(Connection.Handle, QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(BOOLEAN), &Flag);
+    }
+    {
+        TestScopeLogger LogScope1("SetParam/GetParam");
+        MsQuicConnection Connection(Registration);
+        TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
+        uint8_t CloseAsync = true;
+        uint8_t GetValue = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.SetParam(
+                QUIC_PARAM_CONN_CLOSE_ASYNC,
+                sizeof(CloseAsync),
+                &CloseAsync));
+        Connection.CloseAsync = TRUE;
+        uint32_t BufferSize = sizeof(GetValue);
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_SUCCESS,
+            Connection.GetParam(
+                QUIC_PARAM_CONN_CLOSE_ASYNC,
+                &BufferSize,
+                &GetValue));
+        TEST_EQUAL(BufferSize, sizeof(GetValue));
+        TEST_EQUAL(GetValue, CloseAsync);
+    }
+#else
+    UNREFERENCED_PARAMETER(Registration);
+#endif
+}
+
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 void QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(MsQuicRegistration& Registration, MsQuicConfiguration& ClientConfiguration)
 {
@@ -5099,6 +5398,8 @@ void QuicTestConnectionParam()
     QuicTest_QUIC_PARAM_CONN_STATISTICS_V2_PLAT(Registration);
     QuicTest_QUIC_PARAM_CONN_ORIG_DEST_CID(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_SEND_DSCP(Registration);
+    QuicTest_QUIC_PARAM_CONN_NETWORK_STATISTICS(Registration);
+    QuicTest_QUIC_PARAM_CONN_CLOSE_ASYNC(Registration);
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
     QuicTest_QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS(Registration, ClientConfiguration);
     QuicTest_QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS(Registration, ClientConfiguration);
@@ -5168,7 +5469,7 @@ void QuicTestTlsParam()
                     QUIC_PARAM_TLS_HANDSHAKE_INFO,
                     &Length,
                     nullptr));
-            TEST_EQUAL(Length, sizeof(QUIC_HANDSHAKE_INFO));
+            TEST_TRUE(Length >= sizeof(QUIC_HANDSHAKE_INFO));
 
             //
             // Before handshake
@@ -6232,548 +6533,1337 @@ QuicTestCredentialLoad(const QUIC_CREDENTIAL_CONFIG* Config)
     TEST_QUIC_SUCCEEDED(Configuration.LoadCredential(Config));
 }
 
+
+class QuicStorageSettingScopeGuard {
+public:
+    static
+    QuicStorageSettingScopeGuard Create(
+        _In_opt_ const char* StorageName = nullptr)
+    {
+        return QuicStorageSettingScopeGuard(StorageName);
+    }
+
+    QuicStorageSettingScopeGuard(const QuicStorageSettingScopeGuard&) = delete;
+    QuicStorageSettingScopeGuard& operator=(const QuicStorageSettingScopeGuard&) = delete;
+
+    QuicStorageSettingScopeGuard(
+        _In_ QuicStorageSettingScopeGuard&& Other) noexcept : m_Storage(Other.m_Storage)
+    {
+        Other.m_Storage = nullptr;
+    }
+
+    QuicStorageSettingScopeGuard& operator=(
+        _In_ QuicStorageSettingScopeGuard&& Other)
+    {
+        if (this == &Other)
+        {
+            return Other;
+        }
+        ClearAndClose(m_Storage);
+        m_Storage = Other.m_Storage;
+        Other.m_Storage = nullptr;
+        return *this;
+    }
+
+    ~QuicStorageSettingScopeGuard()
+    {
+        ClearAndClose(m_Storage);
+    }
+
+    operator CXPLAT_STORAGE*() const {
+        return m_Storage;
+    }
+
+private:
+    QuicStorageSettingScopeGuard(
+        _In_opt_ const char* StorageName)
+    {
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageOpen(
+                StorageName,
+                nullptr,
+                nullptr,
+                CXPLAT_STORAGE_OPEN_FLAG_DELETE | CXPLAT_STORAGE_OPEN_FLAG_WRITE | CXPLAT_STORAGE_OPEN_FLAG_CREATE,
+                &m_Storage));
+        TEST_NOT_EQUAL(m_Storage, nullptr);
+    }
+
+    void ClearAndClose(
+        _In_opt_ CXPLAT_STORAGE* Storage)
+    {
+        if (Storage != nullptr) {
+            TEST_QUIC_SUCCEEDED(CxPlatStorageClear(Storage));
+            CxPlatStorageClose(Storage);
+        }
+    }
+
+    CXPLAT_STORAGE* m_Storage = nullptr;
+};
+
 void
 QuicTestStorage()
 {
     const uint32_t SpecialInitialRtt = 55;
 
-#ifdef _KERNEL_MODE
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(ValueName, L"InitialRttMs");
-    HANDLE GlobalKey, AppKey;
-    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    InitializeObjectAttributes(
-        &AppAttributes,
-        (PUNICODE_STRING)&AppStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&ValueName);
-    if (QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes))) {
-        ZwDeleteKey(AppKey);
-        ZwClose(AppKey);
+#if !defined(_KERNEL_MODE) && !defined(_WIN32)
+    TEST_FAILURE("Storage tests not supported on this platform");
+    return;
+#endif
+
+    {
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
+        MsQuicSettings Settings;
+
+        //
+        // Global settings
+        //
+
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_INITIAL_RTT,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(SpecialInitialRtt),
+                (uint8_t*)&SpecialInitialRtt));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_INITIAL_RTT));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
     }
-    TEST_QUIC_SUCCEEDED(
-        ZwCreateKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes,
-            0,
-            NULL,
-            REG_OPTION_NON_VOLATILE,
-            NULL));
-#elif _WIN32
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-        "InitialRttMs");
-    RegDeleteKeyA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest");
-    HKEY Key;
-    RegCreateKeyA(
-        HKEY_LOCAL_MACHINE,
-        "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-        &Key);
-    RegCloseKey(Key);
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    MsQuicSettings Settings;
-
-    //
-    // Global settings
-    //
-
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&ValueName,
-            0,
-            REG_DWORD,
-            (PVOID)&SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-            "InitialRttMs",
-            REG_DWORD,
-            &SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&ValueName));
-    ZwClose(GlobalKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters",
-            "InitialRttMs"));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
     //
     // App settings
     //
+    {
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
+        MsQuicSettings Settings;
 
-    MsQuicRegistration Registration("StorageTest");
-    TEST_TRUE(Registration.IsValid());
+        MsQuicRegistration Registration("MsQuicStorageTest");
+        TEST_TRUE(Registration.IsValid());
 
-    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
-    TEST_TRUE(Configuration.IsValid());
+        MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+        TEST_TRUE(Configuration.IsValid());
 
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&ValueName,
-            0,
-            REG_DWORD,
-            (PVOID)&SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-            "InitialRttMs",
-            REG_DWORD,
-            &SpecialInitialRtt,
-            sizeof(SpecialInitialRtt)));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_INITIAL_RTT,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(SpecialInitialRtt),
+                (uint8_t*)&SpecialInitialRtt));
 
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&ValueName));
-    ZwClose(AppKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest",
-            "InitialRttMs"));
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_INITIAL_RTT));
 
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
-    TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Configuration.GetSettings(Settings));
+        TEST_NOT_EQUAL(Settings.InitialRttMs, SpecialInitialRtt);
+    }
 }
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
 void
 QuicTestVersionStorage()
 {
+#if !defined(_KERNEL_MODE) && !defined(_WIN32)
+    TEST_FAILURE("Storage tests not supported on this platform");
+    return;
+#endif
+
     const uint32_t VersionList[] = {QUIC_VERSION_2_H, QUIC_VERSION_1_H};
     const uint32_t VersionListLength = ARRAYSIZE(VersionList);
+    {
+        auto GlobalStorageScope = QuicStorageSettingScopeGuard::Create();
+        MsQuicVersionSettings Settings{};
 
-#ifdef _KERNEL_MODE
-#define __WIDEN(quote) L##quote
-#define WIDEN(quote) __WIDEN(quote)
-    DECLARE_CONST_UNICODE_STRING(GlobalStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\");
-    DECLARE_CONST_UNICODE_STRING(AppStoragePath, L"\\Registry\\Machine\\System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest\\");
-    DECLARE_CONST_UNICODE_STRING(AcceptableVersionsValueName, WIDEN(QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(OfferedVersionsValueName, WIDEN(QUIC_SETTING_OFFERED_VERSIONS));
-    DECLARE_CONST_UNICODE_STRING(FullyDeployedVersionsValueName, WIDEN(QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-    HANDLE GlobalKey, AppKey;
-    OBJECT_ATTRIBUTES GlobalAttributes, AppAttributes;
-    InitializeObjectAttributes(
-        &GlobalAttributes,
-        (PUNICODE_STRING)&GlobalStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    InitializeObjectAttributes(
-        &AppAttributes,
-        (PUNICODE_STRING)&AppStoragePath,
-        OBJ_CASE_INSENSITIVE | OBJ_KERNEL_HANDLE,
-        NULL,
-        NULL);
-    TEST_QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &GlobalKey,
-            KEY_READ | KEY_NOTIFY,
-            &GlobalAttributes));
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&AcceptableVersionsValueName);
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&OfferedVersionsValueName);
-    ZwDeleteValueKey(
-        GlobalKey,
-        (PUNICODE_STRING)&FullyDeployedVersionsValueName);
-    if (QUIC_SUCCEEDED(
-        ZwOpenKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes))) {
-        ZwDeleteKey(AppKey);
-        ZwClose(AppKey);
+        //
+        // Global settings
+        //
+
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        CxPlatSleep(100);
+        uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
+        MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
+        uint32_t ReadSize = sizeof(Scratch);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
+                &ReadSize,
+                ReadSettings));
+        TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+        for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+        }
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                GlobalStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
     }
-    TEST_QUIC_SUCCEEDED(
-        ZwCreateKey(
-            &AppKey,
-            KEY_READ | KEY_NOTIFY,
-            &AppAttributes,
-            0,
-            NULL,
-            REG_OPTION_NON_VOLATILE,
-            NULL));
-#elif _WIN32
-#define MSQUIC_GLOBAL_PARAMETERS_PATH   "System\\CurrentControlSet\\Services\\MsQuic\\Parameters"
-#define MSQUIC_APP_PARAMETERS_PATH      "System\\CurrentControlSet\\Services\\MsQuic\\Parameters\\Apps\\StorageTest"
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_ACCEPTABLE_VERSIONS);
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_OFFERED_VERSIONS);
-    RegDeleteKeyValueA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_GLOBAL_PARAMETERS_PATH,
-        QUIC_SETTING_FULLY_DEPLOYED_VERSIONS);
-    RegDeleteKeyA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_APP_PARAMETERS_PATH);
-    HKEY Key;
-    RegCreateKeyA(
-        HKEY_LOCAL_MACHINE,
-        MSQUIC_APP_PARAMETERS_PATH,
-        &Key);
-    RegCloseKey(Key);
-#else
-    TEST_FAILURE("Storage tests not supported on this platform");
-#endif
-
-    MsQuicVersionSettings Settings{};
-
-    //
-    // Global settings
-    //
-
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-#endif
-
-    CxPlatSleep(100);
-    uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
-    MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
-    uint32_t ReadSize = sizeof(Scratch);
-    TEST_QUIC_SUCCEEDED(
-        MsQuic->GetParam(
-            nullptr,
-            QUIC_PARAM_GLOBAL_VERSION_SETTINGS,
-            &ReadSize,
-            ReadSettings));
-    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
-    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
-    }
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            GlobalKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
-    ZwClose(GlobalKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_GLOBAL_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#endif
-
-    CxPlatSleep(100);
-    TEST_QUIC_SUCCEEDED(Settings.GetGlobal());
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
 
     //
     // App settings
     //
+    {
+        auto AppStorageScope = QuicStorageSettingScopeGuard::Create("Apps\\MsQuicStorageTest");
+        MsQuicRegistration Registration("MsQuicStorageTest");
+        TEST_TRUE(Registration.IsValid());
 
-    MsQuicRegistration Registration("StorageTest");
+        MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+        TEST_TRUE(Configuration.IsValid());
+
+        MsQuicVersionSettings Settings{};
+
+        uint32_t ReadSize = sizeof(Settings);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                AppStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                sizeof(VersionList),
+                (uint8_t*)VersionList));
+
+        CxPlatSleep(100);
+        uint8_t Scratch[sizeof(QUIC_VERSION_SETTINGS) + (3 * sizeof(VersionList))];
+        MsQuicVersionSettings* ReadSettings = (MsQuicVersionSettings*)Scratch;
+        ReadSize = sizeof(Scratch);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(*ReadSettings, &ReadSize));
+        TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
+        TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
+        for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
+        }
+        for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
+            TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+        }
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_ACCEPTABLE_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_OFFERED_VERSIONS));
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageDeleteValue(
+                AppStorageScope,
+                QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
+
+        CxPlatSleep(100);
+        ReadSize = sizeof(Settings);
+        TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
+        TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
+        TEST_EQUAL(Settings.OfferedVersionsLength, 0);
+        TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
+        TEST_EQUAL(Settings.AcceptableVersions, nullptr);
+        TEST_EQUAL(Settings.OfferedVersions, nullptr);
+        TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+    }
+}
+
+void
+QuicTestValidateConnectionPoolCreate()
+{
+    MsQuicRegistration Registration;
     TEST_TRUE(Registration.IsValid());
 
-    MsQuicConfiguration Configuration(Registration, "MsQuicTest");
+    MsQuicConfiguration Configuration(Registration, "MsQuicTest", MsQuicCredentialConfig());
     TEST_TRUE(Configuration.IsValid());
 
-    ReadSize = sizeof(Settings);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
-
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-    TEST_QUIC_SUCCEEDED(
-        ZwSetValueKey(
-            AppKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName,
-            0,
-            REG_BINARY,
-            (PVOID)&VersionList,
-            sizeof(VersionList)));
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegSetKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS,
-            REG_BINARY,
-            &VersionList,
-            sizeof(VersionList)));
-#endif
-
-    CxPlatSleep(100);
-    ReadSize = sizeof(Scratch);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(*ReadSettings, &ReadSize));
-    TEST_EQUAL(ReadSettings->AcceptableVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->OfferedVersionsLength, VersionListLength);
-    TEST_EQUAL(ReadSettings->FullyDeployedVersionsLength, VersionListLength);
-    for (uint32_t i = 0; i < ReadSettings->AcceptableVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->AcceptableVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->OfferedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->OfferedVersions[i]), VersionList[i]);
-    }
-    for (uint32_t i = 0; i < ReadSettings->FullyDeployedVersionsLength; i++) {
-        TEST_EQUAL(CxPlatByteSwapUint32(ReadSettings->FullyDeployedVersions[i]), VersionList[i]);
+    {
+        TestScopeLogger logScope("All parameters NULL");
+        TEST_QUIC_STATUS(QUIC_STATUS_INVALID_PARAMETER, MsQuic->ConnectionPoolCreate(NULL, NULL));
     }
 
-#ifdef _KERNEL_MODE
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&AcceptableVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&OfferedVersionsValueName));
-    TEST_QUIC_SUCCEEDED(
-        ZwDeleteValueKey(
-            AppKey,
-            (PUNICODE_STRING)&FullyDeployedVersionsValueName));
-    ZwClose(AppKey);
-#elif _WIN32
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_ACCEPTABLE_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_OFFERED_VERSIONS));
-    TEST_EQUAL(
-        NO_ERROR,
-        RegDeleteKeyValueA(
-            HKEY_LOCAL_MACHINE,
-            MSQUIC_APP_PARAMETERS_PATH,
-            QUIC_SETTING_FULLY_DEPLOYED_VERSIONS));
-#endif
+    {
+        TestScopeLogger logScope("Config NULL");
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                nullptr,
+                ConnectionPool));
+    }
 
-    CxPlatSleep(100);
-    ReadSize = sizeof(Settings);
-    TEST_QUIC_SUCCEEDED(Configuration.GetVersionSettings(Settings, &ReadSize));
-    TEST_EQUAL(Settings.AcceptableVersionsLength, 0);
-    TEST_EQUAL(Settings.OfferedVersionsLength, 0);
-    TEST_EQUAL(Settings.FullyDeployedVersionsLength, 0);
-    TEST_EQUAL(Settings.AcceptableVersions, nullptr);
-    TEST_EQUAL(Settings.OfferedVersions, nullptr);
-    TEST_EQUAL(Settings.FullyDeployedVersions, nullptr);
+    {
+        TestScopeLogger logScope("ConnectionPool NULL");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                nullptr));
+    }
+
+    {
+        TestScopeLogger logScope("No Registration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = nullptr;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("No Configuration");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = nullptr;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Zero Connections");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Missing Connection Callback");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = nullptr;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Address Family");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = (QUIC_ADDRESS_FAMILY)3;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Invalid Server port");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 0;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Non-Null CIBIR, zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = (uint8_t**)0x1;
+        Config.CibirIdLength = 0;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
+
+    {
+        TestScopeLogger logScope("Null CIBIR, non-zero count");
+        QUIC_CONNECTION_POOL_CONFIG Config{};
+        Config.Registration = Registration;
+        Config.Configuration = Configuration;
+        Config.ServerName = "localhost";
+        Config.Handler = (QUIC_CONNECTION_CALLBACK_HANDLER)0x1;
+        Config.ServerPort = 443;
+        Config.Family = QUIC_ADDRESS_FAMILY_UNSPEC;
+        Config.NumberOfConnections = 1;
+        Config.CibirIds = nullptr;
+        Config.CibirIdLength = 1;
+        HQUIC ConnectionPool[1];
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_INVALID_PARAMETER,
+            MsQuic->ConnectionPoolCreate(
+                &Config,
+                ConnectionPool));
+    }
 }
+
+#ifdef QUIC_API_EXECUTION_CONTEXT
+
+struct TestEventQ {
+    QUIC_EVENTQ QuicEventQ;
+    BOOLEAN Initialized;
+    TestEventQ() noexcept : Initialized {FALSE} { }
+    TestEventQ(const TestEventQ&) = delete;
+    TestEventQ& operator=(const TestEventQ&) = delete;
+    TestEventQ(TestEventQ&&) = delete;
+    TestEventQ& operator=(TestEventQ&&) = delete;
+    ~TestEventQ() {
+        if (Initialized) {
+            CxPlatEventQCleanup(&QuicEventQ);
+            Initialized = FALSE;
+        }
+    }
+};
+
+void
+QuicTestProcessEventQ(
+    QUIC_EVENTQ* EventQ,
+    uint32_t WaitTime
+    )
+{
+    CXPLAT_CQE Cqes[16];
+    uint32_t CqeCount =
+        CxPlatEventQDequeue(
+            EventQ,
+            Cqes,
+            ARRAYSIZE(Cqes),
+            WaitTime);
+    uint32_t CurrentCqeCount = CqeCount;
+    CXPLAT_CQE* CurrentCqe = Cqes;
+
+    while (CurrentCqeCount > 0) {
+        CXPLAT_SQE* Sqe = CxPlatCqeGetSqe(CurrentCqe);
+#ifdef CXPLAT_USE_EVENT_BATCH_COMPLETION
+        Sqe->Completion(&CurrentCqe, &CurrentCqeCount);
+#else
+        Sqe->Completion(CurrentCqe);
+        CurrentCqe++;
+        CurrentCqeCount--;
+#endif
+    }
+    CxPlatEventQReturn(EventQ, CqeCount);
+}
+
+void
+QuicTestValidateExecutionContext(const uint32_t EcCount)
+{
+    const uint32_t PollCount = 10;
+    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
+        EventQs[i] = &Ec.QuicEventQ;
+    }
+
+    //
+    // Verify an EC can be created and deleted without any other actions.
+    //
+    {
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+    }
+
+    //
+    // Verify an EC can be polled.
+    //
+    {
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+    }
+
+    //
+    // Verify EC interaction with registrations: registrations can be opened and
+    // closed while running in EC mode.
+    //
+    {
+        MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+        TEST_TRUE(Execution.IsValid());
+
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+
+        {
+            MsQuicRegistration Registration;
+            TEST_TRUE(Registration.IsValid());
+
+            for (uint32_t i = 0; i < PollCount; i++) {
+                for (uint32_t j = 0; j < EcCount; j++) {
+                    MsQuic->ExecutionPoll(Execution[j]);
+                    QuicTestProcessEventQ(EventQs[j], 0);
+                }
+            }
+
+            RegistrationCloseContext CloseContext;
+            Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+
+            //
+            // The EC is required to continue polling MsQuic and the event queue
+            // while the registration is being closed.
+            //
+            TEST_QUIC_SUCCEEDED(
+                TryUntil(1, TestWaitTimeout, [&](){
+                    for (uint32_t i = 0; i < EcCount; i++) {
+                        MsQuic->ExecutionPoll(Execution[i]);
+                        QuicTestProcessEventQ(EventQs[i], 0);
+                    }
+                    if (CloseContext.Event.WaitTimeout(0)) {
+                        return QUIC_STATUS_SUCCESS;
+                    }
+                    return QUIC_STATUS_CONTINUE;
+                })
+            );
+        }
+
+        //
+        // The EC can be polled even after all registrations are torn down.
+        //
+        for (uint32_t i = 0; i < PollCount; i++) {
+            for (uint32_t j = 0; j < EcCount; j++) {
+                MsQuic->ExecutionPoll(Execution[j]);
+                QuicTestProcessEventQ(EventQs[j], 0);
+            }
+        }
+    }
+}
+
+void
+QuicTestValidateExecutionContext()
+{
+    QuicTestValidateExecutionContext(1);
+    QuicTestValidateExecutionContext(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
+    QuicTestValidateExecutionContext(CxPlatProcCount());
+}
+
+#else // QUIC_API_EXECUTION_CONTEXT
+void QuicTestValidateExecutionContext() {}
+#endif // QUIC_API_EXECUTION_CONTEXT
+
+#if defined(__linux__) && !defined(CXPLAT_USE_IO_URING) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+
+uint32_t
+TestCurThreadID()
+{
+    return (uint32_t)gettid();
+}
+
+struct TestPartitionCallbackContext {
+    MsQuicConfiguration* ServerConfiguration;
+    MsQuicConnection** Server;
+    uint32_t ExpectedThreadId;
+    uint32_t ActualThreadId;
+    bool CloseInStop;
+};
+
+void
+TestPartitionVerifyCallback(TestPartitionCallbackContext* Context)
+{
+    if (TestCurThreadID() != Context->ExpectedThreadId) {
+        Context->ActualThreadId = TestCurThreadID();
+    }
+}
+
+void
+TestPartitionVerifyCallbackContext(TestPartitionCallbackContext* Context)
+{
+    TEST_EQUAL(Context->ExpectedThreadId, Context->ActualThreadId);
+}
+
+QUIC_STATUS
+TestPartitionListenerCallback(
+    _In_ MsQuicListener* Listener,
+    _In_opt_ void* ListenerContext,
+    _Inout_ QUIC_LISTENER_EVENT* Event)
+{
+    TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ListenerContext;
+
+    TestPartitionVerifyCallback(Context);
+
+    if (Event->Type == QUIC_LISTENER_EVENT_NEW_CONNECTION) {
+        *Context->Server = new(std::nothrow) MsQuicConnection(
+            Event->NEW_CONNECTION.Connection,
+            CleanUpManual,
+            [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                TestPartitionVerifyCallback(Context);
+                return QUIC_STATUS_SUCCESS;
+            },
+            Context);
+        (*Context->Server)->SetConfiguration(*Context->ServerConfiguration);
+    } else if (Event->Type == QUIC_LISTENER_EVENT_STOP_COMPLETE) {
+        if (Context->CloseInStop) {
+            Listener->Close();
+        }
+    }
+
+    return QUIC_STATUS_SUCCESS;
+}
+
+void
+QuicTestInvokeEc(QUIC_EVENTQ* EventQ, QUIC_EXECUTION* QuicEc, TestPartitionCallbackContext*)
+{
+    MsQuic->ExecutionPoll(QuicEc);
+    QuicTestProcessEventQ(EventQ, 0);
+}
+
+void
+QuicTestValidatePartitionInline(const uint32_t EcCount)
+{
+    const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    UniquePtrArray<TestEventQ> Ecs(new (std::nothrow) TestEventQ[EcCount]);
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    //
+    // This test verifies MsQuic APIs can be used within the same threads that
+    // are responsible for processing the execution contexts; every API must not
+    // block on the execution context itself, else a deadlock will occur.
+    //
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.QuicEventQ));
+        EventQs[i] = &Ec.QuicEventQ;
+    }
+
+    MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+    TEST_TRUE(Execution.IsValid());
+
+    MsQuicRegistration Registration;
+    TEST_TRUE(Registration.IsValid());
+
+    UniquePtr<MsQuicConnection> Client;
+    UniquePtr<MsQuicConnection> Server;
+    TestPartitionCallbackContext CallbackContext{};
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            TestPartitionListenerCallback,
+            &CallbackContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+    TEST_QUIC_SUCCEEDED(
+        Listener.SetParam(
+            QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
+
+    {
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+        TEST_TRUE(ServerConfiguration.IsValid());
+
+        CallbackContext.ActualThreadId = CallbackContext.ExpectedThreadId = TestCurThreadID();
+        CallbackContext.ServerConfiguration = &ServerConfiguration;
+        CallbackContext.Server = (MsQuicConnection**)&Server;
+        CallbackContext.CloseInStop = TRUE;
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        Client = UniquePtr<MsQuicConnection>(
+            new MsQuicConnection(Registration, PartitionIndex, CleanUpManual,
+                [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                    TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                    TestPartitionVerifyCallback(Context);
+                    return QUIC_STATUS_SUCCESS;
+                },
+                &CallbackContext));
+        TEST_QUIC_SUCCEEDED(Client->GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Client->Start(
+            ClientConfiguration, ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        //
+        // Allow this thread to poll only the specified partition; the rest of the
+        // partitions will be idle.
+        //
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(1, TestWaitTimeout, [&](){
+                QuicTestInvokeEc(
+                    EventQs[PartitionIndex], Execution[PartitionIndex], &CallbackContext);
+                if (Client->HandshakeComplete && Server) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+    }
+
+    //
+    // Initiate asynchronous teardown of each of the connections; each will receive
+    // a completion event on their callbacks.
+    //
+    Server->Shutdown(QUIC_TEST_NO_ERROR);
+    Client->Shutdown(QUIC_TEST_NO_ERROR);
+    TEST_QUIC_SUCCEEDED(
+        TryUntil(1, TestWaitTimeout, [&](){
+            QuicTestInvokeEc(EventQs[PartitionIndex], Execution[PartitionIndex], &CallbackContext);
+            if (Server->ShutdownCompleteEvent.WaitTimeout(0) &&
+                Client->ShutdownCompleteEvent.WaitTimeout(0)) {
+                return QUIC_STATUS_SUCCESS;
+            }
+            return QUIC_STATUS_CONTINUE;
+        })
+    );
+
+    //
+    // Initiate asynchronous teardown of the rest of the objects.
+    // The registration close will not complete until each of these objects is
+    // cleaned up, so we do not need to wait for each of these explicitly.
+    //
+    BOOLEAN CloseAsync = TRUE;
+    TEST_QUIC_SUCCEEDED(Server->SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+    Server->CloseAsync = TRUE;
+    Server->Close();
+    TEST_QUIC_SUCCEEDED(Client->SetParam(QUIC_PARAM_CONN_CLOSE_ASYNC, sizeof(CloseAsync), &CloseAsync));
+    Client->CloseAsync = TRUE;
+    Client->Close();
+    Listener.Stop();
+
+    RegistrationCloseContext CloseContext;
+    Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
+    TEST_QUIC_SUCCEEDED(
+        TryUntil(1, TestWaitTimeout, [&](){
+            //
+            // To clean up, we do need to poll all the contexts.
+            //
+            for (uint32_t i = 0; i < EcCount; i++) {
+                QuicTestInvokeEc(EventQs[i], Execution[i], &CallbackContext);
+            }
+            if (CloseContext.Event.WaitTimeout(0)) {
+                return QUIC_STATUS_SUCCESS;
+            }
+            return QUIC_STATUS_CONTINUE;
+        })
+    );
+
+    TestPartitionVerifyCallbackContext(&CallbackContext);
+}
+
+struct QuicTestPartitionWorkerContext {
+    volatile BOOLEAN Stop;
+    TestEventQ EventQ;
+    CxPlatThread Thread;
+    QUIC_EXECUTION* QuicEc;
+    CXPLAT_THREAD_ID ThreadId;
+    CxPlatEvent Ready;
+    TestPartitionCallbackContext* CallbackContext;
+};
+
+CXPLAT_THREAD_CALLBACK(QuicTestPartitionWorker, Context)
+{
+    QuicTestPartitionWorkerContext* Worker = (QuicTestPartitionWorkerContext*)Context;
+
+    Worker->ThreadId = TestCurThreadID();
+    Worker->Ready.Set();
+
+    while (!Worker->Stop) {
+        QuicTestInvokeEc(&Worker->EventQ.QuicEventQ, Worker->QuicEc, Worker->CallbackContext);
+    }
+
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
+}
+
+void
+QuicTestValidatePartitionWorker(const uint32_t EcCount)
+{
+    const uint16_t PartitionIndex = (uint16_t)(1 % EcCount);
+    UniquePtrArray<QuicTestPartitionWorkerContext> Ecs(new (std::nothrow) QuicTestPartitionWorkerContext[EcCount]{});
+    UniquePtrArray<QUIC_EVENTQ*> EventQs(new (std::nothrow) QUIC_EVENTQ*[EcCount]);
+    TEST_NOT_EQUAL(nullptr, Ecs);
+    TEST_NOT_EQUAL(nullptr, EventQs);
+    TestPartitionCallbackContext CallbackContext{};
+    MsQuicAlpn Alpn("MsQuicTest");
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        TEST_TRUE(CxPlatEventQInitialize(&Ec.EventQ.QuicEventQ));
+        Ec.CallbackContext = &CallbackContext;
+        EventQs[i] = &Ec.EventQ.QuicEventQ;
+    }
+
+    MsQuicExecution Execution(EventQs.get(), EcCount, QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE);
+    TEST_TRUE(Execution.IsValid());
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        Ec.QuicEc = Execution[i];
+        CXPLAT_THREAD_CONFIG Config{};
+        Config.Name = "QuicTestPartitionWorker";
+        Config.Callback = QuicTestPartitionWorker;
+        Config.Context = &Ec;
+        TEST_QUIC_SUCCEEDED(Ec.Thread.Create(&Config));
+        TEST_TRUE(Ec.Ready.WaitTimeout(TestWaitTimeout));
+    }
+
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+
+        MsQuicListener Listener(
+            Registration,
+            CleanUpManual,
+            TestPartitionListenerCallback,
+            &CallbackContext);
+        TEST_QUIC_SUCCEEDED(Listener.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(
+            Listener.SetParam(
+                QUIC_PARAM_LISTENER_PARTITION_INDEX, sizeof(PartitionIndex), &PartitionIndex));
+
+        MsQuicConfiguration ServerConfiguration(Registration, Alpn, ServerSelfSignedCredConfig);
+        TEST_TRUE(ServerConfiguration.IsValid());
+        UniquePtr<MsQuicConnection> Server;
+
+        CallbackContext.ActualThreadId = CallbackContext.ExpectedThreadId = Ecs[PartitionIndex].ThreadId;
+        CallbackContext.ServerConfiguration = &ServerConfiguration;
+        CallbackContext.Server = (MsQuicConnection**)&Server;
+
+        TEST_QUIC_SUCCEEDED(Listener.Start(Alpn));
+
+        QuicAddr ServerLocalAddr;
+        TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
+
+        MsQuicCredentialConfig ClientCredConfig;
+        MsQuicConfiguration ClientConfiguration(Registration, Alpn, ClientCredConfig);
+        TEST_QUIC_SUCCEEDED(ClientConfiguration.GetInitStatus());
+
+        MsQuicConnection Client(
+            Registration, PartitionIndex, CleanUpManual,
+            [](MsQuicConnection*, void* ConnContext, QUIC_CONNECTION_EVENT*) {
+                TestPartitionCallbackContext* Context = (TestPartitionCallbackContext*)ConnContext;
+                TestPartitionVerifyCallback(Context);
+                return QUIC_STATUS_SUCCESS;
+            },
+            &CallbackContext);
+        TEST_QUIC_SUCCEEDED(Client.GetInitStatus());
+        TEST_QUIC_SUCCEEDED(Client.Start(
+            ClientConfiguration, ServerLocalAddr.GetFamily(),
+            QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
+
+        //
+        // Wait until the connections are established.
+        //
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(1, TestWaitTimeout, [&](){
+                if (Client.HandshakeComplete && Server) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+    }
+
+    for (uint32_t i = 0; i < EcCount; i++) {
+        auto &Ec = Ecs[i];
+        Ec.Stop = TRUE;
+        Ec.Thread.Wait();
+    }
+
+    TestPartitionVerifyCallbackContext(&CallbackContext);
+}
+
+void
+QuicTestValidatePartition(const uint32_t EcCount)
+{
+    QuicTestValidatePartitionInline(EcCount);
+    QuicTestValidatePartitionWorker(EcCount);
+}
+
+void
+QuicTestValidatePartition()
+{
+    QuicTestValidatePartition(1);
+    QuicTestValidatePartition(CXPLAT_MAX(CxPlatProcCount() / 2, 1));
+    QuicTestValidatePartition(CxPlatProcCount());
+}
+
+#else // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+void QuicTestValidatePartition() {}
+#endif // defined(__linux__) && !defined(QUIC_LINUX_IOURING_ENABLED) && !defined(CXPLAT_LINUX_XDP_ENABLED)
+
 #endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+
+void
+QuicTestRetryConfigSetting()
+{
+    uint8_t TestSecret[32]{};
+    uint8_t ResultBuffer[sizeof(QUIC_STATELESS_RETRY_CONFIG) + 32]{};
+    QUIC_STATELESS_RETRY_CONFIG* ResultConfig = (QUIC_STATELESS_RETRY_CONFIG*)ResultBuffer;
+    uint32_t ResultBufferSize = sizeof(ResultBuffer);
+    uint32_t TestRotationMs = 54321;
+    QUIC_AEAD_ALGORITHM_TYPE TestAlg = QUIC_AEAD_ALGORITHM_AES_128_GCM;
+    MsQuicRegistration Registration("TestRetryConfigSetting");
+    {
+        QuicStorageSettingScopeGuard GlobalSettings = QuicStorageSettingScopeGuard::Create();
+
+        //
+        // Test that the needed size is returned.
+        //
+        uint32_t TestRequiredSize = 0;
+        TEST_QUIC_STATUS(
+            QUIC_STATUS_BUFFER_TOO_SMALL,
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &TestRequiredSize,
+                nullptr));
+        TEST_EQUAL(ResultBufferSize, TestRequiredSize);
+
+        //
+        // Test that the defaults were correctly picked up.
+        //
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(QUIC_STATELESS_RETRY_KEY_LIFETIME_MS, ResultConfig->RotationMs);
+
+        //
+        // Test Key Rotation Ms is picked up automatically
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->RotationMs == 54321) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        //
+        // Test that key and algorithm must be changed together
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm); // hasn't changed because the secret length hasn't changed.
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TEST_QUIC_SUCCEEDED(CxPlatRandom(sizeof(TestSecret), TestSecret));
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                16, // This size matches QUIC_AEAD_ALGORITHM_AES_128_GCM
+                TestSecret));
+
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->SecretLength == 16 &&
+                    ResultConfig->Algorithm == QUIC_AEAD_ALGORITHM_AES_128_GCM) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 16) == 0);
+
+        //
+        // Try setting the secret before the algorithm
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                32, // This size matches QUIC_AEAD_ALGORITHM_AES_256_GCM
+                TestSecret));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_128_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(16, ResultConfig->SecretLength);  // hasn't changed because the secret length hasn't changed.
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestAlg = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        TEST_QUIC_SUCCEEDED(
+            TryUntil(100, TestWaitTimeout, [&](){
+                QUIC_STATUS Status =
+                    MsQuic->GetParam(
+                        nullptr,
+                        QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                        &ResultBufferSize,
+                        ResultBuffer);
+                if (QUIC_FAILED(Status)) {
+                    return Status;
+                } else if (ResultConfig->SecretLength == 32 &&
+                    ResultConfig->Algorithm == QUIC_AEAD_ALGORITHM_AES_256_GCM) {
+                    return QUIC_STATUS_SUCCESS;
+                }
+                return QUIC_STATUS_CONTINUE;
+            })
+        );
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
+
+        //
+        // test that invalid settings aren't picked up
+        //
+
+        //
+        // Can't set rotation to 0.
+        //
+        TestRotationMs = 0;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestRotationMs = 54321;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestRotationMs),
+                (uint8_t*)&TestRotationMs));
+
+        //
+        // Can't set an unknown algorithm type.
+        //
+        TestAlg = (QUIC_AEAD_ALGORITHM_TYPE)(QUIC_AEAD_ALGORITHM_AES_256_GCM + 1);
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+
+        TestAlg = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_ALGORITHM,
+                CXPLAT_STORAGE_TYPE_UINT32,
+                sizeof(TestAlg),
+                (uint8_t*)&TestAlg));
+
+        //
+        // Can't set a secret size that doesn't match the algorithm.
+        //
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                31, // This size doesn't match QUIC_AEAD_ALGORITHM_AES_256_GCM
+                TestSecret));
+
+        CxPlatSleep(100);
+        TEST_QUIC_SUCCEEDED(
+            MsQuic->GetParam(
+                nullptr,
+                QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+                &ResultBufferSize,
+                ResultBuffer));
+        TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+        TEST_EQUAL(32, ResultConfig->SecretLength);
+        TEST_EQUAL(54321, ResultConfig->RotationMs);
+        TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
+
+        TEST_QUIC_SUCCEEDED(
+            CxPlatStorageWriteValue(
+                GlobalSettings,
+                QUIC_SETTING_RETRY_KEY_SECRET,
+                CXPLAT_STORAGE_TYPE_BINARY,
+                32, // This size matches QUIC_AEAD_ALGORITHM_AES_256_GCM
+                TestSecret));
+    }
+
+    //
+    // Validate settings remain in memory once registry is cleaned up.
+    //
+    CxPlatSleep(100);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->GetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+            &ResultBufferSize,
+            ResultBuffer));
+    TEST_EQUAL(QUIC_AEAD_ALGORITHM_AES_256_GCM, ResultConfig->Algorithm);
+    TEST_EQUAL(32, ResultConfig->SecretLength);
+    TEST_EQUAL(54321, ResultConfig->RotationMs);
+    TEST_TRUE(memcmp(TestSecret, ResultConfig->Secret, 32) == 0);
+
+    //
+    // Set back to defaults
+    //
+    ResultConfig->Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+    ResultConfig->SecretLength = 32;
+    ResultConfig->RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    ResultConfig->Secret = ResultBuffer + sizeof(QUIC_STATELESS_RETRY_CONFIG);
+    CxPlatRandom(sizeof(ResultConfig->Secret), (uint8_t*)ResultConfig->Secret);
+    TEST_QUIC_SUCCEEDED(
+        MsQuic->SetParam(
+            nullptr,
+            QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG,
+            sizeof(QUIC_STATELESS_RETRY_CONFIG),
+            ResultConfig));
+}

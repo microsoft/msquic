@@ -31,7 +31,6 @@
 const QUIC_HKDF_LABELS HkdfLabels = { "quic key", "quic iv", "quic hp", "quic ku" };
 
 static CXPLAT_DATAPATH* Datapath;
-static CXPLAT_WORKER_POOL WorkerPool;
 static PacketWriter* Writer;
 
 static uint32_t AttackType;
@@ -71,26 +70,6 @@ void PrintUsageList()
 struct CallbackContext {
     CXPLAT_ROUTE* Route;
     CXPLAT_EVENT Event;
-};
-
-struct StrBuffer
-{
-    uint8_t* Data;
-    uint16_t Length;
-
-    StrBuffer(const char* HexBytes)
-    {
-        Length = (uint16_t)(strlen(HexBytes) / 2);
-        Data = new uint8_t[Length];
-
-        for (uint16_t i = 0; i < Length; ++i) {
-            Data[i] =
-                (DecodeHexChar(HexBytes[i * 2]) << 4) |
-                DecodeHexChar(HexBytes[i * 2 + 1]);
-        }
-    }
-
-    ~StrBuffer() { delete [] Data; }
 };
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -161,7 +140,7 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
     uint64_t BucketTime = CxPlatTimeMs64(), CurTime;
     uint64_t BucketCount = 0;
     uint64_t BucketThreshold = CXPLAT_MAX(1, AttackRate / ThreadCount);
-    
+
     while (CxPlatTimeDiff64(TimeStart, (CurTime = CxPlatTimeMs64())) < TimeoutMs) {
 
         if (CxPlatTimeDiff64(BucketTime, CurTime) > 1000) {
@@ -214,9 +193,9 @@ void RunAttackRandom(CXPLAT_SOCKET* Binding, uint16_t DatagramLength, bool Valid
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
-        
+
         if (TCP) {
             CxPlatSendDataFree(SendData);
             Route.LocalAddress.Ipv4.sin_port++;
@@ -283,7 +262,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             BucketTime = CurTime;
             BucketCount = 0;
         }
-        
+
         if (BucketCount >= BucketThreshold) {
             continue;
         }
@@ -352,7 +331,7 @@ void RunAttackValidInitial(CXPLAT_SOCKET* Binding)
             Binding,
             &Route,
             SendData);
-        
+
         BucketCount++;
     }
 }
@@ -363,7 +342,7 @@ CXPLAT_THREAD_CALLBACK(RunAttackThread, /* Context */)
     CXPLAT_UDP_CONFIG UdpConfig = {0};
     UdpConfig.LocalAddress = nullptr;
     UdpConfig.RemoteAddress = &ServerAddress;
-    UdpConfig.Flags = 0;
+    UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
     UdpConfig.InterfaceIndex = 0;
     UdpConfig.CallbackContext = nullptr;
     QUIC_STATUS Status =
@@ -449,28 +428,23 @@ main(
         PrintUsageList();
         ErrorCode = 0;
     } else if (!TryGetValue(argc, argv, "type", &AttackType) ||
-        (AttackType < 0 || AttackType > 4)) {
+        (AttackType <= 0 || AttackType > 4)) {
         PrintUsage();
     } else {
         const CXPLAT_UDP_DATAPATH_CALLBACKS DatapathCallbacks = {
             UdpRecvCallback,
             UdpUnreachCallback,
         };
-        // flag
-        QUIC_EXECUTION_CONFIG_FLAGS Flags = QUIC_EXECUTION_CONFIG_FLAG_XDP;
-        Flags |= AttackType == 0 ? QUIC_EXECUTION_CONFIG_FLAG_QTIP : QUIC_EXECUTION_CONFIG_FLAG_NONE;
-        QUIC_EXECUTION_CONFIG DatapathFlags = {
-            Flags,
-        };
         CxPlatSystemLoad();
         CxPlatInitialize();
-        CxPlatWorkerPoolInit(&WorkerPool);
+        CXPLAT_WORKER_POOL* WorkerPool = CxPlatWorkerPoolCreate(nullptr);
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         CxPlatDataPathInitialize(
             0,
             &DatapathCallbacks,
             NULL,
-            NULL,
-            &DatapathFlags,
+            WorkerPool,
+            &InitConfig,
             &Datapath);
 
         TryGetValue(argc, argv, "ip", &IpAddress);
@@ -513,7 +487,7 @@ main(
 
         Error:
         CxPlatDataPathUninitialize(Datapath);
-        CxPlatWorkerPoolUninit(&WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool);
         CxPlatUninitialize();
         CxPlatSystemUnload();
     }

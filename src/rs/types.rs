@@ -465,7 +465,7 @@ impl From<crate::ffi::QUIC_TLS_PROVIDER> for TlsProvider {
         match value {
             crate::ffi::QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_SCHANNEL => Self::Schannel,
             crate::ffi::QUIC_TLS_PROVIDER_QUIC_TLS_PROVIDER_OPENSSL => Self::Openssl,
-            _ => panic!("unknown tls provider: {}", value),
+            _ => panic!("unknown tls provider: {value}"),
         }
     }
 }
@@ -574,7 +574,7 @@ impl From<crate::ffi::QUIC_DATAGRAM_SEND_STATE> for DatagramSendState {
                 Self::AcknowledgedSpurious
             }
             crate::ffi::QUIC_DATAGRAM_SEND_STATE_QUIC_DATAGRAM_SEND_CANCELED => Self::Canceled,
-            _ => panic!("Unknown state: {:?}", value),
+            _ => panic!("Unknown state: {value:?}"),
         }
     }
 }

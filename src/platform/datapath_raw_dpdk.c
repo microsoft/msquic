@@ -126,10 +126,10 @@ CxPlatDpdkReadConfig(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 size_t
 CxPlatDpRawGetDatapathSize(
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(WorkerPool);
     return sizeof(DPDK_DATAPATH);
 }
 
@@ -138,8 +138,7 @@ QUIC_STATUS
 CxPlatDpRawInitialize(
     _Inout_ CXPLAT_DATAPATH* Datapath,
     _In_ uint32_t ClientRecvContextLength,
-    _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ const QUIC_EXECUTION_CONFIG* Config
+    _In_ CXPLAT_WORKER_POOL* WorkerPool
     )
 {
     UNREFERENCED_PARAMETER(WorkerPool);
@@ -212,13 +211,13 @@ CxPlatDpRawUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDpRawUpdateConfig(
-    _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+CxPlatDpRawUpdatePollingIdleTimeout(
+    _In_ CXPLAT_DATAPATH_RAW* Datapath,
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -536,10 +535,29 @@ CxPlatDpRawAssignQueue(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 const CXPLAT_INTERFACE*
 CxPlatDpRawGetInterfaceFromQueue(
-    _In_ const void* Queue
+    _In_ const CXPLAT_QUEUE* Queue
     )
 {
     return (const CXPLAT_INTERFACE*)Queue;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL3TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
+    )
+{
+    return CxPlatDpRawGetInterfaceFromQueue(Queue)->OffloadStatus.Transmit.NetworkLayerXsum;
+}
+
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+CxPlatDpRawIsL4TxXsumOffloadedOnQueue(
+    _In_ const CXPLAT_QUEUE* Queue
+    )
+{
+    return CxPlatDpRawGetInterfaceFromQueue(Queue)->OffloadStatus.Transmit.TransportLayerXsum;
 }
 
 static
@@ -617,7 +635,7 @@ CxPlatDpRawRxFree(
         const DPDK_RX_PACKET* Packet = (DPDK_RX_PACKET*)PacketChain;
         PacketChain = PacketChain->Next;
         rte_pktmbuf_free(Packet->Mbuf);
-        CxPlatPoolFree(Packet->OwnerPool, (void*)Packet);
+        CxPlatPoolFree((void*)Packet);
     }
 }
 
@@ -630,14 +648,13 @@ CxPlatDpRawTxAlloc(
 {
     DPDK_DATAPATH* Dpdk = (DPDK_DATAPATH*)Datapath;
     DPDK_TX_PACKET* Packet = CxPlatPoolAlloc(&Dpdk->AdditionalInfoPool);
-    QUIC_ADDRESS_FAMILY Family = QuicAddrGetFamily(&Config->Route->RemoteAddress);
     DPDK_INTERFACE* Interface = (DPDK_INTERFACE*)Config->Route->Queue;
 
     if (likely(Packet)) {
         Packet->Interface = Interface;
         Packet->Mbuf = rte_pktmbuf_alloc(Interface->MemoryPool);
         if (likely(Packet->Mbuf)) {
-            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Family);
+            HEADER_BACKFILL HeaderFill = CxPlatDpRawCalculateHeaderBackFill(Config->Route);
             Packet->Dpdk = Dpdk;
             Packet->Buffer.Length = Config->MaxPacketSize;
             Packet->Mbuf->data_off = 0;
@@ -645,7 +662,7 @@ CxPlatDpRawTxAlloc(
             Packet->Mbuf->l2_len = HeaderFill.LinkLayer;
             Packet->Mbuf->l3_len = HeaderFill.NetworkLayer;
         } else {
-            CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+            CxPlatPoolFree(Packet);
             Packet = NULL;
         }
     }
@@ -660,7 +677,7 @@ CxPlatDpRawTxFree(
 {
     DPDK_TX_PACKET* Packet = (DPDK_TX_PACKET*)SendData;
     rte_pktmbuf_free(Packet->Mbuf);
-    CxPlatPoolFree(&Packet->Dpdk->AdditionalInfoPool, SendData);
+    CxPlatPoolFree(SendData);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -683,7 +700,31 @@ CxPlatDpRawTxEnqueue(
             "No room in DPDK TX ring buffer");
     }
 
-    CxPlatPoolFree(&Dpdk->AdditionalInfoPool, Packet);
+    CxPlatPoolFree(Packet);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL3ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData
+    )
+{
+    UNREFERENCED_PARAMETER(SendData);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+CxPlatDpRawTxSetL4ChecksumOffload(
+    _In_ CXPLAT_SEND_DATA* SendData,
+    _In_ BOOLEAN IsIpv6,
+    _In_ BOOLEAN IsTcp,
+    _In_ uint8_t L4HeaderLength
+    )
+{
+    UNREFERENCED_PARAMETER(SendData);
+    UNREFERENCED_PARAMETER(IsIpv6);
+    UNREFERENCED_PARAMETER(IsTcp);
+    UNREFERENCED_PARAMETER(L4HeaderLength);
 }
 
 static
