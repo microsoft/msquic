@@ -99,7 +99,7 @@ jobs:
       with:
         name: Debug-${{ matrix.vec.plat }}-${{ matrix.vec.os }}-${{ matrix.vec.arch }}-${{ matrix.vec.tls }}${{ matrix.vec.xdp }}
         path: artifacts
-    - uses: actions/setup-dotnet@d4c94342e560b34958eacfc5d055d21461ed1c5d
+    - uses: actions/setup-dotnet@2016bd2012dba4e32de620c46fe006a3ac9f0602
       with:
         dotnet-version: 6.0.x
     - name: Run Lang Interop
