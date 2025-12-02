@@ -556,7 +556,7 @@ QuicRetryTokenDecrypt(
 //
 // Helper to get the owning QUIC_BINDING for the lookup module.
 //
-inline
+QUIC_INLINE
 _Ret_notnull_
 QUIC_BINDING*
 QuicLookupGetBinding(
