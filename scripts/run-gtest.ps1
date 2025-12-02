@@ -939,13 +939,11 @@ try {
         Log "Output can be found in $($LogDir)"
         $ConsistentFailure = $TestsFailed - $TestsRetried
         $PassedWithRetry = $TestsRetried - $ConsistentFailure
-        if ($ErrorsAsWarnings -or
-            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
-            if ($TestsFailed -eq $TestsRetried) {
-                Write-Warning "$($TestsRetried) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            } else { # for $ErrorsAsWarning
-                Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            }
+        if ($ErrorsAsWarnings) {
+            Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+        } elseif (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried)) {
+            Write-Error "$($TestsRetried) test(s) failed but succeeded on retry, $($global:CrashedProcessCount) test(s) crashed."
+            $LastExitCode = 1
         } else {
             Write-Error "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1
