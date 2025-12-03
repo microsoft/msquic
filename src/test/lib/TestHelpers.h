@@ -324,7 +324,8 @@ QuicTestPrimeResumption(
     _In_ MsQuicRegistration& Registration,
     _In_ MsQuicConfiguration& ServerConfiguration,
     _In_ MsQuicConfiguration& ClientConfiguration,
-    _Out_ QUIC_BUFFER** ResumptionTicket
+    _Out_ QUIC_BUFFER** ResumptionTicket,
+    _In_ bool TrueResumption = false
     );
 
 struct StatelessRetryHelper
