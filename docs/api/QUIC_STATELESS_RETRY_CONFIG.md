@@ -45,6 +45,48 @@ Changing `RotationMs`, `Algorithm`, or `Secret` will invalidate all retry tokens
 All servers deployed in a cluster and sharing the secret must have their clocks synchronized within `RotationMs` of UTC.
 A server whose clock is ahead of UTC may produce a retry token that other servers in that deployment are unable to validate.
 
+## Stateless Retry key Generation Algorithm
+
+The stateless retry key is generated from the above configuration parameters using the [SP800-108 rev. 1 CTR-HMAC KDF](https://csrc.nist.gov/pubs/sp/800/108/r1/upd1/final) algorithm with SHA256.
+Where:
+
+*K_in* is the `Secret` provided above.
+
+*Label* is the string "QUIC Stateless Retry Key" without the terminating NULL character.
+
+*Context* is the UNIX epoch timestamp in milliseconds, as an 8-byte signed integer in little-endian format, divided by `RotationMs`, rounded down.
+
+*L* is the same as the key length for the `Algorithm`.
+
+### Example 1 - AES-GCM 256
+
+Variable | Value
+---------|-------
+`Secret` | 0x3edc6b5b8f7aadbd713732b482b8f979286e1ea3b8f8f99c30c884cfe3349b83
+`SecretLength` | 32
+`RotationMs` | 30000
+`Algorithm` | **QUIC_AEAD_ALGORITHM_AES_256_GCM**
+The UNIX epoch timestamp | 1752112221 
+
+Therefore, *Context* = timestamp / `RotationMs` = `1752112221 / 30000` = 58403.
+
+The generated key should be the following value : 0x8135A3ACD2FB4B2B6D7CDD9C36ACB0A182F725F52C641F4A1F21AB53CD63F9B1.
+
+### Example 2 - AES-GCM 128
+
+Variable | Value
+---------|-------
+`Secret` | 0x5ddd79f7b33f1f4a6dd57c34a8eec42e
+`SecretLength` | 16
+`RotationMs` | 30000
+`Algorithm` | **QUIC_AEAD_ALGORITHM_AES_128_GCM**
+The UNIX epoch timestamp | 1752112221
+
+Therefore, *Context* = timestamp / `RotationMs` = `1752112221 / 30000` = 58403.
+
+The generated key should be the following value: 0x44B08A21DC20D6297328C6B356354502
+
+
 # See Also
 
 [Settings](../Settings.md)<br>

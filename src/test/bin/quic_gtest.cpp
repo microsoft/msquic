@@ -544,6 +544,17 @@ TEST_P(WithValidateTlsConfigArgs, ValidateTlsConfig) {
     CxPlatFreeTestCert(&Arg.CredConfig);
 }
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+TEST(Basic, RegistrationOpenClose) {
+    TestLogger Logger("QuicTestRegistrationOpenClose");
+    if (TestingKernelMode) {
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE));
+    } else {
+        QuicTestRegistrationOpenClose();
+    }
+}
+#endif
+
 TEST(Basic, CreateListener) {
     TestLogger Logger("QuicTestCreateListener");
     if (TestingKernelMode) {

@@ -236,6 +236,40 @@ QuicConnPoolGetInterfaceIndexForLocalAddress(
     return Status;
 }
 
+//
+// Queue a close operation on the connection worker thread,
+// optionally waiting for its completion.
+//
+static
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QuicConnPoolQueueConnectionClose(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const BOOLEAN WaitForCompletion
+    )
+{
+    CXPLAT_EVENT CompletionEvent = {0};
+
+    Connection->CloseOper.Type = QUIC_OPER_TYPE_API_CALL;
+    Connection->CloseOper.FreeAfterProcess = FALSE;
+    Connection->CloseOper.API_CALL.Context = &Connection->CloseApiContext;
+    Connection->CloseApiContext.Type = QUIC_API_TYPE_CONN_CLOSE;
+    Connection->CloseApiContext.Status = NULL;
+
+    if (WaitForCompletion) {
+        CxPlatEventInitialize(&CompletionEvent, TRUE, FALSE);
+        Connection->CloseApiContext.Completed = &CompletionEvent;
+    }
+
+    QuicConnQueueOper(Connection, &Connection->CloseOper);
+
+    if (WaitForCompletion) {
+        CxPlatEventWaitForever(CompletionEvent);
+        CxPlatEventUninitialize(CompletionEvent);
+    }
+}
+
+
 static
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
@@ -359,11 +393,12 @@ Error:
 
     if (QUIC_FAILED(Status) && *Connection != NULL) {
         //
-        // This connection has never left MsQuic back to the application,
-        // so don't send any notifications to the application on close.
+        // This connection has never left MsQuic back to the application.
+        // Mark it as internally owned so no notification is sent to the app,
+        // the closing logic will handle the final deref.
         //
         (*Connection)->State.ExternalOwner = FALSE;
-        MsQuicConnectionClose((HQUIC)*Connection);
+        QuicConnPoolQueueConnectionClose(*Connection, FALSE);
         *Connection = NULL;
     }
 
@@ -673,13 +708,21 @@ MsQuicConnectionPoolCreate(
     }
 
 CleanUpConnections:
-if (QUIC_FAILED(Status) &&
-    (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE) != 0) {
-    for (uint32_t i = 0; i < CreatedConnections; i++) {
-        MsQuicConnectionClose((HQUIC)Connections[i]);
-        Connections[i] = NULL;
+    if (QUIC_FAILED(Status) &&
+        (Config->Flags & QUIC_CONNECTION_POOL_FLAG_CLOSE_ON_FAILURE) != 0) {
+
+        //
+        // Close every connection that was created.
+        // The application will receive the shutdown notification.
+        // Wait for the task to complete so that when this function returns to the app,
+        // all connections are already closed (since the shutdown notification is visible).
+        //
+        for (uint32_t i = 0; i < CreatedConnections; i++) {
+            QuicConnPoolQueueConnectionClose(Connections[i], TRUE);
+            QuicConnRelease(Connections[i], QUIC_CONN_REF_HANDLE_OWNER);
+            Connections[i] = NULL;
+        }
     }
-}
 
 Error:
     if (ServerNameCopy != NULL) {

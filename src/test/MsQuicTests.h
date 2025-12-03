@@ -9,6 +9,12 @@ Abstract:
 
 --*/
 
+//
+// For official releases, disable tests for preview features:
+// the official release test binary for a version is used for down-level compatibility testing
+// against newer versions of MsQuic, and since preview features are subject to change, those tests
+// would break.
+//
 #ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif
@@ -94,6 +100,7 @@ void QuicTestValidateStreamEvents(uint32_t Test);
 // Basic Functionality Tests
 //
 
+void QuicTestRegistrationOpenClose();
 void QuicTestCreateListener();
 void QuicTestStartListener();
 void QuicTestStartListenerMultiAlpns();
@@ -1401,8 +1408,11 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_VALIDATE_PARTITION \
     QUIC_CTL_CODE(136, METHOD_BUFFERED, FILE_WRITE_DATA)
 
-#define IOCTL_QUIC_RUN_FORCE_KEY_UPDATE \
+#define IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE \
     QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
+    
+#define IOCTL_QUIC_RUN_FORCE_KEY_UPDATE \
+    QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#define QUIC_MAX_IOCTL_FUNC_CODE 137
+#define QUIC_MAX_IOCTL_FUNC_CODE 138
