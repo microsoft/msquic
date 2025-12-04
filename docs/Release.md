@@ -62,14 +62,17 @@ MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but
 1. Add (via PR) notes above for the new release.
 1. Fork `main` branch to `release/X.Y` where `X` is the major version and `Y` is the minor version.
 1. Update (via PR) the minor version for the `main` branch:
-   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relavent changes.
+   - Run `./scripts/update-version.ps1 -Part Minor` to generate the relevant changes.
    - Also add the new version to the bug_report.yaml issue template file.
+1. Update `.gitmodules` for the xdp-for-windows submodule to track a specific XDP release branch instead of `main`. If there
+is no release branch in XDP that has the dependencies needed for this new MsQuic release,
+you should create a new XDP release first.
 
 ## Servicing a Release Branch
 
-1. Changes first go into the `main` branch, and then are cherry-picked into the relavent `release/X.Y` branches.
+1. Changes first go into the `main` branch, and then are cherry-picked into the relevant `release/X.Y` branches.
 1. Update (via PR) the patch version for the release branches:
-   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relavent changes.
+   - Run `./scripts/update-version.ps1 -Part Patch` to generate the relevant changes.
 
 ## Publishing a Release Branch
 
@@ -77,7 +80,7 @@ MsQuic may work on other platforms, including macOS, iOS, Android, x86, etc. but
    - Make sure to pick the correct `release/X.Y` branch
    - The tag should be the full version number: `vX.Y.Z`
    - The release title should be `MsQuic vX.Y.Z`
-   - Put relavent information in the notes of the release (see previous releases for examples)
+   - Put relevant information in the notes of the release (see previous releases for examples)
 1. Wait for [msquic-Official-Tests](https://mscodehub.visualstudio.com/msquic/_build?definitionId=1824&_a=summary) pipeline to run for the newly created tag.
 1. Download the `distribution` packages from the artifacts and upload them to the GitHub release:
    - msquic_gamecore_console_x64_Release_schannel.zip
