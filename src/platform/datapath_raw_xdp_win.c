@@ -1952,7 +1952,18 @@ CxPlatXdpExecute(
             Queue->TxXsk = NULL;
             Queue = Queue->Next;
         }
-        CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe);
+        if (!CxPlatEventQEnqueue(Partition->EventQ, &Partition->ShutdownSqe)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ xdp] ERROR, %u, %s.",
+                GetLastError(),
+                "CxPlatEventQEnqueue failed (Shutdown)");
+            //
+            // Manually drop the partition’s ref since the completion callback
+            // won’t fire without the SQE being queued.
+            //
+            CxPlatDpRawRelease((XDP_DATAPATH*)Partition->Xdp);
+        }
         return FALSE;
     }
 
