@@ -9,6 +9,12 @@ Abstract:
 
 --*/
 
+//
+// For official releases, disable tests for preview features:
+// the official release test binary for a version is used for down-level compatibility testing
+// against newer versions of MsQuic, and since preview features are subject to change, those tests
+// would break.
+//
 #ifndef QUIC_OFFICIAL_RELEASE
 #define QUIC_API_ENABLE_PREVIEW_FEATURES
 #endif
@@ -94,6 +100,7 @@ void QuicTestValidateStreamEvents(uint32_t Test);
 // Basic Functionality Tests
 //
 
+void QuicTestRegistrationOpenClose();
 void QuicTestCreateListener();
 void QuicTestStartListener();
 void QuicTestStartListenerMultiAlpns();
@@ -491,13 +498,13 @@ QuicTestStatelessResetKey(
     );
 
 void
+QuicTestForceKeyUpdate(
+    _In_ int Family
+    );
+
+void
 QuicTestKeyUpdate(
-    _In_ int Family,
-    _In_ uint16_t Iterations,
-    _In_ uint16_t KeyUpdateBytes,
-    _In_ bool UseKeyUpdateBytes,
-    _In_ bool ClientKeyUpdate,
-    _In_ bool ServerKeyUpdate
+    _In_ int Family
     );
 
 void
@@ -927,23 +934,9 @@ typedef struct {
     QUIC_CTL_CODE(27, METHOD_BUFFERED, FILE_WRITE_DATA)
     // int - Family
 
-#pragma pack(push)
-#pragma pack(1)
-
-typedef struct {
-    int Family;
-    uint16_t Iterations;
-    uint16_t KeyUpdateBytes;
-    uint8_t UseKeyUpdateBytes;
-    uint8_t ClientKeyUpdate;
-    uint8_t ServerKeyUpdate;
-} QUIC_RUN_KEY_UPDATE_PARAMS;
-
-#pragma pack(pop)
-
 #define IOCTL_QUIC_RUN_KEY_UPDATE \
     QUIC_CTL_CODE(28, METHOD_BUFFERED, FILE_WRITE_DATA)
-    // QUIC_RUN_KEY_UPDATE_PARAMS
+    // int - Family
 
 #define IOCTL_QUIC_RUN_VALIDATE_API \
     QUIC_CTL_CODE(29, METHOD_BUFFERED, FILE_WRITE_DATA)
@@ -1444,6 +1437,13 @@ struct QUIC_RUN_CONNECTION_POOL_CREATE_PARAMS {
 #define IOCTL_QUIC_RUN_VALIDATE_PARTITION \
     QUIC_CTL_CODE(136, METHOD_BUFFERED, FILE_WRITE_DATA)
 
+#define IOCTL_QUIC_RUN_REGISTRATION_OPEN_CLOSE \
+    QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
+    
+#define IOCTL_QUIC_RUN_FORCE_KEY_UPDATE \
+    QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
+    // int - Family
+
 typedef struct {
     int Family;
     BOOLEAN ShareBinding;
@@ -1452,7 +1452,7 @@ typedef struct {
 } QUIC_RUN_PROBE_PATH_PARAMS;
 
 #define IOCTL_QUIC_RUN_PROBE_PATH \
-    QUIC_CTL_CODE(137, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(139, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_PROBE_PATH_PARAMS
 
 typedef struct {
@@ -1462,7 +1462,7 @@ typedef struct {
 } QUIC_RUN_MIGRATION_PARAMS;
 
 #define IOCTL_QUIC_RUN_MIGRATION \
-    QUIC_CTL_CODE(138, METHOD_BUFFERED, FILE_WRITE_DATA)
+    QUIC_CTL_CODE(140, METHOD_BUFFERED, FILE_WRITE_DATA)
     // QUIC_RUN_MIGRATION_PARAMS
-    
-#define QUIC_MAX_IOCTL_FUNC_CODE 138
+
+#define QUIC_MAX_IOCTL_FUNC_CODE 140

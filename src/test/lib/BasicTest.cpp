@@ -14,6 +14,53 @@ Abstract:
 #include "BasicTest.cpp.clog.h"
 #endif
 
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+namespace {
+
+struct RegistrationCloseContext {
+    CxPlatEvent Event;
+};
+
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+QUIC_API RegistrationCloseCallback(
+    _In_opt_ void* Context
+    )
+{
+    RegistrationCloseContext* CloseContext = (RegistrationCloseContext*)Context;
+    CloseContext->Event.Set();
+}
+
+}
+
+#endif
+
+void QuicTestRegistrationOpenClose()
+{
+    //
+    // Open and syncrhonous close
+    //
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+    }
+
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    //
+    // Open and asyncrhonous close
+    //
+    {
+        MsQuicRegistration Registration;
+        TEST_TRUE(Registration.IsValid());
+
+        RegistrationCloseContext Context{};
+        Registration.CloseAsync(RegistrationCloseCallback, &Context);
+        Context.Event.WaitForever();
+    }
+#endif
+}
+
 _Function_class_(NEW_CONNECTION_CALLBACK)
 static
 bool

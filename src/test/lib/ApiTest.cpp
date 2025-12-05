@@ -49,20 +49,6 @@ void QuicTestValidateApi()
         QUIC_STATUS_INVALID_PARAMETER);
 }
 
-struct RegistrationCloseContext {
-    CxPlatEvent Event;
-};
-
-_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
-void
-QUIC_API RegistrationCloseCallback(
-    _In_opt_ void* Context
-    )
-{
-    RegistrationCloseContext* CloseContext = (RegistrationCloseContext*)Context;
-    CloseContext->Event.Set();
-}
-
 void QuicTestValidateRegistration()
 {
     TEST_QUIC_STATUS(
@@ -71,16 +57,9 @@ void QuicTestValidateRegistration()
 
     MsQuic->RegistrationClose(nullptr);
 
-    {
-        MsQuicRegistration Registration;
-        TEST_TRUE(Registration.IsValid());
-
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
-        RegistrationCloseContext CloseContext;
-        Registration.CloseAsync(RegistrationCloseCallback, &CloseContext);
-        TEST_TRUE(CloseContext.Event.WaitTimeout(TestWaitTimeout));
-#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
-    }
+    MsQuic->RegistrationClose2(nullptr, nullptr, nullptr);
+#endif
 }
 
 void QuicTestValidateConfiguration()
@@ -7100,6 +7079,24 @@ QuicTestProcessEventQ(
 #endif
     }
     CxPlatEventQReturn(EventQ, CqeCount);
+}
+
+namespace {
+
+struct RegistrationCloseContext {
+    CxPlatEvent Event;
+};
+
+_Function_class_(QUIC_REGISTRATION_CLOSE_CALLBACK)
+void
+QUIC_API RegistrationCloseCallback(
+    _In_opt_ void* Context
+    )
+{
+    RegistrationCloseContext* CloseContext = (RegistrationCloseContext*)Context;
+    CloseContext->Event.Set();
+}
+
 }
 
 void

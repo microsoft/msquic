@@ -564,28 +564,6 @@ class WithSend0RttArgs2 : public testing::Test,
     public testing::WithParamInterface<Send0RttArgs2> {
 };
 
-struct KeyUpdateArgs1 {
-    int Family;
-    int KeyUpdate;
-    static ::std::vector<KeyUpdateArgs1> Generate() {
-        ::std::vector<KeyUpdateArgs1> list;
-        for (int Family : { 4, 6 })
-        for (int KeyUpdate : { 0, 1, 2, 3 })
-            list.push_back({ Family, KeyUpdate });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const KeyUpdateArgs1& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.KeyUpdate;
-}
-
-class WithKeyUpdateArgs1 : public testing::Test,
-    public testing::WithParamInterface<KeyUpdateArgs1> {
-};
-
 struct KeyUpdateArgs2 {
     int Family;
     uint8_t RandomLossPercentage;
