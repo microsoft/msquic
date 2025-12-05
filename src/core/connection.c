@@ -7925,6 +7925,29 @@ QuicConnParamGet(
         // Tell app how much buffer we copied.
         //
         *BufferLength = Connection->OrigDestCID->Length;
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+
+     case QUIC_PARAM_CONN_SEND_DSCP:
+
+        if (*BufferLength < sizeof(uint8_t)) {
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            *BufferLength = sizeof(uint8_t);
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        CxPlatCopyMemory(
+            Buffer,
+            &Connection->DSCP,
+            sizeof(Connection->DSCP));
+
+        *BufferLength = sizeof(Connection->DSCP);
         Status = QUIC_STATUS_SUCCESS;
         break;
 
