@@ -55,8 +55,22 @@ jobs:
               const daysSinceUpdate = Math.floor((now - updatedAt) / (1000 * 60 * 60 * 24));
               console.log(`  Days since update: ${daysSinceUpdate}`);
 
-              // If PR was updated and has stale label, remove it
-              if (labels.includes(staleLabel) && daysSinceUpdate < daysUntilStale) {
+              // Check if the last activity was setting the stale label
+              const events = await github.rest.issues.listEvents({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: pr.number,
+                per_page: 10
+              });
+
+              const lastEvent = events.data.length > 0 ? events.data[events.data.length - 1] : null;
+              const isStaleLastActivity = lastEvent && 
+                lastEvent.event === 'labeled' && 
+                lastEvent.label && 
+                lastEvent.label.name === staleLabel;
+
+              // If PR was updated and has stale label, remove it (unless the last activity was setting the stale label)
+              if (labels.includes(staleLabel) && daysSinceUpdate < daysUntilStale && !isStaleLastActivity) {
                 console.log(`  Removing stale label (PR was updated)`);
                 try {
                   await github.rest.issues.removeLabel({
