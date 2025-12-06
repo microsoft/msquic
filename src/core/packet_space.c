@@ -24,7 +24,7 @@ QuicPacketSpaceInitialize(
     )
 {
     QUIC_PACKET_SPACE* Packets =
-        CxPlatPoolAlloc(&Connection->Partition->PacketSpacePool);
+        CxPlatPoolAlloc(&PathID->Connection->Partition->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,

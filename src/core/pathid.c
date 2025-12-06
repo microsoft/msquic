@@ -793,6 +793,7 @@ QuicPathIDWriteNewConnectionIDFrame(
             SourceCid->CID.Length);
         CXPLAT_DBG_ASSERT(SourceCid->CID.Length == MsQuicLib.CidTotalLength);
         QuicLibraryGenerateStatelessResetToken(
+            PathID->Connection->Partition,
             SourceCid->CID.Data,
             Frame.Buffer + SourceCid->CID.Length);
 

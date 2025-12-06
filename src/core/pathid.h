@@ -220,7 +220,7 @@ QuicPathIDGenerateNewSourceCids(
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
-inline
+QUIC_INLINE
 QUIC_CID_SLIST_ENTRY*
 QuicPathIDGetSourceCidFromSeq(
     _In_ QUIC_PATHID* PathID,
@@ -269,7 +269,7 @@ QuicPathIDGetSourceCidFromSeq(
 // Look up a source CID by data buffer.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 QUIC_CID_SLIST_ENTRY*
 QuicPathIDGetSourceCidFromBuf(
     _In_ QUIC_PATHID* PathID,
@@ -344,7 +344,7 @@ QuicPathIDUpdateDestCid(
 // Look up a source CID by sequence number.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 QUIC_CID_LIST_ENTRY*
 QuicPathIDGetDestCidFromSeq(
     _In_ QUIC_PATHID* PathID,
@@ -407,7 +407,7 @@ QuicPathIDWriteRetireConnectionIDFrame(
 // Adds a ref to a PathID.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 void
 QuicPathIDAddRef(
     _In_ QUIC_PATHID* PathID,
@@ -432,7 +432,7 @@ QuicPathIDAddRef(
 #pragma warning(push)
 #pragma warning(disable:6014) // SAL doesn't understand ref counts
 _IRQL_requires_max_(DISPATCH_LEVEL)
-inline
+QUIC_INLINE
 BOOLEAN
 QuicPathIDRelease(
     _In_ __drv_freesMem(Mem) QUIC_PATHID* PathID,

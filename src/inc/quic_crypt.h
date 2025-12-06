@@ -289,7 +289,7 @@ QuicCryptoCombineIvAndPacketNumber(
     IvOut[11] = IvIn[11] ^ PacketNumber[0];
 }
 
-inline
+QUIC_INLINE
 void
 QuicCryptoCombineIvAndPathIDAndPacketNumber(
     _In_reads_bytes_(CXPLAT_IV_LENGTH)

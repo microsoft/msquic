@@ -1463,6 +1463,25 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePathAdded,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePathRemoved
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED
+// QuicTraceLogConnVerbose(
+                    IndicatePathRemoved,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePathRemoved,
+    TP_ARGS(
+        const void *, arg1), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePathStatusChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED
 // QuicTraceLogConnVerbose(
@@ -1541,25 +1560,6 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, UdpRecvDeferred,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for IndicatePathRemoved
-// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED
-// QuicTraceLogConnVerbose(
-            IndicatePathRemoved,
-            Connection,
-            "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_CONNECTION_C, IndicatePathRemoved,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
     )
 )
 
