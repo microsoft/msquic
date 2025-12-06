@@ -566,6 +566,11 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED    FALSE
 
 //
+// The default settings for disabling Connection ID generation.
+//
+#define QUIC_DEFAULT_CONN_ID_GENERATION_DISABLED     FALSE
+
+//
 // The number of rounds in Cubic Slow Start to sample RTT.
 //
 #define QUIC_HYSTART_DEFAULT_N_SAMPLING             8
@@ -715,3 +720,4 @@ CXPLAT_STATIC_ASSERT(
 #define QUIC_SETTING_RETRY_KEY_ALGORITHM            "RetryKeyAlgorithm"
 #define QUIC_SETTING_RETRY_KEY_SECRET               "RetrySecret"
 #define QUIC_SETTING_RETRY_KEY_ROTATION_MS          "RetryKeyRotationMs"
+#define QUIC_SETTING_CONN_ID_GENERATION_DISABLED    "ConnIDGenerationDisabled"

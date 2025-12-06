@@ -185,6 +185,28 @@ QuicConnGetPathByID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
+QuicConnGetPathByAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
+    )
+{
+    for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+        if (QuicAddrCompare(
+                LocalAddress,
+                &Connection->Paths[i].Route.LocalAddress) &&
+            QuicAddrCompare(
+                RemoteAddress,
+                &Connection->Paths[i].Route.RemoteAddress)) {
+            return &Connection->Paths[i];
+        }
+    }
+    return NULL;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
 QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RX_PACKET* Packet
@@ -208,6 +230,11 @@ QuicConnGetPathForPacket(
         return &Connection->Paths[i];
     }
 
+    if (!QuicConnIsServer(Connection)) {
+        // Client doesn't create a new path.
+        return NULL;
+    }
+
     if (Connection->PathsCount == QUIC_MAX_PATH_COUNT) {
         //
         // See if any old paths share the same remote address, and is just a rebind.
@@ -220,6 +247,7 @@ QuicConnGetPathForPacket(
                 && QuicAddrGetFamily(&Packet->Route->RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompareIp(&Packet->Route->RemoteAddress, &Connection->Paths[i].Route.RemoteAddress)
                 && QuicAddrCompare(&Packet->Route->LocalAddress, &Connection->Paths[i].Route.LocalAddress)) {
+                QuicLibraryReleaseBinding(Connection->Paths[i].Binding);
                 QuicPathRemove(Connection, i);
             }
         }
@@ -231,6 +259,10 @@ QuicConnGetPathForPacket(
             //
             return NULL;
         }
+    }
+
+    if (!QuicLibraryTryAddRefBinding(Connection->Paths[0].Binding)) {
+        return NULL;
     }
 
     if (Connection->PathsCount > 1) {
@@ -272,6 +304,7 @@ QuicPathSetActive(
     } else {
         CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
         UdpPortChangeOnly =
+            QuicConnIsServer(Connection) &&
             QuicAddrGetFamily(&Path->Route.RemoteAddress) == QuicAddrGetFamily(&Connection->Paths[0].Route.RemoteAddress) &&
             QuicAddrCompareIp(&Path->Route.RemoteAddress, &Connection->Paths[0].Route.RemoteAddress);
 
@@ -300,8 +333,8 @@ QuicPathSetActive(
     if (!UdpPortChangeOnly) {
         QuicCongestionControlReset(&Connection->CongestionControl, FALSE);
     }
-    CXPLAT_DBG_ASSERT(Path->DestCid != NULL);
-    CXPLAT_DBG_ASSERT(!Path->DestCid->CID.Retired);
+    CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid != NULL);
+    CXPLAT_DBG_ASSERT(!Connection->Paths[0].DestCid->CID.Retired);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -312,8 +345,8 @@ QuicPathUpdateQeo(
     _In_ CXPLAT_QEO_OPERATION Operation
     )
 {
-    const QUIC_CID_HASH_ENTRY* SourceCid =
-        CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_HASH_ENTRY, Link);
+    const QUIC_CID_SLIST_ENTRY* SourceCid =
+        CXPLAT_CONTAINING_RECORD(Connection->SourceCids.Next, QUIC_CID_SLIST_ENTRY, Link);
     CXPLAT_QEO_CONNECTION Offloads[2] = {
     {
         Operation,

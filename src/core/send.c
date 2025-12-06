@@ -798,10 +798,10 @@ QuicSendWriteFrames(
             for (CXPLAT_SLIST_ENTRY* Entry = Connection->SourceCids.Next;
                     Entry != NULL;
                     Entry = Entry->Next) {
-                QUIC_CID_HASH_ENTRY* SourceCid =
+                QUIC_CID_SLIST_ENTRY* SourceCid =
                     CXPLAT_CONTAINING_RECORD(
                         Entry,
-                        QUIC_CID_HASH_ENTRY,
+                        QUIC_CID_SLIST_ENTRY,
                         Link);
                 if (!SourceCid->CID.NeedsToSend) {
                     continue;

@@ -465,6 +465,24 @@ QuicConfigurationParamGet(
 
         return QUIC_STATUS_SUCCESS;
     }
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (Param  == QUIC_PARAM_CONFIGURATION_CONN_ID_GENERATION_DISABLED) {
+
+        if (*BufferLength < sizeof(BOOLEAN)) {
+            *BufferLength = sizeof(BOOLEAN);
+            return QUIC_STATUS_BUFFER_TOO_SMALL;
+        }
+
+        if (Buffer == NULL) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        *BufferLength = sizeof(BOOLEAN);
+        *(BOOLEAN*)Buffer = Configuration->Settings.ConnIDGenDisabled;
+
+        return QUIC_STATUS_SUCCESS;
+    }
+#endif
 
     return QUIC_STATUS_INVALID_PARAMETER;
 }
@@ -573,6 +591,20 @@ QuicConfigurationParamSet(
         Configuration->Settings.VersionNegotiationExtEnabled = *(BOOLEAN*)Buffer;
 
         return QUIC_STATUS_SUCCESS;
+
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    case QUIC_PARAM_CONFIGURATION_CONN_ID_GENERATION_DISABLED:
+
+        if (Buffer == NULL ||
+            BufferLength < sizeof(BOOLEAN)) {
+            return QUIC_STATUS_INVALID_PARAMETER;
+        }
+
+        Configuration->Settings.IsSet.ConnIDGenDisabled = TRUE;
+        Configuration->Settings.ConnIDGenDisabled = *(BOOLEAN*)Buffer;
+
+        return QUIC_STATUS_SUCCESS;
+#endif
 
 #ifdef WIN32
     case QUIC_PARAM_CONFIGURATION_SCHANNEL_CREDENTIAL_ATTRIBUTE_W:
