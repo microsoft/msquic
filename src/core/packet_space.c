@@ -18,13 +18,13 @@ Abstract:
 _IRQL_requires_max_(DISPATCH_LEVEL)
 QUIC_STATUS
 QuicPacketSpaceInitialize(
-    _In_ QUIC_CONNECTION* Connection,
+    _In_ QUIC_PATHID* PathID,
     _In_ QUIC_ENCRYPT_LEVEL EncryptLevel,
     _Out_ QUIC_PACKET_SPACE** NewPackets
     )
 {
     QUIC_PACKET_SPACE* Packets =
-        CxPlatPoolAlloc(&Connection->Partition->PacketSpacePool);
+        CxPlatPoolAlloc(&PathID->Connection->Partition->PacketSpacePool);
     if (Packets == NULL) {
         QuicTraceEvent(
             AllocFailure,
@@ -35,7 +35,8 @@ QuicPacketSpaceInitialize(
     }
 
     CxPlatZeroMemory(Packets, sizeof(QUIC_PACKET_SPACE));
-    Packets->Connection = Connection;
+    Packets->Connection = PathID->Connection;
+    Packets->PathID = PathID;
     Packets->EncryptLevel = EncryptLevel;
     QuicAckTrackerInitialize(&Packets->AckTracker);
 

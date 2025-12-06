@@ -68,6 +68,7 @@ typedef enum eSniNameType {
 #define QUIC_TP_ID_GREASE_QUIC_BIT                          0x2AB2          // N/A
 #define QUIC_TP_ID_RELIABLE_RESET_ENABLED                   0x17f7586d2cb570   // varint
 #define QUIC_TP_ID_ENABLE_TIMESTAMP                         0x7158          // varint
+#define QUIC_TP_ID_INITIAL_MAX_PATH_ID                      0x0f739bbc1b666d11 // varint
 
 BOOLEAN
 QuicTpIdIsReserved(
@@ -904,6 +905,12 @@ QuicCryptoTlsEncodeTransportParameters(
                 QUIC_TP_ID_ENABLE_TIMESTAMP,
                 QuicVarIntSize(value));
     }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID) {
+        RequiredTPLen +=
+            TlsTransportParamLength(
+                QUIC_TP_ID_INITIAL_MAX_PATH_ID,
+                QuicVarIntSize(TransportParams->InitialMaxPathId));
+    }
     if (TestParam != NULL) {
         RequiredTPLen +=
             TlsTransportParamLength(
@@ -1245,6 +1252,17 @@ QuicCryptoTlsEncodeTransportParameters(
             Connection,
             "TP: Timestamp (%u)",
             value);
+    }
+    if (TransportParams->Flags & QUIC_TP_FLAG_INITIAL_MAX_PATH_ID) {
+        TPBuf =
+            TlsWriteTransportParamVarInt(
+                QUIC_TP_ID_INITIAL_MAX_PATH_ID,
+                TransportParams->InitialMaxPathId, TPBuf);
+        QuicTraceLogConnVerbose(
+            EncodeTPInitMaxPathId,
+            Connection,
+            "TP: Max Path Id (%llu)",
+            TransportParams->InitialMaxPathId);
     }
     if (TestParam != NULL) {
         TPBuf =
@@ -1952,6 +1970,23 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
             TransportParams->Flags |= (uint32_t)value;
             break;
         }
+        case QUIC_TP_ID_INITIAL_MAX_PATH_ID:
+            if (!TRY_READ_VAR_INT(TransportParams->InitialMaxPathId)) {
+                QuicTraceEvent(
+                    ConnErrorStatus,
+                    "[conn][%p] ERROR, %u, %s.",
+                    Connection,
+                    Length,
+                    "Invalid length of QUIC_TP_ID_INITIAL_MAX_PATH_ID");
+                goto Exit;
+            }
+            TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_PATH_ID;
+            QuicTraceLogConnVerbose(
+                DecodeTPInitMaxPathId,
+                Connection,
+                "TP: Max Path Id (%llu)",
+                TransportParams->InitialMaxPathId);
+            break;
 
         default:
             if (QuicTpIdIsReserved(Id)) {

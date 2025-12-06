@@ -260,6 +260,28 @@ pub struct QuicPerformanceCounters {
     pub conn_load_reject: i64,
 }
 
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct VersionSettings {
+    acceptable_versions: *const u32,
+    offered_versions: *const u32,
+    fully_deployed_versions: *const u32,
+    acceptable_versions_length: u32,
+    offered_versions_length: u32,
+    fully_deployed_versions_length: u32,
+}
+
+#[cfg(feature = "preview-api")]
+#[repr(C)]
+#[derive(Debug, Copy, Clone)]
+pub struct PathStatus {
+    peer_address: Addr,
+    local_address: Addr,
+    path_id: u32,
+    active: BOOLEAN,
+}
+
 pub const QUIC_TLS_SECRETS_MAX_SECRET_LEN: usize = 64;
 
 #[repr(C)]
