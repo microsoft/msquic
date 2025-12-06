@@ -7141,18 +7141,6 @@ QuicConnParamSet(
             } else {
                 QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATH_BACKUP);
             }
-
-            QUIC_CONNECTION_EVENT Event;
-            Event.Type = QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED;
-            Event.PATH_STATUS_CHANGED.PeerAddress = &Path->Route.RemoteAddress;
-            Event.PATH_STATUS_CHANGED.LocalAddress = &Path->Route.LocalAddress;
-            Event.PATH_STATUS_CHANGED.PathId = Path->PathID->ID;
-            Event.PATH_STATUS_CHANGED.IsActive = Path->IsActive;
-            QuicTraceLogConnVerbose(
-                IndicatePathStatusChanged,
-                Connection,
-                "Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED");
-            (void)QuicConnIndicateEvent(Connection, &Event);
         }
         Status = QUIC_STATUS_SUCCESS;
         break;
