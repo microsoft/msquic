@@ -24,7 +24,7 @@ $ArtifactsBinDir = Join-Path $BaseArtifactsDir "bin"
 # All direct subfolders are OS's
 $Platforms = Get-ChildItem -Path $ArtifactsBinDir
 
-$Version = "2.5.0"
+$Version = "2.6.0"
 
 $WindowsBuilds = @()
 $AllBuilds = @()
@@ -177,9 +177,9 @@ foreach ($Build in $AllBuilds) {
         Write-Output "Packaging $Build"
         $OldLoc = Get-Location
         Set-Location $RootDir
-        $Tls = "openssl"
-        if ($BuildBaseName -like "*openssl3*") {
-            $Tls = "openssl3"
+        $Tls = "quictls"
+        if ($BuildBaseName -like "*openssl*") {
+            $Tls = "openssl"
         }
 
         if ($BuildBaseName -like "*arm64_*") {

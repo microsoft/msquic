@@ -560,6 +560,7 @@ function PrintGdbCoreCallStack($CoreFile) {
 function Wait-TestCase($TestCase) {
     $ProcessCrashed = $false
     $AnyTestFailed = $false
+    $AnyTestSkipped = $false
     $StdOut = $null
     $StdOutTxt = $null
     $StdError = $null
@@ -590,6 +591,7 @@ function Wait-TestCase($TestCase) {
                 LogWrn "No test results generated! Treating as crash!"
                 $ProcessCrashed = $true
             }
+            $AnyTestSkipped = $StdOutTxt.Contains("[  SKIPPED ]")
         }
         $DumpFiles = (Get-ChildItem $TestCase.LogDir) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
@@ -660,6 +662,8 @@ function Wait-TestCase($TestCase) {
                 LogErr "$($TestCase.Name) failed (in $($Delta.TotalSeconds) sec):"
                 if ($StdOutTxt) { Write-Host $StdOutTxt }
                 if ($StdErrorTxt) { Write-Host $StdErrorTxt }
+            } elseif($AnyTestSkipped) {
+                Log "$($TestCase.Name) skipped"
             } else {
                 Log "$($TestCase.Name) succeeded (in $($Delta.TotalSeconds) sec)"
             }
@@ -935,13 +939,11 @@ try {
         Log "Output can be found in $($LogDir)"
         $ConsistentFailure = $TestsFailed - $TestsRetried
         $PassedWithRetry = $TestsRetried - $ConsistentFailure
-        if ($ErrorsAsWarnings -or
-            (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried))) {
-            if ($TestsFailed -eq $TestsRetried) {
-                Write-Warning "$($TestsRetried) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            } else { # for $ErrorsAsWarning
-                Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
-            }
+        if ($ErrorsAsWarnings) {
+            Write-Warning "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
+        } elseif (($IsolationMode -eq "Isolated") -and ($TestsFailed -ne 0) -and ($TestsFailed -eq $TestsRetried)) {
+            Write-Error "$($TestsRetried) test(s) failed but succeeded on retry, $($global:CrashedProcessCount) test(s) crashed."
+            $LastExitCode = 1
         } else {
             Write-Error "$($ConsistentFailure) test(s) failed with retry, $($PassedWithRetry) test(s) passed with retry, $($global:CrashedProcessCount) test(s) crashed."
             $LastExitCode = 1

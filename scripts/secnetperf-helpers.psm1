@@ -31,13 +31,8 @@ function Repo-Path {
 function Configure-DumpCollection {
     param ($Session)
     if ($isWindows) {
-        Invoke-Command -Session $Session -ScriptBlock {
-            $DumpDir = "C:/_work/quic/artifacts/crashdumps"
-            New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
-            New-Item -Path $Using:WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpFolder -Value $DumpDir | Out-Null
-            Set-ItemProperty -Path $Using:WerDumpRegPath -Name DumpType -Value 2 | Out-Null
-        }
+        NetperfSendCommand "Config_DumpCollection_Windows" $Session
+        NetperfWaitServerFinishExecution -Session $Session
         $DumpDir = Repo-Path "artifacts/crashdumps"
         New-Item -Path $DumpDir -ItemType Directory -ErrorAction Ignore | Out-Null
         New-Item -Path $WerDumpRegPath -Force -ErrorAction Ignore | Out-Null
@@ -132,47 +127,43 @@ function Wait-DriverStarted {
     throw "$DriverName failed to start!"
 }
 
+function Prepare-MachineForTest {
+    param ($Session, $RemoteDir)
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates"
+    .\scripts\prepare-machine.ps1 -ForTest -InstallSigningCertificates
+    Write-Host "Running prepare-machine.ps1 -ForTest -InstallSigningCertificates on peer"
+
+    NetperfSendCommand "Prepare_MachineForTest" $Session
+    NetperfWaitServerFinishExecution -Session $Session
+}
+
 # Download and install XDP on both local and remote machines.
 function Install-XDP {
     param ($Session, $RemoteDir)
-    $installerUri = (Get-Content (Join-Path $PSScriptRoot "xdp.json") | ConvertFrom-Json).installer
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    Write-Host "Downloading XDP installer"
     whoami
-    Invoke-WebRequest -Uri $installerUri -OutFile $msiPath -UseBasicParsing
     Write-Host "Installing XDP driver locally"
-    msiexec.exe /i $msiPath /quiet | Out-Null
-    $Size = Get-FileHash $msiPath
-    Write-Host "MSI file hash: $Size"
-    Wait-DriverStarted "xdp" 10000
+    .\scripts\prepare-machine.ps1 -InstallXdpDriver
     Write-Host "Installing XDP driver on peer"
 
     if ($Session -eq "NOT_SUPPORTED") {
-        NetperfSendCommand "Install_XDP;$installerUri"
+        NetperfSendCommand "Install_XDP"
         NetperfWaitServerFinishExecution
         return
     }
 
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
-    Copy-Item -ToSession $Session $msiPath -Destination $remoteMsiPath
-    $WaitDriverStartedStr = "${function:Wait-DriverStarted}"
     Invoke-Command -Session $Session -ScriptBlock {
-        msiexec.exe /i $Using:remoteMsiPath /quiet | Out-Host
-        $WaitDriverStarted = [scriptblock]::Create($Using:WaitDriverStartedStr)
-        & $WaitDriverStarted xdp 10000
+        & "$Using:RemoteDir\scripts\prepare-machine.ps1" -InstallXdpDriver
     }
 }
 
 # Uninstalls the XDP driver on both local and remote machines.
 function Uninstall-XDP {
     param ($Session, $RemoteDir)
-    $msiPath = Repo-Path "artifacts/xdp.msi"
-    $remoteMsiPath = Join-Path $RemoteDir "artifacts/xdp.msi"
     Write-Host "Uninstalling XDP driver locally"
-    try { msiexec.exe /x $msiPath /quiet | Out-Null } catch {}
+    try { .\scripts\prepare-machine.ps1 -UninstallXdp } catch {}
     Write-Host "Uninstalling XDP driver on peer"
     Invoke-Command -Session $Session -ScriptBlock {
-        try { msiexec.exe /x $Using:remoteMsiPath /quiet | Out-Null } catch {}
+        try { & "$Using:RemoteDir\scripts\prepare-machine.ps1" -UninstallXdp } catch {}
     }
 }
 
@@ -391,7 +382,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client timeout!"
@@ -404,7 +397,9 @@ function Wait-LocalTest {
         try {
             [System.Threading.Tasks.Task]::WaitAll(@($StdOut, $StdError))
             $Out = $StdOut.Result.Trim()
+            $Err = $StdError.Result.Trim()
             if ($Out.Length -ne 0) { Write-Host $Out }
+            if ($Err.Length -ne 0) { Write-Error $Err }
         } catch {}
         if ($Silent) {
             Write-Host "Silently ignoring Client exit code: $($Process.ExitCode)"
@@ -474,7 +469,7 @@ function Get-TestOutput {
         $Output -match "(\d+) HPS" | Out-Null
         return $matches[1]
     } else { # throughput
-        $Output -match "@ (\d+) kbps" | Out-Null
+        $Output -match "(\d+) kbps" | Out-Null
         return $matches[1]
     }
 }
@@ -516,15 +511,21 @@ function Get-LatencyOutput {
     }
 }
 
+function Is-TcpSupportedByIo {
+    param ($Io)
+
+    return $Io -ne "xdp" -and $Io -ne "qtip" -and $Io -ne "wsk" -and $Io -ne "iouring"
+}
+
 # Invokes secnetperf with the given arguments for both TCP and QUIC.
 function Invoke-Secnetperf {
-    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $Filter, $Environment, $RunId, $SyncerSecret)
+    param ($Session, $RemoteName, $RemoteDir, $UserName, $SecNetPerfPath, $LogProfile, $Scenario, $io, $ServerIo, $Filter, $Environment, $RunId, $SyncerSecret)
 
     $values = @(@(), @())
     $latency = $null
     $extraOutput = $null
     $hasFailures = $false
-    if ($io -ne "xdp" -and $io -ne "qtip" -and $io -ne "wsk") {
+    if ((Is-TcpSupportedByIo $io) -and (Is-TcpSupportedByIo $ServerIo)) {
         $tcpSupported = 1
     } else {
         $tcpSupported = 0
@@ -547,7 +548,7 @@ function Invoke-Secnetperf {
 
     # Set up all the parameters and paths for running the test.
     $clientPath = Repo-Path $SecNetPerfPath
-    $serverArgs = "-scenario:$Scenario -io:$io"
+    $serverArgs = "-scenario:$Scenario -io:$ServerIo"
 
     if ($env:collect_cpu_traces) {
         $updated_runtime_for_cpu_traces = @{

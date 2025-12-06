@@ -42,6 +42,12 @@ extern "C" {
 #define CXPLAT_TCP_HEADER_SIZE 20
 
 //
+// The minimum and maximum ephemeral ports according to RFC 6335.
+//
+#define QUIC_ADDR_EPHEMERAL_PORT_MIN 49152
+#define QUIC_ADDR_EPHEMERAL_PORT_MAX 65535
+
+//
 // Different types of Explicit Congestion Notifications
 //
 typedef enum CXPLAT_ECN_TYPE {
@@ -103,7 +109,7 @@ typedef enum CXPLAT_DSCP_TYPE {
 // UDP payload can still fit in a buffer allocated for IPv4, but not the
 // reverse.
 //
-inline
+QUIC_INLINE
 uint16_t
 MaxUdpPayloadSizeFromMTU(
     _In_ uint16_t Mtu
@@ -116,7 +122,7 @@ MaxUdpPayloadSizeFromMTU(
 // Helper function for calculating the length of UDP payload, given the address
 // family and MTU.
 //
-inline
+QUIC_INLINE
 uint16_t
 MaxUdpPayloadSizeForFamily(
     _In_ QUIC_ADDRESS_FAMILY Family,
@@ -132,7 +138,7 @@ MaxUdpPayloadSizeForFamily(
 // Helper function for calculating the MTU, given the length of UDP payload and
 // the address family.
 //
-inline
+QUIC_INLINE
 uint16_t
 PacketSizeFromUdpPayloadSize(
     _In_ QUIC_ADDRESS_FAMILY Family,
@@ -186,14 +192,17 @@ typedef struct CXPLAT_RAW_TCP_STATE {
 } CXPLAT_RAW_TCP_STATE;
 
 //
+// An opaque queue type. Each queue is associated with a single RSS queue on a
+// single interface.
+//
+typedef struct CXPLAT_QUEUE CXPLAT_QUEUE;
+
+//
 // Structure to represent a network route.
 //
 typedef struct CXPLAT_ROUTE {
 
-    //
-    // The (RSS) queue that this route is primarily associated with.
-    //
-    void* Queue;
+    CXPLAT_QUEUE* Queue;
 
     QUIC_ADDR RemoteAddress;
     QUIC_ADDR LocalAddress;
@@ -201,7 +210,8 @@ typedef struct CXPLAT_ROUTE {
     uint8_t LocalLinkLayerAddress[6];
     uint8_t NextHopLinkLayerAddress[6];
 
-    uint16_t DatapathType; // CXPLAT_DATAPATH_TYPE
+    uint16_t DatapathType: 15; // CXPLAT_DATAPATH_TYPE
+    uint8_t UseQTIP: 1;        // TRUE if the route is using QTIP
 
     //
     // QuicCopyRouteInfo copies memory up to this point (not including State).
@@ -414,6 +424,34 @@ typedef struct CXPLAT_TCP_DATAPATH_CALLBACKS {
 
 } CXPLAT_TCP_DATAPATH_CALLBACKS;
 
+typedef enum CXPLAT_DATAPATH_FEATURES {
+    CXPLAT_DATAPATH_FEATURE_NONE               = 0x00000000,
+    CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING  = 0x00000001,
+    CXPLAT_DATAPATH_FEATURE_RECV_COALESCING    = 0x00000002,
+    CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION  = 0x00000004,
+    CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING = 0x00000008,
+    CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS  = 0x00000010,
+    CXPLAT_DATAPATH_FEATURE_TCP                = 0x00000020,
+    CXPLAT_DATAPATH_FEATURE_RAW                = 0x00000040,
+    CXPLAT_DATAPATH_FEATURE_TTL                = 0x00000080,
+    CXPLAT_DATAPATH_FEATURE_SEND_DSCP          = 0x00000100,
+    CXPLAT_DATAPATH_FEATURE_RECV_DSCP          = 0x00000200,
+} CXPLAT_DATAPATH_FEATURES;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_DATAPATH_FEATURES)
+
+typedef enum CXPLAT_SOCKET_FLAGS {
+    CXPLAT_SOCKET_FLAG_NONE         = 0x00000000,
+    CXPLAT_SOCKET_FLAG_PCP          = 0x00000001, // Socket is used for internal PCP support
+    CXPLAT_SOCKET_FLAG_SHARE        = 0x00000002, // Forces sharing of the address and port
+    CXPLAT_SOCKET_SERVER_OWNED      = 0x00000004, // Indicates socket is a listener socket
+    CXPLAT_SOCKET_FLAG_XDP          = 0x00000008, // Socket will use XDP
+    CXPLAT_SOCKET_FLAG_QTIP         = 0x00000010, // Socket will use QTIP
+    CXPLAT_SOCKET_FLAG_PARTITIONED  = 0x00000020, // Socket is partitioned
+} CXPLAT_SOCKET_FLAGS;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_SOCKET_FLAGS)
+
 //
 // Function pointer type for send complete callbacks.
 //
@@ -430,6 +468,16 @@ void
 
 typedef CXPLAT_DATAPATH_SEND_COMPLETE *CXPLAT_DATAPATH_SEND_COMPLETE_HANDLER;
 
+
+typedef struct CXPLAT_DATAPATH_INIT_CONFIG {
+    //
+    // Whether the datapath will be initialized with support for DSCP on receive.
+    // As of Windows 26100, requesting DSCP on the receive path causes packets to fall out of
+    // the Windows fast path causing a large performance regression.
+    //
+    BOOLEAN EnableDscpOnRecv;
+} CXPLAT_DATAPATH_INIT_CONFIG;
+
 //
 // Opens a new handle to the QUIC datapath.
 //
@@ -440,7 +488,7 @@ CxPlatDataPathInitialize(
     _In_opt_ const CXPLAT_UDP_DATAPATH_CALLBACKS* UdpCallbacks,
     _In_opt_ const CXPLAT_TCP_DATAPATH_CALLBACKS* TcpCallbacks,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
+    _In_ CXPLAT_DATAPATH_INIT_CONFIG* InitConfig,
     _Out_ CXPLAT_DATAPATH** NewDatapath
     );
 
@@ -454,32 +502,24 @@ CxPlatDataPathUninitialize(
     );
 
 //
-// Updates the execution configuration of a datapath.
+// Updates the polling idle timeout of a datapath.
 //
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-CxPlatDataPathUpdateConfig(
+CxPlatDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     );
 
-#define CXPLAT_DATAPATH_FEATURE_RECV_SIDE_SCALING     0x0001
-#define CXPLAT_DATAPATH_FEATURE_RECV_COALESCING       0x0002
-#define CXPLAT_DATAPATH_FEATURE_SEND_SEGMENTATION     0x0004
-#define CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING    0x0008
-#define CXPLAT_DATAPATH_FEATURE_PORT_RESERVATIONS     0x0010
-#define CXPLAT_DATAPATH_FEATURE_TCP                   0x0020
-#define CXPLAT_DATAPATH_FEATURE_RAW                   0x0040
-#define CXPLAT_DATAPATH_FEATURE_TTL                   0x0080
-#define CXPLAT_DATAPATH_FEATURE_SEND_DSCP             0x0100
-
 //
-// Queries the currently supported features of the datapath.
+// Queries the currently supported features of the datapath for the given type
+// of socket.
 //
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 CxPlatDataPathGetSupportedFeatures(
-    _In_ CXPLAT_DATAPATH* Datapath
+    _In_ CXPLAT_DATAPATH* Datapath,
+    _In_ CXPLAT_SOCKET_FLAGS SocketFlags
     );
 
 //
@@ -555,16 +595,20 @@ CxPlatDataPathGetGatewayAddresses(
 // The following APIs are specific to a single UDP or TCP socket abstraction.
 //
 
-#define CXPLAT_SOCKET_FLAG_PCP      0x00000001  // Socket is used for internal PCP support
-#define CXPLAT_SOCKET_FLAG_SHARE    0x00000002  // Forces sharing of the address and port
-#define CXPLAT_SOCKET_SERVER_OWNED  0x00000004  // Indicates socket is a listener socket
-
+//
+// When using CXPLAT_UDP_CONFIG, keep in mind the assumptions made by MsQuic core/datapath code about the config:
+//      - A server listener MUST specify a NULL remote address AND a wildcard local address.
+//      - A client connection MUST specify a non-NULL remote address.
+//      - A remote address MUST NOT be a wildcard address.
+//      - A client connection can specify anything for the local address: NULL, wildcard, any <ip/port tupple>.
+//        If NULL, the datapath will assume an IPv6 socket local address.
+//
 typedef struct CXPLAT_UDP_CONFIG {
     const QUIC_ADDR* LocalAddress;      // optional
     const QUIC_ADDR* RemoteAddress;     // optional
-    uint32_t Flags;                     // CXPLAT_SOCKET_FLAG_*
+    CXPLAT_SOCKET_FLAGS Flags;
     uint32_t InterfaceIndex;            // 0 means any/all
-    uint16_t PartitionIndex;            // Client-only
+    uint16_t PartitionIndex;            // optional
     void* CallbackContext;              // optional
 #ifdef QUIC_COMPARTMENT_ID
     QUIC_COMPARTMENT_ID CompartmentId;  // optional
@@ -650,7 +694,8 @@ CxPlatSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 CxPlatSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET* Socket
+    _In_ CXPLAT_SOCKET* Socket,
+    _In_ CXPLAT_ROUTE* Route
     );
 
 //
@@ -856,6 +901,47 @@ void
 CxPlatUpdateRoute(
     _Inout_ CXPLAT_ROUTE* DstRoute,
     _In_ CXPLAT_ROUTE* SrcRoute
+    );
+
+//
+// Get the RSS Configuration of the interface.
+//
+typedef enum CXPLAT_RSS_HASH_TYPE {
+    CXPLAT_RSS_HASH_TYPE_IPV4        = 0x001,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV4    = 0x002,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV4    = 0x004,
+    CXPLAT_RSS_HASH_TYPE_IPV6        = 0x008,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6    = 0x010,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6    = 0x020,
+    CXPLAT_RSS_HASH_TYPE_IPV6_EX     = 0x040,
+    CXPLAT_RSS_HASH_TYPE_TCP_IPV6_EX = 0x080,
+    CXPLAT_RSS_HASH_TYPE_UDP_IPV6_EX = 0x100
+} CXPLAT_RSS_HASH_TYPE;
+
+DEFINE_ENUM_FLAG_OPERATORS(CXPLAT_RSS_HASH_TYPE)
+
+typedef struct CXPLAT_RSS_CONFIG {
+    CXPLAT_RSS_HASH_TYPE HashTypes;
+    uint32_t RssSecretKeyLength;
+    uint32_t RssIndirectionTableCount;
+    _Field_size_bytes_(RssSecretKeyLength)
+    uint8_t* RssSecretKey;
+    _Field_size_(RssIndirectionTableCount)
+    uint32_t* RssIndirectionTable;      // Converted to processor indices from platform-specific representation.
+} CXPLAT_RSS_CONFIG;
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
     );
 
 #if defined(__cplusplus)

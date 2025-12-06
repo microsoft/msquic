@@ -95,20 +95,22 @@ tracepoint(CLOG_SEND_C, EcnValidationUnknown , arg1);\
 
 /*----------------------------------------------------------
 // Decoder Ring for ScheduleSendFlags
-// [conn][%p] Scheduling flags 0x%x to 0x%x
+// [conn][%p] Adding send flags 0x%x (prev: 0x%x, new: 0x%x)
 // QuicTraceLogConnVerbose(
             ScheduleSendFlags,
             Connection,
-            "Scheduling flags 0x%x to 0x%x",
+            "Adding send flags 0x%x (prev: 0x%x, new: 0x%x)",
             SendFlags,
-            Send->SendFlags);
+            Send->SendFlags,
+            Send->SendFlags | SendFlags);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = SendFlags = arg3
 // arg4 = arg4 = Send->SendFlags = arg4
+// arg5 = arg5 = Send->SendFlags | SendFlags = arg5
 ----------------------------------------------------------*/
-#ifndef _clog_5_ARGS_TRACE_ScheduleSendFlags
-#define _clog_5_ARGS_TRACE_ScheduleSendFlags(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
-tracepoint(CLOG_SEND_C, ScheduleSendFlags , arg1, arg3, arg4);\
+#ifndef _clog_6_ARGS_TRACE_ScheduleSendFlags
+#define _clog_6_ARGS_TRACE_ScheduleSendFlags(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5)\
+tracepoint(CLOG_SEND_C, ScheduleSendFlags , arg1, arg3, arg4, arg5);\
 
 #endif
 

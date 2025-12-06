@@ -3,11 +3,13 @@
 ../src/platform/crypt.c
 ../src/platform/datapath_winkernel.c
 ../src/platform/datapath_epoll.c
+../src/platform/datapath_iouring.c
 ../src/platform/tls_schannel.c
 ../src/platform/selfsign_capi.c
 ../src/platform/cert_capi.c
 ../src/platform/platform_posix.c
 ../src/platform/storage_winkernel.c
+../src/platform/tls_quictls.c
 ../src/platform/tls_openssl.c
 ../src/platform/platform_winkernel.c
 ../src/platform/certificates_posix.c
@@ -32,7 +34,6 @@
 ../src/platform/storage_winuser.c
 ../src/platform/storage_posix.c
 ../src/platform/crypt_openssl.c
-../src/platform/inline.c
 ../src/platform/platform_worker.c
 ../src/perf/bin/histogram/hdr_histogram.c
 ../src/core/api.c
@@ -54,6 +55,7 @@
 ../src/core/version_neg.c
 ../src/core/lookup.c
 ../src/core/worker.c
+../src/core/connection_pool.c
 ../src/core/congestion_control.c
 ../src/core/crypto_tls.c
 ../src/core/binding.c
@@ -73,7 +75,7 @@
 ../src/core/operation.c
 ../src/core/mtu_discovery.c
 ../src/core/configuration.c
-../src/core/inline.c
+../src/core/partition.c
 ../src/core/library.c
 ../src/bin/winuser_fuzz/dllmain.c
 ../src/bin/linux/init.c
@@ -123,6 +125,7 @@
 ../src/platform/unittest/PlatformTest.cpp
 ../src/platform/unittest/CryptTest.cpp
 ../src/platform/unittest/DataPathTest.cpp
+../src/platform/unittest/ToeplitzTest.cpp
 ../src/platform/unittest/StorageTest.cpp
 ../src/test/bin/quic_gtest.h
 ../src/test/bin/quic_gtest.cpp

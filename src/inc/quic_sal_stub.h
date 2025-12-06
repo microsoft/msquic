@@ -67,6 +67,14 @@
 #define _Out_range_(...)
 #endif
 
+#ifndef _Field_size_
+#define _Field_size_(...)
+#endif
+
+#ifndef _Field_size_opt_
+#define _Field_size_opt_(...)
+#endif
+
 #ifndef _Field_size_bytes_
 #define _Field_size_bytes_(...)
 #endif
@@ -127,6 +135,10 @@
 #define _In_reads_bytes_opt_(...)
 #endif
 
+#ifndef _Out_writes_bytes_to_
+#define _Out_writes_bytes_to_(...)
+#endif
+
 #ifndef _Out_writes_bytes_to_opt_
 #define _Out_writes_bytes_to_opt_(...)
 #endif
@@ -161,6 +173,10 @@
 
 #ifndef _Out_opt_
 #define _Out_opt_
+#endif
+
+#ifndef _Outptr_result_maybenull_
+#define _Outptr_result_maybenull_
 #endif
 
 #ifndef _Outptr_
@@ -275,8 +291,24 @@
 #define _At_(...)
 #endif
 
+#ifndef _At_buffer_
+#define _At_buffer_(...)
+#endif
+
 #ifndef _Check_return_
 #define _Check_return_
+#endif
+
+#ifndef _Requires_lock_held_
+#define _Requires_lock_held_(...)
+#endif
+
+#ifndef _Requires_exclusive_lock_held_
+#define _Requires_exclusive_lock_held_(...)
+#endif
+
+#ifndef _Requires_shared_lock_held_
+#define _Requires_shared_lock_held_(...)
 #endif
 
 #endif // _SAL_STUB_H

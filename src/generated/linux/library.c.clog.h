@@ -208,6 +208,23 @@ tracepoint(CLOG_LIBRARY_C, LibraryExecutionConfigSet );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibraryDscpRecvEnabledSet
+// [ lib] Setting Dscp on recv = %u
+// QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %u", MsQuicLib.EnableDscpOnRecv);
+// arg2 = arg2 = MsQuicLib.EnableDscpOnRecv = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibraryDscpRecvEnabledSet
+#define _clog_3_ARGS_TRACE_LibraryDscpRecvEnabledSet(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibraryDscpRecvEnabledSet , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for LibraryInUse
 // [ lib] Now in use.
 // QuicTraceLogInfo(
@@ -233,6 +250,26 @@ tracepoint(CLOG_LIBRARY_C, LibraryInUse );\
 #ifndef _clog_2_ARGS_TRACE_LibraryNotInUse
 #define _clog_2_ARGS_TRACE_LibraryNotInUse(uniqueId, encoded_arg_string)\
 tracepoint(CLOG_LIBRARY_C, LibraryNotInUse );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibraryRetryKeyUpdated
+// [ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u
+// QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+        Config->Algorithm,
+        Config->RotationMs);
+// arg2 = arg2 = Config->Algorithm = arg2
+// arg3 = arg3 = Config->RotationMs = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated
+#define _clog_4_ARGS_TRACE_LibraryRetryKeyUpdated(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibraryRetryKeyUpdated , arg2, arg3);\
 
 #endif
 
@@ -322,15 +359,87 @@ tracepoint(CLOG_LIBRARY_C, LibraryLoadBalancingModeSetAfterInUse );\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretNull
+// [ lib] Invalid retry key secret: NULL.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull
+#define _clog_2_ARGS_TRACE_LibrarySetRetryKeySecretNull(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretNull );\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyAlgorithmInvalid
+// [ lib] Invalid retry key algorithm: %d.
+// QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+// arg2 = arg2 = Config->Algorithm = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibrarySetRetryKeyAlgorithmInvalid
+#define _clog_3_ARGS_TRACE_LibrarySetRetryKeyAlgorithmInvalid(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyAlgorithmInvalid , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeyRotationInvalid
+// [ lib] Invalid retry key rotation ms: %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+// arg2 = arg2 = Config->RotationMs = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid
+#define _clog_3_ARGS_TRACE_LibrarySetRetryKeyRotationInvalid(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeyRotationInvalid , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for LibrarySetRetryKeySecretLengthInvalid
+// [ lib] Invalid retry key secret length: %u. Expected %u.
+// QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            AlgSecretLen);
+// arg2 = arg2 = Config->SecretLength = arg2
+// arg3 = arg3 = AlgSecretLen = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid
+#define _clog_4_ARGS_TRACE_LibrarySetRetryKeySecretLengthInvalid(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, LibrarySetRetryKeySecretLengthInvalid , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for AllocFailure
 // Allocation of '%s' failed. (%llu bytes)
 // QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "connection pools",
-            PerProcSize);
-// arg2 = arg2 = "connection pools" = arg2
-// arg3 = arg3 = PerProcSize = arg3
+            "Library Partitions",
+            PartitionsSize);
+// arg2 = arg2 = "Library Partitions" = arg2
+// arg3 = arg3 = PartitionsSize = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_AllocFailure
 #define _clog_4_ARGS_TRACE_AllocFailure(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -453,8 +562,8 @@ tracepoint(CLOG_LIBRARY_C, LibraryRelease );\
 // QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+            QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DataPathInitialized
 #define _clog_3_ARGS_TRACE_DataPathInitialized(uniqueId, encoded_arg_string, arg2)\
@@ -543,8 +652,8 @@ tracepoint(CLOG_LIBRARY_C, LibraryRundownV2 , arg2);\
 // QuicTraceEvent(
                 DataPathRundown,
                 "[data] Rundown, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
-// arg2 = arg2 = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) = arg2
+                QuicLibraryGetDatapathFeatures());
+// arg2 = arg2 = QuicLibraryGetDatapathFeatures() = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_DataPathRundown
 #define _clog_3_ARGS_TRACE_DataPathRundown(uniqueId, encoded_arg_string, arg2)\
@@ -574,19 +683,53 @@ tracepoint(CLOG_LIBRARY_C, LibrarySendRetryStateUpdated , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for LibraryErrorStatus
-// [ lib] ERROR, %u, %s.
+// Decoder Ring for ApiEnter
+// [ api] Enter %u (%p).
 // QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Create stateless retry key");
-// arg2 = arg2 = Status = arg2
-// arg3 = arg3 = "Create stateless retry key" = arg3
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+// arg2 = arg2 = QUIC_TRACE_API_EXECUTION_CREATE = arg2
+// arg3 = arg3 = NULL = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_LibraryErrorStatus
-#define _clog_4_ARGS_TRACE_LibraryErrorStatus(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_LIBRARY_C, LibraryErrorStatus , arg2, arg3);\
+#ifndef _clog_4_ARGS_TRACE_ApiEnter
+#define _clog_4_ARGS_TRACE_ApiEnter(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_LIBRARY_C, ApiEnter , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExitStatus
+// [ api] Exit %u
+// QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+// arg2 = arg2 = Status = arg2
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_ApiExitStatus
+#define _clog_3_ARGS_TRACE_ApiExitStatus(uniqueId, encoded_arg_string, arg2)\
+tracepoint(CLOG_LIBRARY_C, ApiExitStatus , arg2);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for ApiExit
+// [ api] Exit
+// QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+----------------------------------------------------------*/
+#ifndef _clog_2_ARGS_TRACE_ApiExit
+#define _clog_2_ARGS_TRACE_ApiExit(uniqueId, encoded_arg_string)\
+tracepoint(CLOG_LIBRARY_C, ApiExit );\
 
 #endif
 

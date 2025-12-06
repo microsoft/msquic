@@ -58,7 +58,8 @@ class PerfServer {
 public:
     PerfServer(const QUIC_CREDENTIAL_CONFIG* CredConfig) :
         Engine(TcpAcceptCallback, TcpConnectCallback, TcpReceiveCallback, TcpSendCompleteCallback, TcpDefaultExecutionProfile),
-        Server(&Engine, CredConfig, this) {
+        TcpConfig(CredConfig),
+        Server(&Engine, &TcpConfig, this) {
         CxPlatZeroMemory(&LocalAddr, sizeof(LocalAddr));
         QuicAddrSetFamily(&LocalAddr, QUIC_ADDRESS_FAMILY_UNSPEC);
         QuicAddrSetPort(&LocalAddr, PERF_DEFAULT_PORT);
@@ -189,6 +190,7 @@ private:
     uint8_t PrintStats {FALSE};
 
     TcpEngine Engine;
+    TcpConfiguration TcpConfig;
     TcpServer Server;
 
     uint32_t DelayMicroseconds {0};

@@ -27,7 +27,7 @@ param (
     [string]$Arch,
 
     [Parameter(Mandatory = $true)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls
 )
 
@@ -49,7 +49,7 @@ if ($IsWindows) {
     }
 
 } elseif ($IsLinux -or $IsMacOS) {
-    # TODO - Figure out how to install openssl?
+    # TODO - Figure out how to install quictls?
 
     # Make sure we have full permissions for all artifacts.
     Write-Host "[$(Get-Date)] Configuring permissions for artifacts..."

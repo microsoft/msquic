@@ -20,17 +20,18 @@ on:
         #   - Release
       tls:
         required: false
-        default: 'openssl'
+        default: 'quictls'
         type: string
         # options:
+        #   - quictls
         #   - openssl
-        #   - openssl3
       static:
         required: false
         default: ''
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-darwin:
@@ -46,39 +47,39 @@ jobs:
       ref: ${{ inputs.ref }}
       config: ${{ inputs.config }}
       plat: ${{ matrix.plat }}
-      os: macos-13
+      os: macos-15
       arch: ${{ matrix.arch }}
       tls: ${{ inputs.tls }}
       static: ${{ inputs.static }}
       repo: ${{ inputs.repo }}
 
   build-darwin-universal:
-    name: Build Universal Binaries 
+    name: Build Universal Binaries
     needs: [build-darwin]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-macos-macos-13-x64-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-x64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Download Build Artifacts (arm64)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-macos-macos-13-arm64-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-arm64-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Build Package
       shell: pwsh
-      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }}
+      run: scripts/merge-darwin.ps1 -DeleteSource -Config ${{ inputs.config }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: ${{ inputs.config }}-macos-macos-13-universal-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-macos-macos-15-universal-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
 
   build-darwin-framework:
@@ -92,57 +93,57 @@ jobs:
           { plat: "ios", arch: "arm64" },
           { plat: "macos", arch: "universal" },
         ]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (x64)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
+        name: ${{ inputs.config }}-${{ matrix.vec.plat }}-macos-15-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
     - name: Build Framework
       shell: pwsh
-      run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }}
+      run: scripts/package-darwin-framework.ps1 -Config ${{ inputs.config }} -Platform ${{ matrix.vec.plat }} -Arch ${{ matrix.vec.arch }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-13-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
+        name: Framework-${{ inputs.config }}-${{ matrix.vec.plat }}-macos-15-${{ matrix.vec.arch }}-${{ inputs.tls }}${{ inputs.static }}
         path: artifacts
 
   build-darwin-xcframework:
     name: Build Darwin XCFramework
     needs: [build-darwin-framework]
-    runs-on: macos-13
+    runs-on: macos-15
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
     - name: Download Build Artifacts (iOS x64)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-x64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-15-x64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (iOS arm64)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-ios-macos-13-arm64-openssl
+        name: Framework-${{ inputs.config }}-ios-macos-15-arm64-${{ inputs.tls }}
         path: artifacts
     - name: Download Build Artifacts (MacOS Universal)
-      uses: actions/download-artifact@cc203385981b70ca67e1cc392babf9cc229d5806
+      uses: actions/download-artifact@018cc2cf5baa6db3ef3c5f8a56943fffe632ef53
       with:
-        name: Framework-${{ inputs.config }}-macos-macos-13-universal-openssl
+        name: Framework-${{ inputs.config }}-macos-macos-15-universal-${{ inputs.tls }}
         path: artifacts
     - name: Build XCFramework
       shell: pwsh
-      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }}
+      run: scripts/package-darwin-xcframework.ps1 -Config ${{ inputs.config }} -Tls ${{ inputs.tls }}
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
-        name: XCFramework-${{ inputs.config }}
+        name: XCFramework-${{ inputs.config }}-${{ inputs.tls }}
         path: artifacts/frameworks

@@ -20,6 +20,10 @@ Environment:
 #include "storage_winuser.c.clog.h"
 #endif
 
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_BINARY == REG_BINARY, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT32 == REG_DWORD, "Storage type mismatch");
+CXPLAT_STATIC_ASSERT(CXPLAT_STORAGE_TYPE_UINT64 == REG_QWORD, "Storage type mismatch");
+
 void
 NTAPI
 CxPlatStorageRegKeyChangeCallback(
@@ -91,8 +95,9 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 CxPlatStorageOpen(
     _In_opt_z_ const char * Path,
-    _In_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
+    _In_opt_ CXPLAT_STORAGE_CHANGE_CALLBACK_HANDLER Callback,
     _In_opt_ void* CallbackContext,
+    _In_ CXPLAT_STORAGE_OPEN_FLAGS Flags,
     _Out_ CXPLAT_STORAGE** NewStorage
     )
 {
@@ -121,23 +126,25 @@ CxPlatStorageOpen(
     }
 
     CxPlatZeroMemory(Storage, sizeof(CXPLAT_STORAGE));
-    Storage->Callback = Callback;
-    Storage->CallbackContext = CallbackContext;
+    if (Callback != NULL) {
+        Storage->Callback = Callback;
+        Storage->CallbackContext = CallbackContext;
 
-    Storage->NotifyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
-    if (Storage->NotifyEvent == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
-    }
+        Storage->NotifyEvent = CreateEvent(NULL, FALSE, FALSE, NULL);
+        if (Storage->NotifyEvent == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
 
-    Storage->ThreadPoolWait =
-        CreateThreadpoolWait(
-            CxPlatStorageRegKeyChangeCallback,
-            Storage,
-            NULL);
-    if (Storage->ThreadPoolWait == NULL) {
-        Status = QUIC_STATUS_OUT_OF_MEMORY;
-        goto Exit;
+        Storage->ThreadPoolWait =
+            CreateThreadpoolWait(
+                CxPlatStorageRegKeyChangeCallback,
+                Storage,
+                NULL);
+        if (Storage->ThreadPoolWait == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            goto Exit;
+        }
     }
 
     QuicTraceLogVerbose(
@@ -145,60 +152,87 @@ CxPlatStorageOpen(
         "[ reg] Opening %s",
         FullKeyName);
 
-#pragma prefast(suppress:6001, "SAL can't track FullKeyName")
-    Status =
-        HRESULT_FROM_WIN32(
-        RegOpenKeyExA(
-            HKEY_LOCAL_MACHINE,
-            FullKeyName,
-            0,
-            KEY_READ | KEY_NOTIFY,
-            &Storage->RegKey));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegOpenKeyExA failed");
-        goto Exit;
+    REGSAM DesiredAccess = KEY_READ;
+
+    if (Callback != NULL) {
+        DesiredAccess |= KEY_NOTIFY;
     }
 
-    Status =
-        HRESULT_FROM_WIN32(
-        RegNotifyChangeKeyValue(
-            Storage->RegKey,
-            FALSE,
-            REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
-            Storage->NotifyEvent,
-            TRUE));
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "RegNotifyChangeKeyValue failed");
-        goto Exit;
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_WRITE) {
+        DesiredAccess |= KEY_WRITE;
     }
 
-    SetThreadpoolWait(Storage->ThreadPoolWait, Storage->NotifyEvent, NULL);
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_DELETE) {
+        DesiredAccess |= DELETE;
+    }
+
+    if (Flags & CXPLAT_STORAGE_OPEN_FLAG_CREATE) {
+        Status =
+            HRESULT_FROM_WIN32(
+                RegCreateKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    FullKeyName,
+                    0,
+                    NULL,
+                    REG_OPTION_NON_VOLATILE,
+                    DesiredAccess,
+                    NULL,
+                    &Storage->RegKey,
+                    NULL));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegCreateKeyExA failed");
+            goto Exit;
+        }
+    } else {
+        Status =
+            HRESULT_FROM_WIN32(
+                RegOpenKeyExA(
+                    HKEY_LOCAL_MACHINE,
+                    FullKeyName,
+                    0,
+                    DesiredAccess,
+                    &Storage->RegKey));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegOpenKeyExA failed");
+            goto Exit;
+        }
+    }
+
+    if (Callback != NULL) {
+        Status =
+            HRESULT_FROM_WIN32(
+                RegNotifyChangeKeyValue(
+                    Storage->RegKey,
+                    FALSE,
+                    REG_NOTIFY_CHANGE_LAST_SET | REG_NOTIFY_THREAD_AGNOSTIC,
+                    Storage->NotifyEvent,
+                    TRUE));
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegNotifyChangeKeyValue failed");
+            goto Exit;
+        }
+
+        SetThreadpoolWait(Storage->ThreadPoolWait, Storage->NotifyEvent, NULL);
+    }
 
     *NewStorage = Storage;
     Storage = NULL;
 
 Exit:
 
-    if (Storage != NULL) {
-        if (Storage->RegKey != NULL) {
-            RegCloseKey(Storage->RegKey);
-        }
-        if (Storage->ThreadPoolWait) {
-            CloseThreadpoolWait(Storage->ThreadPoolWait);
-        }
-        if (Storage->NotifyEvent != NULL) {
-            CxPlatCloseHandle(Storage->NotifyEvent);
-        }
-        CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
-    }
+    CxPlatStorageClose(Storage);
 
     return Status;
 }
@@ -206,14 +240,22 @@ Exit:
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 CxPlatStorageClose(
-    _In_opt_ CXPLAT_STORAGE* Storage
+    _In_opt_ _Post_invalid_ CXPLAT_STORAGE* Storage
     )
 {
     if (Storage != NULL) {
-        WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
-        RegCloseKey(Storage->RegKey);
-        CloseThreadpoolWait(Storage->ThreadPoolWait);
-        CxPlatCloseHandle(Storage->NotifyEvent);
+        if (Storage->ThreadPoolWait != NULL) {
+            WaitForThreadpoolWaitCallbacks(Storage->ThreadPoolWait, TRUE);
+        }
+        if (Storage->RegKey != NULL) {
+            RegCloseKey(Storage->RegKey);
+        }
+        if (Storage->ThreadPoolWait != NULL) {
+            CloseThreadpoolWait(Storage->ThreadPoolWait);
+        }
+        if (Storage->NotifyEvent != NULL) {
+            CxPlatCloseHandle(Storage->NotifyEvent);
+        }
         CXPLAT_FREE(Storage, QUIC_POOL_STORAGE);
     }
 }
@@ -266,4 +308,146 @@ CxPlatStorageReadValue(
                 &Type,
                 Buffer,
                 (PDWORD)BufferLength));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageWriteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name,
+    _In_ CXPLAT_STORAGE_TYPE Type,
+    _In_ uint32_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * Buffer
+    )
+{
+    return
+        HRESULT_FROM_WIN32(
+            RegSetValueExA(
+                Storage->RegKey,
+                Name,
+                0,
+                (DWORD)Type,
+                Buffer,
+                BufferLength));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageDeleteValue(
+    _In_ CXPLAT_STORAGE* Storage,
+    _In_z_ const char * Name
+    )
+{
+    return HRESULT_FROM_WIN32(RegDeleteValueA(Storage->RegKey, Name));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatStorageClear(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    //
+    // Clear only values in this registry key, not subkeys, to preserve 
+    // separation between global and per-app settings. RegDeleteTreeA would
+    // delete the entire subtree and wipe all app-specific data when clearing
+    // global storage.
+    //
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    DWORD Error = NO_ERROR;
+    DWORD AllocatedLength = 0;
+    PSTR ValueName = NULL;
+
+    //
+    // Query registry key info to get the maximum value name length
+    //
+    Error = RegQueryInfoKeyA(
+        Storage->RegKey,
+        NULL,                   // Class
+        NULL,                   // ClassLength
+        NULL,                   // Reserved
+        NULL,                   // SubKeys
+        NULL,                   // MaxSubKeyLen
+        NULL,                   // MaxClassLen
+        NULL,                   // Values
+        &AllocatedLength,       // MaxValueNameLen
+        NULL,                   // MaxValueLen
+        NULL,                   // SecurityDescriptor
+        NULL);                  // LastWriteTime
+    if (Error != NO_ERROR) {
+        Status = HRESULT_FROM_WIN32(Error);
+        QuicTraceEvent(
+            LibraryErrorStatus,
+            "[ lib] ERROR, %u, %s.",
+            Status,
+            "RegQueryInfoKeyA failed");
+        goto Exit;
+    }
+    //
+    // Add 1 for null terminator (RegQueryInfoKeyA returns length without null terminator)
+    //
+    AllocatedLength++;
+
+    ValueName = CXPLAT_ALLOC_PAGED(AllocatedLength, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    if (ValueName == NULL) {
+        Status = QUIC_STATUS_OUT_OF_MEMORY;
+        QuicTraceEvent(
+            AllocFailure,
+            "Allocation of '%s' failed. (%llu bytes)",
+            "RegEnumValueA ValueName",
+            AllocatedLength);
+        goto Exit;
+    }
+
+    //
+    // Iterate through all values and delete them
+    // We always use index 0 because deletion shifts the remaining values
+    //
+    while (TRUE) {
+        DWORD NameLength = AllocatedLength;
+        Error =
+            RegEnumValueA(
+                Storage->RegKey,
+                0, // Always use index 0 since we delete as we go
+                ValueName,
+                &NameLength,
+                NULL,   // Reserved
+                NULL,   // Type
+                NULL,   // Data
+                NULL);  // DataLength
+
+        if (Error == ERROR_NO_MORE_ITEMS) {
+            Status = QUIC_STATUS_SUCCESS;
+            break;
+        } else if (Error != NO_ERROR) {
+            Status = HRESULT_FROM_WIN32(Error);
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "RegEnumValueA failed");
+            goto Exit;
+        }
+
+        //
+        // Delete this value
+        //
+        Status = RegDeleteValueA(Storage->RegKey, ValueName);
+        if (QUIC_FAILED(Status)) {
+            QuicTraceEvent(
+                LibraryErrorStatus,
+                "[ lib] ERROR, %u, %s.",
+                Status,
+                "ZwDeleteValueKey failed");
+            goto Exit;
+        }
+    }
+
+Exit:
+    if (ValueName != NULL) {
+        CXPLAT_FREE(ValueName, QUIC_POOL_PLATFORM_TMP_ALLOC);
+    }
+
+    return Status;
 }

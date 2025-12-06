@@ -143,17 +143,12 @@ QuicCryptoInitialize(
         goto Exit;
     }
 
-    QuicRangeInitialize(
-        QUIC_MAX_RANGE_ALLOC_SIZE,
-        &Crypto->SparseAckRanges);
-
     Status =
         QuicRecvBufferInitialize(
             &Crypto->RecvBuffer,
             InitialRecvBufferLength,
             QUIC_DEFAULT_STREAM_FC_WINDOW_SIZE / 2,
             QUIC_RECV_BUF_MODE_SINGLE,
-            &Connection->Worker->AppBufferChunkPool,
             NULL);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -1240,7 +1235,8 @@ QuicCryptoProcessDataFrame(
 {
     QUIC_STATUS Status;
     QUIC_CONNECTION* Connection = QuicCryptoGetConnection(Crypto);
-    uint64_t FlowControlLimit = UINT16_MAX;
+    uint64_t FlowControlQuota = UINT16_MAX;
+    uint32_t EncLevelOffset = 0;
 
     *DataReady = FALSE;
 
@@ -1264,23 +1260,51 @@ QuicCryptoProcessDataFrame(
         }
 
         CXPLAT_DBG_ASSERT(KeyType <= Crypto->TlsState.ReadKey);
-        if (KeyType < Crypto->TlsState.ReadKey) {
+        if (KeyType < QUIC_PACKET_KEY_INITIAL || KeyType > QUIC_PACKET_KEY_1_RTT_NEW) {
+            Status = QUIC_STATUS_INVALID_STATE;
+            goto Error;
+        }
+        if (Crypto->TlsState.ReadKeys[KeyType] == NULL) {
             Status = QUIC_STATUS_SUCCESS; // Old, likely retransmitted data.
             goto Error;
+        }
+
+        //
+        // Handle a corner case here.  In the event that we get a ServerHello
+        // message that spans two crypto frames, with the ServerHello in the
+        // first frame, and the EncryptedExtensions, Finished, etc messages
+        // in the second crypto frame, Openssl Will yield the Handshake Keys
+        // as part of the first crypto frame.  This causes The RecvEncryptLevelStartOffset
+        // to get incremented by the frame size, but we're still processing an INIT level
+        // packet with the second crypto frame.  As such the offset when calling
+        // QuicRecvBufferWrite will be doubled, causing subsequent reads during QuicProcessData
+        // to not push the buffers from the second frame to the TLS stack, resulting
+        // in a stall of the handshake.  Avoid that by detecting the update here with
+        // a comparsion of the Frames Keytype to the TLS States ReadKey.  If the read key
+        // has advanced beyond the packet key type, don't use the EncLevelOffset to ensure that
+        // we write to the head of the buffer properly.
+        if (KeyType < Crypto->TlsState.ReadKey) {
+            EncLevelOffset = 0;
+        } else {
+            EncLevelOffset = Crypto->RecvEncryptLevelStartOffset;
         }
 
         //
         // Write the received data (could be duplicate) to the stream buffer. The
         // stream buffer will indicate if there is data to process.
         //
+        uint64_t BufferSizeNeeded = 0;
         Status =
             QuicRecvBufferWrite(
                 &Crypto->RecvBuffer,
-                Crypto->RecvEncryptLevelStartOffset + Frame->Offset,
+                EncLevelOffset + Frame->Offset,
                 (uint16_t)Frame->Length,
                 Frame->Data,
-                &FlowControlLimit,
-                DataReady);
+                FlowControlQuota,
+                &FlowControlQuota,
+                DataReady,
+                &BufferSizeNeeded);
+        CXPLAT_DBG_ASSERT(BufferSizeNeeded == 0);
         if (QUIC_FAILED(Status)) {
             if (Status == QUIC_STATUS_BUFFER_TOO_SMALL) {
                 QuicTraceEvent(
@@ -1487,9 +1511,6 @@ QuicCryptoProcessTlsCompletion(
             Connection,
             Crypto->TlsState.ReadKey);
 
-        //
-        // If we have the read key, we must also have the write key.
-        //
         CXPLAT_DBG_ASSERT(Crypto->TlsState.ReadKey <= QUIC_PACKET_KEY_1_RTT);
         _Analysis_assume_(Crypto->TlsState.ReadKey >= 0);
         CXPLAT_TEL_ASSERT(Crypto->TlsState.WriteKey >= Crypto->TlsState.ReadKey);
@@ -1626,7 +1647,7 @@ QuicCryptoProcessTlsCompletion(
         // CONNECTED event is indicated to the app).
         //
         Connection->State.Connected = TRUE;
-        QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_CONNECTED);
+        QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_CONNECTED);
 
 #if QUIC_TEST_MANUAL_CONN_ID_GENERATION
         if (!Connection->State.DisableConnIDGen) {
@@ -1664,7 +1685,7 @@ QuicCryptoProcessTlsCompletion(
             Event.CONNECTED.SessionResumed);
         (void)QuicConnIndicateEvent(Connection, &Event);
         if (Crypto->TlsState.SessionResumed) {
-            QuicPerfCounterIncrement(QUIC_PERF_COUNTER_CONN_RESUMED);
+            QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_CONN_RESUMED);
         }
         Connection->Stats.ResumptionSucceeded = Crypto->TlsState.SessionResumed;
 
@@ -1935,7 +1956,6 @@ QuicCryptoProcessData(
         }
     }
 
-    CXPLAT_DBG_ASSERT(Crypto->TLS != NULL);
     if (Crypto->TLS == NULL) {
         //
         // The listener still hasn't given us the security config to initialize
@@ -2165,6 +2185,369 @@ QuicCryptoUpdateKeyPhase(
     }
 }
 
+BOOLEAN
+IsQuicIncomingResumptionTicketSupported(
+    _In_ QUIC_VAR_INT TicketVersion
+    )
+{
+    if (TicketVersion >= CXPLAT_TLS_RESUMPTION_TICKET_VERSION &&
+        TicketVersion <= CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION) {
+        return TRUE;
+    }
+
+    return FALSE;
+}
+
+#define QUIC_CR_STATE_MIN_ADDR_LENGTH \
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET) + sizeof(IN_ADDR))
+
+#define QUIC_CR_STATE_MAX_ADDR_LENGTH \
+    (QuicVarIntSize(QUIC_ADDRESS_FAMILY_INET6) + sizeof(IN6_ADDR))
+
+size_t
+QuicCryptoAddrSize(
+    _In_ const QUIC_ADDR* Addr
+    )
+{
+    if (QuicAddrGetFamily(Addr) == QUIC_ADDRESS_FAMILY_INET) {
+        return QUIC_CR_STATE_MIN_ADDR_LENGTH;
+    }
+
+    //
+    // We default to IPv6 addr size for all non-IPv4 address families.
+    //
+    return QUIC_CR_STATE_MAX_ADDR_LENGTH;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoEncodeAddr(
+    _Out_writes_bytes_(_Inexpressible_("Too Dynamic")) uint8_t* Buffer,
+    _Out_range_(<=, QUIC_CR_STATE_MAX_ADDR_LENGTH) uint16_t* AddrLength,
+    _In_ const QUIC_ADDR* Addr
+    )
+{
+    *AddrLength = (uint16_t)QuicCryptoAddrSize(Addr);
+    uint8_t AddrFamily = (uint8_t)QuicAddrGetFamily(Addr);
+
+    _Analysis_assume_(AddrFamily == QUIC_ADDRESS_FAMILY_INET ||
+        AddrFamily == QUIC_ADDRESS_FAMILY_INET6);
+    uint8_t* TicketCursor = QuicVarIntEncode(AddrFamily, Buffer);
+    if (AddrFamily == QUIC_ADDRESS_FAMILY_INET) {
+        CxPlatCopyMemory(TicketCursor,
+            &Addr->Ipv4.sin_addr,
+            sizeof(IN_ADDR));
+    }
+    else if (AddrFamily == QUIC_ADDRESS_FAMILY_INET6) {
+        CxPlatCopyMemory(TicketCursor,
+            &Addr->Ipv6.sin6_addr,
+            sizeof(IN6_ADDR));
+    }
+    else {
+        // Unsupported address family.
+        CxPlatZeroMemory(TicketCursor, *AddrLength);
+        CXPLAT_FRE_ASSERT(FALSE);
+    }
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+BOOLEAN
+QuicCryptoDecodeAddr(
+    _In_reads_bytes_(BufferLength) const uint8_t* Buffer,
+    _In_ uint16_t BufferLength,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _Out_ QUIC_ADDR* Addr
+    )
+{
+    CxPlatZeroMemory(Addr, sizeof(QUIC_ADDR));
+
+    if (BufferLength < QUIC_CR_STATE_MIN_ADDR_LENGTH) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Careful Resume State address buffer too small");
+        return FALSE;
+    }
+
+    uint16_t Offset = 0;
+    QUIC_VAR_INT Family = 0;
+    if (!QuicVarIntDecode(BufferLength, Buffer, &Offset, &Family)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State address family");
+        return FALSE;
+    }
+
+    QuicAddrSetFamily(Addr, (QUIC_ADDRESS_FAMILY)Family);
+    if (Family == QUIC_ADDRESS_FAMILY_INET) {
+        if (BufferLength < Offset + sizeof(Addr->Ipv4.sin_addr)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Invalid Careful Resume State IPv4 address");
+            return FALSE;
+        }
+        CxPlatCopyMemory(&Addr->Ipv4.sin_addr, Buffer + Offset, sizeof(Addr->Ipv4.sin_addr));
+        Offset += sizeof(Addr->Ipv4.sin_addr);
+    }
+    else if (Family == QUIC_ADDRESS_FAMILY_INET6) {
+        if (BufferLength < Offset + sizeof(Addr->Ipv6.sin6_addr)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Invalid Careful Resume State IPv6 address");
+            return FALSE;
+        }
+        CxPlatCopyMemory(&Addr->Ipv6.sin6_addr, Buffer + Offset, sizeof(Addr->Ipv6.sin6_addr));
+        Offset += sizeof(Addr->Ipv6.sin6_addr);
+    }
+    else {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Unsupported address family in Careful Resume State");
+        return FALSE;
+    }
+
+    return TRUE;
+}
+
+size_t
+QuicEncodedCRStateSize(
+    _In_ size_t AddrSize,
+    _In_ const QUIC_CONN_CAREFUL_RESUME_STATE* CRState
+    )
+{
+
+    CXPLAT_FRE_ASSERT(AddrSize >= QUIC_CR_STATE_MIN_ADDR_LENGTH &&
+                      AddrSize <= QUIC_CR_STATE_MAX_ADDR_LENGTH);
+
+    return (QuicVarIntSize(AddrSize) +
+        QuicVarIntSize(CRState->SmoothedRtt) +
+        QuicVarIntSize(CRState->MinRtt) +
+        AddrSize +
+        QuicVarIntSize(CRState->Expiration) +
+        QuicVarIntSize(CRState->Algorithm) +
+        QuicVarIntSize(CRState->CongestionWindow));
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+uint32_t
+QuicCryptoGetEncodeCRStateSize(
+    _In_  const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState
+    )
+{
+    size_t AddrSize = QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint);
+    return (uint32_t)QuicEncodedCRStateSize(AddrSize, CarefulResumeState);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+size_t
+QUIC_CR_STATE_ENCODED_MIN_LENGTH()
+{
+    QUIC_CONN_CAREFUL_RESUME_STATE CarefulResumeState = { 0 };
+    QuicAddrSetFamily(&CarefulResumeState.RemoteEndpoint, QUIC_ADDRESS_FAMILY_INET);
+    return QuicCryptoGetEncodeCRStateSize(&CarefulResumeState);
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicCryptoEncodeCRState(
+    _In_ uint32_t BufferLength,
+    _In_ const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
+    _In_opt_ QUIC_CONNECTION* Connection,
+    _Out_ uint32_t* CRLength,
+    _Out_writes_bytes_to_(BufferLength, *CRLength) uint8_t* Buffer
+    )
+{
+    QuicTraceLogConnVerbose(
+        EncodeCRStart,
+        Connection,
+        "Encoding Careful Resume State");
+
+    uint32_t RequiredCRLen = QuicCryptoGetEncodeCRStateSize(CarefulResumeState);
+
+    if (BufferLength < RequiredCRLen) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn] [%p] ERROR, %s.",
+            Connection,
+            "Buffer too small for Careful Resume State");
+        CXPLAT_DBG_ASSERT(FALSE);
+        return;
+    }
+
+    uint16_t AddrLen = 0;
+    uint8_t EncodedAddr[QUIC_CR_STATE_MAX_ADDR_LENGTH]; // Max size to fit IPv6 address
+
+    CXPLAT_DBG_ASSERT(QuicCryptoAddrSize(&CarefulResumeState->RemoteEndpoint) <= sizeof(EncodedAddr));
+
+    QuicCryptoEncodeAddr(EncodedAddr, &AddrLen, &CarefulResumeState->RemoteEndpoint);
+    if (AddrLen > sizeof(EncodedAddr)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Unexpected address size");
+        CXPLAT_DBG_ASSERT(FALSE);
+        return;
+    }
+
+    uint8_t* TicketCursor = QuicVarIntEncode(AddrLen, Buffer);
+    TicketCursor = QuicVarIntEncode(CarefulResumeState->SmoothedRtt, TicketCursor);
+    TicketCursor = QuicVarIntEncode(CarefulResumeState->MinRtt, TicketCursor);
+    CxPlatCopyMemory(TicketCursor, EncodedAddr, AddrLen);
+    TicketCursor += AddrLen;
+    TicketCursor = QuicVarIntEncode(CarefulResumeState->Expiration, TicketCursor);
+
+    _Analysis_assume_(TicketCursor + QuicVarIntSize((uint8_t)CarefulResumeState->Algorithm) <= Buffer + BufferLength);
+    TicketCursor = QuicVarIntEncode((uint8_t)CarefulResumeState->Algorithm, TicketCursor);
+    _Analysis_assume_(TicketCursor + QuicVarIntSize(CarefulResumeState->CongestionWindow) <= Buffer + BufferLength);
+    (void)QuicVarIntEncode(CarefulResumeState->CongestionWindow, TicketCursor);
+
+    *CRLength = RequiredCRLen;
+}
+
+//
+// Decodes the Careful Resume State from the packed buffer.
+// See QuicCryptoEncodeCRState for the encoding format.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicCryptoDecodeCRState(
+    _Out_  QUIC_CONN_CAREFUL_RESUME_STATE * CarefulResumeState,
+    _In_reads_(CRBufLength) const uint8_t * Buffer,
+    _In_ uint16_t CRBufLength,
+    _In_opt_ QUIC_CONNECTION * Connection
+    )
+{
+    QuicTraceLogConnVerbose(
+        DecodeCRStart,
+        Connection,
+        "Decoding Careful Resume State. BufLength:%hu",
+        CRBufLength);
+
+    if (CRBufLength < QUIC_CR_STATE_ENCODED_MIN_LENGTH()) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Careful Resume State buffer too small");
+        return FALSE;
+    }
+
+    CxPlatZeroMemory(CarefulResumeState, sizeof(QUIC_CONN_CAREFUL_RESUME_STATE));
+
+    uint16_t Offset = 0;
+    QUIC_VAR_INT AddrLen = 0;
+
+    //
+    // First read the length of the variable address field
+    //
+    if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &AddrLen) ||
+        AddrLen < QUIC_CR_STATE_MIN_ADDR_LENGTH ||
+        AddrLen > QUIC_CR_STATE_MAX_ADDR_LENGTH) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State address length");
+        return FALSE;
+    }
+
+    //
+    // Read the initial var int values
+    //
+    if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->SmoothedRtt) ||
+        !QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->MinRtt)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State RTT values");
+        return FALSE;
+    }
+
+    //
+    // Read the variable length address field
+    //
+    if (CRBufLength < Offset + AddrLen) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "CR buffer is too small for address");
+        return FALSE;
+    }
+
+    if (!QuicCryptoDecodeAddr(Buffer + Offset, (uint16_t)AddrLen, Connection, &CarefulResumeState->RemoteEndpoint)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State address");
+        return FALSE;
+    }
+
+    Offset += (uint16_t)AddrLen;
+
+    //
+    // Read the remaining var int values
+    //
+    if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &CarefulResumeState->Expiration)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State Expiration");
+        return FALSE;
+    }
+
+    QUIC_VAR_INT Value = 0;
+    if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &Value) ||
+        Value >= (uint8_t)QUIC_CONGESTION_CONTROL_ALGORITHM_MAX) {
+        QuicTraceEvent(
+            ConnErrorStatus,
+            "[conn][%p] ERROR, %u, %s.",
+            Connection,
+            (uint16_t)Value,
+            "Invalid Careful Resume State algorithm");
+        return FALSE;
+    }
+    CarefulResumeState->Algorithm = (QUIC_CONGESTION_CONTROL_ALGORITHM)Value;
+
+    if (!QuicVarIntDecode(CRBufLength, Buffer, &Offset, &Value)) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid Careful Resume State congestion window");
+        return FALSE;
+    }
+    CarefulResumeState->CongestionWindow = (uint32_t)Value;
+
+    if (Offset != CRBufLength) {
+        QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Careful Resume State buffer length mismatch");
+        return FALSE;
+    }
+    return TRUE;
+}
+
+
+//
+// Server calls this function to generate the resumption ticket for a specific client
+//
 QUIC_STATUS
 QuicCryptoEncodeServerTicket(
     _In_opt_ QUIC_CONNECTION* Connection,
@@ -2173,6 +2556,7 @@ QuicCryptoEncodeServerTicket(
     _In_reads_bytes_opt_(AppDataLength)
         const uint8_t* const AppResumptionData,
     _In_ const QUIC_TRANSPORT_PARAMETERS* HandshakeTP,
+    _In_opt_ const QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
     _In_ uint8_t AlpnLength,
     _In_reads_bytes_(AlpnLength)
         const uint8_t* const NegotiatedAlpn,
@@ -2220,14 +2604,20 @@ QuicCryptoEncodeServerTicket(
     //
     EncodedTPLength -= CxPlatTlsTPHeaderSize;
 
+    //
+    // (Server-only) Careful Resumption State
+    //
+    uint32_t EncodedCRLength = (NULL == CarefulResumeState) ? 0 : QuicCryptoGetEncodeCRStateSize(CarefulResumeState);
     uint32_t TotalTicketLength =
         (uint32_t)(QuicVarIntSize(CXPLAT_TLS_RESUMPTION_TICKET_VERSION) +
         sizeof(QuicVersion) +
         QuicVarIntSize(AlpnLength) +
         QuicVarIntSize(EncodedTPLength) +
+        QuicVarIntSize(EncodedCRLength) +
         QuicVarIntSize(AppDataLength) +
         AlpnLength +
         EncodedTPLength +
+        EncodedCRLength +
         AppDataLength);
 
     TicketBuffer = CXPLAT_ALLOC_NONPAGED(TotalTicketLength, QUIC_POOL_SERVER_CRYPTO_TICKET);
@@ -2254,16 +2644,23 @@ QuicCryptoEncodeServerTicket(
     //
 
     _Analysis_assume_(sizeof(*TicketBuffer) >= 8);
-    uint8_t* TicketCursor = QuicVarIntEncode(CXPLAT_TLS_RESUMPTION_TICKET_VERSION, TicketBuffer);
+    uint8_t* TicketCursor = QuicVarIntEncode(CXPLAT_TLS_RESUMPTION_TICKET_MAX_VERSION, TicketBuffer);
     CxPlatCopyMemory(TicketCursor, &QuicVersion, sizeof(QuicVersion));
     TicketCursor += sizeof(QuicVersion);
     TicketCursor = QuicVarIntEncode(AlpnLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(EncodedTPLength, TicketCursor);
+    TicketCursor = QuicVarIntEncode(EncodedCRLength, TicketCursor);
     TicketCursor = QuicVarIntEncode(AppDataLength, TicketCursor);
     CxPlatCopyMemory(TicketCursor, NegotiatedAlpn, AlpnLength);
     TicketCursor += AlpnLength;
     CxPlatCopyMemory(TicketCursor, EncodedHSTP + CxPlatTlsTPHeaderSize, EncodedTPLength);
     TicketCursor += EncodedTPLength;
+
+    if (NULL != CarefulResumeState) {
+        QuicCryptoEncodeCRState(EncodedCRLength, CarefulResumeState, Connection, &EncodedCRLength, TicketCursor);
+        TicketCursor += EncodedCRLength;
+    }
+
     if (AppDataLength > 0) {
         CxPlatCopyMemory(TicketCursor, AppResumptionData, AppDataLength);
         TicketCursor += AppDataLength;
@@ -2284,6 +2681,9 @@ Error:
     return Status;
 }
 
+//
+// Server uses this function to decode the resumption ticket presented by the client
+//
 QUIC_STATUS
 QuicCryptoDecodeServerTicket(
     _In_ QUIC_CONNECTION* Connection,
@@ -2293,6 +2693,7 @@ QuicCryptoDecodeServerTicket(
     _In_ const uint8_t* AlpnList,
     _In_ uint16_t AlpnListLength,
     _Inout_ QUIC_TRANSPORT_PARAMETERS* DecodedTP,
+    _Out_opt_ QUIC_CONN_CAREFUL_RESUME_STATE* CarefulResumeState,
     _Outptr_result_buffer_maybenull_(*AppDataLength)
         const uint8_t** AppData,
     _Out_ uint32_t* AppDataLength
@@ -2301,9 +2702,15 @@ QuicCryptoDecodeServerTicket(
     QUIC_STATUS Status = QUIC_STATUS_INVALID_PARAMETER;
     uint16_t Offset = 0;
     QUIC_VAR_INT TicketVersion = 0, AlpnLength = 0, TPLength = 0, AppTicketLength = 0;
+    QUIC_VAR_INT CRLength = 0;
 
     *AppData = NULL;
     *AppDataLength = 0;
+    if (NULL != CarefulResumeState) {
+        CxPlatZeroMemory(
+            CarefulResumeState,
+            sizeof(*CarefulResumeState));
+    }
 
     if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &TicketVersion)) {
         QuicTraceEvent(
@@ -2313,7 +2720,8 @@ QuicCryptoDecodeServerTicket(
             "Resumption Ticket version failed to decode");
         goto Error;
     }
-    if (TicketVersion != CXPLAT_TLS_RESUMPTION_TICKET_VERSION) {
+
+    if (!IsQuicIncomingResumptionTicketSupported(TicketVersion)) {
         QuicTraceEvent(
             ConnError,
             "[conn][%p] ERROR, %s.",
@@ -2359,6 +2767,17 @@ QuicCryptoDecodeServerTicket(
             Connection,
             "Resumption Ticket TP length failed to decode");
         goto Error;
+    }
+
+    if (TicketVersion == CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2) {
+        if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &CRLength)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket CR length failed to decode");
+            goto Error;
+        }
     }
 
     if (!QuicVarIntDecode(TicketLength, Ticket, &Offset, &AppTicketLength)) {
@@ -2412,6 +2831,33 @@ QuicCryptoDecodeServerTicket(
         goto Error;
     }
     Offset += (uint16_t)TPLength;
+
+    if (TicketVersion == CXPLAT_TLS_RESUMPTION_TICKET_VERSION_V2) {
+        if (TicketLength < Offset + CRLength) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket too small for V2 extensions");
+            goto Error;
+        }
+
+        if ((NULL != CarefulResumeState) &&
+            !QuicCryptoDecodeCRState(
+                CarefulResumeState,
+                Ticket + Offset,
+                (uint16_t)CRLength,
+                Connection)) {
+            QuicTraceEvent(
+                ConnError,
+                "[conn][%p] ERROR, %s.",
+                Connection,
+                "Resumption Ticket V2 extensions failed to decode");
+            goto Error;
+        }
+
+        Offset += (uint16_t)CRLength;
+    }
 
     if (TicketLength == Offset + AppTicketLength) {
         Status = QUIC_STATUS_SUCCESS;

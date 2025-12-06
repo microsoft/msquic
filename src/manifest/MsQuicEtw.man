@@ -242,6 +242,18 @@
                 message="$(string.Enum.QUIC_API_TYPE.DATAGRAM_SEND)"
                 value="13"
                 />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION)"
+                value="14"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.CONN_COMPLETE_CERTIFICATE_VALIDATION)"
+                value="15"
+                />
+            <map
+                message="$(string.Enum.QUIC_API_TYPE.STRM_PROVIDE_RECV_BUFFERS)"
+                value="16"
+                />
           </valueMap>
           <valueMap name="map_QUIC_CONN_TIMER_TYPE">
             <map
@@ -507,6 +519,22 @@
             <map
                 message="$(string.Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS)"
                 value="28"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.CONNECTION_POOL_CREATE)"
+                value="29"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_CREATE)"
+                value="30"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_DELETE)"
+                value="31"
+                />
+            <map
+                message="$(string.Enum.QUIC_TRACE_API_TYPE.EXECUTION_POLL)"
+                value="32"
                 />
           </valueMap>
           <valueMap name="map_QUIC_SEND_FLUSH_REASON">
@@ -4677,6 +4705,18 @@
             value="API.DATAGRAM_SEND"
             />
         <string
+            id="Enum.QUIC_API_TYPE.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            value="API.CONN_COMPLETE_RESUMPTION_TICKET_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.CONN_COMPLETE_CERTIFICATE_VALIDATION"
+            value="API.CONN_COMPLETE_CERTIFICATE_VALIDATION"
+            />
+        <string
+            id="Enum.QUIC_API_TYPE.STRM_PROVIDE_RECV_BUFFERS"
+            value="API.STRM_PROVIDE_RECV_BUFFERS"
+            />
+        <string
             id="Enum.QUIC_CONN_TIMER_TYPE.IDLE"
             value="TIMER.IDLE"
             />
@@ -4927,6 +4967,22 @@
         <string
             id="Enum.QUIC_TRACE_API_TYPE.STREAM_PROVIDE_RECEIVE_BUFFERS"
             value="STREAM_PROVIDE_RECEIVE_BUFFERS"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.CONNECTION_POOL_CREATE"
+            value="CONNECTION_POOL_CREATE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_CREATE"
+            value="EXECUTION_CREATE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_DELETE"
+            value="EXECUTION_DELETE"
+            />
+        <string
+            id="Enum.QUIC_TRACE_API_TYPE.EXECUTION_POLL"
+            value="EXECUTION_POLL"
             />
         <string
             id="Enum.QUIC_SEND_FLUSH_REASON.CONNECTION_FLAGS"

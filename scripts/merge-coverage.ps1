@@ -27,7 +27,7 @@ param (
     [string]$Arch = "x64",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -42,7 +42,7 @@ if ("" -eq $Tls) {
     if ($IsWindows) {
         $Tls = "schannel"
     } else {
-        $Tls = "openssl"
+        $Tls = "quictls"
     }
 }
 

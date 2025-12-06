@@ -51,21 +51,18 @@ RawSocketDelete(
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
-QUIC_STATUS
+void
 RawDataPathInitialize(
     _In_ uint32_t ClientRecvContextLength,
-    _In_opt_ QUIC_EXECUTION_CONFIG* Config,
     _In_opt_ const CXPLAT_DATAPATH* ParentDataPath,
     _In_ CXPLAT_WORKER_POOL* WorkerPool,
-    _Out_ CXPLAT_DATAPATH_RAW** DataPath
+    _Outptr_result_maybenull_ CXPLAT_DATAPATH_RAW** DataPath
     )
 {
     UNREFERENCED_PARAMETER(ClientRecvContextLength);
-    UNREFERENCED_PARAMETER(Config);
     UNREFERENCED_PARAMETER(ParentDataPath);
     UNREFERENCED_PARAMETER(WorkerPool);
-    UNREFERENCED_PARAMETER(DataPath);
-    return QUIC_STATUS_NOT_SUPPORTED;
+    *DataPath = NULL;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -79,23 +76,23 @@ RawDataPathUninitialize(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-RawDataPathUpdateConfig(
+RawDataPathUpdatePollingIdleTimeout(
     _In_ CXPLAT_DATAPATH_RAW* Datapath,
-    _In_ QUIC_EXECUTION_CONFIG* Config
+    _In_ uint32_t PollingIdleTimeoutUs
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    UNREFERENCED_PARAMETER(Config);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
-uint32_t
+CXPLAT_DATAPATH_FEATURES
 RawDataPathGetSupportedFeatures(
     _In_ CXPLAT_DATAPATH_RAW* Datapath
     )
 {
     UNREFERENCED_PARAMETER(Datapath);
-    return 0;
+    return CXPLAT_DATAPATH_FEATURE_NONE;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -126,10 +123,10 @@ RawSocketUpdateQeo(
 _IRQL_requires_max_(DISPATCH_LEVEL)
 uint16_t
 RawSocketGetLocalMtu(
-    _In_ CXPLAT_SOCKET_RAW* Socket
+    _In_ CXPLAT_ROUTE* Route
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
+    UNREFERENCED_PARAMETER(Route);
     return 1500;
 }
 
@@ -146,11 +143,9 @@ _IRQL_requires_max_(DISPATCH_LEVEL)
 _Success_(return != NULL)
 CXPLAT_SEND_DATA*
 RawSendDataAlloc(
-    _In_ CXPLAT_SOCKET_RAW* Socket,
     _Inout_ CXPLAT_SEND_CONFIG* Config
     )
 {
-    UNREFERENCED_PARAMETER(Socket);
     UNREFERENCED_PARAMETER(Config);
     return NULL;
 }
@@ -253,4 +248,27 @@ RawUpdateRoute(
 {
     UNREFERENCED_PARAMETER(DstRoute);
     UNREFERENCED_PARAMETER(SrcRoute);
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+CxPlatDataPathRssConfigGet(
+    _In_ uint32_t InterfaceIndex,
+    _Outptr_ _At_(*RssConfig, __drv_allocatesMem(Mem))
+        CXPLAT_RSS_CONFIG** RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(InterfaceIndex);
+    UNREFERENCED_PARAMETER(RssConfig);
+    return QUIC_STATUS_NOT_SUPPORTED;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+CxPlatDataPathRssConfigFree(
+    _In_ CXPLAT_RSS_CONFIG* RssConfig
+    )
+{
+    UNREFERENCED_PARAMETER(RssConfig);
+    CXPLAT_FRE_ASSERTMSG(FALSE, "CxPlatDataPathRssConfigFree not supported");
 }

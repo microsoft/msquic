@@ -24,7 +24,7 @@ cmake -D QUIC_ENABLE_LOGGING=ON -D QUIC_LOGGING_TYPE=stdout ...
 ```
 
 #### LTTng
-On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace, lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -ForTest`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
+On Linux, MsQuic leverages [LTTng](https://lttng.org/features/) for its logging. Some dependencies, such as babeltrace2 (or babeltrace), lttng, and clog2text_lttng are required. The simplest way to install all dependencies is by running `./scripts/prepare-machine.ps1 -ForTest`, but if you only want to collect the traces on the machine, the **minimal dependencies** are:
 
 ```
 sudo apt-add-repository ppa:lttng/stable-2.13
@@ -220,7 +220,11 @@ dotnet build submodules/clog/src/clog2text/clog2text_lttng/ -c Release
 To convert the trace, you can use the following commands:
 
 ```
+# Using babeltrace2 (preferred)
+babeltrace2 --names all ./msquic_lttng/* > quic.babel.txt
+# OR using babeltrace (fallback)
 babeltrace --names all ./msquic_lttng/* > quic.babel.txt
+
 ~/.dotnet/tools/clog2text_lttng -i quic.babel.txt -s clog.sidecar -o quic.log --showTimestamp --showCpuInfo
 ```
 
@@ -291,6 +295,7 @@ QUIC_PERF_COUNTER_PATH_FAILURE | Total path challenges that fail ever
 QUIC_PERF_COUNTER_SEND_STATELESS_RESET | Total stateless reset packets sent ever
 QUIC_PERF_COUNTER_SEND_STATELESS_RETRY | Total stateless retry packets sent ever
 QUIC_PERF_COUNTER_CONN_LOAD_REJECT | Total connections rejected due to worker load.
+QUIC_PERF_COUNTER_LISTEN_QUEUE_DEPTH | Current listeners queued for processing.
 
 ## Windows Performance Monitor
 

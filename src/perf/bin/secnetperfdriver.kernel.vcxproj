@@ -87,6 +87,7 @@
       <AdditionalLibraryDirectories>$(SolutionDir)artifacts\bin\winkernel\$(Platform)_$(Configuration)_schannel\</AdditionalLibraryDirectories>
       <AdditionalDependencies>cng.lib;ksecdd.lib;msnetioid.lib;netio.lib;wdmsec.lib;uuid.lib;msquic.lib;ndis.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
+      <RandomizedBaseAddress>true</RandomizedBaseAddress>
     </Link>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)'=='Debug'">

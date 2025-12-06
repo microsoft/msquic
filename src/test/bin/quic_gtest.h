@@ -20,6 +20,7 @@
 #endif
 
 extern bool TestingKernelMode;
+extern bool UseDuoNic;
 #if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
 extern bool UseQTIP;
 #endif
@@ -343,6 +344,41 @@ class WithHandshakeArgs11 : public testing::Test,
     public testing::WithParamInterface<HandshakeArgs11> {
 };
 
+struct HandshakeArgs12 {
+    int Family;
+    uint16_t NumberOfConnections;
+    bool XdpSupported;
+    bool TestCibirSupport;
+    static ::std::vector<HandshakeArgs12> Generate() {
+        ::std::vector<HandshakeArgs12> list;
+        for (int Family : { 4, 6 })
+        for (uint16_t NumberOfConnections : { 1, 2, 4 })
+        for (bool TestCibir : { false, true })
+        for (bool XdpSupported : { false, true }) {
+#if !defined(_WIN32)
+            if (XdpSupported) continue;
+#endif
+            if (!UseDuoNic && XdpSupported) {
+                continue;
+            }
+            list.push_back({ Family, NumberOfConnections, XdpSupported, TestCibir });
+        }
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const HandshakeArgs12& args) {
+    return o <<
+        (args.Family == 4 ? "v4" : "v6") << "/" <<
+        args.NumberOfConnections << "/" <<
+        (args.XdpSupported ? "XDP" : "NoXDP") << "/" <<
+        (args.TestCibirSupport ? "TestCibir" : "NoCibir");
+}
+
+class WithHandshakeArgs12 : public testing::Test,
+    public testing::WithParamInterface<HandshakeArgs12> {
+};
+
 struct FeatureSupportArgs {
     int Family;
     bool ServerSupport;
@@ -526,28 +562,6 @@ std::ostream& operator << (std::ostream& o, const Send0RttArgs2& args) {
 
 class WithSend0RttArgs2 : public testing::Test,
     public testing::WithParamInterface<Send0RttArgs2> {
-};
-
-struct KeyUpdateArgs1 {
-    int Family;
-    int KeyUpdate;
-    static ::std::vector<KeyUpdateArgs1> Generate() {
-        ::std::vector<KeyUpdateArgs1> list;
-        for (int Family : { 4, 6 })
-        for (int KeyUpdate : { 0, 1, 2, 3 })
-            list.push_back({ Family, KeyUpdate });
-        return list;
-    }
-};
-
-std::ostream& operator << (std::ostream& o, const KeyUpdateArgs1& args) {
-    return o <<
-        (args.Family == 4 ? "v4" : "v6") << "/" <<
-        args.KeyUpdate;
-}
-
-class WithKeyUpdateArgs1 : public testing::Test,
-    public testing::WithParamInterface<KeyUpdateArgs1> {
 };
 
 struct KeyUpdateArgs2 {

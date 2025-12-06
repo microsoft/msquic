@@ -42,7 +42,7 @@ enum QuicTestFeature {
 const uint32_t QuicTestFeatureCount = sizeof(QuicTestFeatureCodes) - 1;
 const uint32_t QuicTestFeatureAll = ((1 << QuicTestFeatureCount) - 1);
 
-inline QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)
+QUIC_INLINE QuicTestFeature operator|(QuicTestFeature a, QuicTestFeature b)
 {
     return static_cast<QuicTestFeature>(static_cast<int>(a) | static_cast<int>(b));
 }

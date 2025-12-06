@@ -12,7 +12,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3")]
+    [ValidateSet("schannel", "quictls", "openssl")]
     [string]$Tls = ""
 )
 
@@ -26,7 +26,7 @@ $ArtifactsDir = $BuildConfig.ArtifactsDir
 $SourceVersion = $env:BUILD_SOURCEVERSION;
 $SourceBranch = $env:BUILD_SOURCEBRANCH;
 $BuildId = $env:BUILD_BUILDID;
-$VersionNumber = "2.5.0";
+$VersionNumber = "2.6.0";
 
 class BuildData {
     [string]$SourceVersion;

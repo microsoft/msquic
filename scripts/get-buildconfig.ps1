@@ -34,7 +34,7 @@ param (
     [string]$Platform = "",
 
     [Parameter(Mandatory = $false)]
-    [ValidateSet("schannel", "openssl", "openssl3", "")]
+    [ValidateSet("schannel", "quictls", "openssl", "")]
     [string]$Tls = "",
 
     [Parameter(Mandatory = $false)]
@@ -89,7 +89,7 @@ if ("" -eq $Tls) {
     if ($IsWindows) {
         $Tls = "schannel"
     } else {
-        $Tls = "openssl"
+        $Tls = "quictls"
         try {
             # If no Tls was specified, try to guess it based on default OpenSSL version
             # This is more complicated in attempt to silently deal with missing openssl executable
@@ -107,11 +107,16 @@ if ("" -eq $Tls) {
             $p.WaitForExit()
 
             $version = $p.StandardOutput.ReadToEnd()
-            if ($version -like "OpenSSL 3*")
+            if ($version -like "OpenSSL 3.[5-9]?")
             {
-                $Tls = "openssl3"
+                $Tls = "openssl"
+            }
+            else
+            {
+                $Tls = "quictls"
             }
         } catch { }
+
     }
 }
 

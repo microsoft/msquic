@@ -16,8 +16,8 @@ Term | Definition
 *endpoint* | One side of a connection; client or server.
 *peer* | The *other* side of a connection.
 *callback handler* | The function pointer the app registers with an MsQuic object.
-*app context* or<br> *context* | A (possibly null) pointer registered with an MsQuic object. It is passed to callback handlers.
-*event* | An upcall to a callback handler.
+*app context* or<br> *context* | A (possibly null) pointer registered with an MsQuic object. It is passed to the app's callback handlers.
+*event* | Beginning or ending of a specific condition or action in the MsQuic library that results in the app's callback hander invocation.
 
 # High Level Overview
 
@@ -90,7 +90,7 @@ Please note, there is no explicit start/stop API for this library. Each API func
 
 Generally, each app only needs a single registration. The registration represents the execution context where all logic for the app's connections run. The library will create a number of worker threads for each registration, shared for all the connections. This execution context is not shared between different registrations.
 
-A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md).
+A registration is created by calling [RegistrationOpen](api/RegistrationOpen.md) and deleted by calling [RegistrationClose](api/RegistrationClose.md) or (Preview) [RegistrationClose2](api/RegistrationClose2.md).
 
 ## Configuration
 

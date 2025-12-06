@@ -30,6 +30,21 @@ QuicLibraryEvaluateSendRetryState(
     void
     );
 
+CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context);
+
+CXPLAT_DATAPATH_FEATURES
+QuicLibraryGetDatapathFeatures(
+    void
+    )
+{
+    CXPLAT_SOCKET_FLAGS SocketFlags = CXPLAT_SOCKET_FLAG_NONE;
+    if (MsQuicLib.Settings.XdpEnabled) {
+        SocketFlags |= CXPLAT_SOCKET_FLAG_XDP;
+    }
+    CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
+    return CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath, SocketFlags);
+}
+
 //
 // Initializes all global variables if not already done.
 //
@@ -46,7 +61,6 @@ MsQuicLibraryLoad(
         CxPlatSystemLoad();
         CxPlatLockInitialize(&MsQuicLib.Lock);
         CxPlatDispatchLockInitialize(&MsQuicLib.DatapathLock);
-        CxPlatDispatchLockInitialize(&MsQuicLib.StatelessRetryKeysLock);
         CxPlatListInitializeHead(&MsQuicLib.Registrations);
         CxPlatListInitializeHead(&MsQuicLib.Bindings);
         QuicTraceRundownCallback = QuicTraceRundown;
@@ -73,7 +87,6 @@ MsQuicLibraryUnload(
         QUIC_LIB_VERIFY(MsQuicLib.OpenRefCount == 0);
         QUIC_LIB_VERIFY(!MsQuicLib.InUse);
         MsQuicLib.Loaded = FALSE;
-        CxPlatDispatchLockUninitialize(&MsQuicLib.StatelessRetryKeysLock);
         CxPlatDispatchLockUninitialize(&MsQuicLib.DatapathLock);
         CxPlatLockUninitialize(&MsQuicLib.Lock);
         CxPlatSystemUnload();
@@ -107,17 +120,12 @@ MsQuicLibraryFreePartitions(
     void
     )
 {
-    if (MsQuicLib.PerProc) {
-        for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
-            QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-            CxPlatPoolUninitialize(&PerProc->ConnectionPool);
-            CxPlatPoolUninitialize(&PerProc->TransportParamPool);
-            CxPlatPoolUninitialize(&PerProc->PacketSpacePool);
-            CxPlatLockUninitialize(&PerProc->ResetTokenLock);
-            CxPlatHashFree(PerProc->ResetTokenHash);
+    if (MsQuicLib.Partitions) {
+        for (uint16_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
+            QuicPartitionUninitialize(&MsQuicLib.Partitions[i]);
         }
-        CXPLAT_FREE(MsQuicLib.PerProc, QUIC_POOL_PERPROC);
-        MsQuicLib.PerProc = NULL;
+        CXPLAT_FREE(MsQuicLib.Partitions, QUIC_POOL_PERPROC);
+        MsQuicLib.Partitions = NULL;
     }
 }
 
@@ -127,15 +135,32 @@ QuicLibraryInitializePartitions(
     void
     )
 {
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc == NULL);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Partitions == NULL);
+    MsQuicLib.PartitionCount = (uint16_t)CxPlatProcCount();
+    CXPLAT_FRE_ASSERT(MsQuicLib.PartitionCount > 0);
 
-    MsQuicLib.ProcessorCount = (uint16_t)CxPlatProcCount();
-    CXPLAT_FRE_ASSERT(MsQuicLib.ProcessorCount > 0);
-
-    if (MsQuicLib.ExecutionConfig && MsQuicLib.ExecutionConfig->ProcessorCount) {
+    uint16_t* ProcessorList = NULL;
+#ifndef _KERNEL_MODE
+    if (MsQuicLib.WorkerPool != NULL) {
+        MsQuicLib.CustomPartitions = TRUE;
+        MsQuicLib.PartitionCount = (uint16_t)CxPlatWorkerPoolGetCount(MsQuicLib.WorkerPool);
+    } else if (
+#else
+    if (
+#endif
+        MsQuicLib.ExecutionConfig &&
+        MsQuicLib.ExecutionConfig->ProcessorCount &&
+        MsQuicLib.ExecutionConfig->ProcessorCount != MsQuicLib.PartitionCount) {
+        //
+        // The app has specified a non-default custom set of processors to
+        // create partitions one.
+        //
+        MsQuicLib.CustomPartitions = TRUE;
         MsQuicLib.PartitionCount = (uint16_t)MsQuicLib.ExecutionConfig->ProcessorCount;
+        ProcessorList = MsQuicLib.ExecutionConfig->ProcessorList;
+
     } else {
-        MsQuicLib.PartitionCount = MsQuicLib.ProcessorCount;
+        MsQuicLib.CustomPartitions = FALSE;
 
         uint32_t MaxPartitionCount = QUIC_MAX_PARTITION_COUNT;
         if (MsQuicLib.Storage != NULL) {
@@ -154,47 +179,76 @@ QuicLibraryInitializePartitions(
         }
     }
 
+    CXPLAT_FRE_ASSERT(MsQuicLib.PartitionCount > 0);
     MsQuicCalculatePartitionMask();
 
-    const size_t PerProcSize = MsQuicLib.ProcessorCount * sizeof(QUIC_LIBRARY_PP);
-    MsQuicLib.PerProc = CXPLAT_ALLOC_NONPAGED(PerProcSize, QUIC_POOL_PERPROC);
-    if (MsQuicLib.PerProc == NULL) {
+    const size_t PartitionsSize = MsQuicLib.PartitionCount * sizeof(QUIC_PARTITION);
+    MsQuicLib.Partitions = CXPLAT_ALLOC_NONPAGED(PartitionsSize, QUIC_POOL_PERPROC);
+    if (MsQuicLib.Partitions == NULL) {
         QuicTraceEvent(
             AllocFailure,
             "Allocation of '%s' failed. (%llu bytes)",
-            "connection pools",
-            PerProcSize);
+            "Library Partitions",
+            PartitionsSize);
         return QUIC_STATUS_OUT_OF_MEMORY;
     }
 
-    CxPlatZeroMemory(MsQuicLib.PerProc, PerProcSize);
-    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
-        QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-        CxPlatPoolInitialize(FALSE, sizeof(QUIC_CONNECTION), QUIC_POOL_CONN, &PerProc->ConnectionPool);
-        CxPlatPoolInitialize(FALSE, sizeof(QUIC_TRANSPORT_PARAMETERS), QUIC_POOL_TP, &PerProc->TransportParamPool);
-        CxPlatPoolInitialize(FALSE, sizeof(QUIC_PACKET_SPACE), QUIC_POOL_TP, &PerProc->PacketSpacePool);
-        CxPlatLockInitialize(&PerProc->ResetTokenLock);
-    }
+    CxPlatZeroMemory(MsQuicLib.Partitions, PartitionsSize);
 
     uint8_t ResetHashKey[20];
     CxPlatRandom(sizeof(ResetHashKey), ResetHashKey);
-    for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
-        QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-        QUIC_STATUS Status =
-            CxPlatHashCreate(
+
+    uint8_t RetrySecret[CXPLAT_AEAD_AES_256_GCM_SIZE];
+    CxPlatRandom(sizeof(RetrySecret), RetrySecret);
+
+    QUIC_STATELESS_RETRY_CONFIG RetryConfig;
+    RetryConfig.SecretLength = sizeof(RetrySecret);
+    RetryConfig.Secret = RetrySecret;
+    RetryConfig.RotationMs = QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
+    RetryConfig.Algorithm = QUIC_AEAD_ALGORITHM_AES_256_GCM;
+
+    QUIC_STATUS Status = QuicLibrarySetRetryKeyConfig(&RetryConfig);
+    CXPLAT_FRE_ASSERT(QUIC_SUCCEEDED(Status));
+    CxPlatSecureZeroMemory(RetrySecret, sizeof(RetrySecret));
+
+    uint16_t i;
+    for (i = 0; i < MsQuicLib.PartitionCount; ++i) {
+        Status =
+            QuicPartitionInitialize(
+                &MsQuicLib.Partitions[i],
+                i,
+#ifndef _KERNEL_MODE
+                ProcessorList ? ProcessorList[i] :
+                    (MsQuicLib.CustomPartitions ?
+                        (uint16_t)CxPlatWorkerPoolGetIdealProcessor(MsQuicLib.WorkerPool, i) :
+                        i),
+#else
+                ProcessorList ? ProcessorList[i] : i,
+#endif
                 CXPLAT_HASH_SHA256,
                 ResetHashKey,
-                sizeof(ResetHashKey),
-                &PerProc->ResetTokenHash);
+                sizeof(ResetHashKey));
         if (QUIC_FAILED(Status)) {
-            CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
-            MsQuicLibraryFreePartitions();
-            return Status;
+            goto Error;
         }
     }
+
     CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
 
     return QUIC_STATUS_SUCCESS;
+
+Error:
+
+    CxPlatSecureZeroMemory(ResetHashKey, sizeof(ResetHashKey));
+
+    for (uint16_t j = 0; j < i; ++j) {
+        QuicPartitionUninitialize(&MsQuicLib.Partitions[j]);
+    }
+
+    CXPLAT_FREE(MsQuicLib.Partitions, QUIC_POOL_PERPROC);
+    MsQuicLib.Partitions = NULL;
+
+    return Status;
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -204,20 +258,20 @@ QuicLibrarySumPerfCounters(
     _In_ uint32_t BufferLength
     )
 {
-    if (MsQuicLib.PerProc == NULL) {
+    if (MsQuicLib.Partitions == NULL) {
         CxPlatZeroMemory(Buffer, BufferLength);
         return;
     }
 
     CXPLAT_DBG_ASSERT(BufferLength == (BufferLength / sizeof(uint64_t) * sizeof(uint64_t)));
-    CXPLAT_DBG_ASSERT(BufferLength <= sizeof(MsQuicLib.PerProc[0].PerfCounters));
+    CXPLAT_DBG_ASSERT(BufferLength <= sizeof(MsQuicLib.Partitions[0].PerfCounters));
     const uint32_t CountersPerBuffer = BufferLength / sizeof(int64_t);
     int64_t* const Counters = (int64_t*)Buffer;
-    memcpy(Buffer, MsQuicLib.PerProc[0].PerfCounters, BufferLength);
+    memcpy(Buffer, MsQuicLib.Partitions[0].PerfCounters, BufferLength);
 
-    for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.ProcessorCount; ++ProcIndex) {
+    for (uint32_t ProcIndex = 1; ProcIndex < MsQuicLib.PartitionCount; ++ProcIndex) {
         for (uint32_t CounterIndex = 0; CounterIndex < CountersPerBuffer; ++CounterIndex) {
-            Counters[CounterIndex] += MsQuicLib.PerProc[ProcIndex].PerfCounters[CounterIndex];
+            Counters[CounterIndex] += MsQuicLib.Partitions[ProcIndex].PerfCounters[CounterIndex];
         }
     }
 
@@ -295,6 +349,81 @@ QuicPerfCounterSnapShot(
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
+QuicLibraryLoadRetryConfig(
+    _In_ CXPLAT_STORAGE* Storage
+    )
+{
+    QUIC_STATELESS_RETRY_CONFIG RetryConfig = { 0 };
+    uint8_t Secret[CXPLAT_AEAD_MAX_SIZE] = { 0 };
+    uint32_t SecretLength = sizeof(Secret);
+    uint32_t KeyRotationMs;
+    uint32_t RotationLength = sizeof(KeyRotationMs);
+    uint32_t KeyAlgorithm;
+    uint32_t AlgLength = sizeof(KeyAlgorithm);
+    BOOLEAN SettingChanged = FALSE;
+    BOOLEAN SecretChanged = FALSE;
+    BOOLEAN AlgorithmChanged = FALSE;
+
+    //
+    // Initialize RetryConfig with current settings. Secret is set to a
+    // sentinel value that won't get copied when only RotationMs changes.
+    //
+    CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    RetryConfig.Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)MsQuicLib.StatelessRetry.AeadAlgorithm;
+    RetryConfig.RotationMs = MsQuicLib.StatelessRetry.KeyRotationMs;
+    RetryConfig.SecretLength = MsQuicLib.StatelessRetry.SecretLength;
+    RetryConfig.Secret = MsQuicLib.StatelessRetry.BaseSecret;
+    CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+
+    if (QUIC_SUCCEEDED(
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_ROTATION_MS,
+            (uint8_t*)&KeyRotationMs,
+            &RotationLength))) {
+        RetryConfig.RotationMs = KeyRotationMs;
+        SettingChanged = TRUE;
+    }
+
+    if (QUIC_SUCCEEDED(
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_ALGORITHM,
+            (uint8_t*)&KeyAlgorithm,
+            &AlgLength))) {
+        AlgorithmChanged = TRUE;
+    }
+
+    if (QUIC_SUCCEEDED(
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_RETRY_KEY_SECRET,
+            Secret,
+            &SecretLength))) {
+        SecretChanged = TRUE;
+    }
+
+    if (SecretChanged && AlgorithmChanged) {
+        //
+        // Both secret and algorithm must be present in the registry for
+        // either to take effect.
+        // We expect admins to delete the existing values when changing
+        // algorithm or secret, to prevent split state. See Settings.md.
+        //
+        RetryConfig.Algorithm = KeyAlgorithm;
+        RetryConfig.Secret = Secret;
+        RetryConfig.SecretLength = SecretLength;
+        SettingChanged = TRUE;
+    }
+
+    if (SettingChanged) {
+        QuicLibrarySetRetryKeyConfig(&RetryConfig);
+    }
+    CxPlatSecureZeroMemory(&Secret, sizeof(Secret));
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
 MsQuicLibraryOnSettingsChanged(
     _In_ BOOLEAN UpdateRegistrations
     )
@@ -336,6 +465,7 @@ MsQuicLibraryReadSettings(
     QuicSettingsSetDefault(&MsQuicLib.Settings);
     if (MsQuicLib.Storage != NULL) {
         QuicSettingsLoad(&MsQuicLib.Settings, MsQuicLib.Storage);
+        QuicLibraryLoadRetryConfig(MsQuicLib.Storage);
     }
 
     QuicTraceLogInfo(
@@ -360,8 +490,6 @@ MsQuicLibraryInitialize(
     if (QUIC_FAILED(Status)) {
         goto Error; // Cannot log anything if platform failed to initialize.
     }
-    CxPlatWorkerPoolInit(&MsQuicLib.WorkerPool);
-    PlatformInitialized = TRUE;
 
     CXPLAT_DBG_ASSERT(US_TO_MS(CxPlatGetTimerResolution()) + 1 <= UINT8_MAX);
     MsQuicLib.TimerResolutionMs = (uint8_t)US_TO_MS(CxPlatGetTimerResolution()) + 1;
@@ -370,7 +498,11 @@ MsQuicLibraryInitialize(
     CxPlatZeroMemory(MsQuicLib.PerfCounterSamples, sizeof(MsQuicLib.PerfCounterSamples));
 
     CxPlatRandom(sizeof(MsQuicLib.ToeplitzHash.HashKey), MsQuicLib.ToeplitzHash.HashKey);
+    MsQuicLib.ToeplitzHash.InputSize = CXPLAT_TOEPLITZ_INPUT_SIZE_QUIC;
     CxPlatToeplitzHashInitialize(&MsQuicLib.ToeplitzHash);
+
+    CxPlatDispatchRwLockInitialize(&MsQuicLib.StatelessRetry.Lock);
+    PlatformInitialized = TRUE;
 
     CxPlatZeroMemory(&MsQuicLib.Settings, sizeof(MsQuicLib.Settings));
     Status =
@@ -378,6 +510,7 @@ MsQuicLibraryInitialize(
             NULL,
             MsQuicLibraryReadSettings,
             (void*)TRUE, // Non-null indicates registrations should be updated
+            CXPLAT_STORAGE_OPEN_FLAG_READ,
             &MsQuicLib.Storage);
     if (QUIC_FAILED(Status)) {
         QuicTraceLogWarning(
@@ -385,13 +518,28 @@ MsQuicLibraryInitialize(
             "[ lib] Failed to open global settings, 0x%x",
             Status);
         // Non-fatal, as the process may not have access
-        Status = QUIC_STATUS_SUCCESS;
     }
 
     MsQuicLibraryReadSettings(NULL); // NULL means don't update registrations.
 
-    CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeys, sizeof(MsQuicLib.StatelessRetryKeys));
-    CxPlatZeroMemory(&MsQuicLib.StatelessRetryKeysExpiration, sizeof(MsQuicLib.StatelessRetryKeysExpiration));
+    CxPlatLockInitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+    CxPlatEventInitialize(&MsQuicLib.RegistrationCloseCleanupEvent, FALSE, FALSE);
+    MsQuicLib.RegistrationCloseCleanupShutdown = FALSE;
+    CxPlatListInitializeHead(&MsQuicLib.RegistrationCloseCleanupList);
+    CxPlatRundownInitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+
+    CXPLAT_THREAD_CONFIG ThreadConfig = {
+        0,
+        0,
+        "RegistrationCleanupWorker",
+        RegistrationCleanupWorker,
+        NULL,
+    };
+
+    Status = CxPlatThreadCreate(&ThreadConfig, &MsQuicLib.RegistrationCloseCleanupWorker);
+    if (QUIC_FAILED(Status)) {
+        goto Error;
+    }
 
     uint32_t CompatibilityListByteLength = 0;
     QuicVersionNegotiationExtGenerateCompatibleVersionsList(
@@ -451,6 +599,16 @@ MsQuicLibraryInitialize(
 Error:
 
     if (QUIC_FAILED(Status)) {
+        if (MsQuicLib.RegistrationCloseCleanupWorker) {
+            MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
+            CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+            CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
+            CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
+            MsQuicLib.RegistrationCloseCleanupWorker = 0;
+        }
+        CxPlatRundownUninitialize(&MsQuicLib.RegistrationCloseCleanupRundown);
+        CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+        CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
         if (MsQuicLib.Storage != NULL) {
             CxPlatStorageClose(MsQuicLib.Storage);
             MsQuicLib.Storage = NULL;
@@ -460,7 +618,7 @@ Error:
             MsQuicLib.DefaultCompatibilityList = NULL;
         }
         if (PlatformInitialized) {
-            CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
+            CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
             CxPlatUninitialize();
         }
     }
@@ -470,7 +628,7 @@ Error:
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
-MsQuicLibraryUninitialize(
+MsQuicLibraryLazyUninitialize(
     void
     )
 {
@@ -521,11 +679,6 @@ MsQuicLibraryUninitialize(
         MsQuicLib.Datapath = NULL;
     }
 
-    if (MsQuicLib.Storage != NULL) {
-        CxPlatStorageClose(MsQuicLib.Storage);
-        MsQuicLib.Storage = NULL;
-    }
-
 #if DEBUG
     //
     // If you hit this assert, MsQuic API is trying to be unloaded without
@@ -557,9 +710,24 @@ MsQuicLibraryUninitialize(
 
     MsQuicLibraryFreePartitions();
 
-    for (size_t i = 0; i < ARRAYSIZE(MsQuicLib.StatelessRetryKeys); ++i) {
-        CxPlatKeyFree(MsQuicLib.StatelessRetryKeys[i]);
-        MsQuicLib.StatelessRetryKeys[i] = NULL;
+    MsQuicLib.LazyInitComplete = FALSE;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+MsQuicLibraryUninitialize(
+    void
+    )
+{
+    QuicTraceEvent(
+        LibraryUninitialized,
+        "[ lib] Uninitialized");
+
+    MsQuicLibraryLazyUninitialize();
+
+    if (MsQuicLib.Storage != NULL) {
+        CxPlatStorageClose(MsQuicLib.Storage);
+        MsQuicLib.Storage = NULL;
     }
 
     QuicSettingsCleanup(&MsQuicLib.Settings);
@@ -567,19 +735,56 @@ MsQuicLibraryUninitialize(
     CXPLAT_FREE(MsQuicLib.DefaultCompatibilityList, QUIC_POOL_DEFAULT_COMPAT_VER_LIST);
     MsQuicLib.DefaultCompatibilityList = NULL;
 
+    CxPlatDispatchRwLockUninitialize(&MsQuicLib.StatelessRetry.Lock);
+
+    CxPlatRundownReleaseAndWait(&MsQuicLib.RegistrationCloseCleanupRundown);
+    MsQuicLib.RegistrationCloseCleanupShutdown = TRUE;
+    CxPlatEventSet(MsQuicLib.RegistrationCloseCleanupEvent);
+    CxPlatThreadWait(&MsQuicLib.RegistrationCloseCleanupWorker);
+    CxPlatThreadDelete(&MsQuicLib.RegistrationCloseCleanupWorker);
+    MsQuicLib.RegistrationCloseCleanupWorker = 0;
+
+    CxPlatEventUninitialize(MsQuicLib.RegistrationCloseCleanupEvent);
+    CxPlatLockUninitialize(&MsQuicLib.RegistrationCloseCleanupLock);
+
     if (MsQuicLib.ExecutionConfig != NULL) {
         CXPLAT_FREE(MsQuicLib.ExecutionConfig, QUIC_POOL_EXECUTION_CONFIG);
         MsQuicLib.ExecutionConfig = NULL;
     }
 
-    MsQuicLib.LazyInitComplete = FALSE;
-
-    QuicTraceEvent(
-        LibraryUninitialized,
-        "[ lib] Uninitialized");
-
-    CxPlatWorkerPoolUninit(&MsQuicLib.WorkerPool);
+#ifndef _KERNEL_MODE
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    MsQuicLib.WorkerPool = NULL;
+#endif
     CxPlatUninitialize();
+}
+
+CXPLAT_THREAD_CALLBACK(RegistrationCleanupWorker, Context)
+{
+    UNREFERENCED_PARAMETER(Context);
+
+    while (!MsQuicLib.RegistrationCloseCleanupShutdown) {
+        CxPlatEventWaitForever(MsQuicLib.RegistrationCloseCleanupEvent);
+
+        CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
+        while (!CxPlatListIsEmpty(&MsQuicLib.RegistrationCloseCleanupList)) {
+            CXPLAT_LIST_ENTRY* Entry =
+                CxPlatListRemoveHead(&MsQuicLib.RegistrationCloseCleanupList);
+            QUIC_REGISTRATION* Registration =
+                CXPLAT_CONTAINING_RECORD(Entry, QUIC_REGISTRATION, CloseCleanupEntry);
+            CxPlatLockRelease(&MsQuicLib.RegistrationCloseCleanupLock);
+
+            CxPlatThreadWait(&Registration->CloseThread);
+            CxPlatThreadDelete(&Registration->CloseThread);
+            CXPLAT_FREE(Registration, QUIC_POOL_REGISTRATION);
+            CxPlatRundownRelease(&MsQuicLib.RegistrationCloseCleanupRundown);
+
+            CxPlatLockAcquire(&MsQuicLib.RegistrationCloseCleanupLock);
+        }
+        CxPlatLockRelease(&MsQuicLib.RegistrationCloseCleanupLock);
+    }
+
+    CXPLAT_THREAD_RETURN(QUIC_STATUS_SUCCESS);
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -661,6 +866,7 @@ QuicLibraryLazyInitialize(
     };
 
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+    BOOLEAN CreatedWorkerPool = FALSE;
 
     if (AcquireLock) {
         CxPlatLockAcquire(&MsQuicLib.Lock);
@@ -670,7 +876,7 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc == NULL);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Partitions == NULL);
     CXPLAT_DBG_ASSERT(MsQuicLib.Datapath == NULL);
 
     Status = QuicLibraryInitializePartitions();
@@ -678,25 +884,52 @@ QuicLibraryLazyInitialize(
         goto Exit;
     }
 
+#ifndef _KERNEL_MODE
+    if (MsQuicLib.WorkerPool == NULL) {
+        MsQuicLib.WorkerPool = CxPlatWorkerPoolCreate(MsQuicLib.ExecutionConfig);
+        if (!MsQuicLib.WorkerPool) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+            MsQuicLibraryFreePartitions();
+            goto Exit;
+        }
+        CreatedWorkerPool = TRUE;
+    }
+#endif
+
+    CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
+    InitConfig.EnableDscpOnRecv = MsQuicLib.EnableDscpOnRecv;
+
     Status =
         CxPlatDataPathInitialize(
             sizeof(QUIC_RX_PACKET),
             &DatapathCallbacks,
             NULL,                   // TcpCallbacks
-            &MsQuicLib.WorkerPool,
-            MsQuicLib.ExecutionConfig,
+            MsQuicLib.WorkerPool,
+            &InitConfig,
             &MsQuicLib.Datapath);
     if (QUIC_SUCCEEDED(Status)) {
         QuicTraceEvent(
             DataPathInitialized,
             "[data] Initialized, DatapathFeatures=%u",
-            CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+            QuicLibraryGetDatapathFeatures());
+        if (MsQuicLib.ExecutionConfig &&
+            MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs != 0) {
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath,
+                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs);
+        }
     } else {
         MsQuicLibraryFreePartitions();
+#ifndef _KERNEL_MODE
+        if (CreatedWorkerPool) {
+            CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+            MsQuicLib.WorkerPool = NULL;
+        }
+#endif
         goto Exit;
     }
 
-    CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+    CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
     CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
     MsQuicLib.LazyInitComplete = TRUE;
 
@@ -818,6 +1051,8 @@ QuicLibrarySetGlobalParam(
 {
     QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
     QUIC_SETTINGS_INTERNAL InternalSettings = {0};
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -993,13 +1228,13 @@ QuicLibrarySetGlobalParam(
             return QUIC_STATUS_SUCCESS;
         }
 
-        if (Buffer == NULL || BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE) {
+        if (Buffer == NULL || BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
-        QUIC_EXECUTION_CONFIG* Config = (QUIC_EXECUTION_CONFIG*)Buffer;
+        QUIC_GLOBAL_EXECUTION_CONFIG* Config = (QUIC_GLOBAL_EXECUTION_CONFIG*)Buffer;
 
-        if (BufferLength < QUIC_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
+        if (BufferLength < QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE + sizeof(uint16_t) * Config->ProcessorCount) {
             return QUIC_STATUS_INVALID_PARAMETER;
         }
 
@@ -1017,21 +1252,17 @@ QuicLibrarySetGlobalParam(
             // finished up lazy initialization, which initializes both PerProc struct and
             // the datapath; and only if the app set some custom config to begin with.
             //
-            CXPLAT_DBG_ASSERT(MsQuicLib.PerProc != NULL);
+            CXPLAT_DBG_ASSERT(MsQuicLib.Partitions != NULL);
             CXPLAT_DBG_ASSERT(MsQuicLib.Datapath != NULL);
 
-            if (MsQuicLib.ExecutionConfig == NULL) {
-                Status = QUIC_STATUS_INVALID_STATE;
-            } else {
-                MsQuicLib.ExecutionConfig->PollingIdleTimeoutUs = Config->PollingIdleTimeoutUs;
-                CxPlatDataPathUpdateConfig(MsQuicLib.Datapath, MsQuicLib.ExecutionConfig);
-                Status = QUIC_STATUS_SUCCESS;
-            }
+            CxPlatDataPathUpdatePollingIdleTimeout(
+                MsQuicLib.Datapath, Config->PollingIdleTimeoutUs);
+            Status = QUIC_STATUS_SUCCESS;
             CxPlatLockRelease(&MsQuicLib.Lock);
             break;
         }
 
-        QUIC_EXECUTION_CONFIG* NewConfig =
+        QUIC_GLOBAL_EXECUTION_CONFIG* NewConfig =
             CXPLAT_ALLOC_NONPAGED(BufferLength, QUIC_POOL_EXECUTION_CONFIG);
         if (NewConfig == NULL) {
             QuicTraceEvent(
@@ -1110,6 +1341,36 @@ QuicLibrarySetGlobalParam(
     }
 #endif
 
+    case QUIC_PARAM_GLOBAL_DATAPATH_DSCP_RECV_ENABLED: {
+
+        if (BufferLength != sizeof(BOOLEAN)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+
+        if (MsQuicLib.LazyInitComplete) {
+            //
+            // Not allowed to change the DSCP config after we've already started running the library.
+            //
+            Status = QUIC_STATUS_INVALID_STATE;
+            break;
+        }
+
+        MsQuicLib.EnableDscpOnRecv = *(BOOLEAN*)Buffer;
+
+        QuicTraceLogInfo(
+            LibraryDscpRecvEnabledSet,
+            "[ lib] Setting Dscp on recv = %u", MsQuicLib.EnableDscpOnRecv);
+
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
         if (Buffer == NULL ||
@@ -1135,25 +1396,28 @@ QuicLibrarySetGlobalParam(
         }
 
         Status = QUIC_STATUS_SUCCESS;
-        for (uint16_t i = 0; i < MsQuicLib.ProcessorCount; ++i) {
-            CXPLAT_HASH* TokenHash = NULL;
+        for (uint16_t i = 0; i < MsQuicLib.PartitionCount; ++i) {
             Status =
-                CxPlatHashCreate(
+                QuicPartitionUpdateStatelessResetKey(
+                    &MsQuicLib.Partitions[i],
                     CXPLAT_HASH_SHA256,
                     (uint8_t*)Buffer,
-                    QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t),
-                    &TokenHash);
+                    QUIC_STATELESS_RESET_KEY_LENGTH * sizeof(uint8_t));
             if (QUIC_FAILED(Status)) {
                 break;
             }
-
-            QUIC_LIBRARY_PP* PerProc = &MsQuicLib.PerProc[i];
-            CxPlatLockAcquire(&PerProc->ResetTokenLock);
-            CxPlatHashFree(PerProc->ResetTokenHash);
-            PerProc->ResetTokenHash = TokenHash;
-            CxPlatLockRelease(&PerProc->ResetTokenLock);
         }
         break;
+
+    case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
+        if (Buffer == NULL || BufferLength < sizeof(QUIC_STATELESS_RETRY_CONFIG)) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        const QUIC_STATELESS_RETRY_CONFIG* Config = (const QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        Status = QuicLibrarySetRetryKeyConfig(Config);
+        break;
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -1174,6 +1438,8 @@ QuicLibraryGetGlobalParam(
 {
     QUIC_STATUS Status;
     uint32_t GitHashLength;
+
+    CXPLAT_DBG_ASSERT(MsQuicLib.Loaded);
 
     switch (Param) {
     case QUIC_PARAM_GLOBAL_RETRY_MEMORY_PERCENT:
@@ -1327,7 +1593,7 @@ QuicLibraryGetGlobalParam(
         }
 
         const uint32_t ConfigLength =
-            QUIC_EXECUTION_CONFIG_MIN_SIZE +
+            QUIC_GLOBAL_EXECUTION_CONFIG_MIN_SIZE +
             sizeof(uint16_t) * MsQuicLib.ExecutionConfig->ProcessorCount;
 
         if (*BufferLength < ConfigLength) {
@@ -1366,7 +1632,7 @@ QuicLibraryGetGlobalParam(
         Status = QUIC_STATUS_SUCCESS;
         break;
 
-    case QUIC_PARAM_GLOBAL_DATAPATH_FEATURES:
+    case QUIC_PARAM_GLOBAL_DATAPATH_FEATURES: {
         if (*BufferLength < sizeof(uint32_t)) {
             *BufferLength = sizeof(uint32_t);
             Status = QUIC_STATUS_BUFFER_TOO_SMALL;
@@ -1384,10 +1650,11 @@ QuicLibraryGetGlobalParam(
         }
 
         *BufferLength = sizeof(uint32_t);
-        *(uint32_t*)Buffer = CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath);
+        *(uint32_t*)Buffer = QuicLibraryGetDatapathFeatures();
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+    }
 
     case QUIC_PARAM_GLOBAL_VERSION_NEGOTIATION_ENABLED:
 
@@ -1440,10 +1707,72 @@ QuicLibraryGetGlobalParam(
             break;
         }
 
-        *(CXPLAT_WORKER_POOL**)Buffer = &MsQuicLib.WorkerPool;
+        *(CXPLAT_WORKER_POOL**)Buffer = MsQuicLib.WorkerPool;
 
         Status = QUIC_STATUS_SUCCESS;
         break;
+
+    case QUIC_PARAM_GLOBAL_STATISTICS_V2_SIZES: {
+        static const uint32_t StatSizes[] = {
+            QUIC_STATISTICS_V2_SIZE_1,
+            QUIC_STATISTICS_V2_SIZE_2,
+            QUIC_STATISTICS_V2_SIZE_3,
+            QUIC_STATISTICS_V2_SIZE_4
+        };
+        static const uint32_t NumStatSizes = ARRAYSIZE(StatSizes);
+        uint32_t MaxSizes = *BufferLength / sizeof(uint32_t);
+        if (MaxSizes == 0) {
+            *BufferLength = NumStatSizes * sizeof(uint32_t); // Indicate the max size.
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            break;
+        }
+        const uint32_t ToCopy =
+            CXPLAT_MIN(MaxSizes, NumStatSizes) * sizeof(uint32_t);
+        CxPlatCopyMemory(Buffer, StatSizes, ToCopy);
+        *BufferLength = ToCopy;
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+    }
+
+    case QUIC_PARAM_GLOBAL_STATELESS_RETRY_CONFIG: {
+#ifdef DEBUG
+        //
+        // Only available in DEBUG builds for testing purposes.
+        // The application shouldn't need to read its own secret after setting.
+        //
+        CxPlatDispatchRwLockAcquireShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+        if (*BufferLength < sizeof(QUIC_STATELESS_RETRY_CONFIG) + MsQuicLib.StatelessRetry.SecretLength) {
+            *BufferLength = sizeof(QUIC_STATELESS_RETRY_CONFIG) + MsQuicLib.StatelessRetry.SecretLength;
+            Status = QUIC_STATUS_BUFFER_TOO_SMALL;
+            CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+            break;
+        }
+        if (Buffer == NULL) {
+            Status = QUIC_STATUS_INVALID_PARAMETER;
+            CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+            break;
+        }
+        QUIC_STATELESS_RETRY_CONFIG* Config = (QUIC_STATELESS_RETRY_CONFIG*)Buffer;
+        Config->Algorithm = (QUIC_AEAD_ALGORITHM_TYPE)MsQuicLib.StatelessRetry.AeadAlgorithm;
+        Config->RotationMs = MsQuicLib.StatelessRetry.KeyRotationMs;
+        Config->SecretLength = MsQuicLib.StatelessRetry.SecretLength;
+        Config->Secret = (uint8_t*)(Config + 1);
+        CxPlatCopyMemory(
+            (uint8_t*)Config->Secret,
+            MsQuicLib.StatelessRetry.BaseSecret,
+            MsQuicLib.StatelessRetry.SecretLength);
+        CxPlatDispatchRwLockReleaseShared(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+        Status = QUIC_STATUS_SUCCESS;
+        break;
+#else
+        Status = QUIC_STATUS_NOT_SUPPORTED;
+        break;
+#endif // DEBUG
+    }
 
     default:
         Status = QUIC_STATUS_INVALID_PARAMETER;
@@ -1788,6 +2117,7 @@ MsQuicOpenVersion(
     Api->ListenerStop = MsQuicListenerStop;
 
     Api->ConnectionOpen = MsQuicConnectionOpen;
+    Api->ConnectionOpenInPartition = MsQuicConnectionOpenInPartition;
     Api->ConnectionClose = MsQuicConnectionClose;
     Api->ConnectionShutdown = MsQuicConnectionShutdown;
     Api->ConnectionStart = MsQuicConnectionStart;
@@ -1806,6 +2136,16 @@ MsQuicOpenVersion(
     Api->StreamProvideReceiveBuffers = MsQuicStreamProvideReceiveBuffers;
 
     Api->DatagramSend = MsQuicDatagramSend;
+
+#ifndef _KERNEL_MODE
+    Api->ExecutionCreate = MsQuicExecutionCreate;
+    Api->ExecutionDelete = MsQuicExecutionDelete;
+    Api->ExecutionPoll = MsQuicExecutionPoll;
+#endif
+
+    Api->RegistrationClose2 = MsQuicRegistrationClose2;
+
+    Api->ConnectionPoolCreate = MsQuicConnectionPoolCreate;
 
     *QuicApi = Api;
 
@@ -1908,7 +2248,7 @@ _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGetBinding(
     _In_ const CXPLAT_UDP_CONFIG* UdpConfig,
-    _Out_ QUIC_BINDING** NewBinding
+    _Outptr_ QUIC_BINDING** NewBinding
     )
 {
     QUIC_STATUS Status;
@@ -1918,6 +2258,7 @@ QuicLibraryGetBinding(
         UdpConfig->LocalAddress == NULL || QuicAddrGetPort(UdpConfig->LocalAddress) == 0;
     const BOOLEAN ShareBinding = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_SHARE);
     const BOOLEAN ServerOwned = !!(UdpConfig->Flags & CXPLAT_SOCKET_SERVER_OWNED);
+    const BOOLEAN Partitioned = !!(UdpConfig->Flags & CXPLAT_SOCKET_FLAG_PARTITIONED);
 
 #ifdef QUIC_SHARED_EPHEMERAL_WORKAROUND
     //
@@ -1958,7 +2299,9 @@ SharedEphemeralRetry:
             UdpConfig->RemoteAddress);
     if (Binding != NULL) {
         if (!ShareBinding || Binding->Exclusive ||
-            (ServerOwned != Binding->ServerOwned)) {
+            (ServerOwned != Binding->ServerOwned) ||
+            (Partitioned != Binding->Partitioned) ||
+            (Partitioned && UdpConfig->PartitionIndex != Binding->PartitionIndex)) {
             //
             // The binding does already exist, but cannot be shared with the
             // requested configuration.
@@ -2024,7 +2367,7 @@ NewBinding:
     // one and already create the binding.
     //
 
-    if (CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath) & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
+    if (QuicLibraryGetDatapathFeatures() & CXPLAT_DATAPATH_FEATURE_LOCAL_PORT_SHARING) {
         //
         // The datapath supports multiple connected sockets on the same local
         // tuple, so we need to do collision detection based on the whole
@@ -2259,7 +2602,7 @@ QuicTraceRundown(
             QuicTraceEvent(
                 DataPathRundown,
                 "[data] Rundown, DatapathFeatures=%u",
-                CxPlatDataPathGetSupportedFeatures(MsQuicLib.Datapath));
+                QuicLibraryGetDatapathFeatures());
         }
 
         QuicTraceEvent(
@@ -2304,87 +2647,6 @@ QuicTraceRundown(
     }
 
     CxPlatLockRelease(&MsQuicLib.Lock);
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetStatelessRetryKeyForTimestamp(
-    _In_ int64_t Timestamp
-    )
-{
-    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] - QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) {
-        //
-        // Timestamp is before the beginning of the previous key's validity window.
-        //
-        return NULL;
-    }
-
-    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey]) {
-        if (MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] == NULL) {
-            return NULL;
-        }
-        return MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey];
-    }
-
-    if (Timestamp < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
-        if (MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey] == NULL) {
-            return NULL;
-        }
-        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-    }
-
-    //
-    // Timestamp is after the end of the latest key's validity window.
-    //
-    return NULL;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-_Ret_maybenull_
-CXPLAT_KEY*
-QuicLibraryGetCurrentStatelessRetryKey(
-    void
-    )
-{
-    int64_t Now = CxPlatTimeEpochMs64();
-    int64_t StartTime = (Now / QUIC_STATELESS_RETRY_KEY_LIFETIME_MS) * QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-
-    if (StartTime < MsQuicLib.StatelessRetryKeysExpiration[MsQuicLib.CurrentStatelessRetryKey]) {
-        return MsQuicLib.StatelessRetryKeys[MsQuicLib.CurrentStatelessRetryKey];
-    }
-
-    //
-    // If the start time for the current key interval is greater-than-or-equal
-    // to the expiration time of the latest stateless retry key, generate a new
-    // key, and rotate the old.
-    //
-
-    int64_t ExpirationTime = StartTime + QUIC_STATELESS_RETRY_KEY_LIFETIME_MS;
-
-    CXPLAT_KEY* NewKey;
-    uint8_t RawKey[CXPLAT_AEAD_AES_256_GCM_SIZE];
-    CxPlatRandom(sizeof(RawKey), RawKey);
-    QUIC_STATUS Status =
-        CxPlatKeyCreate(
-            CXPLAT_AEAD_AES_256_GCM,
-            RawKey,
-            &NewKey);
-    if (QUIC_FAILED(Status)) {
-        QuicTraceEvent(
-            LibraryErrorStatus,
-            "[ lib] ERROR, %u, %s.",
-            Status,
-            "Create stateless retry key");
-        return NULL;
-    }
-
-    MsQuicLib.StatelessRetryKeysExpiration[!MsQuicLib.CurrentStatelessRetryKey] = ExpirationTime;
-    CxPlatKeyFree(MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey]);
-    MsQuicLib.StatelessRetryKeys[!MsQuicLib.CurrentStatelessRetryKey] = NewKey;
-    MsQuicLib.CurrentStatelessRetryKey = !MsQuicLib.CurrentStatelessRetryKey;
-
-    return NewKey;
 }
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
@@ -2449,6 +2711,7 @@ CXPLAT_STATIC_ASSERT(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 QUIC_STATUS
 QuicLibraryGenerateStatelessResetToken(
+    _In_ QUIC_PARTITION* Partition,
     _In_reads_(MsQuicLib.CidTotalLength)
         const uint8_t* const CID,
     _Out_writes_all_(QUIC_STATELESS_RESET_TOKEN_LENGTH)
@@ -2456,16 +2719,15 @@ QuicLibraryGenerateStatelessResetToken(
     )
 {
     uint8_t HashOutput[CXPLAT_HASH_SHA256_SIZE];
-    QUIC_LIBRARY_PP* PerProc = QuicLibraryGetPerProc();
-    CxPlatLockAcquire(&PerProc->ResetTokenLock);
+    CxPlatLockAcquire(&Partition->ResetTokenLock);
     QUIC_STATUS Status =
         CxPlatHashCompute(
-            PerProc->ResetTokenHash,
+            Partition->ResetTokenHash,
             CID,
             MsQuicLib.CidTotalLength,
             sizeof(HashOutput),
             HashOutput);
-    CxPlatLockRelease(&PerProc->ResetTokenLock);
+    CxPlatLockRelease(&Partition->ResetTokenLock);
     if (QUIC_SUCCEEDED(Status)) {
         CxPlatCopyMemory(
             ResetToken,
@@ -2473,4 +2735,161 @@ QuicLibraryGenerateStatelessResetToken(
             QUIC_STATELESS_RESET_TOKEN_LENGTH);
     }
     return Status;
+}
+
+#ifndef _KERNEL_MODE
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QUIC_API
+MsQuicExecutionCreate(
+    _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+    _In_ uint32_t PollingIdleTimeoutUs,
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION_CONFIG* Configs,
+    _Out_writes_(Count) QUIC_EXECUTION** Executions
+    )
+{
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_CREATE,
+        NULL);
+
+    QUIC_STATUS Status = QUIC_STATUS_SUCCESS;
+
+    UNREFERENCED_PARAMETER(Flags);
+    UNREFERENCED_PARAMETER(PollingIdleTimeoutUs);
+
+    if (MsQuicLib.LazyInitComplete) {
+        //
+        // Not allowed to change the execution config after we've already
+        // started running the library.
+        //
+        Status = QUIC_STATUS_INVALID_STATE;
+
+    } else {
+        //
+        // Clean up any previous worker pool and create a new one.
+        //
+        CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+        MsQuicLib.WorkerPool =
+            CxPlatWorkerPoolCreateExternal(Count, Configs, Executions);
+        if (MsQuicLib.WorkerPool == NULL) {
+            Status = QUIC_STATUS_OUT_OF_MEMORY;
+        }
+
+        MsQuicLib.CustomExecutions = TRUE;
+    }
+
+    QuicTraceEvent(
+        ApiExitStatus,
+        "[ api] Exit %u",
+        Status);
+
+    return Status;
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+void
+QUIC_API
+MsQuicExecutionDelete(
+    _In_ uint32_t Count,
+    _In_reads_(Count) QUIC_EXECUTION** Executions
+    )
+{
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_DELETE,
+        NULL);
+
+    UNREFERENCED_PARAMETER(Count);
+    UNREFERENCED_PARAMETER(Executions);
+
+    CxPlatWorkerPoolDelete(MsQuicLib.WorkerPool);
+    MsQuicLib.WorkerPool = NULL;
+    MsQuicLib.CustomExecutions = FALSE;
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+}
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+uint32_t
+QUIC_API
+MsQuicExecutionPoll(
+    _In_ QUIC_EXECUTION* Execution
+    )
+{
+    QuicTraceEvent(
+        ApiEnter,
+        "[ api] Enter %u (%p).",
+        QUIC_TRACE_API_EXECUTION_POLL,
+        NULL);
+
+    uint32_t Result = CxPlatWorkerPoolWorkerPoll(Execution);
+
+    QuicTraceEvent(
+        ApiExit,
+        "[ api] Exit");
+
+    return Result;
+}
+
+#endif
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+QUIC_STATUS
+QuicLibrarySetRetryKeyConfig(
+    _In_ const QUIC_STATELESS_RETRY_CONFIG* Config
+    )
+{
+    if (Config->Secret == NULL) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretNull,
+            "[ lib] Invalid retry key secret: NULL.");
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    if (Config->Algorithm > QUIC_AEAD_ALGORITHM_AES_256_GCM ||
+        Config->Algorithm < QUIC_AEAD_ALGORITHM_AES_128_GCM) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyAlgorithmInvalid,
+            "[ lib] Invalid retry key algorithm: %d.",
+            Config->Algorithm);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    if (Config->RotationMs == 0) {
+        QuicTraceLogError(
+            LibrarySetRetryKeyRotationInvalid,
+            "[ lib] Invalid retry key rotation ms: %u.",
+            Config->RotationMs);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    uint16_t AlgSecretLen = CxPlatKeyLength((CXPLAT_AEAD_TYPE)Config->Algorithm);
+    if (Config->SecretLength != AlgSecretLen) {
+        QuicTraceLogError(
+            LibrarySetRetryKeySecretLengthInvalid,
+            "[ lib] Invalid retry key secret length: %u. Expected %u.",
+            Config->SecretLength,
+            AlgSecretLen);
+        return QUIC_STATUS_INVALID_PARAMETER;
+    }
+    CXPLAT_DBG_ASSERT(AlgSecretLen <= sizeof(MsQuicLib.StatelessRetry.BaseSecret));
+
+    CxPlatDispatchRwLockAcquireExclusive(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    if (Config->Secret != MsQuicLib.StatelessRetry.BaseSecret) {
+        CxPlatCopyMemory(MsQuicLib.StatelessRetry.BaseSecret, Config->Secret, AlgSecretLen);
+        MsQuicLib.StatelessRetry.SecretLength = AlgSecretLen;
+    }
+    MsQuicLib.StatelessRetry.AeadAlgorithm = (CXPLAT_AEAD_TYPE)Config->Algorithm;
+    MsQuicLib.StatelessRetry.KeyRotationMs = Config->RotationMs;
+    CxPlatDispatchRwLockReleaseExclusive(&MsQuicLib.StatelessRetry.Lock, PrevIrql);
+    QuicTraceLogInfo(
+        LibraryRetryKeyUpdated,
+        "[ lib] Stateless Retry Key updated. Algorithm: %d, RotationMs: %u",
+        Config->Algorithm,
+        Config->RotationMs);
+    return QUIC_STATUS_SUCCESS;
 }

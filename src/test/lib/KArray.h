@@ -44,7 +44,7 @@ namespace wistd     // ("Windows Implementation" std)
 //
 
 template <class _Tp>
-inline constexpr
+QUIC_INLINE constexpr
 _Tp*
 addressof(_Tp& __x) noexcept
 {
@@ -59,7 +59,7 @@ template <class _Tp> struct remove_reference { typedef _Tp type; };
 template <class _Tp> struct remove_reference<_Tp&&> { typedef _Tp type; };
 
 template <class _Tp>
-inline constexpr
+QUIC_INLINE constexpr
 typename remove_reference<_Tp>::type&&
 move(_Tp&& __t) noexcept
 {

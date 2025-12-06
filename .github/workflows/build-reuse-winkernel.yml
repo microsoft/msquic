@@ -29,9 +29,8 @@ on:
       os:
         required: false
         type: string
-        default: 'windows-2019'
+        default: 'windows-2022'
         # options:
-        #   - windows-2019
         #   - windows-2022
       arch:
         required: false
@@ -46,15 +45,16 @@ on:
         default: 'schannel'
         type: string
         # options:
+        #   - quictls
         #   - openssl
-        #   - openssl3
         #   - schannel
       build:
         required: false
         default: '' # Empty string means build all
         type: string
 
-permissions: read-all
+permissions:
+  contents: read
 
 jobs:
   build-windows-kernel-reuse:
@@ -62,7 +62,7 @@ jobs:
     runs-on: ${{ inputs.os }}
     steps:
     - name: Checkout repository
-      uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      uses: actions/checkout@1af3b93b6815bc44a9784bd300feb67ff0d1eeb3
       with:
         repository: ${{ inputs.repo}}
         ref: ${{ inputs.ref }}
@@ -92,7 +92,7 @@ jobs:
         Remove-Item artifacts/corenet-ci-main -Recurse -Force -ErrorAction Ignore
         Remove-Item artifacts/xdp -Recurse -Force -ErrorAction Ignore
     - name: Upload build artifacts
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       with:
         name: ${{ inputs.config }}-${{ inputs.plat }}-${{ inputs.os }}-${{ inputs.arch }}-${{ inputs.tls }}${{ inputs.build }}
         path: artifacts

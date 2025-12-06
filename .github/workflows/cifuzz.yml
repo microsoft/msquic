@@ -21,7 +21,7 @@ jobs:
         dry-run: false
         language: c
     - name: Upload Crash
-      uses: actions/upload-artifact@4cec3d8aa04e39d1a68397de0c4cd6fb9dce8ec1
+      uses: actions/upload-artifact@330a01c490aca151604b8cf639adc76d48f6c5d4
       if: failure() && steps.build.outcome == 'success'
       with:
         name: artifacts

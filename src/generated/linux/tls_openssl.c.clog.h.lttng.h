@@ -8,11 +8,11 @@
         OpenSslAlert,
         TlsContext->Connection,
         "Send alert = %u (Level = %u)",
-        Alert,
-        (uint32_t)Level);
+        AlertCode,
+        (uint32_t)AData->Level);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = Alert = arg3
-// arg4 = arg4 = (uint32_t)Level = arg4
+// arg3 = arg3 = AlertCode = arg3
+// arg4 = arg4 = (uint32_t)AData->Level = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
     TP_ARGS(
@@ -23,29 +23,6 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlert,
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(unsigned int, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OpenSslQuicDataErrorStr
-// [conn][%p] SSL_provide_quic_data failed: %s
-// QuicTraceLogConnError(
-                OpenSslQuicDataErrorStr,
-                TlsContext->Connection,
-                "SSL_provide_quic_data failed: %s",
-                ERR_error_string(ERR_get_error(), buf));
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = ERR_error_string(ERR_get_error(), buf) = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslQuicDataErrorStr,
-    TP_ARGS(
-        const void *, arg1,
-        const char *, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_string(arg3, arg3)
     )
 )
 
@@ -109,9 +86,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeError,
 // Decoder Ring for OpenSslAlpnNegotiationFailure
 // [conn][%p] Failed to negotiate ALPN
 // QuicTraceLogConnError(
-                    OpenSslAlpnNegotiationFailure,
-                    TlsContext->Connection,
-                    "Failed to negotiate ALPN");
+                        OpenSslAlpnNegotiationFailure,
+                        TlsContext->Connection,
+                        "Failed to negotiate ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
@@ -128,9 +105,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAlpnNegotiationFailure,
 // Decoder Ring for OpenSslInvalidAlpnLength
 // [conn][%p] Invalid negotiated ALPN length
 // QuicTraceLogConnError(
-                    OpenSslInvalidAlpnLength,
-                    TlsContext->Connection,
-                    "Invalid negotiated ALPN length");
+                        OpenSslInvalidAlpnLength,
+                        TlsContext->Connection,
+                        "Invalid negotiated ALPN length");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
@@ -147,31 +124,12 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslInvalidAlpnLength,
 // Decoder Ring for OpenSslNoMatchingAlpn
 // [conn][%p] Failed to find a matching ALPN
 // QuicTraceLogConnError(
-                    OpenSslNoMatchingAlpn,
-                    TlsContext->Connection,
-                    "Failed to find a matching ALPN");
+                        OpenSslNoMatchingAlpn,
+                        TlsContext->Connection,
+                        "Failed to find a matching ALPN");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNoMatchingAlpn,
-    TP_ARGS(
-        const void *, arg1), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for OpenSslMissingTransportParameters
-// [conn][%p] No transport parameters received
-// QuicTraceLogConnError(
-                    OpenSslMissingTransportParameters,
-                    TlsContext->Connection,
-                    "No transport parameters received");
-// arg1 = arg1 = TlsContext->Connection = arg1
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslMissingTransportParameters,
     TP_ARGS(
         const void *, arg1), 
     TP_FIELDS(
@@ -277,9 +235,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslOnSetTicket,
 // Decoder Ring for OpenSslHandshakeComplete
 // [conn][%p] TLS Handshake complete
 // QuicTraceLogConnInfo(
-            OpenSslHandshakeComplete,
-            TlsContext->Connection,
-            "TLS Handshake complete");
+                OpenSslHandshakeComplete,
+                TlsContext->Connection,
+                "TLS Handshake complete");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
@@ -296,9 +254,9 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeComplete,
 // Decoder Ring for OpenSslHandshakeResumed
 // [conn][%p] TLS Handshake resumed
 // QuicTraceLogConnInfo(
-                OpenSslHandshakeResumed,
-                TlsContext->Connection,
-                "TLS Handshake resumed");
+                    OpenSslHandshakeResumed,
+                    TlsContext->Connection,
+                    "TLS Handshake resumed");
 // arg1 = arg1 = TlsContext->Connection = arg1
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
@@ -312,40 +270,17 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslHandshakeResumed,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslNewEncryptionSecrets
-// [conn][%p] New encryption secrets (Level = %u)
-// QuicTraceLogConnVerbose(
-        OpenSslNewEncryptionSecrets,
-        TlsContext->Connection,
-        "New encryption secrets (Level = %u)",
-        (uint32_t)Level);
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = (uint32_t)Level = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for OpenSslAddHandshakeData
 // [conn][%p] Sending %llu handshake bytes (Level = %u)
 // QuicTraceLogConnVerbose(
         OpenSslAddHandshakeData,
         TlsContext->Connection,
         "Sending %llu handshake bytes (Level = %u)",
-        (uint64_t)Length,
-        (uint32_t)Level);
+        (uint64_t)BufLen,
+        (uint32_t)AData->Level);
 // arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = (uint64_t)Length = arg3
-// arg4 = arg4 = (uint32_t)Level = arg4
+// arg3 = arg3 = (uint64_t)BufLen = arg3
+// arg4 = arg4 = (uint32_t)AData->Level = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
     TP_ARGS(
@@ -356,6 +291,29 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslAddHandshakeData,
         ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
         ctf_integer(uint64_t, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for OpenSslNewEncryptionSecrets
+// [conn][%p] New encryption secrets (Level = %u)
+// QuicTraceLogConnVerbose(
+        OpenSslNewEncryptionSecrets,
+        TlsContext->Connection,
+        "New encryption secrets (Level = %u)",
+        ProtLevel);
+// arg1 = arg1 = TlsContext->Connection = arg1
+// arg3 = arg3 = ProtLevel = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslNewEncryptionSecrets,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned int, arg3), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 
@@ -469,38 +427,15 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslSendTicketData,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for OpenSslProcessData
-// [conn][%p] Processing %u received bytes
-// QuicTraceLogConnVerbose(
-            OpenSslProcessData,
-            TlsContext->Connection,
-            "Processing %u received bytes",
-            *BufferLength);
-// arg1 = arg1 = TlsContext->Connection = arg1
-// arg3 = arg3 = *BufferLength = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, OpenSslProcessData,
-    TP_ARGS(
-        const void *, arg1,
-        unsigned int, arg3), 
-    TP_FIELDS(
-        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
-        ctf_integer(unsigned int, arg3, arg3)
-    )
-)
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for TlsError
 // [ tls][%p] ERROR, %s.
 // QuicTraceEvent(
-                    TlsError,
-                    "[ tls][%p] ERROR, %s.",
-                    TlsContext->Connection,
-                    "No certificate passed");
+            TlsError,
+            "[ tls][%p] ERROR, %s.",
+            TlsContext->Connection,
+            "Too much handshake data");
 // arg2 = arg2 = TlsContext->Connection = arg2
-// arg3 = arg3 = "No certificate passed" = arg3
+// arg3 = arg3 = "Too much handshake data" = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
     TP_ARGS(
@@ -509,6 +444,29 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, TlsError,
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
         ctf_string(arg3, arg3)
+    )
+)
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for AllocFailure
+// Allocation of '%s' failed. (%llu bytes)
+// QuicTraceEvent(
+                AllocFailure,
+                "Allocation of '%s' failed. (%llu bytes)",
+                "New crypto Buffer",
+                NewBufferAllocLength);
+// arg2 = arg2 = "New crypto Buffer" = arg2
+// arg3 = arg3 = NewBufferAllocLength = arg3
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
+    TP_ARGS(
+        const char *, arg2,
+        unsigned long long, arg3), 
+    TP_FIELDS(
+        ctf_string(arg2, arg2)
+        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 
@@ -528,29 +486,6 @@ TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, LibraryError,
         const char *, arg2), 
     TP_FIELDS(
         ctf_string(arg2, arg2)
-    )
-)
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for AllocFailure
-// Allocation of '%s' failed. (%llu bytes)
-// QuicTraceEvent(
-                AllocFailure,
-                "Allocation of '%s' failed. (%llu bytes)",
-                "New crypto buffer",
-                NewBufferAllocLength);
-// arg2 = arg2 = "New crypto buffer" = arg2
-// arg3 = arg3 = NewBufferAllocLength = arg3
-----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_TLS_OPENSSL_C, AllocFailure,
-    TP_ARGS(
-        const char *, arg2,
-        unsigned long long, arg3), 
-    TP_FIELDS(
-        ctf_string(arg2, arg2)
-        ctf_integer(uint64_t, arg3, arg3)
     )
 )
 

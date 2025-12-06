@@ -53,6 +53,10 @@ struct CxPlatEvent {
     CxPlatEvent(bool ManualReset) noexcept { CxPlatEventInitialize(&Handle, ManualReset, FALSE); }
     CxPlatEvent(CXPLAT_EVENT event) noexcept : Handle(event) { }
     ~CxPlatEvent() noexcept { CxPlatEventUninitialize(Handle); }
+    CxPlatEvent(const CxPlatEvent&) = delete;
+    CxPlatEvent& operator=(const CxPlatEvent&) = delete;
+    CxPlatEvent(CxPlatEvent&&) = delete;
+    CxPlatEvent& operator=(CxPlatEvent&&) = delete;
     CXPLAT_EVENT* operator &() noexcept { return &Handle; }
     operator CXPLAT_EVENT() const noexcept { return Handle; }
     void Set() { CxPlatEventSet(Handle); }
@@ -65,6 +69,10 @@ struct CxPlatRundown {
     CXPLAT_RUNDOWN_REF Ref;
     CxPlatRundown() noexcept { CxPlatRundownInitialize(&Ref); }
     ~CxPlatRundown() noexcept { CxPlatRundownUninitialize(&Ref); }
+    CxPlatRundown(const CxPlatRundown&) = delete;
+    CxPlatRundown& operator=(const CxPlatRundown&) = delete;
+    CxPlatRundown(CxPlatRundown&&) = delete;
+    CxPlatRundown& operator=(CxPlatRundown&&) = delete;
     bool Acquire() noexcept { return CxPlatRundownAcquire(&Ref); }
     void Release() noexcept { CxPlatRundownRelease(&Ref); }
     void ReleaseAndWait() { CxPlatRundownReleaseAndWait(&Ref); }
@@ -74,6 +82,10 @@ struct CxPlatLock {
     CXPLAT_LOCK Handle;
     CxPlatLock() noexcept { CxPlatLockInitialize(&Handle); }
     ~CxPlatLock() noexcept { CxPlatLockUninitialize(&Handle); }
+    CxPlatLock(const CxPlatLock&) = delete;
+    CxPlatLock& operator=(const CxPlatLock&) = delete;
+    CxPlatLock(CxPlatLock&&) = delete;
+    CxPlatLock& operator=(CxPlatLock&&) = delete;
     void Acquire() noexcept { CxPlatLockAcquire(&Handle); }
     void Release() noexcept { CxPlatLockRelease(&Handle); }
 };
@@ -84,6 +96,10 @@ struct CxPlatLockDispatch {
     CXPLAT_DISPATCH_LOCK Handle;
     CxPlatLockDispatch() noexcept { CxPlatDispatchLockInitialize(&Handle); }
     ~CxPlatLockDispatch() noexcept { CxPlatDispatchLockUninitialize(&Handle); }
+    CxPlatLockDispatch(const CxPlatLockDispatch&) = delete;
+    CxPlatLockDispatch& operator=(const CxPlatLockDispatch&) = delete;
+    CxPlatLockDispatch(CxPlatLockDispatch&&) = delete;
+    CxPlatLockDispatch& operator=(CxPlatLockDispatch&&) = delete;
     void Acquire() noexcept { CxPlatDispatchLockAcquire(&Handle); }
     void Release() noexcept { CxPlatDispatchLockRelease(&Handle); }
 };
@@ -93,8 +109,12 @@ struct CxPlatPool {
     CXPLAT_POOL Handle;
     CxPlatPool(uint32_t Size, uint32_t Tag = 0, bool IsPaged = false) noexcept { CxPlatPoolInitialize(IsPaged, Size, Tag, &Handle); }
     ~CxPlatPool() noexcept { CxPlatPoolUninitialize(&Handle); }
+    CxPlatPool(const CxPlatPool&) = delete;
+    CxPlatPool& operator=(const CxPlatPool&) = delete;
+    CxPlatPool(CxPlatPool&&) = delete;
+    CxPlatPool& operator=(CxPlatPool&&) = delete;
     void* Alloc() noexcept { return CxPlatPoolAlloc(&Handle); }
-    void Free(void* Ptr) noexcept { CxPlatPoolFree(&Handle, Ptr); }
+    void Free(void* Ptr) noexcept { CxPlatPoolFree(Ptr); }
 };
 
 //
@@ -117,12 +137,19 @@ constexpr _Ty&& CxPlatForward(
     return static_cast<_Ty&&>(_Arg);
 }
 
+#ifdef __GNUC__
+#pragma GCC diagnostic ignored "-Wmultichar" // Multi-character constant used intentionally for the tag
+#endif
 template<typename T, uint32_t Tag = 'lPxC', bool Paged = false>
 class CxPlatPoolT {
     CXPLAT_POOL Pool;
 public:
     CxPlatPoolT() noexcept { CxPlatPoolInitialize(Paged, sizeof(T), Tag, &Pool); }
     ~CxPlatPoolT() noexcept { CxPlatPoolUninitialize(&Pool); }
+    CxPlatPoolT(const CxPlatPoolT&) = delete;
+    CxPlatPoolT& operator=(const CxPlatPoolT&) = delete;
+    CxPlatPoolT(CxPlatPoolT&&) = delete;
+    CxPlatPoolT& operator=(CxPlatPoolT&&) = delete;
     template <class... Args>
     T* Alloc(Args&&... args) noexcept {
         void* Raw = CxPlatPoolAlloc(&Pool);
@@ -131,7 +158,7 @@ public:
     void Free(T* Obj) noexcept {
         if (Obj != nullptr) {
             Obj->~T();
-            CxPlatPoolFree(&Pool, Obj);
+            CxPlatPoolFree(Obj);
         }
     }
 };
@@ -143,6 +170,10 @@ struct CxPlatHashTable {
     CXPLAT_HASHTABLE Table;
     CxPlatHashTable() noexcept { Initialized = CxPlatHashtableInitializeEx(&Table, CXPLAT_HASH_MIN_SIZE); }
     ~CxPlatHashTable() noexcept { if (Initialized) { CxPlatHashtableUninitialize(&Table); } }
+    CxPlatHashTable(const CxPlatHashTable&) = delete;
+    CxPlatHashTable& operator=(const CxPlatHashTable&) = delete;
+    CxPlatHashTable(CxPlatHashTable&&) = delete;
+    CxPlatHashTable& operator=(CxPlatHashTable&&) = delete;
     void Insert(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableInsert(&Table, Entry, Entry->Signature, nullptr); }
     void Remove(CXPLAT_HASHTABLE_ENTRY* Entry) noexcept { CxPlatHashtableRemove(&Table, Entry, nullptr); }
     CXPLAT_HASHTABLE_ENTRY* Lookup(uint64_t Signature) noexcept {
@@ -185,6 +216,10 @@ public:
             CxPlatThreadDelete(&Thread);
         }
     }
+    CxPlatThread(const CxPlatThread&) = delete;
+    CxPlatThread& operator=(const CxPlatThread&) = delete;
+    CxPlatThread(CxPlatThread&&) = delete;
+    CxPlatThread& operator=(CxPlatThread&&) = delete;
     QUIC_STATUS Create(CXPLAT_THREAD_CONFIG* Config) noexcept {
         auto Status = CxPlatThreadCreate(Config, &Thread);
         if (QUIC_SUCCEEDED(Status)) {
@@ -194,6 +229,7 @@ public:
     }
     void Wait() noexcept {
         if (Initialized) {
+            WaitOnDelete = false;
             CxPlatThreadWait(&Thread);
         }
     }
@@ -237,6 +273,10 @@ public:
     ~CxPlatWatchdog() noexcept {
         ShutdownEvent.Set();
     }
+    CxPlatWatchdog(const CxPlatWatchdog&) = delete;
+    CxPlatWatchdog& operator=(const CxPlatWatchdog&) = delete;
+    CxPlatWatchdog(CxPlatWatchdog&&) = delete;
+    CxPlatWatchdog& operator=(CxPlatWatchdog&&) = delete;
 };
 
 #endif // CXPLAT_FRE_ASSERT
@@ -396,6 +436,20 @@ class UniquePtrArray {
 public:
     UniquePtrArray() : ptr(nullptr) { }
     UniquePtrArray(T* _ptr) : ptr(_ptr) { }
+    UniquePtrArray(const UniquePtrArray& other) = delete;
+    UniquePtrArray(UniquePtrArray&& other) noexcept {
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+    }
+    UniquePtrArray& operator=(const UniquePtrArray& other) = delete;
+    UniquePtrArray& operator=(UniquePtrArray&& other) noexcept {
+        if (this->ptr) {
+            delete[] this->ptr;
+        }
+        this->ptr = other.ptr;
+        other.ptr = nullptr;
+        return *this;
+    }
     ~UniquePtrArray() { delete [] ptr; }
     T* get() { return ptr; }
     const T* get() const { return ptr; }
@@ -404,6 +458,8 @@ public:
     operator bool() const { return ptr != nullptr; }
     bool operator == (T* _ptr) const { return ptr == _ptr; }
     bool operator != (T* _ptr) const { return ptr != _ptr; }
+    T& operator[](size_t i) { return ptr[i]; }
+    const T& operator[](size_t i) const { return ptr[i]; }
 };
 
 class MsQuicApi : public QUIC_API_TABLE {
@@ -427,11 +483,78 @@ public:
             memset(thisTable, 0, sizeof(*thisTable));
         }
     }
+    MsQuicApi(const MsQuicApi&) = delete;
+    MsQuicApi& operator=(const MsQuicApi&) = delete;
+    MsQuicApi(MsQuicApi&&) = delete;
+    MsQuicApi& operator=(MsQuicApi&&) = delete;
     QUIC_STATUS GetInitStatus() const noexcept { return InitStatus; }
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
 };
 
 extern const MsQuicApi* MsQuic;
+
+#ifndef _KERNEL_MODE
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+
+struct MsQuicExecution {
+    QUIC_EXECUTION** Executions {nullptr};
+    uint32_t Count {0};
+    MsQuicExecution(QUIC_EVENTQ* EventQ, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(1) {
+        QUIC_EXECUTION_CONFIG Config = { 0, EventQ };
+        Initialize(Flags, PollingIdleTimeoutUs, &Config);
+    }
+    MsQuicExecution(QUIC_EVENTQ** EventQ, uint32_t Count, QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags = QUIC_GLOBAL_EXECUTION_CONFIG_FLAG_NONE, uint32_t PollingIdleTimeoutUs = 0) noexcept : Count(Count) {
+        auto Configs = new(std::nothrow) QUIC_EXECUTION_CONFIG[Count];
+        if (Configs != nullptr) {
+            for (uint32_t i = 0; i < Count; ++i) {
+                Configs[i].IdealProcessor = i;
+                Configs[i].EventQ = EventQ[i];
+            }
+            Initialize(Flags, PollingIdleTimeoutUs, Configs);
+            delete [] Configs;
+        }
+    }
+    ~MsQuicExecution() noexcept {
+        if (Executions != nullptr) {
+            MsQuic->ExecutionDelete(Count, Executions);
+            delete[] Executions;
+            Executions = nullptr;
+            Count = 0;
+        }
+    }
+    MsQuicExecution(const MsQuicExecution&) = delete;
+    MsQuicExecution& operator=(const MsQuicExecution&) = delete;
+    MsQuicExecution(MsQuicExecution&&) = delete;
+    MsQuicExecution& operator=(MsQuicExecution&&) = delete;
+    void Initialize(
+        _In_ QUIC_GLOBAL_EXECUTION_CONFIG_FLAGS Flags, // Used for datapath type
+        _In_ uint32_t PollingIdleTimeoutUs,
+        _In_reads_(this->Count) QUIC_EXECUTION_CONFIG* Configs
+        )
+    {
+        Executions = new(std::nothrow) QUIC_EXECUTION*[Count];
+        if (Executions != nullptr) {
+            auto Status =
+                MsQuic->ExecutionCreate(
+                    Flags,
+                    PollingIdleTimeoutUs,
+                    Count,
+                    Configs,
+                    Executions);
+            if (QUIC_FAILED(Status)) {
+                delete [] Executions;
+                Executions = nullptr;
+            }
+        }
+    }
+    bool IsValid() const noexcept { return Executions != nullptr; }
+    QUIC_EXECUTION* operator[](size_t i) const {
+        return Executions[i];
+    }
+};
+
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // _KERNEL_MODE
 
 struct MsQuicRegistration {
     bool CloseAllConnectionsOnDelete {false};
@@ -467,12 +590,25 @@ struct MsQuicRegistration {
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicRegistration(const MsQuicRegistration& Other) = delete;
     MsQuicRegistration& operator=(const MsQuicRegistration& Other) = delete;
+    MsQuicRegistration(MsQuicRegistration&& Other) = delete;
+    MsQuicRegistration& operator=(MsQuicRegistration&& Other) = delete;
     void Shutdown(
         _In_ QUIC_CONNECTION_SHUTDOWN_FLAGS Flags,
         _In_ QUIC_UINT62 ErrorCode
         ) noexcept {
         MsQuic->RegistrationShutdown(Handle, Flags, ErrorCode);
     }
+#ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
+    void CloseAsync(
+        _In_ QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER Handler,
+        _In_opt_ void* Context
+        ) noexcept {
+        if (Handle != nullptr) {
+            MsQuic->RegistrationClose2(Handle, Handler, Context);
+            Handle = nullptr;
+        }
+    }
+#endif
 };
 
 class MsQuicAlpn {
@@ -593,6 +729,8 @@ public:
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES
     MsQuicSettings& SetEncryptionOffloadAllowed(bool Value) { EncryptionOffloadAllowed = Value; IsSet.EncryptionOffloadAllowed = TRUE; return *this; }
     MsQuicSettings& SetReliableResetEnabled(bool value) { ReliableResetEnabled = value; IsSet.ReliableResetEnabled = TRUE; return *this; }
+    MsQuicSettings& SetXdpEnabled(bool value) { XdpEnabled = value; IsSet.XdpEnabled = TRUE; return *this; }
+    MsQuicSettings& SetQtipEnabled(bool value) { QTIPEnabled = value; IsSet.QTIPEnabled = TRUE; return *this; }
     MsQuicSettings& SetOneWayDelayEnabled(bool value) { OneWayDelayEnabled = value; IsSet.OneWayDelayEnabled = TRUE; return *this; }
     MsQuicSettings& SetNetStatsEventEnabled(bool value) { NetStatsEventEnabled = value; IsSet.NetStatsEventEnabled = TRUE; return *this; }
     MsQuicSettings& SetStreamMultiReceiveEnabled(bool value) { StreamMultiReceiveEnabled = value; IsSet.StreamMultiReceiveEnabled = TRUE; return *this; }
@@ -601,6 +739,9 @@ public:
 
     QUIC_STATUS
     SetGlobal() const noexcept {
+        if (IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* Settings = this;
         return
             MsQuic->SetParam(
@@ -741,6 +882,8 @@ struct MsQuicConfiguration {
     bool IsValid() const noexcept { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicConfiguration(const MsQuicConfiguration& Other) = delete;
     MsQuicConfiguration& operator=(const MsQuicConfiguration& Other) = delete;
+    MsQuicConfiguration(MsQuicConfiguration&& Other) = delete;
+    MsQuicConfiguration& operator=(MsQuicConfiguration&& Other) = delete;
     QUIC_STATUS
     SetParam(
         _In_ uint32_t Param,
@@ -785,6 +928,9 @@ struct MsQuicConfiguration {
     }
     QUIC_STATUS
     SetSettings(_In_ const MsQuicSettings& Settings) noexcept {
+        if (Settings.IsSetFlags == 0) {
+            return QUIC_STATUS_SUCCESS; // Nothing to set
+        }
         const QUIC_SETTINGS* QSettings = &Settings;
         return
             MsQuic->SetParam(
@@ -884,9 +1030,7 @@ struct MsQuicListener {
     }
 
     ~MsQuicListener() noexcept {
-        if (Handle) {
-            MsQuic->ListenerClose(Handle);
-        }
+        Close();
     }
 
     QUIC_STATUS
@@ -895,6 +1039,19 @@ struct MsQuicListener {
         _In_opt_ const QUIC_ADDR* Address = nullptr
         ) noexcept {
         return MsQuic->ListenerStart(Handle, Alpns, Alpns.Length(), Address);
+    }
+
+    void
+    Stop() noexcept {
+        MsQuic->ListenerStop(Handle);
+    }
+    void
+    Close()
+    {
+        if (Handle) {
+            MsQuic->ListenerClose(Handle);
+            Handle = nullptr;
+        }
     }
 
     QUIC_STATUS
@@ -939,6 +1096,17 @@ struct MsQuicListener {
                 Length,
                 Value);
     }
+
+    QUIC_STATUS
+    SetPartitionId(
+        _In_ const uint16_t Value) noexcept {
+        return
+            MsQuic->SetParam(
+                Handle,
+                QUIC_PARAM_LISTENER_PARTITION_INDEX,
+                sizeof(Value),
+                &Value);
+    }
 #endif
 
     QUIC_STATUS
@@ -956,6 +1124,8 @@ struct MsQuicListener {
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicListener(const MsQuicListener& Other) = delete;
     MsQuicListener& operator=(const MsQuicListener& Other) = delete;
+    MsQuicListener(MsQuicListener&& Other) = delete;
+    MsQuicListener& operator=(MsQuicListener&& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
 
 private:
@@ -998,15 +1168,40 @@ struct MsQuicConnection {
     QUIC_UINT62 AppShutdownErrorCode {0};
     bool HandshakeComplete {false};
     bool HandshakeResumed {false};
+    bool CloseAsync {false};
     uint32_t ResumptionTicketLength {0};
     uint8_t* ResumptionTicket {nullptr};
 #ifdef CX_PLATFORM_TYPE
     CxPlatEvent HandshakeCompleteEvent;
     CxPlatEvent ResumptionTicketReceivedEvent;
+    CxPlatEvent ShutdownCompleteEvent {true};
 #endif // CX_PLATFORM_TYPE
 
     MsQuicConnection(
         _In_ const MsQuicRegistration& Registration,
+        _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
+        _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
+        _In_ void* Context = nullptr
+        ) noexcept : CleanUpMode(CleanUpMode), Callback(Callback), Context(Context)
+        {
+        if (!Registration.IsValid()) {
+            InitStatus = Registration.GetInitStatus();
+            return;
+        }
+        if (QUIC_FAILED(
+            InitStatus =
+                MsQuic->ConnectionOpen(
+                    Registration,
+                    (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,
+                    this,
+                    &Handle))) {
+            Handle = nullptr;
+        }
+    }
+
+    MsQuicConnection(
+        _In_ const MsQuicRegistration& Registration,
+        _In_ uint16_t PartitionIndex,
         _In_ MsQuicCleanUpMode CleanUpMode = CleanUpManual,
         _In_ MsQuicConnectionCallback* Callback = NoOpCallback,
         _In_ void* Context = nullptr
@@ -1017,8 +1212,9 @@ struct MsQuicConnection {
         }
         if (QUIC_FAILED(
             InitStatus =
-                MsQuic->ConnectionOpen(
+                MsQuic->ConnectionOpenInPartition(
                     Registration,
+                    PartitionIndex,
                     (QUIC_CONNECTION_CALLBACK_HANDLER)MsQuicCallback,
                     this,
                     &Handle))) {
@@ -1039,6 +1235,11 @@ struct MsQuicConnection {
 
     ~MsQuicConnection() noexcept {
         Close();
+#ifdef CX_PLATFORM_TYPE
+        if (CloseAsync) {
+            ShutdownCompleteEvent.WaitForever();
+        }
+#endif // CX_PLATFORM_TYPE
         delete[] ResumptionTicket;
     }
 
@@ -1254,6 +1455,8 @@ struct MsQuicConnection {
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicConnection(const MsQuicConnection& Other) = delete;
     MsQuicConnection& operator=(const MsQuicConnection& Other) = delete;
+    MsQuicConnection(MsQuicConnection&& Other) = delete;
+    MsQuicConnection& operator=(MsQuicConnection&& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
 
     static
@@ -1309,6 +1512,9 @@ private:
         _Inout_ QUIC_CONNECTION_EVENT* Event
         ) noexcept {
         CXPLAT_DBG_ASSERT(pThis);
+        auto DeleteOnExit =
+            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
+            pThis->CleanUpMode == CleanUpAutoDelete;
         if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
             pThis->HandshakeComplete = true;
             pThis->HandshakeResumed = Event->CONNECTED.SessionResumed;
@@ -1340,10 +1546,12 @@ private:
 #endif // CX_PLATFORM_TYPE
             }
         }
-        auto DeleteOnExit =
-            Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE &&
-            pThis->CleanUpMode == CleanUpAutoDelete;
         auto Status = pThis->Callback(pThis, pThis->Context, Event);
+#ifdef CX_PLATFORM_TYPE
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            pThis->ShutdownCompleteEvent.Set();
+        }
+#endif // CX_PLATFORM_TYPE
         if (DeleteOnExit) {
             delete pThis;
         }
@@ -1640,6 +1848,8 @@ struct MsQuicStream {
     bool IsValid() const { return QUIC_SUCCEEDED(InitStatus); }
     MsQuicStream(const MsQuicStream& Other) = delete;
     MsQuicStream& operator=(const MsQuicStream& Other) = delete;
+    MsQuicStream(MsQuicStream&& Other) = delete;
+    MsQuicStream& operator=(MsQuicStream&& Other) = delete;
     operator HQUIC () const noexcept { return Handle; }
 
     static
@@ -1682,24 +1892,42 @@ struct ConnectionScope {
     ConnectionScope() noexcept : Handle(nullptr) { }
     ConnectionScope(HQUIC handle) noexcept : Handle(handle) { }
     ~ConnectionScope() noexcept { if (Handle) { MsQuic->ConnectionClose(Handle); } }
+    ConnectionScope(const ConnectionScope&) = delete;
+    ConnectionScope& operator=(const ConnectionScope&) = delete;
+    ConnectionScope(ConnectionScope&&) = delete;
+    ConnectionScope& operator=(ConnectionScope&&) = delete;
     operator HQUIC() const noexcept { return Handle; }
 };
+
+static_assert(sizeof(ConnectionScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct StreamScope {
     HQUIC Handle;
     StreamScope() noexcept : Handle(nullptr) { }
     StreamScope(HQUIC handle) noexcept : Handle(handle) { }
     ~StreamScope() noexcept { if (Handle) { MsQuic->StreamClose(Handle); } }
+    StreamScope(const StreamScope&) = delete;
+    StreamScope& operator=(const StreamScope&) = delete;
+    StreamScope(StreamScope&&) = delete;
+    StreamScope& operator=(StreamScope&&) = delete;
     operator HQUIC() const noexcept { return Handle; }
 };
+
+static_assert(sizeof(StreamScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct ConfigurationScope {
     HQUIC Handle;
     ConfigurationScope() noexcept : Handle(nullptr) { }
     ConfigurationScope(HQUIC handle) noexcept : Handle(handle) { }
     ~ConfigurationScope() noexcept { if (Handle) { MsQuic->ConfigurationClose(Handle); } }
+    ConfigurationScope(const ConfigurationScope&) = delete;
+    ConfigurationScope& operator=(const ConfigurationScope&) = delete;
+    ConfigurationScope(ConfigurationScope&&) = delete;
+    ConfigurationScope& operator=(ConfigurationScope&&) = delete;
     operator HQUIC() const noexcept { return Handle; }
 };
+
+static_assert(sizeof(ConfigurationScope) == sizeof(HQUIC), "Scope guards should be the same size as the guarded type");
 
 struct QuicBufferScope {
     QUIC_BUFFER* Buffer;
@@ -1710,8 +1938,14 @@ struct QuicBufferScope {
         Buffer->Length = Size;
         Buffer->Buffer = (uint8_t*)(Buffer + 1);
     }
-    operator QUIC_BUFFER* () noexcept { return Buffer; }
     ~QuicBufferScope() noexcept { if (Buffer) { delete[](uint8_t*) Buffer; } }
+    QuicBufferScope(const QuicBufferScope&) = delete;
+    QuicBufferScope& operator=(const QuicBufferScope&) = delete;
+    QuicBufferScope(QuicBufferScope&&) = delete;
+    QuicBufferScope& operator=(QuicBufferScope&&) = delete;
+    operator QUIC_BUFFER* () noexcept { return Buffer; }
 };
 
-#endif  //  _WIN32
+static_assert(sizeof(QuicBufferScope) == sizeof(QUIC_BUFFER*), "Scope guards should be the same size as the guarded type");
+
+#endif  //  _MSQUIC_HPP_

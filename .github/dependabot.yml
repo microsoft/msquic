@@ -1,12 +1,12 @@
 
 version: 2
+enable-beta-ecosystems: true
 updates:
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "saturday"
+      interval: "monthly"
 
   - package-ecosystem: "gitsubmodule"
     directory: "/"
@@ -22,3 +22,35 @@ updates:
     labels:
       - "dependencies"
       - "Language: Rust"
+
+  - package-ecosystem: "rust-toolchain"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    labels:
+      - "dependencies"
+      - "Language: Rust"
+
+# The docker entries are split out so they can update separately.
+# When combined, dependabot seems to only update when both meet the criteria,
+# which is impossible, since they're different versions.
+  - package-ecosystem: "docker"
+    directories:
+      - "/.docker/ubuntu-22.04"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]
+
+  - package-ecosystem: "docker"
+    directories:
+      - "/.docker/ubuntu-24.04"
+    schedule:
+      interval: "weekly"
+      day: "saturday"
+    ignore:
+      - dependency-name: "ubuntu"
+        update-types: ["version-update:semver-major", "version-update:semver-minor"]

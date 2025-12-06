@@ -21,6 +21,17 @@ typedef enum QUIC_CONNECTION_ACCEPT_RESULT {
     QUIC_CONNECTION_REJECT_APP
 } QUIC_CONNECTION_ACCEPT_RESULT;
 
+typedef enum QUIC_REGISTRATION_REF {
+
+    QUIC_REG_REF_HANDLE_OWNER,
+    QUIC_REG_REF_CONFIGURATION,
+    QUIC_REG_REF_CONNECTION,
+    QUIC_REG_REF_LISTENER,
+
+    QUIC_REG_REF_COUNT
+
+} QUIC_REGISTRATION_REF;
+
 //
 // Represents per application registration state.
 //
@@ -100,10 +111,44 @@ typedef struct QUIC_REGISTRATION {
     //
     CXPLAT_RUNDOWN_REF Rundown;
 
+#if DEBUG
+    //
+    // Detailed ref counts. The actual reference count is in the Rundown.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
+    //
+    CXPLAT_REF_COUNT RefTypeBiasedCount[QUIC_REG_REF_COUNT];
+#endif
+
     //
     // Shutdown error code if set.
     //
     uint64_t ShutdownErrorCode;
+
+    //
+    // Close request event, to support async close.
+    //
+    CXPLAT_EVENT CloseEvent;
+
+    //
+    // Close thread, to support async close.
+    //
+    CXPLAT_THREAD CloseThread;
+
+    //
+    // Entry in the registration close cleanup list, to support async close.
+    //
+    CXPLAT_LIST_ENTRY CloseCleanupEntry;
+
+    //
+    // The app's close complete handler, if async close is used.
+    //
+    QUIC_REGISTRATION_CLOSE_CALLBACK_HANDLER CloseCompleteHandler;
+
+    //
+    // The app's close complete handler context, if async close is used.
+    //
+    void* CloseCompleteContext;
 
     //
     // Name of the application layer.
@@ -122,6 +167,52 @@ typedef struct QUIC_REGISTRATION {
 #else
 #define QUIC_REG_VERIFY(Registration, Expr)
 #endif
+
+//
+// Adds a rundown reference to the Registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+BOOLEAN
+QuicRegistrationRundownAcquire(
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_REGISTRATION_REF Ref
+    )
+{
+    BOOLEAN Result = CxPlatRundownAcquire(&Registration->Rundown);
+#if DEBUG
+    if (Result) {
+        //
+        // Only increment the detailed ref count if the Rundown acquire succeeded.
+        //
+        CxPlatRefIncrement(&Registration->RefTypeBiasedCount[Ref]);
+    }
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
+
+    return Result;
+}
+
+//
+// Releases a rundown reference on the Registration.
+//
+_IRQL_requires_max_(DISPATCH_LEVEL)
+QUIC_INLINE
+void
+QuicRegistrationRundownRelease(
+    _In_ QUIC_REGISTRATION* Registration,
+    _In_ QUIC_REGISTRATION_REF Ref
+    )
+{
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Registration->RefTypeBiasedCount[Ref]));
+#else
+    UNREFERENCED_PARAMETER(Ref);
+#endif
+
+    CxPlatRundownRelease(&Registration->Rundown);
+}
 
 //
 // Tracing rundown for the registration.

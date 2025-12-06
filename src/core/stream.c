@@ -28,9 +28,8 @@ QuicStreamInitialize(
     QUIC_STATUS Status;
     QUIC_STREAM* Stream;
     QUIC_RECV_CHUNK* PreallocatedRecvChunk = NULL;
-    QUIC_WORKER* Worker = Connection->Worker;
 
-    Stream = CxPlatPoolAlloc(&Worker->StreamPool);
+    Stream = CxPlatPoolAlloc(&Connection->Partition->StreamPool);
     if (Stream == NULL) {
         Status = QUIC_STATUS_OUT_OF_MEMORY;
         goto Exit;
@@ -48,7 +47,7 @@ QuicStreamInitialize(
     CxPlatListInsertTail(&Connection->Streams.AllStreams, &Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterIncrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     Stream->Type = QUIC_HANDLE_TYPE_STREAM;
     Stream->Connection = Connection;
@@ -75,7 +74,7 @@ QuicStreamInitialize(
         Connection->Settings.StreamMultiReceiveEnabled &&
         !Stream->Flags.UseAppOwnedRecvBuffers;
     Stream->RecvMaxLength = UINT64_MAX;
-    Stream->RefCount = 1;
+    CxPlatRefInitialize(&Stream->RefCount);
     Stream->SendRequestsTail = &Stream->SendRequests;
     Stream->SendPriority = QUIC_STREAM_PRIORITY_DEFAULT;
     CxPlatDispatchLockInitialize(&Stream->ApiSendRequestLock);
@@ -90,7 +89,8 @@ QuicStreamInitialize(
     Stream->ReceiveCompleteOperation->API_CALL.Context->Type = QUIC_API_TYPE_STRM_RECV_COMPLETE;
     Stream->ReceiveCompleteOperation->API_CALL.Context->STRM_RECV_COMPLETE.Stream = Stream;
 #if DEBUG
-    Stream->RefTypeCount[QUIC_STREAM_REF_APP] = 1;
+    CxPlatRefInitializeMultiple(Stream->RefTypeBiasedCount, QUIC_STREAM_REF_COUNT);
+    CxPlatRefIncrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]);
 #endif
 
     if (Stream->Flags.Unidirectional) {
@@ -130,7 +130,8 @@ QuicStreamInitialize(
 
     if (InitialRecvBufferLength == QUIC_DEFAULT_STREAM_RECV_BUFFER_SIZE &&
         RecvBufferMode != QUIC_RECV_BUF_MODE_APP_OWNED) {
-        PreallocatedRecvChunk = CxPlatPoolAlloc(&Worker->DefaultReceiveBufferPool);
+        PreallocatedRecvChunk =
+            CxPlatPoolAlloc(&Connection->Partition->DefaultReceiveBufferPool);
         if (PreallocatedRecvChunk == NULL) {
             Status = QUIC_STATUS_OUT_OF_MEMORY;
             goto Exit;
@@ -139,7 +140,7 @@ QuicStreamInitialize(
             PreallocatedRecvChunk,
             InitialRecvBufferLength,
             (uint8_t *)(PreallocatedRecvChunk + 1),
-            FALSE);
+            TRUE);
     }
 
     const uint32_t FlowControlWindowSize = Stream->Flags.Unidirectional
@@ -154,7 +155,6 @@ QuicStreamInitialize(
             InitialRecvBufferLength,
             FlowControlWindowSize,
             RecvBufferMode,
-            &Connection->Worker->AppBufferChunkPool,
             PreallocatedRecvChunk);
     if (QUIC_FAILED(Status)) {
         goto Exit;
@@ -174,17 +174,18 @@ Exit:
 
     if (Stream) {
 #if DEBUG
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&Stream->RefTypeBiasedCount[QUIC_STREAM_REF_APP]));
         CxPlatDispatchLockAcquire(&Connection->Streams.AllStreamsLock);
         CxPlatListEntryRemove(&Stream->AllStreamsLink);
         CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-        QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+        QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
         CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
         Stream->Flags.Freed = TRUE;
-        CxPlatPoolFree(&Worker->StreamPool, Stream);
+        CxPlatPoolFree(Stream);
     }
     if (PreallocatedRecvChunk) {
-        CxPlatPoolFree(&Worker->DefaultReceiveBufferPool, PreallocatedRecvChunk);
+        CxPlatPoolFree(PreallocatedRecvChunk);
     }
 
     return Status;
@@ -198,7 +199,6 @@ QuicStreamFree(
 {
     BOOLEAN WasStarted = Stream->Flags.Started;
     QUIC_CONNECTION* Connection = Stream->Connection;
-    QUIC_WORKER* Worker = Connection->Worker;
 
     CXPLAT_DBG_ASSERT(Stream->RefCount == 0);
     CXPLAT_DBG_ASSERT(Connection->State.ClosedLocally || Stream->Flags.ShutdownComplete);
@@ -218,21 +218,15 @@ QuicStreamFree(
     CxPlatListEntryRemove(&Stream->AllStreamsLink);
     CxPlatDispatchLockRelease(&Connection->Streams.AllStreamsLock);
 #endif
-    QuicPerfCounterDecrement(QUIC_PERF_COUNTER_STRM_ACTIVE);
+    QuicPerfCounterDecrement(Connection->Partition, QUIC_PERF_COUNTER_STRM_ACTIVE);
 
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
     QuicRangeUninitialize(&Stream->SparseAckRanges);
     CxPlatDispatchLockUninitialize(&Stream->ApiSendRequestLock);
     CxPlatRefUninitialize(&Stream->RefCount);
 
-    if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
-    }
-
     Stream->Flags.Freed = TRUE;
-    CxPlatPoolFree(&Worker->StreamPool, Stream);
+    CxPlatPoolFree(Stream);
 
     if (WasStarted) {
 #pragma warning(push)
@@ -397,12 +391,6 @@ QuicStreamClose(
     if (!Stream->Flags.ShutdownComplete) {
 
         if (Stream->Flags.Started && !Stream->Flags.HandleShutdown) {
-            //
-            // TODO - If the stream hasn't been aborted already, then this is a
-            // fatal error for the connection. The QUIC transport cannot "just
-            // pick an error" to shutdown the stream with. It must abort the
-            // entire connection.
-            //
             QuicTraceLogStreamWarning(
                 CloseWithoutShutdown,
                 Stream,
@@ -987,16 +975,9 @@ QuicStreamSwitchToAppOwnedBuffers(
     )
 {
     //
-    // Reset the current receive buffer and preallocated chunk.
+    // Reset the current receive buffer
     //
-    QUIC_WORKER* Worker = Stream->Connection->Worker;
     QuicRecvBufferUninitialize(&Stream->RecvBuffer);
-    if (Stream->RecvBuffer.PreallocatedChunk) {
-        CxPlatPoolFree(
-            &Worker->DefaultReceiveBufferPool,
-            Stream->RecvBuffer.PreallocatedChunk);
-        Stream->RecvBuffer.PreallocatedChunk = NULL;
-    }
 
     //
     // Can't fail when initializing in app-owned mode.
@@ -1006,7 +987,6 @@ QuicStreamSwitchToAppOwnedBuffers(
         0,
         0,
         QUIC_RECV_BUF_MODE_APP_OWNED,
-        &Worker->AppBufferChunkPool,
         NULL);
     Stream->Flags.UseAppOwnedRecvBuffers = TRUE;
 }
@@ -1021,16 +1001,42 @@ QuicStreamProvideRecvBuffers(
     QUIC_STATUS Status = QuicRecvBufferProvideChunks(&Stream->RecvBuffer, Chunks);
     if (Status == QUIC_STATUS_SUCCESS) {
         //
-        // Update the maximum allowed received size to take into account the new
-        // capacity.
+        // Update the maximum allowed received offset if the new chunks caused an update of the
+        // virtual buffer size.
         //
-        Stream->MaxAllowedRecvOffset =
+        uint64_t NewMaxAllowedRecvOffset =
             Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
-        QuicSendSetStreamSendFlag(
-            &Stream->Connection->Send,
-            Stream,
-            QUIC_STREAM_SEND_FLAG_MAX_DATA,
-            FALSE);
+        if (Stream->MaxAllowedRecvOffset < NewMaxAllowedRecvOffset) {
+            Stream->MaxAllowedRecvOffset =
+                Stream->RecvBuffer.BaseOffset + Stream->RecvBuffer.VirtualBufferLength;
+            QuicSendSetStreamSendFlag(
+                &Stream->Connection->Send,
+                Stream,
+                QUIC_STREAM_SEND_FLAG_MAX_DATA,
+                FALSE);
+        }
     }
     return Status;
+}
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicStreamNotifyReceiveBufferNeeded(
+    _In_ QUIC_STREAM* Stream,
+    _In_ uint64_t BufferLengthNeeded
+    )
+{
+    CXPLAT_DBG_ASSERT(Stream->RecvBuffer.RecvMode == QUIC_RECV_BUF_MODE_APP_OWNED);
+
+    QUIC_STREAM_EVENT Event = {0};
+    Event.Type = QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED;
+    Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded = BufferLengthNeeded;
+
+    QuicTraceLogStreamVerbose(
+        StreamNotifyInsufficientRecvBuffer,
+        Stream,
+        "Indicating QUIC_STREAM_EVENT_RECEIVE_BUFFER_NEEDED [BufferLengthNeeded=%llu]",
+        Event.RECEIVE_BUFFER_NEEDED.BufferLengthNeeded);
+
+    (void)QuicStreamIndicateEvent(Stream, &Event);
 }

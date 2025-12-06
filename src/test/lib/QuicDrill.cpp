@@ -25,9 +25,9 @@ extern "C" {
 }
 
 #ifndef _KERNEL_MODE
-extern CXPLAT_WORKER_POOL WorkerPool;
+extern CXPLAT_WORKER_POOL* WorkerPool;
 #else
-static CXPLAT_WORKER_POOL WorkerPool;
+static CXPLAT_WORKER_POOL* WorkerPool;
 #endif
 
 void
@@ -142,13 +142,14 @@ struct DrillSender {
             DrillUdpRecvCallback,
             DrillUdpUnreachCallback,
         };
+        CXPLAT_DATAPATH_INIT_CONFIG InitConfig = {0};
         QUIC_STATUS Status =
             CxPlatDataPathInitialize(
                 0,
                 &DatapathCallbacks,
                 NULL,
-                &WorkerPool,
-                NULL,
+                WorkerPool,
+                &InitConfig,
                 &Datapath);
         if (QUIC_FAILED(Status)) {
             TEST_FAILURE("Datapath init failed 0x%x", Status);
@@ -176,7 +177,7 @@ struct DrillSender {
         CXPLAT_UDP_CONFIG UdpConfig = {0};
         UdpConfig.LocalAddress = nullptr;
         UdpConfig.RemoteAddress = &ServerAddress;
-        UdpConfig.Flags = 0;
+        UdpConfig.Flags = CXPLAT_SOCKET_FLAG_NONE;
         UdpConfig.InterfaceIndex = 0;
         UdpConfig.CallbackContext = this;
 #ifdef QUIC_OWNING_PROCESS

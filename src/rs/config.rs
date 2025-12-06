@@ -41,18 +41,13 @@ impl RegistrationConfig {
 }
 
 /// Configures how to process a registration's workload.
-#[derive(Debug, PartialEq, Clone)]
+#[derive(Debug, PartialEq, Clone, Default)]
 pub enum ExecutionProfile {
+    #[default]
     LowLatency,
     MaxThroughput,
     Scavenger,
     RealTime,
-}
-
-impl Default for ExecutionProfile {
-    fn default() -> Self {
-        Self::LowLatency
-    }
 }
 
 impl From<ExecutionProfile> for crate::ffi::QUIC_EXECUTION_PROFILE {
@@ -193,7 +188,7 @@ impl CertificateHash {
         use std::fmt::Write;
         // write every byte in hex.
         self.0.ShaHash.iter().fold(String::new(), |mut out, x| {
-            write!(out, "{:02X}", x).unwrap();
+            write!(out, "{x:02X}").unwrap();
             out
         })
     }
@@ -341,8 +336,9 @@ impl CertificatePkcs12 {
 }
 
 /// Type of credentials used for a connection.
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub enum Credential {
+    #[default]
     None,
     /// windows schannel only
     CertificateHash(CertificateHash),
@@ -350,18 +346,12 @@ pub enum Credential {
     CertificateHashStore(CertificateHashStore),
     /// windows user mode only
     CertificateContext(*const crate::ffi::QUIC_CERTIFICATE),
-    /// openssl only
+    /// quictls only
     CertificateFile(CertificateFile),
-    /// openssl only
+    /// quictls only
     CertificateFileProtected(CertificateFileProtected),
-    /// openssl only
+    /// quictls only
     CertificatePkcs12(CertificatePkcs12),
-}
-
-impl Default for Credential {
-    fn default() -> Self {
-        Self::None
-    }
 }
 
 bitflags::bitflags! {
@@ -441,7 +431,7 @@ mod tests {
         let registration = Registration::new(&RegistrationConfig::default()).unwrap();
 
         let alpn = [BufferRef::from("h3")];
-        let configuration = Configuration::new(
+        let configuration = Configuration::open(
             &registration,
             &alpn,
             Some(
@@ -486,7 +476,7 @@ mod tests {
                 .unwrap_err()
                 .try_as_status_code()
                 .unwrap();
-            if cfg!(windows) && !cfg!(feature = "openssl") {
+            if cfg!(windows) && !cfg!(feature = "openssl") && !cfg!(feature = "quictls") {
                 // schannel does not support load from file.
                 assert_eq!(load_err, StatusCode::QUIC_STATUS_NOT_SUPPORTED);
             } else {

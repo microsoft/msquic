@@ -81,7 +81,7 @@ impl From<StatusCode> for QUIC_STATUS {
 /// The display string is the same as the debug string, i.e. the enum string.
 impl core::fmt::Display for StatusCode {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        core::write!(f, "{:?}", self)
+        core::write!(f, "{self:?}")
     }
 }
 
@@ -142,10 +142,7 @@ impl From<StatusCode> for Status {
 impl core::fmt::Debug for Status {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         let mut debug = fmt.debug_struct("Error");
-        let str_code = match self.try_as_status_code() {
-            Ok(c) => Some(c),
-            Err(_) => None,
-        };
+        let str_code = self.try_as_status_code().ok();
         debug.field("code", &format_args!("0x{:x}", self.0));
         match str_code {
             Some(c) => debug.field("message", &c),
@@ -158,10 +155,7 @@ impl core::fmt::Debug for Status {
 /// The display message is in the same format as error in windows crate.
 impl core::fmt::Display for Status {
     fn fmt(&self, fmt: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        let str_code = match self.try_as_status_code() {
-            Ok(c) => Some(c),
-            Err(_) => None,
-        };
+        let str_code = self.try_as_status_code().ok();
         match str_code {
             Some(c) => core::write!(fmt, "{} (0x{:x})", c, self.0),
             None => core::write!(fmt, "0x{:x}", self.0),

@@ -103,7 +103,7 @@ extern "C" {
 //
 // Used for determining which errors to count for performance counters.
 //
-inline
+QUIC_INLINE
 BOOLEAN
 QuicErrorIsProtocolError(
     _In_ QUIC_VAR_INT ErrorCode
@@ -172,6 +172,10 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_MAX_SUPPORTED
 
 } QUIC_FRAME_TYPE;
+
+CXPLAT_STATIC_ASSERT(
+    QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT16_MAX,
+    "Sent packet metadata 'Type' field above assumes frames types fit in 16-bits");
 
 CXPLAT_STATIC_ASSERT(
     QUIC_FRAME_MAX_SUPPORTED <= (uint64_t)UINT32_MAX,
@@ -438,7 +442,7 @@ typedef struct QUIC_STREAM_EX {
 
 } QUIC_STREAM_EX;
 
-inline
+QUIC_INLINE
 uint8_t
 QuicStreamFrameHeaderSize(
     _In_ const QUIC_STREAM_EX * const Frame
@@ -1053,7 +1057,7 @@ QuicTimestampFrameDecode(
 //
 // Gets the Stream ID from a Stream related frame.
 //
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicStreamFramePeekID(
@@ -1073,7 +1077,7 @@ QuicStreamFramePeekID(
 //
 // Skips over the given Stream related frame.
 //
-inline
+QUIC_INLINE
 _Success_(return != FALSE)
 BOOLEAN
 QuicStreamFrameSkip(

@@ -49,12 +49,12 @@ TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, AllocFailure,
 // QuicTraceEvent(
             DatapathErrorStatus,
             "[data][%p] ERROR, %u, %s.",
-            SocketContext->Binding,
+            Binding,
             Status,
-            "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed");
-// arg2 = arg2 = SocketContext->Binding = arg2
+            "CxPlatSqeInitialize failed");
+// arg2 = arg2 = Binding = arg2
 // arg3 = arg3 = Status = arg3
-// arg4 = arg4 = "setsockopt(SO_ATTACH_REUSEPORT_CBPF) failed" = arg4
+// arg4 = arg4 = "CxPlatSqeInitialize failed" = arg4
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_DATAPATH_EPOLL_C, DatapathErrorStatus,
     TP_ARGS(

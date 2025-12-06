@@ -1,0 +1,33 @@
+name: Netperf Kernel BVT
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        required: true
+        description: 'Git Ref'
+        type: string
+      filter:
+        required: false
+        description: 'Custom Test Filter'
+        default: '-*ValidateConfiguration:*ValidAlpnLengths:*ResumeRejection*:*ClientCertificate*:*LoadBalanced*'
+        type: string
+
+permissions: read-all
+
+jobs:
+  run:
+    name: Run Kernel BVT on Netperf
+    runs-on: windows-latest
+    steps:
+    - name: Run Kernel BVT on Netperf
+      timeout-minutes: 120
+      shell: pwsh
+      run: |
+        $url = "https://raw.githubusercontent.com/microsoft/netperf/main/run-workflow.ps1"
+        if ('${{ secrets.NET_PERF_TRIGGER }}' -eq '') {
+            Write-Host "Not able to run because no secrets are available!"
+            return
+        }
+        # Params: token, type, sha, ref, pr, run_id, logs, filter
+        iex "& { $(irm $url) } ${{ secrets.NET_PERF_TRIGGER }} msquic-kernel-bvt 'N/A' ${{ inputs.ref }} 'N/A' 'N/A' 'N/A' ${{ inputs.filter }}"
