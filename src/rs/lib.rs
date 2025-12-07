@@ -702,6 +702,21 @@ macro_rules! define_quic_handle_ctx_fn {
                 }
             }
 
+            /// Gets the callback context without clearing it from the handle.
+            ///
+            /// # Safety
+            /// Only call while closing the handle, so MsQuic will not read the
+            /// context again after this function returns. Calling this in other
+            /// situations can cause double frees or use-after-free.
+            unsafe fn peek_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
+                let ctx = self.get_context();
+                if ctx.is_null() {
+                    None
+                } else {
+                    Some(Box::from_raw(ctx as *mut Box<$callback_type>))
+                }
+            }
+
             /// Removes the callback context from the handle and returns it.
             ///
             /// # Safety
@@ -927,8 +942,8 @@ impl Connection {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
-            // get the context and drop it after handle close.
-            let ctx = unsafe { self.take_callback_ctx() };
+            // Keep the context alive until ConnectionClose completes, then drop it.
+            let ctx = unsafe { self.peek_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ConnectionClose.unwrap()(self.handle);
             }
@@ -1107,8 +1122,8 @@ impl Listener {
 
     fn close_inner(&self) {
         if !self.handle.is_null() {
-            // consume the context and drop it after handle close.
-            let ctx = unsafe { self.take_callback_ctx() };
+            // Keep the context alive until ListenerClose completes, then drop it.
+            let ctx = unsafe { self.peek_callback_ctx() };
             unsafe {
                 Api::ffi_ref().ListenerClose.unwrap()(self.handle);
             }
@@ -1184,8 +1199,8 @@ impl Stream {
 
     pub fn close_inner(&self) {
         if !self.handle.is_null() {
-            // consume the context and drop it after handle close.
-            let ctx = unsafe { self.take_callback_ctx() };
+            // Keep the context alive until StreamClose completes, then drop it.
+            let ctx = unsafe { self.peek_callback_ctx() };
             unsafe {
                 Api::ffi_ref().StreamClose.unwrap()(self.handle);
             }
