@@ -115,11 +115,6 @@ typedef struct QUIC_PATHID {
     QUIC_LOSS_DETECTION LossDetection;
 
     //
-    // Congestion control state.
-    //
-    QUIC_CONGESTION_CONTROL CongestionControl;
-
-    //
     // The next packet number to use.
     //
     uint64_t NextPacketNumber;
@@ -462,3 +457,16 @@ QuicPathIDRelease(
     return FALSE;
 }
 #pragma warning(pop)
+
+//
+// Helper to get the QUIC_PATHID for a loss detection.
+//
+QUIC_INLINE
+_Ret_notnull_
+QUIC_PATHID*
+QuicLossDetectionGetPathID(
+    _In_ QUIC_LOSS_DETECTION* LossDetection
+    )
+{
+    return CXPLAT_CONTAINING_RECORD(LossDetection, QUIC_PATHID, LossDetection);
+}

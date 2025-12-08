@@ -196,7 +196,7 @@ QuicConnAlloc(
         QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
         Path->PathID = PathID;
         PathID->Path = Path;
-        QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
+        QuicCongestionControlInitialize(&Path->CongestionControl, &Connection->Settings);
 
         Path->DestCid =
             QuicCidNewDestination(Packet->SourceCidLen, Packet->SourceCid);
@@ -236,7 +236,7 @@ QuicConnAlloc(
         QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
         Path->PathID = PathID;
         PathID->Path = Path;
-        QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
+        QuicCongestionControlInitialize(&Path->CongestionControl, &Connection->Settings);
 
         Path->DestCid = QuicCidNewRandomDestination();
         if (Path->DestCid == NULL) {
@@ -612,7 +612,9 @@ QuicConnTraceRundownOper(
             Connection);
     }
     if (Connection->State.Started) {
-        QuicConnLogStatistics(Connection);
+        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+            QuicPathLogStatistics(&Connection->Paths[i]);
+        }
     }
 
     QuicStreamSetTraceRundown(&Connection->Streams);
@@ -914,6 +916,7 @@ QuicConnTimerExpired(
                     Connection,
                     QUIC_CONN_TIMER_PACING);
                 FlushSendImmediate = TRUE;
+                Connection->Send.FlushForPacing = TRUE;
             } else {
                 QUIC_OPERATION* Oper;
                 if ((Oper = QuicConnAllocOperation(Connection, QUIC_OPER_TYPE_TIMER_EXPIRED)) != NULL) {
@@ -1289,7 +1292,9 @@ QuicConnTryClose(
         }
 
         if (Connection->State.Started) {
-            QuicConnLogStatistics(Connection);
+            for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                QuicPathLogStatistics(&Connection->Paths[i]);
+            }
         }
 
         if (Flags & QUIC_CLOSE_APPLICATION) {
@@ -1641,7 +1646,7 @@ QuicConnRestart(
         QuicPacketSpaceReset(PathID->Packets[i]);
     }
 
-    QuicCongestionControlReset(&PathID->CongestionControl, TRUE);
+    QuicCongestionControlReset(&Connection->Paths[0].CongestionControl, TRUE);
     QuicSendReset(&Connection->Send);
     QuicLossDetectionReset(&Connection->Paths[0].PathID->LossDetection);
     QuicCryptoTlsCleanupTransportParameters(&Connection->PeerTransportParams);
@@ -3859,6 +3864,7 @@ QuicConnRecvDecryptAndAuthenticate(
                     Packet->AvailBuffer,
                     Connection->Stats.QuicVersion);
             }
+            Path->Stats.Recv.DecryptionFailures++;
             Connection->Stats.Recv.DecryptionFailures++;
             QuicPacketLogDrop(Connection, Packet, "Decryption failure");
             QuicPerfCounterIncrement(Connection->Partition, QUIC_PERF_COUNTER_PKTS_DECRYPTION_FAIL);
@@ -3925,6 +3931,7 @@ QuicConnRecvDecryptAndAuthenticate(
                 Connection->Stats.QuicVersion);
         }
         QuicPacketLogDrop(Connection, Packet, "Duplicate packet number");
+        Path->Stats.Recv.DuplicatePackets++;
         Connection->Stats.Recv.DuplicatePackets++;
         return FALSE;
     }
@@ -4443,8 +4450,8 @@ QuicConnRecvFrames(
                 // any previously blocked streams.
                 //
                 UpdatedFlowControl = TRUE;
-                QuicConnRemoveOutFlowBlockedReason(
-                    Connection, QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL);
+                QuicPathRemoveOutFlowBlockedReason(
+                    Path, QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL);
                 QuicSendQueueFlush(
                     &Connection->Send, REASON_CONNECTION_FLOW_CONTROL);
             }
@@ -5258,7 +5265,8 @@ QuicConnRecvFrames(
 Done:
 
     if (UpdatedFlowControl) {
-        QuicConnLogOutFlowStats(Path->PathID);
+        QuicConnLogOutFlowStats(Connection);
+        QuicPathLogOutFlowStats(Path);
     }
 
     if (Connection->State.ShutdownComplete || Connection->State.HandleClosed) {
@@ -5616,11 +5624,12 @@ QuicConnRecvDatagrams(
         }
 
         if (!IsDeferred) {
+            CurrentPath->Stats.Recv.TotalBytes += Packet->BufferLength;
             Connection->Stats.Recv.TotalBytes += Packet->BufferLength;
             if (Connection->Stats.Handshake.HandshakeHopLimitTTL == 0) {
                 Connection->Stats.Handshake.HandshakeHopLimitTTL = Packet->HopLimitTTL;
             }
-            QuicConnLogInFlowStats(Connection);
+            QuicPathLogInFlowStats(CurrentPath);
 
             if (!CurrentPath->IsPeerValidated) {
                 QuicPathIncrementAllowance(
@@ -5633,6 +5642,7 @@ QuicConnRecvDatagrams(
         do {
             CXPLAT_DBG_ASSERT(BatchCount < QUIC_MAX_CRYPTO_BATCH_COUNT);
             CXPLAT_DBG_ASSERT(Packet->Allocated);
+            CurrentPath->Stats.Recv.TotalPackets++;
             Connection->Stats.Recv.TotalPackets++;
 
             if (!Packet->ValidatedHeaderInv) {
@@ -6168,7 +6178,7 @@ QuicConnAssignPathIDs(
         QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
         Path->PathID = PathID;
         PathID->Path = Path;
-        QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
+        QuicCongestionControlInitialize(&Path->CongestionControl, &Connection->Settings);
         Assigned = TRUE;
         QuicPathIDRelease(Path->PathID, QUIC_PATHID_REF_LOOKUP);
     }
@@ -6225,8 +6235,8 @@ QuicConnOpenNewPath(
             QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
             PathID->Flags.InUse = TRUE;
             PathID->Path = Path;
-            QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
             Path->PathID = PathID;
+            QuicCongestionControlInitialize(&Path->CongestionControl, &Connection->Settings);
         } else {
             QuicLibraryReleaseBinding(Path->Binding);
             Path->Binding = NULL;
@@ -6671,7 +6681,7 @@ QuicConnParamSet(
                 Connection,
                 CASTED_CLOG_BYTEARRAY(sizeof(Connection->Paths[0].Route.LocalAddress), &Connection->Paths[0].Route.LocalAddress));
 
-            QuicCongestionControlReset(&Connection->Paths[0].PathID->CongestionControl, FALSE);
+            QuicCongestionControlReset(&Connection->Paths[0].CongestionControl, FALSE);
 
             QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PING);
         }
@@ -7375,7 +7385,7 @@ QuicConnGetV2Statistics(
     // }
 
     if (STATISTICS_HAS_FIELD(*StatsLength, SendCongestionWindow)) {
-        Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->Paths[0].PathID->CongestionControl);
+        Stats->SendCongestionWindow = QuicCongestionControlGetCongestionWindow(&Connection->Paths[0].CongestionControl);
     }
     if (STATISTICS_HAS_FIELD(*StatsLength, DestCidUpdateCount)) {
         Stats->DestCidUpdateCount = Connection->Stats.Misc.DestCidUpdateCount;
@@ -7416,8 +7426,8 @@ QuicConnGetNetworkStatistics(
 
     CxPlatZeroMemory(Stats, sizeof(QUIC_NETWORK_STATISTICS));
 
-    Connection->Paths[0].PathID->CongestionControl.QuicCongestionControlGetNetworkStatistics(
-        Connection, &Connection->Paths[0].PathID->CongestionControl, Stats);
+    Connection->Paths[0].CongestionControl.QuicCongestionControlGetNetworkStatistics(
+        Connection, &Connection->Paths[0].CongestionControl, Stats);
 
     return QUIC_STATUS_SUCCESS;
 }
@@ -7917,7 +7927,7 @@ QuicConnApplyNewSettings(
         }
 
         QuicSendApplyNewSettings(&Connection->Send, &Connection->Settings);
-        QuicCongestionControlInitialize(&Connection->Paths[0].PathID->CongestionControl, &Connection->Settings);
+        QuicCongestionControlInitialize(&Connection->Paths[0].CongestionControl, &Connection->Settings);
 
         if (QuicConnIsClient(Connection) && Connection->Settings.IsSet.VersionSettings) {
             Connection->Stats.QuicVersion = Connection->Settings.VersionSettings->FullyDeployedVersions[0];

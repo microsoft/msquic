@@ -267,6 +267,8 @@ typedef struct QUIC_SEND {
     //
     BOOLEAN Uninitialized : 1;
 
+    BOOLEAN FlushForPacing : 1;
+
     //
     // The next packet number to use.
     //
@@ -343,6 +345,8 @@ typedef struct QUIC_SEND {
     //
     uint16_t InitialTokenLength;
 
+    QUIC_PATH* PacingPath;
+    
 } QUIC_SEND;
 
 //

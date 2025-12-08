@@ -130,7 +130,7 @@ QuicPacketBuilderInitialize(
     }
     Builder->SendAllowance =
         QuicCongestionControlGetSendAllowance(
-            &Path->PathID->CongestionControl,
+            &Path->CongestionControl,
             TimeSinceLastSend,
             Connection->Send.LastFlushTimeValid);
     if (Builder->SendAllowance > Path->Allowance) {
@@ -748,8 +748,8 @@ QuicPacketBuilderFinalize(
             }
         }
         if (Builder->Path->Allowance != UINT32_MAX) {
-            QuicConnAddOutFlowBlockedReason(
-                Connection, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
+            QuicPathAddOutFlowBlockedReason(
+                Builder->Path, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
         }
         FinalQuicPacket = FlushBatchedDatagrams && (Builder->TotalCountDatagrams != 0);
         goto Exit;

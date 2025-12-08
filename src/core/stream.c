@@ -296,18 +296,24 @@ QuicStreamStart(
         Stream->Connection->BlockedTimings.Scheduling.CumulativeTimeUs +
         (Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs != 0 ?
             CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now) : 0);
-    Stream->BlockedTimings.CachedConnPacingUs =
-        Stream->Connection->BlockedTimings.Pacing.CumulativeTimeUs +
-        (Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs != 0 ?
-            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.Pacing.LastStartTimeUs, Now) : 0);
-    Stream->BlockedTimings.CachedConnAmplificationProtUs =
-        Stream->Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs +
-        (Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0 ?
-            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now) : 0);
-    Stream->BlockedTimings.CachedConnCongestionControlUs =
-        Stream->Connection->BlockedTimings.CongestionControl.CumulativeTimeUs +
-        (Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0 ?
-            CxPlatTimeDiff64(Stream->Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now) : 0);
+
+    Stream->BlockedTimings.CachedConnPacingUs = 0;
+    Stream->BlockedTimings.CachedConnAmplificationProtUs = 0;
+    Stream->BlockedTimings.CachedConnCongestionControlUs = 0;
+    for (uint8_t i = 0; i < Stream->Connection->PathsCount; i++) {
+        Stream->BlockedTimings.CachedConnPacingUs +=
+            Stream->Connection->Paths[i].BlockedTimings.Pacing.CumulativeTimeUs +
+            (Stream->Connection->Paths[i].BlockedTimings.Pacing.LastStartTimeUs != 0 ?
+                CxPlatTimeDiff64(Stream->Connection->Paths[i].BlockedTimings.Pacing.LastStartTimeUs, Now) : 0);
+        Stream->BlockedTimings.CachedConnAmplificationProtUs +=
+            Stream->Connection->Paths[i].BlockedTimings.AmplificationProt.CumulativeTimeUs +
+            (Stream->Connection->Paths[i].BlockedTimings.AmplificationProt.LastStartTimeUs != 0 ?
+                CxPlatTimeDiff64(Stream->Connection->Paths[i].BlockedTimings.AmplificationProt.LastStartTimeUs, Now) : 0);
+        Stream->BlockedTimings.CachedConnCongestionControlUs +=
+            Stream->Connection->Paths[i].BlockedTimings.CongestionControl.CumulativeTimeUs +
+            (Stream->Connection->Paths[i].BlockedTimings.CongestionControl.LastStartTimeUs != 0 ?
+                CxPlatTimeDiff64(Stream->Connection->Paths[i].BlockedTimings.CongestionControl.LastStartTimeUs, Now) : 0);
+    }
     Stream->BlockedTimings.CachedConnFlowControlUs =
         Stream->Connection->BlockedTimings.FlowControl.CumulativeTimeUs +
         (Stream->Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0 ?
@@ -893,24 +899,31 @@ QuicStreamParamGet(
                 CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now);
         }
         Stats->ConnBlockedBySchedulingUs -= Stream->BlockedTimings.CachedConnSchedulingUs;
-        Stats->ConnBlockedByPacingUs = Connection->BlockedTimings.Pacing.CumulativeTimeUs;
-        if (Connection->BlockedTimings.Pacing.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByPacingUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
+        
+        Stats->ConnBlockedByPacingUs = 0;
+        Stats->ConnBlockedByAmplificationProtUs = 0;
+        Stats->ConnBlockedByCongestionControlUs = 0;
+        for (uint8_t i = 0; i < Connection->PathsCount; i++) {
+            Stats->ConnBlockedByPacingUs += Connection->Paths[i].BlockedTimings.Pacing.CumulativeTimeUs;
+            if (Connection->Paths[i].BlockedTimings.Pacing.LastStartTimeUs != 0) {
+                Stats->ConnBlockedByPacingUs +=
+                    CxPlatTimeDiff64(Connection->Paths[i].BlockedTimings.Pacing.LastStartTimeUs, Now);
+            }
+            Stats->ConnBlockedByAmplificationProtUs = Connection->Paths[i].BlockedTimings.AmplificationProt.CumulativeTimeUs;
+            if (Connection->Paths[i].BlockedTimings.AmplificationProt.LastStartTimeUs != 0) {
+                Stats->ConnBlockedByAmplificationProtUs +=
+                    CxPlatTimeDiff64(Connection->Paths[i].BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
+            }
+            Stats->ConnBlockedByCongestionControlUs = Connection->Paths[i].BlockedTimings.CongestionControl.CumulativeTimeUs;
+            if (Connection->Paths[i].BlockedTimings.CongestionControl.LastStartTimeUs != 0) {
+                Stats->ConnBlockedByCongestionControlUs +=
+                    CxPlatTimeDiff64(Connection->Paths[i].BlockedTimings.CongestionControl.LastStartTimeUs, Now);
+            }
         }
         Stats->ConnBlockedByPacingUs -= Stream->BlockedTimings.CachedConnPacingUs;
-        Stats->ConnBlockedByAmplificationProtUs = Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs;
-        if (Connection->BlockedTimings.AmplificationProt.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByAmplificationProtUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
-        }
         Stats->ConnBlockedByAmplificationProtUs -= Stream->BlockedTimings.CachedConnAmplificationProtUs;
-        Stats->ConnBlockedByCongestionControlUs = Connection->BlockedTimings.CongestionControl.CumulativeTimeUs;
-        if (Connection->BlockedTimings.CongestionControl.LastStartTimeUs != 0) {
-            Stats->ConnBlockedByCongestionControlUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
-        }
         Stats->ConnBlockedByCongestionControlUs -= Stream->BlockedTimings.CachedConnCongestionControlUs;
+
         Stats->ConnBlockedByFlowControlUs = Connection->BlockedTimings.FlowControl.CumulativeTimeUs;
         if (Connection->BlockedTimings.FlowControl.LastStartTimeUs != 0) {
             Stats->ConnBlockedByFlowControlUs +=

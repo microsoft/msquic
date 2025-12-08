@@ -45,12 +45,13 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnBbr
-// [conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u
+// Decoder Ring for PathBbr
+// [conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u
 // QuicTraceEvent(
-        ConnBbr,
-        "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
-        PathID->Connection,
+        PathBbr,
+        "[conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+        Path->PathID->Connection,
+        Path->PathID->ID,
         Bbr->BbrState,
         Bbr->RecoveryState,
         BbrCongestionControlGetCongestionWindow(Cc),
@@ -59,30 +60,32 @@ TRACEPOINT_EVENT(CLOG_BBR_C, IndicateDataAcked,
         Bbr->MinRtt,
         BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
         BbrCongestionControlIsAppLimited(Cc));
-// arg2 = arg2 = PathID->Connection = arg2
-// arg3 = arg3 = Bbr->BbrState = arg3
-// arg4 = arg4 = Bbr->RecoveryState = arg4
-// arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
-// arg6 = arg6 = Bbr->BytesInFlight = arg6
-// arg7 = arg7 = Bbr->BytesInFlightMax = arg7
-// arg8 = arg8 = Bbr->MinRtt = arg8
-// arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
-// arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
+// arg2 = arg2 = Path->PathID->Connection = arg2
+// arg3 = arg3 = Path->PathID->ID = arg3
+// arg4 = arg4 = Bbr->BbrState = arg4
+// arg5 = arg5 = Bbr->RecoveryState = arg5
+// arg6 = arg6 = BbrCongestionControlGetCongestionWindow(Cc) = arg6
+// arg7 = arg7 = Bbr->BytesInFlight = arg7
+// arg8 = arg8 = Bbr->BytesInFlightMax = arg8
+// arg9 = arg9 = Bbr->MinRtt = arg9
+// arg10 = arg10 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg10
+// arg11 = arg11 = BbrCongestionControlIsAppLimited(Cc) = arg11
 ----------------------------------------------------------*/
-TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
+TRACEPOINT_EVENT(CLOG_BBR_C, PathBbr,
     TP_ARGS(
         const void *, arg2,
-        unsigned int, arg3,
+        unsigned char, arg3,
         unsigned int, arg4,
         unsigned int, arg5,
         unsigned int, arg6,
         unsigned int, arg7,
         unsigned int, arg8,
         unsigned int, arg9,
-        unsigned int, arg10), 
+        unsigned int, arg10,
+        unsigned int, arg11), 
     TP_FIELDS(
         ctf_integer_hex(uint64_t, arg2, (uint64_t)arg2)
-        ctf_integer(unsigned int, arg3, arg3)
+        ctf_integer(unsigned char, arg3, arg3)
         ctf_integer(unsigned int, arg4, arg4)
         ctf_integer(unsigned int, arg5, arg5)
         ctf_integer(unsigned int, arg6, arg6)
@@ -90,6 +93,7 @@ TRACEPOINT_EVENT(CLOG_BBR_C, ConnBbr,
         ctf_integer(unsigned int, arg8, arg8)
         ctf_integer(unsigned int, arg9, arg9)
         ctf_integer(unsigned int, arg10, arg10)
+        ctf_integer(unsigned int, arg11, arg11)
     )
 )
 

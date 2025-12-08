@@ -432,7 +432,9 @@ QuicLossDetectionOnPacketSent(
         SentPacket->Flags.KeyType != QUIC_PACKET_KEY_0_RTT ||
         SentPacket->Flags.IsAckEliciting);
 
+    Path->Stats.Send.TotalPackets++;
     Connection->Stats.Send.TotalPackets++;
+    Path->Stats.Send.TotalBytes += TempSentPacket->PacketLength;
     Connection->Stats.Send.TotalBytes += TempSentPacket->PacketLength;
     if (SentPacket->Flags.IsAckEliciting) {
 
@@ -450,7 +452,7 @@ QuicLossDetectionOnPacketSent(
         }
 
         QuicCongestionControlOnDataSent(
-            &Path->PathID->CongestionControl, SentPacket->PacketLength);
+            &Path->CongestionControl, SentPacket->PacketLength);
     }
 
     uint64_t SendPostedBytes = Connection->SendBuffer.PostedBytes;
@@ -462,13 +464,13 @@ QuicLossDetectionOnPacketSent(
           NULL;
 
     if (SendPostedBytes < Path->Mtu &&
-        QuicCongestionControlCanSend(&Path->PathID->CongestionControl) &&
+        QuicCongestionControlCanSend(&Path->CongestionControl) &&
         !QuicCryptoHasPendingCryptoFrame(&Connection->Crypto) &&
         (Stream && QuicStreamAllowedByPeer(Stream)) && !QuicStreamCanSendNow(Stream, FALSE)) {
-        QuicCongestionControlSetAppLimited(&Path->PathID->CongestionControl);
+        QuicCongestionControlSetAppLimited(&Path->CongestionControl);
     }
 
-    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Path->PathID->CongestionControl);
+    SentPacket->Flags.IsAppLimited = QuicCongestionControlIsAppLimited(&Path->CongestionControl);
 
     LossDetection->TotalBytesSent += TempSentPacket->PacketLength;
 
@@ -1067,7 +1069,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         uint64_t TwoPto =
             QuicLossDetectionComputeProbeTimeout(
                 LossDetection,
-                &Connection->Paths[0], // TODO - Is this right?
+                PathID->Path,
                 2);
         while ((Packet = LossDetection->LostPackets) != NULL &&
                 Packet->PacketNumber < LossDetection->LargestAck &&
@@ -1096,7 +1098,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
         // This implementation excludes kGranularity from the calculation,
         // because it is not needed to keep timers from firing early.
         //
-        const QUIC_PATH* Path = PathID->Path; // TODO - Correct?
+        QUIC_PATH* Path = PathID->Path;
         uint64_t Rtt = CXPLAT_MAX(Path->SmoothedRtt, Path->LatestRttSample);
         uint64_t TimeReorderThreshold = QUIC_TIME_REORDER_THRESHOLD(Rtt);
         uint64_t LargestLostPacketNumber = 0;
@@ -1153,6 +1155,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                 break;
             }
 
+            Path->Stats.Send.SuspectedLostPackets++;
             Connection->Stats.Send.SuspectedLostPackets++;
             QuicPerfCounterIncrement(
                 Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
@@ -1200,7 +1203,7 @@ QuicLossDetectionDetectAndHandleLostPackets(
                     LossDetection->ProbeCount > QUIC_PERSISTENT_CONGESTION_THRESHOLD
             };
 
-            QuicCongestionControlOnDataLost(&PathID->CongestionControl, &LossEvent);
+            QuicCongestionControlOnDataLost(&PathID->Path->CongestionControl, &LossEvent);
             //
             // Send packets from any previously blocked streams.
             //
@@ -1329,7 +1332,7 @@ QuicLossDetectionDiscardPackets(
     QuicLossValidate(LossDetection);
 
     if (AckedRetransmittableBytes > 0) {
-        const QUIC_PATH* Path = &Connection->Paths[0]; // TODO - Correct?
+        QUIC_PATH* Path = PathID->Path;
 
         QUIC_ACK_EVENT AckEvent = {
             .IsImplicit = TRUE,
@@ -1348,7 +1351,7 @@ QuicLossDetectionDiscardPackets(
             .MinRttValid = FALSE
         };
 
-        if (QuicCongestionControlOnDataAcknowledged(&PathID->CongestionControl, &AckEvent)) {
+        if (QuicCongestionControlOnDataAcknowledged(&Path->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1417,7 +1420,7 @@ QuicLossDetectionOnZeroRttRejected(
 
     if (CountRetransmittableBytes > 0) {
         if (QuicCongestionControlOnDataInvalidated(
-                &PathID->CongestionControl,
+                &PathID->Path->CongestionControl,
                 CountRetransmittableBytes)) {
             //
             // We were previously blocked and are now unblocked.
@@ -1502,6 +1505,7 @@ QuicLossDetectionProcessAckBlocks(
                     "[%c][TX][%llu] Spurious loss detected",
                     PtkConnPre(Connection),
                     (*End)->PacketNumber);
+                PathID->Path->Stats.Send.SpuriousLostPackets++;
                 Connection->Stats.Send.SpuriousLostPackets++;
                 QuicPerfCounterDecrement(
                     Connection->Partition, QUIC_PERF_COUNTER_PKTS_SUSPECTED_LOST);
@@ -1531,7 +1535,7 @@ QuicLossDetectionProcessAckBlocks(
                 // spuriously lost. Inform congestion control.
                 //
                 if (QuicCongestionControlOnSpuriousCongestionEvent(
-                        &PathID->CongestionControl)) {
+                        &Path->CongestionControl)) {
                     //
                     // We were previously blocked and are now unblocked.
                     //
@@ -1710,7 +1714,7 @@ CheckSentPackets:
                             .LargestPacketNumberAcked = LargestAckedPacketNum,
                             .LargestSentPacketNumber = LossDetection->LargestSentPacketNumber,
                         };
-                        QuicCongestionControlOnEcn(&PathID->CongestionControl, &EcnEvent);
+                        QuicCongestionControlOnEcn(&Path->CongestionControl, &EcnEvent);
                     }
                 }
             } else {
@@ -1764,7 +1768,7 @@ CheckSentPackets:
             .MinRttValid = TRUE,
         };
 
-        if (QuicCongestionControlOnDataAcknowledged(&PathID->CongestionControl, &AckEvent)) {
+        if (QuicCongestionControlOnDataAcknowledged(&Path->CongestionControl, &AckEvent)) {
             //
             // We were previously blocked and are now unblocked.
             //
@@ -1822,7 +1826,7 @@ QuicLossDetectionScheduleProbe(
     // GQUIC's previous experience, we go with 2.
     //
     uint8_t NumPackets = 2;
-    QuicCongestionControlSetExemption(&PathID->CongestionControl, NumPackets);
+    QuicCongestionControlSetExemption(&PathID->Path->CongestionControl, NumPackets);
     QuicSendQueueFlush(&Connection->Send, REASON_PROBE);
     Connection->Send.TailLossProbeNeeded = TRUE;
 

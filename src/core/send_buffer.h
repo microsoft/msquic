@@ -85,5 +85,5 @@ QuicSendBufferStreamAdjust(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 void
 QuicSendBufferConnectionAdjust(
-    _In_ QUIC_CONNECTION* Connection
+    _In_ QUIC_PATH* Path
     );

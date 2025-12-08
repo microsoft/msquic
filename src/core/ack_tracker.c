@@ -174,6 +174,7 @@ QuicAckTrackerAckPacket(
     )
 {
     QUIC_CONNECTION* Connection = QuicAckTrackerGetPacketSpace(Tracker)->Connection;
+    QUIC_PATH* Path = QuicAckTrackerGetPacketSpace(Tracker)->PathID->Path;
     _Analysis_assume_(Connection != NULL);
 
     //
@@ -190,6 +191,7 @@ QuicAckTrackerAckPacket(
         // Any time the largest known packet number is greater than the one
         // we just received, we consider it reordering.
         //
+        Path->Stats.Recv.ReorderedPackets++;
         Connection->Stats.Recv.ReorderedPackets++;
     }
 

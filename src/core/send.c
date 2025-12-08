@@ -1297,7 +1297,13 @@ QuicSendFlush(
     )
 {
     QUIC_CONNECTION* Connection = QuicSendGetConnection(Send);
-    QUIC_PATH* Path = QuicConnChoosePath(Connection);
+    QUIC_PATH* Path;
+    if (Send->FlushForPacing) {
+        Path = Send->PacingPath;
+        Send->FlushForPacing = FALSE;
+    } else {
+        Path = QuicConnChoosePath(Connection);
+    }
 
     CXPLAT_DBG_ASSERT(!Connection->State.HandleClosed);
 
@@ -1305,9 +1311,12 @@ QuicSendFlush(
         return TRUE;
     }
 
-    QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
-    QuicConnRemoveOutFlowBlockedReason(
-        Connection, QUIC_FLOW_BLOCKED_SCHEDULING | QUIC_FLOW_BLOCKED_PACING);
+    if (Path == Send->PacingPath) {
+        QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
+        QuicPathRemoveOutFlowBlockedReason(Path, QUIC_FLOW_BLOCKED_PACING);
+        Send->PacingPath = NULL;
+    }
+    QuicConnRemoveOutFlowBlockedReason(Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
 
     if (Path->DestCid == NULL) {
         return TRUE;
@@ -1423,13 +1432,14 @@ QuicSendFlush(
             //
             SendFlags &= QUIC_CONN_SEND_FLAGS_BYPASS_CC;
             if (!SendFlags) {
-                if (QuicCongestionControlCanSend(&Path->PathID->CongestionControl)) {
+                if (QuicCongestionControlCanSend(&Path->CongestionControl)) {
                     //
                     // The current pacing chunk is finished. We need to schedule a
                     // new pacing send.
                     //
-                    QuicConnAddOutFlowBlockedReason(
-                        Connection, QUIC_FLOW_BLOCKED_PACING);
+                    QuicPathAddOutFlowBlockedReason(
+                        Path, QUIC_FLOW_BLOCKED_PACING);
+                    Send->PacingPath = Path;
                     QuicConnTimerSet(
                         Connection,
                         QUIC_CONN_TIMER_PACING,

@@ -236,7 +236,7 @@ QuicPacketBuilderHasAllowance(
 {
     return
         Builder->SendAllowance > 0 ||
-        QuicCongestionControlGetExemptions(&Builder->Path->PathID->CongestionControl) > 0;
+        QuicCongestionControlGetExemptions(&Builder->Path->CongestionControl) > 0;
 }
 
 //

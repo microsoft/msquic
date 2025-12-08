@@ -8664,6 +8664,54 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathBbr": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+      "UniqueId": "PathBbr",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "lu",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg11"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PathChosen": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Chosen",
@@ -8680,6 +8728,58 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathCongestionV2": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu",
+      "UniqueId": "PathCongestionV2",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PathCubic": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
+      "UniqueId": "PathCubic",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg7"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PathDiscarded": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Removing invalid path[%hhu]",
@@ -8695,6 +8795,34 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathHyStartStateChange": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+      "UniqueId": "PathHyStartStateChange",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "PathIDDestCidAdded": {
       "ModuleProperites": {},
@@ -8792,6 +8920,26 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathInFlowStats": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%u] IN: BytesRecv=%llu",
+      "UniqueId": "PathInFlowStats",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PathInitialized": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Initialized",
@@ -8844,6 +8992,86 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathOutFlowBlocked": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] Send Blocked Flags: %hhu",
+      "UniqueId": "PathOutFlowBlocked",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PathPacketStats": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%u] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
+      "UniqueId": "PathPacketStats",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg10"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PathPersistentCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] Persistent congestion event",
+      "UniqueId": "PathPersistentCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PathQeoDisabled": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] QEO disabled",
@@ -8876,6 +9104,22 @@
       ],
       "macroName": "QuicTraceLogConnInfo"
     },
+    "PathRecoveryExit": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] Recovery complete",
+      "UniqueId": "PathRecoveryExit",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
     "PathRemoved": {
       "ModuleProperites": {},
       "TraceString": "[conn][%p] Path[%hhu] Removed",
@@ -8891,6 +9135,70 @@
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
+    },
+    "PathSpuriousCongestion": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%hhu] Spurious congestion event",
+      "UniqueId": "PathSpuriousCongestion",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "hhu",
+          "MacroVariableName": "arg3"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
+    },
+    "PathStatsV3": {
+      "ModuleProperites": {},
+      "TraceString": "[conn][%p][pathid][%u] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
+      "UniqueId": "PathStatsV3",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "p",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg6"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg7"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg8"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg9"
+        },
+        {
+          "DefinationEncoding": "s",
+          "MacroVariableName": "arg10"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg11"
+        }
+      ],
+      "macroName": "QuicTraceEvent"
     },
     "PathValidated": {
       "ModuleProperites": {},
@@ -16351,14 +16659,34 @@
         "EncodingString": "[conn][%p] Path[%hhu] Set active (rebind=%hhu)"
       },
       {
+        "UniquenessHash": "327a7afe-ed73-6a7f-9a19-c69fcb4b2e0a",
+        "TraceID": "PathBbr",
+        "EncodingString": "[conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u"
+      },
+      {
         "UniquenessHash": "5a90f0fc-2798-02bc-480f-c3072af80b0f",
         "TraceID": "PathChosen",
         "EncodingString": "[conn][%p] Path[%hhu] Chosen"
       },
       {
+        "UniquenessHash": "ebd7340d-88fe-39cb-6681-590f514b3c97",
+        "TraceID": "PathCongestionV2",
+        "EncodingString": "[conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu"
+      },
+      {
+        "UniquenessHash": "7714b3f6-2acf-59eb-5408-8b1c09fe7064",
+        "TraceID": "PathCubic",
+        "EncodingString": "[conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u"
+      },
+      {
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
         "TraceID": "PathDiscarded",
         "EncodingString": "[conn][%p] Removing invalid path[%hhu]"
+      },
+      {
+        "UniquenessHash": "31c5e95b-10d7-dfc4-436c-ef8d994a7b8c",
+        "TraceID": "PathHyStartStateChange",
+        "EncodingString": "[conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u"
       },
       {
         "UniquenessHash": "266baddf-b44e-90a5-2343-1fba327c0c28",
@@ -16381,6 +16709,11 @@
         "EncodingString": "[conn][%p] [pathid][%u] (SeqNum=%llu) Removed Source CID: %!CID!"
       },
       {
+        "UniquenessHash": "894e7ef6-f0d0-5ee0-bfd0-f63945bfa39a",
+        "TraceID": "PathInFlowStats",
+        "EncodingString": "[conn][%p][pathid][%u] IN: BytesRecv=%llu"
+      },
+      {
         "UniquenessHash": "607e449d-59a9-9d66-fcd1-b0a2e12f1dc1",
         "TraceID": "PathInitialized",
         "EncodingString": "[conn][%p] Path[%hhu] Initialized"
@@ -16396,6 +16729,21 @@
         "EncodingString": "[conn][%p] Path[%hhu] MTU updated to %hu bytes"
       },
       {
+        "UniquenessHash": "bb1e998d-41e5-31d9-6efa-5e70ee344107",
+        "TraceID": "PathOutFlowBlocked",
+        "EncodingString": "[conn][%p][pathid][%hhu] Send Blocked Flags: %hhu"
+      },
+      {
+        "UniquenessHash": "d3fefa27-024f-43dc-441c-ff8646443872",
+        "TraceID": "PathPacketStats",
+        "EncodingString": "[conn][%p][pathid][%u] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
+      },
+      {
+        "UniquenessHash": "4079a27c-7e52-29ed-ba6a-cde75b28f59a",
+        "TraceID": "PathPersistentCongestion",
+        "EncodingString": "[conn][%p][pathid][%hhu] Persistent congestion event"
+      },
+      {
         "UniquenessHash": "77bae646-5d83-b78d-08aa-24b36955b7e4",
         "TraceID": "PathQeoDisabled",
         "EncodingString": "[conn][%p] Path[%hhu] QEO disabled"
@@ -16406,9 +16754,24 @@
         "EncodingString": "[conn][%p] Path[%hhu] QEO enabled"
       },
       {
+        "UniquenessHash": "0053891d-6f7e-e795-ee95-f1fe98a508ca",
+        "TraceID": "PathRecoveryExit",
+        "EncodingString": "[conn][%p][pathid][%hhu] Recovery complete"
+      },
+      {
         "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",
         "TraceID": "PathRemoved",
         "EncodingString": "[conn][%p] Path[%hhu] Removed"
+      },
+      {
+        "UniquenessHash": "ca399849-277a-004e-bec8-13ecb379e4b4",
+        "TraceID": "PathSpuriousCongestion",
+        "EncodingString": "[conn][%p][pathid][%hhu] Spurious congestion event"
+      },
+      {
+        "UniquenessHash": "3a11aa94-00e7-21ac-dc7f-b09b82f1d756",
+        "TraceID": "PathStatsV3",
+        "EncodingString": "[conn][%p][pathid][%u] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u"
       },
       {
         "UniquenessHash": "4ce67714-4e7b-0004-8559-eee9a101fe4b",

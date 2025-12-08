@@ -651,9 +651,6 @@ typedef struct QUIC_CONNECTION {
     //
     struct {
         QUIC_FLOW_BLOCKED_TIMING_TRACKER Scheduling;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationProt;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
         QUIC_FLOW_BLOCKED_TIMING_TRACKER FlowControl;
     } BlockedTimings;
 
@@ -773,32 +770,6 @@ QuicSendGetConnection(
 }
 
 //
-// Helper to get the owning QUIC_CONNECTION for the congestion control module.
-//
-QUIC_INLINE
-_Ret_notnull_
-QUIC_PATHID*
-QuicCongestionControlGetPathID(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return CXPLAT_CONTAINING_RECORD(Cc, QUIC_PATHID, CongestionControl);
-}
-
-//
-// Helper to get the QUIC_PACKET_SPACE for a loss detection.
-//
-QUIC_INLINE
-_Ret_notnull_
-QUIC_PATHID*
-QuicLossDetectionGetPathID(
-    _In_ QUIC_LOSS_DETECTION* LossDetection
-    )
-{
-    return CXPLAT_CONTAINING_RECORD(LossDetection, QUIC_PATHID, LossDetection);
-}
-
-//
 // Helper to get the owning QUIC_CONNECTION for datagram.
 //
 QUIC_INLINE
@@ -827,25 +798,23 @@ QuicPathIDSetGetConnection(
 QUIC_INLINE
 void
 QuicConnLogOutFlowStats(
-    _In_ const QUIC_PATHID* const PathID
+    _In_ const QUIC_CONNECTION* const Connection
     )
 {
     if (!QuicTraceEventEnabled(ConnOutFlowStats)) {
         return;
     }
 
-    QuicCongestionControlLogOutFlowStatus(&PathID->CongestionControl);
-
     uint64_t FcAvailable, SendWindow;
     QuicStreamSetGetFlowControlSummary(
-        &PathID->Connection->Streams,
+        &Connection->Streams,
         &FcAvailable,
         &SendWindow);
 
     QuicTraceEvent(
         ConnOutFlowStreamStats,
         "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
-        PathID->Connection,
+        Connection,
         FcAvailable,
         SendWindow);
 }
@@ -865,42 +834,6 @@ QuicConnLogInFlowStats(
 }
 
 QUIC_INLINE
-void
-QuicConnLogStatistics(
-    _In_ const QUIC_CONNECTION* const Connection
-    )
-{
-    const QUIC_PATH* Path = &Connection->Paths[0];
-    UNREFERENCED_PARAMETER(Path);
-
-    QuicTraceEvent(
-        ConnStatsV3,
-        "[conn][%p] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
-        Connection,
-        Path->SmoothedRtt,
-        Connection->Stats.Send.CongestionCount,
-        Connection->Stats.Send.PersistentCongestionCount,
-        Connection->Stats.Send.TotalBytes,
-        Connection->Stats.Recv.TotalBytes,
-        QuicCongestionControlGetCongestionWindow(&Path->PathID->CongestionControl),
-        Path->PathID->CongestionControl.Name,
-        Connection->Stats.Send.EcnCongestionCount);
-
-    QuicTraceEvent(
-        ConnPacketStats,
-        "[conn][%p] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDroppedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
-        Connection,
-        Connection->Stats.Send.TotalPackets,
-        Connection->Stats.Send.SuspectedLostPackets,
-        Connection->Stats.Send.SpuriousLostPackets,
-        Connection->Stats.Recv.TotalPackets,
-        Connection->Stats.Recv.ReorderedPackets,
-        Connection->Stats.Recv.DroppedPackets,
-        Connection->Stats.Recv.DuplicatePackets,
-        Connection->Stats.Recv.DecryptionFailures);
-}
-
-QUIC_INLINE
 BOOLEAN
 QuicConnAddOutFlowBlockedReason(
     _In_ QUIC_CONNECTION* Connection,
@@ -912,17 +845,8 @@ QuicConnAddOutFlowBlockedReason(
         "More than one reason is not allowed");
     if (!(Connection->OutFlowBlockedReasons & Reason)) {
         uint64_t Now = CxPlatTimeUs64();
-        if (Reason & QUIC_FLOW_BLOCKED_PACING) {
-            Connection->BlockedTimings.Pacing.LastStartTimeUs = Now;
-        }
         if (Reason & QUIC_FLOW_BLOCKED_SCHEDULING) {
             Connection->BlockedTimings.Scheduling.LastStartTimeUs = Now;
-        }
-        if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
-            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = Now;
-        }
-        if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
-            Connection->BlockedTimings.CongestionControl.LastStartTimeUs = Now;
         }
         if (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) {
             Connection->BlockedTimings.FlowControl.LastStartTimeUs = Now;
@@ -948,29 +872,11 @@ QuicConnRemoveOutFlowBlockedReason(
 {
     if ((Connection->OutFlowBlockedReasons & Reason)) {
         uint64_t Now = CxPlatTimeUs64();
-        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_PACING) &&
-            (Reason & QUIC_FLOW_BLOCKED_PACING)) {
-            Connection->BlockedTimings.Pacing.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.Pacing.LastStartTimeUs, Now);
-            Connection->BlockedTimings.Pacing.LastStartTimeUs = 0;
-        }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_SCHEDULING) &&
             (Reason & QUIC_FLOW_BLOCKED_SCHEDULING)) {
             Connection->BlockedTimings.Scheduling.CumulativeTimeUs +=
                 CxPlatTimeDiff64(Connection->BlockedTimings.Scheduling.LastStartTimeUs, Now);
             Connection->BlockedTimings.Scheduling.LastStartTimeUs = 0;
-        }
-        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
-            (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
-            Connection->BlockedTimings.AmplificationProt.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
-            Connection->BlockedTimings.AmplificationProt.LastStartTimeUs = 0;
-        }
-        if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
-            (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {
-            Connection->BlockedTimings.CongestionControl.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Connection->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
-            Connection->BlockedTimings.CongestionControl.LastStartTimeUs = 0;
         }
         if ((Connection->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL) &&
             (Reason & QUIC_FLOW_BLOCKED_CONN_FLOW_CONTROL)) {
