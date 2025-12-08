@@ -8730,7 +8730,7 @@
     },
     "PathCongestionV2": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu",
+      "TraceString": "[conn][%p][pathid][%u] Congestion event: IsEcn=%hu",
       "UniqueId": "PathCongestionV2",
       "splitArgs": [
         {
@@ -8738,7 +8738,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
@@ -8750,7 +8750,7 @@
     },
     "PathCubic": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
+      "TraceString": "[conn][%p][pathid][%u] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
       "UniqueId": "PathCubic",
       "splitArgs": [
         {
@@ -8758,7 +8758,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
@@ -8798,7 +8798,7 @@
     },
     "PathHyStartStateChange": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+      "TraceString": "[conn][%p][pathid][%u] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
       "UniqueId": "PathHyStartStateChange",
       "splitArgs": [
         {
@@ -8806,7 +8806,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         },
         {
@@ -9058,7 +9058,7 @@
     },
     "PathPersistentCongestion": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] Persistent congestion event",
+      "TraceString": "[conn][%p][pathid][%u] Persistent congestion event",
       "UniqueId": "PathPersistentCongestion",
       "splitArgs": [
         {
@@ -9066,7 +9066,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -9106,7 +9106,7 @@
     },
     "PathRecoveryExit": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] Recovery complete",
+      "TraceString": "[conn][%p][pathid][%u] Recovery complete",
       "UniqueId": "PathRecoveryExit",
       "splitArgs": [
         {
@@ -9114,7 +9114,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -9138,7 +9138,7 @@
     },
     "PathSpuriousCongestion": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p][pathid][%hhu] Spurious congestion event",
+      "TraceString": "[conn][%p][pathid][%u] Spurious congestion event",
       "UniqueId": "PathSpuriousCongestion",
       "splitArgs": [
         {
@@ -9146,7 +9146,7 @@
           "MacroVariableName": "arg2"
         },
         {
-          "DefinationEncoding": "hhu",
+          "DefinationEncoding": "u",
           "MacroVariableName": "arg3"
         }
       ],
@@ -16669,14 +16669,14 @@
         "EncodingString": "[conn][%p] Path[%hhu] Chosen"
       },
       {
-        "UniquenessHash": "ebd7340d-88fe-39cb-6681-590f514b3c97",
+        "UniquenessHash": "466f74a4-9c7f-8bee-f6b3-df16acf9493f",
         "TraceID": "PathCongestionV2",
-        "EncodingString": "[conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu"
+        "EncodingString": "[conn][%p][pathid][%u] Congestion event: IsEcn=%hu"
       },
       {
-        "UniquenessHash": "7714b3f6-2acf-59eb-5408-8b1c09fe7064",
+        "UniquenessHash": "28a9e952-d612-ee05-64ab-1176ea117109",
         "TraceID": "PathCubic",
-        "EncodingString": "[conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u"
+        "EncodingString": "[conn][%p][pathid][%u] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u"
       },
       {
         "UniquenessHash": "8843a66a-349f-e5a2-a63c-5120fb187f69",
@@ -16684,9 +16684,9 @@
         "EncodingString": "[conn][%p] Removing invalid path[%hhu]"
       },
       {
-        "UniquenessHash": "31c5e95b-10d7-dfc4-436c-ef8d994a7b8c",
+        "UniquenessHash": "bdd8ce5d-e489-65db-7c1a-dc483295d1b0",
         "TraceID": "PathHyStartStateChange",
-        "EncodingString": "[conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u"
+        "EncodingString": "[conn][%p][pathid][%u] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u"
       },
       {
         "UniquenessHash": "266baddf-b44e-90a5-2343-1fba327c0c28",
@@ -16739,9 +16739,9 @@
         "EncodingString": "[conn][%p][pathid][%u] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu"
       },
       {
-        "UniquenessHash": "4079a27c-7e52-29ed-ba6a-cde75b28f59a",
+        "UniquenessHash": "51216abf-8235-a0b9-580a-6accebc26cdc",
         "TraceID": "PathPersistentCongestion",
-        "EncodingString": "[conn][%p][pathid][%hhu] Persistent congestion event"
+        "EncodingString": "[conn][%p][pathid][%u] Persistent congestion event"
       },
       {
         "UniquenessHash": "77bae646-5d83-b78d-08aa-24b36955b7e4",
@@ -16754,9 +16754,9 @@
         "EncodingString": "[conn][%p] Path[%hhu] QEO enabled"
       },
       {
-        "UniquenessHash": "0053891d-6f7e-e795-ee95-f1fe98a508ca",
+        "UniquenessHash": "4ee9e7dd-b388-39ad-0324-a938e491b343",
         "TraceID": "PathRecoveryExit",
-        "EncodingString": "[conn][%p][pathid][%hhu] Recovery complete"
+        "EncodingString": "[conn][%p][pathid][%u] Recovery complete"
       },
       {
         "UniquenessHash": "2e3024b8-4329-c124-05b3-9801c51b9346",
@@ -16764,9 +16764,9 @@
         "EncodingString": "[conn][%p] Path[%hhu] Removed"
       },
       {
-        "UniquenessHash": "ca399849-277a-004e-bec8-13ecb379e4b4",
+        "UniquenessHash": "ca15f2c4-b255-2e1f-6987-380babed5b44",
         "TraceID": "PathSpuriousCongestion",
-        "EncodingString": "[conn][%p][pathid][%hhu] Spurious congestion event"
+        "EncodingString": "[conn][%p][pathid][%u] Spurious congestion event"
       },
       {
         "UniquenessHash": "3a11aa94-00e7-21ac-dc7f-b09b82f1d756",

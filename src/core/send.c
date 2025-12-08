@@ -1313,7 +1313,7 @@ QuicSendFlush(
 
     if (Path == Send->PacingPath) {
         QuicConnTimerCancel(Connection, QUIC_CONN_TIMER_PACING);
-        QuicPathRemoveOutFlowBlockedReason(Path, QUIC_FLOW_BLOCKED_PACING);
+        QuicPathIDRemoveOutFlowBlockedReason(Path->PathID, QUIC_FLOW_BLOCKED_PACING);
         Send->PacingPath = NULL;
     }
     QuicConnRemoveOutFlowBlockedReason(Connection, QUIC_FLOW_BLOCKED_SCHEDULING);
@@ -1432,13 +1432,13 @@ QuicSendFlush(
             //
             SendFlags &= QUIC_CONN_SEND_FLAGS_BYPASS_CC;
             if (!SendFlags) {
-                if (QuicCongestionControlCanSend(&Path->CongestionControl)) {
+                if (QuicCongestionControlCanSend(&Path->PathID->CongestionControl)) {
                     //
                     // The current pacing chunk is finished. We need to schedule a
                     // new pacing send.
                     //
-                    QuicPathAddOutFlowBlockedReason(
-                        Path, QUIC_FLOW_BLOCKED_PACING);
+                    QuicPathIDAddOutFlowBlockedReason(
+                        Path->PathID, QUIC_FLOW_BLOCKED_PACING);
                     Send->PacingPath = Path;
                     QuicConnTimerSet(
                         Connection,

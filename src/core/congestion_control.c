@@ -30,7 +30,7 @@ QuicCongestionControlInitialize(
     default:
         QuicTraceLogConnWarning(
             InvalidCongestionControlAlgorithm,
-            QuicCongestionControlGetPath(Cc)->PathID->Connection,
+            QuicCongestionControlGetPathID(Cc)->Connection,
             "Unknown congestion control algorithm: %hu, fallback to Cubic",
             Settings->CongestionControlAlgorithm);
         __fallthrough;

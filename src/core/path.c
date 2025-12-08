@@ -99,8 +99,8 @@ QuicPathSetAllowance(
 
     if (!Path->IsPeerValidated) {
         if (!IsBlocked) {
-            if (QuicPathRemoveOutFlowBlockedReason(
-                    Path, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
+            if (QuicPathIDRemoveOutFlowBlockedReason(
+                    Path->PathID, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
 
                 if (Connection->Send.SendFlags != 0) {
                     //
@@ -120,8 +120,8 @@ QuicPathSetAllowance(
             }
 
         } else {
-            QuicPathAddOutFlowBlockedReason(
-                Path, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
+            QuicPathIDAddOutFlowBlockedReason(
+                Path->PathID, QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT);
         }
     }
 }
@@ -298,7 +298,9 @@ QuicConnGetPathForPacket(
     QuicPathIDAddRef(PathID, QUIC_PATHID_REF_PATH);
     Path->PathID = PathID;
     PathID->Path = Path;
-    QuicCongestionControlInitialize(&Path->CongestionControl, &Connection->Settings);
+    if (Connection->State.MultipathNegotiated) {
+        QuicCongestionControlInitialize(&PathID->CongestionControl, &Connection->Settings);
+    }
     PathID->Flags.InUse = TRUE;
     QuicCopyRouteInfo(&Path->Route, Packet->Route);
     QuicPathValidate(Path);
@@ -385,7 +387,7 @@ QuicPathSetActive(
         UdpPortChangeOnly);
 
     if (!UdpPortChangeOnly) {
-        QuicCongestionControlReset(&Path->CongestionControl, FALSE);
+        QuicCongestionControlReset(&Path->PathID->CongestionControl, FALSE);
     }
     CXPLAT_DBG_ASSERT(Connection->Paths[0].DestCid != NULL);
     CXPLAT_DBG_ASSERT(!Connection->Paths[0].DestCid->CID.Retired);

@@ -7,10 +7,10 @@
 // QuicTraceEvent(
         ConnOutFlowStreamStats,
         "[conn][%p] OUT: StreamFC=%llu StreamSendWindow=%llu",
-        PathID->Connection,
+        Connection,
         FcAvailable,
         SendWindow);
-// arg2 = arg2 = PathID->Connection = arg2
+// arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = FcAvailable = arg3
 // arg4 = arg4 = SendWindow = arg4
 ----------------------------------------------------------*/

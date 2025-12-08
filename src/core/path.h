@@ -4,9 +4,6 @@
     Licensed under the MIT License.
 
 --*/
-#ifdef QUIC_CLOG
-#include "path.h.clog.h"
-#endif
 
 //
 // ECN validation state transition:
@@ -41,37 +38,6 @@ typedef enum ECN_VALIDATION_STATE {
     ECN_VALIDATION_CAPABLE,
     ECN_VALIDATION_FAILED, // or not enabled by the app.
 } ECN_VALIDATION_STATE;
-
-//
-// Per path statistics.
-//
-typedef struct QUIC_PATH_STATS {
-    struct {
-        uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t RetransmittablePackets;
-        uint64_t SuspectedLostPackets;
-        uint64_t SpuriousLostPackets;   // Actual lost is (SuspectedLostPackets - SpuriousLostPackets)
-
-        uint64_t TotalBytes;            // Sum of UDP payloads
-        uint64_t TotalStreamBytes;      // Sum of stream payloads
-
-        uint32_t CongestionCount;
-        uint32_t EcnCongestionCount;
-        uint32_t PersistentCongestionCount;
-    } Send;
-
-    struct {
-        uint64_t TotalPackets;          // QUIC packets; could be coalesced into fewer UDP datagrams.
-        uint64_t ReorderedPackets;      // Packets where packet number is less than highest seen.
-        uint64_t DuplicatePackets;
-        uint64_t DecryptionFailures;    // Count of packets that failed to decrypt.
-        uint64_t ValidPackets;          // Count of packets that successfully decrypted or had no encryption.
-        uint64_t ValidAckFrames;        // Count of receive ACK frames.
-
-        uint64_t TotalBytes;            // Sum of UDP payloads
-        uint64_t TotalStreamBytes;      // Sum of stream payloads
-    } Recv;
-} QUIC_PATH_STATS;
 
 //
 // Represents all the per-path information of a connection.
@@ -197,16 +163,6 @@ typedef struct QUIC_PATH {
     QUIC_CID_LIST_ENTRY* DestCid;
 
     //
-    // Congestion control state.
-    //
-    QUIC_CONGESTION_CONTROL CongestionControl;
-
-    //
-    // Statistics
-    //
-    QUIC_PATH_STATS Stats;
-
-    //
     // RTT moving average, computed as in RFC6298. Units of microseconds.
     //
     uint64_t SmoothedRtt;
@@ -239,20 +195,6 @@ typedef struct QUIC_PATH {
     // Time when path validation was begun. Used for timing out path validation.
     //
     uint64_t PathValidationStartTime;
-
-    //
-    // Set of current reasons sending more packets is currently blocked.
-    //
-    uint8_t OutFlowBlockedReasons; // Set of QUIC_FLOW_BLOCKED_* flags
-
-    //
-    // Path blocked timings.
-    //
-    struct {
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER Pacing;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER AmplificationProt;
-        QUIC_FLOW_BLOCKED_TIMING_TRACKER CongestionControl;
-    } BlockedTimings;
 
 } QUIC_PATH;
 
@@ -407,153 +349,4 @@ QuicPathUpdateQeo(
     _In_ CXPLAT_QEO_OPERATION Operation
     );
 
-//
-// Helper to get the owning QUIC_CONNECTION for the congestion control module.
-//
-QUIC_INLINE
-_Ret_notnull_
-QUIC_PATH*
-QuicCongestionControlGetPath(
-    _In_ const QUIC_CONGESTION_CONTROL* Cc
-    )
-{
-    return CXPLAT_CONTAINING_RECORD(Cc, QUIC_PATH, CongestionControl);
-}
 
-QUIC_INLINE
-void
-QuicPathLogOutFlowStats(
-    _In_ const QUIC_PATH* const Path
-    )
-{
-    if (!QuicTraceEventEnabled(ConnOutFlowStats)) {
-        return;
-    }
-
-    QuicCongestionControlLogOutFlowStatus(&Path->CongestionControl);
-}
-
-QUIC_INLINE
-void
-QuicPathLogInFlowStats(
-    _In_ const QUIC_PATH* const Path
-    )
-{
-    UNREFERENCED_PARAMETER(Path);
-    QuicTraceEvent(
-        PathInFlowStats,
-        "[conn][%p][pathid][%u] IN: BytesRecv=%llu",
-        Path->PathID->Connection,
-        Path->PathID->ID,
-        Path->Stats.Recv.TotalBytes);
-}
-
-QUIC_INLINE
-void
-QuicPathLogStatistics(
-    _In_ const QUIC_PATH* const Path
-    )
-{
-    UNREFERENCED_PARAMETER(Path);
-
-    QuicTraceEvent(
-        PathStatsV3,
-        "[conn][%p][pathid][%u] STATS: SRtt=%llu CongestionCount=%u PersistentCongestionCount=%u SendTotalBytes=%llu RecvTotalBytes=%llu CongestionWindow=%u Cc=%s EcnCongestionCount=%u",
-        Path->PathID->Connection,
-        Path->PathID->ID,
-        Path->SmoothedRtt,
-        Path->Stats.Send.CongestionCount,
-        Path->Stats.Send.PersistentCongestionCount,
-        Path->Stats.Send.TotalBytes,
-        Path->Stats.Recv.TotalBytes,
-        QuicCongestionControlGetCongestionWindow(&Path->CongestionControl),
-        Path->CongestionControl.Name,
-        Path->Stats.Send.EcnCongestionCount);
-
-    QuicTraceEvent(
-        PathPacketStats,
-        "[conn][%p][pathid][%u] STATS: SendTotalPackets=%llu SendSuspectedLostPackets=%llu SendSpuriousLostPackets=%llu RecvTotalPackets=%llu RecvReorderedPackets=%llu RecvDuplicatePackets=%llu RecvDecryptionFailures=%llu",
-        Path->PathID->Connection,
-        Path->PathID->ID,
-        Path->Stats.Send.TotalPackets,
-        Path->Stats.Send.SuspectedLostPackets,
-        Path->Stats.Send.SpuriousLostPackets,
-        Path->Stats.Recv.TotalPackets,
-        Path->Stats.Recv.ReorderedPackets,
-        Path->Stats.Recv.DuplicatePackets,
-        Path->Stats.Recv.DecryptionFailures);
-}
-
-QUIC_INLINE
-BOOLEAN
-QuicPathAddOutFlowBlockedReason(
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_FLOW_BLOCK_REASON Reason
-    )
-{
-    CXPLAT_DBG_ASSERTMSG(
-        (Reason & (Reason - 1)) == 0,
-        "More than one reason is not allowed");
-    if (!(Path->OutFlowBlockedReasons & Reason)) {
-        uint64_t Now = CxPlatTimeUs64();
-        if (Reason & QUIC_FLOW_BLOCKED_PACING) {
-            Path->BlockedTimings.Pacing.LastStartTimeUs = Now;
-        }
-        if (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) {
-            Path->BlockedTimings.AmplificationProt.LastStartTimeUs = Now;
-        }
-        if (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) {
-            Path->BlockedTimings.CongestionControl.LastStartTimeUs = Now;
-        }
-
-        Path->OutFlowBlockedReasons |= Reason;
-        QuicTraceEvent(
-            PathOutFlowBlocked,
-            "[conn][%p][pathid][%hhu] Send Blocked Flags: %hhu",
-            Path->PathID->Connection,
-            Path->PathID->ID,
-            Path->OutFlowBlockedReasons);
-        return TRUE;
-    }
-    return FALSE;
-}
-
-QUIC_INLINE
-BOOLEAN
-QuicPathRemoveOutFlowBlockedReason(
-    _In_ QUIC_PATH* Path,
-    _In_ QUIC_FLOW_BLOCK_REASON Reason
-    )
-{
-    if ((Path->OutFlowBlockedReasons & Reason)) {
-        uint64_t Now = CxPlatTimeUs64();
-        if ((Path->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_PACING) &&
-            (Reason & QUIC_FLOW_BLOCKED_PACING)) {
-            Path->BlockedTimings.Pacing.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Path->BlockedTimings.Pacing.LastStartTimeUs, Now);
-            Path->BlockedTimings.Pacing.LastStartTimeUs = 0;
-        }
-        if ((Path->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT) &&
-            (Reason & QUIC_FLOW_BLOCKED_AMPLIFICATION_PROT)) {
-            Path->BlockedTimings.AmplificationProt.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Path->BlockedTimings.AmplificationProt.LastStartTimeUs, Now);
-            Path->BlockedTimings.AmplificationProt.LastStartTimeUs = 0;
-        }
-        if ((Path->OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) &&
-            (Reason & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL)) {
-            Path->BlockedTimings.CongestionControl.CumulativeTimeUs +=
-                CxPlatTimeDiff64(Path->BlockedTimings.CongestionControl.LastStartTimeUs, Now);
-            Path->BlockedTimings.CongestionControl.LastStartTimeUs = 0;
-        }
-
-        Path->OutFlowBlockedReasons &= ~Reason;
-        QuicTraceEvent(
-            PathOutFlowBlocked,
-            "[conn][%p][pathid][%hhu] Send Blocked Flags: %hhu",
-            Path->PathID->Connection,
-            Path->PathID->ID,
-            Path->OutFlowBlockedReasons);
-        return TRUE;
-    }
-    return FALSE;
-}

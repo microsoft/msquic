@@ -57,18 +57,18 @@ tracepoint(CLOG_CUBIC_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7,
 
 /*----------------------------------------------------------
 // Decoder Ring for PathCubic
-// [conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u
+// [conn][%p][pathid][%u] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u
 // QuicTraceEvent(
         PathCubic,
-        "[conn][%p][pathid][%hhu] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
-        Path->PathID->Connection,
-        Path->PathID->ID,
+        "[conn][%p][pathid][%u] CUBIC: SlowStartThreshold=%u K=%u WindowMax=%u WindowLastMax=%u",
+        PathID->Connection,
+        PathID->ID,
         Cubic->SlowStartThreshold,
         Cubic->KCubic,
         Cubic->WindowMax,
         Cubic->WindowLastMax);
-// arg2 = arg2 = Path->PathID->Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
 // arg4 = arg4 = Cubic->SlowStartThreshold = arg4
 // arg5 = arg5 = Cubic->KCubic = arg5
 // arg6 = arg6 = Cubic->WindowMax = arg6
@@ -85,17 +85,17 @@ tracepoint(CLOG_CUBIC_C, PathCubic , arg2, arg3, arg4, arg5, arg6, arg7);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathHyStartStateChange
-// [conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u
+// [conn][%p][pathid][%u] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u
 // QuicTraceEvent(
             PathHyStartStateChange,
-            "[conn][%p][pathid][%hhu] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
+            "[conn][%p][pathid][%u] HyStart: State=%u CongestionWindow=%u SlowStartThreshold=%u",
             Connection,
-            Path->PathID->ID,
+            PathID->ID,
             NewHyStartState,
             Cubic->CongestionWindow,
             Cubic->SlowStartThreshold);
 // arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+// arg3 = arg3 = PathID->ID = arg3
 // arg4 = arg4 = NewHyStartState = arg4
 // arg5 = arg5 = Cubic->CongestionWindow = arg5
 // arg6 = arg6 = Cubic->SlowStartThreshold = arg6
@@ -111,15 +111,15 @@ tracepoint(CLOG_CUBIC_C, PathHyStartStateChange , arg2, arg3, arg4, arg5, arg6);
 
 /*----------------------------------------------------------
 // Decoder Ring for PathCongestionV2
-// [conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu
+// [conn][%p][pathid][%u] Congestion event: IsEcn=%hu
 // QuicTraceEvent(
         PathCongestionV2,
-        "[conn][%p][pathid][%hhu] Congestion event: IsEcn=%hu",
-        Path->PathID->Connection,
-        Path->PathID->ID,
+        "[conn][%p][pathid][%u] Congestion event: IsEcn=%hu",
+        Connection,
+        PathID->ID,
         Ecn);
-// arg2 = arg2 = Path->PathID->Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
 // arg4 = arg4 = Ecn = arg4
 ----------------------------------------------------------*/
 #ifndef _clog_5_ARGS_TRACE_PathCongestionV2
@@ -133,14 +133,14 @@ tracepoint(CLOG_CUBIC_C, PathCongestionV2 , arg2, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathPersistentCongestion
-// [conn][%p][pathid][%hhu] Persistent congestion event
+// [conn][%p][pathid][%u] Persistent congestion event
 // QuicTraceEvent(
             PathPersistentCongestion,
-            "[conn][%p][pathid][%hhu] Persistent congestion event",
-            Path->PathID->Connection,
-            Path->PathID->ID);
-// arg2 = arg2 = Path->PathID->Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+            "[conn][%p][pathid][%u] Persistent congestion event",
+            Connection,
+            PathID->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PathPersistentCongestion
 #define _clog_4_ARGS_TRACE_PathPersistentCongestion(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -153,14 +153,14 @@ tracepoint(CLOG_CUBIC_C, PathPersistentCongestion , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathRecoveryExit
-// [conn][%p][pathid][%hhu] Recovery complete
+// [conn][%p][pathid][%u] Recovery complete
 // QuicTraceEvent(
                 PathRecoveryExit,
-                "[conn][%p][pathid][%hhu] Recovery complete",
-                Path->PathID->Connection,
-                Path->PathID->ID);
-// arg2 = arg2 = Path->PathID->Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+                "[conn][%p][pathid][%u] Recovery complete",
+                Connection,
+                PathID->ID);
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PathRecoveryExit
 #define _clog_4_ARGS_TRACE_PathRecoveryExit(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -173,14 +173,14 @@ tracepoint(CLOG_CUBIC_C, PathRecoveryExit , arg2, arg3);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathSpuriousCongestion
-// [conn][%p][pathid][%hhu] Spurious congestion event
+// [conn][%p][pathid][%u] Spurious congestion event
 // QuicTraceEvent(
         PathSpuriousCongestion,
-        "[conn][%p][pathid][%hhu] Spurious congestion event",
-        Path->PathID->Connection,
-        Path->PathID->ID);
-// arg2 = arg2 = Path->PathID->Connection = arg2
-// arg3 = arg3 = Path->PathID->ID = arg3
+        "[conn][%p][pathid][%u] Spurious congestion event",
+        PathID->Connection,
+        PathID->ID);
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
 ----------------------------------------------------------*/
 #ifndef _clog_4_ARGS_TRACE_PathSpuriousCongestion
 #define _clog_4_ARGS_TRACE_PathSpuriousCongestion(uniqueId, encoded_arg_string, arg2, arg3)\
@@ -204,8 +204,8 @@ tracepoint(CLOG_CUBIC_C, PathSpuriousCongestion , arg2, arg3);\
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        Path->OneWayDelay);
+        PathID->Path->GotFirstRttSample ? PathID->Path->SmoothedRtt : 0,
+        PathID->Path->OneWayDelay);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
 // arg4 = arg4 = Cubic->BytesInFlight = arg4
@@ -213,8 +213,8 @@ tracepoint(CLOG_CUBIC_C, PathSpuriousCongestion , arg2, arg3);\
 // arg6 = arg6 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg6
 // arg7 = arg7 = Connection->SendBuffer.IdealBytes = arg7
 // arg8 = arg8 = Connection->SendBuffer.PostedBytes = arg8
-// arg9 = arg9 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg9
-// arg10 = arg10 = Path->OneWayDelay = arg10
+// arg9 = arg9 = PathID->Path->GotFirstRttSample ? PathID->Path->SmoothedRtt : 0 = arg9
+// arg10 = arg10 = PathID->Path->OneWayDelay = arg10
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnOutFlowStatsV2
 #define _clog_11_ARGS_TRACE_ConnOutFlowStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
