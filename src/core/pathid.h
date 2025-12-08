@@ -428,13 +428,6 @@ QuicPathIDAssignCids(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicPathIDWriteAckFrame(
-    _In_ QUIC_PATHID* PathID,
-    _Inout_ QUIC_PACKET_BUILDER* Builder
-    );
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
 QuicPathIDWriteNewConnectionIDFrame(
     _In_ QUIC_PATHID* PathID,
     _Inout_ QUIC_PACKET_BUILDER* Builder,

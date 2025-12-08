@@ -354,35 +354,6 @@ QuicPathIDSetGenerateNewSourceCids(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicPathIDSetWriteAckFrame(
-    _In_ QUIC_PATHID_SET* PathIDSet,
-    _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _Out_ BOOLEAN* RanOutOfRoom
-    )
-{
-    BOOLEAN Success = FALSE;
-    *RanOutOfRoom = FALSE;
-
-    QUIC_PATHID* PathIDs[QUIC_ACTIVE_PATH_ID_LIMIT];
-    uint8_t PathIDCount = QUIC_ACTIVE_PATH_ID_LIMIT;
-    QuicPathIDSetGetPathIDs(PathIDSet, PathIDs, &PathIDCount);
-
-    for (uint8_t i = 0; i < PathIDCount; i++) {
-        if (QuicPathIDWriteAckFrame(PathIDs[i], Builder)) {
-            QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
-            Success = TRUE;
-        } else {
-            QuicPathIDRelease(PathIDs[i], QUIC_PATHID_REF_LOOKUP);
-            *RanOutOfRoom = TRUE;
-            break;
-        }
-    }
-
-    return Success;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
 QuicPathIDSetWriteNewConnectionIDFrame(
     _In_ QUIC_PATHID_SET* PathIDSet,
     _Inout_ QUIC_PACKET_BUILDER* Builder,

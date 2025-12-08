@@ -145,13 +145,6 @@ QuicPathIDSetGenerateNewSourceCids(
     _In_ BOOLEAN ReplaceExistingCids
     );
 
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
-QuicPathIDSetWriteAckFrame(
-    _In_ QUIC_PATHID_SET* PathIDSet,
-    _Inout_ QUIC_PACKET_BUILDER* Builder,
-    _Out_ BOOLEAN* RanOutOfRoom
-    );
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN

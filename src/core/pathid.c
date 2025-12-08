@@ -734,22 +734,6 @@ QuicPathIDAssignCids(
 
 _IRQL_requires_max_(DISPATCH_LEVEL)
 BOOLEAN
-QuicPathIDWriteAckFrame(
-    _In_ QUIC_PATHID* PathID,
-    _Inout_ QUIC_PACKET_BUILDER* Builder
-    )
-{
-    QUIC_PACKET_SPACE* Packets = PathID->Packets[Builder->EncryptLevel];
-    if (Packets != NULL && QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
-        if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
-            return FALSE;
-        }
-    }
-    return TRUE;
-}
-
-_IRQL_requires_max_(DISPATCH_LEVEL)
-BOOLEAN
 QuicPathIDWriteNewConnectionIDFrame(
     _In_ QUIC_PATHID* PathID,
     _Inout_ QUIC_PACKET_BUILDER* Builder,

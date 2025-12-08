@@ -529,9 +529,21 @@ QuicSendWriteFrames(
         Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
             QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
     if (Builder->PacketType != ZeroRttPacketType) {
-        QuicPathIDSetWriteAckFrame(&Connection->PathIDs, Builder, &RanOutOfRoom);
-        if (RanOutOfRoom) {
-            goto Exit;
+        for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+            QUIC_PATHID* TempPathID = Connection->Paths[i].PathID;
+            if (TempPathID == NULL) {
+                continue;
+            }
+            if (!Connection->State.MultipathNegotiated && i > 0) {
+                break;
+            }
+            QUIC_PACKET_SPACE* Packets = TempPathID->Packets[Builder->EncryptLevel];
+            if (Packets != NULL && QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
+                if (!QuicAckTrackerAckFrameEncode(&Packets->AckTracker, Builder)) {
+                    RanOutOfRoom = TRUE;
+                    goto Exit;
+                }
+            }
         }
     }
 
@@ -1509,10 +1521,24 @@ QuicSendFlush(
             uint8_t ZeroRttPacketType =
                 Connection->Stats.QuicVersion == QUIC_VERSION_2 ?
                     QUIC_0_RTT_PROTECTED_V2 : QUIC_0_RTT_PROTECTED_V1;
-            BOOLEAN RanOutOfRoom = FALSE;
-            WrotePacketFrames =
-                Builder.PacketType != ZeroRttPacketType &&
-                QuicPathIDSetWriteAckFrame(&Connection->PathIDs, &Builder, &RanOutOfRoom);
+            
+            if (Builder.PacketType != ZeroRttPacketType) {
+                for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
+                    QUIC_PATHID* TempPathID = Connection->Paths[i].PathID;
+                    if (TempPathID == NULL) {
+                        continue;
+                    }
+                    if (!Connection->State.MultipathNegotiated && i > 0) {
+                        break;
+                    }
+                    QUIC_PACKET_SPACE* Packets = TempPathID->Packets[Builder.EncryptLevel];
+                    if (Packets != NULL && QuicAckTrackerHasPacketsToAck(&Packets->AckTracker)) {
+                        if (QuicAckTrackerAckFrameEncode(&Packets->AckTracker, &Builder)) {
+                            WrotePacketFrames = TRUE;
+                        }
+                    }
+                }
+            }
 
             //
             // Write the stream frames.
