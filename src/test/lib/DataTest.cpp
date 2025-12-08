@@ -3428,6 +3428,8 @@ const uint8_t OperationPriorityTestContext::NumSend = 100;
 
 void QuicTestOperationPriority()
 {
+    TestScopeLogger TestScope(__FUNCTION__);
+
     MsQuicRegistration Registration(true);
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
 
@@ -3458,6 +3460,8 @@ void QuicTestOperationPriority()
     // - a high priority GetParam should run before any but the first send operation and before any send flush
     // - a normal priority GetParam should run after the all send operations
     {
+        TestScopeLogger CaseScope("OperationPriority - High pri GetParam vs StreamSend");
+
         OperationPriorityTestContext Context;
         QUIC_STATISTICS_V2 BaseStat{};
         uint32_t StatSize = sizeof(BaseStat);
@@ -3491,10 +3495,12 @@ void QuicTestOperationPriority()
             &StatSize,
             &ActualStat));
 
-        // Only the first stream creation should have completed (since it is used to block the connection thread)
         // No byte should have been sent yet (FLUSH_SEND should not have run)
-        TEST_EQUAL(Context.CurrentSendCount, 1);
         TEST_EQUAL(BaseStat.SendTotalStreamBytes, ActualStat.SendTotalStreamBytes);
+
+        // Note: We can't validate that GetParam ran before all other send operation, any validation
+        // will race with the execution of the send operations without a way to synchronize them.
+        // A weaker validation is all we can do.
 
         TEST_QUIC_SUCCEEDED(MsQuic->GetParam(
             Connection,
@@ -3502,11 +3508,11 @@ void QuicTestOperationPriority()
             &StatSize,
             &ActualStat));
 
-        // By the time the normal priority GetParam runs, all send operation should have completed
-        // Note: depending on timing, it is possible that no FLUSH_SEND ran yet,
-        // so the number of bytes sent sill be BaseStat.SendTotalStreamBytes.
-        TEST_EQUAL(Context.CurrentSendCount, OperationPriorityTestContext::NumSend);
-        TEST_TRUE(BaseStat.SendTotalStreamBytes <= ActualStat.SendTotalStreamBytes);
+        // By the time the normal priority GetParam runs, all start operations should have completed
+        // Note: Depending on timing and send-buffering, send operations might not have completed.
+        //       The bytes sent may still be BaseStat.SendTotalStreamBytes if a SEND_FLUSH is queued
+        //       only after the GetParam is.
+        TEST_EQUAL(Context.CurrentStartCount, OperationPriorityTestContext::NumSend);
 
         TEST_TRUE(Context.AllSendsComplete.WaitTimeout(TestWaitTimeout));
         for (uint8_t i = 0; i < OperationPriorityTestContext::NumSend; ++i) {
@@ -3517,6 +3523,8 @@ void QuicTestOperationPriority()
     // 2. Insert StreamStart and StreamSend in front of 100 StreamSend ops
     // Validate by whether the first processed StreamStart/Send are from specific ExpectedStream
     { // ooxxxxx...xxx
+        TestScopeLogger CaseScope("OperationPriority - High pri StreamStart/Send vs StreamSend");
+
         OperationPriorityTestContext Context;
         MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
         MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
@@ -3547,6 +3555,7 @@ void QuicTestOperationPriority()
     // 3. Insert StreamStart in front of 100 StreamSend ops, but StreamSend is not
     // Validate by whether the first processed StreamStart are from specific ExpectedStream, StreamSend is not
     { // oxxxx....xxxo
+        TestScopeLogger CaseScope("OperationPriority - High pri StreamStart vs StreamSend");
         OperationPriorityTestContext Context;
         MsQuicStream Stream1(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
         MsQuicStream Stream2(Connection, QUIC_STREAM_OPEN_FLAG_UNIDIRECTIONAL, CleanUpManual, OperationPriorityTestContext::ClientStreamStartStreamCallback, &Context);
