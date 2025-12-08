@@ -484,7 +484,10 @@ ServerConnectionCallback(
         printf("[conn][%p] Connection resumed!\n", Connection);
         break;
     case QUIC_CONNECTION_EVENT_PATH_ADDED:
-        printf("[conn][%p] New Path available!\n", Connection);
+        printf("[conn][%p] Path added PathId:%u\n", Connection, Event->PATH_ADDED.PathId);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_REMOVED:
+        printf("[conn][%p] Path removed PathId:%u\n", Connection, Event->PATH_REMOVED.PathId);
         break;
     case QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED:
         printf("[conn][%p] Path status changed PathId:%u, IsActive:%d\n",
@@ -849,18 +852,20 @@ ClientConnectionCallback(
         if (MultipathEnabled) {
             QUIC_ADDR SecondAddr = {0};
             uint32_t Addrlen = sizeof(SecondAddr);
-            QUIC_STATUS Status;
-            if (QUIC_FAILED(Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, &Addrlen, &SecondAddr))) {
+            QUIC_STATUS Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, &Addrlen, &SecondAddr);
+            if (QUIC_FAILED(Status)) {
                 printf("SetParam(QUIC_PARAM_CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
                 break;
             }
             SecondAddr.Ipv4.sin_port = 0;
-            if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS, sizeof(SecondAddr), &SecondAddr))) {
+            Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS, sizeof(SecondAddr), &SecondAddr);
+            if (QUIC_FAILED(Status)) {
                 printf("SetParam(QUIC_PARAM_CONN_ADD_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
                 break;
             }
+        } else {
+            ClientSend(Connection);
         }
-        ClientSend(Connection);
         break;
     case QUIC_CONNECTION_EVENT_SHUTDOWN_INITIATED_BY_TRANSPORT:
         //
@@ -902,19 +907,34 @@ ClientConnectionCallback(
         printf("\n");
         break;
     case QUIC_CONNECTION_EVENT_PATH_ADDED:
-        printf("[conn][%p] New Path available!\n", Connection);
-        QUIC_PATH_STATUS PathStatus;
-        PathStatus.PathId = Event->PATH_ADDED.PathId;
-        PathStatus.Active = FALSE;
-        QUIC_STATUS Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_PATH_STATUS, sizeof(QUIC_PATH_STATUS), &PathStatus);
+        printf("[conn][%p] Path added PathId:%u\n", Connection, Event->PATH_ADDED.PathId);
+
+        QUIC_ADDR FirstAddr = {0};
+        uint32_t Addrlen = sizeof(FirstAddr);
+        QUIC_STATUS Status = MsQuic->GetParam(Connection, QUIC_PARAM_CONN_LOCAL_ADDRESS, &Addrlen, &FirstAddr);
         if (QUIC_FAILED(Status)) {
-            printf("SetParam(QUIC_PARAM_CONN_PATH_STATUS) failed, 0x%x!\n", Status);
+            printf("SetParam(QUIC_PARAM_CONN_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
+            break;
         }
-        PathStatus.Active = TRUE;
+        QUIC_PATH_STATUS PathStatus;
+        PathStatus.PathId = 0;
+        PathStatus.Active = FALSE;
         Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_PATH_STATUS, sizeof(QUIC_PATH_STATUS), &PathStatus);
         if (QUIC_FAILED(Status)) {
             printf("SetParam(QUIC_PARAM_CONN_PATH_STATUS) failed, 0x%x!\n", Status);
         }
+        Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS, Addrlen, &FirstAddr);
+        if (QUIC_FAILED(Status)) {
+            printf("SetParam(QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS) failed, 0x%x!\n", Status);
+        }
+        ClientSend(Connection);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_REMOVED:
+        printf("[conn][%p] Path removed PathId:%u\n", Connection, Event->PATH_REMOVED.PathId);
+        break;
+    case QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED:
+        printf("[conn][%p] Path status changed PathId:%u, IsActive:%d\n",
+            Connection, Event->PATH_STATUS_CHANGED.PathId, Event->PATH_STATUS_CHANGED.IsActive);
         break;
     case QUIC_CONNECTION_EVENT_IDEAL_PROCESSOR_CHANGED:
         printf(
