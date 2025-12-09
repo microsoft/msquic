@@ -8304,24 +8304,32 @@
     },
     "PacketDecrypt": {
       "ModuleProperites": {},
-      "TraceString": "[pack][%llu] Decrypting",
+      "TraceString": "[pack][%llu][%u] Decrypting",
       "UniqueId": "PacketDecrypt",
       "splitArgs": [
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
     },
     "PacketEncrypt": {
       "ModuleProperites": {},
-      "TraceString": "[pack][%llu] Encrypting",
+      "TraceString": "[pack][%llu][%u] Encrypting",
       "UniqueId": "PacketEncrypt",
       "splitArgs": [
         {
           "DefinationEncoding": "llu",
           "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg3"
         }
       ],
       "macroName": "QuicTraceEvent"
@@ -8714,7 +8722,7 @@
     },
     "PathChosen": {
       "ModuleProperites": {},
-      "TraceString": "[conn][%p] Path[%hhu] Chosen",
+      "TraceString": "[conn][%p] Path[%hhu][PathID][%u] Chosen",
       "UniqueId": "PathChosen",
       "splitArgs": [
         {
@@ -8724,6 +8732,10 @@
         {
           "DefinationEncoding": "hhu",
           "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "u",
+          "MacroVariableName": "arg4"
         }
       ],
       "macroName": "QuicTraceLogConnInfo"
@@ -16544,14 +16556,14 @@
         "EncodingString": "[pack][%llu] Created in batch %llu"
       },
       {
-        "UniquenessHash": "b27efe89-6500-60ee-bdbb-b417ecce6d62",
+        "UniquenessHash": "f7a40a60-6449-ca18-c354-073602804c52",
         "TraceID": "PacketDecrypt",
-        "EncodingString": "[pack][%llu] Decrypting"
+        "EncodingString": "[pack][%llu][%u] Decrypting"
       },
       {
-        "UniquenessHash": "040e32a3-ba11-8989-d6d4-57d7c799c359",
+        "UniquenessHash": "f7ba0329-4736-b29f-7fd3-9785f2c4a1f5",
         "TraceID": "PacketEncrypt",
-        "EncodingString": "[pack][%llu] Encrypting"
+        "EncodingString": "[pack][%llu][%u] Encrypting"
       },
       {
         "UniquenessHash": "e1679e26-ce08-f741-23b6-23fa6f1de264",
@@ -16664,9 +16676,9 @@
         "EncodingString": "[conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u"
       },
       {
-        "UniquenessHash": "5a90f0fc-2798-02bc-480f-c3072af80b0f",
+        "UniquenessHash": "774db9aa-c37a-ad1e-6fae-d6b5d61f82f8",
         "TraceID": "PathChosen",
-        "EncodingString": "[conn][%p] Path[%hhu] Chosen"
+        "EncodingString": "[conn][%p] Path[%hhu][PathID][%u] Chosen"
       },
       {
         "UniquenessHash": "466f74a4-9c7f-8bee-f6b3-df16acf9493f",

@@ -80,8 +80,17 @@ QuicPathRemove(
             Connection->Paths + Index,
             Connection->Paths + Index + 1,
             (Connection->PathsCount - Index - 1) * sizeof(QUIC_PATH));
+        if (Connection->State.MultipathNegotiated) {
+            //
+            // Update all PathID back references.
+            //
+            for (uint8_t i = Index; i < Connection->PathsCount - 1; ++i) {
+                if (Connection->Paths[i].PathID != NULL) {
+                    Connection->Paths[i].PathID->Path = &Connection->Paths[i];
+                }
+            }
+        }
     }
-
     Connection->PathsCount--;
     Connection->Paths[Connection->PathsCount].InUse = FALSE;
 }
@@ -284,6 +293,16 @@ QuicConnGetPathForPacket(
             &Connection->Paths[2],
             &Connection->Paths[1],
             (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
+        if (Connection->State.MultipathNegotiated) {
+            //
+            // Update all PathID back references.
+            //
+            for (uint8_t i = 2; i < Connection->PathsCount + 1; ++i) {
+                if (Connection->Paths[i].PathID != NULL) {
+                    Connection->Paths[i].PathID->Path = &Connection->Paths[i];
+                }
+            }
+        }
     }
 
     CXPLAT_DBG_ASSERT(Connection->PathsCount < QUIC_MAX_PATH_COUNT);
@@ -327,7 +346,7 @@ QuicConnChoosePath(
                 ActivePaths[ActivePathCount++] = &Connection->Paths[i];
             }
         }
-        if (ActivePathCount > 1) {
+        if (ActivePathCount > 0) {
             uint8_t Random;
             CxPlatRandom(sizeof(Random), &Random);
             Path = ActivePaths[Random % ActivePathCount];
@@ -337,8 +356,9 @@ QuicConnChoosePath(
     QuicTraceLogConnInfo(
         PathChosen,
         Connection,
-        "Path[%hhu] Chosen",
-        Path->ID);
+        "Path[%hhu][PathID][%u] Chosen",
+        Path->ID,
+        Path->PathID->ID);
 
     return Path;
 }

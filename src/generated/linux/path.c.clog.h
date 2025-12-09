@@ -85,18 +85,20 @@ tracepoint(CLOG_PATH_C, PathValidated , arg1, arg3, arg4);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PathChosen
-// [conn][%p] Path[%hhu] Chosen
+// [conn][%p] Path[%hhu][PathID][%u] Chosen
 // QuicTraceLogConnInfo(
         PathChosen,
         Connection,
-        "Path[%hhu] Chosen",
-        Path->ID);
+        "Path[%hhu][PathID][%u] Chosen",
+        Path->ID,
+        Path->PathID->ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Path->PathID->ID = arg4
 ----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_PathChosen
-#define _clog_4_ARGS_TRACE_PathChosen(uniqueId, arg1, encoded_arg_string, arg3)\
-tracepoint(CLOG_PATH_C, PathChosen , arg1, arg3);\
+#ifndef _clog_5_ARGS_TRACE_PathChosen
+#define _clog_5_ARGS_TRACE_PathChosen(uniqueId, arg1, encoded_arg_string, arg3, arg4)\
+tracepoint(CLOG_PATH_C, PathChosen , arg1, arg3, arg4);\
 
 #endif
 

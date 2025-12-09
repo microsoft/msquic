@@ -1053,6 +1053,14 @@ RunClient(
         }
     }
 
+    if (GetFlag(argc, argv, "multipath")) {
+        uint8_t ShareBinding = 1;
+        if (QUIC_FAILED(Status = MsQuic->SetParam(Connection, QUIC_PARAM_CONN_SHARE_UDP_BINDING, sizeof(ShareBinding), &ShareBinding))) {
+            printf("SetParam(QUIC_PARAM_CONN_SHARE_UDP_BINDING) failed, 0x%x!\n", Status);
+            goto Error;
+        }
+    }
+
     //
     // Get the target / server name or IP from the command line.
     //

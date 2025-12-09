@@ -2260,18 +2260,22 @@ TRACEPOINT_EVENT(CLOG_CONNECTION_C, ConnHandshakeStart,
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketDecrypt
-// [pack][%llu] Decrypting
+// [pack][%llu][%u] Decrypting
 // QuicTraceEvent(
             PacketDecrypt,
-            "[pack][%llu] Decrypting",
-            Packet->PacketId);
+            "[pack][%llu][%u] Decrypting",
+            Packet->PacketId,
+            Packet->PathId);
 // arg2 = arg2 = Packet->PacketId = arg2
+// arg3 = arg3 = Packet->PathId = arg3
 ----------------------------------------------------------*/
 TRACEPOINT_EVENT(CLOG_CONNECTION_C, PacketDecrypt,
     TP_ARGS(
-        unsigned long long, arg2), 
+        unsigned long long, arg2,
+        unsigned int, arg3), 
     TP_FIELDS(
         ctf_integer(uint64_t, arg2, arg2)
+        ctf_integer(unsigned int, arg3, arg3)
     )
 )
 

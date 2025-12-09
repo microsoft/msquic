@@ -2017,16 +2017,18 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketDecrypt
-// [pack][%llu] Decrypting
+// [pack][%llu][%u] Decrypting
 // QuicTraceEvent(
             PacketDecrypt,
-            "[pack][%llu] Decrypting",
-            Packet->PacketId);
+            "[pack][%llu][%u] Decrypting",
+            Packet->PacketId,
+            Packet->PathId);
 // arg2 = arg2 = Packet->PacketId = arg2
+// arg3 = arg3 = Packet->PathId = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_PacketDecrypt
-#define _clog_3_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
+#ifndef _clog_4_ARGS_TRACE_PacketDecrypt
+#define _clog_4_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2, arg3);\
 
 #endif
 

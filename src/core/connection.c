@@ -614,7 +614,9 @@ QuicConnTraceRundownOper(
     if (Connection->State.Started) {
         if (Connection->State.MultipathNegotiated) {
             for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-                QuicPathIDLogStatistics(Connection->Paths[i].PathID);
+                if (Connection->Paths[i].PathID != NULL) {
+                    QuicPathIDLogStatistics(Connection->Paths[i].PathID);
+                }
             }
         } else {
             QuicPathIDLogStatistics(Connection->Paths[0].PathID);
@@ -1298,7 +1300,9 @@ QuicConnTryClose(
         if (Connection->State.Started) {
             if (Connection->State.MultipathNegotiated) {
                 for (uint8_t i = 0; i < Connection->PathsCount; ++i) {
-                    QuicPathIDLogStatistics(Connection->Paths[i].PathID);
+                    if (Connection->Paths[i].PathID != NULL) {
+                        QuicPathIDLogStatistics(Connection->Paths[i].PathID);
+                    }
                 }
             } else {
                 QuicPathIDLogStatistics(Connection->Paths[0].PathID);
@@ -3795,8 +3799,9 @@ QuicConnRecvDecryptAndAuthenticate(
     if (Packet->Encrypted) {
         QuicTraceEvent(
             PacketDecrypt,
-            "[pack][%llu] Decrypting",
-            Packet->PacketId);
+            "[pack][%llu][%u] Decrypting",
+            Packet->PacketId,
+            Packet->PathId);
         if (QUIC_FAILED(
             CxPlatDecrypt(
                 Connection->Crypto.TlsState.ReadKeys[Packet->KeyType]->PacketKey,
@@ -6393,6 +6398,17 @@ QuicConnAddLocalAddress(
                 &Connection->Paths[2],
                 &Connection->Paths[1],
                 (Connection->PathsCount - 1) * sizeof(QUIC_PATH));
+            if (Connection->State.MultipathNegotiated) {
+                //
+                // Update all PathID back references.
+                //
+                for (uint8_t i = 2; i < Connection->PathsCount + 1; ++i) {
+                    if (Connection->Paths[i].PathID != NULL) {
+                        Connection->Paths[i].PathID->Path = &Connection->Paths[i];
+                    }
+                }
+            }
+
         }
         Path = &Connection->Paths[1];
         QuicPathInitialize(Connection, Path);

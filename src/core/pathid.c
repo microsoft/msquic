@@ -707,7 +707,8 @@ QuicPathIDAssignCids(
     CXPLAT_DBG_ASSERT(PathID->Connection->PathsCount <= QUIC_MAX_PATH_COUNT);
     for (uint8_t i = 0; i < PathID->Connection->PathsCount; ++i) {
         QUIC_PATH* Path = &PathID->Connection->Paths[i];
-        if (Path->PathID != PathID || Path->DestCid != NULL || !Path->InUse) {
+        if (Path->PathID != PathID || Path->DestCid != NULL ||
+            !Path->InUse || Path->Binding == NULL) {
             continue;
         }
 

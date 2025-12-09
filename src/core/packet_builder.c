@@ -851,8 +851,9 @@ QuicPacketBuilderFinalize(
 
         QuicTraceEvent(
             PacketEncrypt,
-            "[pack][%llu] Encrypting",
-            Builder->Metadata->PacketId);
+            "[pack][%llu][%u] Encrypting",
+            Builder->Metadata->PacketId,
+            Builder->Path->PathID->ID);
 
         PayloadLength += Builder->EncryptionOverhead;
         Builder->DatagramLength += Builder->EncryptionOverhead;
