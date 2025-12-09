@@ -227,9 +227,11 @@ function Start-Executable {
             $pinfo.Arguments = "--modules=$(Split-Path $Path -Parent) --cover_children --sources src\core --excluded_sources unittest --working_dir $($LogDir) --export_type binary:$(Join-Path $CoverageDir $CoverageName) -- $($Path) $($Arguments)"
             $pinfo.WorkingDirectory = $LogDir
         } else {
+            Write-Host "Configuring process to collect crash dumps to $LogDir"
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
             # Enable WER dump collection.
+            New-Item -Path $WerDumpRegPath -Force | Out-Null
             New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
             New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
         }
