@@ -1980,6 +1980,24 @@ QuicCryptoTlsDecodeTransportParameters( // NOLINT(readability-function-size, goo
                     "Invalid length of QUIC_TP_ID_INITIAL_MAX_PATH_ID");
                 goto Exit;
             }
+            QUIC_CID_LIST_ENTRY* DestCid =
+                CXPLAT_CONTAINING_RECORD(
+                    Connection->Paths[0].PathID->DestCids.Flink,
+                    QUIC_CID_LIST_ENTRY,
+                    Link);
+            if (DestCid->CID.Length == 0) {
+                //
+                // Multipath requires non-zero length connection IDs.
+                //
+                QuicConnTransportError(Connection, QUIC_ERROR_PROTOCOL_VIOLATION);
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Multipath requires non-zero length connection IDs");
+                goto Exit;
+            }
+
             TransportParams->Flags |= QUIC_TP_FLAG_INITIAL_MAX_PATH_ID;
             QuicTraceLogConnVerbose(
                 DecodeTPInitMaxPathId,
