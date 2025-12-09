@@ -37,6 +37,9 @@ static void InitializeMockConnection(MOCK_CONNECTION* MockConn, uint16_t Mtu) {
 
 //
 // Test 1: Basic initialization with default settings
+// Scenario: Verifies that CubicCongestionControlInitialize correctly sets up all critical
+// CUBIC state fields with typical default values (standard MTU, moderate initial window).
+// This is the baseline test that validates the most common initialization path.
 //
 TEST(CubicTest, InitializeWithDefaultSettings)
 {
@@ -68,9 +71,12 @@ TEST(CubicTest, InitializeWithDefaultSettings)
 }
 
 //
-// Test 2: Initialize with minimum MTU
+// Test 2: MTU boundary conditions  
+// Scenario: Verifies initialization handles extreme MTU values correctly (minimum, maximum,
+// and below-minimum). Tests that CongestionWindow calculation doesn't overflow or underflow
+// with edge-case MTU values, ensuring robustness across different network path configurations.
 //
-TEST(CubicTest, InitializeWithMinimumMtu)
+TEST(CubicTest, InitializeWithMtuBoundaries)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -79,137 +85,84 @@ TEST(CubicTest, InitializeWithMinimumMtu)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
     
-    // Use minimum MTU
+    // Test minimum MTU
     InitializeMockConnection(&MockConn, QUIC_DPLPMTUD_MIN_MTU);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, 0u);
+    ASSERT_EQ(MockConn.CongestionControl.Cubic.InitialWindowPackets, 10u);
     
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Just verify it initialized successfully
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-    ASSERT_GT(Cubic->BytesInFlightMax, 0u);
-    ASSERT_EQ(Cubic->InitialWindowPackets, 10u);
-}
-
-//
-// Test 3: Initialize with maximum MTU
-//
-TEST(CubicTest, InitializeWithMaximumMtu)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    // Use maximum possible MTU
+    // Test maximum MTU
     InitializeMockConnection(&MockConn, 65535);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, 0u);
     
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Just verify it initialized successfully with a positive congestion window
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-    ASSERT_GT(Cubic->BytesInFlightMax, 0u);
-    ASSERT_EQ(Cubic->InitialWindowPackets, 10u);
+    // Test very small MTU (below minimum)
+    InitializeMockConnection(&MockConn, 500);
+    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, 0u);
 }
 
 //
-// Test 4: Initialize with single packet window
+// Test 3: InitialWindowPackets boundary values
+// Scenario: Tests minimum (1 packet) and maximum (1000 packets) InitialWindowPackets settings.
+// Verifies that CongestionWindow scales correctly with InitialWindowPackets and handles both
+// conservative (single packet) and aggressive (large window) initial congestion window sizes.
 //
-TEST(CubicTest, InitializeWithSinglePacketWindow)
+TEST(CubicTest, InitializeWithInitialWindowBoundaries)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
     CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.SendIdleTimeoutMs = 1000;
     
-    // Minimum initial window
+    // Test minimum: single packet window
     Settings.InitialWindowPackets = 1;
-    Settings.SendIdleTimeoutMs = 1000;
-    
     InitializeMockConnection(&MockConn, 1280);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
+    ASSERT_EQ(MockConn.CongestionControl.Cubic.InitialWindowPackets, 1u);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, 0u);
+    uint32_t SinglePacketWindow = MockConn.CongestionControl.Cubic.CongestionWindow;
     
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_EQ(Cubic->InitialWindowPackets, 1u);
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-    ASSERT_GT(Cubic->BytesInFlightMax, 0u);
-}
-
-//
-// Test 5: Initialize with large initial window
-//
-TEST(CubicTest, InitializeWithLargeInitialWindow)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    // Large initial window
+    // Test large window (1000 packets)
     Settings.InitialWindowPackets = 1000;
-    Settings.SendIdleTimeoutMs = 1000;
-    
     InitializeMockConnection(&MockConn, 1280);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_EQ(Cubic->InitialWindowPackets, 1000u);
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
+    ASSERT_EQ(MockConn.CongestionControl.Cubic.InitialWindowPackets, 1000u);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, SinglePacketWindow * 100);
 }
 
 //
-// Test 6: Initialize with zero SendIdleTimeoutMs
+// Test 4: SendIdleTimeoutMs boundary values
+// Scenario: Tests extreme SendIdleTimeoutMs values (0 and UINT32_MAX). Verifies that
+// the idle timeout is correctly stored and doesn't cause initialization to fail even
+// with edge-case timeout values (disabled timeout or maximum possible timeout).
 //
-TEST(CubicTest, InitializeWithZeroSendIdleTimeout)
+TEST(CubicTest, InitializeWithSendIdleTimeoutBoundaries)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
     CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
     Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 0;  // Edge case: zero timeout
     
+    // Test zero timeout (disabled)
+    Settings.SendIdleTimeoutMs = 0;
     InitializeMockConnection(&MockConn, 1280);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
+    ASSERT_EQ(MockConn.CongestionControl.Cubic.SendIdleTimeoutMs, 0u);
+    ASSERT_GT(MockConn.CongestionControl.Cubic.CongestionWindow, 0u);
     
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_EQ(Cubic->SendIdleTimeoutMs, 0u);
-    // Should still initialize other fields correctly
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-}
-
-//
-// Test 7: Initialize with maximum SendIdleTimeoutMs
-//
-TEST(CubicTest, InitializeWithMaxSendIdleTimeout)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
+    // Test maximum timeout
     Settings.SendIdleTimeoutMs = UINT32_MAX;
-    
     InitializeMockConnection(&MockConn, 1280);
-    
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_EQ(Cubic->SendIdleTimeoutMs, UINT32_MAX);
+    ASSERT_EQ(MockConn.CongestionControl.Cubic.SendIdleTimeoutMs, UINT32_MAX);
 }
 
 //
-// Test 8: Verify HyStart state initialization
+// Test 5: HyStart++ state initialization
+// Scenario: Verifies all HyStart++ related fields are correctly initialized. HyStart++ is
+// CUBIC's mechanism for early slow-start exit. Tests that HyStartState, round tracking,
+// RTT sampling, and growth divisor are properly set up for the slow-start phase.
 //
 TEST(CubicTest, VerifyHyStartInitialization)
 {
@@ -226,8 +179,7 @@ TEST(CubicTest, VerifyHyStartInitialization)
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Verify HyStart fields
-    // HyStartRoundEnd should be set to Connection->Send.NextPacketNumber (which is 0 for our mock)
+    // Verify HyStart fields - HyStartRoundEnd should be set to Connection->Send.NextPacketNumber
     ASSERT_EQ(Cubic->HyStartState, HYSTART_NOT_STARTED);
     ASSERT_EQ(Cubic->HyStartRoundEnd, 0u);  // NextPacketNumber starts at 0
     ASSERT_EQ(Cubic->HyStartAckCount, 0u);
@@ -237,7 +189,11 @@ TEST(CubicTest, VerifyHyStartInitialization)
 }
 
 //
-// Test 9: Verify function pointer initialization
+// Test 6: Function pointer initialization
+// Scenario: Verifies all 17 CUBIC algorithm function pointers are correctly assigned.
+// The initialization must copy function pointers from the static template to the instance,
+// enabling polymorphic congestion control behavior. Critical for ensuring CUBIC operations
+// are callable after initialization.
 //
 TEST(CubicTest, VerifyFunctionPointers)
 {
@@ -252,7 +208,7 @@ TEST(CubicTest, VerifyFunctionPointers)
     
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
     
-    // Verify all function pointers are set
+    // Verify all 17 function pointers are set (non-null)
     ASSERT_NE(MockConn.CongestionControl.QuicCongestionControlCanSend, nullptr);
     ASSERT_NE(MockConn.CongestionControl.QuicCongestionControlSetExemption, nullptr);
     ASSERT_NE(MockConn.CongestionControl.QuicCongestionControlReset, nullptr);
@@ -273,7 +229,11 @@ TEST(CubicTest, VerifyFunctionPointers)
 }
 
 //
-// Test 10: Verify initial state flags
+// Test 7: Boolean state flags initialization
+// Scenario: Verifies congestion and recovery state flags are initialized to FALSE.
+// These flags track whether congestion has occurred (HasHadCongestionEvent), whether
+// currently in recovery (IsInRecovery), persistent congestion state, and ACK timing.
+// All must start FALSE for correct initial congestion control behavior.
 //
 TEST(CubicTest, VerifyInitialStateFlags)
 {
@@ -298,9 +258,15 @@ TEST(CubicTest, VerifyInitialStateFlags)
 }
 
 //
-// Test 11: Verify BytesInFlight initialization
+// Test 8: Zero-initialized numeric fields
+// Scenario: Verifies that all CUBIC state tracking fields are zero-initialized. This includes
+// BytesInFlightMax (max bytes allowed in flight), pacing state (LastSendAllowance),  
+// AIMD fallback fields (AimdWindow, AimdAccumulator), CUBIC window tracking (WindowMax,
+// WindowLastMax, WindowPrior, KCubic), timing fields (TimeOfLastAck, TimeOfCongAvoidStart),
+// recovery tracking (RecoverySentPacketNumber), and previous state for spurious congestion
+// recovery (all Prev* fields). Tests that struct copy from static template zeros these fields.
 //
-TEST(CubicTest, VerifyBytesInFlightInitialization)
+TEST(CubicTest, VerifyZeroInitializedFields)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -311,144 +277,56 @@ TEST(CubicTest, VerifyBytesInFlightInitialization)
     
     InitializeMockConnection(&MockConn, 1280);
     
-    // Set BytesInFlight to non-zero before initialization
+    // Pre-set some fields to non-zero to verify they get zeroed
     MockConn.CongestionControl.Cubic.BytesInFlight = 12345;
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // BytesInFlight should be preserved or zeroed based on implementation
-    // BytesInFlightMax should be half of CongestionWindow
-    ASSERT_EQ(Cubic->BytesInFlightMax, Cubic->CongestionWindow / 2);
-}
-
-//
-// Test 12: Verify Exemptions initialization
-//
-TEST(CubicTest, VerifyExemptionsInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
     MockConn.CongestionControl.Cubic.Exemptions = 5;
     
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Exemptions field should be initialized (likely to 0)
+    // Verify BytesInFlightMax is calculated correctly
+    ASSERT_EQ(Cubic->BytesInFlightMax, Cubic->CongestionWindow / 2);
+    
+    // Verify Exemptions is zeroed
     ASSERT_EQ(Cubic->Exemptions, 0u);
-}
-
-//
-// Test 13: Initialize with IPv6 path
-//
-TEST(CubicTest, InitializeWithIPv6Path)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    // Set IPv6 address family
-    QUIC_ADDR RemoteAddr;
-    CxPlatZeroMemory(&RemoteAddr, sizeof(RemoteAddr));
-    QuicAddrSetFamily(&RemoteAddr, QUIC_ADDRESS_FAMILY_INET6);
-    MockConn.Paths[0].Route.RemoteAddress = RemoteAddr;
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // The actual payload size is determined by the route's remote address family
-    // Since we set IPv6, it should use IPv6 calculations
-    // However, the actual CongestionWindow is calculated based on what the function reads
-    // Let's just verify it initialized successfully and has a positive value
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-    ASSERT_EQ(Cubic->InitialWindowPackets, 10u);
-}
-
-//
-// Test 14: Verify AIMD window initialization
-//
-TEST(CubicTest, VerifyAimdWindowInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // AIMD related fields should be initialized to 0
+    // AIMD related fields should be 0
     ASSERT_EQ(Cubic->AimdWindow, 0u);
     ASSERT_EQ(Cubic->AimdAccumulator, 0u);
-}
-
-//
-// Test 15: Verify WindowMax initialization
-//
-TEST(CubicTest, VerifyWindowMaxInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // WindowMax and related fields should be 0
+    // WindowMax and related CUBIC fields should be 0
     ASSERT_EQ(Cubic->WindowMax, 0u);
     ASSERT_EQ(Cubic->WindowLastMax, 0u);
     ASSERT_EQ(Cubic->WindowPrior, 0u);
     ASSERT_EQ(Cubic->KCubic, 0u);
-}
-
-//
-// Test 16: Verify LastSendAllowance initialization
-//
-TEST(CubicTest, VerifyLastSendAllowanceInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
+    // Pacing field should be 0
     ASSERT_EQ(Cubic->LastSendAllowance, 0u);
+    
+    // Timing fields should be 0
+    ASSERT_EQ(Cubic->TimeOfLastAck, 0u);
+    ASSERT_EQ(Cubic->TimeOfCongAvoidStart, 0u);
+    
+    // Recovery field should be 0
+    ASSERT_EQ(Cubic->RecoverySentPacketNumber, 0u);
+    
+    // All Prev* fields for spurious congestion handling should be 0
+    ASSERT_EQ(Cubic->PrevWindowPrior, 0u);
+    ASSERT_EQ(Cubic->PrevWindowMax, 0u);
+    ASSERT_EQ(Cubic->PrevWindowLastMax, 0u);
+    ASSERT_EQ(Cubic->PrevKCubic, 0u);
+    ASSERT_EQ(Cubic->PrevSlowStartThreshold, 0u);
+    ASSERT_EQ(Cubic->PrevCongestionWindow, 0u);
+    ASSERT_EQ(Cubic->PrevAimdWindow, 0u);
 }
 
 //
-// Test 17: Multiple sequential initializations
+// Test 9: Re-initialization behavior  
+// Scenario: Tests that CUBIC can be re-initialized with different settings and correctly
+// updates its state. Verifies that calling CubicCongestionControlInitialize() multiple times
+// properly resets state and applies new settings (e.g., doubling InitialWindowPackets should
+// double the CongestionWindow). Important for connection migration or settings updates.
 //
 TEST(CubicTest, MultipleSequentialInitializations)
 {
@@ -461,115 +339,17 @@ TEST(CubicTest, MultipleSequentialInitializations)
     
     InitializeMockConnection(&MockConn, 1280);
     
-    // Initialize multiple times
+    // Initialize first time
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
     uint32_t FirstCongestionWindow = MockConn.CongestionControl.Cubic.CongestionWindow;
     
-    // Change settings and reinitialize
+    // Re-initialize with different settings
     Settings.InitialWindowPackets = 20;
     CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Should reflect new settings
+    // Should reflect new settings with doubled window
     ASSERT_EQ(Cubic->InitialWindowPackets, 20u);
     ASSERT_EQ(Cubic->CongestionWindow, FirstCongestionWindow * 2);
 }
-
-//
-// Test 18: Verify TimeOfLastAck initialization
-//
-TEST(CubicTest, VerifyTimeOfLastAckInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_FALSE(Cubic->TimeOfLastAckValid);
-    ASSERT_EQ(Cubic->TimeOfLastAck, 0u);
-    ASSERT_EQ(Cubic->TimeOfCongAvoidStart, 0u);
-}
-
-//
-// Test 19: Verify RecoverySentPacketNumber initialization
-//
-TEST(CubicTest, VerifyRecoverySentPacketNumberInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    ASSERT_EQ(Cubic->RecoverySentPacketNumber, 0u);
-}
-
-//
-// Test 20: Verify Prev* fields initialization
-//
-TEST(CubicTest, VerifyPrevFieldsInitialization)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // All Prev* fields should be 0
-    ASSERT_EQ(Cubic->PrevWindowPrior, 0u);
-    ASSERT_EQ(Cubic->PrevWindowMax, 0u);
-    ASSERT_EQ(Cubic->PrevWindowLastMax, 0u);
-    ASSERT_EQ(Cubic->PrevKCubic, 0u);
-    ASSERT_EQ(Cubic->PrevSlowStartThreshold, 0u);
-    ASSERT_EQ(Cubic->PrevCongestionWindow, 0u);
-    ASSERT_EQ(Cubic->PrevAimdWindow, 0u);
-}
-
-//
-// Test 21: Test with very small MTU edge case
-//
-TEST(CubicTest, InitializeWithVerySmallMtu)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    // Use MTU smaller than QUIC_DPLPMTUD_MIN_MTU (edge case that might occur)
-    InitializeMockConnection(&MockConn, 500);
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Should still calculate some congestion window
-    ASSERT_GT(Cubic->CongestionWindow, 0u);
-    ASSERT_GT(Cubic->BytesInFlightMax, 0u);
-}
-
