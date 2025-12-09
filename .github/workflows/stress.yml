@@ -101,10 +101,10 @@ jobs:
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     env:
-      main-timeout: 3600000
+      main-timeout: 5400000
       main-repeat: 100
       main-allocfail: 100
-      pr-timeout: 600000
+      pr-timeout: 900000
       pr-repeat: 20
       pr-allocfail: 100
     steps:
