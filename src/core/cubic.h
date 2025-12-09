@@ -7,6 +7,10 @@
 
 #pragma once
 
+#if defined(__cplusplus)
+extern "C" {
+#endif
+
 typedef enum QUIC_CUBIC_HYSTART_STATE {
     HYSTART_NOT_STARTED = 0,
     HYSTART_ACTIVE = 1,
@@ -118,3 +122,7 @@ CubicCongestionControlInitialize(
     _In_ QUIC_CONGESTION_CONTROL* Cc,
     _In_ const QUIC_SETTINGS_INTERNAL* Settings
     );
+
+#if defined(__cplusplus)
+}
+#endif
