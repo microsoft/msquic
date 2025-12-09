@@ -348,6 +348,8 @@ function Start-TestExecutable([String]$Arguments, [String]$OutputDir) {
             $pinfo.WorkingDirectory = $OutputDir
             if (Test-Administrator) {
                 # Enable WER dump collection.
+                Write-Host "Configuring process to collect crash dumps to $OutputDir"
+                New-Item -Path $WerDumpRegPath -Force | Out-Null
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
                 New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $OutputDir -Force | Out-Null
             }
