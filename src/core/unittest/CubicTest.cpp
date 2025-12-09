@@ -363,11 +363,12 @@ TEST(CubicTest, MultipleSequentialInitializations)
 }
 
 //
-// Test 10: CanSend with available window (via function pointer)
-// Scenario: Tests the CanSend function through its function pointer when bytes in flight
-// is less than congestion window. This is the normal case where connection can send.
+// Test 10: CanSend scenarios (via function pointer)
+// Scenario: Comprehensive test of CanSend logic covering: available window (can send),
+// congestion blocked (cannot send), and exemptions (bypass blocking). Tests the core
+// congestion control decision logic.
 //
-TEST(CubicTest, CanSendWithAvailableWindow)
+TEST(CubicTest, CanSendScenarios)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -381,74 +382,26 @@ TEST(CubicTest, CanSendWithAvailableWindow)
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Set BytesInFlight less than CongestionWindow
+    // Scenario 1: Available window - can send
     Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
     Cubic->Exemptions = 0;
-    
-    // Call through function pointer
     ASSERT_TRUE(MockConn.CongestionControl.QuicCongestionControlCanSend(&MockConn.CongestionControl));
-}
-
-//
-// Test 11: CanSend when congestion blocked (via function pointer)
-// Scenario: Tests CanSend when bytes in flight equals or exceeds congestion window.
-// Connection is congestion-blocked and cannot send more data.
-//
-TEST(CubicTest, CannotSendWhenCongestionBlocked)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Set BytesInFlight equal to CongestionWindow (blocked)
+    // Scenario 2: Congestion blocked - cannot send
     Cubic->BytesInFlight = Cubic->CongestionWindow;
-    Cubic->Exemptions = 0;
-    
-    // Should NOT be able to send
     ASSERT_FALSE(MockConn.CongestionControl.QuicCongestionControlCanSend(&MockConn.CongestionControl));
     
-    // Test exceeding window
+    // Scenario 3: Exceeding window - still blocked
     Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
     ASSERT_FALSE(MockConn.CongestionControl.QuicCongestionControlCanSend(&MockConn.CongestionControl));
-}
-
-//
-// Test 12: CanSend with exemptions (via function pointer)
-// Scenario: Tests CanSend when connection has exemptions (packets allowed to bypass
-// congestion control). Even when congestion-blocked, exemptions allow sending.
-//
-TEST(CubicTest, CanSendWithExemptions)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Block with congestion window
-    Cubic->BytesInFlight = Cubic->CongestionWindow;
-    Cubic->Exemptions = 2;  // But have exemptions
-    
-    // Should be able to send due to exemptions
+    // Scenario 4: With exemptions - can send even when blocked
+    Cubic->Exemptions = 2;
     ASSERT_TRUE(MockConn.CongestionControl.QuicCongestionControlCanSend(&MockConn.CongestionControl));
 }
 
 //
-// Test 13: SetExemption (via function pointer)
+// Test 11: SetExemption (via function pointer)
 // Scenario: Tests SetExemption to verify it correctly sets the number of packets that
 // can bypass congestion control. Used for probe packets and other special cases.
 //
@@ -483,11 +436,12 @@ TEST(CubicTest, SetExemption)
 }
 
 //
-// Test 14: GetSendAllowance when congestion blocked (via function pointer)
-// Scenario: Tests GetSendAllowance when BytesInFlight >= CongestionWindow.
-// Should return 0 as we're congestion blocked.
+// Test 12: GetSendAllowance scenarios (via function pointer)
+// Scenario: Tests GetSendAllowance under different conditions: congestion blocked (returns 0),
+// available window without pacing (returns full window), and invalid time (skips pacing).
+// Covers the main decision paths in send allowance calculation.
 //
-TEST(CubicTest, GetSendAllowanceWhenBlocked)
+TEST(CubicTest, GetSendAllowanceScenarios)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -501,86 +455,36 @@ TEST(CubicTest, GetSendAllowanceWhenBlocked)
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Set BytesInFlight to block congestion window
+    // Scenario 1: Congestion blocked - should return 0
     Cubic->BytesInFlight = Cubic->CongestionWindow;
-    
-    // Call GetSendAllowance via function pointer
     uint32_t Allowance = MockConn.CongestionControl.QuicCongestionControlGetSendAllowance(
         &MockConn.CongestionControl, 1000, TRUE);
-    
     ASSERT_EQ(Allowance, 0u);
-}
-
-//
-// Test 15: GetSendAllowance with available window (no pacing)
-// Scenario: Tests GetSendAllowance when pacing is disabled and window is available.
-// Should return full available window.
-//
-TEST(CubicTest, GetSendAllowanceWithoutPacing)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    MockConn.Settings.PacingEnabled = FALSE;  // Disable pacing
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Set BytesInFlight to half of window
+    // Scenario 2: Available window without pacing - should return full window
+    MockConn.Settings.PacingEnabled = FALSE;
     Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
     uint32_t ExpectedAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
-    
-    // Call GetSendAllowance via function pointer
-    uint32_t Allowance = MockConn.CongestionControl.QuicCongestionControlGetSendAllowance(
+    Allowance = MockConn.CongestionControl.QuicCongestionControlGetSendAllowance(
         &MockConn.CongestionControl, 1000, TRUE);
-    
     ASSERT_EQ(Allowance, ExpectedAllowance);
-}
-
-//
-// Test 16: GetSendAllowance without valid time
-// Scenario: Tests GetSendAllowance when TimeSinceLastSendValid is FALSE.
-// Should skip pacing logic and return full available window.
-//
-TEST(CubicTest, GetSendAllowanceInvalidTime)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    MockConn.Settings.PacingEnabled = TRUE;  // Enable pacing
-    MockConn.Paths[0].GotFirstRttSample = TRUE;  // Have RTT
-    MockConn.Paths[0].SmoothedRtt = 50000;  // 50ms
-    
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
-    uint32_t ExpectedAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
-    
-    // Call with invalid time - should skip pacing
-    uint32_t Allowance = MockConn.CongestionControl.QuicCongestionControlGetSendAllowance(
+    // Scenario 3: Invalid time - should skip pacing and return full window
+    MockConn.Settings.PacingEnabled = TRUE;
+    MockConn.Paths[0].GotFirstRttSample = TRUE;
+    MockConn.Paths[0].SmoothedRtt = 50000;
+    Allowance = MockConn.CongestionControl.QuicCongestionControlGetSendAllowance(
         &MockConn.CongestionControl, 1000, FALSE);  // FALSE = invalid time
-    
     ASSERT_EQ(Allowance, ExpectedAllowance);
 }
 
 //
-// Test 17: GetExemptions (via function pointer)
-// Scenario: Tests GetExemptions returns the current exemption count.
+// Test 13: Getter functions (via function pointers)
+// Scenario: Tests all simple getter functions that return internal state values.
+// Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
+// correct values matching the internal CUBIC state.
 //
-TEST(CubicTest, GetExemptions)
+TEST(CubicTest, GetterFunctions)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -594,68 +498,31 @@ TEST(CubicTest, GetExemptions)
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Initially 0
+    // Test GetExemptions
     uint8_t Exemptions = MockConn.CongestionControl.QuicCongestionControlGetExemptions(&MockConn.CongestionControl);
     ASSERT_EQ(Exemptions, 0u);
-    
-    // Set exemptions
     Cubic->Exemptions = 3;
     Exemptions = MockConn.CongestionControl.QuicCongestionControlGetExemptions(&MockConn.CongestionControl);
     ASSERT_EQ(Exemptions, 3u);
-}
-
-//
-// Test 18: GetBytesInFlightMax (via function pointer)
-// Scenario: Tests GetBytesInFlightMax returns the maximum bytes in flight value.
-//
-TEST(CubicTest, GetBytesInFlightMax)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
+    // Test GetBytesInFlightMax
     uint32_t MaxBytes = MockConn.CongestionControl.QuicCongestionControlGetBytesInFlightMax(&MockConn.CongestionControl);
     ASSERT_EQ(MaxBytes, Cubic->BytesInFlightMax);
     ASSERT_EQ(MaxBytes, Cubic->CongestionWindow / 2);
-}
-
-//
-// Test 19: GetCongestionWindow (via function pointer)
-// Scenario: Tests GetCongestionWindow returns the current congestion window size.
-//
-TEST(CubicTest, GetCongestionWindow)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
     
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
+    // Test GetCongestionWindow
     uint32_t CongestionWindow = MockConn.CongestionControl.QuicCongestionControlGetCongestionWindow(&MockConn.CongestionControl);
     ASSERT_EQ(CongestionWindow, Cubic->CongestionWindow);
     ASSERT_GT(CongestionWindow, 0u);
 }
 
 //
-// Test 20: Reset with partial reset (via function pointer)
-// Scenario: Tests Reset function with FullReset=FALSE. Should reset most state but
-// preserve BytesInFlight.
+// Test 14: Reset scenarios (via function pointer)
+// Scenario: Tests Reset function with both FullReset=FALSE (preserves BytesInFlight) and
+// FullReset=TRUE (zeros BytesInFlight). Verifies that reset properly reinitializes CUBIC
+// state while respecting the FullReset parameter for connection recovery scenarios.
 //
-TEST(CubicTest, ResetPartial)
+TEST(CubicTest, ResetScenarios)
 {
     MOCK_CONNECTION MockConn;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -669,56 +536,29 @@ TEST(CubicTest, ResetPartial)
     
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
     
-    // Modify state
+    // Scenario 1: Partial reset (FullReset=FALSE) - preserves BytesInFlight
     Cubic->BytesInFlight = 5000;
     Cubic->SlowStartThreshold = 10000;
     Cubic->IsInRecovery = TRUE;
     Cubic->HasHadCongestionEvent = TRUE;
-    
     uint32_t BytesInFlightBefore = Cubic->BytesInFlight;
     
-    // Reset with FullReset=FALSE via function pointer
     MockConn.CongestionControl.QuicCongestionControlReset(&MockConn.CongestionControl, FALSE);
     
-    // Should reset state
     ASSERT_EQ(Cubic->SlowStartThreshold, UINT32_MAX);
     ASSERT_FALSE(Cubic->IsInRecovery);
     ASSERT_FALSE(Cubic->HasHadCongestionEvent);
     ASSERT_EQ(Cubic->LastSendAllowance, 0u);
+    ASSERT_EQ(Cubic->BytesInFlight, BytesInFlightBefore);  // Preserved
     
-    // Should preserve BytesInFlight when FullReset=FALSE
-    ASSERT_EQ(Cubic->BytesInFlight, BytesInFlightBefore);
-}
-
-//
-// Test 21: Reset with full reset (via function pointer)
-// Scenario: Tests Reset function with FullReset=TRUE. Should reset all state including
-// BytesInFlight.
-//
-TEST(CubicTest, ResetFull)
-{
-    MOCK_CONNECTION MockConn;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-    
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-    
-    InitializeMockConnection(&MockConn, 1280);
-    CubicCongestionControlInitialize(&MockConn.CongestionControl, &Settings);
-    
-    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &MockConn.CongestionControl.Cubic;
-    
-    // Modify state
+    // Scenario 2: Full reset (FullReset=TRUE) - zeros BytesInFlight
     Cubic->BytesInFlight = 5000;
     Cubic->SlowStartThreshold = 10000;
     Cubic->IsInRecovery = TRUE;
     
-    // Reset with FullReset=TRUE via function pointer
     MockConn.CongestionControl.QuicCongestionControlReset(&MockConn.CongestionControl, TRUE);
     
-    // Should reset all state including BytesInFlight
     ASSERT_EQ(Cubic->SlowStartThreshold, UINT32_MAX);
     ASSERT_FALSE(Cubic->IsInRecovery);
-    ASSERT_EQ(Cubic->BytesInFlight, 0u);  // Should be zero with full reset
+    ASSERT_EQ(Cubic->BytesInFlight, 0u);  // Zeroed with full reset
 }
