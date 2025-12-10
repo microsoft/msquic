@@ -474,7 +474,59 @@ TEST(CubicTest, GetSendAllowanceScenarios)
 }
 
 //
-// Test 13: Getter functions (via function pointers)
+// Test 13: GetSendAllowance with active pacing (via function pointer)
+// Scenario: Tests the pacing logic that limits send rate based on RTT and congestion window.
+// When pacing is enabled with valid RTT samples, the function calculates a pacing rate to
+// smooth out packet transmission. This prevents burst sending and improves performance over
+// certain network paths. The pacing calculation is: (CongestionWindow * TimeSinceLastSend) / RTT.
+// This test verifies that with pacing enabled, the allowance is rate-limited based on elapsed
+// time, resulting in a smaller allowance than the full available congestion window.
+//
+TEST(CubicTest, GetSendAllowanceWithActivePacing)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+
+    // Enable pacing and provide valid RTT sample
+    Connection.Settings.PacingEnabled = TRUE;
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000; // 50ms (well above QUIC_MIN_PACING_RTT)
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set BytesInFlight to half the window to have available capacity
+    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
+    uint32_t AvailableWindow = Cubic->CongestionWindow - Cubic->BytesInFlight;
+
+    // Simulate 10ms elapsed since last send
+    // Expected pacing calculation: (CongestionWindow * 10ms) / 50ms = CongestionWindow / 5
+    uint32_t TimeSinceLastSend = 10000; // 10ms in microseconds
+
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
+
+    // Pacing should limit the allowance to less than the full available window
+    ASSERT_GT(Allowance, 0u); // Should allow some sending
+    ASSERT_LT(Allowance, AvailableWindow); // But less than full window due to pacing
+
+    // Verify it's approximately the expected pacing calculation
+    uint32_t ExpectedPacedAllowance = (uint32_t)(((uint64_t)Cubic->CongestionWindow * TimeSinceLastSend) / Connection.Paths[0].SmoothedRtt);
+
+    // Allow some margin due to integer arithmetic and min/max clamping
+    ASSERT_GE(Allowance, ExpectedPacedAllowance / 2);
+    ASSERT_LE(Allowance, ExpectedPacedAllowance * 2);
+}
+
+//
+// Test 14: Getter functions (via function pointers)
 // Scenario: Tests all simple getter functions that return internal state values.
 // Verifies GetExemptions, GetBytesInFlightMax, and GetCongestionWindow all return
 // correct values matching the internal CUBIC state.
@@ -512,7 +564,7 @@ TEST(CubicTest, GetterFunctions)
 }
 
 //
-// Test 14: Reset scenarios (via function pointer)
+// Test 15: Reset scenarios (via function pointer)
 // Scenario: Tests Reset function with both FullReset=FALSE (preserves BytesInFlight) and
 // FullReset=TRUE (zeros BytesInFlight). Verifies that reset properly reinitializes CUBIC
 // state while respecting the FullReset parameter for connection recovery scenarios.
