@@ -718,10 +718,10 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
 // Decoder Ring for PathDiscarded
 // [conn][%p] Removing invalid path[%hhu]
 // QuicTraceLogConnInfo(
-                PathDiscarded,
-                Connection,
-                "Removing invalid path[%hhu]",
-                Connection->Paths[i].ID);
+                    PathDiscarded,
+                    Connection,
+                    "Removing invalid path[%hhu]",
+                    Connection->Paths[i].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Paths[i].ID = arg3
 ----------------------------------------------------------*/

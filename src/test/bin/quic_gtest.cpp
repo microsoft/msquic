@@ -1730,7 +1730,60 @@ TEST_P(WithFamilyArgs, PathValidationTimeout) {
         QuicTestPathValidationTimeout(GetParam().Family);
     }
 }
-#endif
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+TEST_P(WithProbePathArgs, ProbePath) {
+    TestLoggerT<ParamType> Logger("QuicTestProbePath", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_PROBE_PATH_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH, Params));
+    } else {
+        QuicTestProbePath(
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount);
+    }
+}
+
+TEST_P(WithMigrationArgs, Migration) {
+    TestLoggerT<ParamType> Logger("QuicTestMigration", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_MIGRATION_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().Type
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_MIGRATION, Params));
+    } else {
+        QuicTestMigration(GetParam().Family, GetParam().ShareBinding, GetParam().Type);
+    }
+}
+
+TEST_P(WithProbePathArgs, MultipleLocalAddresses) {
+    TestLoggerT<ParamType> Logger("QuicTestMultipleLocalAddresses", GetParam());
+    if (TestingKernelMode) {
+        QUIC_RUN_PROBE_PATH_PARAMS Params = {
+            GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount
+        };
+        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_PROBE_PATH, Params));
+    } else {
+        QuicTestMultipleLocalAddresses(GetParam().Family,
+            GetParam().ShareBinding,
+            GetParam().DeferConnIDGen,
+            GetParam().DropPacketCount);
+    }
+}
+#endif // QUIC_API_ENABLE_PREVIEW_FEATURES
+#endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 TEST_P(WithFamilyArgs, ChangeMaxStreamIDs) {
     TestLoggerT<ParamType> Logger("QuicTestChangeMaxStreamID", GetParam());
@@ -2597,6 +2650,15 @@ INSTANTIATE_TEST_SUITE_P(
     WithRebindPaddingArgs,
     ::testing::ValuesIn(RebindPaddingArgs::Generate()));
 
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithProbePathArgs,
+    ::testing::ValuesIn(ProbePathArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithMigrationArgs,
+    ::testing::ValuesIn(MigrationArgs::Generate()));
 #endif // QUIC_TEST_DATAPATH_HOOKS_ENABLED
 
 #ifdef QUIC_API_ENABLE_PREVIEW_FEATURES

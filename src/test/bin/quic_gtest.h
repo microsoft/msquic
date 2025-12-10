@@ -943,3 +943,56 @@ std::ostream& operator << (std::ostream& o, const TlsConfigArgs& args) {
 class WithValidateTlsConfigArgs : public testing::Test,
     public testing::WithParamInterface<TlsConfigArgs> {
 };
+
+#if defined(QUIC_API_ENABLE_PREVIEW_FEATURES)
+struct ProbePathArgs {
+    int Family;
+    BOOLEAN ShareBinding;
+    BOOLEAN DeferConnIDGen;
+    uint32_t DropPacketCount;
+    static ::std::vector<ProbePathArgs> Generate() {
+        ::std::vector<ProbePathArgs> list;
+        for (int Family : { 4, 6 })
+        for (BOOLEAN ShareBinding : { TRUE, FALSE })
+        for (BOOLEAN DeferConnIDGen : { TRUE, FALSE })
+        for (uint32_t DropPacketCount : { 0, 1 })
+            list.push_back({ Family, ShareBinding, DeferConnIDGen, DropPacketCount });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const ProbePathArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.ShareBinding ? "ShareBinding" : "not ShareBinding") << "/"
+        << (args.DeferConnIDGen ? "DeferConnIDGen" : "not DeferConnIDGen") << "/"
+        << "DropPacketCount: " << args.DropPacketCount;
+}
+
+class WithProbePathArgs : public testing::Test,
+    public testing::WithParamInterface<ProbePathArgs> {
+};
+
+struct MigrationArgs {
+    int Family;
+    BOOLEAN ShareBinding;
+    QUIC_MIGRATION_TYPE Type;
+    static ::std::vector<MigrationArgs> Generate() {
+        ::std::vector<MigrationArgs> list;
+        for (int Family : { 4, 6 })
+        for (BOOLEAN ShareBinding : { TRUE, FALSE })
+        for (QUIC_MIGRATION_TYPE Type : { MigrateWithProbe, MigrateWithoutProbe, DeleteAndMigrate })
+            list.push_back({ Family, ShareBinding, Type });
+        return list;
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const MigrationArgs& args) {
+    return o << (args.Family == 4 ? "v4" : "v6") << "/"
+        << (args.ShareBinding ? "ShareBinding" : "not ShareBinding") << "/"
+        << (args.Type ? (args.Type == MigrateWithoutProbe ? "Migrate without Probe" : "Delete and Migrate") : "Migrate with Probe");
+}
+
+class WithMigrationArgs : public testing::Test,
+    public testing::WithParamInterface<MigrationArgs> {
+};
+#endif

@@ -174,6 +174,11 @@ QuicSettingsSetDefault(
     if (!Settings->IsSet.StreamMultiReceiveEnabled) {
         Settings->StreamMultiReceiveEnabled = QUIC_DEFAULT_STREAM_MULTI_RECEIVE_ENABLED;
     }
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (!Settings->IsSet.ConnIDGenDisabled) {
+        Settings->ConnIDGenDisabled = QUIC_DEFAULT_CONN_ID_GENERATION_DISABLED;
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -348,6 +353,11 @@ QuicSettingsCopy(
     if (!Destination->IsSet.StreamMultiReceiveEnabled) {
         Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
     }
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (!Destination->IsSet.ConnIDGenDisabled) {
+        Destination->ConnIDGenDisabled = Source->ConnIDGenDisabled;
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -737,6 +747,13 @@ QuicSettingApply(
         Destination->StreamMultiReceiveEnabled = Source->StreamMultiReceiveEnabled;
         Destination->IsSet.StreamMultiReceiveEnabled = TRUE;
     }
+
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (Source->IsSet.ConnIDGenDisabled && (!Destination->IsSet.ConnIDGenDisabled || OverWrite)) {
+        Destination->ConnIDGenDisabled = Source->ConnIDGenDisabled;
+        Destination->IsSet.ConnIDGenDisabled = TRUE;
+    }
+#endif
     return TRUE;
 }
 
@@ -1425,6 +1442,18 @@ VersionSettingsFail:
             &ValueLen);
         Settings->StreamMultiReceiveEnabled = !!Value;
     }
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (!Settings->IsSet.ConnIDGenDisabled) {
+        Value = QUIC_DEFAULT_CONN_ID_GENERATION_DISABLED;
+        ValueLen = sizeof(Value);
+        CxPlatStorageReadValue(
+            Storage,
+            QUIC_SETTING_CONN_ID_GENERATION_DISABLED,
+            (uint8_t*)&Value,
+            &ValueLen);
+        Settings->ConnIDGenDisabled = !!Value;
+    }
+#endif
 }
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -1666,6 +1695,11 @@ QuicSettingsDumpNew(
     if (Settings->IsSet.StreamMultiReceiveEnabled) {
         QuicTraceLogVerbose(SettingStreamMultiReceiveEnabled,       "[sett] StreamMultiReceiveEnabled  = %hhu", Settings->StreamMultiReceiveEnabled);
     }
+#if QUIC_TEST_MANUAL_CONN_ID_GENERATION
+    if (Settings->IsSet.ConnIDGenDisabled) {
+        QuicTraceLogVerbose(SettingConnIDGenDisabled,               "[sett] ConnIDGenDisabled          = %hhu", Settings->ConnIDGenDisabled);
+    }
+#endif
 }
 
 #define SETTING_COPY_TO_INTERNAL(Field, Settings, InternalSettings) \
