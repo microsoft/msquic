@@ -10,6 +10,9 @@ Abstract:
 --*/
 
 #include "main.h"
+#ifdef QUIC_CLOG
+#include "CubicTest.cpp.clog.h"
+#endif
 
 //
 // Mock structures for testing
