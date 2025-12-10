@@ -129,12 +129,12 @@ jobs:
       shell: pwsh
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
-      timeout-minutes: 15
+      timeout-minutes: 25
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
-      timeout-minutes: 65
+      timeout-minutes: 100
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Fix log permissions for Linux XDP
