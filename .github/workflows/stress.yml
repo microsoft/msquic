@@ -101,10 +101,10 @@ jobs:
         ]
     runs-on: ${{ matrix.vec.plat == 'windows' && matrix.vec.os == 'WinServerPrerelease' && fromJson('[''self-hosted'', ''1ES.Pool=1es-msquic-pool'', ''1ES.ImageOverride=WinServerPrerelease-LatestPwsh'']') || matrix.vec.os }}
     env:
-      main-timeout: 5400000
+      main-timeout: 3600000
       main-repeat: 100
       main-allocfail: 100
-      pr-timeout: 900000
+      pr-timeout: 600000
       pr-repeat: 20
       pr-allocfail: 100
     steps:
@@ -129,12 +129,12 @@ jobs:
       shell: pwsh
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
-      timeout-minutes: 25
+      timeout-minutes: 15
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.pr-timeout }} -RepeatCount ${{ env.pr-repeat }} -AllocFail ${{ env.pr-allocfail }} ${{ matrix.vec.xdp }}
     - name: spinquic (Official)
       if: github.event_name != 'pull_request'
-      timeout-minutes: 100
+      timeout-minutes: 65
       shell: pwsh
       run: scripts/spin.ps1 -AZP -Config ${{ matrix.vec.config }} -Arch ${{ matrix.vec.arch }} -Tls ${{ matrix.vec.tls }} -Timeout ${{ env.main-timeout }} -RepeatCount ${{ env.main-repeat }} -AllocFail ${{ env.main-allocfail }} ${{ matrix.vec.xdp }}
     - name: Fix log permissions for Linux XDP

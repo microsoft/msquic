@@ -167,7 +167,7 @@ public:
 // The amount of extra time (in milliseconds) to give the watchdog before
 // actually firing.
 //
-#define WATCHDOG_WIGGLE_ROOM 10000
+#define WATCHDOG_WIGGLE_ROOM 20000
 
 class SpinQuicWatchdog {
     CXPLAT_THREAD WatchdogThread;
