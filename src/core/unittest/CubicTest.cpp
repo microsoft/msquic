@@ -609,3 +609,405 @@ TEST(CubicTest, ResetScenarios)
     ASSERT_FALSE(Cubic->IsInRecovery);
     ASSERT_EQ(Cubic->BytesInFlight, 0u); // Zeroed with full reset
 }
+
+//
+// Test 16: CubicCongestionControlCanSend - Unblocked state
+// Scenario: Tests CanSend when BytesInFlight < CongestionWindow and no exemptions needed.
+// This is the normal case where the congestion window has room for more data. Verifies
+// the function correctly returns TRUE through the function pointer interface.
+//
+TEST(CubicTest, CanSend_Unblocked)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set BytesInFlight to less than CongestionWindow
+    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
+    Cubic->Exemptions = 0;
+
+    // Call through function pointer
+    BOOLEAN CanSend = Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl);
+
+    ASSERT_TRUE(CanSend);
+}
+
+//
+// Test 17: CubicCongestionControlCanSend - Blocked by congestion window
+// Scenario: Tests CanSend when BytesInFlight >= CongestionWindow and no exemptions.
+// Verifies that when the congestion window is full, CanSend returns FALSE, preventing
+// additional data from being sent until ACKs are received. Critical for congestion control.
+//
+TEST(CubicTest, CanSend_BlockedByCongestionWindow)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Fill the congestion window
+    Cubic->BytesInFlight = Cubic->CongestionWindow;
+    Cubic->Exemptions = 0;
+
+    // Call through function pointer
+    BOOLEAN CanSend = Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl);
+
+    ASSERT_FALSE(CanSend);
+}
+
+//
+// Test 18: CubicCongestionControlCanSend - Exemptions allow send
+// Scenario: Tests that exemptions override congestion window limits. Even when
+// BytesInFlight >= CongestionWindow, if Exemptions > 0, CanSend returns TRUE.
+// Exemptions are used for probe packets and loss recovery retransmissions.
+//
+TEST(CubicTest, CanSend_WithExemptions)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Fill congestion window but add exemptions
+    Cubic->BytesInFlight = Cubic->CongestionWindow;
+    Cubic->Exemptions = 3;
+
+    // Call through function pointer
+    BOOLEAN CanSend = Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl);
+
+    ASSERT_TRUE(CanSend);
+}
+
+//
+// Test 19: CubicCongestionControlSetExemption - Single exemption
+// Scenario: Tests setting exemptions through function pointer. Verifies that calling
+// SetExemption increments the Exemptions counter, allowing probe packets to be sent
+// even when the congestion window is full.
+//
+TEST(CubicTest, SetExemption_Single)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    ASSERT_EQ(Cubic->Exemptions, 0u);
+
+    // Call through function pointer
+    Connection.CongestionControl.QuicCongestionControlSetExemption(&Connection.CongestionControl, 1);
+
+    ASSERT_EQ(Cubic->Exemptions, 1u);
+}
+
+//
+// Test 20: CubicCongestionControlSetExemption - Multiple exemptions
+// Scenario: Tests that exemptions can be set to a specific value. SetExemption directly
+// sets the exemption count (doesn't increment), allowing multiple probe packets to be sent.
+// Verifies the function correctly sets the value.
+//
+TEST(CubicTest, SetExemption_Multiple)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Add multiple exemptions by setting to 3 directly (SetExemption sets, not increments)
+    Connection.CongestionControl.QuicCongestionControlSetExemption(&Connection.CongestionControl, 3);
+
+    ASSERT_EQ(Cubic->Exemptions, 3u);
+}
+
+//
+// Test 21: CubicCongestionControlGetSendAllowance - Without pacing
+// Scenario: Tests GetSendAllowance when pacing is disabled. Should return the full
+// available congestion window (CongestionWindow - BytesInFlight). This is the simple
+// case where the entire window is available immediately.
+//
+TEST(CubicTest, GetSendAllowance_WithoutPacing)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Settings.PacingEnabled = FALSE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set some bytes in flight
+    Cubic->BytesInFlight = 2000;
+    uint32_t ExpectedAllowance = Cubic->CongestionWindow - Cubic->BytesInFlight;
+
+    // Call through function pointer
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, 0, FALSE);
+
+    ASSERT_EQ(Allowance, ExpectedAllowance);
+}
+
+//
+// Test 22: CubicCongestionControlOnDataSent - BytesInFlight increases
+// Scenario: Tests that OnDataSent correctly increments BytesInFlight when data is sent.
+// This tracks outstanding data in the network. Verifies BytesInFlightMax is updated
+// when BytesInFlight reaches a new maximum.
+//
+TEST(CubicTest, OnDataSent_IncrementsBytesInFlight)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    uint32_t InitialBytesInFlight = Cubic->BytesInFlight;
+    uint32_t InitialBytesInFlightMax = Cubic->BytesInFlightMax;
+    uint32_t BytesToSend = 1500;
+
+    // Call through function pointer
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, BytesToSend);
+
+    ASSERT_EQ(Cubic->BytesInFlight, InitialBytesInFlight + BytesToSend);
+    // BytesInFlightMax should update if new BytesInFlight exceeds previous max
+    if (InitialBytesInFlight + BytesToSend > InitialBytesInFlightMax) {
+        ASSERT_EQ(Cubic->BytesInFlightMax, InitialBytesInFlight + BytesToSend);
+    } else {
+        ASSERT_EQ(Cubic->BytesInFlightMax, InitialBytesInFlightMax);
+    }
+}
+
+//
+// Test 23: CubicCongestionControlOnDataSent - Exemptions decremented
+// Scenario: Tests that OnDataSent decrements Exemptions when sending with exemptions.
+// When probe packets are sent using exemptions, each send should consume one exemption.
+// Verifies the exemption counter decreases correctly.
+//
+TEST(CubicTest, OnDataSent_DecrementsExemptions)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set exemptions
+    Cubic->Exemptions = 5;
+
+    // Send data
+    Connection.CongestionControl.QuicCongestionControlOnDataSent(
+        &Connection.CongestionControl, 1500);
+
+    ASSERT_EQ(Cubic->Exemptions, 4u);
+}
+
+//
+// Test 24: CubicCongestionControlOnDataInvalidated - BytesInFlight decreases
+// Scenario: Tests OnDataInvalidated when sent packets are discarded (e.g., due to key
+// phase change). BytesInFlight should decrease by the invalidated bytes since they're
+// no longer considered in-flight. Critical for accurate congestion window management.
+//
+TEST(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Send some data first
+    Cubic->BytesInFlight = 5000;
+    uint32_t BytesToInvalidate = 2000;
+
+    // Call through function pointer
+    Connection.CongestionControl.QuicCongestionControlOnDataInvalidated(
+        &Connection.CongestionControl, BytesToInvalidate);
+
+    ASSERT_EQ(Cubic->BytesInFlight, 3000u);
+}
+
+//
+// Test 25: CubicCongestionControlGetExemptions - Returns current value
+// Scenario: Tests the GetExemptions accessor function. Verifies it returns the current
+// exemption count, which is used by the send logic to determine if probe packets can
+// be sent even when the congestion window is full.
+//
+TEST(CubicTest, GetExemptions_ReturnsValue)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set exemptions
+    Cubic->Exemptions = 7;
+
+    // Call through function pointer
+    uint8_t Exemptions = Connection.CongestionControl.QuicCongestionControlGetExemptions(
+        &Connection.CongestionControl);
+
+    ASSERT_EQ(Exemptions, 7u);
+}
+
+//
+// Test 26: CubicCongestionControlGetBytesInFlightMax - Returns tracked maximum
+// Scenario: Tests GetBytesInFlightMax accessor. Returns the maximum BytesInFlight seen,
+// which is used to limit congestion window growth. Verifies the function returns the
+// correct value through the function pointer interface.
+//
+TEST(CubicTest, GetBytesInFlightMax_ReturnsValue)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set BytesInFlightMax
+    uint32_t ExpectedMax = 12345;
+    Cubic->BytesInFlightMax = ExpectedMax;
+
+    // Call through function pointer
+    uint32_t Max = Connection.CongestionControl.QuicCongestionControlGetBytesInFlightMax(
+        &Connection.CongestionControl);
+
+    ASSERT_EQ(Max, ExpectedMax);
+}
+
+//
+// Test 27: CubicCongestionControlGetCongestionWindow - Returns current window
+// Scenario: Tests GetCongestionWindow accessor. Returns the current congestion window
+// size in bytes, which is the primary congestion control parameter. Used for telemetry
+// and debugging. Verifies correct value is returned.
+//
+TEST(CubicTest, GetCongestionWindow_ReturnsValue)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    uint32_t ExpectedWindow = Cubic->CongestionWindow;
+
+    // Call through function pointer
+    uint32_t Window = Connection.CongestionControl.QuicCongestionControlGetCongestionWindow(
+        &Connection.CongestionControl);
+
+    ASSERT_EQ(Window, ExpectedWindow);
+}
+
+//
+// Test 28: CubicCongestionControlIsAppLimited - Always returns FALSE
+// Scenario: Tests IsAppLimited function. CUBIC doesn't track app-limited state, so this
+// always returns FALSE. Verifies the function behaves consistently through function pointer.
+//
+TEST(CubicTest, IsAppLimited_ReturnsFalse)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    // Call through function pointer
+    BOOLEAN IsAppLimited = Connection.CongestionControl.QuicCongestionControlIsAppLimited(
+        &Connection.CongestionControl);
+
+    ASSERT_FALSE(IsAppLimited);
+}
+
+//
+// Test 29: CubicCongestionControlSetAppLimited - No-op
+// Scenario: Tests SetAppLimited function. This is a no-op in CUBIC (no state change).
+// Verifies calling it doesn't crash or modify state. Tests the function pointer interface.
+//
+TEST(CubicTest, SetAppLimited_NoOp)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+    uint32_t WindowBefore = Cubic->CongestionWindow;
+
+    // Call through function pointer
+    Connection.CongestionControl.QuicCongestionControlSetAppLimited(&Connection.CongestionControl);
+
+    // Verify no state change
+    ASSERT_EQ(Cubic->CongestionWindow, WindowBefore);
+}
