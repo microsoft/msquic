@@ -566,10 +566,9 @@ TEST(CubicTest, OnDataAcknowledged_BasicAck)
     AckEvent.AckedPackets = NULL; // NULL pointer is valid
 
     // Call through function pointer
-    BOOLEAN IsWindowUpdated = Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
         &Connection.CongestionControl,
         &AckEvent);
-
     // Verify window may have grown (depends on slow start vs congestion avoidance)
     ASSERT_GE(Cubic->CongestionWindow, InitialWindow);
 }
