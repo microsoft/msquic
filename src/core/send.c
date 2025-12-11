@@ -997,6 +997,25 @@ QuicSendWriteFrames(
             }
         }
 
+        if ((Send->SendFlags & QUIC_CONN_SEND_FLAG_PATHS_BLOCKED)) {
+
+            QUIC_PATHS_BLOCKED_EX Frame = { Connection->PathIDs.PeerMaxPathID };
+
+            if (QuicPathsBlockedFrameEncode(
+                    &Frame,
+                    &Builder->DatagramLength,
+                    AvailableBufferLength,
+                    Builder->Datagram->Buffer)) {
+
+                Send->SendFlags &= ~QUIC_CONN_SEND_FLAG_PATHS_BLOCKED;
+                if (QuicPacketBuilderAddFrame(Builder, QUIC_FRAME_PATHS_BLOCKED, TRUE)) {
+                    return TRUE;
+                }
+            } else {
+                RanOutOfRoom = TRUE;
+            }
+        }
+
         if (Send->SendFlags & QUIC_CONN_SEND_FLAG_ACK_FREQUENCY) {
 
             QUIC_ACK_FREQUENCY_EX Frame;

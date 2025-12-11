@@ -5347,6 +5347,54 @@
       ],
       "macroName": "QuicTraceLogVerbose"
     },
+    "FrameLogPathCidsBlocked": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_CIDS_BLOCKED PathID:%llu Next SSN:0x%llX",
+      "UniqueId": "FrameLogPathCidsBlocked",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        },
+        {
+          "DefinationEncoding": "llX",
+          "MacroVariableName": "arg6"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathCidsBlockedInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATH_CIDS_BLOCKED [Invalid]",
+      "UniqueId": "FrameLogPathCidsBlockedInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
     "FrameLogPathNewConnectionID": {
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s",
@@ -5483,6 +5531,50 @@
       "ModuleProperites": {},
       "TraceString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]",
       "UniqueId": "FrameLogPathRetireConnectionIDInvalid",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathsBlocked": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATHS_BLOCKED Max:%llu",
+      "UniqueId": "FrameLogPathsBlocked",
+      "splitArgs": [
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg2"
+        },
+        {
+          "DefinationEncoding": "c",
+          "MacroVariableName": "arg3"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg4"
+        },
+        {
+          "DefinationEncoding": "llu",
+          "MacroVariableName": "arg5"
+        }
+      ],
+      "macroName": "QuicTraceLogVerbose"
+    },
+    "FrameLogPathsBlockedInvalid": {
+      "ModuleProperites": {},
+      "TraceString": "[%c][%cX][%llu]   PATHS_BLOCKED [Invalid]",
+      "UniqueId": "FrameLogPathsBlockedInvalid",
       "splitArgs": [
         {
           "DefinationEncoding": "c",
@@ -15681,6 +15773,16 @@
         "EncodingString": "[%c][%cX][%llu]   PATH_CHALLENGE [Invalid]"
       },
       {
+        "UniquenessHash": "679a4c2d-c8ef-9164-f1e9-f799f1fff8ac",
+        "TraceID": "FrameLogPathCidsBlocked",
+        "EncodingString": "[%c][%cX][%llu]   PATH_CIDS_BLOCKED PathID:%llu Next SSN:0x%llX"
+      },
+      {
+        "UniquenessHash": "9ce63512-ff31-1c58-4a08-4afbc37cf8e4",
+        "TraceID": "FrameLogPathCidsBlockedInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATH_CIDS_BLOCKED [Invalid]"
+      },
+      {
         "UniquenessHash": "551b1ae9-51b6-70f3-76c1-e428c25d5885",
         "TraceID": "FrameLogPathNewConnectionID",
         "EncodingString": "[%c][%cX][%llu]   PATH_NEW_CONN_ID PathID:%llu Seq:%llu RPT:%llu CID:%s Token:%s"
@@ -15709,6 +15811,16 @@
         "UniquenessHash": "7ac366c2-d381-41e3-714c-fc85389b1e14",
         "TraceID": "FrameLogPathRetireConnectionIDInvalid",
         "EncodingString": "[%c][%cX][%llu]   PATH_RETIRE_CONN_ID [Invalid]"
+      },
+      {
+        "UniquenessHash": "19f3c8f5-77aa-1d18-bb98-075a4702e0d8",
+        "TraceID": "FrameLogPathsBlocked",
+        "EncodingString": "[%c][%cX][%llu]   PATHS_BLOCKED Max:%llu"
+      },
+      {
+        "UniquenessHash": "bdc7c8ff-b8c2-8527-82ae-39b27438829d",
+        "TraceID": "FrameLogPathsBlockedInvalid",
+        "EncodingString": "[%c][%cX][%llu]   PATHS_BLOCKED [Invalid]"
       },
       {
         "UniquenessHash": "4e057b3b-1d37-81dc-0b9d-e449ba9a5bbf",

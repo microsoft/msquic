@@ -1352,6 +1352,100 @@ tracepoint(CLOG_FRAME_C, FrameLogMaxPathID , arg2, arg3, arg4, arg5);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for FrameLogPathsBlockedInvalid
+// [%c][%cX][%llu]   PATHS_BLOCKED [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathsBlockedInvalid,
+                "[%c][%cX][%llu]   PATHS_BLOCKED [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathsBlockedInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathsBlockedInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathsBlockedInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathsBlocked
+// [%c][%cX][%llu]   PATHS_BLOCKED Max:%llu
+// QuicTraceLogVerbose(
+            FrameLogPathsBlocked,
+            "[%c][%cX][%llu]   PATHS_BLOCKED Max:%llu",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.MaximumPathID);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.MaximumPathID = arg5
+----------------------------------------------------------*/
+#ifndef _clog_6_ARGS_TRACE_FrameLogPathsBlocked
+#define _clog_6_ARGS_TRACE_FrameLogPathsBlocked(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5)\
+tracepoint(CLOG_FRAME_C, FrameLogPathsBlocked , arg2, arg3, arg4, arg5);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathCidsBlockedInvalid
+// [%c][%cX][%llu]   PATH_CIDS_BLOCKED [Invalid]
+// QuicTraceLogVerbose(
+                FrameLogPathCidsBlockedInvalid,
+                "[%c][%cX][%llu]   PATH_CIDS_BLOCKED [Invalid]",
+                PtkConnPre(Connection),
+                PktRxPre(Rx),
+                PacketNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+----------------------------------------------------------*/
+#ifndef _clog_5_ARGS_TRACE_FrameLogPathCidsBlockedInvalid
+#define _clog_5_ARGS_TRACE_FrameLogPathCidsBlockedInvalid(uniqueId, encoded_arg_string, arg2, arg3, arg4)\
+tracepoint(CLOG_FRAME_C, FrameLogPathCidsBlockedInvalid , arg2, arg3, arg4);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for FrameLogPathCidsBlocked
+// [%c][%cX][%llu]   PATH_CIDS_BLOCKED PathID:%llu Next SSN:0x%llX
+// QuicTraceLogVerbose(
+            FrameLogPathCidsBlocked,
+            "[%c][%cX][%llu]   PATH_CIDS_BLOCKED PathID:%llu Next SSN:0x%llX",
+            PtkConnPre(Connection),
+            PktRxPre(Rx),
+            PacketNumber,
+            Frame.PathID,
+            Frame.NextSequenceNumber);
+// arg2 = arg2 = PtkConnPre(Connection) = arg2
+// arg3 = arg3 = PktRxPre(Rx) = arg3
+// arg4 = arg4 = PacketNumber = arg4
+// arg5 = arg5 = Frame.PathID = arg5
+// arg6 = arg6 = Frame.NextSequenceNumber = arg6
+----------------------------------------------------------*/
+#ifndef _clog_7_ARGS_TRACE_FrameLogPathCidsBlocked
+#define _clog_7_ARGS_TRACE_FrameLogPathCidsBlocked(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6)\
+tracepoint(CLOG_FRAME_C, FrameLogPathCidsBlocked , arg2, arg3, arg4, arg5, arg6);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for FrameLogConnectionCloseInvalid
 // [%c][%cX][%llu]   CONN_CLOSE [Invalid]
 // QuicTraceLogVerbose(

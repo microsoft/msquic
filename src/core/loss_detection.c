@@ -983,6 +983,13 @@ QuicLossDetectionRetransmitFrames(
                     QUIC_CONN_SEND_FLAG_MAX_PATH_ID);
             break;
 
+        case QUIC_FRAME_PATHS_BLOCKED:
+            NewDataQueued |=
+                QuicSendSetSendFlag(
+                    &Connection->Send,
+                    QUIC_CONN_SEND_FLAG_PATHS_BLOCKED);
+            break;
+
         case QUIC_FRAME_HANDSHAKE_DONE:
             NewDataQueued |=
                 QuicSendSetSendFlag(

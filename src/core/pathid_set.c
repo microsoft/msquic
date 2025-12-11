@@ -566,8 +566,8 @@ QuicPathIDSetNewLocalPathID(
     BOOLEAN NewPathIDBlocked = PathIDSet->TotalPathIDCount >= (PathIDSet->PeerMaxPathID + 1);
 
     if (NewPathIDBlocked) {
-        if (Connection->State.PeerTransportParameterValid) {
-            // QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATHS_BLOCKED);
+        if (Connection->State.MultipathNegotiated) {
+            QuicSendSetSendFlag(&Connection->Send, QUIC_CONN_SEND_FLAG_PATHS_BLOCKED);
         }
         Status = QUIC_STATUS_PATHID_LIMIT_REACHED;
         goto Exit;

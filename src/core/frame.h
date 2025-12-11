@@ -168,6 +168,7 @@ typedef enum QUIC_FRAME_TYPE {
     QUIC_FRAME_PATH_RETIRE_CONNECTION_ID = 0x15228c0aULL,
     QUIC_FRAME_MAX_PATH_ID          = 0x15228c0cULL,
     QUIC_FRAME_PATHS_BLOCKED        = 0x15228c0dULL,
+    QUIC_FRAME_PATH_CIDS_BLOCKED    = 0x15228c0eULL,
 
     QUIC_FRAME_MAX_SUPPORTED
 
@@ -190,7 +191,7 @@ CXPLAT_STATIC_ASSERT(
      (X >= QUIC_FRAME_PATH_ACK && X <= QUIC_FRAME_PATH_ACK_1) || \
       X == QUIC_FRAME_PATH_ABANDON || \
      (X >= QUIC_FRAME_PATH_BACKUP && X <= QUIC_FRAME_PATH_RETIRE_CONNECTION_ID) || \
-      X == QUIC_FRAME_MAX_PATH_ID \
+     (X >= QUIC_FRAME_MAX_PATH_ID && X <= QUIC_FRAME_PATH_CIDS_BLOCKED) \
     )
 
 //
@@ -900,6 +901,67 @@ QuicMaxPathIDFrameDecode(
         const uint8_t * const Buffer,
     _Inout_ uint16_t* Offset,
     _Out_ QUIC_MAX_PATH_ID_EX* Frame
+    );
+
+//
+// QUIC_FRAME_PATHS_BLOCKED Encoding/Decoding
+//
+
+typedef struct QUIC_PATHS_BLOCKED_EX {
+
+    QUIC_VAR_INT MaximumPathID;
+
+} QUIC_PATHS_BLOCKED_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathsBlockedFrameEncode(
+    _In_ const QUIC_PATHS_BLOCKED_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathsBlockedFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATHS_BLOCKED_EX* Frame
+    );
+
+//
+// QUIC_FRAME_PATH_CIDS_BLOCKED Encoding/Decoding
+//
+
+typedef struct QUIC_PATH_CIDS_BLOCKED_EX {
+
+    QUIC_VAR_INT PathID;
+    QUIC_VAR_INT NextSequenceNumber;
+
+} QUIC_PATH_CIDS_BLOCKED_EX;
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathCidsBlockedFrameEncode(
+    _In_ const QUIC_PATH_CIDS_BLOCKED_EX * const Frame,
+    _Inout_ uint16_t* Offset,
+    _In_ uint16_t BufferLength,
+    _Out_writes_to_(BufferLength, *Offset)
+        uint8_t* Buffer
+    );
+
+_Success_(return != FALSE)
+BOOLEAN
+QuicPathCidsBlockedFrameDecode(
+    _In_ uint16_t BufferLength,
+    _In_reads_bytes_(BufferLength)
+        const uint8_t * const Buffer,
+    _Inout_ uint16_t* Offset,
+    _Out_ QUIC_PATH_CIDS_BLOCKED_EX* Frame
     );
 
 //

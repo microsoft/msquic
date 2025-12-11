@@ -5065,6 +5065,48 @@ QuicConnRecvFrames(
             break;
         }
 
+        case QUIC_FRAME_PATHS_BLOCKED: {
+            QUIC_PATHS_BLOCKED_EX Frame;
+            if (!QuicPathsBlockedFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding PATHS_BLOCKED frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Closed) {
+                break; // Ignore frame if we are closed.
+            }
+
+            AckEliciting = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
+            break;
+        }
+
+        case QUIC_FRAME_PATH_CIDS_BLOCKED: {
+            QUIC_PATH_CIDS_BLOCKED_EX Frame;
+            if (!QuicPathCidsBlockedFrameDecode(PayloadLength, Payload, &Offset, &Frame)) {
+                QuicTraceEvent(
+                    ConnError,
+                    "[conn][%p] ERROR, %s.",
+                    Connection,
+                    "Decoding PATH_CIDS_BLOCKED frame");
+                QuicConnTransportError(Connection, QUIC_ERROR_FRAME_ENCODING_ERROR);
+                return FALSE;
+            }
+
+            if (Closed) {
+                break; // Ignore frame if we are closed.
+            }
+
+            AckEliciting = TRUE;
+            Packet->HasNonProbingFrame = TRUE;
+            break;
+        }
+
         case QUIC_FRAME_CONNECTION_CLOSE:
         case QUIC_FRAME_CONNECTION_CLOSE_1: {
             QUIC_CONNECTION_CLOSE_EX Frame;
