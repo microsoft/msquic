@@ -379,6 +379,19 @@ QuicRangeGetMaxSafe(
     _Out_ uint64_t* Value
     );
 
+_IRQL_requires_max_(DISPATCH_LEVEL)
+void
+QuicRangeCompact(
+    _Inout_ QUIC_RANGE* Range
+    );
+
+_IRQL_requires_max_(DISPATCH_LEVEL)
+_Success_(return != FALSE)
+BOOLEAN
+QuicRangeShrink(
+    _Inout_ QUIC_RANGE* Range,
+    _In_ uint32_t NewAllocLength
+    );
 #if defined(__cplusplus)
 }
 #endif
