@@ -806,3 +806,71 @@ TEST(CubicTest, HyStart_StateTransitions)
                 Cubic->HyStartState <= HYSTART_DONE);
     ASSERT_GE(Cubic->CWndSlowStartGrowthDivisor, 1u);
 }
+
+//
+// Test 16: Congestion Avoidance - Idle Time Detection
+// Scenario: Tests that congestion avoidance detects idle periods (gaps in ACKs) and
+// freezes window growth during those gaps. This prevents the window from growing when
+// there's no feedback from the network, which could lead to aggressive bursts after idle.
+//
+TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 100; // 100ms idle timeout
+    Settings.HyStartEnabled = FALSE;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000; // 50ms
+    Connection.Paths[0].RttVariance = 5000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Set up congestion avoidance state
+    Cubic->CongestionWindow = 30000;
+    Cubic->SlowStartThreshold = 20000;
+    Cubic->WindowMax = 40000;
+    Cubic->KCubic = 500;
+    Cubic->HasHadCongestionEvent = TRUE;
+    Cubic->BytesInFlight = 15000;
+    Cubic->AimdWindow = 30000;
+    Cubic->BytesInFlightMax = 30000;
+    Cubic->WindowPrior = 40000;
+
+    uint64_t Now = CxPlatTimeUs64();
+    Cubic->TimeOfCongAvoidStart = Now - 500000; // Started 500ms ago
+    Cubic->TimeOfLastAck = Now - 200000; // Last ACK was 200ms ago (idle gap)
+    Cubic->TimeOfLastAckValid = TRUE;
+
+    uint64_t TimeOfCongAvoidStartBefore = Cubic->TimeOfCongAvoidStart;
+
+    // Send ACK after long idle period
+    QUIC_ACK_EVENT AckEvent;
+    CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
+    AckEvent.TimeNow = Now;
+    AckEvent.LargestAck = 40;
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.NumTotalAckedRetransmittableBytes = 1200;
+    AckEvent.SmoothedRtt = 50000;
+    AckEvent.MinRtt = 45000;
+    AckEvent.MinRttValid = FALSE;
+    AckEvent.IsImplicit = FALSE;
+    AckEvent.HasLoss = FALSE;
+    AckEvent.IsLargestAckedPacketAppLimited = FALSE;
+    AckEvent.AdjustedAckTime = AckEvent.TimeNow;
+    AckEvent.AckedPackets = NULL;
+
+    Connection.CongestionControl.QuicCongestionControlOnDataAcknowledged(
+        &Connection.CongestionControl,
+        &AckEvent);
+
+    // Verify TimeOfCongAvoidStart was adjusted forward to account for idle time
+    // This freezes window growth during the idle period
+    ASSERT_GT(Cubic->TimeOfCongAvoidStart, TimeOfCongAvoidStartBefore);
+}
+
