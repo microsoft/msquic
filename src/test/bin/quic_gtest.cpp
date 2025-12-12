@@ -2366,7 +2366,7 @@ bool InvokeTestInKernel(const std::string& name) {
 
     std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST)> Buffer{};
     QUIC_SIMPLE_TEST_RPC_REQUEST req{};
-    strcpy_s(req.FunctionName, sizeof(req.FunctionName), name.data());
+    name.copy(req.FunctionName, sizeof(req.FunctionName));
 
     return DriverClient.Run(IOCTL_QUIC_SIMPLE_TEST_RPC, (void*)&req, (uint32_t)sizeof(req));
 }

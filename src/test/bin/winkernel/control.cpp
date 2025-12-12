@@ -586,7 +586,7 @@ typedef union {
     Status = Client->TestFailure ? STATUS_FAIL_FAST_EXCEPTION : STATUS_SUCCESS;
 
 template<class Arg>
-void InvokeTestInKernel(void(const Arg&) func, const uint8_t* argBuffer, uin32_t argBufferSize) {
+void InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer, uin32_t argBufferSize) {
     if (sizeof(Arg) != argBufferSize) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
@@ -595,8 +595,7 @@ void InvokeTestInKernel(void(const Arg&) func, const uint8_t* argBuffer, uin32_t
     func(arg);
 }
 
-template<>
-void InvokeTestInKernel(void() func, const uint8_t* argBuffer, uin32_t argBufferSize) {
+void InvokeTestInKernel(void(*func)(), const uint8_t* argBuffer, uin32_t argBufferSize) {
     if (0 != ArgBufferSize) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
