@@ -1005,3 +1005,160 @@ TEST(BbrTest, MaxAckHeightFilterResetOnEmpty)
     QUIC_STATUS Status = QuicSlidingWindowExtremumGet(&Cc.Bbr.MaxAckHeightFilter, &Entry);
     ASSERT_EQ(QUIC_STATUS_NOT_FOUND, Status);
 }
+
+//
+// Tests for uncovered branches in BbrCongestionControlGetCongestionWindow
+//
+
+TEST(BbrTest, GetCongestionWindowInProbeRttState)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+    Settings.InitialWindowPackets = 10;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    // Save the initial congestion window
+    uint32_t InitialCwnd = Cc.Bbr.CongestionWindow;
+
+    // Transition to PROBE_RTT state (BBR_STATE_PROBE_RTT = 3)
+    Cc.Bbr.BbrState = 3; // BBR_STATE_PROBE_RTT
+
+    // In PROBE_RTT, should return minimum congestion window
+    uint32_t CwndInProbeRtt = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    
+    // Minimum should be kMinCwndInMss * DatagramPayloadLength (kMinCwndInMss = 4)
+    ASSERT_LT(CwndInProbeRtt, InitialCwnd);
+    ASSERT_NE(0u, CwndInProbeRtt);
+}
+
+TEST(BbrTest, GetCongestionWindowInRecoveryState)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+    Settings.InitialWindowPackets = 10;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    // Enter recovery state (RECOVERY_STATE_CONSERVATIVE = 1)
+    Cc.Bbr.RecoveryState = 1;
+    
+    // Set recovery window smaller than congestion window
+    Cc.Bbr.RecoveryWindow = Cc.Bbr.CongestionWindow / 2;
+
+    // Should return the minimum of CongestionWindow and RecoveryWindow
+    uint32_t Cwnd = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(Cc.Bbr.RecoveryWindow, Cwnd);
+}
+
+TEST(BbrTest, GetCongestionWindowInRecoveryWithLargerRecoveryWindow)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+    Settings.InitialWindowPackets = 10;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    // Enter recovery state (RECOVERY_STATE_GROWTH = 2)
+    Cc.Bbr.RecoveryState = 2;
+    
+    // Set recovery window larger than congestion window
+    Cc.Bbr.RecoveryWindow = Cc.Bbr.CongestionWindow * 2;
+
+    // Should return the minimum (CongestionWindow)
+    uint32_t Cwnd = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(Cc.Bbr.CongestionWindow, Cwnd);
+}
+
+TEST(BbrTest, GetCongestionWindowInStartupState)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+    Settings.InitialWindowPackets = 10;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    // STARTUP state (0) is the default
+    ASSERT_EQ(0u, Cc.Bbr.BbrState);
+    ASSERT_EQ(0u, Cc.Bbr.RecoveryState);
+
+    // Should return full congestion window
+    uint32_t Cwnd = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(Cc.Bbr.CongestionWindow, Cwnd);
+}
+
+TEST(BbrTest, InRecoveryCheck)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    // Initially not in recovery
+    ASSERT_EQ(0u, Cc.Bbr.RecoveryState);
+
+    // Enter conservative recovery
+    Cc.Bbr.RecoveryState = 1; // RECOVERY_STATE_CONSERVATIVE
+    
+    // Now should be in recovery (handled by BbrCongestionControlInRecovery)
+    ASSERT_NE(0u, Cc.Bbr.RecoveryState);
+
+    // Enter growth recovery
+    Cc.Bbr.RecoveryState = 2; // RECOVERY_STATE_GROWTH
+    ASSERT_NE(0u, Cc.Bbr.RecoveryState);
+}
+
+TEST(BbrTest, AllBbrStates)
+{
+    QUIC_CONGESTION_CONTROL Cc;
+    CxPlatZeroMemory(&Cc, sizeof(Cc));
+
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    Settings.CongestionControlAlgorithm = QUIC_CONGESTION_CONTROL_ALGORITHM_BBR;
+    Settings.InitialWindowPackets = 10;
+
+    QuicCongestionControlInitialize(&Cc, &Settings);
+
+    uint32_t InitialCwnd = Cc.Bbr.CongestionWindow;
+
+    // Test STARTUP (0)
+    Cc.Bbr.BbrState = 0;
+    uint32_t CwndStartup = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(InitialCwnd, CwndStartup);
+
+    // Test DRAIN (1)
+    Cc.Bbr.BbrState = 1;
+    uint32_t CwndDrain = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(InitialCwnd, CwndDrain);
+
+    // Test PROBE_BW (2)
+    Cc.Bbr.BbrState = 2;
+    uint32_t CwndProbeBw = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_EQ(InitialCwnd, CwndProbeBw);
+
+    // Test PROBE_RTT (3) - should return minimum
+    Cc.Bbr.BbrState = 3;
+    uint32_t CwndProbeRtt = Cc.QuicCongestionControlGetCongestionWindow(&Cc);
+    ASSERT_LT(CwndProbeRtt, InitialCwnd);
+}
