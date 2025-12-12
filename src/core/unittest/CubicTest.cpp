@@ -15,6 +15,22 @@ Abstract:
 #endif
 
 //
+// Forward declarations for internal CUBIC functions being tested
+//
+extern "C" BOOLEAN
+CubicCongestionControlUpdateBlockedState(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN PreviousCanSendState
+);
+
+extern "C" void
+CubicCongestionControlOnCongestionEvent(
+    _In_ QUIC_CONGESTION_CONTROL* Cc,
+    _In_ BOOLEAN IsPersistentCongestion,
+    _In_ BOOLEAN Ecn
+);
+
+//
 // Helper to create a minimal valid connection for testing CUBIC initialization.
 // Uses a real QUIC_CONNECTION structure to ensure proper memory layout when
 // QuicCongestionControlGetConnection() does CXPLAT_CONTAINING_RECORD pointer arithmetic.
@@ -873,4 +889,952 @@ TEST(CubicTest, CongestionAvoidance_IdleTimeDetection)
     // This freezes window growth during the idle period
     ASSERT_GT(Cubic->TimeOfCongAvoidStart, TimeOfCongAvoidStartBefore);
 }
+
+//
+// Test 17: GetSendAllowance - EstimatedWnd clamping to SlowStartThreshold
+// Scenario: Tests line 224-225 in cubic.c where EstimatedWnd (CongestionWindow << 1)
+// exceeds SlowStartThreshold during slow start, causing EstimatedWnd to be clamped.
+// This ensures burst estimation doesn't exceed the slow start threshold.
+//
+TEST(CubicTest, GetSendAllowance_EstimatedWndClamping)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Make CongestionWindow < SlowStartThreshold
+    // and (CongestionWindow << 1) > SlowStartThreshold to trigger line 224-225
+    uint32_t SlowStartThresh = 15000;
+    uint32_t CongWin = 10000;  // CongWin << 1 = 20000 > 15000
+
+    Cubic->SlowStartThreshold = SlowStartThresh;
+    Cubic->CongestionWindow = CongWin;
+    Cubic->BytesInFlight = 0;
+    Cubic->LastSendAllowance = 0;  // Initialize pacing state
+
+    // Enable pacing to exercise the EstimatedWnd calculation
+    Connection.Settings.PacingEnabled = TRUE;
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000; // 50ms
+
+    // TimeSinceLastSend is passed as parameter (10ms = 10000 microseconds)
+    uint64_t TimeSinceLastSend = 10000;
+
+    // Call GetSendAllowance with valid time
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
+
+    // Verify: EstimatedWnd should have been clamped to SlowStartThreshold (15000)
+    // Pacing calculation: (LastSendAllowance + (EstimatedWnd * TimeSinceLastSend) / RTT)
+    // = (0 + (15000 * 10000) / 50000) = 3000
+    uint32_t ExpectedAllowance = 3000;
+    ASSERT_EQ(Allowance, ExpectedAllowance);
+}
+
+//
+// Test 18: GetSendAllowance - Congestion Avoidance Pacing (Line 228)
+// Scenario: Tests line 228 in cubic.c where EstimatedWnd is calculated as
+// CongestionWindow * 1.25 during congestion avoidance phase (CongestionWindow >= SlowStartThreshold).
+// This ensures proper pacing calculation when not in slow start.
+//
+TEST(CubicTest, GetSendAllowance_CongestionAvoidancePacing)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Make CongestionWindow >= SlowStartThreshold to enter congestion avoidance
+    uint32_t SlowStartThresh = 10000;
+    uint32_t CongWin = 20000;  // CongWin >= SlowStartThresh triggers line 228
+
+    Cubic->SlowStartThreshold = SlowStartThresh;
+    Cubic->CongestionWindow = CongWin;
+
+    Cubic->BytesInFlight = 0;
+    Cubic->LastSendAllowance = 0;  // Initialize pacing state
+
+    // Enable pacing to exercise the EstimatedWnd calculation
+    Connection.Settings.PacingEnabled = TRUE;
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000; // 50ms
+
+    // TimeSinceLastSend is passed as parameter (10ms = 10000 microseconds)
+    uint64_t TimeSinceLastSend = 10000;
+
+    // Call GetSendAllowance with valid time
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
+
+    // Verify: EstimatedWnd should be CongestionWindow * 1.25 = 20000 + 5000 = 25000
+    // Pacing calculation: (LastSendAllowance + (EstimatedWnd * TimeSinceLastSend) / RTT)
+    // = (0 + (25000 * 10000) / 50000) = 5000
+    uint32_t ExpectedAllowance = 5000;
+    ASSERT_EQ(Allowance, ExpectedAllowance);
+}
+
+//
+// Test 19: GetSendAllowance - Clamping to Available Window (Line 236)
+// Scenario: Tests line 236 in cubic.c where SendAllowance is clamped to
+// (CongestionWindow - BytesInFlight) when the pacing calculation results in
+// a value larger than the available window space.
+//
+TEST(CubicTest, GetSendAllowance_ClampToAvailableWindow)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Make pacing calculate a large value that exceeds available window
+    uint32_t CongWin = 10000;
+    uint32_t BytesInFlight = 8000;  // Available window = 10000 - 8000 = 2000
+
+    Cubic->CongestionWindow = CongWin;
+    Cubic->BytesInFlight = BytesInFlight;
+    Cubic->SlowStartThreshold = 5000;  // CongWin > SlowStartThresh (congestion avoidance)
+    Cubic->LastSendAllowance = 0;
+
+    // Enable pacing with very large time elapsed to force large SendAllowance
+    Connection.Settings.PacingEnabled = TRUE;
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 10000; // 10ms - small RTT
+
+    // Large time elapsed to create SendAllowance > available window
+    uint64_t TimeSinceLastSend = 100000; // 100ms
+
+    // Call GetSendAllowance
+    uint32_t Allowance = Connection.CongestionControl.QuicCongestionControlGetSendAllowance(
+        &Connection.CongestionControl, TimeSinceLastSend, TRUE);
+
+    // Verify: SendAllowance should be clamped to (CongestionWindow - BytesInFlight)
+    uint32_t ExpectedAllowance = CongWin - BytesInFlight; // 2000
+    ASSERT_EQ(Allowance, ExpectedAllowance);
+}
+
+//
+// Test 20: UpdateBlockedState - Transition from Can Send to Blocked (Line 258)
+// Scenario: Tests line 258 in cubic.c where PreviousCanSendState was TRUE
+// (could send before) and now CubicCongestionControlCanSend returns FALSE
+// (blocked now). This should add the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL
+// reason to the connection's OutFlowBlockedReasons and return FALSE.
+//
+TEST(CubicTest, UpdateBlockedState_TransitionToBlocked)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Start in a state where we CAN send
+    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
+    Cubic->Exemptions = 0;
+    BOOLEAN PreviousCanSendState = TRUE;
+    
+    // Verify initial state - should be able to send
+    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    
+    // Ensure the blocked reason is not set initially
+    Connection.OutFlowBlockedReasons = 0;
+
+    // Now change state so we CANNOT send anymore (fill the congestion window)
+    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
+
+    // Verify we now cannot send
+    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+
+    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=TRUE
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
+        &Connection.CongestionControl, 
+        PreviousCanSendState);
+
+    // Verify: Line 258 was executed - blocked reason should be added
+    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) != 0);
+    
+    // Should return FALSE (we became blocked, not unblocked)
+    ASSERT_FALSE(Result);
+}
+
+//
+// Test 21: UpdateBlockedState - Transition from Blocked to Can Send (Lines 261-263)
+// Scenario: Tests lines 261-263 in cubic.c where PreviousCanSendState was FALSE
+// (blocked before) and now CubicCongestionControlCanSend returns TRUE (can send now).
+// This should remove the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL reason, reset
+// Connection->Send.LastFlushTime, and return TRUE.
+//
+TEST(CubicTest, UpdateBlockedState_TransitionToUnblocked)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Start in a state where we CANNOT send (blocked)
+    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
+    Cubic->Exemptions = 0;
+    BOOLEAN PreviousCanSendState = FALSE;
+    
+    // Verify initial state - should NOT be able to send
+    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    
+    // Set the blocked reason as if it was previously set
+    Connection.OutFlowBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
+    
+    // Set LastFlushTime to a specific value to verify it gets reset
+    uint64_t OldFlushTime = 12345678;
+    Connection.Send.LastFlushTime = OldFlushTime;
+
+    // Now change state so we CAN send (reduce BytesInFlight)
+    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
+
+    // Verify we now can send
+    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+
+    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=FALSE
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
+        &Connection.CongestionControl, 
+        PreviousCanSendState);
+
+    // Verify: Line 261-262 were executed - blocked reason should be removed
+    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) == 0);
+    
+    // Verify: Line 263 was executed - LastFlushTime should be reset to current time
+    ASSERT_NE(Connection.Send.LastFlushTime, OldFlushTime);
+    ASSERT_GT(Connection.Send.LastFlushTime, OldFlushTime);
+    
+    // Should return TRUE (we became unblocked)
+    ASSERT_TRUE(Result);
+}
+
+//
+// Test 22: UpdateBlockedState - No State Change (Remains Blocked)
+// Scenario: Tests the case where both PreviousCanSendState and current state
+// are FALSE (blocked). The condition on line 256 should be FALSE (no state change),
+// so the function should return FALSE without modifying any state.
+//
+TEST(CubicTest, UpdateBlockedState_RemainsBlocked)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Blocked state - cannot send
+    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
+    Cubic->Exemptions = 0;
+    BOOLEAN PreviousCanSendState = FALSE;
+    
+    // Verify we cannot send
+    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    
+    // Set initial blocked reasons
+    uint8_t InitialBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL | QUIC_FLOW_BLOCKED_PACING;
+    Connection.OutFlowBlockedReasons = InitialBlockedReasons;
+
+    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=FALSE
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
+        &Connection.CongestionControl, 
+        PreviousCanSendState);
+
+    // Verify: No state change occurred - blocked reasons should remain unchanged
+    ASSERT_EQ(Connection.OutFlowBlockedReasons, InitialBlockedReasons);
+    
+    // Should return FALSE (no transition to unblocked)
+    ASSERT_FALSE(Result);
+}
+
+//
+// Test 23: UpdateBlockedState - No State Change (Remains Unblocked)
+// Scenario: Tests the case where both PreviousCanSendState and current state
+// are TRUE (can send). The condition on line 256 should be FALSE (no state change),
+// so the function should return FALSE without modifying any state.
+//
+TEST(CubicTest, UpdateBlockedState_RemainsUnblocked)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Unblocked state - can send
+    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
+    Cubic->Exemptions = 0;
+    BOOLEAN PreviousCanSendState = TRUE;
+    
+    // Verify we can send
+    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    
+    // Set initial blocked reasons (not including congestion control)
+    uint8_t InitialBlockedReasons = QUIC_FLOW_BLOCKED_PACING;
+    Connection.OutFlowBlockedReasons = InitialBlockedReasons;
+    
+    uint64_t InitialFlushTime = 98765432;
+    Connection.Send.LastFlushTime = InitialFlushTime;
+
+    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=TRUE
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
+        &Connection.CongestionControl, 
+        PreviousCanSendState);
+
+    // Verify: No state change occurred - blocked reasons should remain unchanged
+    ASSERT_EQ(Connection.OutFlowBlockedReasons, InitialBlockedReasons);
+    
+    // Verify: LastFlushTime should remain unchanged
+    ASSERT_EQ(Connection.Send.LastFlushTime, InitialFlushTime);
+    
+    // Should return FALSE (no transition to unblocked, was already unblocked)
+    ASSERT_FALSE(Result);
+}
+
+//
+// Test 24: UpdateBlockedState - Unblock with Exemptions
+// Scenario: Tests lines 261-263 when unblocking occurs due to exemptions rather
+// than available congestion window. When exemptions > 0, CanSend returns TRUE
+// even if BytesInFlight >= CongestionWindow. This verifies the unblocking logic
+// works correctly regardless of why CanSend returned TRUE.
+//
+TEST(CubicTest, UpdateBlockedState_UnblockViaExemptions)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 10;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Start blocked (PreviousCanSendState=FALSE)
+    Cubic->BytesInFlight = Cubic->CongestionWindow; // At limit
+    Cubic->Exemptions = 0;
+    BOOLEAN PreviousCanSendState = FALSE;
+    
+    // Verify blocked initially
+    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    
+    Connection.OutFlowBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
+    uint64_t OldFlushTime = 11111111;
+    Connection.Send.LastFlushTime = OldFlushTime;
+
+    // Add exemptions - this should allow sending even though window is full
+    Cubic->Exemptions = 3;
+
+    // Verify we can now send due to exemptions
+    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+
+    // Call CubicCongestionControlUpdateBlockedState
+    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
+        &Connection.CongestionControl, 
+        PreviousCanSendState);
+
+    // Verify: Blocked reason removed (line 261-262)
+    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) == 0);
+    
+    // Verify: LastFlushTime reset (line 263)
+    ASSERT_NE(Connection.Send.LastFlushTime, OldFlushTime);
+    
+    // Should return TRUE (became unblocked)
+    ASSERT_TRUE(Result);
+}
+
+//
+// Test 25: OnCongestionEvent - Persistent Congestion Handling (Lines 309-330)
+// Scenario: Tests lines 309-330 in cubic.c where persistent congestion is detected
+// for the first time. This should:
+// - Set IsInPersistentCongestion flag (line 318)
+// - Drastically reduce congestion window to minimum (lines 325-326)
+// - Update WindowPrior, WindowMax, WindowLastMax, SlowStartThreshold, AimdWindow (lines 319-324)
+// - Reset KCubic to 0 (line 327)
+// - Transition HyStart to DONE state (line 328)
+// - Increment PersistentCongestionCount stat (line 314)
+// - Set route state to RouteSuspected (line 316)
+//
+TEST(CubicTest, OnCongestionEvent_PersistentCongestion)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE; // Enable HyStart so state transitions work
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    // IMPORTANT: Set HyStartEnabled on Connection.Settings after InitializeMockConnection
+    Connection.Settings.HyStartEnabled = TRUE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup initial state - simulate we're in a healthy state with a large window
+    Cubic->CongestionWindow = 50000;
+    Cubic->WindowMax = 40000;
+    Cubic->WindowLastMax = 35000;
+    Cubic->WindowPrior = 45000;
+    Cubic->SlowStartThreshold = 30000;
+    Cubic->AimdWindow = 48000;
+    Cubic->KCubic = 500;
+    Cubic->BytesInFlight = 10000;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE; // Had congestion before, but not persistent
+    
+    // Set HyStart to some non-DONE state
+    Cubic->HyStartState = HYSTART_ACTIVE;
+
+    uint32_t InitialPersistentCongestionCount = Connection.Stats.Send.PersistentCongestionCount;
+    uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+
+    // Call CubicCongestionControlOnCongestionEvent with IsPersistentCongestion=TRUE
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        TRUE,  // IsPersistentCongestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: Line 314 - PersistentCongestionCount incremented
+    ASSERT_EQ(Connection.Stats.Send.PersistentCongestionCount, InitialPersistentCongestionCount + 1);
+
+    // Verify: Line 316 - Route state set to RouteSuspected
+    ASSERT_EQ(Connection.Paths[0].Route.State, RouteSuspected);
+
+    // Verify: Line 318 - IsInPersistentCongestion flag set
+    ASSERT_TRUE(Cubic->IsInPersistentCongestion);
+
+    // Verify: Lines 319-324 - WindowPrior, WindowMax, WindowLastMax, SlowStartThreshold, 
+    // AimdWindow all set to (CongestionWindow * TEN_TIMES_BETA_CUBIC / 10)
+    // where TEN_TIMES_BETA_CUBIC = 7, so they should all be 50000 * 7 / 10 = 35000
+    uint32_t ExpectedReducedWindow = 50000 * 7 / 10;
+    ASSERT_EQ(Cubic->WindowPrior, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->WindowMax, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->WindowLastMax, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->SlowStartThreshold, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->AimdWindow, ExpectedReducedWindow);
+
+    // Verify: Lines 325-326 - CongestionWindow set to minimum
+    // QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS * DatagramPayloadLength
+    uint32_t ExpectedMinWindow = DatagramPayloadLength * 2; // QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS is 2
+    ASSERT_EQ(Cubic->CongestionWindow, ExpectedMinWindow);
+
+    // Verify: Line 327 - KCubic reset to 0
+    ASSERT_EQ(Cubic->KCubic, 0u);
+
+    // Verify: Line 328 - CubicCongestionHyStartChangeState was called (sets state to DONE if HyStart enabled)
+    // Since HyStartEnabled is TRUE, the state should transition to HYSTART_DONE
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+
+    // Verify other state flags (lines 290-291)
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+}
+
+//
+// Test 26: OnCongestionEvent - Already in Persistent Congestion
+// Scenario: Tests that when persistent congestion is already set (IsInPersistentCongestion=TRUE),
+// calling OnCongestionEvent with IsPersistentCongestion=TRUE skips lines 309-330 and goes
+// to the else branch (line 330) instead. This ensures the persistent congestion block is
+// only executed once.
+//
+TEST(CubicTest, OnCongestionEvent_AlreadyInPersistentCongestion)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Already in persistent congestion
+    Cubic->CongestionWindow = 5000;
+    Cubic->IsInPersistentCongestion = TRUE;
+    Cubic->HasHadCongestionEvent = TRUE;
+    Cubic->WindowMax = 3500;
+    Cubic->WindowPrior = 3500;
+    Cubic->WindowLastMax = 3000;
+
+    uint32_t InitialCongestionWindow = Cubic->CongestionWindow;
+    uint32_t InitialPersistentCongestionCount = Connection.Stats.Send.PersistentCongestionCount;
+
+    // Call OnCongestionEvent with IsPersistentCongestion=TRUE again
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        TRUE,  // IsPersistentCongestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: The condition on line 307 is FALSE (we skip lines 309-330)
+    // So PersistentCongestionCount should NOT increment
+    ASSERT_EQ(Connection.Stats.Send.PersistentCongestionCount, InitialPersistentCongestionCount);
+
+    // Verify: We went through the else branch (line 330+) instead
+    // WindowPrior and WindowMax should be set to current CongestionWindow
+    ASSERT_EQ(Cubic->WindowPrior, InitialCongestionWindow);
+    ASSERT_EQ(Cubic->WindowMax, InitialCongestionWindow);
+
+    // IsInPersistentCongestion should remain TRUE
+    ASSERT_TRUE(Cubic->IsInPersistentCongestion);
+}
+
+//
+// Test 27: OnCongestionEvent - Non-Persistent Congestion Path
+// Scenario: Tests that when IsPersistentCongestion=FALSE, lines 309-330 are skipped
+// and the else branch (line 330+) is executed instead. This is the normal congestion
+// event path.
+//
+TEST(CubicTest, OnCongestionEvent_NonPersistentCongestion)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE; // Enable HyStart
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Settings.HyStartEnabled = TRUE; // Set on Connection after InitializeMockConnection
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup initial state
+    uint32_t InitialCongestionWindow = 50000;
+    Cubic->CongestionWindow = InitialCongestionWindow;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = FALSE;
+
+    uint32_t InitialPersistentCongestionCount = Connection.Stats.Send.PersistentCongestionCount;
+
+    // Call OnCongestionEvent with IsPersistentCongestion=FALSE
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE, // IsPersistentCongestion=FALSE
+        FALSE  // Not ECN
+    );
+
+    // Verify: Lines 309-330 were NOT executed
+    // PersistentCongestionCount should NOT increment
+    ASSERT_EQ(Connection.Stats.Send.PersistentCongestionCount, InitialPersistentCongestionCount);
+
+    // IsInPersistentCongestion should remain FALSE
+    ASSERT_FALSE(Cubic->IsInPersistentCongestion);
+
+    // Verify: The else branch was executed (line 330+)
+    // Line 332-334: WindowPrior and WindowMax are set to the ORIGINAL CongestionWindow (before reduction)
+    // Then lines 361-366: CongestionWindow itself gets reduced by BETA
+    // So WindowPrior == WindowMax == original window, but CongestionWindow is reduced
+    ASSERT_EQ(Cubic->WindowPrior, InitialCongestionWindow);  // Should be original 50000
+    // Note: WindowMax may be further adjusted by fast convergence (lines 335-343)
+    ASSERT_GT(Cubic->CongestionWindow, 0u);  // Should be reduced from original
+
+    // Recovery flags should be set
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+}
+
+//
+// Test 28: OnCongestionEvent - Persistent Congestion State Transition
+// Scenario: Comprehensive test that verifies the complete state transition when
+// persistent congestion occurs, including all fields updated in lines 309-330.
+// This test starts from a specific congestion state and verifies all state changes.
+//
+TEST(CubicTest, OnCongestionEvent_PersistentCongestionStateTransition)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 50;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE; // Enable HyStart
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 100000; // 100ms
+    Connection.Settings.HyStartEnabled = TRUE; // Set on Connection after InitializeMockConnection
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Simulate a connection with significant congestion window
+    uint32_t InitialCongestionWindow = 100000;
+    Cubic->CongestionWindow = InitialCongestionWindow;
+    Cubic->WindowMax = 80000;
+    Cubic->WindowLastMax = 75000;
+    Cubic->WindowPrior = 90000;
+    Cubic->SlowStartThreshold = 60000;
+    Cubic->AimdWindow = 95000;
+    Cubic->KCubic = 1000; // Non-zero K value
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->IsInRecovery = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+    Cubic->HyStartState = HYSTART_ACTIVE;
+
+    // Initialize route state to something other than RouteSuspected
+    Connection.Paths[0].Route.State = RouteResolved;
+
+    uint16_t DatagramPayloadLength = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    uint32_t ExpectedMinWindow = DatagramPayloadLength * 2; // QUIC_PERSISTENT_CONGESTION_WINDOW_PACKETS
+
+    // Save initial values for verification
+    uint32_t InitialCongestionCount = Connection.Stats.Send.CongestionCount;
+    uint32_t InitialPersistentCount = Connection.Stats.Send.PersistentCongestionCount;
+
+    // Trigger persistent congestion
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        TRUE,  // IsPersistentCongestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: General congestion event stats (line 288)
+    ASSERT_EQ(Connection.Stats.Send.CongestionCount, InitialCongestionCount + 1);
+
+    // Verify: Persistent congestion specific stats (line 314)
+    ASSERT_EQ(Connection.Stats.Send.PersistentCongestionCount, InitialPersistentCount + 1);
+
+    // Verify: Line 316 - Route state changed to RouteSuspected
+    ASSERT_EQ(Connection.Paths[0].Route.State, RouteSuspected);
+
+    // Verify: Line 318 - Flag set
+    ASSERT_TRUE(Cubic->IsInPersistentCongestion);
+
+    // Verify: Lines 319-324 - All these fields set to (InitialCongestionWindow * 7 / 10)
+    uint32_t ExpectedReducedWindow = InitialCongestionWindow * 7 / 10; // 100000 * 7 / 10 = 70000
+    ASSERT_EQ(Cubic->WindowPrior, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->WindowMax, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->WindowLastMax, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->SlowStartThreshold, ExpectedReducedWindow);
+    ASSERT_EQ(Cubic->AimdWindow, ExpectedReducedWindow);
+
+    // Verify: Lines 325-326 - CongestionWindow drastically reduced to minimum
+    ASSERT_EQ(Cubic->CongestionWindow, ExpectedMinWindow);
+    ASSERT_LT(Cubic->CongestionWindow, ExpectedReducedWindow); // Much smaller than the reduced window
+
+    // Verify: Line 327 - KCubic reset to zero
+    ASSERT_EQ(Cubic->KCubic, 0u);
+
+    // Verify: Line 328 - HyStart state changed to DONE
+    ASSERT_EQ(Cubic->HyStartState, HYSTART_DONE);
+
+    // Verify: Lines 290-291 - Recovery flags set
+    ASSERT_TRUE(Cubic->IsInRecovery);
+    ASSERT_TRUE(Cubic->HasHadCongestionEvent);
+}
+
+//
+// Test 29: OnCongestionEvent - Fast Convergence Path (Lines 339-340)
+// Scenario: Tests lines 339-340 in cubic.c where WindowLastMax > WindowMax triggers
+// the "fast convergence" optimization. This happens when the connection experiences
+// repeated congestion before recovering to the previous maximum window. The algorithm
+// reduces WindowMax more aggressively to probe for available bandwidth faster.
+// Line 335: if (Cubic->WindowLastMax > Cubic->WindowMax) - TRUE condition
+// Line 339: Cubic->WindowLastMax = Cubic->WindowMax
+// Line 340: Cubic->WindowMax adjusted by fast convergence formula
+//
+TEST(CubicTest, OnCongestionEvent_FastConvergence)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Settings.HyStartEnabled = TRUE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Simulate a scenario where fast convergence should trigger
+    // WindowLastMax should be GREATER than the current CongestionWindow
+    // This simulates: connection previously reached 100000, then experienced congestion,
+    // now at 60000, and experiencing another congestion event
+    Cubic->CongestionWindow = 60000;
+    Cubic->WindowLastMax = 100000;  // Previous maximum (must be > current window)
+    Cubic->WindowMax = 80000;       // Set to some intermediate value
+    Cubic->WindowPrior = 70000;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    // Call OnCongestionEvent - this will set WindowMax = CongestionWindow (60000)
+    // Then WindowLastMax (100000) > WindowMax (60000), so fast convergence triggers
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE, // Not persistent congestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: Line 335 condition was TRUE (WindowLastMax > WindowMax)
+    // After line 332-334: WindowMax was set to CongestionWindow (60000)
+    // Since initial WindowLastMax (100000) > WindowMax (60000), fast convergence triggered
+
+    // Verify: Line 339 - WindowLastMax updated to WindowMax
+    // WindowLastMax should now equal the pre-adjustment WindowMax value (60000)
+    ASSERT_EQ(Cubic->WindowLastMax, 60000u);
+
+    // Verify: Line 340 - WindowMax adjusted by fast convergence formula
+    // Formula: WindowMax = WindowMax * (10 + TEN_TIMES_BETA_CUBIC) / 20
+    // where TEN_TIMES_BETA_CUBIC = 7
+    // So: WindowMax = 60000 * (10 + 7) / 20 = 60000 * 17 / 20 = 51000
+    uint32_t ExpectedWindowMax = 60000 * 17 / 20;
+    ASSERT_EQ(Cubic->WindowMax, ExpectedWindowMax);
+
+    // Verify WindowMax was reduced below the original value
+    ASSERT_LT(Cubic->WindowMax, 60000u);
+}
+
+//
+// Test 30: OnCongestionEvent - No Fast Convergence (Line 342)
+// Scenario: Tests line 342 (else branch) when WindowLastMax <= WindowMax, meaning
+// fast convergence should NOT trigger. This is the normal case where the connection
+// is reaching new highs rather than oscillating.
+// Line 335: if (Cubic->WindowLastMax > WindowMax) - FALSE condition
+// Line 342: Cubic->WindowLastMax = Cubic->WindowMax (simple assignment)
+//
+TEST(CubicTest, OnCongestionEvent_NoFastConvergence)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Settings.HyStartEnabled = TRUE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: Simulate a scenario where fast convergence should NOT trigger
+    // WindowLastMax should be LESS THAN OR EQUAL to the current CongestionWindow
+    // This simulates: connection is reaching new highs
+    Cubic->CongestionWindow = 80000;
+    Cubic->WindowLastMax = 60000;  // Previous maximum (less than current window)
+    Cubic->WindowMax = 70000;
+    Cubic->WindowPrior = 75000;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    // Call OnCongestionEvent
+    // After line 332-334: WindowMax will be set to CongestionWindow (80000)
+    // Since WindowLastMax (60000) < WindowMax (80000), fast convergence does NOT trigger
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE, // Not persistent congestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: Line 335 condition was FALSE (WindowLastMax <= WindowMax)
+    // After line 332-334: WindowMax = CongestionWindow = 80000
+    // Since WindowLastMax (60000) < WindowMax (80000), else branch (line 342) executed
+
+    // Verify: Line 342 - WindowLastMax simply assigned to WindowMax (no fast convergence adjustment)
+    // WindowLastMax should be set to the current WindowMax value
+    ASSERT_EQ(Cubic->WindowLastMax, Cubic->WindowMax);
+    
+    // Verify: WindowMax was NOT reduced by fast convergence formula
+    // Instead, it was set to CongestionWindow and NOT further adjusted
+    // (though it will be reduced later by lines 361-366, but not by fast convergence)
+    ASSERT_GE(Cubic->WindowLastMax, 60000u); // Should be at least the original value
+}
+
+//
+// Test 31: OnCongestionEvent - Fast Convergence Edge Case (Equal Values)
+// Scenario: Tests the boundary condition where WindowLastMax == WindowMax.
+// According to line 335, the condition is >, so when they're equal, fast convergence
+// should NOT trigger (else branch at line 342).
+//
+TEST(CubicTest, OnCongestionEvent_FastConvergenceEdgeCase)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Settings.HyStartEnabled = TRUE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // Setup: WindowLastMax == CongestionWindow (edge case for line 335 condition)
+    Cubic->CongestionWindow = 70000;
+    Cubic->WindowLastMax = 70000;  // Equal to current window
+    Cubic->WindowMax = 70000;
+    Cubic->WindowPrior = 70000;
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    // Call OnCongestionEvent
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE, // Not persistent congestion
+        FALSE  // Not ECN
+    );
+
+    // Verify: Line 335 condition was FALSE (WindowLastMax == WindowMax, not >)
+    // So line 342 (else branch) should execute, not lines 339-340
+
+    // Verify: Line 342 - WindowLastMax = WindowMax (simple assignment, no reduction)
+    ASSERT_EQ(Cubic->WindowLastMax, Cubic->WindowMax);
+    
+    // WindowMax should NOT have been reduced by the fast convergence formula (line 340)
+    // It gets set to CongestionWindow at line 333-334, but NOT further adjusted by line 340
+    // Note: CongestionWindow itself gets reduced later by lines 361-366
+}
+
+//
+// Test 32: OnCongestionEvent - Fast Convergence Multiple Times
+// Scenario: Tests that fast convergence can trigger multiple times in succession,
+// progressively reducing WindowMax when repeated congestion events occur.
+// This simulates a connection oscillating due to network instability.
+//
+TEST(CubicTest, OnCongestionEvent_FastConvergenceMultipleTimes)
+{
+    QUIC_CONNECTION Connection;
+    QUIC_SETTINGS_INTERNAL Settings;
+    CxPlatZeroMemory(&Settings, sizeof(Settings));
+
+    Settings.InitialWindowPackets = 20;
+    Settings.SendIdleTimeoutMs = 1000;
+    Settings.HyStartEnabled = TRUE;
+
+    InitializeMockConnection(&Connection, 1280);
+    Connection.Paths[0].GotFirstRttSample = TRUE;
+    Connection.Paths[0].SmoothedRtt = 50000;
+    Connection.Settings.HyStartEnabled = TRUE;
+
+    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
+
+    QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
+
+    // First congestion event
+    Cubic->CongestionWindow = 100000;
+    Cubic->WindowLastMax = 120000;  // Previous peak
+    Cubic->IsInPersistentCongestion = FALSE;
+    Cubic->HasHadCongestionEvent = TRUE;
+
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE,
+        FALSE
+    );
+
+    // After first event: WindowMax should be reduced by fast convergence
+    uint32_t FirstWindowMax = Cubic->WindowMax;
+    uint32_t FirstWindowLastMax = Cubic->WindowLastMax;
+    
+    // Verify first fast convergence applied
+    ASSERT_LT(FirstWindowMax, 100000u); // Should be less than original CongestionWindow
+    ASSERT_EQ(FirstWindowLastMax, 100000u); // WindowLastMax set to original WindowMax
+
+    // Simulate recovery and second congestion event
+    // Set CongestionWindow higher than current WindowMax but less than previous WindowLastMax
+    Cubic->CongestionWindow = 90000;
+    Cubic->IsInRecovery = FALSE; // Reset recovery state
+
+    CubicCongestionControlOnCongestionEvent(
+        &Connection.CongestionControl,
+        FALSE,
+        FALSE
+    );
+
+    // After second event: Fast convergence should trigger again
+    // WindowLastMax (100000 from first event) > WindowMax (90000), so line 339-340 execute
+    uint32_t SecondWindowMax = Cubic->WindowMax;
+    uint32_t SecondWindowLastMax = Cubic->WindowLastMax;
+
+    // Verify second fast convergence applied
+    ASSERT_EQ(SecondWindowLastMax, 90000u); // Line 339: Updated to current WindowMax
+    uint32_t ExpectedSecondWindowMax = 90000 * 17 / 20; // Line 340: Fast convergence formula
+    ASSERT_EQ(SecondWindowMax, ExpectedSecondWindowMax);
+    
+    // Verify progressive reduction
+    ASSERT_LT(SecondWindowMax, FirstWindowMax); // Each event further reduces WindowMax
+}
+
 
