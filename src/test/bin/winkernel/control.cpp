@@ -585,46 +585,51 @@ typedef union {
     X; \
     Status = Client->TestFailure ? STATUS_FAIL_FAST_EXCEPTION : STATUS_SUCCESS;
 
+// Base template providing a readable error for unsupported scenarios
+template<class... Args>
+QUIC_STATUS InvokeTestInKernel(void(Args...), const uint8_t*, uint32_t) {
+    static_assert(false, "Only functions with no argument or one constant reference argument are supported");
+}
+
+// Specialization for functions with one const reference argument
 template<class Arg>
-void InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer, uin32_t argBufferSize) {
+QUIC_STATUS InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
     if (sizeof(Arg) != argBufferSize) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     const Arg& arg = *reinterpret_cast<const Arg*>(argBuffer);
     func(arg);
+    return QUIC_STATUS_SUCCESS;
 }
 
-void InvokeTestInKernel(void(*func)(), const uint8_t* argBuffer, uin32_t argBufferSize) {
-    if (0 != ArgBufferSize) {
+// Specialization for functions with no arguments
+QUIC_STATUS InvokeTestInKernel(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
+    if (0 != argBufferSize) {
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
     func();
-}
-
-template<class Arg0, class... Args>
-void InvokeTestInKernel(void(Arg0, Args...), const uint8_t*, uin32_t) {
-    static_assert(false, "Only functions with zero or one argument are supported");
+    return QUIC_STATUS_SUCCESS;
 }
 
 #define RegisterTestFunction(Function) \
-    if (strcmp(RpcRequest->FunctionName, #Function) == 0) { \
-        QuicTestCtlRun( \
-            InvokeTestInKernel( \
+    do { \
+        if (strcmp(RpcRequest->FunctionName, #Function) == 0) { \
+            return InvokeTestInKernel( \
                 Function, \
                 (const uint8_t*)(RpcRequest + 1), \
-                RpcRequest->ParameterSize)); \
-        return Status; \
-    }
+                RpcRequest->ParameterSize); \
+        } \
+    } while (false)
 
 QUIC_STATUS
 ExecuteRpcCall(
     _In_ QUIC_SIMPLE_TEST_RPC_REQUEST* RpcRequest
     )
 {
-    QUIC_STATUS Status = QUIC_STATUS_NOT_SUPPORTED;
-    RpcRequest->FunctionName[255] = '\0'; // Ensure null termination
+    // Ensure null termination
+    RpcRequest->FunctionName[255] = '\0';
 
     // Add new test functions here
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
@@ -633,9 +638,9 @@ ExecuteRpcCall(
 
     QuicTraceEvent(
         LibraryError,
-        "[ lib] ERROR, %s %s.",
-        "Unknown function name in test RPC call:",
-        RpcRequest->FunctionName);
+        "[ lib] ERROR, %s.",
+        "Unknown function name in test RPC call");
+
     return QUIC_STATUS_NOT_SUPPORTED;
 }
 
@@ -710,7 +715,11 @@ QuicTestCtlEvtIoDeviceControl(
             goto Error;
         }
 
-        QuicTestCtlRun(ExecuteRpcCall(RpcRequest));
+        Client->TestFailure = false;
+        Status = ExecuteRpcCall(RpcRequest);
+        if (Status == QUIC_STATUS_SUCCESS && Client->TestFailure) {
+            Status = STATUS_FAIL_FAST_EXCEPTION;
+        }
         goto Error;
     }
 

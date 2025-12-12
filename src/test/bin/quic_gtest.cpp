@@ -2377,7 +2377,7 @@ bool InvokeTestInKernel(const std::string& name, const ParamType& Params) {
 
         std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST) + sizeof(ParamType)> Buffer;
         QUIC_SIMPLE_TEST_RPC_REQUEST& req = *reinterpret_cast<QUIC_SIMPLE_TEST_RPC_REQUEST*>(Buffer.data());
-        strcpy_s(req.FunctionName, sizeof(req.FunctionName), "TestFunction");
+        name.copy(req.FunctionName, sizeof(req.FunctionName));
         req.ParameterSize = sizeof(ParamType);
         std::copy_n(reinterpret_cast<const uint8_t*>(&Params), sizeof(ParamType), Buffer.data() + sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST));
 
