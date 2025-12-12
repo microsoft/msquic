@@ -231,9 +231,12 @@ function Start-Executable {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
             # Enable WER dump collection.
-            New-Item -Path $WerDumpRegPath -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+            Write-Host "================= Setting WER dump registry ================"
+            New-Item -Path $WerDumpRegPath -Force
+            Write-Host "============================================================"
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force
+            Write-Host "============================================================"
+            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force
         }
     } else {
         if ($Debugger) {
