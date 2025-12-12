@@ -705,9 +705,9 @@ macro_rules! define_quic_handle_ctx_fn {
             /// Gets the callback context without clearing it from the handle.
             ///
             /// # Safety
-            /// Only call while closing the handle, so MsQuic will not read the
-            /// context again after this function returns. Calling this in other
-            /// situations can cause double frees or use-after-free.
+            /// Only call while closing the handle. The return value must be kept
+            /// alive until the handle is fully closed and no more callbacks can
+            /// be emitted. Dropping it earlier can cause use-after-free.
             unsafe fn peek_callback_ctx(&self) -> Option<Box<Box<$callback_type>>> {
                 let ctx = self.get_context();
                 if ctx.is_null() {

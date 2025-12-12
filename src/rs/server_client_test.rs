@@ -397,13 +397,9 @@ fn connection_ref_callback_cleanup() {
         .expect("Client did not complete shutdown");
 
     // Drop the server connection to trigger cleanup of the callback context.
+    // close_inner drops the context synchronously after ConnectionClose returns.
     drop(server_conn);
 
-    let mut retries = 50;
-    while drop_counter.load(Ordering::SeqCst) == 0 && retries > 0 {
-        std::thread::sleep(Duration::from_millis(10));
-        retries -= 1;
-    }
     assert_eq!(
         drop_counter.load(Ordering::SeqCst),
         1,
