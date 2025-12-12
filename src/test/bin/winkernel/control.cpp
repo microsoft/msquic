@@ -536,7 +536,7 @@ size_t QUIC_IOCTL_BUFFER_SIZES[] =
     0,
     0,
     0,
-    sizeof(INT32),
+    sizeof(INT32)
 };
 
 CXPLAT_STATIC_ASSERT(
@@ -595,6 +595,10 @@ QUIC_STATUS InvokeTestInKernel(void(Args...), const uint8_t*, uint32_t) {
 template<class Arg>
 QUIC_STATUS InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
     if (sizeof(Arg) != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Invalid parameter size for test function");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -606,6 +610,10 @@ QUIC_STATUS InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer
 // Specialization for functions with no arguments
 QUIC_STATUS InvokeTestInKernel(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
     if (0 != argBufferSize) {
+        QuicTraceEvent(
+            LibraryError,
+            "[ lib] ERROR, %s.",
+            "Parameter provided for a test function expecting none");
         return QUIC_STATUS_INVALID_PARAMETER;
     }
 
@@ -686,9 +694,7 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
-
-    if (FunctionCode == IOCTL_QUIC_SIMPLE_TEST_RPC) {
+    if (IoControlCode == IOCTL_QUIC_SIMPLE_TEST_RPC) {
         QUIC_SIMPLE_TEST_RPC_REQUEST* RpcRequest{};
         size_t Length{};
         Status =
@@ -722,6 +728,8 @@ QuicTestCtlEvtIoDeviceControl(
         }
         goto Error;
     }
+
+    ULONG FunctionCode = IoGetFunctionCodeFromCtlCode(IoControlCode);
 
     if (FunctionCode > QUIC_MAX_IOCTL_FUNC_CODE) {
         Status = STATUS_NOT_IMPLEMENTED;
