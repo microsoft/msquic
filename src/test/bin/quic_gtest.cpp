@@ -10,6 +10,8 @@
 #include "quic_gtest.cpp.clog.h"
 #endif
 
+#include <array>
+
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 #pragma message("Test compiled with datapath hooks enabled")
 #endif
@@ -2360,10 +2362,34 @@ TEST(Misc, StreamMultiReceive) {
     }
 }
 
+bool InvokeTestInKernel(const std::string& name) {
+
+    std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST)> Buffer{};
+    QUIC_SIMPLE_TEST_RPC_REQUEST req{};
+    strcpy_s(req.FunctionName, sizeof(req.FunctionName), name.data());
+
+    return DriverClient.Run(IOCTL_QUIC_SIMPLE_TEST_RPC, (void*)&req, (uint32_t)sizeof(req));
+}
+
+template <class ParamType>
+bool InvokeTestInKernel(const std::string& name, const ParamType& Params) {
+        static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
+
+        std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST) + sizeof(ParamType)> Buffer;
+        QUIC_SIMPLE_TEST_RPC_REQUEST& req = *reinterpret_cast<QUIC_SIMPLE_TEST_RPC_REQUEST*>(Buffer.data());
+        strcpy_s(req.FunctionName, sizeof(req.FunctionName), "TestFunction");
+        req.ParameterSize = sizeof(ParamType);
+        std::copy_n(reinterpret_cast<const uint8_t*>(&Params), sizeof(ParamType), Buffer.data() + sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST));
+
+        return DriverClient.Run(IOCTL_QUIC_SIMPLE_TEST_RPC, (void*)Buffer.data(), (uint32_t)Buffer.size());
+}
+
 TEST(Misc, StreamAppProvidedBuffers) {
     TestLogger Logger("StreamAppProvidedBuffers");
     if (TestingKernelMode) {
         ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
+
+        ASSERT_TRUE(InvokeTestInKernel("QuicTestStreamAppProvidedBuffers"));
     } else {
         QuicTestStreamAppProvidedBuffers();
     }
