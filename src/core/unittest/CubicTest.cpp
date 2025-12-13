@@ -19,23 +19,25 @@ Abstract:
 // Uses a real QUIC_CONNECTION structure to ensure proper memory layout when
 // QuicCongestionControlGetConnection() does CXPLAT_CONTAINING_RECORD pointer arithmetic.
 //
-static void InitializeMockConnection(QUIC_CONNECTION* Connection, uint16_t Mtu)
+static void InitializeMockConnection(
+    QUIC_CONNECTION& Connection,
+    uint16_t Mtu)
 {
     // Zero-initialize the entire connection structure
-    CxPlatZeroMemory(Connection, sizeof(*Connection));
+    CxPlatZeroMemory(&Connection, sizeof(Connection));
 
     // Initialize only the fields needed by CUBIC functions
-    Connection->Paths[0].Mtu = Mtu;
-    Connection->Paths[0].IsActive = TRUE;
-    Connection->Send.NextPacketNumber = 0;
+    Connection.Paths[0].Mtu = Mtu;
+    Connection.Paths[0].IsActive = TRUE;
+    Connection.Send.NextPacketNumber = 0;
 
     // Initialize Settings with defaults
-    Connection->Settings.PacingEnabled = FALSE;  // Disable pacing by default for simpler tests
-    Connection->Settings.HyStartEnabled = FALSE; // Disable HyStart by default
+    Connection.Settings.PacingEnabled = FALSE;  // Disable pacing by default for simpler tests
+    Connection.Settings.HyStartEnabled = FALSE; // Disable HyStart by default
 
     // Initialize Path fields needed for some functions
-    Connection->Paths[0].GotFirstRttSample = FALSE;
-    Connection->Paths[0].SmoothedRtt = 0;
+    Connection.Paths[0].GotFirstRttSample = FALSE;
+    Connection.Paths[0].SmoothedRtt = 0;
 }
 
 //
@@ -47,13 +49,12 @@ static void InitializeMockConnection(QUIC_CONNECTION* Connection, uint16_t Mtu)
 TEST(CubicTest, InitializeComprehensive)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
 
     // Pre-set some fields to verify they get zeroed
     Connection.CongestionControl.Cubic.BytesInFlight = 12345;
@@ -134,13 +135,12 @@ TEST(CubicTest, InitializeComprehensive)
 TEST(CubicTest, InitializeBoundaries)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     // Test minimum MTU with minimum window
     Settings.InitialWindowPackets = 1;
     Settings.SendIdleTimeoutMs = 0;
-    InitializeMockConnection(&Connection, QUIC_DPLPMTUD_MIN_MTU);
+    InitializeMockConnection(Connection, QUIC_DPLPMTUD_MIN_MTU);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
     ASSERT_GT(Connection.CongestionControl.Cubic.CongestionWindow, 0u);
     ASSERT_EQ(Connection.CongestionControl.Cubic.InitialWindowPackets, 1u);
@@ -149,7 +149,7 @@ TEST(CubicTest, InitializeBoundaries)
     // Test maximum MTU with maximum window and timeout
     Settings.InitialWindowPackets = 1000;
     Settings.SendIdleTimeoutMs = UINT32_MAX;
-    InitializeMockConnection(&Connection, 65535);
+    InitializeMockConnection(Connection, 65535);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
     ASSERT_GT(Connection.CongestionControl.Cubic.CongestionWindow, 0u);
     ASSERT_EQ(Connection.CongestionControl.Cubic.InitialWindowPackets, 1000u);
@@ -158,7 +158,7 @@ TEST(CubicTest, InitializeBoundaries)
     // Test very small MTU (below minimum)
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
-    InitializeMockConnection(&Connection, 500);
+    InitializeMockConnection(Connection, 500);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
     ASSERT_GT(Connection.CongestionControl.Cubic.CongestionWindow, 0u);
 }
@@ -173,13 +173,12 @@ TEST(CubicTest, InitializeBoundaries)
 TEST(CubicTest, MultipleSequentialInitializations)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
 
     // Initialize first time
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
@@ -205,13 +204,12 @@ TEST(CubicTest, MultipleSequentialInitializations)
 TEST(CubicTest, CanSendScenarios)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -242,13 +240,12 @@ TEST(CubicTest, CanSendScenarios)
 TEST(CubicTest, SetExemption)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -278,13 +275,12 @@ TEST(CubicTest, SetExemption)
 TEST(CubicTest, GetSendAllowanceScenarios)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -324,13 +320,12 @@ TEST(CubicTest, GetSendAllowanceScenarios)
 TEST(CubicTest, GetSendAllowanceWithActivePacing)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
 
     // Enable pacing and provide valid RTT sample
     Connection.Settings.PacingEnabled = TRUE;
@@ -373,13 +368,12 @@ TEST(CubicTest, GetSendAllowanceWithActivePacing)
 TEST(CubicTest, GetterFunctions)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -411,13 +405,12 @@ TEST(CubicTest, GetterFunctions)
 TEST(CubicTest, ResetScenarios)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
 
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
@@ -459,12 +452,11 @@ TEST(CubicTest, ResetScenarios)
 TEST(CubicTest, OnDataSent_IncrementsBytesInFlight)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
@@ -501,12 +493,11 @@ TEST(CubicTest, OnDataSent_IncrementsBytesInFlight)
 TEST(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
@@ -531,12 +522,11 @@ TEST(CubicTest, OnDataInvalidated_DecrementsBytesInFlight)
 TEST(CubicTest, OnDataAcknowledged_BasicAck)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms in microseconds
 
@@ -582,12 +572,11 @@ TEST(CubicTest, OnDataAcknowledged_BasicAck)
 TEST(CubicTest, OnDataLost_WindowReduction)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 20;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000;
 
@@ -626,13 +615,12 @@ TEST(CubicTest, OnDataLost_WindowReduction)
 TEST(CubicTest, OnEcn_CongestionSignal)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 20;
     Settings.SendIdleTimeoutMs = 1000;
     Settings.EcnEnabled = TRUE;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000;
 
@@ -667,12 +655,11 @@ TEST(CubicTest, OnEcn_CongestionSignal)
 TEST(CubicTest, GetNetworkStatistics_RetrieveStats)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms
     Connection.Paths[0].MinRtt = 40000; // 40ms
@@ -707,12 +694,11 @@ TEST(CubicTest, GetNetworkStatistics_RetrieveStats)
 TEST(CubicTest, MiscFunctions_APICompleteness)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
     QUIC_CONGESTION_CONTROL_CUBIC* Cubic = &Connection.CongestionControl.Cubic;
@@ -759,13 +745,12 @@ TEST(CubicTest, MiscFunctions_APICompleteness)
 TEST(CubicTest, HyStart_StateTransitions)
 {
     QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
+    QUIC_SETTINGS_INTERNAL Settings{};
     Settings.InitialWindowPackets = 10;
     Settings.SendIdleTimeoutMs = 1000;
     Settings.HyStartEnabled = TRUE; // Enable HyStart
 
-    InitializeMockConnection(&Connection, 1280);
+    InitializeMockConnection(Connection, 1280);
     Connection.Paths[0].GotFirstRttSample = TRUE;
     Connection.Paths[0].SmoothedRtt = 50000; // 50ms
 
@@ -782,7 +767,7 @@ TEST(CubicTest, HyStart_StateTransitions)
 
     QUIC_ACK_EVENT AckEvent;
     CxPlatZeroMemory(&AckEvent, sizeof(AckEvent));
-    AckEvent.TimeNow = CxPlatTimeUs64();
+    AckEvent.TimeNow = 1000000; //CxPlatTimeUs64();
     AckEvent.LargestAck = 5;
     AckEvent.LargestSentPacketNumber = 10;
     AckEvent.NumRetransmittableBytes = 5000;
