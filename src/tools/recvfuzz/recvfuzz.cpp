@@ -1107,7 +1107,7 @@ void SetupAndFuzz() {
 
     CxPlatSocketDelete(Binding);
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
 
     while (PacketQueue != nullptr) {
         QUIC_RX_PACKET* packet = PacketQueue;

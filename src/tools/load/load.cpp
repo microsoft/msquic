@@ -26,7 +26,7 @@ void ResolveServerAddress(const char* ServerName, QUIC_ADDR& ServerAddress) {
         exit(1);
     }
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 }

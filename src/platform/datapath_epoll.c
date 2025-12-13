@@ -289,7 +289,7 @@ DataPathInitialize(
             Datapath, i, &Datapath->Partitions[i]);
     }
 
-    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool));
+    CXPLAT_FRE_ASSERT(CxPlatWorkerPoolAddRef(WorkerPool, CXPLAT_WORKER_POOL_REF_EPOLL));
     *NewDatapath = Datapath;
 
     return QUIC_STATUS_SUCCESS;
@@ -307,7 +307,7 @@ CxPlatDataPathRelease(
         CXPLAT_DBG_ASSERT(Datapath->Uninitialized);
         Datapath->Freed = TRUE;
 #endif
-        CxPlatWorkerPoolRelease(Datapath->WorkerPool);
+        CxPlatWorkerPoolRelease(Datapath->WorkerPool, CXPLAT_WORKER_POOL_REF_EPOLL);
         CXPLAT_FREE(Datapath, QUIC_POOL_DATAPATH);
     }
 }

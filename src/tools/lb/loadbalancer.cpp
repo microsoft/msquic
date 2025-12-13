@@ -225,7 +225,7 @@ main(int argc, char **argv)
 
     delete PublicInterface;
     CxPlatDataPathUninitialize(Datapath);
-    CxPlatWorkerPoolDelete(WorkerPool);
+    CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
     CxPlatUninitialize();
     CxPlatSystemUnload();
 
