@@ -56,12 +56,13 @@ tracepoint(CLOG_BBR_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7, a
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnBbr
-// [conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u
+// Decoder Ring for PathBbr
+// [conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u
 // QuicTraceEvent(
-        ConnBbr,
-        "[conn][%p] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
-        Connection,
+        PathBbr,
+        "[conn][%p][pathid][%hhu] BBR: State=%u RState=%u CongestionWindow=%u BytesInFlight=%u BytesInFlightMax=%u MinRttEst=%lu EstBw=%lu AppLimited=%u",
+        PathID->Connection,
+        PathID->ID,
         Bbr->BbrState,
         Bbr->RecoveryState,
         BbrCongestionControlGetCongestionWindow(Cc),
@@ -70,19 +71,20 @@ tracepoint(CLOG_BBR_C, IndicateDataAcked , arg1, arg3, arg4, arg5, arg6, arg7, a
         Bbr->MinRtt,
         BbrCongestionControlGetBandwidth(Cc) / BW_UNIT,
         BbrCongestionControlIsAppLimited(Cc));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Bbr->BbrState = arg3
-// arg4 = arg4 = Bbr->RecoveryState = arg4
-// arg5 = arg5 = BbrCongestionControlGetCongestionWindow(Cc) = arg5
-// arg6 = arg6 = Bbr->BytesInFlight = arg6
-// arg7 = arg7 = Bbr->BytesInFlightMax = arg7
-// arg8 = arg8 = Bbr->MinRtt = arg8
-// arg9 = arg9 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg9
-// arg10 = arg10 = BbrCongestionControlIsAppLimited(Cc) = arg10
+// arg2 = arg2 = PathID->Connection = arg2
+// arg3 = arg3 = PathID->ID = arg3
+// arg4 = arg4 = Bbr->BbrState = arg4
+// arg5 = arg5 = Bbr->RecoveryState = arg5
+// arg6 = arg6 = BbrCongestionControlGetCongestionWindow(Cc) = arg6
+// arg7 = arg7 = Bbr->BytesInFlight = arg7
+// arg8 = arg8 = Bbr->BytesInFlightMax = arg8
+// arg9 = arg9 = Bbr->MinRtt = arg9
+// arg10 = arg10 = BbrCongestionControlGetBandwidth(Cc) / BW_UNIT = arg10
+// arg11 = arg11 = BbrCongestionControlIsAppLimited(Cc) = arg11
 ----------------------------------------------------------*/
-#ifndef _clog_11_ARGS_TRACE_ConnBbr
-#define _clog_11_ARGS_TRACE_ConnBbr(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\
-tracepoint(CLOG_BBR_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10);\
+#ifndef _clog_12_ARGS_TRACE_PathBbr
+#define _clog_12_ARGS_TRACE_PathBbr(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11)\
+tracepoint(CLOG_BBR_C, PathBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10, arg11);\
 
 #endif
 
@@ -102,8 +104,8 @@ tracepoint(CLOG_BBR_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
         Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent,
         Connection->SendBuffer.IdealBytes,
         Connection->SendBuffer.PostedBytes,
-        Path->GotFirstRttSample ? Path->SmoothedRtt : 0,
-        Path->OneWayDelay);
+        PathID->Path->GotFirstRttSample ? PathID->Path->SmoothedRtt : 0,
+        PathID->Path->OneWayDelay);
 // arg2 = arg2 = Connection = arg2
 // arg3 = arg3 = Connection->Stats.Send.TotalBytes = arg3
 // arg4 = arg4 = Bbr->BytesInFlight = arg4
@@ -111,8 +113,8 @@ tracepoint(CLOG_BBR_C, ConnBbr , arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9,
 // arg6 = arg6 = Connection->Send.PeerMaxData - Connection->Send.OrderedStreamBytesSent = arg6
 // arg7 = arg7 = Connection->SendBuffer.IdealBytes = arg7
 // arg8 = arg8 = Connection->SendBuffer.PostedBytes = arg8
-// arg9 = arg9 = Path->GotFirstRttSample ? Path->SmoothedRtt : 0 = arg9
-// arg10 = arg10 = Path->OneWayDelay = arg10
+// arg9 = arg9 = PathID->Path->GotFirstRttSample ? PathID->Path->SmoothedRtt : 0 = arg9
+// arg10 = arg10 = PathID->Path->OneWayDelay = arg10
 ----------------------------------------------------------*/
 #ifndef _clog_11_ARGS_TRACE_ConnOutFlowStatsV2
 #define _clog_11_ARGS_TRACE_ConnOutFlowStatsV2(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg5, arg6, arg7, arg8, arg9, arg10)\

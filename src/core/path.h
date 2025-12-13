@@ -101,6 +101,15 @@ typedef struct QUIC_PATH {
     //
     BOOLEAN SendResponse : 1;
 
+    BOOLEAN SendStatus : 1;
+
+    BOOLEAN LocalClose : 1;
+    BOOLEAN LocalCloseAcked : 1;
+
+    BOOLEAN SendAbandon : 1;
+
+    BOOLEAN RemoteClose : 1;
+
     //
     // Indicates the partition has updated for this path.
     //
@@ -136,6 +145,8 @@ typedef struct QUIC_PATH {
     //
     QUIC_MTU_DISCOVERY MtuDiscovery;
 
+    QUIC_PATHID *PathID;
+    
     //
     // The binding used for sending/receiving UDP packets.
     //
@@ -199,7 +210,7 @@ typedef struct QUIC_PATH {
 #endif
 
 CXPLAT_STATIC_ASSERT(
-    sizeof(QUIC_PATH) < 256,
+    sizeof(QUIC_PATH) < 1024,
     "Ensure path struct stays small since we prealloc them");
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -299,9 +310,25 @@ QuicConnGetPathByID(
 _IRQL_requires_max_(PASSIVE_LEVEL)
 _Ret_maybenull_
 QUIC_PATH*
+QuicConnGetPathByAddress(
+    _In_ QUIC_CONNECTION* Connection,
+    _In_ const QUIC_ADDR* LocalAddress,
+    _In_ const QUIC_ADDR* RemoteAddress
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_maybenull_
+QUIC_PATH*
 QuicConnGetPathForPacket(
     _In_ QUIC_CONNECTION* Connection,
     _In_ const QUIC_RX_PACKET* Packet
+    );
+
+_IRQL_requires_max_(PASSIVE_LEVEL)
+_Ret_notnull_
+QUIC_PATH*
+QuicConnChoosePath(
+    _In_ QUIC_CONNECTION* Connection
     );
 
 _IRQL_requires_max_(PASSIVE_LEVEL)
@@ -321,3 +348,5 @@ QuicPathUpdateQeo(
     _In_ QUIC_PATH* Path,
     _In_ CXPLAT_QEO_OPERATION Operation
     );
+
+

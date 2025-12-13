@@ -75,6 +75,33 @@ TRACEPOINT_EVENT(CLOG_PATH_C, PathValidated,
 
 
 /*----------------------------------------------------------
+// Decoder Ring for PathChosen
+// [conn][%p] Path[%hhu][PathID][%u] Chosen
+// QuicTraceLogConnInfo(
+        PathChosen,
+        Connection,
+        "Path[%hhu][PathID][%u] Chosen",
+        Path->ID,
+        Path->PathID->ID);
+// arg1 = arg1 = Connection = arg1
+// arg3 = arg3 = Path->ID = arg3
+// arg4 = arg4 = Path->PathID->ID = arg4
+----------------------------------------------------------*/
+TRACEPOINT_EVENT(CLOG_PATH_C, PathChosen,
+    TP_ARGS(
+        const void *, arg1,
+        unsigned char, arg3,
+        unsigned int, arg4), 
+    TP_FIELDS(
+        ctf_integer_hex(uint64_t, arg1, (uint64_t)arg1)
+        ctf_integer(unsigned char, arg3, arg3)
+        ctf_integer(unsigned int, arg4, arg4)
+    )
+)
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for PathActive
 // [conn][%p] Path[%hhu] Set active (rebind=%hhu)
 // QuicTraceLogConnInfo(

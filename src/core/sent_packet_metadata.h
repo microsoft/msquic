@@ -8,7 +8,7 @@
 //
 // The maximum number of frames we will write to a single packet.
 //
-#define QUIC_MAX_FRAMES_PER_PACKET 12
+#define QUIC_MAX_FRAMES_PER_PACKET 10
 
 typedef struct QUIC_STREAM QUIC_STREAM;
 
@@ -47,9 +47,11 @@ typedef struct QUIC_SENT_FRAME_METADATA {
             QUIC_STREAM* Stream;
         } STREAM_DATA_BLOCKED;
         struct {
+            uint32_t PathID;
             QUIC_VAR_INT Sequence;
         } NEW_CONNECTION_ID;
         struct {
+            uint32_t PathID;
             QUIC_VAR_INT Sequence;
         } RETIRE_CONNECTION_ID;
         struct {
@@ -58,6 +60,17 @@ typedef struct QUIC_SENT_FRAME_METADATA {
         struct {
             uint8_t Data[8];
         } PATH_RESPONSE;
+        struct {
+            uint32_t PathID;
+        } PATH_ABANDON;
+        struct {
+            uint32_t PathID;
+            QUIC_VAR_INT Sequence;
+        } PATH_BACKUP;
+        struct {
+            uint32_t PathID;
+            QUIC_VAR_INT Sequence;
+        } PATH_AVAILABLE;
         struct {
             void* ClientContext;
         } DATAGRAM;
@@ -75,7 +88,7 @@ typedef struct QUIC_SENT_FRAME_METADATA {
     //
     uint64_t StreamOffset;
     uint16_t StreamLength;
-    uint16_t Type; // QUIC_FRAME_*
+    uint32_t Type; // QUIC_FRAME_*
     uint8_t Flags; // QUIC_SENT_FRAME_FLAG_*
 
 } QUIC_SENT_FRAME_METADATA;

@@ -81,9 +81,9 @@ tracepoint(CLOG_CONNECTION_C, PacketRxVersionNegVer , arg2, arg3);\
 // Decoder Ring for PacketRxStatelessReset
 // [S][RX][-] SR %s
 // QuicTraceLogVerbose(
-                            PacketRxStatelessReset,
-                            "[S][RX][-] SR %s",
-                            QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
+                                    PacketRxStatelessReset,
+                                    "[S][RX][-] SR %s",
+                                    QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer);
 // arg2 = arg2 = QuicCidBufToStr(PacketResetToken, QUIC_STATELESS_RESET_TOKEN_LENGTH).Buffer = arg2
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_PacketRxStatelessReset
@@ -358,42 +358,6 @@ tracepoint(CLOG_CONNECTION_C, ApiEventNoHandler , arg1);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for NoReplacementCidForRetire
-// [conn][%p] Can't retire current CID because we don't have a replacement
-// QuicTraceLogConnWarning(
-            NoReplacementCidForRetire,
-            Connection,
-            "Can't retire current CID because we don't have a replacement");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_NoReplacementCidForRetire
-#define _clog_3_ARGS_TRACE_NoReplacementCidForRetire(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, NoReplacementCidForRetire , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for NonActivePathCidRetired
-// [conn][%p] Non-active path has no replacement for retired CID.
-// QuicTraceLogConnWarning(
-                NonActivePathCidRetired,
-                Connection,
-                "Non-active path has no replacement for retired CID.");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_NonActivePathCidRetired
-#define _clog_3_ARGS_TRACE_NonActivePathCidRetired(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, NonActivePathCidRetired , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for IgnoreUnreachable
 // [conn][%p] Ignoring received unreachable event (inline)
 // QuicTraceLogConnWarning(
@@ -642,9 +606,9 @@ tracepoint(CLOG_CONNECTION_C, CustomCertValidationPending , arg1);\
 // Decoder Ring for RecvStatelessReset
 // [conn][%p] Received stateless reset
 // QuicTraceLogConnInfo(
-                            RecvStatelessReset,
-                            Connection,
-                            "Received stateless reset");
+                        RecvStatelessReset,
+                        Connection,
+                        "Received stateless reset");
 // arg1 = arg1 = Connection = arg1
 ----------------------------------------------------------*/
 #ifndef _clog_3_ARGS_TRACE_RecvStatelessReset
@@ -718,10 +682,10 @@ tracepoint(CLOG_CONNECTION_C, FirstCidUsage , arg1, arg3);\
 // Decoder Ring for PathDiscarded
 // [conn][%p] Removing invalid path[%hhu]
 // QuicTraceLogConnInfo(
-                PathDiscarded,
-                Connection,
-                "Removing invalid path[%hhu]",
-                Connection->Paths[i].ID);
+                    PathDiscarded,
+                    Connection,
+                    "Removing invalid path[%hhu]",
+                    Connection->Paths[i].ID);
 // arg1 = arg1 = Connection = arg1
 // arg3 = arg3 = Connection->Paths[i].ID = arg3
 ----------------------------------------------------------*/
@@ -953,42 +917,6 @@ tracepoint(CLOG_CONNECTION_C, PhaseShiftUpdated , arg1, arg3);\
 #ifndef _clog_9_ARGS_TRACE_RttUpdatedV2
 #define _clog_9_ARGS_TRACE_RttUpdatedV2(uniqueId, arg1, encoded_arg_string, arg3, arg4, arg5, arg6, arg7, arg8)\
 tracepoint(CLOG_CONNECTION_C, RttUpdatedV2 , arg1, arg3, arg4, arg5, arg6, arg7, arg8);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for NewSrcCidNameCollision
-// [conn][%p] CID collision, trying again
-// QuicTraceLogConnVerbose(
-                NewSrcCidNameCollision,
-                Connection,
-                "CID collision, trying again");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_NewSrcCidNameCollision
-#define _clog_3_ARGS_TRACE_NewSrcCidNameCollision(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, NewSrcCidNameCollision , arg1);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ZeroLengthCidRetire
-// [conn][%p] Can't retire current CID because it's zero length
-// QuicTraceLogConnVerbose(
-            ZeroLengthCidRetire,
-            Connection,
-            "Can't retire current CID because it's zero length");
-// arg1 = arg1 = Connection = arg1
-----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_ZeroLengthCidRetire
-#define _clog_3_ARGS_TRACE_ZeroLengthCidRetire(uniqueId, arg1, encoded_arg_string)\
-tracepoint(CLOG_CONNECTION_C, ZeroLengthCidRetire , arg1);\
 
 #endif
 
@@ -1377,6 +1305,60 @@ tracepoint(CLOG_CONNECTION_C, IndicatePeerNeedStreamsV2 , arg1, arg3);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for IndicatePathAdded
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_ADDED
+// QuicTraceLogConnVerbose(
+                            IndicatePathAdded,
+                            Connection,
+                            "Indicating QUIC_CONNECTION_EVENT_PATH_ADDED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathAdded
+#define _clog_3_ARGS_TRACE_IndicatePathAdded(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathAdded , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicatePathRemoved
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED
+// QuicTraceLogConnVerbose(
+                    IndicatePathRemoved,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathRemoved
+#define _clog_3_ARGS_TRACE_IndicatePathRemoved(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathRemoved , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
+// Decoder Ring for IndicatePathStatusChanged
+// [conn][%p] Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED
+// QuicTraceLogConnVerbose(
+                    IndicatePathStatusChanged,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_STATUS_CHANGED");
+// arg1 = arg1 = Connection = arg1
+----------------------------------------------------------*/
+#ifndef _clog_3_ARGS_TRACE_IndicatePathStatusChanged
+#define _clog_3_ARGS_TRACE_IndicatePathStatusChanged(uniqueId, arg1, encoded_arg_string)\
+tracepoint(CLOG_CONNECTION_C, IndicatePathStatusChanged , arg1);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for IndicatePeerAddrChanged
 // [conn][%p] Indicating QUIC_CONNECTION_EVENT_PEER_ADDRESS_CHANGED
 // QuicTraceLogConnVerbose(
@@ -1635,50 +1617,6 @@ tracepoint(CLOG_CONNECTION_C, ConnRemoteAddrAdded , arg2, arg3_len, arg3);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnDestCidAdded
-// [conn][%p] (SeqNum=%llu) New Destination CID: %!CID!
-// QuicTraceEvent(
-            ConnDestCidAdded,
-            "[conn][%p] (SeqNum=%llu) New Destination CID: %!CID!",
-            Connection,
-            Path->DestCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = Path->DestCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(Path->DestCid->CID.Length, Path->DestCid->CID.Data) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidAdded
-#define _clog_6_ARGS_TRACE_ConnDestCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-tracepoint(CLOG_CONNECTION_C, ConnDestCidAdded , arg2, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnSourceCidAdded
-// [conn][%p] (SeqNum=%llu) New Source CID: %!CID!
-// QuicTraceEvent(
-            ConnSourceCidAdded,
-            "[conn][%p] (SeqNum=%llu) New Source CID: %!CID!",
-            Connection,
-            SourceCid->CID.SequenceNumber,
-            CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = SourceCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(SourceCid->CID.Length, SourceCid->CID.Data) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ConnSourceCidAdded
-#define _clog_6_ARGS_TRACE_ConnSourceCidAdded(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-tracepoint(CLOG_CONNECTION_C, ConnSourceCidAdded , arg2, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnInitializeComplete
 // [conn][%p] Initialize complete
 // QuicTraceEvent(
@@ -1873,48 +1811,6 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeComplete , arg2);\
 
 
 /*----------------------------------------------------------
-// Decoder Ring for ConnError
-// [conn][%p] ERROR, %s.
-// QuicTraceEvent(
-                    ConnError,
-                    "[conn][%p] ERROR, %s.",
-                    Connection,
-                    "Too many CID collisions");
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = "Too many CID collisions" = arg3
-----------------------------------------------------------*/
-#ifndef _clog_4_ARGS_TRACE_ConnError
-#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
-tracepoint(CLOG_CONNECTION_C, ConnError , arg2, arg3);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
-// Decoder Ring for ConnDestCidRemoved
-// [conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!
-// QuicTraceEvent(
-        ConnDestCidRemoved,
-        "[conn][%p] (SeqNum=%llu) Removed Destination CID: %!CID!",
-        Connection,
-        DestCid->CID.SequenceNumber,
-        CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data));
-// arg2 = arg2 = Connection = arg2
-// arg3 = arg3 = DestCid->CID.SequenceNumber = arg3
-// arg4 = arg4 = CASTED_CLOG_BYTEARRAY(DestCid->CID.Length, DestCid->CID.Data) = arg4
-----------------------------------------------------------*/
-#ifndef _clog_6_ARGS_TRACE_ConnDestCidRemoved
-#define _clog_6_ARGS_TRACE_ConnDestCidRemoved(uniqueId, encoded_arg_string, arg2, arg3, arg4, arg4_len)\
-tracepoint(CLOG_CONNECTION_C, ConnDestCidRemoved , arg2, arg3, arg4_len, arg4);\
-
-#endif
-
-
-
-
-/*----------------------------------------------------------
 // Decoder Ring for ConnSetTimer
 // [conn][%p] Setting %hhu, delay=%llu us
 // QuicTraceEvent(
@@ -2064,6 +1960,26 @@ tracepoint(CLOG_CONNECTION_C, ConnErrorStatus , arg2, arg3, arg4);\
 
 
 /*----------------------------------------------------------
+// Decoder Ring for ConnError
+// [conn][%p] ERROR, %s.
+// QuicTraceEvent(
+            ConnError,
+            "[conn][%p] ERROR, %s.",
+            Connection,
+            "Invalid wildcard remote address in connection start");
+// arg2 = arg2 = Connection = arg2
+// arg3 = arg3 = "Invalid wildcard remote address in connection start" = arg3
+----------------------------------------------------------*/
+#ifndef _clog_4_ARGS_TRACE_ConnError
+#define _clog_4_ARGS_TRACE_ConnError(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, ConnError , arg2, arg3);\
+
+#endif
+
+
+
+
+/*----------------------------------------------------------
 // Decoder Ring for ConnServerResumeTicket
 // [conn][%p] Server app accepted resumption ticket
 // QuicTraceEvent(
@@ -2101,16 +2017,18 @@ tracepoint(CLOG_CONNECTION_C, ConnHandshakeStart , arg2);\
 
 /*----------------------------------------------------------
 // Decoder Ring for PacketDecrypt
-// [pack][%llu] Decrypting
+// [pack][%llu][%u] Decrypting
 // QuicTraceEvent(
             PacketDecrypt,
-            "[pack][%llu] Decrypting",
-            Packet->PacketId);
+            "[pack][%llu][%u] Decrypting",
+            Packet->PacketId,
+            Packet->PathId);
 // arg2 = arg2 = Packet->PacketId = arg2
+// arg3 = arg3 = Packet->PathId = arg3
 ----------------------------------------------------------*/
-#ifndef _clog_3_ARGS_TRACE_PacketDecrypt
-#define _clog_3_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2)\
-tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2);\
+#ifndef _clog_4_ARGS_TRACE_PacketDecrypt
+#define _clog_4_ARGS_TRACE_PacketDecrypt(uniqueId, encoded_arg_string, arg2, arg3)\
+tracepoint(CLOG_CONNECTION_C, PacketDecrypt , arg2, arg3);\
 
 #endif
 

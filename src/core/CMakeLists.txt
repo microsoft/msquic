@@ -33,6 +33,8 @@ set(SOURCES
     packet.c
     packet_builder.c
     packet_space.c
+    pathid_set.c
+    pathid.c
     path.c
     range.c
     recv_buffer.c

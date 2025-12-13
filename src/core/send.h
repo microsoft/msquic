@@ -145,6 +145,12 @@ QuicPacketTypeToEncryptLevelV2(
 #define QUIC_CONN_SEND_FLAG_ACK_FREQUENCY           0x00008000U
 #define QUIC_CONN_SEND_FLAG_BIDI_STREAMS_BLOCKED    0x00010000U
 #define QUIC_CONN_SEND_FLAG_UNI_STREAMS_BLOCKED     0x00020000U
+#define QUIC_CONN_SEND_FLAG_PATH_ABANDON            0x00040000U
+#define QUIC_CONN_SEND_FLAG_PATH_BACKUP             0x00080000U
+#define QUIC_CONN_SEND_FLAG_PATH_AVAILABLE          0x00100000U
+#define QUIC_CONN_SEND_FLAG_MAX_PATH_ID             0x00200000U
+#define QUIC_CONN_SEND_FLAG_PATHS_BLOCKED           0x00400000U
+#define QUIC_CONN_SEND_FLAG_PATH_CIDS_BLOCKED       0x00800000U
 #define QUIC_CONN_SEND_FLAG_DPLPMTUD                0x80000000U
 
 //
@@ -262,6 +268,8 @@ typedef struct QUIC_SEND {
     //
     BOOLEAN Uninitialized : 1;
 
+    BOOLEAN FlushForPacing : 1;
+
     //
     // The next packet number to use.
     //
@@ -338,6 +346,8 @@ typedef struct QUIC_SEND {
     //
     uint16_t InitialTokenLength;
 
+    QUIC_PATH* PacingPath;
+    
 } QUIC_SEND;
 
 //
