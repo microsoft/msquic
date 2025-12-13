@@ -483,6 +483,8 @@ CxPlatWorkerPoolAddRef(
     if (Result) {
         CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[RefType]);
     }
+#else
+    UNREFERENCED_PARAMETER(RefType);
 #endif
     return Result;
 }
@@ -495,6 +497,8 @@ CxPlatWorkerPoolRelease(
 {
 #if DEBUG
     CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
+#else
+    UNREFERENCED_PARAMETER(RefType);
 #endif
     CxPlatRundownRelease(&WorkerPool->Rundown);
 }
