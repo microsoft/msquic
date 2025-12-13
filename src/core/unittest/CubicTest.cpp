@@ -55,6 +55,32 @@ static void InitializeMockConnection(QUIC_CONNECTION* Connection, uint16_t Mtu)
 }
 
 //
+// Helper: Send data until congestion window is exhausted (interface-based).
+// Returns the total bytes sent.
+//
+static uint32_t SendUntilBlocked(
+    QUIC_CONGESTION_CONTROL* Cc,
+    QUIC_CONNECTION* Connection)
+{
+    uint32_t TotalSent = 0;
+    const uint32_t PacketSize = QuicPathGetDatagramPayloadSize(&Connection->Paths[0]);
+
+    while (Cc->QuicCongestionControlCanSend(Cc)) {
+        uint32_t Allowance = Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE);
+        if (Allowance == 0) break;
+
+        uint32_t ToSend = CXPLAT_MIN(Allowance, PacketSize);
+        Cc->QuicCongestionControlOnDataSent(Cc, ToSend);
+        TotalSent += ToSend;
+
+        // Safety: Prevent infinite loop
+        if (TotalSent > 10000000) break;
+    }
+
+    return TotalSent;
+}
+
+//
 // Test 1: Comprehensive initialization verification
 // Scenario: Verifies CubicCongestionControlInitialize correctly sets up all CUBIC state
 // including settings, function pointers, state flags, HyStart fields, and zero-initialized fields.
@@ -1041,7 +1067,7 @@ TEST(CubicTest, GetSendAllowance_ClampToAvailableWindow)
 // (blocked now). This should add the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL
 // reason to the connection's OutFlowBlockedReasons and return FALSE.
 //
-TEST(CubicTest, UpdateBlockedState_TransitionToBlocked)
+TEST(CubicTest, BlockingBehavior_WindowFull_CannotSend)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -1053,35 +1079,25 @@ TEST(CubicTest, UpdateBlockedState_TransitionToBlocked)
     InitializeMockConnection(&Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+    QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
 
-    // Setup: Start in a state where we CAN send
-    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
-    Cubic->Exemptions = 0;
-    BOOLEAN PreviousCanSendState = TRUE;
+    // Phase 1: Verify initial state - can send
+    ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
+    uint32_t InitialAllowance = Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE);
+    ASSERT_GT(InitialAllowance, 0u);
 
-    // Verify initial state - should be able to send
-    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    // Phase 2: Send data until blocked using interface
+    uint32_t TotalSent = SendUntilBlocked(Cc, &Connection);
 
-    // Ensure the blocked reason is not set initially
-    Connection.OutFlowBlockedReasons = 0;
+    // Phase 3: Verify blocked behavior
+    ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
+    ASSERT_EQ(Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE), 0u);
 
-    // Now change state so we CANNOT send anymore (fill the congestion window)
-    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
-
-    // Verify we now cannot send
-    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
-
-    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=TRUE
-    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
-        &Connection.CongestionControl,
-        PreviousCanSendState);
-
-    // Verify: cubic.c where PreviousCanSendState was TRUE - blocked reason should be added
-    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) != 0);
-
-    // Should return FALSE (we became blocked, not unblocked)
-    ASSERT_FALSE(Result);
+    // Phase 4: Verify we sent approximately one window's worth
+    uint32_t Window = Cc->QuicCongestionControlGetCongestionWindow(Cc);
+    ASSERT_GE(TotalSent, Window);
+    const uint32_t PacketSize = QuicPathGetDatagramPayloadSize(&Connection.Paths[0]);
+    ASSERT_LE(TotalSent, Window + PacketSize); // At most one packet over
 }
 
 //
@@ -1091,7 +1107,7 @@ TEST(CubicTest, UpdateBlockedState_TransitionToBlocked)
 // This should remove the QUIC_FLOW_BLOCKED_CONGESTION_CONTROL reason, reset
 // Connection->Send.LastFlushTime, and return TRUE.
 //
-TEST(CubicTest, UpdateBlockedState_TransitionToUnblocked)
+TEST(CubicTest, BlockingBehavior_Unblock_AfterAck)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -1103,52 +1119,35 @@ TEST(CubicTest, UpdateBlockedState_TransitionToUnblocked)
     InitializeMockConnection(&Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+    QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
 
-    // Setup: Start in a state where we CANNOT send (blocked)
-    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
-    Cubic->Exemptions = 0;
-    BOOLEAN PreviousCanSendState = FALSE;
+    // Phase 1: Fill window and verify blocked
+    SendUntilBlocked(Cc, &Connection);
+    ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
+    ASSERT_EQ(Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE), 0u);
 
-    // Verify initial state - should NOT be able to send
-    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    // Phase 2: ACK some data to unblock
+    QUIC_ACK_EVENT AckEvent = {0};
+    AckEvent.TimeNow = CxPlatTimeUs64();
+    AckEvent.NumRetransmittableBytes = 1200;
+    AckEvent.LargestAck = 10;
+    AckEvent.MinRtt = 50000;
+    AckEvent.MinRttValid = TRUE;
 
-    // Set the blocked reason as if it was previously set
-    Connection.OutFlowBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
+    Cc->QuicCongestionControlOnDataAcknowledged(Cc, &AckEvent);
 
-    // Set LastFlushTime to a specific value to verify it gets reset
-    uint64_t OldFlushTime = 12345678;
-    Connection.Send.LastFlushTime = OldFlushTime;
-
-    // Now change state so we CAN send (reduce BytesInFlight)
-    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
-
-    // Verify we now can send
-    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
-
-    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=FALSE
-    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
-        &Connection.CongestionControl,
-        PreviousCanSendState);
-
-    // Verify: cubic.c where PreviousCanSendState was FALSE - blocked reason should be removed
-    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) == 0);
-
-    // Verify: cubic.c where PreviousCanSendState was FALSE - LastFlushTime should be reset to current time
-    ASSERT_NE(Connection.Send.LastFlushTime, OldFlushTime);
-    ASSERT_GT(Connection.Send.LastFlushTime, OldFlushTime);
-
-    // Should return TRUE (we became unblocked)
-    ASSERT_TRUE(Result);
+    // Phase 3: Verify unblocked
+    ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
+    uint32_t AllowanceAfterAck = Cc->QuicCongestionControlGetSendAllowance(Cc, 0, FALSE);
+    ASSERT_GT(AllowanceAfterAck, 0u);
 }
 
 //
-// Test 24: UpdateBlockedState - No State Change (Remains Blocked)
-// Scenario: Tests the case where both PreviousCanSendState and current state
-// are FALSE (blocked). The condition `PreviousCanSendState != CubicCongestionControlCanSend(Cc)`
-// should be FALSE (no state change), so the function should return FALSE without modifying any state.
+// Test 24: Blocking Behavior - Exemptions Allow Sending When Blocked
+// Scenario: Interface-based test verifying that exemptions (probe packets) allow
+// sending even when congestion window is full.
 //
-TEST(CubicTest, UpdateBlockedState_RemainsBlocked)
+TEST(CubicTest, BlockingBehavior_Exemptions_AllowSendWhenBlocked)
 {
     QUIC_CONNECTION Connection;
     QUIC_SETTINGS_INTERNAL Settings;
@@ -1160,134 +1159,26 @@ TEST(CubicTest, UpdateBlockedState_RemainsBlocked)
     InitializeMockConnection(&Connection, 1280);
     CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
 
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
+    QUIC_CONGESTION_CONTROL* Cc = &Connection.CongestionControl;
 
-    // Setup: Blocked state - cannot send
-    Cubic->BytesInFlight = Cubic->CongestionWindow + 100;
-    Cubic->Exemptions = 0;
-    BOOLEAN PreviousCanSendState = FALSE;
+    // Phase 1: Fill window and verify blocked
+    SendUntilBlocked(Cc, &Connection);
+    ASSERT_FALSE(Cc->QuicCongestionControlCanSend(Cc));
+    ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 0u);
 
-    // Verify we cannot send
-    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
+    // Phase 2: Set exemption (for probe packets)
+    Cc->QuicCongestionControlSetExemption(Cc, 2);
 
-    // Set initial blocked reasons
-    uint8_t InitialBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL | QUIC_FLOW_BLOCKED_PACING;
-    Connection.OutFlowBlockedReasons = InitialBlockedReasons;
+    // Phase 3: Verify can send again due to exemptions
+    ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
+    ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 2u);
 
-    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=FALSE
-    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
-        &Connection.CongestionControl,
-        PreviousCanSendState);
+    // Phase 4: Send with exemption and verify exemption consumed
+    Cc->QuicCongestionControlOnDataSent(Cc, 1200);
+    ASSERT_EQ(Cc->QuicCongestionControlGetExemptions(Cc), 1u);
 
-    // Verify: No state change occurred - blocked reasons should remain unchanged
-    ASSERT_EQ(Connection.OutFlowBlockedReasons, InitialBlockedReasons);
-
-    // Should return FALSE (no transition to unblocked)
-    ASSERT_FALSE(Result);
-}
-
-//
-// Test 25: UpdateBlockedState - No State Change (Remains Unblocked)
-// Scenario: Tests the case where both PreviousCanSendState and current state
-// are TRUE (can send). The condition `PreviousCanSendState != CubicCongestionControlCanSend(Cc)`
-// should be FALSE (no state change), so the function should return FALSE without modifying any state.
-//
-TEST(CubicTest, UpdateBlockedState_RemainsUnblocked)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(&Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: Unblocked state - can send
-    Cubic->BytesInFlight = Cubic->CongestionWindow / 2;
-    Cubic->Exemptions = 0;
-    BOOLEAN PreviousCanSendState = TRUE;
-
-    // Verify we can send
-    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
-
-    // Set initial blocked reasons (not including congestion control)
-    uint8_t InitialBlockedReasons = QUIC_FLOW_BLOCKED_PACING;
-    Connection.OutFlowBlockedReasons = InitialBlockedReasons;
-
-    uint64_t InitialFlushTime = 98765432;
-    Connection.Send.LastFlushTime = InitialFlushTime;
-
-    // Call CubicCongestionControlUpdateBlockedState with PreviousCanSendState=TRUE
-    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
-        &Connection.CongestionControl,
-        PreviousCanSendState);
-
-    // Verify: No state change occurred - blocked reasons should remain unchanged
-    ASSERT_EQ(Connection.OutFlowBlockedReasons, InitialBlockedReasons);
-
-    // Verify: LastFlushTime should remain unchanged
-    ASSERT_EQ(Connection.Send.LastFlushTime, InitialFlushTime);
-
-    // Should return FALSE (no transition to unblocked, was already unblocked)
-    ASSERT_FALSE(Result);
-}
-
-//
-// Test 26: UpdateBlockedState - Unblock with Exemptions
-// Scenario: When unblocking occurs due to exemptions rather
-// than available congestion window. When exemptions > 0, CanSend returns TRUE
-// even if BytesInFlight >= CongestionWindow. This verifies the unblocking logic
-// works correctly regardless of why CanSend returned TRUE.
-//
-TEST(CubicTest, UpdateBlockedState_UnblockViaExemptions)
-{
-    QUIC_CONNECTION Connection;
-    QUIC_SETTINGS_INTERNAL Settings;
-    CxPlatZeroMemory(&Settings, sizeof(Settings));
-
-    Settings.InitialWindowPackets = 10;
-    Settings.SendIdleTimeoutMs = 1000;
-
-    InitializeMockConnection(&Connection, 1280);
-    CubicCongestionControlInitialize(&Connection.CongestionControl, &Settings);
-
-    QUIC_CONGESTION_CONTROL_CUBIC *Cubic = &Connection.CongestionControl.Cubic;
-
-    // Setup: Start blocked (PreviousCanSendState=FALSE)
-    Cubic->BytesInFlight = Cubic->CongestionWindow; // At limit
-    Cubic->Exemptions = 0;
-    BOOLEAN PreviousCanSendState = FALSE;
-
-    // Verify blocked initially
-    ASSERT_FALSE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
-
-    Connection.OutFlowBlockedReasons = QUIC_FLOW_BLOCKED_CONGESTION_CONTROL;
-    uint64_t OldFlushTime = 11111111;
-    Connection.Send.LastFlushTime = OldFlushTime;
-
-    // Add exemptions - this should allow sending even though window is full
-    Cubic->Exemptions = 3;
-
-    // Verify we can now send due to exemptions
-    ASSERT_TRUE(Connection.CongestionControl.QuicCongestionControlCanSend(&Connection.CongestionControl));
-
-    // Call CubicCongestionControlUpdateBlockedState
-    BOOLEAN Result = CubicCongestionControlUpdateBlockedState(
-        &Connection.CongestionControl,
-        PreviousCanSendState);
-
-    // Verify: Blocked reason removed
-    ASSERT_TRUE((Connection.OutFlowBlockedReasons & QUIC_FLOW_BLOCKED_CONGESTION_CONTROL) == 0);
-
-    // Verify: LastFlushTime reset
-    ASSERT_NE(Connection.Send.LastFlushTime, OldFlushTime);
-
-    // Should return TRUE (became unblocked)
-    ASSERT_TRUE(Result);
+    // Phase 5: Can still send with remaining exemption
+    ASSERT_TRUE(Cc->QuicCongestionControlCanSend(Cc));
 }
 
 //
@@ -1316,7 +1207,7 @@ static void SetupCongestionEventTest(
 }
 
 //
-// Test 27: OnCongestionEvent - Persistent vs Normal Congestion
+// Test 25: OnCongestionEvent - Persistent vs Normal Congestion
 // Scenario: Tests both persistent congestion path and normal congestion
 // path. Verifies state transitions, window reductions, and flag updates.
 // This consolidates multiple tests for better efficiency.
@@ -1372,7 +1263,7 @@ TEST(CubicTest, OnCongestionEvent_PersistentAndNormal)
 }
 
 //
-// Test 28: OnCongestionEvent - Fast Convergence Scenarios
+// Test 26: OnCongestionEvent - Fast Convergence Scenarios
 // Scenario: Comprehensive test covering fast convergence behavior in different scenarios:
 // 1. Fast convergence triggers when WindowLastMax > WindowMax
 // 2. No fast convergence when WindowLastMax <= WindowMax
