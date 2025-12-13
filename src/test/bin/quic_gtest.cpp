@@ -229,10 +229,36 @@ struct TestLoggerT {
     }
 };
 
+// Helpers to invoke a test in kernel mode through the test driver.
+
+bool InvokeTestInKernel(const std::string& name) {
+    std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST)> Buffer{};
+    QUIC_RUN_TEST_REQUEST req{};
+    name.copy(req.FunctionName, sizeof(req.FunctionName));
+
+    return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)&req, (uint32_t)sizeof(req));
+}
+
+template <class ParamType>
+bool InvokeTestInKernel(const std::string& name, const ParamType& Params) {
+        static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
+
+        // Serialize the request header and arguments
+        std::array<uint8_t, sizeof(QUIC_RUN_TEST_REQUEST) + sizeof(ParamType)> Buffer;
+        auto& req = *reinterpret_cast<QUIC_RUN_TEST_REQUEST*>(Buffer.data());
+        name.copy(req.FunctionName, sizeof(req.FunctionName));
+        req.ParameterSize = sizeof(ParamType);
+        std::copy_n(
+            reinterpret_cast<const uint8_t*>(&Params),
+            sizeof(ParamType), Buffer.data() + sizeof(QUIC_RUN_TEST_REQUEST));
+
+        return DriverClient.Run(IOCTL_QUIC_RUN_TEST, (void*)Buffer.data(), (uint32_t)Buffer.size());
+}
+
 TEST(ParameterValidation, ValidateApi) {
     TestLogger Logger("QuicTestValidateApi");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_VALIDATE_API));
+        ASSERT_TRUE(InvokeTestInKernel("QuicTestValidateApi"));
     } else {
         QuicTestValidateApi();
     }
@@ -2214,12 +2240,12 @@ TEST_P(WithReceiveResumeNoDataArgs, ReceiveResumeNoData) {
     }
 }
 
-TEST_P(WithFamilyArgs, AckSendDelay) {
+TEST_P(WithFamilyArgs2, AckSendDelay) {
     TestLogger Logger("QuicTestAckSendDelay");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_ACK_SEND_DELAY, GetParam().Family));
+        ASSERT_TRUE(InvokeTestInKernel("QuicTestAckSendDelay", GetParam()));
     } else {
-        QuicTestAckSendDelay(GetParam().Family);
+        QuicTestAckSendDelay(GetParam());
     }
 }
 
@@ -2362,33 +2388,9 @@ TEST(Misc, StreamMultiReceive) {
     }
 }
 
-bool InvokeTestInKernel(const std::string& name) {
-
-    std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST)> Buffer{};
-    QUIC_SIMPLE_TEST_RPC_REQUEST req{};
-    name.copy(req.FunctionName, sizeof(req.FunctionName));
-
-    return DriverClient.Run(IOCTL_QUIC_SIMPLE_TEST_RPC, (void*)&req, (uint32_t)sizeof(req));
-}
-
-template <class ParamType>
-bool InvokeTestInKernel(const std::string& name, const ParamType& Params) {
-        static_assert(std::is_pod_v<ParamType>, "ParamType must be POD");
-
-        std::array<uint8_t, sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST) + sizeof(ParamType)> Buffer;
-        QUIC_SIMPLE_TEST_RPC_REQUEST& req = *reinterpret_cast<QUIC_SIMPLE_TEST_RPC_REQUEST*>(Buffer.data());
-        name.copy(req.FunctionName, sizeof(req.FunctionName));
-        req.ParameterSize = sizeof(ParamType);
-        std::copy_n(reinterpret_cast<const uint8_t*>(&Params), sizeof(ParamType), Buffer.data() + sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST));
-
-        return DriverClient.Run(IOCTL_QUIC_SIMPLE_TEST_RPC, (void*)Buffer.data(), (uint32_t)Buffer.size());
-}
-
 TEST(Misc, StreamAppProvidedBuffers) {
     TestLogger Logger("StreamAppProvidedBuffers");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS));
-
         ASSERT_TRUE(InvokeTestInKernel("QuicTestStreamAppProvidedBuffers"));
     } else {
         QuicTestStreamAppProvidedBuffers();
@@ -2398,7 +2400,7 @@ TEST(Misc, StreamAppProvidedBuffers) {
 TEST(Misc, StreamAppProvidedBuffersOutOfSpace) {
     TestLogger Logger("QuicTestStreamAppProvidedBuffersOutOfSpace");
     if (TestingKernelMode) {
-        ASSERT_TRUE(DriverClient.Run(IOCTL_QUIC_RUN_STREAM_APP_PROVIDED_BUFFERS_OUT_OF_SPACE));
+        ASSERT_TRUE(InvokeTestInKernel("QuicTestStreamAppProvidedBuffersOutOfSpace"));
     } else {
         QuicTestStreamAppProvidedBuffersOutOfSpace();
     }
@@ -2610,6 +2612,11 @@ INSTANTIATE_TEST_SUITE_P(
     Basic,
     WithFamilyArgs,
     ::testing::ValuesIn(FamilyArgs::Generate()));
+
+INSTANTIATE_TEST_SUITE_P(
+    Basic,
+    WithFamilyArgs2,
+    ::testing::ValuesIn(WithFamilyArgs2::Generate()));
 
 #ifdef QUIC_TEST_DATAPATH_HOOKS_ENABLED
 

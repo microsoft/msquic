@@ -18,6 +18,8 @@ Abstract:
 #include "control.cpp.clog.h"
 #endif
 
+#include <ntdef.h>
+
 #include "msquicp.h"
 
 const MsQuicApi* MsQuic;
@@ -587,13 +589,13 @@ typedef union {
 
 // Base template providing a readable error for unsupported scenarios
 template<class... Args>
-QUIC_STATUS InvokeTestInKernel(void(Args...), const uint8_t*, uint32_t) {
+QUIC_STATUS InvokeTestFunction(void(Args...), const uint8_t*, uint32_t) {
     static_assert(false, "Only functions with no argument or one constant reference argument are supported");
 }
 
 // Specialization for functions with one const reference argument
 template<class Arg>
-QUIC_STATUS InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
+QUIC_STATUS InvokeTestFunction(void(*func)(const Arg&), const uint8_t* argBuffer, uint32_t argBufferSize) {
     if (sizeof(Arg) != argBufferSize) {
         QuicTraceEvent(
             LibraryError,
@@ -608,7 +610,8 @@ QUIC_STATUS InvokeTestInKernel(void(*func)(const Arg&), const uint8_t* argBuffer
 }
 
 // Specialization for functions with no arguments
-QUIC_STATUS InvokeTestInKernel(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
+template<>
+QUIC_STATUS InvokeTestFunction(void(*func)(), const uint8_t*, uint32_t argBufferSize) {
     if (0 != argBufferSize) {
         QuicTraceEvent(
             LibraryError,
@@ -624,7 +627,7 @@ QUIC_STATUS InvokeTestInKernel(void(*func)(), const uint8_t*, uint32_t argBuffer
 #define RegisterTestFunction(Function) \
     do { \
         if (strcmp(RpcRequest->FunctionName, #Function) == 0) { \
-            return InvokeTestInKernel( \
+            return InvokeTestFunction( \
                 Function, \
                 (const uint8_t*)(RpcRequest + 1), \
                 RpcRequest->ParameterSize); \
@@ -632,18 +635,20 @@ QUIC_STATUS InvokeTestInKernel(void(*func)(), const uint8_t*, uint32_t argBuffer
     } while (false)
 
 QUIC_STATUS
-ExecuteRpcCall(
-    _In_ QUIC_SIMPLE_TEST_RPC_REQUEST* RpcRequest
+ExecuteTestRequest(
+    _In_ QUIC_RUN_TEST_REQUEST* RpcRequest
     )
 {
     // Ensure null termination
     RpcRequest->FunctionName[255] = '\0';
 
-    // Add new test functions here
+    // Register any test functions here
+    RegisterTestFunction(QuicTestAckSendDelay);
+    RegisterTestFunction(QuicTestValidateApi);
     RegisterTestFunction(QuicTestStreamAppProvidedBuffers);
+    RegisterTestFunction(QuicTestStreamAppProvidedBuffersOutOfSpace);
 
     // Fail if no function matched
-
     QuicTraceEvent(
         LibraryError,
         "[ lib] ERROR, %s.",
@@ -694,25 +699,27 @@ QuicTestCtlEvtIoDeviceControl(
         goto Error;
     }
 
-    if (IoControlCode == IOCTL_QUIC_SIMPLE_TEST_RPC) {
-        QUIC_SIMPLE_TEST_RPC_REQUEST* RpcRequest{};
+    // For now, this IOCTL is handled separately since it has variable length input.
+    // Eventually, when all tests are migrated, it can be unified with the remaining setup IOCTLs.
+    if (IoControlCode == IOCTL_QUIC_RUN_TEST) {
+        QUIC_RUN_TEST_REQUEST* TestRequest{};
         size_t Length{};
         Status =
             WdfRequestRetrieveInputBuffer(
                 Request,
-                sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST),
-                (void**)&RpcRequest,
+                sizeof(QUIC_RUN_TEST_REQUEST),
+                reinterpret_cast<void**>(&TestRequest),
                 &Length);
         if (!NT_SUCCESS(Status)) {
             QuicTraceEvent(
                 LibraryErrorStatus,
                 "[ lib] ERROR, %u, %s.",
                 Status,
-                "WdfRequestRetrieveInputBuffer failed for RPC request");
+                "WdfRequestRetrieveInputBuffer failed for run test request");
             goto Error;
         }
 
-        if (Length < sizeof(QUIC_SIMPLE_TEST_RPC_REQUEST) + RpcRequest->ParameterSize) {
+        if (Length < sizeof(QUIC_RUN_TEST_REQUEST) + TestRequest->ParameterSize) {
             Status = STATUS_INVALID_PARAMETER;
             QuicTraceEvent(
                 LibraryError,
@@ -721,8 +728,9 @@ QuicTestCtlEvtIoDeviceControl(
             goto Error;
         }
 
+        // Invoke the test function
         Client->TestFailure = false;
-        Status = ExecuteRpcCall(RpcRequest);
+        Status = ExecuteTestRequest(TestRequest);
         if (Status == QUIC_STATUS_SUCCESS && Client->TestFailure) {
             Status = STATUS_FAIL_FAST_EXCEPTION;
         }
