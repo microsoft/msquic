@@ -19,6 +19,9 @@ struct PathTestContext {
     CxPlatEvent ShutdownEvent;
     MsQuicConnection* Connection {nullptr};
     CxPlatEvent PeerAddrChangedEvent;
+    CxPlatEvent PathAddedEvent;
+    CxPlatEvent PathRemovedEvent;
+    CxPlatEvent PeerStreamChangedEvent;
 
     static QUIC_STATUS ConnCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
         PathTestContext* Ctx = static_cast<PathTestContext*>(Context);
@@ -37,28 +40,48 @@ struct PathTestContext {
             Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
             Conn->SetSettings(Settings);
             Ctx->PeerAddrChangedEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PATH_ADDED) {
+            Ctx->PathAddedEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PATH_REMOVED) {
+            Ctx->PathRemovedEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
+            Ctx->PeerStreamChangedEvent.Set();
         }
         return QUIC_STATUS_SUCCESS;
     }
 };
 
-static
-QUIC_STATUS
-QUIC_API
-ClientCallback(
-    _In_ MsQuicConnection* /* Connection */,
-    _In_opt_ void* Context,
-    _Inout_ QUIC_CONNECTION_EVENT* Event
-    ) noexcept
-{
-    if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
-        MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
-    } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
-        CxPlatEvent* StreamCountEvent = static_cast<CxPlatEvent*>(Context);
-        StreamCountEvent->Set();
+struct PathTestClientContext {
+    CxPlatEvent HandshakeCompleteEvent;
+    CxPlatEvent ShutdownEvent;
+    MsQuicConnection* Connection {nullptr};
+    CxPlatEvent PathAddedEvent;
+    CxPlatEvent PathRemovedEvent;
+    CxPlatEvent PeerStreamChangedEvent;
+
+    static QUIC_STATUS ClientCallback(_In_ MsQuicConnection* Conn, _In_opt_ void* Context, _Inout_ QUIC_CONNECTION_EVENT* Event) {
+        PathTestClientContext* Ctx = static_cast<PathTestClientContext*>(Context);
+        Ctx->Connection = Conn;
+        if (Event->Type == QUIC_CONNECTION_EVENT_SHUTDOWN_COMPLETE) {
+            Ctx->Connection = nullptr;
+            Ctx->ShutdownEvent.Set();
+            Ctx->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_CONNECTED) {
+            Ctx->HandshakeCompleteEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PATH_ADDED) {
+            Ctx->PathAddedEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PATH_REMOVED) {
+            Ctx->PathRemovedEvent.Set();
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_PEER_STREAM_STARTED) {
+            MsQuic->StreamClose(Event->PEER_STREAM_STARTED.Stream);
+        } else if (Event->Type == QUIC_CONNECTION_EVENT_STREAMS_AVAILABLE) {
+            Ctx->PeerStreamChangedEvent.Set();
+        }
+        return QUIC_STATUS_SUCCESS;
     }
-    return QUIC_STATUS_SUCCESS;
-}
+};
 
 void
 QuicTestLocalPathChanges(
@@ -66,6 +89,7 @@ QuicTestLocalPathChanges(
     )
 {
     PathTestContext Context;
+    PathTestClientContext ClientContext;
     CxPlatEvent PeerStreamsChanged;
     MsQuicRegistration Registration{true};
     TEST_QUIC_SUCCEEDED(Registration.GetInitStatus());
@@ -86,7 +110,7 @@ QuicTestLocalPathChanges(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, CleanUpManual, PathTestClientContext::ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     TEST_QUIC_SUCCEEDED(Connection.Start(ClientConfiguration, ServerLocalAddr.GetFamily(), QUIC_TEST_LOOPBACK_FOR_AF(ServerLocalAddr.GetFamily()), ServerLocalAddr.GetPort()));
@@ -115,8 +139,8 @@ QuicTestLocalPathChanges(
         TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
         TEST_TRUE(QuicAddrCompare(&AddrHelper.New, &ServerRemoteAddr.SockAddr));
         Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
-        TEST_TRUE(PeerStreamsChanged.WaitTimeout(1500));
-        PeerStreamsChanged.Reset();
+        TEST_TRUE(ClientContext.PeerStreamChangedEvent.WaitTimeout(1500));
+        ClientContext.PeerStreamChangedEvent.Reset();
     }
 }
 
@@ -130,7 +154,7 @@ QuicTestProbePath(
     )
 {
     PathTestContext Context;
-    CxPlatEvent PeerStreamsChanged;
+    PathTestClientContext ClientContext;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -157,7 +181,7 @@ QuicTestProbePath(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, CleanUpManual, PathTestClientContext::ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     if (ShareBinding) {
@@ -221,7 +245,7 @@ QuicTestMigration(
     )
 {
     PathTestContext Context;
-    CxPlatEvent PeerStreamsChanged;
+    PathTestClientContext ClientContext;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -239,7 +263,7 @@ QuicTestMigration(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, PathTestClientContext::ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     if (ShareBinding) {
@@ -331,7 +355,7 @@ QuicTestMigration(
     TEST_QUIC_SUCCEEDED(Context.Connection->GetRemoteAddr(ServerRemoteAddr));
     TEST_TRUE(QuicAddrCompare(&SecondLocalAddr.SockAddr, &ServerRemoteAddr.SockAddr));
     Connection.SetSettings(MsQuicSettings{}.SetKeepAlive(0));
-    TEST_TRUE(PeerStreamsChanged.WaitTimeout(1500));
+    TEST_TRUE(ClientContext.PeerStreamChangedEvent.WaitTimeout(1500));
 }
 
 void
@@ -343,7 +367,7 @@ QuicTestMultipleLocalAddresses(
     )
 {
     PathTestContext Context;
-    CxPlatEvent PeerStreamsChanged;
+    PathTestClientContext ClientContext;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -370,7 +394,7 @@ QuicTestMultipleLocalAddresses(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, CleanUpManual, PathTestClientContext::ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     if (ShareBinding) {
@@ -428,7 +452,7 @@ QuicTestMultipath(
     )
 {
     PathTestContext Context;
-    CxPlatEvent PeerStreamsChanged;
+    PathTestClientContext ClientContext;
     MsQuicRegistration Registration(true);
     TEST_TRUE(Registration.IsValid());
 
@@ -453,7 +477,7 @@ QuicTestMultipath(
     TEST_QUIC_SUCCEEDED(Listener.Start("MsQuicTest", &ServerLocalAddr.SockAddr));
     TEST_QUIC_SUCCEEDED(Listener.GetLocalAddr(ServerLocalAddr));
 
-    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, ClientCallback, &PeerStreamsChanged);
+    MsQuicConnection Connection(Registration, MsQuicCleanUpMode::CleanUpManual, PathTestClientContext::ClientCallback, &ClientContext);
     TEST_QUIC_SUCCEEDED(Connection.GetInitStatus());
 
     Connection.SetShareUdpBinding();
@@ -465,7 +489,8 @@ QuicTestMultipath(
     TEST_TRUE(Context.HandshakeCompleteEvent.WaitTimeout(TestWaitTimeout));
     TEST_NOT_EQUAL(nullptr, Context.Connection);
 
-    QuicAddr SecondLocalAddr;
+    QuicAddr FirstLocalAddr, SecondLocalAddr;
+    TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(FirstLocalAddr));
     TEST_QUIC_SUCCEEDED(Connection.GetLocalAddr(SecondLocalAddr));
     SecondLocalAddr.IncrementPort();
 
@@ -500,19 +525,31 @@ QuicTestMultipath(
             &Stats));
     TEST_EQUAL(Stats.RecvDroppedPackets, 0);
 
-    // TEST_QUIC_SUCCEEDED(
-    //     Connection.SetParam(
-    //         QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
-    //         sizeof(SecondLocalAddr.SockAddr),
-    //         &SecondLocalAddr.SockAddr));
+    TEST_TRUE(Context.PathAddedEvent.WaitTimeout(1500));
+    TEST_TRUE(ClientContext.PathAddedEvent.WaitTimeout(1500));
+    
+    TEST_QUIC_SUCCEEDED(
+        Connection.SetParam(
+            QUIC_PARAM_CONN_REMOVE_LOCAL_ADDRESS,
+            sizeof(FirstLocalAddr.SockAddr),
+            &FirstLocalAddr.SockAddr));
 
-    // BOOLEAN ReplaceExistingCids = TRUE;
-    // TEST_QUIC_SUCCEEDED(
-    //     Context.Connection->SetParam(
-    //         QUIC_PARAM_CONN_GENERATE_CONN_ID,
-    //         sizeof(ReplaceExistingCids),
-    //         &ReplaceExistingCids));
+    TEST_TRUE(Context.PathRemovedEvent.WaitTimeout(1500));
 
-    CxPlatSleep(5000);
+    MsQuicSettings Settings;
+    Context.Connection->GetSettings(&Settings);
+    Settings.IsSetFlags = 0;
+    Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
+    Context.Connection->SetSettings(Settings);
+
+    TEST_TRUE(ClientContext.PeerStreamChangedEvent.WaitTimeout(1500));
+
+    Connection.GetSettings(&Settings);
+    Settings.IsSetFlags = 0;
+    Settings.SetPeerBidiStreamCount(Settings.PeerBidiStreamCount + 1);
+    Connection.SetSettings(Settings);
+
+    TEST_TRUE(Context.PeerStreamChangedEvent.WaitTimeout(1500));
+
 }
 #endif
