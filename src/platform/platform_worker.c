@@ -108,6 +108,16 @@ typedef struct CXPLAT_WORKER_POOL {
 
     CXPLAT_RUNDOWN_REF Rundown;
     uint32_t WorkerCount;
+
+#if DEBUG
+    //
+    // Detailed ref counts.
+    // Note: These ref counts are biased by 1, so lowest they go is 1. It is an
+    // error for them to ever be zero.
+    //
+    CXPLAT_REF_COUNT RefTypeBiasedCount[CXPLAT_WORKER_POOL_REF_COUNT];
+#endif
+
     CXPLAT_WORKER Workers[0];
 
 } CXPLAT_WORKER_POOL;
@@ -333,6 +343,10 @@ CxPlatWorkerPoolCreate(
     }
 
     CxPlatRundownInitialize(&WorkerPool->Rundown);
+#if DEBUG
+    CxPlatRefInitializeMultiple(WorkerPool->RefTypeBiasedCount, CXPLAT_WORKER_POOL_REF_COUNT);
+    CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[CXPLAT_WORKER_POOL_REF_LIBRARY]);
+#endif
 
     return WorkerPool;
 
@@ -398,6 +412,11 @@ CxPlatWorkerPoolCreateExternal(
 
     CxPlatRundownInitialize(&WorkerPool->Rundown);
 
+#if DEBUG
+    CxPlatRefInitializeMultiple(WorkerPool->RefTypeBiasedCount, CXPLAT_WORKER_POOL_REF_COUNT);
+    CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[CXPLAT_WORKER_POOL_REF_EXTERNAL]);
+#endif
+
     return WorkerPool;
 
 Error:
@@ -417,11 +436,23 @@ Error:
 
 void
 CxPlatWorkerPoolDelete(
-    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool
+    _In_opt_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL_REF RefType
     )
 {
     if (WorkerPool != NULL) {
+#if DEBUG
+        CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
+#else
+        UNREFERENCED_PARAMETER(RefType);
+#endif
         CxPlatRundownReleaseAndWait(&WorkerPool->Rundown);
+
+#if DEBUG
+        for (uint32_t i = 0; i < CXPLAT_WORKER_POOL_REF_COUNT; i++) {
+            CXPLAT_TEL_ASSERT(WorkerPool->RefTypeBiasedCount[i] == 1);
+        }
+#endif
 
         for (uint32_t i = 0; i < WorkerPool->WorkerCount; ++i) {
             CXPLAT_WORKER* Worker = &WorkerPool->Workers[i];
@@ -443,17 +474,28 @@ CxPlatWorkerPoolGetCount(
 
 BOOLEAN
 CxPlatWorkerPoolAddRef(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL_REF RefType
     )
 {
-    return CxPlatRundownAcquire(&WorkerPool->Rundown);
+    BOOLEAN Result = CxPlatRundownAcquire(&WorkerPool->Rundown);
+#if DEBUG
+    if (Result) {
+        CxPlatRefIncrement(&WorkerPool->RefTypeBiasedCount[RefType]);
+    }
+#endif
+    return Result;
 }
 
 void
 CxPlatWorkerPoolRelease(
-    _In_ CXPLAT_WORKER_POOL* WorkerPool
+    _In_ CXPLAT_WORKER_POOL* WorkerPool,
+    _In_ CXPLAT_WORKER_POOL_REF RefType
     )
 {
+#if DEBUG
+    CXPLAT_DBG_ASSERT(!CxPlatRefDecrement(&WorkerPool->RefTypeBiasedCount[RefType]));
+#endif
     CxPlatRundownRelease(&WorkerPool->Rundown);
 }
 

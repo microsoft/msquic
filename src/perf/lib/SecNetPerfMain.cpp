@@ -313,7 +313,7 @@ QuicMainStart(
     Status = CxPlatDataPathInitialize(0, &DatapathCallbacks, &TcpEngine::TcpCallbacks, WorkerPool, &InitConfig, &Datapath);
     if (QUIC_FAILED(Status)) {
 #ifndef _KERNEL_MODE
-        CxPlatWorkerPoolDelete(WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
 #endif
         WriteOutput("Datapath for shutdown failed to initialize: %d\n", Status);
         return Status;
@@ -359,7 +359,7 @@ QuicMainFree(
     if (Datapath) {
         CxPlatDataPathUninitialize(Datapath);
 #ifndef _KERNEL_MODE
-        CxPlatWorkerPoolDelete(WorkerPool);
+        CxPlatWorkerPoolDelete(WorkerPool, CXPLAT_WORKER_POOL_REF_LIBRARY);
 #endif
         Datapath = nullptr;
     }
