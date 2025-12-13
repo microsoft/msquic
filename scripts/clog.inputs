@@ -109,6 +109,7 @@
 ../src/core/unittest/SlidingWindowExtremumTest.cpp
 ../src/core/unittest/RangeTest.cpp
 ../src/core/unittest/RecvBufferTest.cpp
+../src/core/unittest/CubicTest.cpp
 ../src/core/unittest/VarIntTest.cpp
 ../src/core/unittest/CMakeLists.txt
 ../src/core/unittest/FrameTest.cpp
