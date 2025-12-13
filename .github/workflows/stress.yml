@@ -125,8 +125,6 @@ jobs:
         Invoke-WebRequest -Uri "https://download.sysinternals.com/files/Procdump.zip" -OutFile "$env:TEMP\Procdump.zip"
         Expand-Archive -Path "$env:TEMP\Procdump.zip" -DestinationPath "C:\Tools\procdump" -Force
         Write-Host "ProcDump installed to C:\Tools\procdump"
-        & "C:\Tools\procdump\procdump.exe" -accepteula | Out-Null
-        Write-Host "ProcDump ready (EULA accepted)"
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
