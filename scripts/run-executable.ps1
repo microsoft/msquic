@@ -231,12 +231,57 @@ function Start-Executable {
             $pinfo.FileName = $Path
             $pinfo.Arguments = $Arguments
             # Enable WER dump collection.
-            Write-Host "================= Setting WER dump registry ================"
-            New-Item -Path $WerDumpRegPath -Force
-            Write-Host "============================================================"
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force
-            Write-Host "============================================================"
-            New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force
+            try {
+                # Ensure WER service is running
+                $werService = Get-Service WerSvc
+                Write-Host "WER Service Status: $($werService.Status)"
+                if ($werService.Status -ne 'Running') {
+                    Write-Host "Starting Windows Error Reporting service..."
+                    Start-Service WerSvc
+                    Start-Sleep -Seconds 1
+                    $werService = Get-Service WerSvc
+                    Write-Host "WER service is now: $($werService.Status)"
+                }
+
+                # Remove any existing key to start fresh
+                if (Test-Path $WerDumpRegPath) {
+                    Write-Host "Removing existing registry key..."
+                    Remove-Item -Path $WerDumpRegPath -Recurse -Force
+                }
+
+                Write-Host "Creating registry key: $WerDumpRegPath"
+                $regKey = New-Item -Path $WerDumpRegPath -Force
+                Write-Host "Registry key created: $($regKey.PSChildName)"
+
+                $prop1 = New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force
+                Write-Host "Set DumpType = $($prop1.DumpType) (2 = Full dump)"
+
+                $prop2 = New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force
+                Write-Host "Set DumpFolder = $($prop2.DumpFolder)"
+
+                # Also set DumpCount to ensure multiple dumps can be collected
+                $prop3 = New-ItemProperty -Path $WerDumpRegPath -Name DumpCount -PropertyType DWord -Value 10 -Force
+                Write-Host "Set DumpCount = $($prop3.DumpCount)"
+
+                # Check global WER settings that might disable dumps
+                $werKey = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting"
+                if (Test-Path $werKey) {
+                    $werDisabled = Get-ItemProperty -Path $werKey -Name Disabled -ErrorAction SilentlyContinue
+                    if ($werDisabled -and $werDisabled.Disabled -eq 1) {
+                        Write-Warning "WER is globally disabled! Dumps will NOT be collected."
+                        Write-Warning "To enable: Set-ItemProperty -Path '$werKey' -Name Disabled -Value 0"
+                    } else {
+                        Write-Host "WER is globally enabled"
+                    }
+                }
+
+                Write-Host "`nCrash dumps will be saved to: $LogDir"
+                Write-Host "Waiting for process crash...`n"
+
+            } catch {
+                Write-Warning "Failed to configure WER dump collection: $_"
+                Write-Warning "You may need to run as Administrator to start WER service and collect dumps"
+            }
         }
     } else {
         if ($Debugger) {
@@ -387,16 +432,51 @@ function Wait-Executable($Exe) {
             LogErr "Process had nonzero exit code: $($Exe.Process.ExitCode)"
             $KeepOutput = $true
         }
-        # Wait up to 30 seconds for files to appear in $LogDir if $AZP is set.
-        if ($AZP) {
-            $Elapsed = 0
-            $Timeout = 30
-            while ($Elapsed -lt $Timeout -and (Get-ChildItem -Path $LogDir | Measure-Object).Count -eq 0) {
-                Start-Sleep -Seconds 1
-                $Elapsed++
+
+        # WER takes time to write dumps after process exits - always wait a bit
+        Write-Host "Waiting for WER to write crash dump files..."
+        Start-Sleep -Seconds 5
+
+        # Wait up to 30 seconds for dump files to appear
+        $Elapsed = 0
+        $Timeout = 30
+        $dumpFound = $false
+        while ($Elapsed -lt $Timeout) {
+            $fileCount = (Get-ChildItem -Path $LogDir -ErrorAction SilentlyContinue | Measure-Object).Count
+            Write-Host "[$Elapsed s] Files in log dir: $fileCount"
+            if ($fileCount -gt 0) {
+                $dumpFound = $true
+                break
+            }
+            Start-Sleep -Seconds 1
+            $Elapsed++
+        }
+
+        if (!$dumpFound) {
+            Write-Warning "No dump files appeared after $Timeout seconds"
+            Write-Warning "Checking common WER dump locations..."
+
+            # Check default WER locations
+            $defaultLocations = @(
+                "$env:LOCALAPPDATA\CrashDumps",
+                "$env:LOCALAPPDATA\Microsoft\Windows\WER\ReportQueue",
+                "$env:ProgramData\Microsoft\Windows\WER\ReportQueue",
+                "C:\ProgramData\Microsoft\Windows\WER\ReportQueue"
+            )
+
+            foreach ($loc in $defaultLocations) {
+                if (Test-Path $loc) {
+                    $recentDumps = Get-ChildItem -Path $loc -Recurse -Include "*.dmp" -ErrorAction SilentlyContinue |
+                                   Where-Object { $_.LastWriteTime -gt (Get-Date).AddMinutes(-5) }
+                    if ($recentDumps) {
+                        Write-Warning "Found recent dumps in $loc :"
+                        $recentDumps | ForEach-Object { Write-Warning "  - $($_.FullName)" }
+                    }
+                }
             }
         }
-        $DumpFiles = (Get-ChildItem $LogDir) | Where-Object { $_.Extension -eq ".dmp" }
+
+        $DumpFiles = (Get-ChildItem $LogDir -ErrorAction SilentlyContinue) | Where-Object { $_.Extension -eq ".dmp" }
         if ($DumpFiles) {
             LogErr "Dump file(s) generated"
             foreach ($File in $DumpFiles) {
@@ -486,11 +566,6 @@ function Wait-Executable($Exe) {
             Remove-Item $LogDir -Recurse -Force | Out-Null
         }
     }
-}
-
-# Initialize WER dump registry key if necessary.
-if ($IsWindows -and !(Test-Path $WerDumpRegPath) -and (Test-Administrator)) {
-    New-Item -Path $WerDumpRegPath -Force | Out-Null
 }
 
 # Start the executable, wait for it to complete and then generate any output.
