@@ -74,6 +74,19 @@ class WithFamilyArgs : public testing::Test,
     public testing::WithParamInterface<FamilyArgs> {
 };
 
+struct WithFamilyArgs2 :
+    public testing::Test,
+    public testing::WithParamInterface<FamilyArgs2> {
+
+    static ::std::vector<FamilyArgs2> Generate() {
+        return {{4}, {6}};
+    }
+};
+
+std::ostream& operator << (std::ostream& o, const FamilyArgs2& args) {
+    return o << (args.Family == 4 ? "v4" : "v6");
+}
+
 struct HandshakeArgs1 {
     int Family;
     bool ServerStatelessRetry;

@@ -2346,9 +2346,11 @@ private:
 
 void
 QuicTestAckSendDelay(
-    _In_ int Family
+    const FamilyArgs2& Params
     )
 {
+    int Family = Params.Family;
+
     //
     // Validates that a server eventually sends acks in response to a non-ack eliciting packet.
     //
