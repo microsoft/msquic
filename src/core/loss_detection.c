@@ -649,6 +649,18 @@ QuicLossDetectionOnPacketAcknowledged(
             CXPLAT_DBG_ASSERT(!FatalError);
             if (PathID != NULL) {
                 PathID->Path->LocalCloseAcked = TRUE;
+
+                QUIC_CONNECTION_EVENT Event;
+                Event.Type = QUIC_CONNECTION_EVENT_PATH_REMOVED;
+                Event.PATH_REMOVED.PeerAddress = &PathID->Path->Route.RemoteAddress;
+                Event.PATH_REMOVED.LocalAddress = &PathID->Path->Route.LocalAddress;
+                Event.PATH_REMOVED.PathId = PathID->ID;
+                QuicTraceLogConnVerbose(
+                    IndicatePathRemoved,
+                    Connection,
+                    "Indicating QUIC_CONNECTION_EVENT_PATH_REMOVED");
+                (void)QuicConnIndicateEvent(Connection, &Event);
+
                 if (PathID->Path->RemoteClose) {
                     PathID->Flags.Abandoned = TRUE;
                     QuicPathIDSetTryFreePathID(&Connection->PathIDs, PathID);

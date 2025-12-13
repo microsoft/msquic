@@ -535,6 +535,7 @@ QuicTestMultipath(
             &FirstLocalAddr.SockAddr));
 
     TEST_TRUE(Context.PathRemovedEvent.WaitTimeout(1500));
+    TEST_TRUE(ClientContext.PathRemovedEvent.WaitTimeout(1500));
 
     MsQuicSettings Settings;
     Context.Connection->GetSettings(&Settings);
