@@ -228,59 +228,82 @@ function Start-Executable {
             $pinfo.WorkingDirectory = $LogDir
         } else {
             Write-Host "Configuring process to collect crash dumps to $LogDir"
-            $pinfo.FileName = $Path
-            $pinfo.Arguments = $Arguments
-            # Enable WER dump collection.
-            try {
-                # Ensure WER service is running
-                $werService = Get-Service WerSvc
-                Write-Host "WER Service Status: $($werService.Status)"
-                if ($werService.Status -ne 'Running') {
-                    Write-Host "Starting Windows Error Reporting service..."
-                    Start-Service WerSvc
-                    Start-Sleep -Seconds 1
-                    $werService = Get-Service WerSvc
-                    Write-Host "WER service is now: $($werService.Status)"
+
+            # Check if ProcDump is available (better for CI environments)
+            $useProcDump = $false
+            $procDumpPath = $null
+
+            # Check common ProcDump locations
+            $procDumpLocations = @(
+                "C:\ProgramData\chocolatey\bin\procdump.exe",
+                "C:\Windows\System32\procdump.exe",
+                "C:\Tools\procdump\procdump.exe",
+                "$env:ProgramFiles\SysinternalsSuite\procdump.exe"
+            )
+
+            foreach ($loc in $procDumpLocations) {
+                if (Test-Path $loc) {
+                    $procDumpPath = $loc
+                    $useProcDump = $true
+                    Write-Host "Found ProcDump at: $procDumpPath"
+                    break
                 }
+            }
 
-                # Remove any existing key to start fresh
-                if (Test-Path $WerDumpRegPath) {
-                    Write-Host "Removing existing registry key..."
-                    Remove-Item -Path $WerDumpRegPath -Recurse -Force
+            # Also check if it's in PATH
+            if (!$useProcDump) {
+                $procDumpInPath = Get-Command procdump.exe -ErrorAction SilentlyContinue
+                if ($procDumpInPath) {
+                    $procDumpPath = $procDumpInPath.Source
+                    $useProcDump = $true
+                    Write-Host "Found ProcDump in PATH: $procDumpPath"
                 }
+            }
 
-                Write-Host "Creating registry key: $WerDumpRegPath"
-                $regKey = New-Item -Path $WerDumpRegPath -Force
-                Write-Host "Registry key created: $($regKey.PSChildName)"
+            if ($useProcDump) {
+                Write-Host "Using ProcDump for crash dump collection (more reliable in CI)"
+                # ProcDump will monitor the process and create dumps on crash
+                # -ma = full dump, -e = dump on unhandled exception, -accepteula = auto-accept EULA
+                $pinfo.FileName = $procDumpPath
+                $pinfo.Arguments = "-ma -e -accepteula -t `"$LogDir`" `"$Path`" $Arguments"
+            } else {
+                Write-Host "ProcDump not found, using WER for crash dump collection"
+                $pinfo.FileName = $Path
+                $pinfo.Arguments = $Arguments
 
-                $prop1 = New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force
-                Write-Host "Set DumpType = $($prop1.DumpType) (2 = Full dump)"
-
-                $prop2 = New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force
-                Write-Host "Set DumpFolder = $($prop2.DumpFolder)"
-
-                # Also set DumpCount to ensure multiple dumps can be collected
-                $prop3 = New-ItemProperty -Path $WerDumpRegPath -Name DumpCount -PropertyType DWord -Value 10 -Force
-                Write-Host "Set DumpCount = $($prop3.DumpCount)"
-
-                # Check global WER settings that might disable dumps
-                $werKey = "HKLM:\SOFTWARE\Microsoft\Windows\Windows Error Reporting"
-                if (Test-Path $werKey) {
-                    $werDisabled = Get-ItemProperty -Path $werKey -Name Disabled -ErrorAction SilentlyContinue
-                    if ($werDisabled -and $werDisabled.Disabled -eq 1) {
-                        Write-Warning "WER is globally disabled! Dumps will NOT be collected."
-                        Write-Warning "To enable: Set-ItemProperty -Path '$werKey' -Name Disabled -Value 0"
-                    } else {
-                        Write-Host "WER is globally enabled"
+                # Enable WER dump collection as fallback
+                try {
+                    # Ensure WER service is running
+                    $werService = Get-Service WerSvc -ErrorAction SilentlyContinue
+                    if ($werService) {
+                        Write-Host "WER Service Status: $($werService.Status)"
+                        if ($werService.Status -ne 'Running') {
+                            Write-Host "Starting Windows Error Reporting service..."
+                            Start-Service WerSvc
+                            Start-Sleep -Seconds 1
+                            $werService = Get-Service WerSvc
+                            Write-Host "WER service is now: $($werService.Status)"
+                        }
                     }
+
+                    # Remove any existing key to start fresh
+                    if (Test-Path $WerDumpRegPath) {
+                        Remove-Item -Path $WerDumpRegPath -Recurse -Force | Out-Null
+                    }
+
+                    $regKey = New-Item -Path $WerDumpRegPath -Force
+                    Write-Host "Created registry key: $($regKey.PSChildName)"
+
+                    New-ItemProperty -Path $WerDumpRegPath -Name DumpType -PropertyType DWord -Value 2 -Force | Out-Null
+                    New-ItemProperty -Path $WerDumpRegPath -Name DumpFolder -PropertyType ExpandString -Value $LogDir -Force | Out-Null
+                    New-ItemProperty -Path $WerDumpRegPath -Name DumpCount -PropertyType DWord -Value 10 -Force | Out-Null
+
+                    Write-Host "WER configured to save dumps to: $LogDir"
+
+                } catch {
+                    Write-Warning "Failed to configure WER dump collection: $_"
+                    Write-Warning "Dumps may not be collected. Consider installing ProcDump for CI environments."
                 }
-
-                Write-Host "`nCrash dumps will be saved to: $LogDir"
-                Write-Host "Waiting for process crash...`n"
-
-            } catch {
-                Write-Warning "Failed to configure WER dump collection: $_"
-                Write-Warning "You may need to run as Administrator to start WER service and collect dumps"
             }
         }
     } else {
@@ -433,20 +456,23 @@ function Wait-Executable($Exe) {
             $KeepOutput = $true
         }
 
-        # WER takes time to write dumps after process exits - always wait a bit
-        Write-Host "Waiting for WER to write crash dump files..."
-        Start-Sleep -Seconds 5
+        # Check for dump files - ProcDump writes immediately, WER may take time
+        Write-Host "Checking for crash dump files..."
+        Start-Sleep -Seconds 2
 
-        # Wait up to 30 seconds for dump files to appear
+        # Wait up to 15 seconds for dump files to appear
         $Elapsed = 0
-        $Timeout = 30
+        $Timeout = 15
         $dumpFound = $false
         while ($Elapsed -lt $Timeout) {
-            $fileCount = (Get-ChildItem -Path $LogDir -ErrorAction SilentlyContinue | Measure-Object).Count
-            Write-Host "[$Elapsed s] Files in log dir: $fileCount"
-            if ($fileCount -gt 0) {
+            $dumpFiles = Get-ChildItem -Path $LogDir -Filter "*.dmp" -ErrorAction SilentlyContinue
+            if ($dumpFiles -and $dumpFiles.Count -gt 0) {
+                Write-Host "Found $($dumpFiles.Count) dump file(s)!"
                 $dumpFound = $true
                 break
+            }
+            if ($Elapsed -eq 0 -or $Elapsed % 5 -eq 0) {
+                Write-Host "[$Elapsed s] Waiting for dump files..."
             }
             Start-Sleep -Seconds 1
             $Elapsed++

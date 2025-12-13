@@ -116,6 +116,14 @@ jobs:
     - name: Prepare Machine
       run: scripts/prepare-machine.ps1 -Tls ${{ matrix.vec.tls }} -ForTest ${{ matrix.vec.xdp }}
       shell: pwsh
+    - name: Install ProcDump for crash dump collection
+      if: matrix.vec.plat == 'windows'
+      shell: pwsh
+      run: |
+        Write-Host "Installing ProcDump via Chocolatey..."
+        choco install procdump -y
+        procdump.exe -accepteula
+        Write-Host "ProcDump installed successfully"
     - name: spinquic (PR)
       if: github.event_name == 'pull_request'
       timeout-minutes: 15
